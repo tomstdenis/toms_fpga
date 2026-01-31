@@ -5,7 +5,10 @@ module top
     input rx_pin,
     output tx_pin
 );
-    wire [15:0] uart_baud_div = 16'd234; // at 27MHz this results in 115200 baud
+    wire [15:0] uart_baud_div = 16'd1084; // 115,200 baud @ 124.875MHz with the PLL (I'm using the PLL for no reason other than to use it...)
+    wire pll_clk;
+
+    Gowin_rPLL pll(.clkout(pll_clk), .clkin(clk));
 
 `ifdef USE_HEX_LOGGER
     // --- HEX LOGGER MODE ---
@@ -15,7 +18,7 @@ module top
     reg [31:0]  counter = 0;
 
     uart_hex_logger logger (
-        .clk(clk),
+        .clk(pll_clk),
         .baud_div(uart_baud_div),
         .trigger(log_trigger),
         .hex_val(debug_val),
@@ -23,7 +26,7 @@ module top
         .busy(log_busy)
     );
 
-    always @(posedge clk) begin
+    always @(posedge pll_clk) begin
         counter <= counter + 1;
         if (counter[23]) begin
              log_trigger <= 1'b1;

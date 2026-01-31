@@ -8,9 +8,11 @@ module top
     output reg cs,  // Pin 26
     output [1:0]led      // Pin 15/16
 );
-    
+    wire pll_clk;
+    Gowin_rPLL pllclk (.clkin(clk), .clkout(pll_clk));
+
     // Clock math
-    wire [15:0] baud_div = 16'd1; 
+    wire [15:0] baud_div = 16'd2; // should be 56.25MHz SPI with a 225MHz clk 
     reg [31:0] counter = 0;
     reg fcnt = 0;
 
@@ -30,7 +32,7 @@ module top
 
     // --- Master Instance ---
     spi_master master (
-        .clk(clk),
+        .clk(pll_clk),
         .baud_div(baud_div),
         .miso_pin(slave_miso), // Internal loopback connection
         .CPHA(1'b0),
@@ -45,7 +47,7 @@ module top
 
     // --- Slave Instance ---
     spi_slave slave (
-        .sclk(sclk),           // Wired internally
+        .sclk(pll_clk),           // Wired internally
         .mosi(mosi),           // Wired internally
         .miso(slave_miso),     // Wired internally
         .cs(cs),               // Wired internally
@@ -55,7 +57,7 @@ module top
     );
 
     // --- Control Logic ---
-    always @(posedge clk) begin
+    always @(posedge pll_clk) begin
         counter <= counter + 1'b1;
         fcnt <= counter[25];
 
