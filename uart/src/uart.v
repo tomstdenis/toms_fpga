@@ -160,6 +160,7 @@ module tx_uart
     end
 endmodule
 
+// half/full duplex serial transmit/recieve with FIFO
 module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1)
 (
     input clk,                      // main clock
@@ -303,6 +304,8 @@ module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1)
     endgenerate
 endmodule
 
+
+// Simple TX only module that lets you trivially fling out a 16-bit HEX code that can be used to log where in the design you are.
 module uart_hex_logger
 (
     input clk,
@@ -318,7 +321,7 @@ module uart_hex_logger
     wire       tx_fifo_full;
 
     // Instantiate your existing UART
-    uart #(.FIFO_DEPTH(4), .RX_ENABLE(0)) logger_uart (
+    uart #(.FIFO_DEPTH(8), .RX_ENABLE(0)) logger_uart (
         .clk(clk),
         .baud_div(baud_div),
         .uart_tx_start(tx_start),
