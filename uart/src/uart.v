@@ -175,7 +175,6 @@ module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1)
     output [7:0] uart_rx_byte       // (out) the RX byte
 );
     // note: things starting with uart_ are input/outputs to this module (other than clk)
-
     generate
         if (TX_ENABLE) begin : tx_gen
             // local TX state 
@@ -186,6 +185,7 @@ module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1)
             wire tx_started;
             reg [$clog2(FIFO_DEPTH)-1:0] tx_fifo_wptr;
             reg [$clog2(FIFO_DEPTH)-1:0] tx_fifo_rptr;
+            reg [$clog2(FIFO_DEPTH):0] tx_fifo_cnt;
 
             // instantiate a transmitter and a receiver
             tx_uart txuart (
@@ -202,30 +202,40 @@ module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1)
                 tx_start = 0;
                 tx_fifo_wptr = 0;
                 tx_fifo_rptr = 0;
+                tx_fifo_cnt = 0;
             end
 
             // Output signals are combinatorial
-            assign uart_tx_fifo_full = ((tx_fifo_wptr + 1) == tx_fifo_rptr);
+            assign uart_tx_fifo_full = (tx_fifo_cnt == FIFO_DEPTH);
 
             always @(posedge clk) begin
                 // ===== TX =====
-                if (uart_tx_start && !uart_tx_fifo_full) begin
-                    // user wants to transmit a byte and the fifo isn't full so store it in the fifo
-                    tx_fifo[tx_fifo_wptr] <= uart_tx_data_in;
-                    tx_fifo_wptr <= tx_fifo_wptr + 1'd1;
-                end
-
                 // if the transmitter started acknowledge it by stop requesting a transmit (otherwise it'll keep transmitting the same byte)
                 if (tx_started) begin
                     tx_start <= 1'b0;
                 end
 
-                // if the transmission is done, and we haven't yet queued up a byte and there is a byte to send...
-                if (tx_done && (tx_fifo_wptr != tx_fifo_rptr) && !tx_start) begin
+                if (uart_tx_start && !uart_tx_fifo_full) begin
+                    // user wants to transmit a byte and the fifo isn't full so store it in the fifo
+                    tx_fifo[tx_fifo_wptr] <= uart_tx_data_in;
+                    tx_fifo_wptr <= tx_fifo_wptr + 1'd1;
+                end 
+                if (tx_done && (tx_fifo_cnt > 0) && !tx_start && !tx_started) begin
+                    // if the transmission is done, and we haven't yet queued up a byte and there is a byte to send...
                     tx_send <= tx_fifo[tx_fifo_rptr]; 
                     tx_fifo_rptr <= tx_fifo_rptr + 1'd1;
                     tx_start <= 1'b1;
                 end
+
+                if ((uart_tx_start && !uart_tx_fifo_full) && (tx_done && tx_fifo_cnt > 0 && !tx_start && !tx_started)) begin
+                    // Doing both at once: count stays the same
+                    tx_fifo_cnt <= tx_fifo_cnt; 
+                end else if (uart_tx_start && !uart_tx_fifo_full) begin
+                    tx_fifo_cnt <= tx_fifo_cnt + 1'd1;
+                end else if (tx_done && tx_fifo_cnt != 0 && !tx_start) begin
+                    tx_fifo_cnt <= tx_fifo_cnt - 1'd1;
+                end
+
             end
         end else begin :tx_stub
             assign uart_tx_pin = 1'b1;
@@ -243,6 +253,7 @@ module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1)
             wire rx_done;
             wire [7:0] rx_byte;
             reg [1:0] rx_sync_pipe;
+
             assign uart_rx_ready = (rx_fifo_wptr != rx_fifo_rptr);
             assign uart_rx_byte = rx_fifo[rx_fifo_rptr];
 
@@ -307,7 +318,7 @@ module uart_hex_logger
     wire       tx_fifo_full;
 
     // Instantiate your existing UART
-    uart #(.FIFO_DEPTH(16), .RX_ENABLE(0)) logger_uart (
+    uart #(.FIFO_DEPTH(4), .RX_ENABLE(0)) logger_uart (
         .clk(clk),
         .baud_div(baud_div),
         .uart_tx_start(tx_start),
@@ -320,7 +331,7 @@ module uart_hex_logger
     reg [2:0] digit_count; // 0 to 4 (4 digits + maybe a space or newline)
     reg [15:0] val_latch;
 
-    localparam IDLE = 0, CONVERT = 1, WAIT_UART = 2, SEND_CR = 3, SEND_LF = 4;
+    localparam IDLE = 0, CONVERT = 1, WAIT_UART = 2, SEND_CR = 3, SEND_LF = 4, WAIT_LF = 5;
 
     // Helper logic to get the current 4-bit nibble
     reg [3:0] current_nibble;
@@ -348,7 +359,8 @@ module uart_hex_logger
             end
 
             CONVERT: begin
-                if (!tx_fifo_full) begin
+                tx_start <= 0;
+                if (!tx_start && !tx_fifo_full) begin
                     // ASCII Conversion math
                     tx_data <= (current_nibble < 4'hA) ? (8'h30 + current_nibble) 
                                                        : (8'h37 + current_nibble);
@@ -368,20 +380,29 @@ module uart_hex_logger
             end
 
             SEND_CR: begin
-                if (!tx_fifo_full) begin
+                tx_start <= 0;
+                if (!tx_start && !tx_fifo_full) begin
                     tx_data <= 8'h0D; // Carriage Return (\r)
                     tx_start <= 1;
                     state <= SEND_LF;
+                end else begin
+                    tx_start <= 0;
                 end
             end
 
             SEND_LF: begin
-                tx_start <= 0; // Clear the start from the CR cycle
-                if (!tx_fifo_full) begin
+                tx_start <= 0;
+                if (!tx_start && !tx_fifo_full) begin
                     tx_data <= 8'h0A; // Line Feed (\n)
                     tx_start <= 1;
-                    state <= IDLE;    // Now we are actually done
+                    state <= WAIT_LF;    // Now we are actually done
+                end else begin
+                    tx_start <= 0;
                 end
+            end
+            WAIT_LF: begin
+                tx_start <= 0;
+                state <= IDLE;
             end
     endcase
     end
