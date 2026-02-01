@@ -20,9 +20,9 @@ module top
     end
 
     // Clock math
-    wire [15:0] baud_div = 16'd2; // should be 37.5MHz SPI with a 150MHz clk 
-    reg [31:0] counter = 0;
-    reg fcnt = 0;
+    wire [15:0] baud_div = 16'd1; // should be 75MHz SPI with a 150MHz clk 
+    reg [26:0] counter = 0;
+    reg counter_target = 1;
 
     // Master Signals
     reg start;
@@ -69,13 +69,15 @@ module top
     // --- Control Logic ---
     always @(posedge pll_clk) begin
         counter <= counter + 1'b1;
-        fcnt <= counter[25];
 
-        if (counter[25] && !fcnt) begin
-            cs <= 1'b0;        // Drops Pin 26
-            start <= 1'b1;
-        end else begin
-            start <= 1'b0;
+        // trigger every 2**26 cycles
+        if (counter[26] == counter_target) begin
+            case (counter[1:0])
+                2'b00: cs <= 1'b0;              // take CS low for a cycle
+                2'b01: start <= 1'b1;           // issue start
+                2'b10: start <= 1'b0;           // inhibit start
+                2'b11: counter_target = ~counter_target; // wait another 2**26 cycles
+            endcase
         end
 
         if (master_done) begin

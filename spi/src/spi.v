@@ -1,12 +1,12 @@
 module spi_master(
-    input clk,
-    input rst,
-    input [15:0] baud_div,
-    input miso_pin,
-    input CPHA,
-    input CPOL,
-    input [7:0] mosi_in,   // Renamed for clarity: data to send
-    input start,
+    input clk,              // clk, baud_div is relative to this
+    input rst,              // active low reset
+    input [15:0] baud_div,  // baud rate divider, clk / baud_div => baud
+    input miso_pin,         // MISO input pin
+    input CPHA,             // Phase
+    input CPOL,             // Polarity
+    input [7:0] mosi_in,    // data to send
+    input start,            // start signal
 
     output reg mosi_pin,
     output reg sclk_pin,
@@ -87,12 +87,12 @@ module spi_master(
 endmodule
 
 module spi_slave (
-    input rst,
-    input sclk,
-    input mosi,
-    output miso,
-    input cs,
-    input [7:0] tx_data,   // Data we want to send to Master
+    input rst,              // active low reset
+    input sclk,             // SPI SCLK signal
+    input mosi,             // SPI MOSI signal
+    output miso,            // SPI MISO output
+    input cs,               // SPI CS signal
+    input [7:0] tx_data,    // Data we want to send to Master
     output reg [7:0] rx_data, // Data received from Master
     output reg done
 );
