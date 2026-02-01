@@ -2,6 +2,7 @@
 module rx_uart
 (
     input clk,                          // assumes it's 27MHz
+    input rst,                          // active low reset
     input [15:0] baud_div,              // counter value for baud calculation (e.g. F_CLK/BAUD == baud_div)
     input rx_pin,                       // UART assigned pin
     input rx_read,                      // indicates when you read the byte to clear the rx_done pin
@@ -16,68 +17,68 @@ module rx_uart
     reg [15:0] bit_timer;
     reg [2:0] bit_index;
 
-    initial begin
-        state = IDLE;
-        rx_done = 1'b0;
-    end
-
     always @(posedge clk) begin
-        if (rx_read) begin
-            // clear done flag since we read the byte
-            rx_done <= 0;
-        end
-        case (state)
-            // IDLE waiting or a low pulse.  
-            IDLE: begin
-                if (~rx_pin) begin              // going low is the start of a byte
-                    state <= START_BIT;
-                    bit_timer <= (baud_div >> 1);  // wait half for a LOW START pulse
-                    bit_index <= 0;
-                    rx_byte <= 0;
-                end
+        if (!rst) begin
+            state <= IDLE;
+            rx_done <= 1'b0;
+        end else begin
+            if (rx_read) begin
+                // clear done flag since we read the byte
+                rx_done <= 0;
             end
-
-            START_BIT: begin
-                if (bit_timer == 0) begin
-                    if (~rx_pin) begin // Verify it's still low (avoid glitches)
-                        state <= DATA_BITS;
-                        bit_timer <= baud_div;
+            case (state)
+                // IDLE waiting or a low pulse.  
+                IDLE: begin
+                    if (~rx_pin) begin              // going low is the start of a byte
+                        state <= START_BIT;
+                        bit_timer <= (baud_div >> 1);  // wait half for a LOW START pulse
                         bit_index <= 0;
                         rx_byte <= 0;
-                    end else state <= IDLE;
-                end else bit_timer <= bit_timer - 1'b1;
-            end
-
-            // read the 8 data bits
-            DATA_BITS: begin
-                if (!bit_timer) begin
-                    // store the next bit
-                    rx_byte[bit_index] <= rx_pin;
-                    // reset the timer
-                    bit_timer <= baud_div;
-                    // if we have more bits increment the index and loop
-                    if (bit_index < 7) begin
-                        bit_index <= bit_index + 1'b1;
-                    end else begin
-                    // otherwise transition to waiting for the STOP bit
-                        state <= STOP_BIT;
                     end
-                end else begin
-                    bit_timer <= bit_timer - 1'b1;
                 end
-            end
 
-            // wait for the STOP bit, note we don't check if it's low...
-            STOP_BIT: begin
-                if (!bit_timer) begin
-                    rx_done <= 1'b1;
-                    state <= IDLE;
-                end else begin
-                    bit_timer <= bit_timer - 1'b1;
+                START_BIT: begin
+                    if (bit_timer == 0) begin
+                        if (~rx_pin) begin // Verify it's still low (avoid glitches)
+                            state <= DATA_BITS;
+                            bit_timer <= baud_div;
+                            bit_index <= 0;
+                            rx_byte <= 0;
+                        end else state <= IDLE;
+                    end else bit_timer <= bit_timer - 1'b1;
                 end
-            end
-            default: state <= IDLE;
-        endcase
+
+                // read the 8 data bits
+                DATA_BITS: begin
+                    if (!bit_timer) begin
+                        // store the next bit
+                        rx_byte[bit_index] <= rx_pin;
+                        // reset the timer
+                        bit_timer <= baud_div;
+                        // if we have more bits increment the index and loop
+                        if (bit_index < 7) begin
+                            bit_index <= bit_index + 1'b1;
+                        end else begin
+                        // otherwise transition to waiting for the STOP bit
+                            state <= STOP_BIT;
+                        end
+                    end else begin
+                        bit_timer <= bit_timer - 1'b1;
+                    end
+                end
+
+                // wait for the STOP bit, note we don't check if it's low...
+                STOP_BIT: begin
+                    if (!bit_timer) begin
+                        rx_done <= 1'b1;
+                        state <= IDLE;
+                    end else begin
+                        bit_timer <= bit_timer - 1'b1;
+                    end
+                end
+                default: state <= IDLE;
+            endcase
+        end
     end
 endmodule
 
@@ -85,6 +86,7 @@ endmodule
 module tx_uart
 (
     input clk,                          // assumes it's 27MHz
+    input rst,                          // active low reset
     input [15:0] baud_div,              // counter value for baud calculation (e.g. F_CLK/BAUD == baud_div)
     input start_tx,                     // start transmitting whatever is in data_in (which is latched after the first cycle)
     input [7:0] data_in,
@@ -108,55 +110,61 @@ module tx_uart
     end
 
     always @(posedge clk) begin
-        case (state)
-            IDLE: begin
-                tx_pin <= 1'b1; // UART idle is HIGH
-                if (start_tx) begin
-                    data_latch <= data_in;
-                    bit_timer  <= baud_div;
-                    bit_index  <= 0;
-                    state      <= START_BIT;
-                    tx_started <= 1'b1;
-                    tx_done    <= 1'b0;
-                end
-            end
-
-            START_BIT: begin
-                tx_pin <= 1'b0; // Pull low for START
-                if (!bit_timer) begin
-                    bit_timer <= baud_div;
-                    state     <= DATA_BITS;
-                end else begin
-                    bit_timer <= bit_timer - 1'b1;
-                end
-            end
-
-            DATA_BITS: begin
-                tx_pin <= data_latch[bit_index]; // Send current bit
-                if (!bit_timer) begin
-                    bit_timer <= baud_div;
-                    if (bit_index == 7) begin
-                        state <= STOP_BIT;
-                    end else begin
-                        bit_index <= bit_index + 1'b1;
+        if (!rst) begin
+            state <= IDLE;
+            tx_pin = 1'b1;
+            tx_done = 1'b1;
+        end else begin
+            case (state)
+                IDLE: begin
+                    tx_pin <= 1'b1; // UART idle is HIGH
+                    if (start_tx) begin
+                        data_latch <= data_in;
+                        bit_timer  <= baud_div;
+                        bit_index  <= 0;
+                        state      <= START_BIT;
+                        tx_started <= 1'b1;
+                        tx_done    <= 1'b0;
                     end
-                end else begin
-                    bit_timer <= bit_timer - 1'b1;
                 end
-            end
 
-            STOP_BIT: begin
-                tx_pin <= 1'b1; // Pull high for STOP
-                if (!bit_timer) begin
-                    tx_done <= 1'b1;
-                    tx_started <= 1'b0;
-                    state <= IDLE;
-                end else begin
-                    bit_timer <= bit_timer - 1'b1;
+                START_BIT: begin
+                    tx_pin <= 1'b0; // Pull low for START
+                    if (!bit_timer) begin
+                        bit_timer <= baud_div;
+                        state     <= DATA_BITS;
+                    end else begin
+                        bit_timer <= bit_timer - 1'b1;
+                    end
                 end
-            end
-            default: state <= IDLE;
-        endcase
+
+                DATA_BITS: begin
+                    tx_pin <= data_latch[bit_index]; // Send current bit
+                    if (!bit_timer) begin
+                        bit_timer <= baud_div;
+                        if (bit_index == 7) begin
+                            state <= STOP_BIT;
+                        end else begin
+                            bit_index <= bit_index + 1'b1;
+                        end
+                    end else begin
+                        bit_timer <= bit_timer - 1'b1;
+                    end
+                end
+
+                STOP_BIT: begin
+                    tx_pin <= 1'b1; // Pull high for STOP
+                    if (!bit_timer) begin
+                        tx_done <= 1'b1;
+                        tx_started <= 1'b0;
+                        state <= IDLE;
+                    end else begin
+                        bit_timer <= bit_timer - 1'b1;
+                    end
+                end
+                default: state <= IDLE;
+            endcase
+        end
     end
 endmodule
 
@@ -164,6 +172,7 @@ endmodule
 module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1)
 (
     input clk,                      // main clock
+    input rst,                      // active low reset
     input [15:0] baud_div,          // counter value for baud calculation (e.g. F_CLK/BAUD == baud_div)
     input uart_tx_start,            // signal we want to load uart_tx_data_in into the TX FIFO
     input [7:0] uart_tx_data_in,    // TX data
@@ -191,6 +200,7 @@ module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1)
             // instantiate a transmitter and a receiver
             tx_uart txuart (
                 .clk(clk),
+                .rst(rst),
                 .baud_div(baud_div),
                 .start_tx(tx_start), 
                 .data_in(tx_send), 
@@ -199,44 +209,43 @@ module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1)
                 .tx_done(tx_done)
             );
 
-            initial begin
-                tx_start = 0;
-                tx_fifo_wptr = 0;
-                tx_fifo_rptr = 0;
-                tx_fifo_cnt = 0;
-            end
-
             // Output signals are combinatorial
             assign uart_tx_fifo_full = (tx_fifo_cnt == FIFO_DEPTH);
 
             always @(posedge clk) begin
-                // ===== TX =====
-                // if the transmitter started acknowledge it by stop requesting a transmit (otherwise it'll keep transmitting the same byte)
-                if (tx_started) begin
-                    tx_start <= 1'b0;
-                end
+                if (!rst) begin
+                    tx_start <= 0;
+                    tx_fifo_wptr <= 0;
+                    tx_fifo_rptr <= 0;
+                    tx_fifo_cnt <= 0;
+                end else begin
+                    // ===== TX =====
+                    // if the transmitter started acknowledge it by stop requesting a transmit (otherwise it'll keep transmitting the same byte)
+                    if (tx_started) begin
+                        tx_start <= 1'b0;
+                    end
 
-                if (uart_tx_start && !uart_tx_fifo_full) begin
-                    // user wants to transmit a byte and the fifo isn't full so store it in the fifo
-                    tx_fifo[tx_fifo_wptr] <= uart_tx_data_in;
-                    tx_fifo_wptr <= tx_fifo_wptr + 1'd1;
-                end 
-                if (tx_done && (tx_fifo_cnt > 0) && !tx_start && !tx_started) begin
-                    // if the transmission is done, and we haven't yet queued up a byte and there is a byte to send...
-                    tx_send <= tx_fifo[tx_fifo_rptr]; 
-                    tx_fifo_rptr <= tx_fifo_rptr + 1'd1;
-                    tx_start <= 1'b1;
-                end
+                    if (uart_tx_start && !uart_tx_fifo_full) begin
+                        // user wants to transmit a byte and the fifo isn't full so store it in the fifo
+                        tx_fifo[tx_fifo_wptr] <= uart_tx_data_in;
+                        tx_fifo_wptr <= tx_fifo_wptr + 1'd1;
+                    end 
+                    if (tx_done && (tx_fifo_cnt > 0) && !tx_start && !tx_started) begin
+                        // if the transmission is done, and we haven't yet queued up a byte and there is a byte to send...
+                        tx_send <= tx_fifo[tx_fifo_rptr]; 
+                        tx_fifo_rptr <= tx_fifo_rptr + 1'd1;
+                        tx_start <= 1'b1;
+                    end
 
-                if ((uart_tx_start && !uart_tx_fifo_full) && (tx_done && tx_fifo_cnt > 0 && !tx_start && !tx_started)) begin
-                    // Doing both at once: count stays the same
-                    tx_fifo_cnt <= tx_fifo_cnt; 
-                end else if (uart_tx_start && !uart_tx_fifo_full) begin
-                    tx_fifo_cnt <= tx_fifo_cnt + 1'd1;
-                end else if (tx_done && tx_fifo_cnt != 0 && !tx_start) begin
-                    tx_fifo_cnt <= tx_fifo_cnt - 1'd1;
+                    if ((uart_tx_start && !uart_tx_fifo_full) && (tx_done && tx_fifo_cnt > 0 && !tx_start && !tx_started)) begin
+                        // Doing both at once: count stays the same
+                        tx_fifo_cnt <= tx_fifo_cnt; 
+                    end else if (uart_tx_start && !uart_tx_fifo_full) begin
+                        tx_fifo_cnt <= tx_fifo_cnt + 1'd1;
+                    end else if (tx_done && tx_fifo_cnt != 0 && !tx_start) begin
+                        tx_fifo_cnt <= tx_fifo_cnt - 1'd1;
+                    end
                 end
-
             end
         end else begin :tx_stub
             assign uart_tx_pin = 1'b1;
@@ -258,14 +267,9 @@ module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1)
             assign uart_rx_ready = (rx_fifo_wptr != rx_fifo_rptr);
             assign uart_rx_byte = rx_fifo[rx_fifo_rptr];
 
-            initial begin
-                rx_read = 0;
-                rx_fifo_wptr = 0;
-                rx_fifo_rptr = 0;
-            end
-
             rx_uart rxuart (
-                .clk(clk), 
+                .clk(clk),
+                .rst(rst),
                 .baud_div(baud_div),
                 .rx_pin(rx_sync_pipe[1]), 
                 .rx_read(rx_read), 
@@ -274,26 +278,32 @@ module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1)
             );
 
             always @(posedge clk) begin
-                // ===== RX =====
-                rx_sync_pipe <= {rx_sync_pipe[0], uart_rx_pin};
-                // if the user wants something from the fifo and there is a byte advance the read pointer
-                if (uart_rx_read && rx_fifo_rptr != rx_fifo_wptr) begin
-                    // note the output is combinatorial above ...
-                    rx_fifo_rptr <= rx_fifo_rptr + 1'd1;
-                end
-
-                // if an RX finished store it in the fifo if room and then acknowledge the read
-                if (rx_done && !rx_read) begin
-                    // read a byte if we have room
-                    if ((rx_fifo_wptr + 1) != rx_fifo_rptr) begin
-                        rx_fifo[rx_fifo_wptr] <= rx_byte;
-                        rx_fifo_wptr <= rx_fifo_wptr + 1'd1;
-                    end
-                    rx_read <= 1;
+                if (!rst) begin
+                    rx_read <= 0;
+                    rx_fifo_wptr <= 0;
+                    rx_fifo_rptr <= 0;
                 end else begin
-                    // clear the read acknowledgement
-                    if (!rx_done) begin
-                        rx_read <= 0;
+                    // ===== RX =====
+                    rx_sync_pipe <= {rx_sync_pipe[0], uart_rx_pin};
+                    // if the user wants something from the fifo and there is a byte advance the read pointer
+                    if (uart_rx_read && rx_fifo_rptr != rx_fifo_wptr) begin
+                        // note the output is combinatorial above ...
+                        rx_fifo_rptr <= rx_fifo_rptr + 1'd1;
+                    end
+
+                    // if an RX finished store it in the fifo if room and then acknowledge the read
+                    if (rx_done && !rx_read) begin
+                        // read a byte if we have room
+                        if ((rx_fifo_wptr + 1) != rx_fifo_rptr) begin
+                            rx_fifo[rx_fifo_wptr] <= rx_byte;
+                            rx_fifo_wptr <= rx_fifo_wptr + 1'd1;
+                        end
+                        rx_read <= 1;
+                    end else begin
+                        // clear the read acknowledgement
+                        if (!rx_done) begin
+                            rx_read <= 0;
+                        end
                     end
                 end
             end
@@ -309,6 +319,7 @@ endmodule
 module uart_hex_logger
 (
     input clk,
+    input rst,
     input [15:0] baud_div,// counter value for baud calculation (e.g. F_CLK/BAUD == baud_div)
     input trigger,
     input [15:0] hex_val, // The code you want to print (e.g., 0xABCD)
@@ -323,6 +334,7 @@ module uart_hex_logger
     // Instantiate your existing UART
     uart #(.FIFO_DEPTH(8), .RX_ENABLE(0)) logger_uart (
         .clk(clk),
+        .rst(rst),
         .baud_div(baud_div),
         .uart_tx_start(tx_start),
         .uart_tx_data_in(tx_data),

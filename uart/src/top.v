@@ -1,14 +1,21 @@
-`define USE_HEX_LOGGER
+//`define USE_HEX_LOGGER
 module top
 (
     input clk,
     input rx_pin,
     output tx_pin
 );
-    wire [15:0] uart_baud_div = 16'd1084; // 115,200 baud @ 124.875MHz with the PLL (I'm using the PLL for no reason other than to use it...)
+    wire [15:0] uart_baud_div = 16'd469; // 115,200 baud @ 54MHz with the PLL (I'm using the PLL for no reason other than to use it...)
     wire pll_clk;
+    wire rst;
+    reg [3:0] rstcnt = 4'b0;
+    assign rst = rstcnt[3];
 
     Gowin_rPLL pll(.clkout(pll_clk), .clkin(clk));
+
+    always @(posedge pll_clk) begin
+        rstcnt = {rstcnt[2:0], 1'b1};
+    end
 
 `ifdef USE_HEX_LOGGER
     // --- HEX LOGGER MODE ---
@@ -19,6 +26,7 @@ module top
 
     uart_hex_logger logger (
         .clk(pll_clk),
+        .rst(rst),
         .baud_div(uart_baud_div),
         .trigger(log_trigger),
         .hex_val(debug_val),
@@ -46,11 +54,11 @@ module top
     wire [7:0] uart_rx_byte;            // the rx_uarts output byte
 
     // instantiate our baud rate configurable FIFO based UART
-    uart myuart(.clk(clk), .baud_div(uart_baud_div),
+    uart myuart(.clk(pll_clk), .rst(rst), .baud_div(uart_baud_div),
                 .uart_tx_start(uart_tx_start_bit), .uart_tx_data_in(uart_tx_data_byte), .uart_tx_pin(tx_pin), .uart_tx_fifo_full(uart_tx_fifo_full),
                 .uart_rx_pin(rx_pin), .uart_rx_read(uart_rx_read), .uart_rx_ready(uart_rx_ready), .uart_rx_byte(uart_rx_byte));
 
-    always @(posedge clk) begin
+    always @(posedge pll_clk) begin
         // if there's a byte to read and we haven't read anything
         if (uart_rx_ready && !uart_rx_read) begin
             // latch the byte
