@@ -1,4 +1,29 @@
-// memory wrapper around uart
+/* This is a "bus" wrapper around the uart block
+
+Provides for the following addresses (uses a 3-bit address width)
+
+    localparam
+        UART_BAUD_L_ADDR      = 3'b000,   <--- (reset: 0) lower 8 bits of baud divisor
+        UART_BAUD_H_ADDR      = 3'b001,   <--- (reset: 0) upper 8 bits of baud divisor (combined BAUD = F_CLK/bauddiv[15:0])
+        UART_STATUS_ADDR      = 3'b010,   <--- STATUS register (bit 0 == RX ready, bit 1 == TX fifo full)
+        UART_DATA_ADDR        = 3'b011,   <--- 8-bit data register 
+        UART_INT_ADDR         = 3'b100,   <--- (reset: 0) Interrupt enables (bit 0 == RX_READY, bit 1 == TX fifo empty)
+        UART_INT_PENDING_ADDR = 3'b101;   <--- (reset: 0) Interrupt pending flags (bit 0 == RX_READY, bit 1 == TX fifo empty)
+
+    Each address can be written or read.  Writing to STATUS does nothing.
+
+    Writing a 1 to a bit of INT_ADDR enables a particular interrupt.  Writing a '1' to a bit of INT_PENDING clears the pending interrupt.
+Both use this layout for interrupt bits.
+
+    localparam
+        UART_INT_RX_READY     = 0,
+        UART_INT_TX_EMPTY     = 1;
+
+    The core operates by setting your wr_en, addr, i_data (if !wr_en).  Then issue enable=1 for as many cycles as it takes for ready to go high,
+then deassert enable for 1 cycle before the next command.
+
+*/
+
 module uart_mem
 (
     // common bus in
@@ -71,7 +96,7 @@ module uart_mem
             int_pending <= 0;
             ready <= 0;
         end else begin
-            // step the IRQ system
+            // step the IRQ system with edge detectors to ensure interrupts only trigger on transition.
             // detect edge of rx_ready and assert it in pending
             if (uart_rx_ready && !rx_ready_prev) begin
                 int_pending[UART_INT_RX_READY] <= 1'b1;

@@ -1,4 +1,6 @@
-// half/full duplex serial transmit/recieve with FIFO
+// This implements a UART block which is full or half duplex (RX or TX or both)
+// with a variable sized FIFO and programmable baud rate
+// uses 8N1 signalling
 module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1)
 (
     input clk,                      // main clock
