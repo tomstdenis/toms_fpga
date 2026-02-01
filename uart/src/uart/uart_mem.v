@@ -29,7 +29,7 @@ module uart_mem
     // common bus in
     input clk,
     input rst,          // active low reset
-    input enable,       // active high overall enable
+    input enable,       // active high overall enable (must go low between commands)
     input wr_en,        // active high write enable (0==read, 1==write)
     input [2:0] addr,   // (000 == baud_l, 001 == baud_h, 010 == status, 011 == data, 100 == int_enables
     input [7:0] i_data,

@@ -30,7 +30,7 @@ module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1)
             reg [$clog2(FIFO_DEPTH)-1:0] tx_fifo_rptr;
             reg [$clog2(FIFO_DEPTH):0] tx_fifo_cnt;
 
-            // instantiate a transmitter and a receiver
+            // instantiate a transmitter
             tx_uart txuart (
                 .clk(clk),
                 .rst(rst),
@@ -101,6 +101,7 @@ module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1)
             assign uart_rx_ready = (rx_fifo_wptr != rx_fifo_rptr);
             assign uart_rx_byte = rx_fifo[rx_fifo_rptr];
 
+            // instantiate the receiver
             rx_uart rxuart (
                 .clk(clk),
                 .rst(rst),
