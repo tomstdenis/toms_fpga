@@ -18,7 +18,7 @@ module top
     Gowin_rPLL pll(.clkout(pll_clk), .clkin(clk));
 
     always @(posedge pll_clk) begin
-        rstcnt = {rstcnt[2:0], 1'b1};
+        rstcnt <= {rstcnt[2:0], 1'b1};
     end
 
 `ifdef USE_HEX_LOGGER
@@ -188,7 +188,7 @@ module top
                 WAIT_BEFORE_ECHO:                       // we want the LED to stay on for a bit before writing back
                     begin
                         counter <= 54_000_000/8; // wait 1/8'th second
-                        tag = WRITE_ECHO;
+                        tag <= WRITE_ECHO;
                         state <= WAIT_DELAY;
                     end
                 WRITE_ECHO: // write it back
