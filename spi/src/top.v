@@ -57,7 +57,7 @@ module top
     // --- Slave Instance ---
     spi_slave slave (
         .rst(rst),
-        .sclk(pll_clk),           // Wired internally
+        .sclk(sclk),           // Wired internally
         .mosi(mosi),           // Wired internally
         .miso(slave_miso),     // Wired internally
         .cs(cs),               // Wired internally

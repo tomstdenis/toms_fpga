@@ -1,4 +1,4 @@
-//`define USE_HEX_LOGGER
+`define USE_HEX_LOGGER
 module top
 (
     input clk,
