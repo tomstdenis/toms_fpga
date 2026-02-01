@@ -3,6 +3,7 @@ module top
 (
     input clk,      // Pin 4
     input miso,     // Pin 28 (We'll use this for the Slave's MISO)
+    input sclk2,    // input SCLK pin dedicated to the slave
     output mosi,    // Pin 27
     output sclk,    // Pin 25
     output reg cs,  // Pin 26
@@ -20,7 +21,8 @@ module top
     end
 
     // Clock math
-    wire [15:0] baud_div = 16'd1; // should be 75MHz SPI with a 150MHz clk 
+    wire [15:0] baud_div = 16'd1; // 1 => pll_clk / 2
+//    wire [15:0] baud_div = 16'd1024; // 1024 => pll_clk / 2048 (handy for breadboarding with crap jumper wires)
     reg [26:0] counter = 0;
     reg counter_target = 1;
 
@@ -76,19 +78,26 @@ module top
                 2'b00: cs <= 1'b0;              // take CS low for a cycle
                 2'b01: start <= 1'b1;           // issue start
                 2'b10: start <= 1'b0;           // inhibit start
-                2'b11: counter_target = ~counter_target; // wait another 2**26 cycles
+                2'b11: begin
+                    counter_target = ~counter_target; // wait another 2**26 cycles
+                end
             endcase
         end
 
-        if (master_done) begin
+        if (counter[25]) begin
+            // blink the LEDs
+            led_state = 2'b11;
+        end
+
+        if (master_done && slave_done) begin
             cs <= 1'b1;        // Raises Pin 26
             // Check if we received 0xC3 from the slave
             // If bit 0 is 1 (which it is in 0xC3), turn LED ON (0)
-            if (master_rx_data == 8'hC3) 
+            if (master_done && master_rx_data == 8'hC3) 
                 led_state[0] <= 1'b0; 
             else 
                 led_state[0] <= 1'b1;
-            if (slave_rx_data == 8'h5A) 
+            if (slave_done && slave_rx_data == 8'h5A) 
                 led_state[1] <= 1'b0; 
             else 
                 led_state[1] <= 1'b1;
