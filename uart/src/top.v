@@ -8,11 +8,11 @@ module top
 );
     wire [15:0] uart_baud_div = 16'd469; // 115,200 baud @ 54MHz with the PLL (I'm using the PLL for no reason other than to use it...)
     wire pll_clk;
-    wire rst;
+    wire rst_n;
     reg [3:0] rstcnt = 4'b0;
     reg ledstatus;
 
-    assign rst = rstcnt[3];
+    assign rst_n = rstcnt[3];
     assign led = ledstatus;
 
     Gowin_rPLL pll(.clkout(pll_clk), .clkin(clk));
@@ -30,7 +30,7 @@ module top
 
     uart_hex_logger logger (
         .clk(pll_clk),
-        .rst(rst),
+        .rst(rst_n),
         .baud_div(uart_baud_div),
         .trigger(log_trigger),
         .hex_val(debug_val),
@@ -39,7 +39,7 @@ module top
     );
 
     always @(posedge pll_clk) begin
-        if (!rst) begin
+        if (!rst_n) begin
             counter <= 0;
             log_trigger <= 0;
             debug_val <= 0;
@@ -69,15 +69,16 @@ module top
 
     reg enable;
     reg wr_en;
-    reg [2:0] addr;
-    reg [7:0] i_data;
+    reg [31:0] addr;
+    reg [31:0] i_data;
     wire ready;
     wire irq;
-    wire [7:0] o_data;
+    wire [31:0] o_data;
     reg [7:0] o_data_latch;
     reg [7:0] state;
     reg [7:0] tag;
     reg [31:0] counter;
+    wire bus_err;
 
     localparam 
         WAIT             = 8'd0,
@@ -94,12 +95,12 @@ module top
         CLEAR_INT       = 8'd11;
 
     uart_mem uartmem(
-        .clk(pll_clk), .rst(rst), .irq(irq),
+        .clk(pll_clk), .rst_n(rst_n), .irq(irq), .bus_err(bus_err), .be(4'b0001),
         .enable(enable), .wr_en(wr_en), .addr(addr), .i_data(i_data), .ready(ready), .o_data(o_data),
         .tx_pin(tx_pin), .rx_pin(rx_pin));
 
     always @(posedge pll_clk) begin
-        if (!rst) begin
+        if (!rst_n) begin
             enable <= 0;
             wr_en <= 0;
             addr <= 0;
@@ -125,7 +126,7 @@ module top
                         if (!enable) begin
                             enable <= 1;
                         end else if (ready) begin
-                            o_data_latch <= o_data;
+                            o_data_latch <= o_data[7:0];
                             enable <= 0;        // disable core
                             wr_en <= 0;         // deassert write
                             state <= tag;       // jump to tag state
@@ -158,18 +159,18 @@ module top
                 READ_STATUS: // READ STATUS
                     begin
                         wr_en <= 0;                     // read
-                        addr <= `UART_STATUS_ADDR;       // from status register
+                        addr <= `UART_STATUS_ADDR;      // from status register
                         tag <= COMP_STATUS;             // next state is compare status
                         state <= WAIT;                  // wait for block to acknowledge
                     end
                 COMP_STATUS: // compare rx_ready bit..
                     begin
                         if (o_data_latch[0] && !o_data_latch[1]) begin // there's an RX bit and TX fifo is not full
-                            counter <= 54_000_000/8; // wait 1/8'th second
+                            counter <= 54_000_000/64;   // wait a bit
                             tag <= START_ECHO;
                             state <= WAIT_DELAY;
                         end else begin
-                            state <= READ_STATUS; // re-read STATUS since conditions aren't met for echoing
+                            state <= READ_STATUS;       // re-read STATUS since conditions aren't met for echoing
                         end
                     end
                 START_ECHO: // read the UART
@@ -181,7 +182,7 @@ module top
                     end
                 WAIT_BEFORE_ECHO:                       // we want the LED to stay on for a bit before writing back
                     begin
-                        counter <= 54_000_000/8; // wait 1/8'th second
+                        counter <= 54_000_000/64;       // wait a bit
                         tag <= WRITE_ECHO;
                         state <= WAIT_DELAY;
                     end

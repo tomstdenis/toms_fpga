@@ -2,7 +2,7 @@
 module rx_uart
 (
     input clk,                          
-    input rst,                          // active low reset
+    input rst_n,                          // active low reset
     input [15:0] baud_div,              // counter value for baud calculation (e.g. F_CLK/BAUD == baud_div)
     input rx_pin,                       // UART assigned pin
     input rx_read,                      // active high indicates when you read the byte to clear the rx_done pin
@@ -20,7 +20,7 @@ module rx_uart
     reg [2:0] bit_index;
 
     always @(posedge clk) begin
-        if (!rst) begin
+        if (!rst_n) begin
             state <= IDLE;
             rx_done <= 1'b0;
             bit_timer <= 0;

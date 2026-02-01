@@ -1,19 +1,24 @@
 `include "uart_mem.vh"
 
 module uart_mem
-(
+#(
+    parameter ADDR_WIDTH=32,
+    parameter DATA_WIDTH=32
+)(
     // common bus in
     input clk,
-    input rst,          // active low reset
-    input enable,       // active high overall enable (must go low between commands)
-    input wr_en,        // active high write enable (0==read, 1==write)
-    input [2:0] addr,   // (000 == baud_l, 001 == baud_h, 010 == status, 011 == data, 100 == int_enables
-    input [7:0] i_data,
+    input rst_n,            // active low reset
+    input enable,           // active high overall enable (must go low between commands)
+    input wr_en,            // active high write enable (0==read, 1==write)
+    input [ADDR_WIDTH-1:0] addr,       // (000 == baud_l, 001 == baud_h, 010 == status, 011 == data, 100 == int_enables, 101 = int pending flags
+    input [DATA_WIDTH-1:0] i_data,
+    input [DATA_WIDTH/8-1:0] be,       // byte enables ([3]==31:24, [2]==23:16, etc...) only 8-bit is supported
 
     // common bus out
-    output reg ready,   // active high signal when o_data is ready (or write is done)
-    output reg [7:0] o_data,
-    output wire irq,    // active high IRQ pin
+    output reg ready,       // active high signal when o_data is ready (or write is done)
+    output reg [DATA_WIDTH-1:0] o_data,
+    output wire irq,        // active high IRQ pin
+    output wire bus_err,    // active high error signal
 
     // peripheral specific
     input rx_pin,
@@ -32,13 +37,14 @@ module uart_mem
     wire [7:0] rx_byte;
     reg [1:0] int_enables;
     reg [1:0] int_pending;
+    reg error;
 
     localparam
         ISSUE  = 0,
         RETIRE = 1;
 
     uart u1(
-        .clk(clk), .rst(rst),
+        .clk(clk), .rst_n(rst_n),
         .baud_div(bauddiv), 
         .uart_tx_start(uart_tx_start), .uart_tx_pin(tx_pin), .uart_tx_fifo_full(uart_tx_fifo_full), .uart_tx_fifo_empty(uart_tx_fifo_empty), .uart_tx_data_in(i_data_latch),
         .uart_rx_pin(rx_pin), .uart_rx_read(uart_rx_read), .uart_rx_ready(uart_rx_ready), .uart_rx_byte(rx_byte));
@@ -46,8 +52,11 @@ module uart_mem
     // IRQ output is an OR of RX ready 
     assign irq = (int_enables[0] & int_pending[0]) | (int_enables[1] & int_pending[1]);
 
+    // error output is only valid out of reset
+    assign bus_err = error & rst_n;
+
     always @(posedge clk) begin
-        if (!rst) begin
+        if (!rst_n) begin
             bauddiv <= 0;
             uart_tx_start <= 0;
             uart_rx_read <= 0;
@@ -59,6 +68,7 @@ module uart_mem
             int_enables <= 0;
             int_pending <= 0;
             ready <= 0;
+            error <= 0;
         end else begin
             // step the IRQ system with edge detectors to ensure interrupts only trigger on transition.
             // detect edge of rx_ready and assert it in pending
@@ -72,85 +82,95 @@ module uart_mem
             tx_fifo_empty_prev <= uart_tx_fifo_empty;   // latch TX fifo empty
             rx_ready_prev <= uart_rx_ready;             // latch RX ready
 
-            if (enable && !ready) begin
-                case(state)
-                    ISSUE:                              // issue commands to the UART block
-                        begin
-                            i_data_latch <= i_data;
-                            if (wr_en) begin
-                                case(addr)
-                                    `UART_BAUD_L_ADDR:
-                                        begin // BAUD_L
-                                            bauddiv[7:0] <= i_data;
-                                        end
-                                    `UART_BAUD_H_ADDR:
-                                        begin // BAUD_H
-                                            bauddiv[15:8] <= i_data;
-                                        end
-                                    `UART_STATUS_ADDR:
-                                        begin // STATUS
-                                        end
-                                    `UART_DATA_ADDR: 
-                                        begin // DATA
-                                            if (!uart_tx_fifo_full) begin
-                                                uart_tx_start <= 1;
+            if (~be[0]) begin                           // we ignore bits [31:8] if they're enabled but you MUST enable bits [7:0]
+                error <= 1;
+                ready <= 1;                             // assert error and ready so the user knows we've responded
+            end else begin
+                if (~error & enable & !ready) begin
+                    case(state)
+                        ISSUE:                              // issue commands to the UART block
+                            begin
+                                i_data_latch <= i_data[7:0];
+                                if (wr_en) begin
+                                    case(addr)
+                                        `UART_BAUD_L_ADDR:
+                                            begin // BAUD_L
+                                                bauddiv[7:0] <= i_data[7:0];
                                             end
-                                        end
-                                    `UART_INT_ADDR:
-                                        begin // INT enables
-                                            int_enables <= i_data[1:0];
-                                        end
-                                    `UART_INT_PENDING_ADDR:
-                                        begin // INT enables
-                                            int_pending <= int_pending & ~i_data[1:0];
-                                        end
-                                    default:
-                                        begin end
-                                endcase
-                            end else begin // reads
-                                case(addr)
-                                    `UART_BAUD_L_ADDR:
-                                        begin // BAUD_L
-                                            o_data <= bauddiv[7:0];
-                                        end
-                                    `UART_BAUD_H_ADDR:
-                                        begin // BAUD_H
-                                            o_data <= bauddiv[15:8];
-                                        end
-                                    `UART_STATUS_ADDR:
-                                        begin // STATUS
-                                            o_data <= {6'b0, uart_tx_fifo_full, uart_rx_ready};
-                                        end
-                                    `UART_DATA_ADDR:
-                                        begin // DATA
-                                            if (uart_rx_ready) begin
-                                                o_data <= rx_byte;
-                                                uart_rx_read <= 1;      // tell the UART we read the byte
+                                        `UART_BAUD_H_ADDR:
+                                            begin // BAUD_H
+                                                bauddiv[15:8] <= i_data[7:0];
                                             end
-                                        end
-                                    `UART_INT_ADDR:
-                                        begin // INT enables
-                                            o_data <= {6'b0, int_enables};
-                                        end
-                                    `UART_INT_PENDING_ADDR:
-                                        begin // INT enables
-                                            o_data <= {6'b0, int_pending};
-                                        end
-                                    default:
-                                        begin end
-                                endcase
+                                        `UART_STATUS_ADDR:
+                                            begin // STATUS
+                                            end
+                                        `UART_DATA_ADDR: 
+                                            begin // DATA
+                                                if (!uart_tx_fifo_full) begin
+                                                    uart_tx_start <= 1;
+                                                end
+                                            end
+                                        `UART_INT_ADDR:
+                                            begin // INT enables
+                                                int_enables <= i_data[1:0];
+                                            end
+                                        `UART_INT_PENDING_ADDR:
+                                            begin // INT enables
+                                                int_pending <= int_pending & ~i_data[1:0];
+                                            end
+                                        default:
+                                            begin
+                                                error <= 1; // invalid address
+                                            end
+                                    endcase
+                                end else begin // reads
+                                    case(addr)
+                                        `UART_BAUD_L_ADDR:
+                                            begin // BAUD_L
+                                                o_data <= {24'b0, bauddiv[7:0]};
+                                            end
+                                        `UART_BAUD_H_ADDR:
+                                            begin // BAUD_H
+                                                o_data <= {24'b0, bauddiv[15:8]};
+                                            end
+                                        `UART_STATUS_ADDR:
+                                            begin // STATUS
+                                                o_data <= {30'b0, uart_tx_fifo_full, uart_rx_ready};
+                                            end
+                                        `UART_DATA_ADDR:
+                                            begin // DATA
+                                                if (uart_rx_ready) begin
+                                                    o_data <= {24'b0, rx_byte};
+                                                    uart_rx_read <= 1;      // tell the UART we read the byte
+                                                end
+                                            end
+                                        `UART_INT_ADDR:
+                                            begin // INT enables
+                                                o_data <= {30'b0, int_enables};
+                                            end
+                                        `UART_INT_PENDING_ADDR:
+                                            begin // INT enables
+                                                o_data <= {30'b0, int_pending};
+                                            end
+                                        default:
+                                            begin
+                                                error <= 1; // invalid address;
+                                            end
+                                    endcase
+                                end
+                                state <= RETIRE;
                             end
-                            state <= RETIRE;
-                        end
-                    RETIRE: begin                           // de-assert the UART and assert ready
-                                uart_rx_read <= 0;
-                                uart_tx_start <= 0;
-                                ready <= 1;
-                            end
-                endcase
-            end else if (!enable) begin // !enable (need at least one cycle of !enable to clear the ready flag
-                ready <= 0;
-                state <= ISSUE;
+                        RETIRE: begin                           // de-assert the UART and assert ready
+                                    uart_rx_read <= 0;
+                                    uart_tx_start <= 0;
+                                    ready <= 1;
+                                end
+                    endcase
+                end else if (!enable) begin // !enable (need at least one cycle of !enable to clear the ready flag
+                    ready <= 0;
+                    error <= 0; // de-assert error to allow for retries
+                    state <= ISSUE;
+                end
             end
         end
     end

@@ -4,7 +4,7 @@
 module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1)
 (
     input clk,                      // main clock
-    input rst,                      // active low reset
+    input rst_n,                      // active low reset
     input [15:0] baud_div,          // counter value for baud calculation (e.g. F_CLK/BAUD == baud_div)
     input uart_tx_start,            // signal we want to load uart_tx_data_in into the TX FIFO
     input [7:0] uart_tx_data_in,    // TX data
@@ -33,7 +33,7 @@ module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1)
             // instantiate a transmitter
             tx_uart txuart (
                 .clk(clk),
-                .rst(rst),
+                .rst_n(rst_n),
                 .baud_div(baud_div),
                 .start_tx(tx_start), 
                 .data_in(tx_send), 
@@ -47,7 +47,7 @@ module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1)
             assign uart_tx_fifo_empty = (tx_fifo_cnt == 0);
 
             always @(posedge clk) begin
-                if (!rst) begin
+                if (!rst_n) begin
                     tx_start <= 0;
                     tx_fifo_wptr <= 0;
                     tx_fifo_rptr <= 0;
@@ -104,7 +104,7 @@ module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1)
             // instantiate the receiver
             rx_uart rxuart (
                 .clk(clk),
-                .rst(rst),
+                .rst_n(rst_n),
                 .baud_div(baud_div),
                 .rx_pin(rx_sync_pipe[1]), 
                 .rx_read(rx_read), 
@@ -113,7 +113,7 @@ module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1)
             );
 
             always @(posedge clk) begin
-                if (!rst) begin
+                if (!rst_n) begin
                     rx_read <= 0;
                     rx_fifo_wptr <= 0;
                     rx_fifo_rptr <= 0;

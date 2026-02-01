@@ -2,7 +2,7 @@
 module uart_hex_logger
 (
     input clk,
-    input rst,              // active low reset
+    input rst_n,              // active low reset
     input [15:0] baud_div,  // counter value for baud calculation (e.g. F_CLK/BAUD == baud_div)
     input trigger,          // active high trigger
     input [15:0] hex_val,   // The code you want to print (e.g., 0xABCD)
@@ -17,7 +17,7 @@ module uart_hex_logger
     // Instantiate your existing UART
     uart #(.FIFO_DEPTH(8), .RX_ENABLE(0)) logger_uart (
         .clk(clk),
-        .rst(rst),
+        .rst_n(rst_n),
         .baud_div(baud_div),
         .uart_tx_start(tx_start),
         .uart_tx_data_in(tx_data),
@@ -50,7 +50,7 @@ module uart_hex_logger
     end
 
     always @(posedge clk) begin
-        if (!rst) begin 
+        if (!rst_n) begin 
             state <= 0;
             digit_count <= 0;
             val_latch <= 0;

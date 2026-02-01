@@ -2,7 +2,7 @@
 module tx_uart
 (
     input clk,                          
-    input rst,                          // active low reset
+    input rst_n,                          // active low reset
     input [15:0] baud_div,              // counter value for baud calculation (e.g. F_CLK/BAUD == baud_div)
     input start_tx,                     // active high start transmitting whatever is in data_in (which is latched after the first cycle)
     input [7:0] data_in,
@@ -22,7 +22,7 @@ module tx_uart
     reg [7:0] data_latch;
 
     always @(posedge clk) begin
-        if (!rst) begin
+        if (!rst_n) begin
             state <= IDLE;
             tx_pin = 1'b1;
             tx_done = 1'b1;
