@@ -62,6 +62,8 @@ module top
 
 `else
 
+    `include "src/uart/uart_mem.vh"
+
     // memory mapped UART demo (echoes what it receives)
     wire [15:0] target_baud = 16'd469; // 115,200 baud @ 54MHz
 
@@ -90,14 +92,6 @@ module top
         WAIT_BEFORE_ECHO = 8'd9,
         WRITE_ECHO       = 8'd10,
         CLEAR_INT       = 8'd11;
-
-    localparam
-        UART_BAUD_L_ADDR      = 3'b000,
-        UART_BAUD_H_ADDR      = 3'b001,
-        UART_STATUS_ADDR      = 3'b010,
-        UART_DATA_ADDR        = 3'b011,
-        UART_INT_ADDR         = 3'b100,
-        UART_INT_PENDING_ADDR = 3'b101;
 
     uart_mem uartmem(
         .clk(pll_clk), .rst(rst), .irq(irq),
@@ -140,7 +134,7 @@ module top
                 INIT: // write BAUD_L
                     begin
                         wr_en <= 1;                     // write
-                        addr <= UART_BAUD_L_ADDR;       // to BAUD_L
+                        addr <= `UART_BAUD_L_ADDR;       // to BAUD_L
                         i_data <= target_baud[7:0];     // the lower 8 bits
                         tag <= WRITE_BAUD_H;            // next state is writing BAUD_H
                         state <= WAIT;                  // wait for block to acknowledge
@@ -148,7 +142,7 @@ module top
                 WRITE_BAUD_H: // write BAUD_H
                     begin
                         wr_en <= 1;                     // write
-                        addr <= UART_BAUD_H_ADDR;       // to BAUD_H
+                        addr <= `UART_BAUD_H_ADDR;       // to BAUD_H
                         i_data <= target_baud[15:8];    // upper 8 bits
                         tag <= WRITE_INT_ENABLE;        // next state is writing the Interrupt Enables
                         state <= WAIT;                  // wait for block to acknowledge
@@ -156,7 +150,7 @@ module top
                 WRITE_INT_ENABLE: // write interrupt enables
                     begin
                         wr_en <= 1;                     // write
-                        addr <= UART_INT_ADDR;          // to interrupt enable
+                        addr <= `UART_INT_ADDR;          // to interrupt enable
                         i_data <= 2'b11;                // enable both interrupts
                         tag <= READ_STATUS;             // next state is reading the status register
                         state <= WAIT;                  // wait for block to acknowledge
@@ -164,7 +158,7 @@ module top
                 READ_STATUS: // READ STATUS
                     begin
                         wr_en <= 0;                     // read
-                        addr <= UART_STATUS_ADDR;       // from status register
+                        addr <= `UART_STATUS_ADDR;       // from status register
                         tag <= COMP_STATUS;             // next state is compare status
                         state <= WAIT;                  // wait for block to acknowledge
                     end
@@ -181,7 +175,7 @@ module top
                 START_ECHO: // read the UART
                     begin
                         wr_en <= 0;                     // read
-                        addr <= UART_DATA_ADDR;         // from the data register
+                        addr <= `UART_DATA_ADDR;         // from the data register
                         tag <= WAIT_BEFORE_ECHO;        // next state is a brief pause before writing
                         state <= WAIT;                  // wait for block to acknowledge
                     end
@@ -194,7 +188,7 @@ module top
                 WRITE_ECHO: // write it back
                     begin
                         wr_en <= 1;                     // write
-                        addr <= UART_DATA_ADDR;         // to data register
+                        addr <= `UART_DATA_ADDR;         // to data register
                         i_data <= o_data_latch;         // the previously latched output from the read of the data register
                         tag <= CLEAR_INT;               // next state is clearing the interrupt flags
                         state <= WAIT;                  // wait for block to acknowledge
@@ -202,7 +196,7 @@ module top
                 CLEAR_INT: // write interrupt enables
                     begin
                         wr_en <= 1;                     // write
-                        addr <= UART_INT_PENDING_ADDR;  // to interrupt pending register
+                        addr <= `UART_INT_PENDING_ADDR;  // to interrupt pending register
                         i_data <= 2'b11;                // clear both interrupts (write 1 to clear, there are 2 flags)
                         tag <= READ_STATUS;             // next state is back to reading the status register
                         state <= WAIT;                  // wait for block to acknowledge

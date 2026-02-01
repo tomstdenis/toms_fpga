@@ -1,28 +1,4 @@
-/* This is a "bus" wrapper around the uart block
-
-Provides for the following addresses (uses a 3-bit address width)
-
-    localparam
-        UART_BAUD_L_ADDR      = 3'b000,   <--- (reset: 0) lower 8 bits of baud divisor
-        UART_BAUD_H_ADDR      = 3'b001,   <--- (reset: 0) upper 8 bits of baud divisor (combined BAUD = F_CLK/bauddiv[15:0])
-        UART_STATUS_ADDR      = 3'b010,   <--- STATUS register (bit 0 == RX ready, bit 1 == TX fifo full)
-        UART_DATA_ADDR        = 3'b011,   <--- 8-bit data register 
-        UART_INT_ADDR         = 3'b100,   <--- (reset: 0) Interrupt enables (bit 0 == RX_READY, bit 1 == TX fifo empty)
-        UART_INT_PENDING_ADDR = 3'b101;   <--- (reset: 0) Interrupt pending flags (bit 0 == RX_READY, bit 1 == TX fifo empty)
-
-    Each address can be written or read.  Writing to STATUS does nothing.
-
-    Writing a 1 to a bit of INT_ADDR enables a particular interrupt.  Writing a '1' to a bit of INT_PENDING clears the pending interrupt.
-Both use this layout for interrupt bits.
-
-    localparam
-        UART_INT_RX_READY     = 0,
-        UART_INT_TX_EMPTY     = 1;
-
-    The core operates by setting your wr_en, addr, i_data (if !wr_en).  Then issue enable=1 for as many cycles as it takes for ready to go high,
-then deassert enable for 1 cycle before the next command.
-
-*/
+`include "uart_mem.vh"
 
 module uart_mem
 (
@@ -61,18 +37,6 @@ module uart_mem
         ISSUE  = 0,
         RETIRE = 1;
 
-    localparam
-        UART_BAUD_L_ADDR      = 3'b000,
-        UART_BAUD_H_ADDR      = 3'b001,
-        UART_STATUS_ADDR      = 3'b010,
-        UART_DATA_ADDR        = 3'b011,
-        UART_INT_ADDR         = 3'b100,
-        UART_INT_PENDING_ADDR = 3'b101;
-
-    localparam
-        UART_INT_RX_READY     = 0,
-        UART_INT_TX_EMPTY     = 1;
-
     uart u1(
         .clk(clk), .rst(rst),
         .baud_div(bauddiv), 
@@ -99,11 +63,11 @@ module uart_mem
             // step the IRQ system with edge detectors to ensure interrupts only trigger on transition.
             // detect edge of rx_ready and assert it in pending
             if (uart_rx_ready && !rx_ready_prev) begin
-                int_pending[UART_INT_RX_READY] <= 1'b1;
+                int_pending[`UART_INT_RX_READY] <= 1'b1;
             end
             // detect edge of tx_fifo_empty and assert it in pending
             if (uart_tx_fifo_empty && !tx_fifo_empty_prev) begin
-                int_pending[UART_INT_TX_EMPTY] <= 1'b1;
+                int_pending[`UART_INT_TX_EMPTY] <= 1'b1;
             end
             tx_fifo_empty_prev <= uart_tx_fifo_empty;   // latch TX fifo empty
             rx_ready_prev <= uart_rx_ready;             // latch RX ready
@@ -115,28 +79,28 @@ module uart_mem
                             i_data_latch <= i_data;
                             if (wr_en) begin
                                 case(addr)
-                                    UART_BAUD_L_ADDR:
+                                    `UART_BAUD_L_ADDR:
                                         begin // BAUD_L
                                             bauddiv[7:0] <= i_data;
                                         end
-                                    UART_BAUD_H_ADDR:
+                                    `UART_BAUD_H_ADDR:
                                         begin // BAUD_H
                                             bauddiv[15:8] <= i_data;
                                         end
-                                    UART_STATUS_ADDR:
+                                    `UART_STATUS_ADDR:
                                         begin // STATUS
                                         end
-                                    UART_DATA_ADDR: 
+                                    `UART_DATA_ADDR: 
                                         begin // DATA
                                             if (!uart_tx_fifo_full) begin
                                                 uart_tx_start <= 1;
                                             end
                                         end
-                                    UART_INT_ADDR:
+                                    `UART_INT_ADDR:
                                         begin // INT enables
                                             int_enables <= i_data[1:0];
                                         end
-                                    UART_INT_PENDING_ADDR:
+                                    `UART_INT_PENDING_ADDR:
                                         begin // INT enables
                                             int_pending <= int_pending & ~i_data[1:0];
                                         end
@@ -145,30 +109,30 @@ module uart_mem
                                 endcase
                             end else begin // reads
                                 case(addr)
-                                    UART_BAUD_L_ADDR:
+                                    `UART_BAUD_L_ADDR:
                                         begin // BAUD_L
                                             o_data <= bauddiv[7:0];
                                         end
-                                    UART_BAUD_H_ADDR:
+                                    `UART_BAUD_H_ADDR:
                                         begin // BAUD_H
                                             o_data <= bauddiv[15:8];
                                         end
-                                    UART_STATUS_ADDR:
+                                    `UART_STATUS_ADDR:
                                         begin // STATUS
                                             o_data <= {6'b0, uart_tx_fifo_full, uart_rx_ready};
                                         end
-                                    UART_DATA_ADDR:
+                                    `UART_DATA_ADDR:
                                         begin // DATA
                                             if (uart_rx_ready) begin
                                                 o_data <= rx_byte;
                                                 uart_rx_read <= 1;      // tell the UART we read the byte
                                             end
                                         end
-                                    UART_INT_ADDR:
+                                    `UART_INT_ADDR:
                                         begin // INT enables
                                             o_data <= {6'b0, int_enables};
                                         end
-                                    UART_INT_PENDING_ADDR:
+                                    `UART_INT_PENDING_ADDR:
                                         begin // INT enables
                                             o_data <= {6'b0, int_pending};
                                         end

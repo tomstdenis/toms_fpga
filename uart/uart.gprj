@@ -14,5 +14,6 @@
         <File path="src/uart/uart_mem.v" type="file.verilog" enable="1"/>
         <File path="src/uart.cst" type="file.cst" enable="1"/>
         <File path="src/uart.sdc" type="file.sdc" enable="1"/>
+        <File path="src/uart/uart_mem.vh" type="file.other" enable="1"/>
     </FileList>
 </Project>
