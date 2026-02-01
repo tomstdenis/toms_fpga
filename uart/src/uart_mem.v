@@ -45,8 +45,8 @@ module uart_mem
         UART_INT_PENDING_ADDR = 3'b101;
 
     localparam
-        UART_INT_RX_READY = 2'b01,
-        UART_INT_TX_EMPTY = 2'b10;
+        UART_INT_RX_READY     = 0,
+        UART_INT_TX_EMPTY     = 1;
 
     uart u1(
         .clk(clk), .rst(rst),
@@ -59,24 +59,26 @@ module uart_mem
 
     always @(posedge clk) begin
         if (!rst) begin
-            uart_rx_read <= 0;
             bauddiv <= 0;
-            ready <= 0;
+            uart_tx_start <= 0;
+            uart_rx_read <= 0;
+            tx_fifo_empty_prev <= 1;
+            rx_ready_prev <= 0;
+            uart_rx_read <= 0;
+            state <= ISSUE;
             i_data_latch <= 0;
             int_enables <= 0;
             int_pending <= 0;
-            tx_fifo_empty_prev <= 1;
-            rx_ready_prev <= 0;
-            state <= ISSUE;
+            ready <= 0;
         end else begin
             // step the IRQ system
             // detect edge of rx_ready and assert it in pending
             if (uart_rx_ready && !rx_ready_prev) begin
-                int_pending[0] <= 1'b1;
+                int_pending[UART_INT_RX_READY] <= 1'b1;
             end
             // detect edge of tx_fifo_empty and assert it in pending
             if (uart_tx_fifo_empty && !tx_fifo_empty_prev) begin
-                int_pending[1] <= 1'b1;
+                int_pending[UART_INT_TX_EMPTY] <= 1'b1;
             end
             tx_fifo_empty_prev <= uart_tx_fifo_empty;   // latch TX fifo empty
             rx_ready_prev <= uart_rx_ready;             // latch RX ready

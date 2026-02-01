@@ -139,34 +139,34 @@ module top
                     end
                 INIT: // write BAUD_L
                     begin
-                        wr_en <= 1;
-                        addr <= UART_BAUD_L_ADDR;
-                        i_data <= target_baud[7:0];
-                        tag <= WRITE_BAUD_H;
-                        state <= WAIT;
+                        wr_en <= 1;                     // write
+                        addr <= UART_BAUD_L_ADDR;       // to BAUD_L
+                        i_data <= target_baud[7:0];     // the lower 8 bits
+                        tag <= WRITE_BAUD_H;            // next state is writing BAUD_H
+                        state <= WAIT;                  // wait for block to acknowledge
                     end
                 WRITE_BAUD_H: // write BAUD_H
                     begin
-                        wr_en <= 1;
-                        addr <= UART_BAUD_H_ADDR;
-                        i_data <= target_baud[15:8];
-                        tag <= WRITE_INT_ENABLE;
-                        state <= WAIT;
+                        wr_en <= 1;                     // write
+                        addr <= UART_BAUD_H_ADDR;       // to BAUD_H
+                        i_data <= target_baud[15:8];    // upper 8 bits
+                        tag <= WRITE_INT_ENABLE;        // next state is writing the Interrupt Enables
+                        state <= WAIT;                  // wait for block to acknowledge
                     end
                 WRITE_INT_ENABLE: // write interrupt enables
                     begin
-                        wr_en <= 1;
-                        addr <= UART_INT_ADDR;
-                        i_data <= 2'b11; // enable both interrupts
-                        tag <= READ_STATUS;
-                        state <= WAIT;
+                        wr_en <= 1;                     // write
+                        addr <= UART_INT_ADDR;          // to interrupt enable
+                        i_data <= 2'b11;                // enable both interrupts
+                        tag <= READ_STATUS;             // next state is reading the status register
+                        state <= WAIT;                  // wait for block to acknowledge
                     end
                 READ_STATUS: // READ STATUS
                     begin
-                        wr_en <= 0;
-                        addr <= UART_STATUS_ADDR;
-                        tag <= COMP_STATUS;
-                        state <= WAIT;
+                        wr_en <= 0;                     // read
+                        addr <= UART_STATUS_ADDR;       // from status register
+                        tag <= COMP_STATUS;             // next state is compare status
+                        state <= WAIT;                  // wait for block to acknowledge
                     end
                 COMP_STATUS: // compare rx_ready bit..
                     begin
@@ -175,17 +175,17 @@ module top
                             tag <= START_ECHO;
                             state <= WAIT_DELAY;
                         end else begin
-                            state <= READ_STATUS; // re-read STATUS if not
+                            state <= READ_STATUS; // re-read STATUS since conditions aren't met for echoing
                         end
                     end
                 START_ECHO: // read the UART
                     begin
-                        wr_en <= 0;
-                        addr <= UART_DATA_ADDR;
-                        tag <= WAIT_BEFORE_ECHO;
-                        state <= WAIT;
+                        wr_en <= 0;                     // read
+                        addr <= UART_DATA_ADDR;         // from the data register
+                        tag <= WAIT_BEFORE_ECHO;        // next state is a brief pause before writing
+                        state <= WAIT;                  // wait for block to acknowledge
                     end
-                WAIT_BEFORE_ECHO:
+                WAIT_BEFORE_ECHO:                       // we want the LED to stay on for a bit before writing back
                     begin
                         counter <= 54_000_000/8; // wait 1/8'th second
                         tag = WRITE_ECHO;
@@ -193,19 +193,19 @@ module top
                     end
                 WRITE_ECHO: // write it back
                     begin
-                        wr_en <= 1;
-                        addr <= UART_DATA_ADDR;
-                        i_data <= o_data_latch;
-                        tag <= CLEAR_INT; // go back to waiting on status
-                        state <= WAIT;
+                        wr_en <= 1;                     // write
+                        addr <= UART_DATA_ADDR;         // to data register
+                        i_data <= o_data_latch;         // the previously latched output from the read of the data register
+                        tag <= CLEAR_INT;               // next state is clearing the interrupt flags
+                        state <= WAIT;                  // wait for block to acknowledge
                     end
                 CLEAR_INT: // write interrupt enables
                     begin
-                        wr_en <= 1;
-                        addr <= UART_INT_PENDING_ADDR;
-                        i_data <= 2'b11; // clear both interrupts
-                        tag <= READ_STATUS;
-                        state <= WAIT;
+                        wr_en <= 1;                     // write
+                        addr <= UART_INT_PENDING_ADDR;  // to interrupt pending register
+                        i_data <= 2'b11;                // clear both interrupts (write 1 to clear, there are 2 flags)
+                        tag <= READ_STATUS;             // next state is back to reading the status register
+                        state <= WAIT;                  // wait for block to acknowledge
                     end
             endcase
         end
