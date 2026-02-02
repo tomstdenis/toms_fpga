@@ -106,7 +106,11 @@ module timer_mem
                                             end
                                         `TIMER_TOP_L_ADDR:
                                             begin
-                                                l_top[7:0] <= i_data[7:0];
+                                                if (be[1]) begin                    // optimization hack, you can do a 16/32 bit access to the low byte 
+                                                    l_top[15:0] <= i_data[15:0];
+                                                end else begin
+                                                    l_top[7:0] <= i_data[7:0];
+                                                end
                                                 l_relatch <= 1;
                                             end
                                         `TIMER_CMP_H_ADDR:
@@ -116,7 +120,11 @@ module timer_mem
                                             end
                                         `TIMER_CMP_L_ADDR:
                                             begin
-                                                l_cmp[7:0] <= i_data[7:0];
+                                                if (be[1]) begin
+                                                    l_cmp[15:0] <= i_data[15:0];
+                                                end else begin
+                                                    l_cmp[7:0] <= i_data[7:0];
+                                                end
                                                 l_relatch <= 1;
                                             end
                                         `TIMER_PRESCALE_ADDR:
@@ -155,7 +163,11 @@ module timer_mem
                                             end
                                         `TIMER_TOP_L_ADDR:
                                             begin
-                                                o_data <= {24'b0, l_top[7:0]};
+                                                if (be[1]) begin
+                                                    o_data <= {16'b0, l_top[15:0]};
+                                                end else begin
+                                                    o_data <= {24'b0, l_top[7:0]};
+                                                end
                                             end
                                         `TIMER_CMP_H_ADDR:
                                             begin
@@ -163,7 +175,11 @@ module timer_mem
                                             end
                                         `TIMER_CMP_L_ADDR:
                                             begin
-                                                o_data <= {24'b0, l_cmp[7:0]};
+                                                if (be[1]) begin
+                                                    o_data <= {16'b0, l_cmp[15:0]};
+                                                end else begin
+                                                    o_data <= {24'b0, l_cmp[7:0]};
+                                                end
                                             end
                                         `TIMER_PRESCALE_ADDR:
                                             begin
@@ -185,7 +201,11 @@ module timer_mem
                                             begin
                                                 // user must read L first as this latches the counter
                                                 l_counter <= cur_counter;
-                                                o_data <= {24'b0, cur_counter[7:0]};
+                                                if (be[1]) begin
+                                                    o_data <= {16'b0, cur_counter[15:0]};
+                                                end else begin
+                                                    o_data <= {24'b0, cur_counter[7:0]};
+                                                end
                                             end
                                         `TIMER_COUNTER_H_ADDR:
                                             begin
