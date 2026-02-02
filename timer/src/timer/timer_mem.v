@@ -130,6 +130,7 @@ module timer_mem
                                             end
                                         `TIMER_INT_PENDING_ADDR:
                                             begin
+                                                int_pending[1:0] <= int_pending[1:0] & ~i_data[1:0];
                                             end
                                         `TIMER_ENABLE_ADDR:
                                             begin
