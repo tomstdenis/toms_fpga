@@ -74,9 +74,9 @@ module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1)
                     if ((uart_tx_start && !uart_tx_fifo_full) && (tx_done && tx_fifo_cnt > 0 && !tx_start && !tx_started)) begin
                         // Doing both at once: count stays the same
                         tx_fifo_cnt <= tx_fifo_cnt; 
-                    end else if (uart_tx_start && !uart_tx_fifo_full) begin
+                    end else if (uart_tx_start && !uart_tx_fifo_full) begin         // user sent a byte into a non empty fifo
                         tx_fifo_cnt <= tx_fifo_cnt + 1'd1;
-                    end else if (tx_done && tx_fifo_cnt != 0 && !tx_start) begin
+                    end else if (tx_done && tx_fifo_cnt != 0 && !tx_start) begin    // a byte was sent, removing one byte from the FIFO, and no call to start a by happened so net -1
                         tx_fifo_cnt <= tx_fifo_cnt - 1'd1;
                     end
                 end
