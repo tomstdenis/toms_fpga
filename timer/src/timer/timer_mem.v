@@ -183,6 +183,7 @@ module timer_mem
                                             end
                                         `TIMER_COUNTER_L_ADDR:
                                             begin
+                                                // user must read L first as this latches the counter
                                                 l_counter <= cur_counter;
                                                 o_data <= {24'b0, cur_counter[7:0]};
                                             end
@@ -205,8 +206,10 @@ module timer_mem
                             end
                     endcase
                 end else if (!enable) begin
+                    // user is done with this block so de-assert various flags
                     error <= 0;
                     ready <= 0;
+                    l_relatch <= 0;
                     state <= ISSUE;
                 end
             end
