@@ -10,9 +10,9 @@ module uart_mem
     input rst_n,            // active low reset
     input enable,           // active high overall enable (must go low between commands)
     input wr_en,            // active high write enable (0==read, 1==write)
-    input [ADDR_WIDTH-1:0] addr,       // (000 == baud_l, 001 == baud_h, 010 == status, 011 == data, 100 == int_enables, 101 = int pending flags
+    input [ADDR_WIDTH-1:0] addr,
     input [DATA_WIDTH-1:0] i_data,
-    input [DATA_WIDTH/8-1:0] be,       // byte enables ([3]==31:24, [2]==23:16, etc...) only 8-bit is supported
+    input [DATA_WIDTH/8-1:0] be,       // lane 0 must be asserted, other lanes can be asserted but they're ignored.
 
     // common bus out
     output reg ready,       // active high signal when o_data is ready (or write is done)
@@ -86,7 +86,7 @@ module uart_mem
                 error <= 1;
                 ready <= 1;                             // assert error and ready so the user knows we've responded
             end else begin
-                if (~error & enable & !ready) begin
+                if (!error & enable & !ready) begin     // only process the command if we're not in an error state and not waiting for the master to acknowledge the previous command
                     case(state)
                         ISSUE:                              // issue commands to the UART block
                             begin
@@ -95,7 +95,11 @@ module uart_mem
                                     case(addr)
                                         `UART_BAUD_L_ADDR:
                                             begin // BAUD_L
-                                                bauddiv[7:0] <= i_data[7:0];
+                                                if (be[1]) begin
+                                                    bauddiv[15:0] <= i_data[15:0];
+                                                end else begin
+                                                    bauddiv[7:0] <= i_data[7:0];
+                                                end
                                             end
                                         `UART_BAUD_H_ADDR:
                                             begin // BAUD_H
@@ -127,7 +131,11 @@ module uart_mem
                                     case(addr)
                                         `UART_BAUD_L_ADDR:
                                             begin // BAUD_L
-                                                o_data <= {24'b0, bauddiv[7:0]};
+                                                if (be[1]) begin
+                                                    o_data <= {16'b0, bauddiv[15:0]};
+                                                end else begin
+                                                    o_data <= {24'b0, bauddiv[7:0]};
+                                                end
                                             end
                                         `UART_BAUD_H_ADDR:
                                             begin // BAUD_H
