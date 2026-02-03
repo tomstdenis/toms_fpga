@@ -23,7 +23,7 @@ module uart_hex_logger
         .uart_tx_data_in(tx_data),
         .uart_tx_pin(tx_pin),
         .uart_tx_fifo_full(tx_fifo_full),
-        .uart_rx_pin(1'b1), .uart_rx_read(1'b1), .uart_rx_ready(), .uart_rx_byte()); // assign defaults so they're driven
+        .uart_rx_pin(1'b1), .uart_rx_read(1'b1), .uart_rx_ready(), .uart_rx_byte(), .uart_tx_fifo_empty()); // assign defaults so they're driven
 
     reg [2:0] state;
     reg [2:0] digit_count; // 0 to 4 (4 digits + maybe a space or newline)

@@ -1,4 +1,4 @@
-//`define USE_HEX_LOGGER
+`define USE_HEX_LOGGER
 module top
 (
     input clk,
@@ -26,11 +26,11 @@ module top
     reg  [15:0] debug_val;
     reg         log_trigger;
     wire        log_busy;
-    reg [23:0]  counter;
+    reg [31:0]  counter;
 
     uart_hex_logger logger (
         .clk(pll_clk),
-        .rst(rst_n),
+        .rst_n(rst_n),
         .baud_div(uart_baud_div),
         .trigger(log_trigger),
         .hex_val(debug_val),
@@ -45,7 +45,7 @@ module top
             debug_val <= 0;
         end else begin
             counter <= counter + 1'b1;
-            if (counter[23]) begin
+            if (counter[26]) begin
                  case(counter[0])
                     1'b0: begin                                 // trigger a log event
                             log_trigger <= 1'b1;
