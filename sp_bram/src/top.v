@@ -32,6 +32,7 @@ module top(
     reg [3:0] state;
     reg [3:0] tag;
     reg [31:0] data;
+    reg [31:0] counter;
 
     localparam
         WAIT=0,
@@ -41,7 +42,10 @@ module top(
         LOAD=4,
         LOAD_MSG=5,
         START_SERIAL=6,
-        WAIT_SERIAL=7;
+        WAIT_SERIAL=7,
+        WAIT_DELAY=8,
+        PAUSE=9,
+        WAIT_SERIAL_2=10;
 
     always @(posedge clk) begin
         if (!rst_n) begin
@@ -51,7 +55,7 @@ module top(
             be <= 0;
             hl_trigger <= 0;
             hl_val <= 0;
-            data <= 0;
+            data <= 3;
             state <= INIT;
         end else begin
             case(state)
@@ -71,10 +75,8 @@ module top(
                 end
             STORE:
                 begin
-                    addr <= 0;
                     be <= 4'b1111;
                     i_data[31:0] <= data;
-                    data <= data + 32'b1;
                     wr_en <= 1;
                     enable <= 1;
                     tag <= STORE_MSG;
@@ -89,12 +91,11 @@ module top(
                 end
            LOAD:
                 begin
-                    addr <= 0;
                     be <= 4'b1111;
                     wr_en <= 0;
                     enable <= 1;
-                    tag <= LOAD_MSG;
                     state <= WAIT;
+                    tag <= LOAD_MSG;
                 end
            LOAD_MSG:
                 begin
@@ -102,22 +103,42 @@ module top(
                     hl_trigger <= 1;
                     state <= WAIT_SERIAL;
                     tag <= START_SERIAL;
-           end
+                    addr[12:0] <= addr[12:0] + 13'd4;
+                    data <= data + 32'b1;
+                end
            START_SERIAL:
                 begin
                     hl_val <= o_data;
                     hl_trigger <= 1;
                     state <= WAIT_SERIAL;
+                    tag <= PAUSE;
+                end
+           PAUSE:
+                begin
+                    counter <= 27_000_000 / 2;
                     tag <= STORE;
+                    state <= WAIT_DELAY;
                 end
            WAIT_SERIAL:
+                begin
+                    state <= WAIT_SERIAL_2;     // takes 1 cycle for hl_busy to be asserted...
+                end
+           WAIT_SERIAL_2:
                 begin
                     hl_trigger <= 0;
                     if (!hl_busy) begin
                         state <= tag;
                     end
                 end
-            endcase        
+            WAIT_DELAY:
+                begin
+                    if (!counter) begin
+                        state <= tag;
+                    end else begin
+                        counter <= counter - 1'b1;
+                    end
+                end
+            endcase
         end
     end
 endmodule
