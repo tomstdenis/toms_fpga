@@ -59,8 +59,7 @@ module timer#(parameter PRESCALER_BITS=8, TIMER_BITS=16)
                         prescaler <= prescaler_cnt;
                     end else begin
                         // no updates or stops so advance the prescaler_n
-                        prescaler_n <= prescaler_n + 1'b1;
-                        if (prescaler_n == prescaler_cnt) begin
+                        if (prescaler_n == prescaler) begin
                             // we hit the prescaler so increment the counter
                             prescaler_n <= 0;
                             if (count == top) begin
@@ -69,6 +68,8 @@ module timer#(parameter PRESCALER_BITS=8, TIMER_BITS=16)
                             end else begin
                                 count <= count + 1'b1;
                             end
+                        end else begin
+                            prescaler_n <= prescaler_n + 1'b1;
                         end
                     end
                 end
