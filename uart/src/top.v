@@ -123,9 +123,7 @@ module top
                     end
                 WAIT: // generic wait and then jump to tag state
                     begin
-                        if (!enable) begin
-                            enable <= 1;
-                        end else if (ready) begin
+                        if (ready) begin
                             o_data_latch <= o_data[7:0];
                             enable <= 0;        // disable core
                             wr_en <= 0;         // deassert write
@@ -137,6 +135,8 @@ module top
                         wr_en <= 1;                     // write
                         addr <= `UART_BAUD_L_ADDR;       // to BAUD_L
                         i_data <= target_baud[7:0];     // the lower 8 bits
+                        enable <= 1;                    // enable peripheral bus
+
                         tag <= WRITE_BAUD_H;            // next state is writing BAUD_H
                         state <= WAIT;                  // wait for block to acknowledge
                     end
@@ -145,6 +145,8 @@ module top
                         wr_en <= 1;                     // write
                         addr <= `UART_BAUD_H_ADDR;       // to BAUD_H
                         i_data <= target_baud[15:8];    // upper 8 bits
+                        enable <= 1;                    // enable peripheral bus
+
                         tag <= WRITE_INT_ENABLE;        // next state is writing the Interrupt Enables
                         state <= WAIT;                  // wait for block to acknowledge
                     end
@@ -153,6 +155,8 @@ module top
                         wr_en <= 1;                     // write
                         addr <= `UART_INT_ADDR;          // to interrupt enable
                         i_data <= 2'b11;                // enable both interrupts
+                        enable <= 1;                    // enable peripheral bus
+
                         tag <= READ_STATUS;             // next state is reading the status register
                         state <= WAIT;                  // wait for block to acknowledge
                     end
@@ -160,6 +164,8 @@ module top
                     begin
                         wr_en <= 0;                     // read
                         addr <= `UART_STATUS_ADDR;      // from status register
+                        enable <= 1;                    // enable peripheral bus
+
                         tag <= COMP_STATUS;             // next state is compare status
                         state <= WAIT;                  // wait for block to acknowledge
                     end
@@ -177,6 +183,8 @@ module top
                     begin
                         wr_en <= 0;                     // read
                         addr <= `UART_DATA_ADDR;         // from the data register
+                        enable <= 1;                    // enable peripheral bus
+
                         tag <= WAIT_BEFORE_ECHO;        // next state is a brief pause before writing
                         state <= WAIT;                  // wait for block to acknowledge
                     end
@@ -191,6 +199,8 @@ module top
                         wr_en <= 1;                     // write
                         addr <= `UART_DATA_ADDR;         // to data register
                         i_data <= o_data_latch;         // the previously latched output from the read of the data register
+                        enable <= 1;                    // enable peripheral bus
+
                         tag <= CLEAR_INT;               // next state is clearing the interrupt flags
                         state <= WAIT;                  // wait for block to acknowledge
                     end
@@ -199,6 +209,8 @@ module top
                         wr_en <= 1;                     // write
                         addr <= `UART_INT_PENDING_ADDR;  // to interrupt pending register
                         i_data <= 2'b11;                // clear both interrupts (write 1 to clear, there are 2 flags)
+                        enable <= 1;                    // enable peripheral bus
+
                         tag <= READ_STATUS;             // next state is back to reading the status register
                         state <= WAIT;                  // wait for block to acknowledge
                     end
