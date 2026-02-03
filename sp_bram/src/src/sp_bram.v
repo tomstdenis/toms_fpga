@@ -40,8 +40,7 @@ module sp_bram
 
     localparam
         ISSUE = 0,
-        RETIRE = 1,
-        READY = 2;
+        RETIRE = 1;
 
     always @(posedge clk) begin
         if (!rst_n) begin
@@ -129,12 +128,11 @@ module sp_bram
                     RETIRE:
                         begin
                             ce <= 4'b0000; // turn off enables
+                            ready <= 1;
                             if (error) begin
-                                ready <= 1;
                             end else begin
                                 if (wr_en) begin
                                     // data written we're done
-                                    ready <= 1;
                                 end else begin
                                     // reading we need to mux o_mem to o_data based on be
                                     case(be)
@@ -142,10 +140,8 @@ module sp_bram
                                             begin
                                                 if (addr & 2'b11) begin
                                                     error <= 1;
-                                                    ready <= 1;
                                                 end else begin
                                                     o_data[31:0] <= o_mem[31:0];
-                                                    ready <= 1;
                                                 end
                                             end
                                         4'b0011: // 16-bit writes
@@ -154,17 +150,14 @@ module sp_bram
                                                     2'b00:
                                                         begin
                                                             o_data[31:0] <= {16'b0, o_mem[15:0]};
-                                                            ready <= 1;
                                                         end
                                                     2'b10:
                                                         begin
                                                             o_data[31:0] <= {16'b0, o_mem[31:16]};
-                                                            ready <= 1;
                                                         end
                                                     default:
                                                         begin
                                                             error <= 1;
-                                                            ready <= 1;
                                                         end
                                                 endcase
                                             end
@@ -174,22 +167,18 @@ module sp_bram
                                                     2'b00:
                                                         begin
                                                             o_data[31:0] <= {24'b0, o_mem[7:0]};
-                                                            ready <= 1;
                                                         end
                                                     2'b01:
                                                         begin
                                                             o_data[31:0] <= {24'b0, o_mem[15:8]};
-                                                            ready <= 1;
                                                         end
                                                     2'b10:
                                                         begin
                                                             o_data[31:0] <= {24'b0, o_mem[23:16]};
-                                                            ready <= 1;
                                                         end
                                                     2'b11:
                                                         begin
                                                             o_data[31:0] <= {24'b0, o_mem[31:24]};
-                                                            ready <= 1;
                                                         end
                                                 endcase
                                             end
