@@ -4,7 +4,8 @@ module lt100(
 
     input rx_pin,
     output tx_pin,
-    output pwm
+    output pwm,
+    output cpu_pin
 );
     reg bus_enable;
     reg bus_wr_en;
@@ -62,6 +63,9 @@ module lt100(
     reg [31:0] reg_op_imm_b;
     reg [31:0] reg_op_imm_j;
     reg [6:0]  reg_opcode;
+    reg [3:0] boot_step;
+    reg fetch_signal;
+    assign cpu_pin = fetch_signal;
 
     always @(posedge clk) begin
         if (!rst_n) begin
@@ -70,6 +74,7 @@ module lt100(
             instr_reg <= 0;
             state <= LT_BOOTLOADER;
             boot_addr <= 0;
+            boot_step <= 0;
             reg_op_rd <= 0;
             res <= 0;
         end else begin
@@ -79,7 +84,7 @@ module lt100(
                     begin
                         if (bus_ready) begin
                             bus_enable <= 0;
-                            state <= tag;
+                            state <= LT_FETCH;
                         end
                     end
                 LT_WAIT_LOAD_RD:                        // wait on a 32-bit (or unsigned) load to a register
@@ -87,7 +92,7 @@ module lt100(
                         if (bus_ready) begin
                             bus_enable <= 0;
                             rv_regs[reg_op_rd] <= bus_o_data;
-                            state <= tag;
+                            state <= LT_FETCH;
                         end
                     end
                 LT_WAIT_LOAD_RD_SIGN_BYTE:              // wait on a signed byte extension to a register
@@ -95,7 +100,7 @@ module lt100(
                         if (bus_ready) begin
                             bus_enable <= 0;
                             rv_regs[reg_op_rd] <= {{24{bus_o_data[7]}}, bus_o_data[7:0]};
-                            state <= tag;
+                            state <= LT_FETCH;
                         end
                     end
                 LT_WAIT_LOAD_RD_SIGN_HALF:              // wait on a signed half extension to a register
@@ -103,7 +108,7 @@ module lt100(
                         if (bus_ready) begin
                             bus_enable <= 0;
                             rv_regs[reg_op_rd] <= {{16{bus_o_data[15]}}, bus_o_data[15:0]};
-                            state <= tag;
+                            state <= LT_FETCH;
                         end
                     end
                 LT_WAIT_FOR_FETCH:                      // wait for 32-bit read into instruc_reg
@@ -118,17 +123,14 @@ module lt100(
                             // register various interpretations of the immediate fields
                             reg_op_imm_i <= {{20{bus_o_data[31]}}, bus_o_data[31:20]};                                          // I-type
                             reg_op_imm_s <= {{20{bus_o_data[31]}}, bus_o_data[31:25], bus_o_data[11:7]};                        // S-type
-                            reg_op_imm_b = {{20{bus_o_data[31]}}, bus_o_data[7], bus_o_data[30:25], bus_o_data[11:8], 1'b0};    // B-type immediate (Branch)
-                            reg_op_imm_j = {{12{bus_o_data[31]}}, bus_o_data[19:12], bus_o_data[20], bus_o_data[30:21], 1'b0};  // J-type immediate (JAL)
-                            // reset result destination so we stop storing to the register file by default
-                            // Note we can't register it from the instruction here because not all instructions have an rd and we would be storing garbage if we did
-                            reg_op_rd <= 0;
+                            reg_op_imm_b <= {{20{bus_o_data[31]}}, bus_o_data[7], bus_o_data[30:25], bus_o_data[11:8], 1'b0};    // B-type immediate (Branch)
+                                reg_op_imm_j <= {{12{bus_o_data[31]}}, bus_o_data[19:12], bus_o_data[20], bus_o_data[30:21], 1'b0};  // J-type immediate (JAL)
 
                             // 32-bit opcodes have the 11 in the bottom 2 bits
                             if (bus_o_data[1:0] == 2'b11) begin
                                 rv_PC <= rv_PC + 32'd4;     // advance PC since there are multiple return paths to LT_FETCH make
                                                             // sure to account for this in branch opcodes
-                                state <= LT_EXECUTE;        // start executing the instruction
+                                state <= LT_EXECUTE;              // start executing the instruction
                             end else begin
                                 // compact instructions we don't yet support just gracefully skip
                                 rv_PC <= rv_PC + 32'd2;
@@ -138,13 +140,15 @@ module lt100(
                     end
                 LT_FETCH:                               // issue fetch of next opcode 
                     begin
+                        fetch_signal <= ~fetch_signal;
                         bus_wr_en <= 0;         // READ
                         bus_be <= 4'b1111;      // 32-bit
                         bus_addr <= rv_PC;      // from PC
                         bus_enable <= 1;        // issue read
                         state <= LT_WAIT_FOR_FETCH;
-                        if (reg_op_rd) begin    // retire the previous instruction if destination != 0
+                        if (reg_op_rd != 0) begin    // retire the previous instruction if destination != 0
                             rv_regs[reg_op_rd] <= res;
+                            reg_op_rd <= 0;
                         end
                     end
                 LT_EXECUTE:                             // execute instruction

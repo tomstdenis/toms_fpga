@@ -3,8 +3,64 @@ LT_WAIT_FOR_READY:
         if (bus_ready) begin
             bus_enable <= 0;
             state <= tag;
+            boot_step <= boot_step + 1'b1;
         end
     end
+
+`define BOOT_A
+`ifdef BOOT_A
+LT_BOOTLOADER:
+    begin
+        bus_be <= 4'b1111;
+        bus_addr[31:0] <= boot_step << 2;
+        bus_wr_en <= 1;
+        bus_enable <= 1;
+        case (boot_step)
+            8'd0: 
+            begin 
+                bus_i_data = 32'h200002B7;  tag <= LT_BOOTLOADER; state <= LT_WAIT_FOR_READY;
+            end
+            8'd1:
+            begin
+                bus_i_data = 32'h04100313;  tag <= LT_BOOTLOADER; state <= LT_WAIT_FOR_READY;
+            end
+
+
+            8'd2:
+            begin
+                bus_i_data = 32'h0062a623;  tag <= LT_BOOTLOADER; state <= LT_WAIT_FOR_READY;
+            end
+            8'd3:
+            begin
+                bus_i_data = 32'hffdff06f;  tag <= LT_BOOTLOADER; state <= LT_WAIT_FOR_READY;
+            end
+
+/*
+            8'd2: 
+            begin
+                bus_i_data = 32'h0082a383;  tag <= LT_BOOTLOADER; state <= LT_WAIT_FOR_READY;
+            end
+            8'd3:
+            begin
+                bus_i_data = 32'h0023f393;  tag <= LT_BOOTLOADER; state <= LT_WAIT_FOR_READY;
+            end
+            8'd4:
+            begin
+                bus_i_data = 32'h00039263;  tag <= LT_BOOTLOADER; state <= LT_WAIT_FOR_READY;
+            end
+            8'd5:
+            begin
+                bus_i_data = 32'h0062a623;  tag <= LT_BOOTLOADER; state <= LT_WAIT_FOR_READY;
+            end
+            8'd6:
+            begin
+                bus_i_data = 32'hff1ff06f;  tag <= LT_BOOTLOADER; state <= LT_WAIT_FOR_READY;
+            end
+*/            default: state <= LT_EXECUTE;
+        endcase
+    end
+`else
+// normal bootloader
 LT_BOOTLOADER:
     begin
         bus_be <= 4'b0001;                      // 8-bit
@@ -50,3 +106,4 @@ LT_BOOT_NEXT_CHAR:
             state <= LT_BOOTLOADER; // re-read UART status
         end
     end
+`endif
