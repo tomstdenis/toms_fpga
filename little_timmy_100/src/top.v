@@ -3,7 +3,8 @@ module top(
     input rx_pin,
     output tx_pin,
     output led,
-    output cpu_pin
+    output cpu_pin,
+    output led_bus_err
 );
 
     reg [3:0] rstcnt = 4'b0;
@@ -13,6 +14,6 @@ module top(
         rstcnt <= {rstcnt[2:0], 1'b1};
     end
 
-    lt100 lt(.clk(clk), .rst_n(rst_n), .rx_pin(rx_pin), .tx_pin(tx_pin), .pwm(led), .cpu_pin(cpu_pin));
+    lt100 lt(.clk(clk), .rst_n(rst_n), .rx_pin(rx_pin), .tx_pin(tx_pin), .pwm(led), .cpu_pin(cpu_pin), .led_bus_err(led_bus_err));
 
 endmodule

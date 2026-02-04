@@ -9,9 +9,10 @@ _start:
     li t1, 0x41                 # 'A'
 
 wait_tx:
-#    lw   t2, UART_STATUS(t0)
-#    andi t2, t2, TX_FULL_BIT
-#    bnez t2, send_char # hax    # IF bit is 1 (Full), LOOP and wait.
+    addi t1,t1,1
+    lw   t2, UART_STATUS(t0)
+    andi t2, t2, TX_FULL_BIT # pointless butI want to see andi not halt the core
+    bnez t2, send_char     # IF bit is 1 (Full), LOOP and wait.
                         # IF bit is 0 (Room available), FALL THROUGH.
 
 send_char:

@@ -22,8 +22,9 @@
 7'h6F: // JAL
     begin
         res <= rv_PC; // Store the return address (already PC+4)
+        reg_op_rd <= op_rd;     
         rv_PC <= (rv_PC - 32'd4) + reg_op_imm_j; // Jump relative to current instruction
-        reg_op_rd <= op_rd;
         state <= LT_FETCH;
     end
+`else
 `endif

@@ -28,10 +28,11 @@ module uart_mem
     reg uart_tx_start;
     wire uart_tx_fifo_full;
     wire uart_tx_fifo_empty;
-    reg tx_fifo_empty_prev;
     wire uart_rx_ready;
-    reg rx_ready_prev;
     reg uart_rx_read;
+
+    reg tx_fifo_empty_prev;
+    reg rx_ready_prev;
     reg [2:0] state;
     reg [7:0] i_data_latch;
     wire [7:0] rx_byte;

@@ -5,6 +5,7 @@ begin
     bus_addr <= reg_rs1 + reg_op_imm_i;
     bus_wr_en <= 0; // READ
     tag <= LT_FETCH;
+    reg_op_rd <= op_rd;
     case(op_funct3)
         3'd0: // load byte signed
             begin

@@ -5,7 +5,8 @@ module lt100(
     input rx_pin,
     output tx_pin,
     output pwm,
-    output cpu_pin
+    output cpu_pin,
+    output led_bus_err
 );
     reg bus_enable;
     reg bus_wr_en;
@@ -16,6 +17,7 @@ module lt100(
     wire [31:0] bus_o_data;
     wire bus_irq;
     wire bus_err;
+    assign led_bus_err = ~bus_err;
 
     lt100_bus ltb(
         .clk(clk), .rst_n(rst_n), .enable(bus_enable), .wr_en(bus_wr_en),
@@ -39,7 +41,6 @@ module lt100(
         LT_WAIT_LOAD_RD_SIGN_BYTE=4,
         LT_WAIT_LOAD_RD_SIGN_HALF=5,
         LT_WAIT_LOAD_RD=6,
-        LT_RETIRE=7,
         LT_WAIT_FOR_STORE=8,
         LT_BOOTLOADER=9,
         LT_BOOT_WAIT_RX=10,
@@ -77,38 +78,39 @@ module lt100(
             boot_step <= 0;
             reg_op_rd <= 0;
             res <= 0;
+            fetch_signal <= 0;
         end else begin
             case(state)
 `include "bootloader_fsm.vh"
                 LT_WAIT_FOR_STORE:
                     begin
                         if (bus_ready) begin
+                            state <= tag;
                             bus_enable <= 0;
-                            state <= LT_FETCH;
                         end
                     end
                 LT_WAIT_LOAD_RD:                        // wait on a 32-bit (or unsigned) load to a register
                     begin
                         if (bus_ready) begin
-                            bus_enable <= 0;
                             rv_regs[reg_op_rd] <= bus_o_data;
-                            state <= LT_FETCH;
+                            bus_enable <= 0;
+                            state <= tag;       // we need the idle cycle because we can't deassert just yet and we need bus_enable to be low for at least one cycle for the synchronous peripherals to respond
                         end
                     end
                 LT_WAIT_LOAD_RD_SIGN_BYTE:              // wait on a signed byte extension to a register
                     begin
                         if (bus_ready) begin
-                            bus_enable <= 0;
                             rv_regs[reg_op_rd] <= {{24{bus_o_data[7]}}, bus_o_data[7:0]};
-                            state <= LT_FETCH;
+                            bus_enable <= 0;
+                            state <= tag;       // we need the idle cycle because we can't deassert just yet and we need bus_enable to be low for at least one cycle for the synchronous peripherals to respond
                         end
                     end
                 LT_WAIT_LOAD_RD_SIGN_HALF:              // wait on a signed half extension to a register
                     begin
                         if (bus_ready) begin
-                            bus_enable <= 0;
                             rv_regs[reg_op_rd] <= {{16{bus_o_data[15]}}, bus_o_data[15:0]};
-                            state <= LT_FETCH;
+                            bus_enable <= 0;
+                            state <= tag;
                         end
                     end
                 LT_WAIT_FOR_FETCH:                      // wait for 32-bit read into instruc_reg
@@ -123,14 +125,14 @@ module lt100(
                             // register various interpretations of the immediate fields
                             reg_op_imm_i <= {{20{bus_o_data[31]}}, bus_o_data[31:20]};                                          // I-type
                             reg_op_imm_s <= {{20{bus_o_data[31]}}, bus_o_data[31:25], bus_o_data[11:7]};                        // S-type
-                            reg_op_imm_b <= {{20{bus_o_data[31]}}, bus_o_data[7], bus_o_data[30:25], bus_o_data[11:8], 1'b0};    // B-type immediate (Branch)
-                                reg_op_imm_j <= {{12{bus_o_data[31]}}, bus_o_data[19:12], bus_o_data[20], bus_o_data[30:21], 1'b0};  // J-type immediate (JAL)
-
+                            reg_op_imm_b <= { bus_o_data[31], bus_o_data[31], bus_o_data[31], bus_o_data[31], bus_o_data[31], bus_o_data[31], bus_o_data[31], bus_o_data[31], bus_o_data[31], bus_o_data[31], bus_o_data[31], bus_o_data[31], bus_o_data[31], bus_o_data[31], bus_o_data[31], bus_o_data[31], bus_o_data[31], bus_o_data[31], bus_o_data[31], bus_o_data[31], bus_o_data[7], bus_o_data[30], bus_o_data[29], bus_o_data[28], bus_o_data[27], bus_o_data[26], bus_o_data[25], bus_o_data[11], bus_o_data[10], bus_o_data[9], bus_o_data[8], 1'b0};
+                            reg_op_imm_j <= { bus_o_data[31], bus_o_data[31], bus_o_data[31], bus_o_data[31], bus_o_data[31], bus_o_data[31], bus_o_data[31], bus_o_data[31], bus_o_data[31], bus_o_data[31], bus_o_data[31], bus_o_data[31], bus_o_data[19], bus_o_data[18], bus_o_data[17], bus_o_data[16], bus_o_data[15], bus_o_data[14], bus_o_data[13], bus_o_data[12], bus_o_data[20], bus_o_data[30], bus_o_data[29], bus_o_data[28], bus_o_data[27], bus_o_data[26], bus_o_data[25], bus_o_data[24], bus_o_data[23], bus_o_data[22], bus_o_data[21], 1'b0};
+//                            reg_op_imm_j <= { {12{bus_o_data[31]}}, bus_o_data[19:12], bus_o_data[20], bus_o_data[30:21], 1'b0 };
                             // 32-bit opcodes have the 11 in the bottom 2 bits
                             if (bus_o_data[1:0] == 2'b11) begin
                                 rv_PC <= rv_PC + 32'd4;     // advance PC since there are multiple return paths to LT_FETCH make
                                                             // sure to account for this in branch opcodes
-                                state <= LT_EXECUTE;              // start executing the instruction
+                                state <= LT_EXECUTE;
                             end else begin
                                 // compact instructions we don't yet support just gracefully skip
                                 rv_PC <= rv_PC + 32'd2;
@@ -144,7 +146,7 @@ module lt100(
                         bus_wr_en <= 0;         // READ
                         bus_be <= 4'b1111;      // 32-bit
                         bus_addr <= rv_PC;      // from PC
-                        bus_enable <= 1;        // issue read
+                        bus_enable <= 1;                // assert bus here
                         state <= LT_WAIT_FOR_FETCH;
                         if (reg_op_rd != 0) begin    // retire the previous instruction if destination != 0
                             rv_regs[reg_op_rd] <= res;
@@ -170,6 +172,8 @@ module lt100(
 `include "opcode_63.vh"
 `include "opcode_misc.vh"
 `undef BOTTOM
+            default:
+                fetch_signal <= 0;
             endcase
          end
     end

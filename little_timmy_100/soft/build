@@ -1,0 +1,2 @@
+riscv32-unknown-elf-gcc -march=rv32i -ffreestanding -nostartfiles -T little_timmy_v100.ld boot_a.s -o boot_a.o
+

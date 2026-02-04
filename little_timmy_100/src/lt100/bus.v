@@ -74,7 +74,7 @@ module lt100_bus
     // output signals
     assign irq     = |p_irq;
     assign bus_err = |p_bus_err;
-    assign ready   = |p_ready; // TODO: assert ready and bus_err if (enable && !(|p_enable))
+    assign ready   = |p_ready | (bus_err & |p_enable); // TODO: assert ready and bus_err if (enable && !(|p_enable))
 
     // ---------------------------------------------------------
     // 2. PERIPHERAL INSTANTIATION

@@ -1,9 +1,9 @@
 LT_WAIT_FOR_READY:
     begin
         if (bus_ready) begin
-            bus_enable <= 0;
-            state <= tag;
             boot_step <= boot_step + 1'b1;
+            state = tag;
+            bus_enable <= 0;
         end
     end
 
@@ -18,21 +18,40 @@ LT_BOOTLOADER:
         case (boot_step)
             8'd0: 
             begin 
-                bus_i_data = 32'h200002B7;  tag <= LT_BOOTLOADER; state <= LT_WAIT_FOR_READY;
+                bus_i_data = 32'h200002b7;  tag <= LT_BOOTLOADER; state <= LT_WAIT_FOR_READY;
             end
             8'd1:
             begin
                 bus_i_data = 32'h04100313;  tag <= LT_BOOTLOADER; state <= LT_WAIT_FOR_READY;
             end
-
-
             8'd2:
             begin
-                bus_i_data = 32'h0062a623;  tag <= LT_BOOTLOADER; state <= LT_WAIT_FOR_READY;
+                bus_i_data = 32'h00130313;  tag <= LT_BOOTLOADER; state <= LT_WAIT_FOR_READY;
             end
             8'd3:
             begin
-                bus_i_data = 32'hffdff06f;  tag <= LT_BOOTLOADER; state <= LT_WAIT_FOR_READY;
+                bus_i_data = 32'h0082a383;  tag <= LT_BOOTLOADER; state <= LT_WAIT_FOR_READY;
+            end
+            8'd4:
+            begin
+                bus_i_data = 32'h0023f393;  tag <= LT_BOOTLOADER; state <= LT_WAIT_FOR_READY;
+            end
+            8'd5:
+            begin
+                bus_i_data = 32'h00039263;  tag <= LT_BOOTLOADER; state <= LT_WAIT_FOR_READY;
+            end
+            8'd6:
+            begin
+                bus_i_data = 32'h0062a623;  tag <= LT_BOOTLOADER; state <= LT_WAIT_FOR_READY;
+            end
+            8'd7:
+            begin
+//                bus_i_data = 32'hfedff06f;  tag <= LT_BOOTLOADER; state <= LT_WAIT_FOR_READY;  // jmp
+                bus_i_data = 32'h0062a623;  tag <= LT_BOOTLOADER; state <= LT_WAIT_FOR_READY; // store
+            end
+            8'd8:
+            begin
+                bus_i_data = 32'h00130313;  tag <= LT_BOOTLOADER; state <= LT_WAIT_FOR_READY;   // add
             end
 
 /*
