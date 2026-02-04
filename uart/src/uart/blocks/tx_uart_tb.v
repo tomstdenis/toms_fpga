@@ -50,7 +50,7 @@ module tx_uart_tb();
         rst_n = 1;
         repeat(5) @(posedge clk);
 
-        // Test Case 1: Send 0xA5 (10100101)
+		// send all 256 bytes
 		for (i = 0; i < 256; i++) begin
 			run_test(i[7:0]);
 			repeat($urandom_range(1, 100)) @(posedge clk);	// wait some random delay before sending next
@@ -73,7 +73,16 @@ module tx_uart_tb();
                     start_tx = 1;
                     @(posedge clk);
                     start_tx = 0;
+					@(posedge clk);
+					if (tx_started !== 1) begin
+						$display("ASSERTION FAILED: tx_started should be high after pulsing start_tx\n");
+						$fatal;
+					end
                     wait(tx_done);
+					if (tx_pin !== 1) begin
+						$display("ASSERTION FAILED: tx_pin should idle high\n");
+						$fatal;
+					end
                 end
 
                 // Process 2: The Monitor (Automated Assertion)
