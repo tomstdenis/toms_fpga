@@ -2,3 +2,4 @@ uart/impl
 spi/impl
 timer/impl
 sp_bram/impl
+little_timmy_100/impl

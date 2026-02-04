@@ -1,0 +1,27 @@
+<?xml version="1" encoding="UTF-8"?>
+<!DOCTYPE gowin-fpga-project>
+<Project>
+    <Template>FPGA</Template>
+    <Version>5</Version>
+    <Device name="GW2AR-18C" pn="GW2AR-LV18QN88C8/I7">gw2ar18c-000</Device>
+    <FileList>
+        <File path="src/lt100/bus.v" type="file.verilog" enable="1"/>
+        <File path="src/lt100/lt100.v" type="file.verilog" enable="1"/>
+        <File path="src/lt100/peripherals/blocks/gowin_sp_sysram.v" type="file.verilog" enable="1"/>
+        <File path="src/lt100/peripherals/blocks/rx_uart.v" type="file.verilog" enable="1"/>
+        <File path="src/lt100/peripherals/blocks/tx_uart.v" type="file.verilog" enable="1"/>
+        <File path="src/lt100/peripherals/blocks/uart.v" type="file.verilog" enable="1"/>
+        <File path="src/lt100/peripherals/blocks/uart_hex_logger.v" type="file.verilog" enable="1"/>
+        <File path="src/lt100/peripherals/sp_bram.v" type="file.verilog" enable="1"/>
+        <File path="src/lt100/peripherals/sp_bram.vh" type="file.verilog" enable="1"/>
+        <File path="src/lt100/peripherals/timer.v" type="file.verilog" enable="1"/>
+        <File path="src/lt100/peripherals/timer_mem.v" type="file.verilog" enable="1"/>
+        <File path="src/lt100/peripherals/timer_mem.vh" type="file.verilog" enable="1"/>
+        <File path="src/lt100/peripherals/uart_mem.v" type="file.verilog" enable="1"/>
+        <File path="src/lt100/peripherals/uart_mem.vh" type="file.verilog" enable="1"/>
+        <File path="src/top.v" type="file.verilog" enable="1"/>
+        <File path="src/top.cst" type="file.cst" enable="1"/>
+        <File path="src/top.sdc" type="file.sdc" enable="1"/>
+        <File path="src/opcode_03.vh" type="file.other" enable="1"/>
+    </FileList>
+</Project>
