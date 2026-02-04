@@ -128,7 +128,9 @@ module lt100(
                     end
                 LT_RETIRE:
                     begin
-                        rv_regs[op_rd] <= res;
+                        if (op_rd) begin
+                            rv_regs[op_rd] <= res;
+                        end
                         state <= LT_FETCH;
                     end
             endcase
