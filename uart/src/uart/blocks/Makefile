@@ -1,5 +1,7 @@
+all: test_tx test_rx
+
 test_rx:
-	iverilog -o simp.vvp tx_uart.v rx_uart.v rx_uart_tb.v
+	iverilog -o sim.vvp tx_uart.v rx_uart.v rx_uart_tb.v
 	vvp sim.vvp
 
 test_tx:
@@ -7,4 +9,4 @@ test_tx:
 	vvp sim.vvp
 
 clean:
-	rm -f sim.vvp *.vcd
+	rm -f *.vvp *.vcd
