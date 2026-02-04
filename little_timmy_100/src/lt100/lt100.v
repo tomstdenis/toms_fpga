@@ -28,7 +28,6 @@ module lt100(
     reg [31:0] instr_reg;
     reg [7:0] state;
     reg [7:0] tag;
-    reg [4:0] ldd;
     reg [31:0] res;
     
     localparam
@@ -40,7 +39,14 @@ module lt100(
         LT_WAIT_LOAD_RD_SIGN_HALF=5,
         LT_WAIT_LOAD_RD=6,
         LT_RETIRE=7,
-        LT_WAIT_FOR_STORE=8;
+        LT_WAIT_FOR_STORE=8,
+        LT_BOOTLOADER=9,
+        LT_BOOT_WAIT_RX=10,
+        LT_BOOT_READ_CHAR=11,
+        LT_BOOT_STORE_CHAR=12,
+        LT_BOOT_NEXT_CHAR=13,
+        LT_EXECUTE_BRANCH_2=14,
+        LT_PRELOAD_REGS=15;
 
     // Slicing the RISC-V Instruction (Standard 32-bit)
     wire [6:0] op_opcode = instr_reg[6:0];
@@ -58,14 +64,20 @@ module lt100(
     // J-type immediate (JAL)
     wire [31:0] op_imm_j = {{12{instr_reg[31]}}, instr_reg[19:12], instr_reg[20], instr_reg[30:21], 1'b0};
 
+    reg [31:0] boot_addr;
+    reg [31:0] reg_rs1;
+    reg [31:0] reg_rs2;
+
     always @(posedge clk) begin
         if (!rst_n) begin
             rv_regs[0] <= 0;    // at least r0 should be zero'ed
             rv_PC <= 0;
             instr_reg <= 0;
-            state <= LT_FETCH;
+            state <= LT_BOOTLOADER;
+            boot_addr <= 0;
         end else begin
             case(state)
+`include "bootloader_fsm.vh"
                 LT_WAIT_FOR_STORE:
                     begin
                         if (bus_ready) begin
@@ -77,7 +89,7 @@ module lt100(
                     begin
                         if (bus_ready) begin
                             bus_enable <= 0;
-                            rv_regs[ldd] <= bus_o_data;
+                            rv_regs[op_rd] <= bus_o_data;
                             state <= tag;
                         end
                     end
@@ -85,7 +97,7 @@ module lt100(
                     begin
                         if (bus_ready) begin
                             bus_enable <= 0;
-                            rv_regs[ldd] <= {{24{bus_o_data[7]}}, bus_o_data[7:0]};
+                            rv_regs[op_rd] <= {{24{bus_o_data[7]}}, bus_o_data[7:0]};
                             state <= tag;
                         end
                     end
@@ -93,7 +105,7 @@ module lt100(
                     begin
                         if (bus_ready) begin
                             bus_enable <= 0;
-                            rv_regs[ldd] <= {{16{bus_o_data[7]}}, bus_o_data[15:0]};
+                            rv_regs[op_rd] <= {{16{bus_o_data[15]}}, bus_o_data[15:0]};
                             state <= tag;
                         end
                     end
@@ -102,9 +114,15 @@ module lt100(
                         if (bus_ready) begin
                             bus_enable <= 0;
                             instr_reg <= bus_o_data;
-                            state <= tag;
-                            rv_PC <= rv_PC + 32'd4;     // advance PC since there are multiple return paths to LT_FETCH make
-                                                        // sure to account for this in branch opcodes
+                            if (bus_o_data[1:0] == 3) begin
+                                rv_PC <= rv_PC + 32'd4;     // advance PC since there are multiple return paths to LT_FETCH make
+                                                            // sure to account for this in branch opcodes
+                                state <= tag;
+                            end else begin
+                                // compact instructions we don't yet support just gracefully skip
+                                rv_PC <= rv_PC + 32'd2;
+                                state <= LT_FETCH;
+                            end
                         end
                     end
                 LT_FETCH:                               // issue fetch of next opcode 
@@ -113,8 +131,15 @@ module lt100(
                         bus_be <= 4'b1111;      // 32-bit
                         bus_addr <= rv_PC;      // from PC
                         bus_enable <= 1;        // issue read
-                        tag = LT_EXECUTE;
+                        tag <= LT_PRELOAD_REGS;
                         state <= LT_WAIT_FOR_FETCH;
+                        rv_regs[0] <= 0;        // ensure r0 is zero
+                    end
+                LT_PRELOAD_REGS:
+                    begin
+                        reg_rs1 <= rv_regs[op_rs1];
+                        reg_rs2 <= rv_regs[op_rs2];
+                        state <= LT_EXECUTE;
                     end
                 LT_EXECUTE:                             // execute instruction
                     begin
@@ -128,10 +153,17 @@ module lt100(
                     end
                 LT_RETIRE:
                     begin
-                        if (op_rd) begin
-                            rv_regs[op_rd] <= res;
-                        end
+                        rv_regs[op_rd] <= res;
                         state <= LT_FETCH;
+                    end
+                LT_EXECUTE_BRANCH_2: // 2nd cycle of branch instructions [63]
+                    begin
+                        if (res[0]) begin
+                            // Branch Taken: Adjust from the ALREADY incremented PC
+                            rv_PC <= (rv_PC - 32'd4) + op_imm_b;
+                        end 
+                        // If not taken, rv_PC is already at PC+4, so we just go fetch
+                        state <= LT_FETCH; 
                     end
             endcase
          end

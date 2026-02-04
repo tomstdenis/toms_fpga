@@ -5,5 +5,13 @@ module top(
     output led
 );
 
+    reg [3:0] rstcnt = 4'b0;
+    assign rst_n = rstcnt[3];
+
+    always @(posedge clk) begin
+        rstcnt <= {rstcnt[2:0], 1'b1};
+    end
+
+    lt100 lt(.clk(clk), .rst_n(rst_n), .rx_pin(rx_pin), .tx_pin(tx_pin), .pwm(led));
 
 endmodule

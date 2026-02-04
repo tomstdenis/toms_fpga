@@ -22,6 +22,7 @@
         <File path="src/top.v" type="file.verilog" enable="1"/>
         <File path="src/top.cst" type="file.cst" enable="1"/>
         <File path="src/top.sdc" type="file.sdc" enable="1"/>
+        <File path="src/bootloader_fsm.vh" type="file.other" enable="1"/>
         <File path="src/opcode_03.vh" type="file.other" enable="1"/>
         <File path="src/opcode_13.vh" type="file.other" enable="1"/>
         <File path="src/opcode_23.vh" type="file.other" enable="1"/>

@@ -57,7 +57,7 @@ module uart_mem
 
     always @(posedge clk) begin
         if (!rst_n) begin
-            bauddiv <= 0;
+            bauddiv <= 27_000_000 / 115200;
             uart_tx_start <= 0;
             uart_rx_read <= 0;
             tx_fifo_empty_prev <= 1;

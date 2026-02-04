@@ -1,8 +1,8 @@
 // case (opcode) begin ...
 7'h23: // Store opcodes
 begin
-    bus_addr <= rv_regs[op_rs1] + op_imm_s;
-    bus_i_data <= rv_regs[op_rs2];
+    bus_addr <= reg_rs1 + op_imm_s;
+    bus_i_data <= reg_rs2;
     bus_wr_en <= 1;
     bus_enable <= 1;
     state <= LT_WAIT_FOR_STORE;

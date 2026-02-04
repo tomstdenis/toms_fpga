@@ -12,7 +12,7 @@
     begin
         res <= rv_PC; // Store return address
         // Target is (rs1 + imm_i), then force bit 0 to 0 per spec
-        rv_PC <= (rv_regs[op_rs1] + op_imm_i) & ~32'h1; 
+        rv_PC <= (reg_rs1 + op_imm_i) & ~32'h1; 
         state <= LT_RETIRE;
     end
 7'h6F: // JAL
