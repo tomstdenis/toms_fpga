@@ -11,6 +11,7 @@ module uart_full_loopback_tb();
     reg [7:0] tx_data_in;
     wire tx_pin;
     wire tx_done;
+	wire tx_started;
 
     // RX Signals
     reg rx_read;
@@ -29,7 +30,8 @@ module uart_full_loopback_tb();
         .start_tx(start_tx),
         .data_in(tx_data_in),
         .tx_pin(tx_pin), // Connects to RX pin
-        .tx_done(tx_done)
+        .tx_done(tx_done),
+		.tx_started(tx_started)
     );
 
     // 2. Instantiate RX Module to be tested
@@ -80,13 +82,29 @@ module uart_full_loopback_tb();
     // Task: Handle the TX->RX flow and assertion
     task send_and_verify(input [7:0] data_to_send);
         begin
+			// rx done should be clear
+			if (rx_done !== 0) begin
+				$display("ASSERTION FAILED: rx_done not low to start test\n");
+				$fatal;
+			end
+			
             // 1. Trigger TX
             @(posedge clk);
             tx_data_in = data_to_send;
             start_tx = 1;
             @(posedge clk);
             start_tx = 0;
-
+            @(posedge clk);
+            
+            // TX should be started by now ...
+			if (tx_started !== 1) begin
+				$display("ASSERTION FAILED: tx_stated should be high by now\n");
+				$fatal;
+			end
+	
+			// wait for TX to be done
+			wait(tx_done == 1'b1);
+	
             // 2. Wait for RX to finish (with a Watchdog/Timeout)
             fork : wait_or_timeout
                 begin
@@ -114,6 +132,13 @@ module uart_full_loopback_tb();
             rx_read = 1;
             @(posedge clk);
             rx_read = 0;
+            @(posedge clk);
+            
+			// 5. Ensure rx_done is clear
+			if (rx_done !== 0) begin
+				$display("ASSERTION FAILED: rx_done was not cleared by pulsing rx_read\n");
+				$fatal;
+			end
             
             // Short gap between bytes
             repeat(10) @(posedge clk);

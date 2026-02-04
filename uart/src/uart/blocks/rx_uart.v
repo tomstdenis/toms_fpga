@@ -19,6 +19,13 @@ module rx_uart
     reg [15:0] bit_timer;
     reg [2:0] bit_index;
 
+	always @(*) begin
+		if (rx_read) begin
+			// clear done flag since we read the byte
+			rx_done <= 0;
+		end
+	end
+
     always @(posedge clk) begin
         if (!rst_n) begin
             state <= IDLE;
@@ -26,10 +33,6 @@ module rx_uart
             bit_timer <= 0;
             bit_index <= 0;
         end else begin
-            if (rx_read) begin
-                // clear done flag since we read the byte
-                rx_done <= 0;
-            end
             case (state)
                 // IDLE waiting or a low pulse.  
                 IDLE: begin
@@ -71,11 +74,13 @@ module rx_uart
                     end
                 end
 
-                // wait for the STOP bit, note we don't check if it's low...
+				// stop bit should be high
                 STOP_BIT: begin
-                    if (!bit_timer) begin
-                        rx_done <= 1'b1;
-                        state <= IDLE;
+					if (!bit_timer) begin
+						if (rx_pin) begin
+							rx_done <= 1'b1;
+						end
+						state <= IDLE;
                     end else begin
                         bit_timer <= bit_timer - 1'b1;
                     end
