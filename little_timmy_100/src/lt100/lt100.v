@@ -29,6 +29,7 @@ module lt100(
     reg [7:0] state;
     reg [7:0] tag;
     reg [4:0] ldd;
+    reg [31:0] res;
     
     localparam
         LT_WAIT_FOR_READY=0,
@@ -37,7 +38,9 @@ module lt100(
         LT_EXECUTE=3,
         LT_WAIT_LOAD_RD_SIGN_BYTE=4,
         LT_WAIT_LOAD_RD_SIGN_HALF=5,
-        LT_WAIT_LOAD_RD=6;
+        LT_WAIT_LOAD_RD=6,
+        LT_RETIRE=7,
+        LT_WAIT_FOR_STORE=8;
 
     // Slicing the RISC-V Instruction (Standard 32-bit)
     wire [6:0] op_opcode = instr_reg[6:0];
@@ -59,7 +62,14 @@ module lt100(
             state <= LT_FETCH;
         end else begin
             case(state)
-                LT_WAIT_LOAD_RD:
+                LT_WAIT_FOR_STORE:
+                    begin
+                        if (bus_ready) begin
+                            bus_enable <= 0;
+                            state <= tag;
+                        end
+                    end
+                LT_WAIT_LOAD_RD:                        // wait on a 32-bit (or unsigned) load to a register
                     begin
                         if (bus_ready) begin
                             bus_enable <= 0;
@@ -67,7 +77,7 @@ module lt100(
                             state <= tag;
                         end
                     end
-                LT_WAIT_LOAD_RD_SIGN_BYTE:
+                LT_WAIT_LOAD_RD_SIGN_BYTE:              // wait on a signed byte extension to a register
                     begin
                         if (bus_ready) begin
                             bus_enable <= 0;
@@ -75,7 +85,7 @@ module lt100(
                             state <= tag;
                         end
                     end
-                LT_WAIT_LOAD_RD_SIGN_HALF:
+                LT_WAIT_LOAD_RD_SIGN_HALF:              // wait on a signed half extension to a register
                     begin
                         if (bus_ready) begin
                             bus_enable <= 0;
@@ -83,7 +93,7 @@ module lt100(
                             state <= tag;
                         end
                     end
-                LT_WAIT_FOR_FETCH:
+                LT_WAIT_FOR_FETCH:                      // wait for 32-bit read into instruc_reg
                     begin
                         if (bus_ready) begin
                             bus_enable <= 0;
@@ -91,7 +101,7 @@ module lt100(
                             state <= tag;
                         end
                     end
-                LT_FETCH:
+                LT_FETCH:                               // issue fetch of next opcode 
                     begin
                         bus_wr_en <= 0;         // READ
                         bus_be <= 4'b1111;      // 32-bit
@@ -100,11 +110,18 @@ module lt100(
                         tag = LT_EXECUTE;
                         state <= LT_WAIT_FOR_FETCH;
                     end
-                LT_EXECUTE:
+                LT_EXECUTE:                             // execute instruction
                     begin
                         case(op_opcode)
 `include "opcode_03.vh"
+`include "opcode_13.vh"
+`include "opcode_23.vh"
                         endcase
+                    end
+                LT_RETIRE:
+                    begin
+                        rv_regs[op_rd] <= res;
+                        state <= LT_FETCH;
                     end
             endcase
          end
