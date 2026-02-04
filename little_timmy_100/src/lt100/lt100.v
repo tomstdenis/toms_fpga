@@ -45,28 +45,23 @@ module lt100(
         LT_BOOT_READ_CHAR=11,
         LT_BOOT_STORE_CHAR=12,
         LT_BOOT_NEXT_CHAR=13,
-        LT_EXECUTE_BRANCH_2=14,
-        LT_PRELOAD_REGS=15;
+        LT_EXECUTE_BRANCH_2=14;
 
     // Slicing the RISC-V Instruction (Standard 32-bit)
-    wire [6:0] op_opcode = instr_reg[6:0];
-    wire [4:0] op_rd     = instr_reg[11:7];
-    wire [2:0] op_funct3 = instr_reg[14:12];
-    wire [4:0] op_rs1    = instr_reg[19:15];
-    wire [4:0] op_rs2    = instr_reg[24:20];
-    wire [6:0] op_funct7 = instr_reg[31:25];
+    wire [6:0] op_opcode = instr_reg[6:0];      // the opcode
+    wire [2:0] op_funct3 = instr_reg[14:12];    // 3-bit funct3
+    wire [6:0] op_funct7 = instr_reg[31:25];    // 7-bit funct7
+    wire [4:0] op_rd     = instr_reg[11:7];     // destination register
 
-    // Examples of Immediate Slicing (The "unscrambling")
-    wire [31:0] op_imm_i = {{20{instr_reg[31]}}, instr_reg[31:20]}; // I-type
-    wire [31:0] op_imm_s = {{20{instr_reg[31]}}, instr_reg[31:25], instr_reg[11:7]}; // S-type        
-    // B-type immediate (Branch)
-    wire [31:0] op_imm_b = {{20{instr_reg[31]}}, instr_reg[7], instr_reg[30:25], instr_reg[11:8], 1'b0};
-    // J-type immediate (JAL)
-    wire [31:0] op_imm_j = {{12{instr_reg[31]}}, instr_reg[19:12], instr_reg[20], instr_reg[30:21], 1'b0};
-
-    reg [16:0] boot_addr;
+    reg [15:0] boot_addr;
     reg [31:0] reg_rs1;
     reg [31:0] reg_rs2;
+    reg [4:0]  reg_op_rd;
+    reg [31:0] reg_op_imm_i;
+    reg [31:0] reg_op_imm_s;
+    reg [31:0] reg_op_imm_b;
+    reg [31:0] reg_op_imm_j;
+    reg [6:0]  reg_opcode;
 
     always @(posedge clk) begin
         if (!rst_n) begin
@@ -75,6 +70,8 @@ module lt100(
             instr_reg <= 0;
             state <= LT_BOOTLOADER;
             boot_addr <= 0;
+            reg_op_rd <= 0;
+            res <= 0;
         end else begin
             case(state)
 `include "bootloader_fsm.vh"
@@ -89,7 +86,7 @@ module lt100(
                     begin
                         if (bus_ready) begin
                             bus_enable <= 0;
-                            rv_regs[op_rd] <= bus_o_data;
+                            rv_regs[reg_op_rd] <= bus_o_data;
                             state <= tag;
                         end
                     end
@@ -97,7 +94,7 @@ module lt100(
                     begin
                         if (bus_ready) begin
                             bus_enable <= 0;
-                            rv_regs[op_rd] <= {{24{bus_o_data[7]}}, bus_o_data[7:0]};
+                            rv_regs[reg_op_rd] <= {{24{bus_o_data[7]}}, bus_o_data[7:0]};
                             state <= tag;
                         end
                     end
@@ -105,19 +102,33 @@ module lt100(
                     begin
                         if (bus_ready) begin
                             bus_enable <= 0;
-                            rv_regs[op_rd] <= {{16{bus_o_data[15]}}, bus_o_data[15:0]};
+                            rv_regs[reg_op_rd] <= {{16{bus_o_data[15]}}, bus_o_data[15:0]};
                             state <= tag;
                         end
                     end
                 LT_WAIT_FOR_FETCH:                      // wait for 32-bit read into instruc_reg
                     begin
                         if (bus_ready) begin
+                            // fetch done
                             bus_enable <= 0;
                             instr_reg <= bus_o_data;
-                            if (bus_o_data[1:0] == 3) begin
+                            // preload rs1/rs2 for the opcoming instruction
+                            reg_rs1 <= rv_regs[bus_o_data[19:15]];
+                            reg_rs2 <= rv_regs[bus_o_data[24:20]];
+                            // register various interpretations of the immediate fields
+                            reg_op_imm_i <= {{20{bus_o_data[31]}}, bus_o_data[31:20]};                                          // I-type
+                            reg_op_imm_s <= {{20{bus_o_data[31]}}, bus_o_data[31:25], bus_o_data[11:7]};                        // S-type
+                            reg_op_imm_b = {{20{bus_o_data[31]}}, bus_o_data[7], bus_o_data[30:25], bus_o_data[11:8], 1'b0};    // B-type immediate (Branch)
+                            reg_op_imm_j = {{12{bus_o_data[31]}}, bus_o_data[19:12], bus_o_data[20], bus_o_data[30:21], 1'b0};  // J-type immediate (JAL)
+                            // reset result destination so we stop storing to the register file by default
+                            // Note we can't register it from the instruction here because not all instructions have an rd and we would be storing garbage if we did
+                            reg_op_rd <= 0;
+
+                            // 32-bit opcodes have the 11 in the bottom 2 bits
+                            if (bus_o_data[1:0] == 2'b11) begin
                                 rv_PC <= rv_PC + 32'd4;     // advance PC since there are multiple return paths to LT_FETCH make
                                                             // sure to account for this in branch opcodes
-                                state <= tag;
+                                state <= LT_EXECUTE;        // start executing the instruction
                             end else begin
                                 // compact instructions we don't yet support just gracefully skip
                                 rv_PC <= rv_PC + 32'd2;
@@ -131,15 +142,10 @@ module lt100(
                         bus_be <= 4'b1111;      // 32-bit
                         bus_addr <= rv_PC;      // from PC
                         bus_enable <= 1;        // issue read
-                        tag <= LT_PRELOAD_REGS;
                         state <= LT_WAIT_FOR_FETCH;
-                        rv_regs[0] <= 0;        // ensure r0 is zero
-                    end
-                LT_PRELOAD_REGS:
-                    begin
-                        reg_rs1 <= rv_regs[op_rs1];
-                        reg_rs2 <= rv_regs[op_rs2];
-                        state <= LT_EXECUTE;
+                        if (reg_op_rd) begin    // retire the previous instruction if destination != 0
+                            rv_regs[reg_op_rd] <= res;
+                        end
                     end
                 LT_EXECUTE:                             // execute instruction
                     begin
@@ -149,22 +155,17 @@ module lt100(
 `include "opcode_23.vh"
 `include "opcode_63.vh"
 `include "opcode_misc.vh"
+                        default:
+                            state <= LT_FETCH;          // unknown opcode just fetch the next;
                         endcase
                     end
-                LT_RETIRE:
-                    begin
-                        rv_regs[op_rd] <= res;
-                        state <= LT_FETCH;
-                    end
-                LT_EXECUTE_BRANCH_2: // 2nd cycle of branch instructions [63]
-                    begin
-                        if (res[0]) begin
-                            // Branch Taken: Adjust from the ALREADY incremented PC
-                            rv_PC <= (rv_PC - 32'd4) + op_imm_b;
-                        end 
-                        // If not taken, rv_PC is already at PC+4, so we just go fetch
-                        state <= LT_FETCH; 
-                    end
+`define BOTTOM
+`include "opcode_03.vh"
+`include "opcode_13.vh"
+`include "opcode_23.vh"
+`include "opcode_63.vh"
+`include "opcode_misc.vh"
+`undef BOTTOM
             endcase
          end
     end

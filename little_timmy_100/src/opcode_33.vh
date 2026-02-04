@@ -1,6 +1,8 @@
+`ifndef BOTTOM
 7'h33: // ALU opcodes (Register-Register)
 begin
-    state <= LT_RETIRE;
+    state <= LT_FETCH;
+    reg_op_rd <= op_rd;
     if (op_funct7 != 7'h01) begin // non M-extension opcodes
         case (op_funct3)
             3'd0: // add/sub
@@ -36,3 +38,4 @@ begin
         endcase
     end
 end
+`endif

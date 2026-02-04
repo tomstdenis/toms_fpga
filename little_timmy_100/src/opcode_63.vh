@@ -1,3 +1,5 @@
+`ifndef BOTTOM
+// code that goes in the LT_EXECUTE cycle
 7'h63: // Branch Instructions
 begin
 
@@ -12,3 +14,18 @@ begin
     endcase
     state <= LT_EXECUTE_BRANCH_2;
 end
+
+`else
+
+// code that goes in the main state loop (used for multi cycle instructions)
+LT_EXECUTE_BRANCH_2: // 2nd cycle of branch instructions [63]
+    begin
+        if (res[0]) begin
+            // Branch Taken: Adjust from the ALREADY incremented PC
+            rv_PC <= (rv_PC - 32'd4) + reg_op_imm_b;
+        end 
+        // If not taken, rv_PC is already at PC+4, so we just go fetch
+        state <= LT_FETCH; 
+    end
+
+`endif
