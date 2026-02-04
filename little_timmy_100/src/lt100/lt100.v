@@ -26,8 +26,8 @@ module lt100(
     reg [31:0] rv_PC;
 
     reg [31:0] instr_reg;
-    reg [7:0] state;
-    reg [7:0] tag;
+    reg [4:0] state;
+    reg [4:0] tag;
     reg [31:0] res;
     
     localparam
@@ -64,7 +64,7 @@ module lt100(
     // J-type immediate (JAL)
     wire [31:0] op_imm_j = {{12{instr_reg[31]}}, instr_reg[19:12], instr_reg[20], instr_reg[30:21], 1'b0};
 
-    reg [31:0] boot_addr;
+    reg [16:0] boot_addr;
     reg [31:0] reg_rs1;
     reg [31:0] reg_rs2;
 

@@ -8,7 +8,7 @@ LT_WAIT_FOR_READY:
 LT_BOOTLOADER:
     begin
         bus_be <= 4'b0001;
-        bus_addr <= 32'h20000000 + 32'h0008;
+        bus_addr <= 32'h20000000 + 32'h0008;    // read UART_STATUS
         bus_wr_en <= 0;
         bus_enable <= 1;
         tag <= LT_BOOT_WAIT_RX;
@@ -35,12 +35,12 @@ LT_BOOT_STORE_CHAR:
     begin
         bus_i_data <= bus_o_data;
         bus_be <= 4'b0001;
-        bus_addr <= boot_addr;
+        bus_addr <= {15'b0, boot_addr};
         bus_wr_en <= 1;
         bus_enable <= 1;
         tag <= LT_BOOT_NEXT_CHAR;
         state <= LT_WAIT_FOR_READY;
-        boot_addr <= boot_addr + 1;
+        boot_addr <= boot_addr + 1'b1;
     end
 LT_BOOT_NEXT_CHAR:
     begin

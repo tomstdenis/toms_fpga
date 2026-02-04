@@ -33,7 +33,6 @@ module lt100_bus
     reg [DATA_WIDTH-1:0] op_i_data;
     reg [DATA_WIDTH/8-1:0] op_be;
     reg op_wr_en;
-    reg op_active; // High when a transaction is currently being processed
 
     // Peripheral interconnect wires
     wire [2:0] p_enable;
