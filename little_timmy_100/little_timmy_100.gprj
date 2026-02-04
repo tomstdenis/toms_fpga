@@ -26,5 +26,7 @@
         <File path="src/opcode_13.vh" type="file.other" enable="1"/>
         <File path="src/opcode_23.vh" type="file.other" enable="1"/>
         <File path="src/opcode_33.vh" type="file.other" enable="1"/>
+        <File path="src/opcode_63.vh" type="file.other" enable="1"/>
+        <File path="src/opcode_misc.vh" type="file.other" enable="1"/>
     </FileList>
 </Project>

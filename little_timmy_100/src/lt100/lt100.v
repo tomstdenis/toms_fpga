@@ -53,6 +53,10 @@ module lt100(
     // Examples of Immediate Slicing (The "unscrambling")
     wire [31:0] op_imm_i = {{20{instr_reg[31]}}, instr_reg[31:20]}; // I-type
     wire [31:0] op_imm_s = {{20{instr_reg[31]}}, instr_reg[31:25], instr_reg[11:7]}; // S-type        
+    // B-type immediate (Branch)
+    wire [31:0] op_imm_b = {{20{instr_reg[31]}}, instr_reg[7], instr_reg[30:25], instr_reg[11:8], 1'b0};
+    // J-type immediate (JAL)
+    wire [31:0] op_imm_j = {{12{instr_reg[31]}}, instr_reg[19:12], instr_reg[20], instr_reg[30:21], 1'b0};
 
     always @(posedge clk) begin
         if (!rst_n) begin
@@ -99,6 +103,8 @@ module lt100(
                             bus_enable <= 0;
                             instr_reg <= bus_o_data;
                             state <= tag;
+                            rv_PC <= rv_PC + 32'd4;     // advance PC since there are multiple return paths to LT_FETCH make
+                                                        // sure to account for this in branch opcodes
                         end
                     end
                 LT_FETCH:                               // issue fetch of next opcode 
@@ -116,6 +122,8 @@ module lt100(
 `include "opcode_03.vh"
 `include "opcode_13.vh"
 `include "opcode_23.vh"
+`include "opcode_63.vh"
+`include "opcode_misc.vh"
                         endcase
                     end
                 LT_RETIRE:
