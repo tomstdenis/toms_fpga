@@ -82,9 +82,10 @@ module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1)
 		test_idle_conditions();
 		$display("PASSED\n");
 		
-		// TODO: what happens if we issue a read to an empty FIFO?
-		$display("Tom should check reading from an empty RX fifo...");
-	//	$fatal;
+		// out of init a read should just return zero
+		$display("Testing idle read...");
+		recv_byte(0, 0);
+		$display("PASSED");
 		
 		// loop over just under to just over the FIFO max size
 		for (j = 48; j < 80; j++) begin
@@ -106,7 +107,7 @@ module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1)
 			// now read back (should get the first 64 bytes back not the 65'th
 			$display("Reading %d bytes...", n);
 			for (i = 0; i < n; i++) begin
-				recv_byte(i[7:0]);
+				recv_byte(i[7:0], 1);
 			end
 			@(posedge clk);
 			$display("PASSED");
@@ -130,9 +131,9 @@ module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1)
 		end
 	endtask
 	
-	task recv_byte(input [7:0] expected);
+	task recv_byte(input [7:0] expected, input ready_expected);
 		begin
-			test_rx_ready(1);
+			test_rx_ready(ready_expected);
 			@(posedge clk);
 			uart_rx_read = ~uart_rx_read;
 			@(posedge clk);
