@@ -82,6 +82,10 @@ module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1)
 		test_idle_conditions();
 		$display("PASSED\n");
 		
+		// TODO: what happens if we issue a read to an empty FIFO?
+		$display("Tom should check reading from an empty RX fifo...");
+	//	$fatal;
+		
 		// loop over just under to just over the FIFO max size
 		for (j = 48; j < 80; j++) begin
 			n = (j > 64) ? 64 : j;
