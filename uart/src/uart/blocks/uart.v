@@ -1,3 +1,5 @@
+`timescale 1ns/1ps
+
 // This implements a UART block which is full or half duplex (RX or TX or both)
 // with a variable sized FIFO and programmable baud rate
 // uses 8N1 signalling
@@ -45,6 +47,7 @@ module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1)
             // Output signals are combinatorial
             assign uart_tx_fifo_full = (tx_fifo_cnt == FIFO_DEPTH);
             assign uart_tx_fifo_empty = (tx_fifo_cnt == 0);
+            reg prev_uart_tx_start;
 
             always @(posedge clk) begin
                 if (!rst_n) begin
@@ -52,6 +55,7 @@ module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1)
                     tx_fifo_wptr <= 0;
                     tx_fifo_rptr <= 0;
                     tx_fifo_cnt <= 0;
+                    prev_uart_tx_start <= 0;
                 end else begin
                     // ===== TX =====
                     // if the transmitter started acknowledge it by stop requesting a transmit (otherwise it'll keep transmitting the same byte)
@@ -59,12 +63,16 @@ module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1)
                         tx_start <= 1'b0;
                     end
 
-                    if (uart_tx_start && !uart_tx_fifo_full) begin
+					// Store a new byte on the posedge of uart_tx_start if the fifo isn't full
+                    if (uart_tx_start && !prev_uart_tx_start && !uart_tx_fifo_full) begin
                         // user wants to transmit a byte and the fifo isn't full so store it in the fifo
                         tx_fifo[tx_fifo_wptr] <= uart_tx_data_in;
                         tx_fifo_wptr <= tx_fifo_wptr + 1'd1;
                     end 
-                    if (tx_done && (tx_fifo_cnt > 0) && !tx_start && !tx_started) begin
+                    prev_uart_tx_start <= uart_tx_start;
+                    
+                    // send a new byte to the uart_tx if uart_tx is idle (done==1), rptr != wptr, we didn't start a byte recently or the 
+                    if (tx_done && (tx_fifo_wptr != tx_fifo_rptr)) begin
                         // if the transmission is done, and we haven't yet queued up a byte and there is a byte to send...
                         tx_send <= tx_fifo[tx_fifo_rptr]; 
                         tx_fifo_rptr <= tx_fifo_rptr + 1'd1;

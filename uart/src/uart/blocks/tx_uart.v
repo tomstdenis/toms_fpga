@@ -1,3 +1,5 @@
+`timescale 1ns/1ps
+
 // Serial 8N1 transmitter with variable baudrate
 module tx_uart
 (
@@ -24,8 +26,8 @@ module tx_uart
     always @(posedge clk) begin
         if (!rst_n) begin
             state <= IDLE;
-            tx_pin = 1'b1;
-            tx_done = 1'b1;
+            tx_pin <= 1'b1;
+            tx_done <= 1'b1;
             data_latch <= 0;
             bit_timer <= 0;
             bit_index <= 0;
@@ -45,7 +47,7 @@ module tx_uart
 
                 START_BIT: begin
                     tx_pin <= 1'b0; // Pull low for START
-                    if (!bit_timer) begin
+                    if (bit_timer == 0) begin
                         bit_timer <= baud_div;
                         state     <= DATA_BITS;
                     end else begin
@@ -55,7 +57,7 @@ module tx_uart
 
                 DATA_BITS: begin
                     tx_pin <= data_latch[bit_index]; // Send current bit
-                    if (!bit_timer) begin
+                    if (bit_timer == 0) begin
                         bit_timer <= baud_div;
                         if (bit_index == 7) begin
                             state <= STOP_BIT;
@@ -69,7 +71,7 @@ module tx_uart
 
                 STOP_BIT: begin
                     tx_pin <= 1'b1; // Pull high for STOP
-                    if (!bit_timer) begin
+                    if (bit_timer == 0) begin
                         tx_done <= 1'b1;
                         tx_started <= 1'b0;
                         state <= IDLE;
