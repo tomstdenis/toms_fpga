@@ -25,6 +25,7 @@ module rx_uart
         if (!rst_n) begin
             state <= IDLE;
             rx_done <= 1'b0;
+            rx_byte <= 0;
             bit_timer <= 0;
             bit_index <= 0;
         end else begin

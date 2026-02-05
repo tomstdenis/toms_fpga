@@ -28,6 +28,7 @@ module tx_uart
             state <= IDLE;
             tx_pin <= 1'b1;
             tx_done <= 1'b1;
+            tx_started <= 0;
             data_latch <= 0;
             bit_timer <= 0;
             bit_index <= 0;
