@@ -53,7 +53,7 @@ module uart_full_loopback_tb();
     
     initial begin
         // Waveform setup
-        $dumpfile("loopback.vcd");
+        $dumpfile("rx_uart.vcd");
         $dumpvars(0, uart_full_loopback_tb);
 
         // Initialize

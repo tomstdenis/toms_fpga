@@ -35,7 +35,7 @@ module tx_uart_tb();
 	integer i;
     initial begin
         // Setup for OSS CAD (GTKWave)
-        $dumpfile("waveform.vcd");
+        $dumpfile("tx_uart.vcd");
         $dumpvars(0, tx_uart_tb);
 
         // Initialize signals

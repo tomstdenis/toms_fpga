@@ -60,7 +60,7 @@ module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1)
     
     initial begin
         // Waveform setup
-        $dumpfile("loopback.vcd");
+        $dumpfile("uart.vcd");
         $dumpvars(0, uart_tb);
 
         // Initialize
