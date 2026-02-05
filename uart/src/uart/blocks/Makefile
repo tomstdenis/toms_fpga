@@ -8,7 +8,7 @@ test_uart.pass: tx_uart.v rx_uart.v uart.v uart_tb.v
 
 test_rx.pass: tx_uart.v rx_uart.v rx_uart_tb.v
 	verilator --lint-only $^
-	iverilog -o sim.vvp tx_uart.v rx_uart.v rx_uart_tb.v
+	iverilog -o sim.vvp $^
 	vvp sim.vvp
 	touch $@
 
