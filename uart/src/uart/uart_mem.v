@@ -1,3 +1,4 @@
+`timescale 1ns/1ps
 `include "uart_mem.vh"
 
 module uart_mem
@@ -53,7 +54,7 @@ module uart_mem
     assign irq = (int_enables[0] & int_pending[0]) | (int_enables[1] & int_pending[1]);
 
     // error output is only valid out of reset
-    assign bus_err = error & rst_n;
+    assign bus_err = enable & error & rst_n;
 
     always @(posedge clk) begin
         if (!rst_n) begin
@@ -69,6 +70,7 @@ module uart_mem
             int_pending <= 0;
             ready <= 0;
             error <= 0;
+            o_data <= 0;
         end else begin
             // step the IRQ system with edge detectors to ensure interrupts only trigger on transition.
             // detect edge of rx_ready and assert it in pending
@@ -82,7 +84,7 @@ module uart_mem
             tx_fifo_empty_prev <= uart_tx_fifo_empty;   // latch TX fifo empty
             rx_ready_prev <= uart_rx_ready;             // latch RX ready
 
-            if (~be[0]) begin                           // we ignore bits [31:8] if they're enabled but you MUST enable bits [7:0]
+            if (enable & ~be[0]) begin                           // we ignore bits [31:8] if they're enabled but you MUST enable bits [7:0]
                 error <= 1;
                 ready <= 1;                             // assert error and ready so the user knows we've responded
             end else begin
@@ -111,7 +113,7 @@ module uart_mem
                                         `UART_DATA_ADDR: 
                                             begin // DATA
                                                 if (!uart_tx_fifo_full) begin
-                                                    uart_tx_start <= 1;
+                                                    uart_tx_start <= ~uart_tx_start;
                                                 end
                                             end
                                         `UART_INT_ADDR:
@@ -125,6 +127,7 @@ module uart_mem
                                         default:
                                             begin
                                                 error <= 1; // invalid address
+                                                ready <= 1;
                                             end
                                     endcase
                                 end else begin // reads
@@ -148,8 +151,8 @@ module uart_mem
                                         `UART_DATA_ADDR:
                                             begin // DATA
                                                 if (uart_rx_ready) begin
-                                                    o_data <= {24'b0, rx_byte};
-                                                    uart_rx_read <= 1;      // tell the UART we read the byte
+													$display("Toggling uart_rx_read...");
+                                                    uart_rx_read <= ~uart_rx_read;      // tell the UART we read the byte
                                                 end
                                             end
                                         `UART_INT_ADDR:
@@ -163,14 +166,17 @@ module uart_mem
                                         default:
                                             begin
                                                 error <= 1; // invalid address;
+                                                ready <= 1;
                                             end
                                     endcase
                                 end
                                 state <= RETIRE;
                             end
                         RETIRE: begin                           // de-assert the UART and assert ready
-                                    uart_rx_read <= 0;
-                                    uart_tx_start <= 0;
+									if (wr_en == 0 && addr == `UART_DATA_ADDR) begin
+										$display("READING UART_DATA %h", rx_byte);
+										o_data <= {24'b0, rx_byte};
+									end
                                     ready <= 1;
                                 end
                     endcase
