@@ -57,7 +57,8 @@ module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1)
 
     // --- Test Logic ---
     integer i;
-    
+    integer j;
+    integer n;
     initial begin
         // Waveform setup
         $dumpfile("uart.vcd");
@@ -81,26 +82,31 @@ module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1)
 		test_idle_conditions();
 		$display("PASSED\n");
 		
-		// now try to write 64 bytes and read it back
-		$display("Sending 65 bytes...");
-		for (i = 0; i < 65; i++) begin
-			send_byte(i[7:0]);
-			if (i >= 63) begin
-				// FIFO should be full now
-				test_fifo_full(1);
+		// loop over just under to just over the FIFO max size
+		for (j = 48; j < 80; j++) begin
+			n = (j > 64) ? 64 : j;
+
+			// now try to write 64 bytes and read it back
+			$display("Sending %d bytes...", j);
+			for (i = 0; i < j; i++) begin
+				send_byte(i[7:0]);
+				if (i >= 63) begin
+					// FIFO should be full now
+					test_fifo_full(1);
+				end
 			end
-		end
 
-		// wait for the byte to send
-		repeat(i * 15 * BAUD_VALUE) @(posedge clk);
+			// wait for the byte to send
+			repeat(n * 15 * BAUD_VALUE) @(posedge clk);
 
-		// now read back (should get the first 64 bytes back not the 65'th
-		$display("Reading 64 bytes...");
-		for (i = 0; i < 64; i++) begin
-			recv_byte(i[7:0]);
+			// now read back (should get the first 64 bytes back not the 65'th
+			$display("Reading %d bytes...", n);
+			for (i = 0; i < n; i++) begin
+				recv_byte(i[7:0]);
+			end
+			@(posedge clk);
+			$display("PASSED");
 		end
-		@(posedge clk);
-		$display("PASSED");
 
 		// test rest conditions...
 		$display("Testing rest conditions...");
@@ -108,8 +114,6 @@ module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1)
 		test_fifo_full(0);
 		test_rx_ready(0);
 		$display("PASSED");
-		
-		
 		$finish;
     end
     
