@@ -82,7 +82,7 @@ module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1)
 		$display("PASSED\n");
 		
 		// send 1 byte 
-		$display("Sending one byte: ");
+		$display("Sending one byte... ");
 		send_byte(8'hAA);
 		
 		// wait for the byte to send
@@ -93,6 +93,9 @@ module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1)
 		recv_byte(8'hAA);
 		test_rx_ready(0);
 		$display("PASSED\n");
+		
+		// run for a few cycles to see how things settle
+		repeat(100) @(posedge clk);
 		$finish;
     end
     

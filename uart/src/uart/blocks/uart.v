@@ -68,25 +68,19 @@ module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1)
                         // user wants to transmit a byte and the fifo isn't full so store it in the fifo
                         tx_fifo[tx_fifo_wptr] <= uart_tx_data_in;
                         tx_fifo_wptr <= tx_fifo_wptr + 1'd1;
-                    end 
-                    prev_uart_tx_start <= uart_tx_start;
-                    
-                    // send a new byte to the uart_tx if uart_tx is idle (done==1), rptr != wptr, we didn't start a byte recently or the 
-                    if (tx_done && (tx_fifo_wptr != tx_fifo_rptr)) begin
-                        // if the transmission is done, and we haven't yet queued up a byte and there is a byte to send...
+                    end else if (tx_done && (tx_fifo_wptr != tx_fifo_rptr)) begin
+						// send a new byte to the uart_tx if uart_tx is idle (done==1), rptr != wptr, we didn't start a byte recently or the 
                         tx_send <= tx_fifo[tx_fifo_rptr]; 
                         tx_fifo_rptr <= tx_fifo_rptr + 1'd1;
                         tx_start <= 1'b1;
                     end
 
-                    if ((uart_tx_start && !uart_tx_fifo_full) && (tx_done && tx_fifo_cnt > 0 && !tx_start && !tx_started)) begin
-                        // Doing both at once: count stays the same
-                        tx_fifo_cnt <= tx_fifo_cnt; 
-                    end else if (uart_tx_start && !uart_tx_fifo_full) begin         // user sent a byte into a non empty fifo
-                        tx_fifo_cnt <= tx_fifo_cnt + 1'd1;
-                    end else if (tx_done && tx_fifo_cnt != 0 && !tx_start) begin    // a byte was sent, removing one byte from the FIFO, and no call to start a by happened so net -1
-                        tx_fifo_cnt <= tx_fifo_cnt - 1'd1;
-                    end
+					if (tx_fifo_wptr >= tx_fifo_rptr) begin
+						tx_fifo_cnt <= tx_fifo_wptr - tx_fifo_rptr;
+					end else begin
+						tx_fifo_cnt <= tx_fifo_wptr + (FIFO_DEPTH - tx_fifo_rptr);
+					end
+					prev_uart_tx_start <= uart_tx_start;
                 end
             end
         end else begin :tx_stub
