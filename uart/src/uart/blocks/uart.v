@@ -68,18 +68,14 @@ module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1)
                         // user wants to transmit a byte and the fifo isn't full so store it in the fifo
                         tx_fifo[tx_fifo_wptr] <= uart_tx_data_in;
                         tx_fifo_wptr <= tx_fifo_wptr + 1'd1;
+                        tx_fifo_cnt <= tx_fifo_cnt + 1'd1;
                     end else if (tx_done && (tx_fifo_wptr != tx_fifo_rptr)) begin
 						// send a new byte to the uart_tx if uart_tx is idle (done==1), rptr != wptr, we didn't start a byte recently or the 
                         tx_send <= tx_fifo[tx_fifo_rptr]; 
                         tx_fifo_rptr <= tx_fifo_rptr + 1'd1;
                         tx_start <= 1'b1;
+                        tx_fifo_cnt <= tx_fifo_cnt - 1'd1;
                     end
-
-					if (tx_fifo_wptr >= tx_fifo_rptr) begin
-						tx_fifo_cnt <= tx_fifo_wptr - tx_fifo_rptr;
-					end else begin
-						tx_fifo_cnt <= tx_fifo_wptr + (FIFO_DEPTH - tx_fifo_rptr);
-					end
 					prev_uart_tx_start <= uart_tx_start;
                 end
             end

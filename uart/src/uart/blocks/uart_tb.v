@@ -106,8 +106,8 @@ module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1)
 			uart_tx_start = 1;
 			@(posedge clk);
 			uart_tx_start = 0;
-			@(posedge clk);
 			test_fifo_empty(0);
+			@(posedge clk);
 			test_fifo_full(0);
 		end
 	endtask
