@@ -116,15 +116,18 @@ module uart_mem
                                                 if (!uart_tx_fifo_full) begin
 													i_data_latch <= i_data[7:0];
                                                     uart_tx_start <= ~uart_tx_start;
+                                                    delay <= 1;	// UART takes a cycle to consume new byte
                                                 end
                                             end
                                         `UART_INT_ADDR:
                                             begin // INT enables
                                                 int_enables <= i_data[1:0];
+                                                delay <= 1;		// takes an extra cycle to change bus_irq
                                             end
                                         `UART_INT_PENDING_ADDR:
                                             begin // INT enables
                                                 int_pending <= int_pending & ~i_data[1:0];
+                                                delay <= 1;		// takes an extra cycle to change bus_irq
                                             end
                                         default:
                                             begin
@@ -164,7 +167,7 @@ module uart_mem
                                             end
                                         `UART_INT_PENDING_ADDR:
                                             begin // INT enables
-                                                o_data <= {30'b0, int_pending};
+												o_data <= {30'b0, int_pending};
                                             end
                                         default:
                                             begin
@@ -180,8 +183,10 @@ module uart_mem
 								if (delay) begin
 									delay <= 0;
 								end else begin
-									if (wr_en == 0 && addr == `UART_DATA_ADDR) begin
-										o_data <= {24'b0, rx_byte};
+									if (wr_en == 0) begin
+										case(addr)
+											`UART_DATA_ADDR: o_data <= {24'b0, rx_byte};
+										endcase
 									end
                                     ready <= 1;
                                 end

@@ -108,29 +108,65 @@ module uart_mem_tb();
 			char = 8'hAA;
 			$display("Checking if RX_READY is clear initially...");
 			read_bus(32'h8, 4'b0001, 0, {32'b0});			// read STATUS, lsb should be CLEAR (!RX_READY)
-		test_phase = 4;
 			$display("Writing 0xAA to DATA");
 			write_bus(32'hC, {24'b0, char}, 4'b0001, 0);
-		test_phase = 5;
 			// wait for the byte to send
 			repeat(100 + 15 * BAUD_VALUE) @(posedge clk);
 			$display("Checking if RX_READY is not clear after sending...");
-		test_phase = 6;
 			read_bus(32'h8, 4'b0001, 0, {31'b0, 1'b1});		// read STATUS, lsb should be set (RX_READY)
-		test_phase = 7;
-			read_bus(32'hC, 4'b0001, 0, {24'b0, char});		// lsb should be set
-		test_phase = 8;
+			read_bus(32'hC, 4'b0001, 0, {24'b0, char});		// read character back
 			read_bus(32'h8, 4'b0001, 0, {32'b0});			// read STATUS, lsb should be CLEAR (!RX_READY)
-		test_phase = 9	;
 		$display("PASSED");
+		test_phase = 4;
+		
+		// enable and use interrupts
+		$display("Enabling interrupts...");
+			// enable both interrupts and clear both pending flags
+			write_bus(32'h10, {30'b0, 2'b11}, 4'b0001, 0);   // enable both interrupts
+			// irq should be 1 because TX is empty
+			check_irq(1);
+			write_bus(32'h14, {30'b0, 2'b11}, 4'b0001, 0);   // clear both interrupts
+			// irq should be 0 because even though TX empty is still asserted, a new TX empty event hasn't occurred
+			check_irq(0);
+			read_bus(32'h14, 4'b0001, 0, {30'b0, 2'b00});	// read back int pending should be zero since irq==0
+			
+			// write to the UART to see how it changes flags
+			test_phase = 5;
+			write_bus(32'hC, {24'b0, char}, 4'b0001, 0);	// write to the UART
+			// wait for the byte to send
+			repeat(100 + 15 * BAUD_VALUE) @(posedge clk);
+
+			// should have triggered a RX ready IRQ
+			test_phase = 6;
+			check_irq(1);
+			write_bus(32'h14, {30'b0, 2'b11}, 4'b0001, 0);   // clear both interrupts
+			check_irq(0);
+			read_bus(32'h14, 4'b0001, 0, {30'b0, 2'b00});	// read back should be 10 (TX empty, !RX ready) (this is because the FIFO was empty so the UART consumed it right away)
+
+			test_phase = 7;
+			read_bus(32'hC, 4'b0001, 0, {24'b0, char});		// read character back
+		$display("PASSED");
+			
+		
 		$finish;
 	end
 	
+	task check_irq(input expected);
+		begin
+			if (bus_irq !== expected) begin
+				$display("ASSERTION FAILED:  bus_irq should be 0 right now.");
+				repeat(16) @(posedge clk);
+				$fatal;
+			end
+		end
+	endtask
+		
     task write_bus(input [31:0] address, input [31:0] data, input [3:0] be, input bus_err_expected);
 		begin
 			@(posedge clk);
 			if (bus_err !== 0) begin
 				$display("ASSERTION ERROR: bus_err is not 0 in write_bus()");
+				repeat(16) @(posedge clk);
 				$fatal;
 			end
 			bus_wr_en = 1;
@@ -142,6 +178,7 @@ module uart_mem_tb();
 			wait (bus_ready == 1);
 			if (!bus_err_expected && bus_err !== 0) begin
 				$display("ASSERTION ERROR: bus_err is not 0 in write_bus()");
+				repeat(16) @(posedge clk);
 				$fatal;
 			end
 			bus_enable = 0;
@@ -164,6 +201,7 @@ module uart_mem_tb();
 			wait (bus_ready == 1);
 			if (!bus_err_expected && bus_err !== 0) begin
 				$display("ASSERTION ERROR: bus_err is not 0 in read_bus()");
+				repeat(16) @(posedge clk);
 				$fatal;
 			end
 			if (bus_o_data !== expected) begin
