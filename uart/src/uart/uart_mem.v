@@ -39,6 +39,7 @@ module uart_mem
     reg [1:0] int_enables;
     reg [1:0] int_pending;
     reg error;
+    reg delay;
 
     localparam
         ISSUE  = 0,
@@ -71,6 +72,7 @@ module uart_mem
             ready <= 0;
             error <= 0;
             o_data <= 0;
+            delay <= 0;
         end else begin
             // step the IRQ system with edge detectors to ensure interrupts only trigger on transition.
             // detect edge of rx_ready and assert it in pending
@@ -92,7 +94,6 @@ module uart_mem
                     case(state)
                         ISSUE:                              // issue commands to the UART block
                             begin
-                                i_data_latch <= i_data[7:0];
                                 if (wr_en) begin
                                     case(addr)
                                         `UART_BAUD_L_ADDR:
@@ -113,6 +114,7 @@ module uart_mem
                                         `UART_DATA_ADDR: 
                                             begin // DATA
                                                 if (!uart_tx_fifo_full) begin
+													i_data_latch <= i_data[7:0];
                                                     uart_tx_start <= ~uart_tx_start;
                                                 end
                                             end
@@ -153,6 +155,7 @@ module uart_mem
                                                 if (uart_rx_ready) begin
 													$display("Toggling uart_rx_read...");
                                                     uart_rx_read <= ~uart_rx_read;      // tell the UART we read the byte
+                                                    delay <= 1;							// uart needs it's own cycle to respond
                                                 end
                                             end
                                         `UART_INT_ADDR:
@@ -172,13 +175,17 @@ module uart_mem
                                 end
                                 state <= RETIRE;
                             end
-                        RETIRE: begin                           // de-assert the UART and assert ready
+                        RETIRE:
+							begin
+								if (delay) begin
+									delay <= 0;
+								end else begin
 									if (wr_en == 0 && addr == `UART_DATA_ADDR) begin
-										$display("READING UART_DATA %h", rx_byte);
 										o_data <= {24'b0, rx_byte};
 									end
                                     ready <= 1;
                                 end
+							end
                     endcase
                 end else if (!enable) begin // !enable (need at least one cycle of !enable to clear the ready flag
                     ready <= 0;

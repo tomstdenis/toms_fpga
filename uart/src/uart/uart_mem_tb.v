@@ -29,6 +29,7 @@ module uart_mem_tb();
 	wire bus_tx_pin;
 	reg [15:0] baud_div;
 	reg [7:0] char;
+	reg [7:0] test_phase;
 
 	uart_mem #(.ADDR_WIDTH(32), .DATA_WIDTH(32))
 	uart_mem_dut(.clk(clk), .rst_n(rst_n), 
@@ -61,6 +62,7 @@ module uart_mem_tb();
         bus_addr = 0;
         bus_i_data = 0;
         bus_be = 0;
+        test_phase = 0;
 
         // Reset system
         repeat(10) @(posedge clk);
@@ -82,6 +84,7 @@ module uart_mem_tb();
 			read_bus(32'h0, 4'b0001, 0, {24'b0, baud_div[7:0]});
 			read_bus(32'h4, 4'b0001, 0, {24'b0, baud_div[15:8]});
 		$display("PASSED.");
+		test_phase = 1;
 		
 		// try some invalid ops
 		$display("Trying some invalid unaligned stuff...");
@@ -90,6 +93,7 @@ module uart_mem_tb();
 			write_bus(32'h3, 0, 4'b1111, 1); // expect a bus error writing 32-bits to 3 mod 4
 			write_bus(32'h1, 0, 4'b0011, 1); // expect a bus error writing 16-bits to 1 mod 2
 		$display("PASSED.");
+		test_phase = 2;
 		
 		// try writing to an invalid address
 		$display("Trying some invalid addresses...");
@@ -97,21 +101,27 @@ module uart_mem_tb();
 			write_bus(32'h16, 0, 4'b0011, 1); // or 0x16 as 16-bits
 			write_bus(32'h15, 0, 4'b0001, 1); // or 0x15 as 8-bits
 		$display("PASSED.");
+		test_phase = 3;
 
 		// let's try the UART out
 		$display("Trying to echo a byte through the UART");
 			char = 8'hAA;
 			$display("Checking if RX_READY is clear initially...");
 			read_bus(32'h8, 4'b0001, 0, {32'b0});			// read STATUS, lsb should be CLEAR (!RX_READY)
+		test_phase = 4;
 			$display("Writing 0xAA to DATA");
 			write_bus(32'hC, {24'b0, char}, 4'b0001, 0);
+		test_phase = 5;
 			// wait for the byte to send
 			repeat(100 + 15 * BAUD_VALUE) @(posedge clk);
 			$display("Checking if RX_READY is not clear after sending...");
+		test_phase = 6;
 			read_bus(32'h8, 4'b0001, 0, {31'b0, 1'b1});		// read STATUS, lsb should be set (RX_READY)
-			read_bus(32'hC, 4'b0001, 0, {24'b0, 8'b0});		// lsb should be set
+		test_phase = 7;
 			read_bus(32'hC, 4'b0001, 0, {24'b0, char});		// lsb should be set
+		test_phase = 8;
 			read_bus(32'h8, 4'b0001, 0, {32'b0});			// read STATUS, lsb should be CLEAR (!RX_READY)
+		test_phase = 9	;
 		$display("PASSED");
 		$finish;
 	end
@@ -124,10 +134,10 @@ module uart_mem_tb();
 				$fatal;
 			end
 			bus_wr_en = 1;
-			bus_enable = 1;
 			bus_addr = address;
 			bus_be = be;
 			bus_i_data = data;
+			bus_enable = 1;
 			@(posedge clk);
 			wait (bus_ready == 1);
 			if (!bus_err_expected && bus_err !== 0) begin
@@ -147,9 +157,9 @@ module uart_mem_tb();
 				$fatal;
 			end
 			bus_wr_en = 0;
-			bus_enable = 1;
 			bus_addr = address;
 			bus_be = be;
+			bus_enable = 1;
 			@(posedge clk);
 			wait (bus_ready == 1);
 			if (!bus_err_expected && bus_err !== 0) begin
@@ -158,6 +168,7 @@ module uart_mem_tb();
 			end
 			if (bus_o_data !== expected) begin
 				$display("ASSERTION ERROR: Invalid data read back %h vs %h", bus_o_data, expected);
+				repeat(16) @(posedge clk);
 				$fatal;
 			end
 			bus_enable = 0;
