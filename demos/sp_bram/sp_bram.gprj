@@ -1,0 +1,19 @@
+<?xml version="1" encoding="UTF-8"?>
+<!DOCTYPE gowin-fpga-project>
+<Project>
+    <Template>FPGA</Template>
+    <Version>5</Version>
+    <Device name="GW2AR-18C" pn="GW2AR-LV18QN88C8/I7">gw2ar18c-000</Device>
+    <FileList>
+        <File path="src/top.v" type="file.verilog" enable="1"/>
+        <File path="/home/tom/nas/toms_fpga/lib/bsram/blocks/gowin_sp.v" type="file.verilog" enable="1"/>
+        <File path="/home/tom/nas/toms_fpga/lib/bsram/sp_bram.v" type="file.verilog" enable="1"/>
+        <File path="/home/tom/nas/toms_fpga/lib/uart/blocks/rx_uart.v" type="file.verilog" enable="1"/>
+        <File path="/home/tom/nas/toms_fpga/lib/uart/blocks/tx_uart.v" type="file.verilog" enable="1"/>
+        <File path="/home/tom/nas/toms_fpga/lib/uart/blocks/uart.v" type="file.verilog" enable="1"/>
+        <File path="/home/tom/nas/toms_fpga/lib/uart/blocks/uart_hex_logger.v" type="file.verilog" enable="1"/>
+        <File path="src/sp_bram.cst" type="file.cst" enable="1"/>
+        <File path="src/sp_bram.sdc" type="file.sdc" enable="1"/>
+        <File path="/home/tom/nas/toms_fpga/lib/bsram/sp_bram.vh" type="file.other" enable="1"/>
+    </FileList>
+</Project>
