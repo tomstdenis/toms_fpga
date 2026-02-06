@@ -112,10 +112,10 @@ module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1)
                     rx_read <= 0;
                     rx_fifo_wptr <= 0;
                     rx_fifo_rptr <= 0;
-                    rx_sync_pipe <= 0;
                     uart_rx_byte <= 0;
                     prev_uart_rx_read <= 0;
                     uart_rx_ready <= 0;
+                    rx_sync_pipe = 2'b11;
                 end else begin
                     // ===== RX =====
                     rx_sync_pipe <= {rx_sync_pipe[0], uart_rx_pin};

@@ -106,9 +106,10 @@ module uart_mem_tb();
 			$display("Writing 0xAA to DATA");
 			write_bus(32'hC, {24'b0, char}, 4'b0001, 0);
 			// wait for the byte to send
-			repeat(8 + 15 * BAUD_VALUE) @(posedge clk);
+			repeat(100 + 15 * BAUD_VALUE) @(posedge clk);
 			$display("Checking if RX_READY is not clear after sending...");
 			read_bus(32'h8, 4'b0001, 0, {31'b0, 1'b1});		// read STATUS, lsb should be set (RX_READY)
+			read_bus(32'hC, 4'b0001, 0, {24'b0, 8'b0});		// lsb should be set
 			read_bus(32'hC, 4'b0001, 0, {24'b0, char});		// lsb should be set
 			read_bus(32'h8, 4'b0001, 0, {32'b0});			// read STATUS, lsb should be CLEAR (!RX_READY)
 		$display("PASSED");

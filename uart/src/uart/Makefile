@@ -6,7 +6,7 @@ blocks/test_uart.pass:
 test_uartmem.pass: uart_mem_tb.v uart_mem.v uart_mem.vh blocks/uart.v blocks/rx_uart.v blocks/tx_uart.v
 	verilator --lint-only $^
 	iverilog -o sim.vvp $^
-	(vvp sim.vvp > $@.log && touch $@) || cat $@.log
+	(vvp sim.vvp -fst > $@.log && touch $@) || cat $@.log
 
 
 clean:

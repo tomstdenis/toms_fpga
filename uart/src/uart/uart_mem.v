@@ -61,7 +61,7 @@ module uart_mem
             bauddiv <= 0;
             uart_tx_start <= 0;
             uart_rx_read <= 0;
-            tx_fifo_empty_prev <= 1;
+            tx_fifo_empty_prev <= 0;
             rx_ready_prev <= 0;
             uart_rx_read <= 0;
             state <= ISSUE;
