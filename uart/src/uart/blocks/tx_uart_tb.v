@@ -52,7 +52,7 @@ module tx_uart_tb();
 
 		// send all 256 bytes
 		for (i = 0; i < 256; i++) begin
-			run_test(i[7:0]);
+			run_test(8'hff ^ i[7:0]);
 			repeat($urandom_range(1, 100)) @(posedge clk);	// wait some random delay before sending next
 		end
 	

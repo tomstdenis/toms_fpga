@@ -94,7 +94,7 @@ module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1)
 			// now try to write 64 bytes and read it back
 			$display("Sending %d bytes...", j);
 			for (i = 0; i < j; i++) begin
-				send_byte(i[7:0]);
+				send_byte(8'b1 + i[7:0]);
 				if (i >= 63) begin
 					// FIFO should be full now
 					test_fifo_full(1);
@@ -107,7 +107,7 @@ module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1)
 			// now read back (should get the first 64 bytes back not the 65'th
 			$display("Reading %d bytes...", n);
 			for (i = 0; i < n; i++) begin
-				recv_byte(i[7:0], 1);
+				recv_byte(8'b1 + i[7:0], 1);
 			end
 			@(posedge clk);
 			$display("PASSED");

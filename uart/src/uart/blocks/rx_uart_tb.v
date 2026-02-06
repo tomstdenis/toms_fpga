@@ -72,7 +72,7 @@ module uart_full_loopback_tb();
         $display("Starting Loopback Test: All 256 bytes...");
 
         for (i = 0; i < 256; i = i + 1) begin
-            send_and_verify(i[7:0]);
+            send_and_verify(8'hff ^ i[7:0]);
         end
 
         $display("\n[SUCCESS] All 256 bytes verified in loopback!");
