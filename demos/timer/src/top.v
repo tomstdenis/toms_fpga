@@ -74,7 +74,7 @@ module top(
                     wr_en <= 1;                         // WRITE
                     be <= 4'b1111;                      // 32-bit
                     addr <= `TIMER_TOP_L_ADDR;          // Lower Timer TOP register (we can write 8 or the full 16 bits here
-                    i_data <= 32'd255;                  // TOP=255
+                    i_data <= 32'd256;                  // TOP=256
                     enable <= 1;                        // Enable the peripherals bus
 
                     tag <= LOAD_PRESCALER;              // Next state is load CMP
@@ -86,7 +86,7 @@ module top(
                     wr_en <= 1;                         // WRITE
                     be <= 4'b0001;                      // 8-bit
                     addr <= `TIMER_PRESCALE_ADDR;       // Timer Prescaler is 8-bits
-                    i_data <= 32'd3;                    // Prescaler == 3
+                    i_data <= 32'd4;                    // Prescaler == 4
                     enable <= 1;                        // Enable the peripherals bus
 
                     tag <= LOAD_CMP;                    //  Next state is load enable
