@@ -116,18 +116,15 @@ module uart_mem
                                                 if (!uart_tx_fifo_full) begin
 													i_data_latch <= i_data[7:0];
                                                     uart_tx_start <= ~uart_tx_start;
-                                                    delay <= 1;	// UART takes a cycle to consume new byte
                                                 end
                                             end
                                         `UART_INT_ADDR:
                                             begin // INT enables
                                                 int_enables <= i_data[1:0];
-                                                delay <= 1;		// takes an extra cycle to change bus_irq
                                             end
                                         `UART_INT_PENDING_ADDR:
                                             begin // INT enables
                                                 int_pending <= int_pending & ~i_data[1:0];
-                                                delay <= 1;		// takes an extra cycle to change bus_irq
                                             end
                                         default:
                                             begin

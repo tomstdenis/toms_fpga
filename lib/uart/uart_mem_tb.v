@@ -141,12 +141,31 @@ module uart_mem_tb();
 			check_irq(1);
 			write_bus(32'h14, {30'b0, 2'b11}, 4'b0001, 0);   // clear both interrupts
 			check_irq(0);
-			read_bus(32'h14, 4'b0001, 0, {30'b0, 2'b00});	// read back should be 10 (TX empty, !RX ready) (this is because the FIFO was empty so the UART consumed it right away)
+			read_bus(32'h14, 4'b0001, 0, {30'b0, 2'b00});	// read back should be 00 (!TX empty, !RX ready) (this is because the FIFO was empty so the UART consumed it right away)
 
 			test_phase = 7;
 			read_bus(32'hC, 4'b0001, 0, {24'b0, char});		// read character back
 		$display("PASSED");
-			
+
+		// test using FIFO and back to back
+		$display("Writing 32 bytes...");
+			test_phase = 8;
+			for (i = 0; i < 32; i++) begin
+				write_bus(32'hC, {24'b0, (i[7:0] + 8'd10)}, 4'b0001, 0);
+			end
+		$display("PASSED.");
+			repeat(100 + 15 * i * BAUD_VALUE) @(posedge clk);
+
+		// read back
+		$display("Reading back 32 bytes...");
+			test_phase = 9;
+			for (i = 0; i < 32; i++) begin
+				read_bus(32'h14, 4'b0001, 0, i == 0 ? {30'b0, 2'b11} : 0);	// read back should be 11 (TX empty, RX ready)
+				write_bus(32'h14, {30'b0, 2'b11}, 4'b0001, 0);   // clear both interrupts
+				read_bus(32'hC, 4'b0001, 0, {24'b0, (i[7:0] + 8'd10)});
+			end
+			read_bus(32'h14, 4'b0001, 0, {30'b0, 2'b00});	// read back should be 00 (!TX empty, !RX ready)
+		$display("PASSED.");
 		
 		$finish;
 	end
@@ -163,7 +182,6 @@ module uart_mem_tb();
 		
     task write_bus(input [31:0] address, input [31:0] data, input [3:0] be, input bus_err_expected);
 		begin
-			@(posedge clk);
 			if (bus_err !== 0) begin
 				$display("ASSERTION ERROR: bus_err is not 0 in write_bus()");
 				repeat(16) @(posedge clk);
@@ -174,7 +192,6 @@ module uart_mem_tb();
 			bus_be = be;
 			bus_i_data = data;
 			bus_enable = 1;
-			@(posedge clk);
 			wait (bus_ready == 1);
 			if (!bus_err_expected && bus_err !== 0) begin
 				$display("ASSERTION ERROR: bus_err is not 0 in write_bus()");
@@ -182,13 +199,12 @@ module uart_mem_tb();
 				$fatal;
 			end
 			bus_enable = 0;
-			@(posedge clk);
+			wait (bus_ready == 0);
 		end
 	endtask
 	
     task read_bus(input [31:0] address, input [3:0] be, input bus_err_expected, input [31:0] expected);
 		begin
-			@(posedge clk);
 			if (bus_err !== 0) begin
 				$display("ASSERTION ERROR: bus_err is not 0 in read_bus()");
 				$fatal;
@@ -197,7 +213,6 @@ module uart_mem_tb();
 			bus_addr = address;
 			bus_be = be;
 			bus_enable = 1;
-			@(posedge clk);
 			wait (bus_ready == 1);
 			if (!bus_err_expected && bus_err !== 0) begin
 				$display("ASSERTION ERROR: bus_err is not 0 in read_bus()");
@@ -210,7 +225,7 @@ module uart_mem_tb();
 				$fatal;
 			end
 			bus_enable = 0;
-			@(posedge clk);
+			wait (bus_ready == 0);
 		end
 	endtask
 endmodule
