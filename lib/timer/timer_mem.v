@@ -1,3 +1,4 @@
+`timescale 1ns/1ps
 `include "timer_mem.vh"
 
 module timer_mem
@@ -48,7 +49,7 @@ module timer_mem
     assign irq = (int_enables[0] & int_pending[0]) | (int_enables[1] & int_pending[1]);
 
     // error output is only valid out of reset
-    assign bus_err = error & rst_n;
+    assign bus_err = enable & error & rst_n;
 
     timer tim(
         .clk(clk), .rst_n(rst_n),
@@ -77,6 +78,8 @@ module timer_mem
             l_counter <= 16'b0;
             i_data_latch <= 8'b0;
             state <= ISSUE;
+            ready <= 0;
+            o_data <= 0;
         end else begin
             // latch matches to set pending int flags
             if (cur_top_match && !prev_top_match) begin
@@ -89,7 +92,7 @@ module timer_mem
             prev_cmp_match <= cur_cmp_match;
 
             // must write to first lane
-            if (~be[0]) begin           // ensure that the first lane is active
+            if (enable & ~be[0]) begin           // ensure that the first lane is active
                 ready <= 1;
                 error <= 1;
             end else begin
