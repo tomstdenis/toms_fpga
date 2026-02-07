@@ -31,6 +31,18 @@ module slave_device
 
     // peripheral specific
 );
+
+----
+TODO: add a 
+	input [3:0] burst_req,  // burst request size
+	output [3:0] burst_max, // max burst the device supports
+
+In this mode when the device responds ready=1 the first transaction is available, then for the next burst_req-1 cycles new data is read or written.
+If the burst_req is invalid the device immediately responds with bus_err.  burst_req == 0 means a single transaction.
+
+After the last word bus_enable must be low for one cycle like usual.
+
+----	
  
 Where clocking is on the posedge of clk, rst_n is active low (all other signals are active high).
 
