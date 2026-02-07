@@ -139,6 +139,7 @@ module timer_mem_tb();
 		
     task write_bus(input [31:0] address, input [31:0] data, input [3:0] be, input bus_err_expected);
 		begin
+			@(posedge clk);
 			if (bus_err !== 0) begin
 				$display("ASSERTION ERROR: bus_err is not 0 in write_bus()");
 				repeat(16) @(posedge clk);
@@ -150,19 +151,27 @@ module timer_mem_tb();
 			bus_i_data = data;
 			bus_enable = 1;
 			@(posedge clk);
-			wait (bus_ready == 1);
+			@(posedge clk);
+			if (!bus_ready) begin
+				$display("bus should be ready one cycle after reading.");
+				test_phase = 255;
+				repeat(16) @(posedge clk);
+				$fatal;
+			end
 			if (!bus_err_expected && bus_err !== 0) begin
 				$display("ASSERTION ERROR: bus_err is not 0 in write_bus()");
 				repeat(16) @(posedge clk);
 				$fatal;
 			end
+			bus_be = 0;
+			bus_wr_en = 0;
 			bus_enable = 0;
-			@(posedge clk);
 		end
 	endtask
 	
     task read_bus(input [31:0] address, input [3:0] be, input bus_err_expected, input [31:0] expected);
 		begin
+			@(posedge clk);
 			if (bus_err !== 0) begin
 				$display("ASSERTION ERROR: bus_err is not 0 in read_bus()");
 				$fatal;
@@ -172,19 +181,25 @@ module timer_mem_tb();
 			bus_be = be;
 			bus_enable = 1;
 			@(posedge clk);
-			wait (bus_ready == 1);
+			@(posedge clk);
+			if (!bus_ready) begin
+				$display("bus should be ready one cycle after reading.");
+				test_phase = 255;
+				repeat(16) @(posedge clk);
+				$fatal;
+			end
 			if (!bus_err_expected && bus_err !== 0) begin
 				$display("ASSERTION ERROR: bus_err is not 0 in read_bus()");
 				repeat(16) @(posedge clk);
 				$fatal;
 			end
 			if (bus_o_data !== expected) begin
-				$display("ASSERTION ERROR: Invalid data read back %h vs %h", bus_o_data, expected);
+				$display("ASSERTION ERROR: Invalid data read back bus=%h vs exp=%h", bus_o_data, expected);
 				repeat(16) @(posedge clk);
 				$fatal;
 			end
 			bus_enable = 0;
-			@(posedge clk);
+			//@(posedge clk);
 		end
 	endtask
 endmodule

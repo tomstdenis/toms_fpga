@@ -125,7 +125,13 @@ module sp_bram_tb();
 			bus_i_data = data;
 			bus_enable = 1;
 			@(posedge clk);
-			while (!bus_ready) @(posedge clk);
+			@(posedge clk);
+			if (!bus_ready) begin
+				$display("bus should be ready one cycle after reading.");
+				test_phase = 255;
+				repeat(16) @(posedge clk);
+				$fatal;
+			end
 			if (!bus_err_expected && bus_err !== 0) begin
 				$display("ASSERTION ERROR: bus_err is not 0 in write_bus()");
 				repeat(16) @(posedge clk);
@@ -134,7 +140,6 @@ module sp_bram_tb();
 			bus_be = 0;
 			bus_wr_en = 0;
 			bus_enable = 0;
-			@(posedge clk);
 		end
 	endtask
 	
@@ -150,7 +155,13 @@ module sp_bram_tb();
 			bus_be = be;
 			bus_enable = 1;
 			@(posedge clk);
-			while (!bus_ready) @(posedge clk);
+			@(posedge clk);
+			if (!bus_ready) begin
+				$display("bus should be ready one cycle after reading.");
+				test_phase = 255;
+				repeat(16) @(posedge clk);
+				$fatal;
+			end
 			if (!bus_err_expected && bus_err !== 0) begin
 				$display("ASSERTION ERROR: bus_err is not 0 in read_bus()");
 				repeat(16) @(posedge clk);
@@ -162,7 +173,7 @@ module sp_bram_tb();
 				$fatal;
 			end
 			bus_enable = 0;
-			@(posedge clk);
+			//@(posedge clk);
 		end
 	endtask
 endmodule
