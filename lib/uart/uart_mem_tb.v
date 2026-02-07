@@ -154,7 +154,7 @@ module uart_mem_tb();
 	task check_irq(input expected);
 		begin
 			if (bus_irq !== expected) begin
-				$display("ASSERTION FAILED:  bus_irq should be 0 right now.");
+				$display("ASSERTION FAILED:  bus_irq should be %d right now.", expected);
 				repeat(16) @(posedge clk);
 				$fatal;
 			end
