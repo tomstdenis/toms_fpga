@@ -166,26 +166,3 @@ module sp_bram_tb();
 		end
 	endtask
 endmodule
-
-/*
-module sp_bram
-#(
-    parameter ADDR_WIDTH=32,
-    parameter DATA_WIDTH=32,
-    WIDTH=8192                  // using four 8bits x WIDTH long arrays
-)(
-    // common bus in
-    input clk,
-    input rst_n,            // active low reset
-    input enable,           // active high overall enable (must go low between commands)
-    input wr_en,            // active high write enable (0==read, 1==write)
-    input [ADDR_WIDTH-1:0] addr,
-    input [DATA_WIDTH-1:0] i_data,
-    input [DATA_WIDTH/8-1:0] be,       // lane 0 must be asserted, other lanes can be asserted but they're ignored.
-
-    // common bus out
-    output reg ready,       // active high signal when o_data is ready (or write is done)
-    output reg [DATA_WIDTH-1:0] o_data,
-    output wire irq,        // active high IRQ pin
-    output wire bus_err    // active high error signal
-*/	

@@ -1,3 +1,9 @@
+/* 
+  bus wrapper for SP primitive on GW2A devices
+  
+  Unlike the GW5A parts the SP primitive here doesn't have a byte enable
+so this module provides one with a bus wrapper around them.
+*/
 `timescale 1ns/1ps
 `include "sp_bram.vh"
 
@@ -199,14 +205,3 @@ module sp_bram
         end
     end
 endmodule
-
-/*module Gowin_SP (dout, clk, oce, ce, reset, wre, ad, din);
-
-output [7:0] dout;
-input clk;
-input oce;
-input ce;
-input reset;
-input wre;
-input [12:0] ad;
-input [7:0] din;*/
