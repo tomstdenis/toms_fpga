@@ -1,3 +1,5 @@
+`timescale 1ns/1ps
+
 module timer#(parameter PRESCALER_BITS=8, TIMER_BITS=16)
 (
     input clk,
@@ -24,7 +26,7 @@ module timer#(parameter PRESCALER_BITS=8, TIMER_BITS=16)
     // output 1 if we hit the compare value
     assign cmp_match = (rst_n & go_l & (compare == count));
     // output 1 if we hit the top value
-    assign top_match = (rst_n & go_l & (top == count));
+    assign top_match = (rst_n & go_l & (top == (count + 1'b1)));
     // output 1 during the on phase of the PWM 
     assign pwm = (rst_n & go_l & (count <= compare));
     // provide a copy of the counter externally
@@ -59,10 +61,10 @@ module timer#(parameter PRESCALER_BITS=8, TIMER_BITS=16)
                         prescaler <= prescaler_cnt;
                     end else begin
                         // no updates or stops so advance the prescaler_n
-                        if (prescaler_n == prescaler) begin
+                        if ((prescaler_n + 1'b1) == prescaler) begin
                             // we hit the prescaler so increment the counter
                             prescaler_n <= 0;
-                            if (count == top) begin
+                            if ((count + 1'b1) == top) begin
                                 // we hit the top so reset it
                                 count <= 0;
                             end else begin
