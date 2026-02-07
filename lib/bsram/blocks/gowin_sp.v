@@ -6,6 +6,7 @@
 //Device: GW2AR-18
 //Device Version: C
 //Created Time: Tue Feb  3 02:47:21 2026
+`timescale 1ns/1ps
 
 module Gowin_SP (dout, clk, oce, ce, reset, wre, ad, din);
 

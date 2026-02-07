@@ -1,3 +1,4 @@
+`timescale 1ns/1ps
 `include "sp_bram.vh"
 
 module sp_bram
@@ -28,7 +29,7 @@ module sp_bram
     wire [31:0] o_mem;
     reg [3:0] ce;
     reg error;
-    assign bus_err = error;
+    assign bus_err = enable & error;
     assign irq = 1'b0;
     
     // 4 x WIDTH byte arrays form the 4 lanes we need for a 32-bit memory
@@ -37,7 +38,7 @@ module sp_bram
     Gowin_SP b3(.dout(o_mem[23:16]), .clk(clk), .oce(1'b1), .ce(ce[2]), .wre(wr_en), .ad(addr[$clog2(WIDTH)+1:2]), .din(i_mem[23:16]), .reset(~rst_n));
     Gowin_SP b4(.dout(o_mem[31:24]), .clk(clk), .oce(1'b1), .ce(ce[3]), .wre(wr_en), .ad(addr[$clog2(WIDTH)+1:2]), .din(i_mem[31:24]), .reset(~rst_n));
 
-    reg [1:0] state;
+    reg state;
 
     localparam
         ISSUE = 0,
@@ -49,6 +50,8 @@ module sp_bram
             error <= 0;
             ready <= 0;
             state <= ISSUE;
+            i_mem <= 0;
+            o_data <= 0;
         end else begin
             if (!error & enable & !ready) begin
                 case(state)
@@ -128,7 +131,6 @@ module sp_bram
                         end
                     RETIRE:
                         begin
-                            ce <= 4'b0000; // turn off enables
                             ready <= 1;
                             if (error) begin
                             end else begin
@@ -191,6 +193,7 @@ module sp_bram
             end else if (!enable) begin
                 ready <= 0;
                 error <= 0;
+				ce <= 4'b0000; // turn off enables
                 state <= ISSUE;
             end
         end
