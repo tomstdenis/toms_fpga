@@ -38,7 +38,7 @@ module sp_bram
     assign bus_err = enable & error;
     assign irq = 1'b0;
     
-    /* 4 x WIDTH byte arrays form the 4 lanes we need for a 32-bit memory
+/* 4 x WIDTH byte arrays form the 4 lanes we need for a 32-bit memory
     
     These blocks work as follows
     
@@ -49,18 +49,19 @@ module sp_bram
 		- Write: (bypass mode)
 			- Cycle 0: ce hoes high
 			- Cycle 1: write address and data
-    */    
+
+	To speed things up we leave the CE's always enabled, it's the .wre we toggle as needed, defaulting to 0 so it's in read mode.
+*/
     Gowin_SP b1(.dout(o_mem[7:0]), .clk(clk), .oce(1'b1), .ce(1'b1), .wre(wren[0]), .ad(addr[$clog2(WIDTH)+1:2]), .din(i_mem[7:0]), .reset(~rst_n));
     Gowin_SP b2(.dout(o_mem[15:8]), .clk(clk), .oce(1'b1), .ce(1'b1), .wre(wren[1]), .ad(addr[$clog2(WIDTH)+1:2]), .din(i_mem[15:8]), .reset(~rst_n));
     Gowin_SP b3(.dout(o_mem[23:16]), .clk(clk), .oce(1'b1), .ce(1'b1), .wre(wren[2]), .ad(addr[$clog2(WIDTH)+1:2]), .din(i_mem[23:16]), .reset(~rst_n));
     Gowin_SP b4(.dout(o_mem[31:24]), .clk(clk), .oce(1'b1), .ce(1'b1), .wre(wren[3]), .ad(addr[$clog2(WIDTH)+1:2]), .din(i_mem[31:24]), .reset(~rst_n));
 
-    reg [1:0] state;
+    reg state;
 
     localparam
         ISSUE = 0,
-        RETIRE = 1,
-        DELAY = 2;
+        RETIRE = 1;
 
     always @(posedge clk) begin
         if (!rst_n) begin
@@ -144,16 +145,9 @@ module sp_bram
                             end else begin
                                 // reading read 32-bits right away and we'll sort out muxing in the next cycle
                                 $display("Reading from: addr==%h", addr);
-                                state <= DELAY	;
+                                state <= RETIRE;
                             end
                         end
-                    DELAY: 
-						begin
-							if (wr_en) begin
-//								wren <= ce;		// enable writes in this cycle
-							end
-							state <= RETIRE;
-						end
                     RETIRE:
                         begin
                             ready <= 1;
