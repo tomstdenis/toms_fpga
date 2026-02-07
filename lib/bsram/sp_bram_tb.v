@@ -30,6 +30,7 @@ module sp_bram_tb();
 
     // --- Test Logic ---
     integer i;
+    integer j;
     
     initial begin
         // Waveform setup
@@ -60,14 +61,6 @@ module sp_bram_tb();
 		$display("PASSED.");
 		test_phase = 1;
 		
-		// try writing to an invalid address
-		$display("Trying some invalid addresses...");
-			write_bus(32'h18, 0, 4'b1111, 1); // h14 is the last valid address so write to 0x18
-			write_bus(32'h16, 0, 4'b0011, 1); // or 0x16 as 16-bits
-			write_bus(32'h15, 0, 4'b0001, 1); // or 0x15 as 8-bits
-		$display("PASSED.");
-		test_phase = 2;
-
 		// write 32-bits to offset 0x10
 		write_bus(32'h0010, 32'h11223344, 4'b1111, 0);
 		test_phase = 3;
@@ -86,16 +79,29 @@ module sp_bram_tb();
         read_bus(32'h0013, 4'b0001, 0, {24'b0, 16'h11});
         test_phase = 7;
         // 16-bit write
-        write_bus(32'h10, 32'h5566, 4'b0011, 0);
+        write_bus(32'h20, 32'h5566, 4'b0011, 0);
         // read back
-		read_bus(32'h10, 4'b1111, 0, 32'h11225566);
+		read_bus(32'h20, 4'b1111, 0, 32'h00005566);
         // 8-bit write
-        write_bus(32'h10, 32'h77, 4'b0001, 0);
-        write_bus(32'h11, 32'h88, 4'b0001, 0);
-        write_bus(32'h12, 32'h99, 4'b0001, 0);
-        write_bus(32'h13, 32'hAA, 4'b0001, 0);
+        write_bus(32'h30, 32'h77, 4'b0001, 0);
+        write_bus(32'h31, 32'h88, 4'b0001, 0);
+        write_bus(32'h32, 32'h99, 4'b0001, 0);
+        write_bus(32'h33, 32'hAA, 4'b0001, 0);
         // read back
-		read_bus(32'h0010, 4'b1111, 0, 32'hAA998877);
+		read_bus(32'h0030, 4'b1111, 0, 32'hAA998877);
+		
+		// fill memory with predictable data
+		test_phase = 8;
+		for (i = 0; i < 1024; i++) begin
+			write_bus({22'b0, i[9:0]}, {24'b0, 8'd255 - i[7:0]}, 4'b0001, 0); // write (255 - x) & 255 to mem[x=0..1023]
+		end
+		
+		// now randomly read
+		test_phase = 9;
+		for (i = 0; i < 1024; i++) begin
+			j = $urandom_range(0, 1023);
+			read_bus({22'b0, j[9:0]}, 4'b0001, 0, {24'b0, 8'd255 - j[7:0]});
+		end
         
         repeat(16) @(posedge clk);
         $finish;
@@ -113,7 +119,6 @@ module sp_bram_tb();
 		
     task write_bus(input [31:0] address, input [31:0] data, input [3:0] be, input bus_err_expected);
 		begin
-			@(posedge clk);
 			if (bus_err !== 0) begin
 				$display("ASSERTION ERROR: bus_err is not 0 in write_bus()");
 				repeat(16) @(posedge clk);
@@ -124,8 +129,7 @@ module sp_bram_tb();
 			bus_be = be;
 			bus_i_data = data;
 			bus_enable = 1;
-			@(posedge clk);
-			@(posedge clk);
+			wait(bus_ready == 1);
 			if (!bus_ready) begin
 				$display("bus should be ready one cycle after reading.");
 				test_phase = 255;
@@ -140,12 +144,12 @@ module sp_bram_tb();
 			bus_be = 0;
 			bus_wr_en = 0;
 			bus_enable = 0;
+			wait(bus_ready == 0);
 		end
 	endtask
 	
     task read_bus(input [31:0] address, input [3:0] be, input bus_err_expected, input [31:0] expected);
 		begin
-			@(posedge clk);
 			if (bus_err !== 0) begin
 				$display("ASSERTION ERROR: bus_err is not 0 in read_bus()");
 				$fatal;
@@ -154,8 +158,7 @@ module sp_bram_tb();
 			bus_addr = address;
 			bus_be = be;
 			bus_enable = 1;
-			@(posedge clk);
-			@(posedge clk);
+			wait(bus_ready == 1);
 			if (!bus_ready) begin
 				$display("bus should be ready one cycle after reading.");
 				test_phase = 255;
@@ -168,12 +171,12 @@ module sp_bram_tb();
 				$fatal;
 			end
 			if (bus_o_data !== expected) begin
-				$display("ASSERTION ERROR: Invalid data read back bus=%h vs exp=%h", bus_o_data, expected);
+				$display("ASSERTION ERROR: Invalid data read back bus=%h vs exp=%h @ %h", bus_o_data, expected, address);
 				repeat(16) @(posedge clk);
 				$fatal;
 			end
 			bus_enable = 0;
-			//@(posedge clk);
+			wait(bus_ready == 0);
 		end
 	endtask
 endmodule

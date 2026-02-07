@@ -33,26 +33,38 @@ module sp_bram
 
     reg [31:0] i_mem;
     wire [31:0] o_mem;
-    reg [3:0] ce;
+    reg [3:0] wren;
     reg error;
     assign bus_err = enable & error;
     assign irq = 1'b0;
     
-    // 4 x WIDTH byte arrays form the 4 lanes we need for a 32-bit memory
-    Gowin_SP b1(.dout(o_mem[7:0]), .clk(clk), .oce(1'b1), .ce(ce[0]), .wre(wr_en), .ad(addr[$clog2(WIDTH)+1:2]), .din(i_mem[7:0]), .reset(~rst_n));
-    Gowin_SP b2(.dout(o_mem[15:8]), .clk(clk), .oce(1'b1), .ce(ce[1]), .wre(wr_en), .ad(addr[$clog2(WIDTH)+1:2]), .din(i_mem[15:8]), .reset(~rst_n));
-    Gowin_SP b3(.dout(o_mem[23:16]), .clk(clk), .oce(1'b1), .ce(ce[2]), .wre(wr_en), .ad(addr[$clog2(WIDTH)+1:2]), .din(i_mem[23:16]), .reset(~rst_n));
-    Gowin_SP b4(.dout(o_mem[31:24]), .clk(clk), .oce(1'b1), .ce(ce[3]), .wre(wr_en), .ad(addr[$clog2(WIDTH)+1:2]), .din(i_mem[31:24]), .reset(~rst_n));
+    /* 4 x WIDTH byte arrays form the 4 lanes we need for a 32-bit memory
+    
+    These blocks work as follows
+    
+		- Reads: (bypass mode)
+			- Cycle 0: ce goes high
+			- Cycle 1: write address
+			- Cycle 2: data available on the negedge of the clock (posedge if using pipeline mode)
+		- Write: (bypass mode)
+			- Cycle 0: ce hoes high
+			- Cycle 1: write address and data
+    */    
+    Gowin_SP b1(.dout(o_mem[7:0]), .clk(clk), .oce(1'b1), .ce(1'b1), .wre(wren[0]), .ad(addr[$clog2(WIDTH)+1:2]), .din(i_mem[7:0]), .reset(~rst_n));
+    Gowin_SP b2(.dout(o_mem[15:8]), .clk(clk), .oce(1'b1), .ce(1'b1), .wre(wren[1]), .ad(addr[$clog2(WIDTH)+1:2]), .din(i_mem[15:8]), .reset(~rst_n));
+    Gowin_SP b3(.dout(o_mem[23:16]), .clk(clk), .oce(1'b1), .ce(1'b1), .wre(wren[2]), .ad(addr[$clog2(WIDTH)+1:2]), .din(i_mem[23:16]), .reset(~rst_n));
+    Gowin_SP b4(.dout(o_mem[31:24]), .clk(clk), .oce(1'b1), .ce(1'b1), .wre(wren[3]), .ad(addr[$clog2(WIDTH)+1:2]), .din(i_mem[31:24]), .reset(~rst_n));
 
-    reg state;
+    reg [1:0] state;
 
     localparam
         ISSUE = 0,
-        RETIRE = 1;
+        RETIRE = 1,
+        DELAY = 2;
 
     always @(posedge clk) begin
         if (!rst_n) begin
-            ce <= 0;
+            wren <= 0;
             error <= 0;
             ready <= 0;
             state <= ISSUE;
@@ -64,7 +76,7 @@ module sp_bram
                     ISSUE:
                         begin
                             if (wr_en) begin
-                                // writing (ISSUE => sort out where to put i_data and ce's
+                                // writing (ISSUE => sort out where to put i_data and wren's
                                 case(be)
                                     4'b1111:
                                         begin
@@ -73,7 +85,7 @@ module sp_bram
                                                 ready <= 1;
                                             end else begin
                                                 i_mem[31:0] <= i_data[31:0];
-                                                ce <= 4'b1111;
+                                                wren <= 4'b1111;
                                                 state <= RETIRE;
                                             end
                                         end
@@ -83,13 +95,13 @@ module sp_bram
                                                 2'b00:
                                                     begin
                                                         i_mem[15:0] <= i_data[15:0];
-                                                        ce <= 4'b0011;
+                                                        wren <= 4'b0011;
                                                         state <= RETIRE;
                                                     end
                                                 2'b10:
                                                     begin
                                                         i_mem[31:16] <= i_data[15:0];
-                                                        ce <= 4'b1100;
+                                                        wren <= 4'b1100;
                                                         state <= RETIRE;
                                                     end
                                                 default:
@@ -105,25 +117,25 @@ module sp_bram
                                                 2'b00:
                                                     begin
                                                         i_mem[7:0] <= i_data[7:0];
-                                                        ce <= 4'b0001;
+                                                        wren <= 4'b0001;
                                                         state <= RETIRE;
                                                     end
                                                 2'b01:
                                                     begin
                                                         i_mem[15:8] <= i_data[7:0];
-                                                        ce <= 4'b0010;
+                                                        wren <= 4'b0010;
                                                         state <= RETIRE;
                                                     end
                                                 2'b10:
                                                     begin
                                                         i_mem[23:16] <= i_data[7:0];
-                                                        ce <= 4'b0100;
+                                                        wren <= 4'b0100;
                                                         state <= RETIRE;
                                                     end
                                                 2'b11:
                                                     begin
                                                         i_mem[31:24] <= i_data[7:0];
-                                                        ce <= 4'b1000;
+                                                        wren <= 4'b1000;
                                                         state <= RETIRE;
                                                     end
                                             endcase
@@ -131,17 +143,23 @@ module sp_bram
                                 endcase
                             end else begin
                                 // reading read 32-bits right away and we'll sort out muxing in the next cycle
-                                ce <= 4'b1111;
-                                state <= RETIRE;
+                                $display("Reading from: addr==%h", addr);
+                                state <= DELAY	;
                             end
                         end
+                    DELAY: 
+						begin
+							if (wr_en) begin
+//								wren <= ce;		// enable writes in this cycle
+							end
+							state <= RETIRE;
+						end
                     RETIRE:
                         begin
                             ready <= 1;
-                            if (error) begin
-                            end else begin
+                            if (!error) begin
                                 if (wr_en) begin
-                                    // data written we're done
+									wren <= 4'b0000;
                                 end else begin
                                     // reading we need to mux o_mem to o_data based on be
                                     case(be)
@@ -153,7 +171,7 @@ module sp_bram
                                                     o_data[31:0] <= o_mem[31:0];
                                                 end
                                             end
-                                        4'b0011: // 16-bit writes
+                                        4'b0011: // 16-bit reads
                                             begin
                                                 case(addr & 2'b11)
                                                     2'b00:
@@ -170,8 +188,9 @@ module sp_bram
                                                         end
                                                 endcase
                                             end
-                                        4'b0001: // 8-bit writes
+                                        4'b0001: // 8-bit reads
                                             begin
+												$display("Byte read: addr: %h, addr mask: %d, o_mem == %h", addr, addr & 2'b11, o_mem);
                                                 case(addr & 2'b11) 
                                                     2'b00:
                                                         begin
@@ -197,9 +216,9 @@ module sp_bram
                         end
                 endcase
             end else if (!enable) begin
+				wren <= 4'b0000;
                 ready <= 0;
                 error <= 0;
-				ce <= 4'b0000; // turn off enables
                 state <= ISSUE;
             end
         end

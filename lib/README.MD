@@ -32,35 +32,15 @@ module slave_device
     // peripheral specific
 );
 
-----
-TODO: add a 
-	input [3:0] burst_req,  // burst request size
-	output [3:0] burst_max, // max burst the device supports
-
-In this mode when the device responds ready=1 the first transaction is available, then for the next burst_req-1 cycles new data is read or written.
-If the burst_req is invalid the device immediately responds with bus_err.  burst_req == 0 means a single transaction.
-
-After the last word bus_enable must be low for one cycle like usual.
-
-----	
- 
 Where clocking is on the posedge of clk, rst_n is active low (all other signals are active high).
 
 A bus transaction is as follows
 
-	- Cycle 1
-		- set enable <= 1
-		- set be <= 4'b1111, 4'b0011, or 4'b0001
-		- set wr_en <= 1 if writing, 0 otherwise
-		- set addr <= the address you're writing to, must be naturally aligned for the data width
-		- set i_data <= data if writing
-	- Cycle 2...N-1
-		- Wait for ready=1
-		- de-assert enable
-		- o_data will contain data if reading.
-	- Cycle N
-		- One cycle with enable de_asserted.
-		
+	- Cycle 0:    enable = 0, (meaning ready/err are 0 too)
+	- Cycle 1:    enable = 1, set addr/be/wr_en and i_data if wr_en
+	- Cycle N >= 2: ready = 1, command complete o_data is valid (if !wr_en)
+	- Go back to cycle 0
+
 If there is a bus error then bus_err and ready will be asserted at the same time.  Cleared by
 deasserting enable.
 
