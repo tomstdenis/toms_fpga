@@ -1,3 +1,12 @@
+/* Simple compare/top counter
+
+ Provides a PWM signal based on the compare value programmed.  Counts up to prescaler_cnt and then increments counter.
+ 
+ The cmp_match is set when counter <= cmp_cmp.  The top_match is set when counter == top_cnt.  Note that
+top_match will be set for the last prescaler_cnt cycle before rolling counter over to zero.
+
+*/
+
 `timescale 1ns/1ps
 
 module timer#(parameter PRESCALER_BITS=8, TIMER_BITS=16)
@@ -26,7 +35,7 @@ module timer#(parameter PRESCALER_BITS=8, TIMER_BITS=16)
     // output 1 if we hit the compare value
     assign cmp_match = (rst_n & go_l & (compare == count));
     // output 1 if we hit the top value
-    assign top_match = (rst_n & go_l & (top == (count + 1'b1)));
+    assign top_match = (rst_n & go_l & (top == (count + 1'b1)) & (prescaler_n == (prescaler_cnt - 1)));
     // output 1 during the on phase of the PWM 
     assign pwm = (rst_n & go_l & (count <= compare));
     // provide a copy of the counter externally

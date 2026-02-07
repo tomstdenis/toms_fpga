@@ -110,7 +110,7 @@ module timer_mem_tb();
 		end
 		test_phase = 3;
 		write_bus(32'h18, {30'b0, 2'b11}, 4'b0001, 0); // clear ints
-		write_bus(32'h14, {30'b0, 2'b01}, 4'b0001, 0); // cmp count and top count interrupt
+		write_bus(32'h14, {30'b0, 2'b11}, 4'b0001, 0); // cmp count and top count interrupt
 		if (bus_irq) begin
 			$display("IRQ should be low by now");
 			repeat(16) @(posedge clk);
