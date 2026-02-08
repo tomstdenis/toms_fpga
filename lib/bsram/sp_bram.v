@@ -13,7 +13,7 @@ module sp_bram #(
     input  wire [DATA_WIDTH-1:0]  i_data,
     input  wire [DATA_WIDTH/8-1:0] be,
 
-    output reg                    ready,
+    output wire                    ready,
     output wire [DATA_WIDTH-1:0]  o_data,
     output wire                   irq,
     output wire                   bus_err
@@ -51,25 +51,22 @@ module sp_bram #(
 
     assign bus_err = error;
     assign irq     = 1'b0;
+    assign ready   = (!first || error) && enable;
 
     // --- Sequential Logic ---
     always @(posedge clk) begin
         if (!rst_n || !enable) begin
             first            <= 1'b1;
             error            <= 1'b0;
-            ready            <= 1'b0;
             addr_off         <= 8'h00;
             pipe_byte_offset <= 2'b00;
         end else if (error) begin
-            ready <= 1'b1;
         end else begin
             pipe_byte_offset <= byte_offset;
             
             // Handle Ready Logic
             if (wr_en) begin
-                ready <= 1'b1;
             end else begin
-                ready <= !first;
                 first <= 1'b0;
             end
 
