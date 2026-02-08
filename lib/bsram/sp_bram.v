@@ -144,7 +144,6 @@ module sp_bram
                                 endcase
                             end else begin
                                 // reading read 32-bits right away and we'll sort out muxing in the next cycle
-                                $display("Reading from: addr==%h", addr);
                                 state <= RETIRE;
                             end
                         end
@@ -184,7 +183,6 @@ module sp_bram
                                             end
                                         4'b0001: // 8-bit reads
                                             begin
-												$display("Byte read: addr: %h, addr mask: %d, o_mem == %h", addr, addr & 2'b11, o_mem);
                                                 case(addr & 2'b11) 
                                                     2'b00:
                                                         begin
