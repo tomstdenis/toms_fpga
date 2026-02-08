@@ -1,210 +1,119 @@
-/* 
-  bus wrapper for SP primitive on GW2A devices
-  
-  Unlike the GW5A parts the SP primitive here doesn't have a byte enable
-so this module provides one with a bus wrapper around them.
-*/
 `timescale 1ns/1ps
-`include "sp_bram.vh"
 
-module sp_bram
-#(
-    parameter ADDR_WIDTH=32,
-    parameter DATA_WIDTH=32,
-    WIDTH=8192                  // using four 8bits x WIDTH long arrays
+module sp_bram #(
+    parameter ADDR_WIDTH = 32,
+    parameter DATA_WIDTH = 32,
+    parameter WIDTH      = 8192
 )(
-    // common bus in
-    input clk,
-    input rst_n,            // active low reset
-    input enable,           // active high overall enable (must go low between commands)
-    input wr_en,            // active high write enable (0==read, 1==write)
-    input [ADDR_WIDTH-1:0] addr,
-    input [DATA_WIDTH-1:0] i_data,
-    input [DATA_WIDTH/8-1:0] be,       // lane 0 must be asserted, other lanes can be asserted but they're ignored.
+    input  wire                   clk,
+    input  wire                   rst_n,
+    input  wire                   enable,
+    input  wire                   wr_en,
+    input  wire [ADDR_WIDTH-1:0]  addr,
+    input  wire [DATA_WIDTH-1:0]  i_data,
+    input  wire [DATA_WIDTH/8-1:0] be,
 
-    // common bus out
-    output reg ready,       // active high signal when o_data is ready (or write is done)
-    output reg [DATA_WIDTH-1:0] o_data,
-    output wire irq,        // active high IRQ pin
-    output wire bus_err    // active high error signal
-
-    // peripheral specific
+    output reg                    ready,
+    output wire [DATA_WIDTH-1:0]  o_data,
+    output wire                   irq,
+    output wire                   bus_err
 );
 
-    reg [31:0] i_mem;
+    // --- Internal Signals ---
+    reg  [7:0]  addr_off;
+    reg         error;
+    reg         first;
+    reg  [1:0]  pipe_byte_offset;
+
     wire [31:0] o_mem;
-    reg [3:0] wren;
-    reg error;
-    assign bus_err = enable & error;
-    assign irq = 1'b0;
-    
-    reg [7:0] addr_off;
     wire [31:0] effective_addr = addr + addr_off;
-    
-/* 4 x WIDTH byte arrays form the 4 lanes we need for a 32-bit memory
-    
-    These blocks work as follows
-    
-		- Reads: (bypass mode)
-			- Cycle 0: ce goes high
-			- Cycle 1: write address
-			- Cycle 2: data available on the negedge of the clock (posedge if using pipeline mode)
-		- Write: (bypass mode)
-			- Cycle 0: ce hoes high
-			- Cycle 1: write address and data
+    wire [1:0]  byte_offset    = effective_addr[1:0];
 
-	To speed things up we leave the CE's always enabled, it's the .wre we toggle as needed, defaulting to 0 so it's in read mode.
-*/
-    Gowin_SP b1(.dout(o_mem[7:0]), .clk(clk), .oce(1'b1), .ce(1'b1), .wre(wren[0]), .ad(effective_addr[$clog2(WIDTH)+1:2]), .din(i_mem[7:0]), .reset(~rst_n));
-    Gowin_SP b2(.dout(o_mem[15:8]), .clk(clk), .oce(1'b1), .ce(1'b1), .wre(wren[1]), .ad(effective_addr[$clog2(WIDTH)+1:2]), .din(i_mem[15:8]), .reset(~rst_n));
-    Gowin_SP b3(.dout(o_mem[23:16]), .clk(clk), .oce(1'b1), .ce(1'b1), .wre(wren[2]), .ad(effective_addr[$clog2(WIDTH)+1:2]), .din(i_mem[23:16]), .reset(~rst_n));
-    Gowin_SP b4(.dout(o_mem[31:24]), .clk(clk), .oce(1'b1), .ce(1'b1), .wre(wren[3]), .ad(effective_addr[$clog2(WIDTH)+1:2]), .din(i_mem[31:24]), .reset(~rst_n));
-        
-	always @(*) begin
-		if (wr_en) begin
-			case(be)
-				4'b1111:
-					begin
-						if (effective_addr & 2'b11) begin
-							error <= 1;
-							ready <= 1;
-						end else begin
-							i_mem[31:0] <= i_data[31:0];
-							wren <= 4'b1111;
-						end
-					end
-				4'b0011: // 16-bit writes
-					begin
-						case(effective_addr & 2'b11)
-							2'b00:
-								begin
-									i_mem[15:0] <= i_data[15:0];
-									wren <= 4'b0011;
-								end
-							2'b10:
-								begin
-									i_mem[31:16] <= i_data[15:0];
-									wren <= 4'b1100;
-								end
-							default:
-								begin
-									error <= 1;
-									ready <= 1;
-								end
-						endcase
-					end
-				4'b0001: // 8-bit writes
-					begin
-						case(effective_addr & 2'b11) 
-							2'b00:
-								begin
-									i_mem[7:0] <= i_data[7:0];
-									wren <= 4'b0001;
-								end
-							2'b01:
-								begin
-									i_mem[15:8] <= i_data[7:0];
-									wren <= 4'b0010;
-								end
-							2'b10:
-								begin
-									i_mem[23:16] <= i_data[7:0];
-									wren <= 4'b0100;
-								end
-							2'b11:
-								begin
-									i_mem[31:24] <= i_data[7:0];
-									wren <= 4'b1000;
-								end
-						endcase
-					end
-			endcase
-		end else begin
-			// reading we need to mux o_mem to o_data based on be
-			case(be)
-				4'b1111:
-					begin
-						if (effective_addr & 2'b11) begin
-							error <= 1;
-						end else begin
-							o_data[31:0] <= o_mem[31:0];
-						end
-					end
-				4'b0011: // 16-bit reads
-					begin
-						case(effective_addr & 2'b11)
-							2'b00:
-								begin
-									o_data[31:0] <= {16'b0, o_mem[15:0]};
-								end
-							2'b10:
-								begin
-									o_data[31:0] <= {16'b0, o_mem[31:16]};
-								end
-							default:
-								begin
-									error <= 1;
-								end
-						endcase
-					end
-				4'b0001: // 8-bit reads
-					begin
-						case(effective_addr & 2'b11) 
-							2'b00:
-								begin
-									o_data[31:0] <= {24'b0, o_mem[7:0]};
-								end
-							2'b01:
-								begin
-									o_data[31:0] <= {24'b0, o_mem[15:8]};
-								end
-							2'b10:
-								begin
-									o_data[31:0] <= {24'b0, o_mem[23:16]};
-								end
-							2'b11:
-								begin
-									o_data[31:0] <= {24'b0, o_mem[31:24]};
-								end
-						endcase
-					end
-			endcase
-		end
-	end
-	reg first;
+    // --- Input Steering (Write Data) ---
+    // Using a more compact shift-based approach
+    wire [31:0] i_mem = (be == 4'b1111) ? i_data : 
+							(be == 4'b0011) ? (byte_offset[1] ? {i_data[15:0], 16'b0} : {16'b0, i_data[15:0]}) :
+								(i_data[7:0] << (8 * byte_offset));
 
+    // --- Write Enable Mapping ---
+    wire [3:0] be_shifted = (be == 4'b1111) ? 4'b1111 :
+								(be == 4'b0011) ? (byte_offset[1] ? 4'b1100 : 4'b0011) :
+									(4'b0001 << byte_offset);
+    
+    wire [3:0] wren = (enable && wr_en) ? be_shifted : 4'b0000;
+
+    // --- Output Steering (Read Data) ---
+    // Note: pipe_byte_offset aligns this mux with the 1-cycle BRAM latency
+    assign o_data  = !enable ? 32'b0 :
+                     (be == 4'b1111) ? o_mem :
+                     (be == 4'b0011) ? (pipe_byte_offset[1] ? o_mem[31:16] : o_mem[15:0]) :
+                                       ((o_mem >> (8 * pipe_byte_offset)) & 8'hFF);
+
+    assign bus_err = error;
+    assign irq     = 1'b0;
+
+    // --- Sequential Logic ---
     always @(posedge clk) begin
-        if (!rst_n) begin
-            first = 1;
-            wren <= 0;
-            error <= 0;
-            ready <= 0;
-            i_mem <= 0;
-            o_data <= 0;
-            addr_off <= 0;
+        if (!rst_n || !enable) begin
+            first            <= 1'b1;
+            error            <= 1'b0;
+            ready            <= 1'b0;
+            addr_off         <= 8'h00;
+            pipe_byte_offset <= 2'b00;
+        end else if (error) begin
+            ready <= 1'b1;
         end else begin
-            if (!error & enable) begin
+            pipe_byte_offset <= byte_offset;
+            
+            // Handle Ready Logic
+            if (wr_en) begin
+                ready <= 1'b1;
+            end else begin
+                ready <= !first;
+                first <= 1'b0;
+            end
+
+            // Address Auto-Increment & Alignment Check
+            case(be)
+                4'b1111: 
 				begin
-					if (first) begin
-						first <= 0;
-					end else begin
-						ready <= 1;
-						case(be)
-							4'b0001: addr_off <= addr_off + 3'd1;
-							4'b0011: addr_off <= addr_off + 3'd2;
-							4'b1111: addr_off <= addr_off + 3'd4;
-						endcase
+					addr_off <= addr_off + 4;
+					if (byte_offset != 2'b00) begin
+						error <= 1'b1;
 					end
 				end
-            end else if (!enable) begin
-				first <= 1;
-				wren <= 0;
-				error <= 0;
-				ready <= 0;
-				i_mem <= 0;
-				o_data <= 0;
-				addr_off <= 0;
-            end
+                4'b0011: 
+                begin
+                    addr_off <= addr_off + 2;
+                    if (byte_offset[0]) begin
+						error <= 1'b1;
+					end
+                end
+                4'b0001: 
+				begin
+                    addr_off <= addr_off + 1;
+                end
+                default: error <= 1'b1;
+            endcase
         end
     end
+
+    // --- BRAM Instantiations ---
+    // Map to the 4-byte lanes
+    genvar k;
+    generate
+        for (k=0; k<4; k=k+1) begin : mem_lanes
+            Gowin_SP b_inst (
+                .dout  (o_mem[k*8 +: 8]),
+                .clk   (clk),
+                .oce   (1'b1),
+                .ce    (1'b1),
+                .wre   (wren[k]),
+                .ad    (effective_addr[$clog2(WIDTH)+1:2]),
+                .din   (i_mem[k*8 +: 8]),
+                .reset (~rst_n)
+            );
+        end
+    endgenerate
+
 endmodule
