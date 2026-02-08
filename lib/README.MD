@@ -34,12 +34,24 @@ module slave_device
 
 Where clocking is on the posedge of clk, rst_n is active low (all other signals are active high).
 
-A bus transaction is as follows
+A single bus transaction is as follows
 
 	- Cycle 0:    enable = 0, (meaning ready/err are 0 too)
 	- Cycle 1:    enable = 1, set addr/be/wr_en and i_data if wr_en
 	- Cycle N >= 2: ready = 1, command complete o_data is valid (if !wr_en)
 	- Go back to cycle 0
+
+A burst read or write (ONLY FOR peripherals that support it which isn't all of them) is similiar
+
+	- Cycle 0: enable <= 0
+	- Cycle 1: enable <= 1, set addr/be/wr_en
+	- Cycle N >= 2: ready goes high, read or write next byte/half/word depending on wr_en
+	- Cycle ..M-1: Hold enable high as you read/write more symbols
+        - Go back to cycle 0.
+
+As long as enable is held high the peripheral will seek to the next address.  Again only for peripherals
+that support it.  If a peripheral overflows/underruns it may deassert ready at which point the transaction
+is concluded.
 
 If there is a bus error then bus_err and ready will be asserted at the same time.  Cleared by
 deasserting enable.

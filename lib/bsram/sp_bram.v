@@ -38,6 +38,9 @@ module sp_bram
     assign bus_err = enable & error;
     assign irq = 1'b0;
     
+    reg [7:0] addr_off;
+    wire [31:0] effective_addr = addr + addr_off;
+    
 /* 4 x WIDTH byte arrays form the 4 lanes we need for a 32-bit memory
     
     These blocks work as follows
@@ -52,166 +55,155 @@ module sp_bram
 
 	To speed things up we leave the CE's always enabled, it's the .wre we toggle as needed, defaulting to 0 so it's in read mode.
 */
-    Gowin_SP b1(.dout(o_mem[7:0]), .clk(clk), .oce(1'b1), .ce(1'b1), .wre(wren[0]), .ad(addr[$clog2(WIDTH)+1:2]), .din(i_mem[7:0]), .reset(~rst_n));
-    Gowin_SP b2(.dout(o_mem[15:8]), .clk(clk), .oce(1'b1), .ce(1'b1), .wre(wren[1]), .ad(addr[$clog2(WIDTH)+1:2]), .din(i_mem[15:8]), .reset(~rst_n));
-    Gowin_SP b3(.dout(o_mem[23:16]), .clk(clk), .oce(1'b1), .ce(1'b1), .wre(wren[2]), .ad(addr[$clog2(WIDTH)+1:2]), .din(i_mem[23:16]), .reset(~rst_n));
-    Gowin_SP b4(.dout(o_mem[31:24]), .clk(clk), .oce(1'b1), .ce(1'b1), .wre(wren[3]), .ad(addr[$clog2(WIDTH)+1:2]), .din(i_mem[31:24]), .reset(~rst_n));
-
-    reg state;
-
-    localparam
-        ISSUE = 0,
-        RETIRE = 1;
+    Gowin_SP b1(.dout(o_mem[7:0]), .clk(clk), .oce(1'b1), .ce(1'b1), .wre(wren[0]), .ad(effective_addr[$clog2(WIDTH)+1:2]), .din(i_mem[7:0]), .reset(~rst_n));
+    Gowin_SP b2(.dout(o_mem[15:8]), .clk(clk), .oce(1'b1), .ce(1'b1), .wre(wren[1]), .ad(effective_addr[$clog2(WIDTH)+1:2]), .din(i_mem[15:8]), .reset(~rst_n));
+    Gowin_SP b3(.dout(o_mem[23:16]), .clk(clk), .oce(1'b1), .ce(1'b1), .wre(wren[2]), .ad(effective_addr[$clog2(WIDTH)+1:2]), .din(i_mem[23:16]), .reset(~rst_n));
+    Gowin_SP b4(.dout(o_mem[31:24]), .clk(clk), .oce(1'b1), .ce(1'b1), .wre(wren[3]), .ad(effective_addr[$clog2(WIDTH)+1:2]), .din(i_mem[31:24]), .reset(~rst_n));
+        
+	always @(*) begin
+		if (wr_en) begin
+			case(be)
+				4'b1111:
+					begin
+						if (effective_addr & 2'b11) begin
+							error <= 1;
+							ready <= 1;
+						end else begin
+							i_mem[31:0] <= i_data[31:0];
+							wren <= 4'b1111;
+						end
+					end
+				4'b0011: // 16-bit writes
+					begin
+						case(effective_addr & 2'b11)
+							2'b00:
+								begin
+									i_mem[15:0] <= i_data[15:0];
+									wren <= 4'b0011;
+								end
+							2'b10:
+								begin
+									i_mem[31:16] <= i_data[15:0];
+									wren <= 4'b1100;
+								end
+							default:
+								begin
+									error <= 1;
+									ready <= 1;
+								end
+						endcase
+					end
+				4'b0001: // 8-bit writes
+					begin
+						case(effective_addr & 2'b11) 
+							2'b00:
+								begin
+									i_mem[7:0] <= i_data[7:0];
+									wren <= 4'b0001;
+								end
+							2'b01:
+								begin
+									i_mem[15:8] <= i_data[7:0];
+									wren <= 4'b0010;
+								end
+							2'b10:
+								begin
+									i_mem[23:16] <= i_data[7:0];
+									wren <= 4'b0100;
+								end
+							2'b11:
+								begin
+									i_mem[31:24] <= i_data[7:0];
+									wren <= 4'b1000;
+								end
+						endcase
+					end
+			endcase
+		end else begin
+			// reading we need to mux o_mem to o_data based on be
+			case(be)
+				4'b1111:
+					begin
+						if (effective_addr & 2'b11) begin
+							error <= 1;
+						end else begin
+							o_data[31:0] <= o_mem[31:0];
+						end
+					end
+				4'b0011: // 16-bit reads
+					begin
+						case(effective_addr & 2'b11)
+							2'b00:
+								begin
+									o_data[31:0] <= {16'b0, o_mem[15:0]};
+								end
+							2'b10:
+								begin
+									o_data[31:0] <= {16'b0, o_mem[31:16]};
+								end
+							default:
+								begin
+									error <= 1;
+								end
+						endcase
+					end
+				4'b0001: // 8-bit reads
+					begin
+						case(effective_addr & 2'b11) 
+							2'b00:
+								begin
+									o_data[31:0] <= {24'b0, o_mem[7:0]};
+								end
+							2'b01:
+								begin
+									o_data[31:0] <= {24'b0, o_mem[15:8]};
+								end
+							2'b10:
+								begin
+									o_data[31:0] <= {24'b0, o_mem[23:16]};
+								end
+							2'b11:
+								begin
+									o_data[31:0] <= {24'b0, o_mem[31:24]};
+								end
+						endcase
+					end
+			endcase
+		end
+	end
+	reg first;
 
     always @(posedge clk) begin
         if (!rst_n) begin
+            first = 1;
             wren <= 0;
             error <= 0;
             ready <= 0;
-            state <= ISSUE;
             i_mem <= 0;
             o_data <= 0;
+            addr_off <= 0;
         end else begin
-            if (!error & enable & !ready) begin
-                case(state)
-                    ISSUE:
-                        begin
-                            if (wr_en) begin
-                                // writing (ISSUE => sort out where to put i_data and wren's
-                                case(be)
-                                    4'b1111:
-                                        begin
-                                            if (addr & 2'b11) begin
-                                                error <= 1;
-                                                ready <= 1;
-                                            end else begin
-                                                i_mem[31:0] <= i_data[31:0];
-                                                wren <= 4'b1111;
-                                                state <= RETIRE;
-                                            end
-                                        end
-                                    4'b0011: // 16-bit writes
-                                        begin
-                                            case(addr & 2'b11)
-                                                2'b00:
-                                                    begin
-                                                        i_mem[15:0] <= i_data[15:0];
-                                                        wren <= 4'b0011;
-                                                        state <= RETIRE;
-                                                    end
-                                                2'b10:
-                                                    begin
-                                                        i_mem[31:16] <= i_data[15:0];
-                                                        wren <= 4'b1100;
-                                                        state <= RETIRE;
-                                                    end
-                                                default:
-                                                    begin
-                                                        error <= 1;
-                                                        ready <= 1;
-                                                    end
-                                            endcase
-                                        end
-                                    4'b0001: // 8-bit writes
-                                        begin
-                                            case(addr & 2'b11) 
-                                                2'b00:
-                                                    begin
-                                                        i_mem[7:0] <= i_data[7:0];
-                                                        wren <= 4'b0001;
-                                                        state <= RETIRE;
-                                                    end
-                                                2'b01:
-                                                    begin
-                                                        i_mem[15:8] <= i_data[7:0];
-                                                        wren <= 4'b0010;
-                                                        state <= RETIRE;
-                                                    end
-                                                2'b10:
-                                                    begin
-                                                        i_mem[23:16] <= i_data[7:0];
-                                                        wren <= 4'b0100;
-                                                        state <= RETIRE;
-                                                    end
-                                                2'b11:
-                                                    begin
-                                                        i_mem[31:24] <= i_data[7:0];
-                                                        wren <= 4'b1000;
-                                                        state <= RETIRE;
-                                                    end
-                                            endcase
-                                        end
-                                endcase
-                            end else begin
-                                // reading read 32-bits right away and we'll sort out muxing in the next cycle
-                                state <= RETIRE;
-                            end
-                        end
-                    RETIRE:
-                        begin
-                            ready <= 1;
-                            if (!error) begin
-                                if (wr_en) begin
-									wren <= 4'b0000;
-                                end else begin
-                                    // reading we need to mux o_mem to o_data based on be
-                                    case(be)
-                                        4'b1111:
-                                            begin
-                                                if (addr & 2'b11) begin
-                                                    error <= 1;
-                                                end else begin
-                                                    o_data[31:0] <= o_mem[31:0];
-                                                end
-                                            end
-                                        4'b0011: // 16-bit reads
-                                            begin
-                                                case(addr & 2'b11)
-                                                    2'b00:
-                                                        begin
-                                                            o_data[31:0] <= {16'b0, o_mem[15:0]};
-                                                        end
-                                                    2'b10:
-                                                        begin
-                                                            o_data[31:0] <= {16'b0, o_mem[31:16]};
-                                                        end
-                                                    default:
-                                                        begin
-                                                            error <= 1;
-                                                        end
-                                                endcase
-                                            end
-                                        4'b0001: // 8-bit reads
-                                            begin
-                                                case(addr & 2'b11) 
-                                                    2'b00:
-                                                        begin
-                                                            o_data[31:0] <= {24'b0, o_mem[7:0]};
-                                                        end
-                                                    2'b01:
-                                                        begin
-                                                            o_data[31:0] <= {24'b0, o_mem[15:8]};
-                                                        end
-                                                    2'b10:
-                                                        begin
-                                                            o_data[31:0] <= {24'b0, o_mem[23:16]};
-                                                        end
-                                                    2'b11:
-                                                        begin
-                                                            o_data[31:0] <= {24'b0, o_mem[31:24]};
-                                                        end
-                                                endcase
-                                            end
-                                    endcase
-                                end
-                            end
-                        end
-                endcase
+            if (!error & enable) begin
+				begin
+					if (first) begin
+						first <= 0;
+					end else begin
+						ready <= 1;
+						case(be)
+							4'b0001: addr_off <= addr_off + 3'd1;
+							4'b0011: addr_off <= addr_off + 3'd2;
+							4'b1111: addr_off <= addr_off + 3'd4;
+						endcase
+					end
+				end
             end else if (!enable) begin
-				wren <= 4'b0000;
-                ready <= 0;
-                error <= 0;
-                state <= ISSUE;
+				first <= 1;
+				wren <= 0;
+				error <= 0;
+				ready <= 0;
+				i_mem <= 0;
+				o_data <= 0;
+				addr_off <= 0;
             end
         end
     end
