@@ -276,6 +276,12 @@ module sp_bram_tb();
             
             // Wait for ready or error
             @(posedge clk); // Give the RTL at least one cycle to react
+            @(posedge clk); // 
+			if (bus_ready !== 1) begin
+				$display("ASSERTION ERROR: bus_ready should be 1 after write call in write_bus");
+				repeat(16) @(posedge clk);
+				$fatal;
+			end
             
             if (!bus_err_expected && bus_err !== 0) begin
                 $display("ASSERTION ERROR: Unexpected bus_err at %h", address);
@@ -297,6 +303,11 @@ module sp_bram_tb();
             // Wait until ready is high
             @(posedge clk); // process address
             @(posedge clk); // read data
+			if (bus_ready !== 1) begin
+				$display("ASSERTION ERROR: bus_ready should be 1 after read call in read_bus");
+				repeat(16) @(posedge clk);
+				$fatal;
+			end
 
             // Now that the loop exited, ready is high.
             // Because o_data is registered, the data is stable on THIS edge.
@@ -324,6 +335,11 @@ module sp_bram_tb();
             bus_enable <= 1;
             @(posedge clk); // process address
             @(posedge clk); // first word
+			if (bus_ready !== 1) begin
+				$display("ASSERTION ERROR: bus_ready should be 1 after read call in read_bus_burst4bytes");
+				repeat(16) @(posedge clk);
+				$fatal;
+			end
 
             for (x = 0; x < 4; x++) begin
                 if (bus_o_data[7:0] !== expected[7:0]) begin
@@ -352,6 +368,12 @@ module sp_bram_tb();
 			bus_enable <= 1;
 			@(posedge clk); // process address
 			@(posedge clk); // read data
+			if (bus_ready !== 1) begin
+				$display("ASSERTION ERROR: bus_ready should be 1 after read call in read_bus_burst4dwords");
+				repeat(16) @(posedge clk);
+				$fatal;
+			end
+
 			for (x = 0; x < 4; x++) begin
 				if (bus_o_data[31:0] !== expected[31:0]) begin
 					$display("ASSERTION ERROR: Invalid data read back bus=%h vs exp=%h @ %h step %d", bus_o_data[31:0], expected[31:0], address, x);

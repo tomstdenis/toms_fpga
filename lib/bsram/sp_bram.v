@@ -65,10 +65,7 @@ module sp_bram #(
             pipe_byte_offset <= byte_offset;
             
             // Handle Ready Logic
-            if (wr_en) begin
-            end else begin
-                first <= 1'b0;
-            end
+			first <= 1'b0;
 
             // Address Auto-Increment & Alignment Check
             case(be)
