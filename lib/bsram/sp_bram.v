@@ -71,21 +71,21 @@ module sp_bram #(
             case(be)
                 4'b1111: 
 				begin
-					addr_off <= addr_off + 4;
+					addr_off <= addr_off + 3'd4;
 					if (byte_offset != 2'b00) begin
 						error <= 1'b1;
 					end
 				end
                 4'b0011: 
                 begin
-                    addr_off <= addr_off + 2;
+                    addr_off <= addr_off + 3'd2;
                     if (byte_offset[0]) begin
 						error <= 1'b1;
 					end
                 end
                 4'b0001: 
 				begin
-                    addr_off <= addr_off + 1;
+                    addr_off <= addr_off + 3'd1;
                 end
                 default: error <= 1'b1;
             endcase
