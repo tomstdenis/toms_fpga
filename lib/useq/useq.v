@@ -38,9 +38,13 @@ module useq(
 			T <= 0;
 			state <= FETCH;
 			l_i_port <= 0;
+			instruct <= 0;
+			int_mask <= 0;
+			mem_addr <= 0;
 			for (i=0; i<16; i=i+1) begin
 				R[i] <= 0;
 			end
+			o_port <= 0;
 		end else begin
 			l_i_port <= i_port;
 			case(state)
@@ -119,8 +123,8 @@ module useq(
 								end
 							4'h8: // JMP r
 								begin
-									PC <= PC + d_imm + 1'b1;
-									mem_addr <= PC + d_imm + 1'b1;
+									PC <= PC + {4'b0, d_imm} + 1'b1;
+									mem_addr <= PC + {4'b0, d_imm} + 1'b1;
 									state <= FETCH;
 								end
 							4'h9: // JNZ r
@@ -130,8 +134,8 @@ module useq(
 										mem_addr <= PC + 1'b1;
 										state <= FETCH;
 									end else begin
-										PC <= PC - d_imm - 1'b1;
-										mem_addr <= PC - d_imm - 1'b1;
+										PC <= PC - {4'b0, d_imm} - 1'b1;
+										mem_addr <= PC - {4'b0, d_imm} - 1'b1;
 										state <= FETCH;
 									end
 								end
@@ -299,7 +303,7 @@ module useq(
 													3'd5: o_port[5] <= A[0];
 													3'd6: o_port[6] <= A[0];
 													3'd7: o_port[7] <= A[0];
-												end
+												endcase
 												PC <= PC + 1'b1;
 												mem_addr <= PC + 1'b1;
 												state <= FETCH;
@@ -315,7 +319,7 @@ module useq(
 													3'd5: o_port[5] <= o_port[5] ^ 1;
 													3'd6: o_port[6] <= o_port[6] ^ 1;
 													3'd7: o_port[7] <= o_port[7] ^ 1;
-												end
+												endcase
 												PC <= PC + 1'b1;
 												mem_addr <= PC + 1'b1;
 												state <= FETCH;
@@ -338,7 +342,7 @@ module useq(
 													3'd5: A <= l_i_port[5] ? 1 : 0;
 													3'd6: A <= l_i_port[6] ? 1 : 0;
 													3'd7: A <= l_i_port[7] ? 1 : 0;
-												end
+												endcase
 												PC <= PC + 1'b1;
 												mem_addr <= PC + 1'b1;
 												state <= FETCH;
@@ -453,8 +457,8 @@ module useq(
 								end
 							4'hF: // SBIT
 								begin
-									PC <= PC + 1'b1 + ((((A >> s_imm) & 1'b1) == b_imm) ? 1'b1 : 1'b0);
-									mem_addr <= PC + 1'b1 + ((((A >> s_imm) & 1'b1) == b_imm) ? 1'b1 : 1'b0);
+									PC <= PC + 1'b1 + ((((A >> s_imm) & 8'd1) == {7'b0, b_imm}) ? 8'd1 : 8'd0);
+									mem_addr <= PC + 1'b1 + ((((A >> s_imm) & 8'd1) == {7'b0, b_imm}) ? 8'd1 : 8'd0);
 									state <= FETCH;
 								end
 						endcase
