@@ -37,6 +37,7 @@ reg [7:0] ROM[255:0];
 wire [7:0] ROMADDR;
 wire [7:0] ROMOUT = ROM[ROMADDR];
 
+EXEC1:
 0r: LD R[r], 			A = R[r], PC += 1
 1r: ST R[r], 			R[r] = A, PC += 1
 2sb: SETB s, b, 		A[s] = b, PC += 1
@@ -77,9 +78,58 @@ D8: SEI, 				PC += 1, int_mask = A, if i_port & int_mask is a posedge (prev < cu
 D9: RTI, 				PC = R[14], re-enable interrupts and return
 DA: WAIT0, 				PC = PC + (i_port[R1[2:0]]) ? 0 : 1							<---- since WAIT's are likely clock related we use R1 to address the pin here
 DB: WAIT1, 				PC = PC + (i_port[R1[2:0]]) ? 1 : 0
-DC: MASK4: 				A = A[3:0], PC += 1
+DC: EXEC2 				Byte that follows PC is from the EXEC2 table
 DD: ABS: 				A = abs(A), PC += 1
 DE: NEG:				A = -A, PC += 1
 DF: WAITA, 				T = A, A = A - 1, PC += (A == 0) ? 1 : 0, A = T when it stops waiting
 Er: JSR r, 				PC = r << 4 // (jump to a 16 byte aligned ROM address)
 Fsb: SBIT s, b			Skip next instruction bit s of A is b, PC = PC + 1 + (A[s] == b) ? 1 : 0
+
+
+In EXEC2 we focus mostly on R[] to R[] operations to the opcode is 4 bits for opcode and typically 2 bits r, and s to pick from R[0..3].
+EXEC2 mode also adds a 64-byte memory MEM[] in LUT form
+
+TODO: when you hit an IRQ save which mode you are in and restore it with RTI
+TODO: add a .MODE directive to tell assembler which table to use...
+
+EXEC2:
+0rs: ADD r, s			R[r] += R[s], PC += 1
+1rs: SUB r, s			R[r] -= R[s], PC += 1
+2rs: EOR r, s			R[r] ^= R[s], PC += 1
+3rs: AND r, s			R[r] &= R[s], PC += 1
+4rs: OR r, s			R[r] |= R[s], PC += 1
+5rs: MOV r, s           R[r] = R[s], PC += 1
+60r: NEG r              R[r] = ~R[r], PC += 1 (encoding is 2'b00)
+61r: CLR r				R[r] = 0, PC += 1 (2'b01, etc...)
+62r: LDI r, imm			R[r] = ROM[PC+1], PC += 2 (note this is a 2 cycle opcode)
+63r: XCH r				A <=> R[r], PC += 1
+70r: LDIND r			R[r] = R[A[3:0]], PC += 1
+71r: STIND r			R[A[3:0]] = R[r], PC += 1
+72r: ADDA r				R[r] += A, PC += 1
+73r: SUBA r				R[r] -= A, PC += 1
+8rs: SIGT r, s			PC = PC + 1 + (R[r] > R[s]) ? 1 : 0
+9rs: SIEQ r, s			PC = PC + 1 + (R[r] == R[s]) ? 1 : 0
+Ars: SILT r, s			PC = PC + 1 + (R[r] < R[s]) ? 1 : 0
+B0r: ASR r				R[r] >>= 1, PC += 1, signed
+B1r: LSR r				R[r] >>= 1, PC += 1;
+B2r: ASL4 r				R[r] <<= 4, PC += 1;
+B3r: LSR4 r				R[r] >>= 4, PC += 1;
+C0r: GETLR r			R[r] = R[15], PC += 1
+C1r: SETLR r			R[15] = R[r], PC += 1
+C2r: GETSR r			R[r] = R[14], PC += 1
+C3r: SETSR r			R[14] = R[r], PC += 1
+D0r: ANDA r				R[r] &= A, PC += 1
+D1r: ORA r				R[r] |= A, PC += 1
+D2r: EORA r				R[r] ^= A, PC += 1
+D3r: LDA r				R[r] = A, PC += 1
+E0r: JNZ r, imm			PC = R[r] == 0 ? PC + 2 : ROM[PC + 1], 2 cycle
+E1r: JZ r, imm          PC = R[r] != 0 ? PC + 2 : ROM[PC + 1], 2 cycle, both of these can use the same stage since it's just doing PC <= mem_data, mem_addr <= mem_data, state <= FETCH
+E2r: DEC r				R[r] -= 1, PC += 1
+E3r: INC r				R[r] += 1, PC += 1
+F0r: JMP imm			PC = ROM[PC+1], 2 cycle, same as JNZ/JZ stage 
+F1r: CALL imm			R15 = PC + 2, PC = ROM[PC+1], 2 cycle, same as JNZ/JZ/JMP stage
+F2r, RET				PC = R15	
+F30: LDRM r,s,m			rsm form a 6-bit imm at ROM[PC+1], does R[r] = MEM[R[s][5:0]], if m=01 R[s] += 1, m=11 R[s] -= 1, default no change, PC += 2, 2 cycles
+F31: STRM r,s,m			rsm form a 6-bit imm at ROM[PC+1], does MEM[R[s][5:0]] = R[r], if m=01 R[s] += 1, m=11 R[s] -= 1, default no change, PC += 2, 2 cycles (use sign extension of s to 8 bits, use wire for R[s][5:0]...)
+F32: BANK imm			load bank imm[7:6], PC = imm[5:0] << 2;
+F33: EXEC1				Byte that follows PC is from EXEC1 table, PC = PC + 1
