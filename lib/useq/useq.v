@@ -222,33 +222,33 @@ module useq(
 										4'hB: // SIGT
 											begin
 												if (A > R[0]) begin
-													PC <= PC + 2;
-													mem_addr <= PC + 2;
+													PC <= PC + 8'd2;
+													mem_addr <= PC + 8'd2;
 												end else begin
-													PC <= PC + 1;
-													mem_addr <= PC + 1;
+													PC <= PC + 1'b1;
+													mem_addr <= PC + 1'b1;
 												end
 												state <= FETCH;
 											end
 										4'hC: // SIEQ
 											begin
 												if (A == R[0]) begin
-													PC <= PC + 2;
-													mem_addr <= PC + 2;
+													PC <= PC + 8'd2;
+													mem_addr <= PC + 8'd2;
 												end else begin
-													PC <= PC + 1;
-													mem_addr <= PC + 1;
+													PC <= PC + 1'b1;
+													mem_addr <= PC + 1'b1;
 												end
 												state <= FETCH;
 											end
 										4'hD: // SILT
 											begin
 												if (A < R[0]) begin
-													PC <= PC + 2;
-													mem_addr <= PC + 2;
+													PC <= PC + 8'd2;
+													mem_addr <= PC + 8'd2;
 												end else begin
-													PC <= PC + 1;
-													mem_addr <= PC + 1;
+													PC <= PC + 1'b1;
+													mem_addr <= PC + 1'b1;
 												end
 												state <= FETCH;
 											end
@@ -369,8 +369,8 @@ module useq(
 										4'h8: // SEI
 											begin
 												int_mask <= A;
-												PC <= PC + 1;
-												mem_addr <= PC + 1;
+												PC <= PC + 1'b1;
+												mem_addr <= PC + 1'b1;
 												state <= FETCH;
 											end
 										4'h9: // RTI
@@ -411,22 +411,22 @@ module useq(
 										4'hC: // MASK4
 											begin
 												A <= A & 8'h0F;
-												PC <= PC + 1;
-												mem_addr <= PC + 1;
+												PC <= PC + 1'b1;
+												mem_addr <= PC + 1'b1;
 												state <= FETCH;
 											end
 										4'hD: // ABS
 											begin
 												A <= A[7] ? (~A + 1'b1) : A;
-												PC <= PC + 1;
-												mem_addr <= PC + 1;
+												PC <= PC + 1'b1;
+												mem_addr <= PC + 1'b1;
 												state <= FETCH;
 											end
 										4'hE: // NEG
 											begin
 												A <= ~A + 1'b1;
-												PC <= PC + 1;
-												mem_addr <= PC + 1;
+												PC <= PC + 1'b1;
+												mem_addr <= PC + 1'b1;
 												state <= FETCH;
 											end
 										4'hF: // WAITA

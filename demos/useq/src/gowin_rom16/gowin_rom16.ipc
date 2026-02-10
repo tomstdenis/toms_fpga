@@ -1,0 +1,12 @@
+[General]
+file=gowin_rom16
+ipc_version=4
+module=Gowin_ROM16
+target_device=gw2ar18c-000
+type=ssram_rom16
+version=1.0
+
+[Config]
+DEPTH=256
+LANG=0
+WIDTH=8
