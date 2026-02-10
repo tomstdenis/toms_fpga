@@ -136,7 +136,6 @@ begin
 					4'hC: // LDA
 						begin
 							A <= mem_data;
-							R[14] <= A + 1'b1;		// R14 points to the next byte
 							PC <= PC + 1'b1;
 							mem_addr <= PC + 1'b1;
 							state <= FETCH;
