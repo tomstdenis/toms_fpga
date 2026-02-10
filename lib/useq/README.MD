@@ -4,8 +4,8 @@ Uses 128 ROM16s (5% of ShadowRAM blocks on a Tang Nano 20K) to implement
 a simple instruction set that can interact with inputs and outputs
 
 module useq(
-	input clk;
-	input rst_n;
+	input clk,
+	input rst_n,
 	output [7:0] mem_addr,
 	input [7:0] mem_data,
 	input [7:0] i_port,
@@ -70,7 +70,7 @@ D1: OUTBIT, 			o_port[R0[2:0]] = A[0], PC += 1  // fast set-1
 D2: TGLBIT, 			o_port[R1[2:0]] ^= 1, PC += 1    // fast toggle-1			<--- things clock pin related use R1 to address the pin
 D3: IN, 				A = i_port, PC += 1
 D4: INBIT, 		 		A = i_port[R0[2:0]] ? 1 : 0 , PC += 1
-D5: JMP, 				PC = A
+D5: JMPA, 				PC = A
 D6: CALL, 				R[15] = PC + 1, PC = A
 D7: RET, 				PC = R[15]
 D8: SEI, 				PC += 1, int_mask = A, if i_port & int_mask is a posedge (prev < cur) (from registered copy), then during fetch R[14] = PC, PC = 0xF0, further interrupts disabled until RTI
