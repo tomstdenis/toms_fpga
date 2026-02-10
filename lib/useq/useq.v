@@ -83,12 +83,12 @@ module useq
 							int_enable <= 0;
 							ILR <= PC;     			// save where we interrupted
 							mem_addr <= ISR_VECT;	// jump to ISR vector
-							PC <= 8'hF0;
+							PC <= ISR_VECT;
 							state <= FETCH;			// need another FETCH cycle
 						end else begin
 							instruct <= mem_data;
 							state <= EXECUTE;
-							if (mem_data == 8'hAA) begin // LDA instruction reads from ROM
+							if (mem_data == 8'hAC) begin // LDA instruction reads from ROM
 								mem_addr <= A;
 							end else begin
 								mem_addr <= mem_addr + 1'b1; // FETCH PC+1 for the EXECUTE stage so we can latch it for a potential EXECUTE2 stage
@@ -96,7 +96,25 @@ module useq
 						end
 					end
 				EXECUTE:
+					begin
+						if (int_triggered) begin
+							// we hit an interrupt, so disable further interrupts until an RTI
+							int_enable <= 0;
+							ILR <= PC;     			// save where we interrupted
+							mem_addr <= ISR_VECT;	// jump to ISR vector
+							PC <= ISR_VECT;
+							state <= FETCH;			// need another FETCH cycle
+						end else begin
+							// no interrupt so jump here
 `include "exec1_top.v"
+						end
+						if (can_chain_exec1) begin
+							PC <= PC + 1'b1;			// advance to next PC
+							mem_addr <= PC + 8'd2;		// load what will be the "next opcode" in the next cycle
+							instruct <= mem_data;   // latch the current "next opcode"
+							state <= EXECUTE;
+						end
+					end
 				default:
 					begin
 					end

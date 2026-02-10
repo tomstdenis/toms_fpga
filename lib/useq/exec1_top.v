@@ -16,9 +16,6 @@ begin
 						A <= 8'b0;
 					end
 				end
-				PC <= PC + 1'b1;
-				mem_addr <= PC + 1'b1;
-				state <= FETCH;
 			end
 		4'h1: // ST R[r]
 			begin
@@ -31,9 +28,6 @@ begin
 						R[15] <= R[15] + 1'b1;				// increment fifo count
 					end
 				end
-				PC <= PC + 1'b1;
-				mem_addr <= PC + 1'b1;
-				state <= FETCH;
 			end
 		4'h2: // SETB s, b
 			begin
@@ -47,44 +41,26 @@ begin
 					3'd6: A[6] <= b_imm;
 					3'd7: A[7] <= b_imm;
 				endcase
-				PC <= PC + 1'b1;
-				mem_addr <= PC + 1'b1;
-				state <= FETCH;
 			end
 		4'h3: // ADD R[r]
 			begin
 				A <= A + R[d_imm];
-				PC <= PC + 1'b1;
-				mem_addr <= PC + 1'b1;
-				state <= FETCH;
 			end
 		4'h4: // SUB R[r]
 			begin
 				A <= A - R[d_imm];
-				PC <= PC + 1'b1;
-				mem_addr <= PC + 1'b1;
-				state <= FETCH;
 			end
 		4'h5: // EOR R[r]
 			begin
 				A <= A ^ R[d_imm];
-				PC <= PC + 1'b1;
-				mem_addr <= PC + 1'b1;
-				state <= FETCH;
 			end
 		4'h6: // AND R[r]
 			begin
 				A <= A & R[d_imm];
-				PC <= PC + 1'b1;
-				mem_addr <= PC + 1'b1;
-				state <= FETCH;
 			end
 		4'h7: // OR R[r]
 			begin
 				A <= A | R[d_imm];
-				PC <= PC + 1'b1;
-				mem_addr <= PC + 1'b1;
-				state <= FETCH;
 			end
 		4'h8: // JMP r
 			begin
@@ -110,88 +86,52 @@ begin
 					4'h0: // INC
 						begin
 							A <= A + 1'b1;
-							PC <= PC + 1'b1;
-							mem_addr <= PC + 1'b1;
-							state <= FETCH;
 						end
 					4'h1: // DEC
 						begin
 							A <= A - 1'b1;
-							PC <= PC + 1'b1;
-							mem_addr <= PC + 1'b1;
-							state <= FETCH;
 						end
 					4'h2: // ASL
 						begin
 							A <= A << 1;
-							PC <= PC + 1'b1;
-							mem_addr <= PC + 1'b1;
-							state <= FETCH;
 						end
 					4'h3: // LSR
 						begin
 							A <= A >> 1;
-							PC <= PC + 1'b1;
-							mem_addr <= PC + 1'b1;
-							state <= FETCH;
 						end
 					4'h4: // ASR
 						begin
 							A <= {A[7],A[7:1]};
-							PC <= PC + 1'b1;
-							mem_addr <= PC + 1'b1;
-							state <= FETCH;
 						end
 					4'h5: // SWAP
 						begin
 							A <= {A[3:0], A[7:4]};
-							PC <= PC + 1'b1;
-							mem_addr <= PC + 1'b1;
-							state <= FETCH;
 						end
 					4'h6: // ROL
 						begin
 							A <= {A[6:0], A[7]};
-							PC <= PC + 1'b1;
-							mem_addr <= PC + 1'b1;
-							state <= FETCH;
 						end
 					4'h7: // ROR
 						begin
 							A <= {A[0],A[7:1]};
-							PC <= PC + 1'b1;
-							mem_addr <= PC + 1'b1;
-							state <= FETCH;
 						end
 					4'h8: // SWAPR0
 						begin
 							A <= R[0];
 							R[0] <= A;
-							PC <= PC + 1'b1;
-							mem_addr <= PC + 1'b1;
-							state <= FETCH;
 						end
 					4'h9: // SWAPR1
 						begin
 							A <= R[1];
 							R[1] <= A;
-							PC <= PC + 1'b1;
-							mem_addr <= PC + 1'b1;
-							state <= FETCH;
 						end
 					4'hA: // NOT
 						begin
 							A <= ~A;
-							PC <= PC + 1'b1;
-							mem_addr <= PC + 1'b1;
-							state <= FETCH;
 						end
 					4'hB: // CLR
 						begin
 							A <= 8'b0;
-							PC <= PC + 1'b1;
-							mem_addr <= PC + 1'b1;
-							state <= FETCH;
 						end
 					4'hC: // LDA
 						begin
@@ -238,16 +178,10 @@ begin
 		4'hB: // LDIB
 			begin
 				A[3:0] <= d_imm;
-				PC <= PC + 1'b1;
-				mem_addr <= PC + 1'b1;
-				state <= FETCH;
 			end
 		4'hC: // LDIT
 			begin
 				A[7:4] <= d_imm;
-				PC <= PC + 1'b1;
-				mem_addr <= PC + 1'b1;
-				state <= FETCH;
 			end
 		4'hD: // I/O opcodes
 			begin
@@ -255,9 +189,6 @@ begin
 					4'h0: // OUT
 						begin
 							o_port <= A;
-							PC <= PC + 1'b1;
-							mem_addr <= PC + 1'b1;
-							state <= FETCH;
 						end
 					4'h1: // OUTBIT
 						begin
@@ -271,9 +202,6 @@ begin
 								3'd6: o_port[6] <= A[0];
 								3'd7: o_port[7] <= A[0];
 							endcase
-							PC <= PC + 1'b1;
-							mem_addr <= PC + 1'b1;
-							state <= FETCH;
 						end
 					4'h2: // TGLBIT
 						begin
@@ -287,16 +215,10 @@ begin
 								3'd6: o_port[6] <= o_port[6] ^ 1;
 								3'd7: o_port[7] <= o_port[7] ^ 1;
 							endcase
-							PC <= PC + 1'b1;
-							mem_addr <= PC + 1'b1;
-							state <= FETCH;
 						end
 					4'h3: // IN
 						begin
 							A <= l_i_port;
-							PC <= PC + 1'b1;
-							mem_addr <= PC + 1'b1;
-							state <= FETCH;
 						end
 					4'h4: // INBIT
 						begin
@@ -310,24 +232,15 @@ begin
 								3'd6: A <= l_i_port[6] ? 1 : 0;
 								3'd7: A <= l_i_port[7] ? 1 : 0;
 							endcase
-							PC <= PC + 1'b1;
-							mem_addr <= PC + 1'b1;
-							state <= FETCH;
 						end
 					4'h5: // NEG
 						begin
 							A <= ~A + 1'b1;
-							PC <= PC + 1'b1;
-							mem_addr <= PC + 1'b1;
-							state <= FETCH;
 						end
 					4'h6: // SEI
 						begin
 							int_mask <= A;
 							int_enable <= (A == 0) ? 1'b0 : 1'b1;
-							PC <= PC + 1'b1;
-							mem_addr <= PC + 1'b1;
-							state <= FETCH;
 						end
 					4'h7: // JMPA
 						begin
