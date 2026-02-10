@@ -40,6 +40,17 @@ module useq
 	wire       b_imm = instruct[0];
 	wire       int_triggered = |((i_port & ~l_i_port) & int_mask) & int_enable;
 
+	// can_chain = 1 means "Single-Cycle Turbo is GO"
+	// can_chain = 0 means "Wait, we need a FETCH cycle to realign"
+	wire can_chain_exec1 = !(
+		(instruct[7:4] == 4'h8) || // *JMP r
+		(instruct[7:4] == 4'h9) || // *JNZ r
+		(instruct[7:4] == 4'hA && instruct[3:0] >= 4'hC) || // *LDA, *SIGT, *SIEQ, *SILT
+		(instruct[7:4] == 4'hD && instruct[3:0] >= 4'h7) || // *JMPA, *CALL, *RET, *RTI, *WAITs, *EXEC2, *WAITF, *WAITA
+		(instruct[7:4] == 4'hE) || // *JSR r
+		(instruct[7:4] == 4'hF)    // *SBIT
+	);
+
 	always @(posedge clk) begin
 		if (!rst_n) begin
 			A <= 0;

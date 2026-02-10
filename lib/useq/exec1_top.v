@@ -179,14 +179,28 @@ begin
 							mem_addr <= PC + 1'b1;
 							state <= FETCH;
 						end
-					4'hA: // LDA
+					4'hA: // NOT
+						begin
+							A <= ~A;
+							PC <= PC + 1'b1;
+							mem_addr <= PC + 1'b1;
+							state <= FETCH;
+						end
+					4'hB: // CLR
+						begin
+							A <= 8'b0;
+							PC <= PC + 1'b1;
+							mem_addr <= PC + 1'b1;
+							state <= FETCH;
+						end
+					4'hC: // LDA
 						begin
 							A <= mem_data;
 							PC <= PC + 1'b1;
 							mem_addr <= PC + 1'b1;
 							state <= FETCH;
 						end
-					4'hB: // SIGT
+					4'hD: // SIGT
 						begin
 							if (A > R[0]) begin
 								PC <= PC + 8'd2;
@@ -197,7 +211,7 @@ begin
 							end
 							state <= FETCH;
 						end
-					4'hC: // SIEQ
+					4'hE: // SIEQ
 						begin
 							if (A == R[0]) begin
 								PC <= PC + 8'd2;
@@ -208,7 +222,7 @@ begin
 							end
 							state <= FETCH;
 						end
-					4'hD: // SILT
+					4'hF: // SILT
 						begin
 							if (A < R[0]) begin
 								PC <= PC + 8'd2;
@@ -217,20 +231,6 @@ begin
 								PC <= PC + 1'b1;
 								mem_addr <= PC + 1'b1;
 							end
-							state <= FETCH;
-						end
-					4'hE: // NOT
-						begin
-							A <= ~A;
-							PC <= PC + 1'b1;
-							mem_addr <= PC + 1'b1;
-							state <= FETCH;
-						end
-					4'hF: // CLR
-						begin
-							A <= 8'b0;
-							PC <= PC + 1'b1;
-							mem_addr <= PC + 1'b1;
 							state <= FETCH;
 						end
 				endcase
@@ -314,26 +314,14 @@ begin
 							mem_addr <= PC + 1'b1;
 							state <= FETCH;
 						end
-					4'h5: // JMP
+					4'h5: // NEG
 						begin
-							PC <= A;
-							mem_addr <= A;
+							A <= ~A + 1'b1;
+							PC <= PC + 1'b1;
+							mem_addr <= PC + 1'b1;
 							state <= FETCH;
 						end
-					4'h6: // CALL
-						begin
-							LR <= PC + 1'b1;
-							PC <= A;
-							mem_addr <= A;
-							state <= FETCH;
-						end
-					4'h7: // RET
-						begin
-							PC <= LR;
-							mem_addr <= LR;
-							state <= FETCH;
-						end
-					4'h8: // SEI
+					4'h6: // SEI
 						begin
 							int_mask <= A;
 							int_enable <= (A == 0) ? 1'b0 : 1'b1;
@@ -341,14 +329,33 @@ begin
 							mem_addr <= PC + 1'b1;
 							state <= FETCH;
 						end
-					4'h9: // RTI
+					4'h7: // JMPA
+						begin
+							PC <= A;
+							mem_addr <= A;
+							state <= FETCH;
+						end
+					4'h8: // CALL
+						begin
+							LR <= PC + 1'b1;
+							PC <= A;
+							mem_addr <= A;
+							state <= FETCH;
+						end
+					4'h9: // RET
+						begin
+							PC <= LR;
+							mem_addr <= LR;
+							state <= FETCH;
+						end
+					4'hA: // RTI
 						begin
 							int_enable <= 1;	// restore interrupt enabled
 							PC <= ILR;
 							mem_addr <= ILR;
 							state <= FETCH;
 						end
-					4'hA: // WAIT0
+					4'hB: // WAIT0
 						begin
 							state <= FETCH;
 							case(R[1][2:0])
@@ -362,7 +369,7 @@ begin
 								3'd7: begin PC <= PC - (l_i_port[7] + 8'hFF); mem_addr <= mem_addr - (l_i_port[7] + 8'hFF); end
 							endcase
 						end
-					4'hB: // WAIT1
+					4'hC: // WAIT1
 						begin
 							state <= FETCH;
 							case(R[1][2:0])
@@ -376,14 +383,14 @@ begin
 								3'd7: begin PC <= PC + l_i_port[7]; mem_addr <= mem_addr + l_i_port[7]; end
 							endcase
 						end
-					4'hC: // MASK4
+					4'hD: // eventually EXEC2
 						begin
 							A <= A & 8'h0F;
 							PC <= PC + 1'b1;
 							mem_addr <= PC + 1'b1;
 							state <= FETCH;
 						end
-					4'hD: // WAITF
+					4'hE: // WAITF
 						begin
 							// only advance PC if A == fifo_cnt
 							if (R[15] == A) begin
@@ -392,13 +399,6 @@ begin
 							end else begin
 								mem_addr <= PC;
 							end
-							state <= FETCH;
-						end
-					4'hE: // NEG
-						begin
-							A <= ~A + 1'b1;
-							PC <= PC + 1'b1;
-							mem_addr <= PC + 1'b1;
 							state <= FETCH;
 						end
 					4'hF: // WAITA
