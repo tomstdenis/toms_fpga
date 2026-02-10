@@ -5,7 +5,7 @@
 //Part Number: GW2AR-LV18QN88C8/I7
 //Device: GW2AR-18
 //Device Version: C
-//Created Time: Mon Feb  9 18:56:46 2026
+//Created Time: Mon Feb  9 23:42:30 2026
 
 module Gowin_ROM16 (dout, ad);
 
@@ -258,84 +258,84 @@ ROM16 rom16_inst_0 (
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_0.INIT_0 = 16'h0000;
+defparam rom16_inst_0.INIT_0 = 16'hFFF3;
 
 ROM16 rom16_inst_1 (
     .DO(rom16_inst_1_dout[1]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_1.INIT_0 = 16'h0000;
+defparam rom16_inst_1.INIT_0 = 16'hFFEF;
 
 ROM16 rom16_inst_2 (
     .DO(rom16_inst_2_dout[2]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_2.INIT_0 = 16'h0000;
+defparam rom16_inst_2.INIT_0 = 16'hFFEB;
 
 ROM16 rom16_inst_3 (
     .DO(rom16_inst_3_dout[3]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_3.INIT_0 = 16'h0000;
+defparam rom16_inst_3.INIT_0 = 16'hFFEB;
 
 ROM16 rom16_inst_4 (
     .DO(rom16_inst_4_dout[4]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_4.INIT_0 = 16'h0000;
+defparam rom16_inst_4.INIT_0 = 16'h001D;
 
 ROM16 rom16_inst_5 (
     .DO(rom16_inst_5_dout[5]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_5.INIT_0 = 16'h0000;
+defparam rom16_inst_5.INIT_0 = 16'hFFE1;
 
 ROM16 rom16_inst_6 (
     .DO(rom16_inst_6_dout[6]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_6.INIT_0 = 16'h0000;
+defparam rom16_inst_6.INIT_0 = 16'h000E;
 
 ROM16 rom16_inst_7 (
     .DO(rom16_inst_7_dout[7]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_7.INIT_0 = 16'h0000;
+defparam rom16_inst_7.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_8 (
     .DO(rom16_inst_8_dout[0]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_8.INIT_0 = 16'h0000;
+defparam rom16_inst_8.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_9 (
     .DO(rom16_inst_9_dout[1]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_9.INIT_0 = 16'h0000;
+defparam rom16_inst_9.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_10 (
     .DO(rom16_inst_10_dout[2]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_10.INIT_0 = 16'h0000;
+defparam rom16_inst_10.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_11 (
     .DO(rom16_inst_11_dout[3]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_11.INIT_0 = 16'h0000;
+defparam rom16_inst_11.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_12 (
     .DO(rom16_inst_12_dout[4]),
@@ -349,7 +349,7 @@ ROM16 rom16_inst_13 (
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_13.INIT_0 = 16'h0000;
+defparam rom16_inst_13.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_14 (
     .DO(rom16_inst_14_dout[6]),
@@ -363,35 +363,35 @@ ROM16 rom16_inst_15 (
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_15.INIT_0 = 16'h0000;
+defparam rom16_inst_15.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_16 (
     .DO(rom16_inst_16_dout[0]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_16.INIT_0 = 16'h0000;
+defparam rom16_inst_16.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_17 (
     .DO(rom16_inst_17_dout[1]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_17.INIT_0 = 16'h0000;
+defparam rom16_inst_17.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_18 (
     .DO(rom16_inst_18_dout[2]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_18.INIT_0 = 16'h0000;
+defparam rom16_inst_18.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_19 (
     .DO(rom16_inst_19_dout[3]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_19.INIT_0 = 16'h0000;
+defparam rom16_inst_19.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_20 (
     .DO(rom16_inst_20_dout[4]),
@@ -405,7 +405,7 @@ ROM16 rom16_inst_21 (
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_21.INIT_0 = 16'h0000;
+defparam rom16_inst_21.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_22 (
     .DO(rom16_inst_22_dout[6]),
@@ -419,35 +419,35 @@ ROM16 rom16_inst_23 (
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_23.INIT_0 = 16'h0000;
+defparam rom16_inst_23.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_24 (
     .DO(rom16_inst_24_dout[0]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_24.INIT_0 = 16'h0000;
+defparam rom16_inst_24.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_25 (
     .DO(rom16_inst_25_dout[1]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_25.INIT_0 = 16'h0000;
+defparam rom16_inst_25.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_26 (
     .DO(rom16_inst_26_dout[2]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_26.INIT_0 = 16'h0000;
+defparam rom16_inst_26.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_27 (
     .DO(rom16_inst_27_dout[3]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_27.INIT_0 = 16'h0000;
+defparam rom16_inst_27.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_28 (
     .DO(rom16_inst_28_dout[4]),
@@ -461,7 +461,7 @@ ROM16 rom16_inst_29 (
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_29.INIT_0 = 16'h0000;
+defparam rom16_inst_29.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_30 (
     .DO(rom16_inst_30_dout[6]),
@@ -475,35 +475,35 @@ ROM16 rom16_inst_31 (
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_31.INIT_0 = 16'h0000;
+defparam rom16_inst_31.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_32 (
     .DO(rom16_inst_32_dout[0]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_32.INIT_0 = 16'h0000;
+defparam rom16_inst_32.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_33 (
     .DO(rom16_inst_33_dout[1]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_33.INIT_0 = 16'h0000;
+defparam rom16_inst_33.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_34 (
     .DO(rom16_inst_34_dout[2]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_34.INIT_0 = 16'h0000;
+defparam rom16_inst_34.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_35 (
     .DO(rom16_inst_35_dout[3]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_35.INIT_0 = 16'h0000;
+defparam rom16_inst_35.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_36 (
     .DO(rom16_inst_36_dout[4]),
@@ -517,7 +517,7 @@ ROM16 rom16_inst_37 (
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_37.INIT_0 = 16'h0000;
+defparam rom16_inst_37.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_38 (
     .DO(rom16_inst_38_dout[6]),
@@ -531,35 +531,35 @@ ROM16 rom16_inst_39 (
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_39.INIT_0 = 16'h0000;
+defparam rom16_inst_39.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_40 (
     .DO(rom16_inst_40_dout[0]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_40.INIT_0 = 16'h0000;
+defparam rom16_inst_40.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_41 (
     .DO(rom16_inst_41_dout[1]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_41.INIT_0 = 16'h0000;
+defparam rom16_inst_41.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_42 (
     .DO(rom16_inst_42_dout[2]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_42.INIT_0 = 16'h0000;
+defparam rom16_inst_42.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_43 (
     .DO(rom16_inst_43_dout[3]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_43.INIT_0 = 16'h0000;
+defparam rom16_inst_43.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_44 (
     .DO(rom16_inst_44_dout[4]),
@@ -573,7 +573,7 @@ ROM16 rom16_inst_45 (
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_45.INIT_0 = 16'h0000;
+defparam rom16_inst_45.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_46 (
     .DO(rom16_inst_46_dout[6]),
@@ -587,35 +587,35 @@ ROM16 rom16_inst_47 (
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_47.INIT_0 = 16'h0000;
+defparam rom16_inst_47.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_48 (
     .DO(rom16_inst_48_dout[0]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_48.INIT_0 = 16'h0000;
+defparam rom16_inst_48.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_49 (
     .DO(rom16_inst_49_dout[1]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_49.INIT_0 = 16'h0000;
+defparam rom16_inst_49.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_50 (
     .DO(rom16_inst_50_dout[2]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_50.INIT_0 = 16'h0000;
+defparam rom16_inst_50.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_51 (
     .DO(rom16_inst_51_dout[3]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_51.INIT_0 = 16'h0000;
+defparam rom16_inst_51.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_52 (
     .DO(rom16_inst_52_dout[4]),
@@ -629,7 +629,7 @@ ROM16 rom16_inst_53 (
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_53.INIT_0 = 16'h0000;
+defparam rom16_inst_53.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_54 (
     .DO(rom16_inst_54_dout[6]),
@@ -643,35 +643,35 @@ ROM16 rom16_inst_55 (
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_55.INIT_0 = 16'h0000;
+defparam rom16_inst_55.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_56 (
     .DO(rom16_inst_56_dout[0]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_56.INIT_0 = 16'h0000;
+defparam rom16_inst_56.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_57 (
     .DO(rom16_inst_57_dout[1]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_57.INIT_0 = 16'h0000;
+defparam rom16_inst_57.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_58 (
     .DO(rom16_inst_58_dout[2]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_58.INIT_0 = 16'h0000;
+defparam rom16_inst_58.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_59 (
     .DO(rom16_inst_59_dout[3]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_59.INIT_0 = 16'h0000;
+defparam rom16_inst_59.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_60 (
     .DO(rom16_inst_60_dout[4]),
@@ -685,7 +685,7 @@ ROM16 rom16_inst_61 (
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_61.INIT_0 = 16'h0000;
+defparam rom16_inst_61.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_62 (
     .DO(rom16_inst_62_dout[6]),
@@ -699,35 +699,35 @@ ROM16 rom16_inst_63 (
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_63.INIT_0 = 16'h0000;
+defparam rom16_inst_63.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_64 (
     .DO(rom16_inst_64_dout[0]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_64.INIT_0 = 16'h0000;
+defparam rom16_inst_64.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_65 (
     .DO(rom16_inst_65_dout[1]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_65.INIT_0 = 16'h0000;
+defparam rom16_inst_65.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_66 (
     .DO(rom16_inst_66_dout[2]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_66.INIT_0 = 16'h0000;
+defparam rom16_inst_66.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_67 (
     .DO(rom16_inst_67_dout[3]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_67.INIT_0 = 16'h0000;
+defparam rom16_inst_67.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_68 (
     .DO(rom16_inst_68_dout[4]),
@@ -741,7 +741,7 @@ ROM16 rom16_inst_69 (
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_69.INIT_0 = 16'h0000;
+defparam rom16_inst_69.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_70 (
     .DO(rom16_inst_70_dout[6]),
@@ -755,35 +755,35 @@ ROM16 rom16_inst_71 (
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_71.INIT_0 = 16'h0000;
+defparam rom16_inst_71.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_72 (
     .DO(rom16_inst_72_dout[0]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_72.INIT_0 = 16'h0000;
+defparam rom16_inst_72.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_73 (
     .DO(rom16_inst_73_dout[1]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_73.INIT_0 = 16'h0000;
+defparam rom16_inst_73.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_74 (
     .DO(rom16_inst_74_dout[2]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_74.INIT_0 = 16'h0000;
+defparam rom16_inst_74.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_75 (
     .DO(rom16_inst_75_dout[3]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_75.INIT_0 = 16'h0000;
+defparam rom16_inst_75.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_76 (
     .DO(rom16_inst_76_dout[4]),
@@ -797,7 +797,7 @@ ROM16 rom16_inst_77 (
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_77.INIT_0 = 16'h0000;
+defparam rom16_inst_77.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_78 (
     .DO(rom16_inst_78_dout[6]),
@@ -811,35 +811,35 @@ ROM16 rom16_inst_79 (
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_79.INIT_0 = 16'h0000;
+defparam rom16_inst_79.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_80 (
     .DO(rom16_inst_80_dout[0]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_80.INIT_0 = 16'h0000;
+defparam rom16_inst_80.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_81 (
     .DO(rom16_inst_81_dout[1]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_81.INIT_0 = 16'h0000;
+defparam rom16_inst_81.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_82 (
     .DO(rom16_inst_82_dout[2]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_82.INIT_0 = 16'h0000;
+defparam rom16_inst_82.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_83 (
     .DO(rom16_inst_83_dout[3]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_83.INIT_0 = 16'h0000;
+defparam rom16_inst_83.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_84 (
     .DO(rom16_inst_84_dout[4]),
@@ -853,7 +853,7 @@ ROM16 rom16_inst_85 (
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_85.INIT_0 = 16'h0000;
+defparam rom16_inst_85.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_86 (
     .DO(rom16_inst_86_dout[6]),
@@ -867,35 +867,35 @@ ROM16 rom16_inst_87 (
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_87.INIT_0 = 16'h0000;
+defparam rom16_inst_87.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_88 (
     .DO(rom16_inst_88_dout[0]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_88.INIT_0 = 16'h0000;
+defparam rom16_inst_88.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_89 (
     .DO(rom16_inst_89_dout[1]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_89.INIT_0 = 16'h0000;
+defparam rom16_inst_89.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_90 (
     .DO(rom16_inst_90_dout[2]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_90.INIT_0 = 16'h0000;
+defparam rom16_inst_90.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_91 (
     .DO(rom16_inst_91_dout[3]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_91.INIT_0 = 16'h0000;
+defparam rom16_inst_91.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_92 (
     .DO(rom16_inst_92_dout[4]),
@@ -909,7 +909,7 @@ ROM16 rom16_inst_93 (
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_93.INIT_0 = 16'h0000;
+defparam rom16_inst_93.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_94 (
     .DO(rom16_inst_94_dout[6]),
@@ -923,35 +923,35 @@ ROM16 rom16_inst_95 (
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_95.INIT_0 = 16'h0000;
+defparam rom16_inst_95.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_96 (
     .DO(rom16_inst_96_dout[0]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_96.INIT_0 = 16'h0000;
+defparam rom16_inst_96.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_97 (
     .DO(rom16_inst_97_dout[1]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_97.INIT_0 = 16'h0000;
+defparam rom16_inst_97.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_98 (
     .DO(rom16_inst_98_dout[2]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_98.INIT_0 = 16'h0000;
+defparam rom16_inst_98.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_99 (
     .DO(rom16_inst_99_dout[3]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_99.INIT_0 = 16'h0000;
+defparam rom16_inst_99.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_100 (
     .DO(rom16_inst_100_dout[4]),
@@ -965,7 +965,7 @@ ROM16 rom16_inst_101 (
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_101.INIT_0 = 16'h0000;
+defparam rom16_inst_101.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_102 (
     .DO(rom16_inst_102_dout[6]),
@@ -979,35 +979,35 @@ ROM16 rom16_inst_103 (
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_103.INIT_0 = 16'h0000;
+defparam rom16_inst_103.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_104 (
     .DO(rom16_inst_104_dout[0]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_104.INIT_0 = 16'h0000;
+defparam rom16_inst_104.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_105 (
     .DO(rom16_inst_105_dout[1]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_105.INIT_0 = 16'h0000;
+defparam rom16_inst_105.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_106 (
     .DO(rom16_inst_106_dout[2]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_106.INIT_0 = 16'h0000;
+defparam rom16_inst_106.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_107 (
     .DO(rom16_inst_107_dout[3]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_107.INIT_0 = 16'h0000;
+defparam rom16_inst_107.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_108 (
     .DO(rom16_inst_108_dout[4]),
@@ -1021,7 +1021,7 @@ ROM16 rom16_inst_109 (
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_109.INIT_0 = 16'h0000;
+defparam rom16_inst_109.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_110 (
     .DO(rom16_inst_110_dout[6]),
@@ -1035,35 +1035,35 @@ ROM16 rom16_inst_111 (
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_111.INIT_0 = 16'h0000;
+defparam rom16_inst_111.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_112 (
     .DO(rom16_inst_112_dout[0]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_112.INIT_0 = 16'h0000;
+defparam rom16_inst_112.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_113 (
     .DO(rom16_inst_113_dout[1]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_113.INIT_0 = 16'h0000;
+defparam rom16_inst_113.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_114 (
     .DO(rom16_inst_114_dout[2]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_114.INIT_0 = 16'h0000;
+defparam rom16_inst_114.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_115 (
     .DO(rom16_inst_115_dout[3]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_115.INIT_0 = 16'h0000;
+defparam rom16_inst_115.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_116 (
     .DO(rom16_inst_116_dout[4]),
@@ -1077,7 +1077,7 @@ ROM16 rom16_inst_117 (
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_117.INIT_0 = 16'h0000;
+defparam rom16_inst_117.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_118 (
     .DO(rom16_inst_118_dout[6]),
@@ -1091,35 +1091,35 @@ ROM16 rom16_inst_119 (
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_119.INIT_0 = 16'h0000;
+defparam rom16_inst_119.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_120 (
     .DO(rom16_inst_120_dout[0]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_120.INIT_0 = 16'h0000;
+defparam rom16_inst_120.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_121 (
     .DO(rom16_inst_121_dout[1]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_121.INIT_0 = 16'h0000;
+defparam rom16_inst_121.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_122 (
     .DO(rom16_inst_122_dout[2]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_122.INIT_0 = 16'h0000;
+defparam rom16_inst_122.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_123 (
     .DO(rom16_inst_123_dout[3]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_123.INIT_0 = 16'h0000;
+defparam rom16_inst_123.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_124 (
     .DO(rom16_inst_124_dout[4]),
@@ -1133,7 +1133,7 @@ ROM16 rom16_inst_125 (
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_125.INIT_0 = 16'h0000;
+defparam rom16_inst_125.INIT_0 = 16'hFFFF;
 
 ROM16 rom16_inst_126 (
     .DO(rom16_inst_126_dout[6]),
@@ -1147,7 +1147,7 @@ ROM16 rom16_inst_127 (
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_127.INIT_0 = 16'h0000;
+defparam rom16_inst_127.INIT_0 = 16'hFFFF;
 
 MUX2 mux_inst_0 (
   .O(mux_o_0),

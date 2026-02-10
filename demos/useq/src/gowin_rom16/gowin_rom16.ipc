@@ -9,4 +9,5 @@ version=1.0
 [Config]
 DEPTH=256
 LANG=0
+MEM_FILE=/home/tom/nas/toms_fpga/lib/useq/blink.s.hex
 WIDTH=8

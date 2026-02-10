@@ -13,3 +13,4 @@
 -file_type vlg
 -ssram_depth 256
 -ssram_width 8
+-init_file /home/tom/nas/toms_fpga/lib/useq/blink.s.hex
