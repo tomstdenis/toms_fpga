@@ -94,11 +94,11 @@ begin
 						end
 					4'h2: // ASL
 						begin
-							A <= A << 1;
+							A <= {A[6:0], 1'b0};
 						end
 					4'h3: // LSR
 						begin
-							A <= A >> 1;
+							A <= {1'b0, A[7:1]};
 						end
 					4'h4: // ASR
 						begin
