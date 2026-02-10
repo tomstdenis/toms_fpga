@@ -88,12 +88,7 @@ module useq
 						end else begin
 							instruct <= mem_data;
 							state <= EXECUTE;
-							if (mem_data == 8'hAC) begin // LDA instruction reads from ROM
-								mem_addr <= A;
-								R[14] <= A + 1'b1;		// R14 points to the next byte
-							end else begin
-								mem_addr <= mem_addr + 1'b1; // FETCH PC+1 for the EXECUTE stage so we can latch it for a potential EXECUTE2 stage
-							end
+							mem_addr <= mem_addr + 1'b1; // FETCH PC+1 for the EXECUTE stage so we can latch it for a potential EXECUTE2 stage
 						end
 					end
 				EXECUTE:
@@ -115,6 +110,12 @@ module useq
 							instruct <= mem_data;   // latch the current "next opcode"
 							state <= EXECUTE;
 						end
+					end
+				LOADA: // load A with whatever was read from ROM
+					begin
+						A <= mem_data;
+						mem_addr <= PC;
+						state <= FETCH;
 					end
 				default:
 					begin

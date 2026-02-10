@@ -135,10 +135,10 @@ begin
 						end
 					4'hC: // LDA
 						begin
-							A <= mem_data;
+							mem_addr <= A;
+							R[14] <= A + 1'b1;
 							PC <= PC + 1'b1;
-							mem_addr <= PC + 1'b1;
-							state <= FETCH;
+							state <= LOADA;
 						end
 					4'hD: // SIGT
 						begin
