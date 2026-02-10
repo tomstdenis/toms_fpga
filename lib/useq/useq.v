@@ -63,6 +63,11 @@ module useq(
 						end else begin
 							instruct <= mem_data;
 							state <= EXECUTE;
+							if (mem_data == 8'hAA) begin // LDA instruction reads from ROM
+								mem_addr <= A;
+							end else begin
+								mem_addr <= mem_addr + 1'b1; // FETCH PC+1 for the EXECUTE stage so we can latch it for a potential EXECUTE2 stage
+							end
 						end
 					end
 				EXECUTE:
@@ -228,8 +233,10 @@ module useq(
 											end
 										4'hA: // LDA
 											begin
-												mem_addr <= A;
-												state <= LOADA;
+												A <= mem_data;
+												PC <= PC + 1'b1;
+												mem_addr <= PC + 1'b1;
+												state <= FETCH;
 											end
 										4'hB: // SIGT
 											begin
@@ -475,13 +482,6 @@ module useq(
 									state <= FETCH;
 								end
 						endcase
-					end
-				LOADA:
-					begin
-						A <= mem_data;
-						PC <= PC + 1'b1;
-						mem_addr <= PC + 1'b1;
-						state <= FETCH;
 					end
 				default:
 					begin
