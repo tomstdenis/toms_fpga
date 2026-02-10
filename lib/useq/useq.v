@@ -1,6 +1,8 @@
 `timescale 1ns/1ps
 
-module useq(
+module useq
+#(parameter FIFO_DEPTH=4,ISR_VECT=8'hF0)
+(
 	input clk,
 	input rst_n,
 	
@@ -14,12 +16,17 @@ module useq(
 	reg [7:0] A;
 	reg [7:0] PC;
 	reg [8:0] T;
+	reg [7:0] LR;
+	reg [7:0] ILR;
 	reg [7:0] instruct;
 	reg [7:0] R[15:0];
 	reg [1:0] state;
 	reg [7:0] l_i_port;
 	reg [7:0] int_mask;
 	reg int_enable;
+	reg [7:0] FIFO[FIFO_DEPTH-1:0];
+	reg [$clog2(FIFO_DEPTH)-1:0] fifo_rptr;
+	reg [$clog2(FIFO_DEPTH)-1:0] fifo_wptr;
 
 	localparam
 		FETCH=0,
@@ -38,6 +45,8 @@ module useq(
 			A <= 0;
 			PC <= 0;
 			T <= 0;
+			LR <= 0;
+			ILR <= 0;
 			state <= FETCH;
 			l_i_port <= 0;
 			instruct <= 0;
@@ -47,6 +56,11 @@ module useq(
 			for (i=0; i<16; i=i+1) begin
 				R[i] <= 0;
 			end
+			for (i=0; i<FIFO_DEPTH; i=i+1) begin
+				FIFO[i] <= 0;
+			end
+			fifo_rptr <= 0;
+			fifo_wptr <= 0;
 			o_port <= 0;
 		end else begin
 			l_i_port <= i_port;
@@ -56,8 +70,8 @@ module useq(
 						if (int_triggered) begin
 							// we hit an interrupt, so disable further interrupts until an RTI
 							int_enable <= 0;
-							R[14] <= PC;     		// save where we interrupted
-							mem_addr <= 8'hF0;		// jump to ISR at 0xF0
+							ILR <= PC;     			// save where we interrupted
+							mem_addr <= ISR_VECT;	// jump to ISR vector
 							PC <= 8'hF0;
 							state <= FETCH;			// need another FETCH cycle
 						end else begin
@@ -75,14 +89,34 @@ module useq(
 						case(instruct[7:4])
 							4'h0: // LD R[r]
 								begin
-									A <= R[d_imm];
+									if (d_imm < 15) begin
+										A <= R[d_imm];							// regular register load
+									end else begin
+										if (R[15] > 0) begin
+											// if FIFO isn't empty read from it 
+											A <= FIFO[fifo_rptr];				// read fifo data
+											R[15] <= R[15] - 1'b1;				// decrement fifo count
+											fifo_rptr <= fifo_rptr + 1'b1;		// increment read pointer
+										end else begin
+											// otherwise read a 0
+											A <= 8'b0;
+										end
+									end
 									PC <= PC + 1'b1;
 									mem_addr <= PC + 1'b1;
 									state <= FETCH;
 								end
 							4'h1: // ST R[r]
 								begin
-									R[d_imm] <= A;
+									if (d_imm < 15) begin
+										R[d_imm] <= A;							// regular register store
+									end else begin
+										if (R[15] < (FIFO_DEPTH-1)) begin
+											FIFO[fifo_wptr] <= A;				// store fifo data
+											fifo_wptr <= fifo_wptr + 1'b1;		// increment write pointer
+											R[15] <= R[15] + 1'b1;				// increment fifo count
+										end
+									end
 									PC <= PC + 1'b1;
 									mem_addr <= PC + 1'b1;
 									state <= FETCH;
@@ -374,15 +408,15 @@ module useq(
 											end
 										4'h6: // CALL
 											begin
-												R[15] <= PC + 1'b1;
+												LR <= PC + 1'b1;
 												PC <= A;
 												mem_addr <= A;
 												state <= FETCH;
 											end
 										4'h7: // RET
 											begin
-												PC <= R[15];
-												mem_addr <= R[15];
+												PC <= LR;
+												mem_addr <= LR;
 												state <= FETCH;
 											end
 										4'h8: // SEI
@@ -396,8 +430,8 @@ module useq(
 										4'h9: // RTI
 											begin
 												int_enable <= 1;	// restore interrupt enabled
-												PC <= R[14];
-												mem_addr <= R[14];
+												PC <= ILR;
+												mem_addr <= ILR;
 												state <= FETCH;
 											end
 										4'hA: // WAIT0
@@ -435,11 +469,15 @@ module useq(
 												mem_addr <= PC + 1'b1;
 												state <= FETCH;
 											end
-										4'hD: // ABS
+										4'hD: // WAITF
 											begin
-												A <= A[7] ? (~A + 1'b1) : A;
-												PC <= PC + 1'b1;
-												mem_addr <= PC + 1'b1;
+												// only advance PC if A == fifo_cnt
+												if (R[15] == A) begin
+													PC <= PC + 1'b1;
+													mem_addr <= PC + 1'b1;
+												end else begin
+													mem_addr <= PC;
+												end
 												state <= FETCH;
 											end
 										4'hE: // NEG

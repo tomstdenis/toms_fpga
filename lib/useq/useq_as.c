@@ -84,7 +84,7 @@ const struct {
 	{ "WAIT0", 0xDA, OP_FMT_FULL },
 	{ "WAIT1", 0xDB, OP_FMT_FULL },
 	{ "MASK4", 0xDC, OP_FMT_FULL },
-	{ "ABS", 0xDD, OP_FMT_FULL },
+	{ "WAITF", 0xDD, OP_FMT_FULL },
 	{ "NEG", 0xDE, OP_FMT_FULL },
 	{ "WAITA", 0xDF, OP_FMT_FULL },
 	{ "JSR", 0xE0, OP_FMT_R },

@@ -32,16 +32,20 @@ reg [7:0] A; // accumulator
 reg [7:0] PC; // PC pointer
 reg [7:0] R[15:0]; // 16 registers
 reg [7:0] instr; // latched instruction for the EXECUTE stage
+reg [7:0] LR;
+reg [7:0] ILR;
 
 reg [7:0] ROM[255:0];
 wire [7:0] ROMADDR;
 wire [7:0] ROMOUT = ROM[ROMADDR];
 
+reg [7:0] FIFO[FIFO_DEPTH-1:0]; // FIFO that is interacted with the LD and ST opcodes when r==15
+
 EXEC1:
 0r: LD R[r], 			A = R[r], PC += 1
-1r: ST R[r], 			R[r] = A, PC += 1
+1r: ST R[r], 			R[r] = A, PC += 1	; for LD and ST if r==15 then it interacts with the FIFO not R[15] itself
 2sb: SETB s, b, 		A[s] = b, PC += 1
-3r: ADD R[r], 			A = A + R[r], PC += 1
+3r: ADD R[r], 			A = A + R[r], PC += 1 ; for these ALU opcodes R[15] reads as the fifo count (how many valid bytes)
 4r: SUB R[r], 			A = A - R[r], PC += 1
 5r: EOR R[r], 			A = A ^ R[r], PC += 1
 6r: AND R[r], 			A = A & R[r], PC += 1
@@ -72,14 +76,14 @@ D2: TGLBIT, 			o_port[R1[2:0]] ^= 1, PC += 1    // fast toggle-1			<--- things c
 D3: IN, 				A = i_port, PC += 1
 D4: INBIT, 		 		A = i_port[R0[2:0]] ? 1 : 0 , PC += 1
 D5: JMPA, 				PC = A
-D6: CALL, 				R[15] = PC + 1, PC = A
-D7: RET, 				PC = R[15]
+D6: CALL, 				LR = PC + 1, PC = A
+D7: RET, 				PC = LR
 D8: SEI, 				PC += 1, int_mask = A, if i_port & int_mask is a posedge (prev < cur) (from registered copy), then during fetch R[14] = PC, PC = 0xF0, further interrupts disabled until RTI
-D9: RTI, 				PC = R[14], re-enable interrupts and return
+D9: RTI, 				PC = ILR, re-enable interrupts and return
 DA: WAIT0, 				PC = PC + (i_port[R1[2:0]]) ? 0 : 1							<---- since WAIT's are likely clock related we use R1 to address the pin here
 DB: WAIT1, 				PC = PC + (i_port[R1[2:0]]) ? 1 : 0
 DC: EXEC2 				Byte that follows PC is from the EXEC2 table
-DD: ABS: 				A = abs(A), PC += 1
+DD: WAITF: 				PC = PC + (R[15] == A) ? 1 : 0, // wait for FIFO to have A bytes in it, you need an ISR that stores in the fifo for this to advance
 DE: NEG:				A = -A, PC += 1
 DF: WAITA, 				T = A, A = A - 1, PC += (A == 0) ? 1 : 0, A = T when it stops waiting
 Er: JSR r, 				PC = r << 4 // (jump to a 16 byte aligned ROM address)
@@ -87,7 +91,6 @@ Fsb: SBIT s, b			Skip next instruction bit s of A is b, PC = PC + 1 + (A[s] == b
 
 
 In EXEC2 we focus mostly on R[] to R[] operations to the opcode is 4 bits for opcode and typically 2 bits r, and s to pick from R[0..3].
-EXEC2 mode also adds a 64-byte memory MEM[] in LUT form
 
 TODO: when you hit an IRQ save which mode you are in and restore it with RTI
 TODO: add a .MODE directive to tell assembler which table to use...
@@ -114,10 +117,10 @@ B0r: ASR r				R[r] >>= 1, PC += 1, signed
 B1r: LSR r				R[r] >>= 1, PC += 1;
 B2r: ASL4 r				R[r] <<= 4, PC += 1;
 B3r: LSR4 r				R[r] >>= 4, PC += 1;
-C0r: GETLR r			R[r] = R[15], PC += 1
-C1r: SETLR r			R[15] = R[r], PC += 1
-C2r: GETSR r			R[r] = R[14], PC += 1
-C3r: SETSR r			R[14] = R[r], PC += 1
+C0r: RFIFO r			R[r] == read_from fifo (0 if empty), PC += 1
+C1r: WFIFO r			write R[r] to fifo (or nothing if full), PC += 1
+C2r: QFIFO r			Store the fifo_count in R[r], PC += 1
+C3r: WAITF r			PC = PC + (QFIFO == R[r]) ? 1 : 0, you need an ISR that stores to the FIFO otherwise this never advances (waits till R[r] bytes are in FIFO)
 D0r: ANDA r				R[r] &= A, PC += 1
 D1r: ORA r				R[r] |= A, PC += 1
 D2r: EORA r				R[r] ^= A, PC += 1
@@ -127,9 +130,9 @@ E1r: JZ r, imm          PC = R[r] != 0 ? PC + 2 : ROM[PC + 1], 2 cycle, both of 
 E2r: DEC r				R[r] -= 1, PC += 1
 E3r: INC r				R[r] += 1, PC += 1
 F0r: JMP imm			PC = ROM[PC+1], 2 cycle, same as JNZ/JZ stage 
-F1r: CALL imm			R15 = PC + 2, PC = ROM[PC+1], 2 cycle, same as JNZ/JZ/JMP stage
-F2r, RET				PC = R15	
-F30: LDRM r,s,m			rsm form a 6-bit imm at ROM[PC+1], does R[r] = MEM[R[s][5:0]], if m=01 R[s] += 1, m=11 R[s] -= 1, default no change, PC += 2, 2 cycles
-F31: STRM r,s,m			rsm form a 6-bit imm at ROM[PC+1], does MEM[R[s][5:0]] = R[r], if m=01 R[s] += 1, m=11 R[s] -= 1, default no change, PC += 2, 2 cycles (use sign extension of s to 8 bits, use wire for R[s][5:0]...)
+F1r: CALL imm			LR = PC + 2, PC = ROM[PC+1], 2 cycle, same as JNZ/JZ/JMP stage
+F2r, RET				PC = LR
+F30: 
+F31: 
 F32: BANK imm			load bank imm[7:6], PC = imm[5:0] << 2;
 F33: EXEC1				Byte that follows PC is from EXEC1 table, PC = PC + 1

@@ -13,7 +13,7 @@ module useq_tb();
 	reg [7:0] i_port;
 	wire [7:0] o_port;
 
-	useq useq_dut(.clk(clk), .rst_n(rst_n), .mem_data(mem_data), .i_port(i_port), .mem_addr(mem_addr), .o_port(o_port));
+	useq #(.FIFO_DEPTH(4), .ISR_VECT(8'hF0)) useq_dut(.clk(clk), .rst_n(rst_n), .mem_data(mem_data), .i_port(i_port), .mem_addr(mem_addr), .o_port(o_port));
 
     // Parameters for the simulation
     localparam CLK_PERIOD = 20; // 50MHz Clock
