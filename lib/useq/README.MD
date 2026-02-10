@@ -64,7 +64,7 @@ A8: SWAPR0, 			A and R[0] swap spaces, PC += 1
 A9: SWAPR1, 			A and R[1] swap spaces, PC += 1
 AA: NOT, 				A = ~A, PC += 1
 AB: CLR, 				A = 0, PC += 1
-AC: *LDA, 				ROMADDR = A, A = ROMOUT, PC += 1
+AC: *LDA, 				R14 = A + 1, A = ROM[A], PC += 1 (R14 stores a pointer to the next byte you can fetch with "LD E")
 AD: *SIGT, 				PC = PC + 1 + (A > R[0]) ? 1 : 0   // skip if greater
 AE: *SIEQ, 				PC = PC + 1 + (A == R[0]) ? 1 : 0  // skip if equal
 AF: *SILT, 				PC = PC + 1 + (A < R[0]) ? 1 : 0   // skip if less than
