@@ -156,7 +156,7 @@ void compile(char *line)
 				if (program[PC].line_number == -1) {
 					program[PC].line_number = line_number;
 				} else {
-					printf("line %d: byte location %x already was programmed on line %d\n", line_number, x, program[x].line_number);
+					printf("line %d: byte location %x already was programmed on line %d\n", line_number, PC, program[PC].line_number);
 					exit(-1);
 				}
 				switch (opcodes[x].fmt) {
@@ -317,7 +317,7 @@ int main(int argc, char **argv)
 	char outname[128];
 	char linebuf[256];
 	FILE *f;
-	int x;
+	int x, y;
 	
 	if (argc != 2) {
 		printf("Usage: %s input.s\n", argv[0]);
@@ -347,5 +347,12 @@ int main(int argc, char **argv)
 		fprintf(f, "%02X\n", program[x].opcode);
 	}
 	fclose(f);
+
+	for (x = y = 0; x < 256; x++) {
+		if (program[x].line_number != -1) {
+			++y;
+		}
+	}
+	printf("%s created, used %d out of 256 bytes.\n", outname, y);
 	return 0;
 }
