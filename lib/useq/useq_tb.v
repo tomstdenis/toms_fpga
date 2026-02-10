@@ -32,21 +32,15 @@ module useq_tb();
         // Initialize signals
         clk = 0;
         rst_n = 0;
-        for (i = 0; i < 256; i++) begin
-			mem[i] = 8'hA0;
-		end
-		mem[2] = 8'hD0;
-		mem[4] = 8'hD0;
-		mem[6] = 8'hD3;
-		i_port = 8'hAA;
-
+		$readmemh("blink_clean.hex", mem);
+    
         // Reset
         repeat(5) @(posedge clk);
         rst_n = 1;
         repeat(5) @(posedge clk);
         
 
-		repeat(16) @(posedge clk);
+		repeat(4096) @(posedge clk);
 		$finish;
 	end
 endmodule
