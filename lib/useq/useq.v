@@ -12,6 +12,8 @@ module useq
 	input read_fifo,
 	input write_fifo,
 	output fifo_empty,
+	input [7:0] fifo_in,
+	output reg [7:0] fifo_out,
 	
 	output reg [7:0] mem_addr,
 	output reg [7:0] o_port
@@ -83,7 +85,7 @@ module useq
 				if (read_fifo) begin
 					// read fifo to o_port
 					if (R[15] != 0) begin
-						o_port <= FIFO[fifo_rptr];
+						fifo_out <= FIFO[fifo_rptr];
 						fifo_rptr <= fifo_rptr + 1'b1;
 						R[15] <= R[15] - 1'b1;
 					end else begin
@@ -92,7 +94,7 @@ module useq
 					end
 				end else begin
 					if (R[15] != (FIFO_DEPTH-1)) begin
-						FIFO[fifo_wptr] <= l_i_port;		// store fifo data
+						FIFO[fifo_wptr] <= fifo_in;			// store fifo data
 						fifo_wptr <= fifo_wptr + 1'b1;		// increment write pointer
 						R[15] <= R[15] + 1'b1;				// increment fifo count
 					end

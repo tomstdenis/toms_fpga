@@ -306,8 +306,8 @@ begin
 						end
 					4'hE: // WAITF
 						begin
-							// only advance PC if A == fifo_cnt
-							if (R[15] == A) begin
+							// only advance PC if fifo_cnt >= A
+							if (R[15] >= A) begin
 								PC <= PC + 1'b1;
 								mem_addr <= PC + 1'b1;
 							end else begin
