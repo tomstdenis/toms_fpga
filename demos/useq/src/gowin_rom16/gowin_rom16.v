@@ -5,7 +5,7 @@
 //Part Number: GW2AR-LV18QN88C8/I7
 //Device: GW2AR-18
 //Device Version: C
-//Created Time: Mon Feb  9 23:42:30 2026
+//Created Time: Tue Feb 10 07:36:36 2026
 
 module Gowin_ROM16 (dout, ad);
 
@@ -258,56 +258,56 @@ ROM16 rom16_inst_0 (
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_0.INIT_0 = 16'hFFF3;
+defparam rom16_inst_0.INIT_0 = 16'hFFBF;
 
 ROM16 rom16_inst_1 (
     .DO(rom16_inst_1_dout[1]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_1.INIT_0 = 16'hFFEF;
+defparam rom16_inst_1.INIT_0 = 16'hFEFF;
 
 ROM16 rom16_inst_2 (
     .DO(rom16_inst_2_dout[2]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_2.INIT_0 = 16'hFFEB;
+defparam rom16_inst_2.INIT_0 = 16'hFEBF;
 
 ROM16 rom16_inst_3 (
     .DO(rom16_inst_3_dout[3]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_3.INIT_0 = 16'hFFEB;
+defparam rom16_inst_3.INIT_0 = 16'hFEBF;
 
 ROM16 rom16_inst_4 (
     .DO(rom16_inst_4_dout[4]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_4.INIT_0 = 16'h001D;
+defparam rom16_inst_4.INIT_0 = 16'h01CB;
 
 ROM16 rom16_inst_5 (
     .DO(rom16_inst_5_dout[5]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_5.INIT_0 = 16'hFFE1;
+defparam rom16_inst_5.INIT_0 = 16'hFE01;
 
 ROM16 rom16_inst_6 (
     .DO(rom16_inst_6_dout[6]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_6.INIT_0 = 16'h000E;
+defparam rom16_inst_6.INIT_0 = 16'h00C4;
 
 ROM16 rom16_inst_7 (
     .DO(rom16_inst_7_dout[7]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_7.INIT_0 = 16'hFFFF;
+defparam rom16_inst_7.INIT_0 = 16'hFFC5;
 
 ROM16 rom16_inst_8 (
     .DO(rom16_inst_8_dout[0]),
