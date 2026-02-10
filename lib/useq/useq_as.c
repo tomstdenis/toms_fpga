@@ -140,6 +140,18 @@ void compile(char *line)
 				break;
 			}
 		}
+	} else if (!memcmp(line, ".ALIGN ", 7)) {
+		uint8_t x;
+		line += 7;
+		consume_whitespace(&line);
+		sscanf(line, "%"SCNx8, &x);
+		if (!x) {
+			printf("Line %d: Invalid alignment %x specified\n", line_number, x);
+			exit(-1);
+		}
+		while (PC % x) {
+			++PC;
+		}
 	} else if (line[0] == ':') {
 		// it's a label
 		++line;

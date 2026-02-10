@@ -6,6 +6,7 @@
     WAITA      ; A counts down to 0, then restores to 0xFF
     JNZ LOOP   ; A is 0xFF, so we jump back 1 to 16 bytes
 
+.ALIGN 10
 :BOOT
 LD 0xF
 ST A
