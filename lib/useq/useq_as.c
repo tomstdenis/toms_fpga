@@ -154,12 +154,17 @@ void compile(char *line)
 		}
 	} else if (!memcmp(line, ".DB ", 4)) {
 		uint8_t x;
-		line += 4;
-		consume_whitespace(&line);
-		sscanf(line, "%"SCNx8, &x);
-		program[PC].opcode = x;
-		program[PC].line_number = line_number;
-		++PC;
+		if (program[PC].line_number == -1) {
+			line += 4;
+			consume_whitespace(&line);
+			sscanf(line, "%"SCNx8, &x);
+			program[PC].opcode = x;
+			program[PC].line_number = line_number;
+			++PC;
+		} else {
+			printf("Line %d: .DB directive on address that was already programmed on line %d\n", line_number, program[PC].line_number);
+			exit(-1);
+		}
 	} else if (line[0] == ':') {
 		// it's a label
 		++line;
