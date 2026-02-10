@@ -32,6 +32,7 @@ module useq_tb();
         // Initialize signals
         clk = 0;
         rst_n = 0;
+        i_port = 0;
 		$readmemh("blink_clean.hex", mem);
     
         // Reset

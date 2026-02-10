@@ -3,7 +3,7 @@ all: blink.s.hex test_useq.pass
 useq_as: useq_as.c
 	${CC} -Wall -O2 -g3 $^ -o $@
 
-test_useq.pass: useq.v useq_tb.v
+test_useq.pass: useq.v exec1_top.v useq_tb.v
 	grep -v "^#" blink.s.hex > blink_clean.hex
 	verilator --lint-only $^
 	iverilog -Wall -o sim.vvp $^
