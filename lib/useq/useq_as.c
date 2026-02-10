@@ -238,7 +238,7 @@ void resolve_labels(void)
 					} else if (program[x].use_bottom_half) {
 						y &= 0xF;
 					}
-					if (y > 16) {
+					if (y > 15) {
 						printf("line %d: Invalid 4-bit r-value %x\n", program[x].line_number, y);
 						exit(-1);
 					} 

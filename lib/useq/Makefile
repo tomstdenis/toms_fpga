@@ -9,4 +9,4 @@ test_useq.pass: useq.v useq_tb.v
 	(vvp sim.vvp -fst > $@.log && touch $@) || cat $@.log
 
 clean:
-	rm -f *.vvp *.vcd *.pass *.log useq_as
+	rm -f *.vvp *.vcd *.pass *.log useq_as *.hex
