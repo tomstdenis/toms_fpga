@@ -6,6 +6,9 @@ module top(input clk, input in1, output out1);
     wire [7:0] mem_addr;
     wire rst_n;
     wire pll_clk;
+    reg read_fifo;
+    reg write_fifo;
+    wire fifo_empty;
     reg [3:0] rstcnt = 4'b0;
 
     assign rst_n = rstcnt[3];
@@ -18,7 +21,13 @@ module top(input clk, input in1, output out1);
 
     always @(posedge pll_clk) begin
         rstcnt <= {rstcnt[2:0], 1'b1};
-        ticker <= ticker ^ 1;
+        if (!rst_n) begin
+            write_fifo <= 0;
+            read_fifo <= 0;
+            ticker <= 0;
+        end else begin
+            ticker <= ticker ^ 1;
+        end
     end
 
     Gowin_ROM16 useq_rom(
@@ -27,6 +36,7 @@ module top(input clk, input in1, output out1);
     );
 
     useq test_useq(.clk(pll_clk), .rst_n(rst_n), 
-        .mem_data(mem_data), .i_port(i_port), .mem_addr(mem_addr), .o_port(o_port));
+        .mem_data(mem_data), .i_port(i_port), .mem_addr(mem_addr), .o_port(o_port),
+        .read_fifo(read_fifo), .write_fifo(write_fifo), .fifo_empty(fifo_empty));
 
 endmodule
