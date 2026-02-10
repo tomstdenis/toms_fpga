@@ -1,5 +1,14 @@
 .ORG 00
+    LDIB F
+    LDIT F
+:LOOP
+    TGLBIT
+    WAITA      ; A counts down to 0, then restores to 0xFF
+    JNZ LOOP   ; A is 0xFF, so we jump back 1 to 16 bytes
+
 :BOOT
+LD 0xF
+ST A
 LDIT <TOM
 LDIB >TOM
 .EQU TOM 23
@@ -15,7 +24,6 @@ JSR 0xF
 JSR ISR
 LDIB <TOM
 LDIB >TOM
-
 
 .ORG F0
 :ISR

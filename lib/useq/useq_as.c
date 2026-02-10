@@ -153,7 +153,12 @@ void compile(char *line)
 				line += strlen(opcodes[x].opname);
 				consume_whitespace(&line);
 				program[PC].opcode = opcodes[x].opcode;
-				program[PC].line_number = line_number;
+				if (program[PC].line_number == -1) {
+					program[PC].line_number = line_number;
+				} else {
+					printf("line %d: byte location %x already was programmed on line %d\n", line_number, x, program[x].line_number);
+					exit(-1);
+				}
 				switch (opcodes[x].fmt) {
 					case OP_FMT_R:
 						if (islabel(line)) {
@@ -191,6 +196,9 @@ void compile(char *line)
 			}
 		}
 		++PC;
+		if (!PC) {
+			printf("Warning line %d: We've wrapped PC around back to 0\n", program[PC].line_number);
+		}
 		if (!opcodes[x].opname) {
 			printf("Line %d: Malformed line: '%s'\n", line_number, line);
 			exit(-1);
@@ -201,6 +209,7 @@ void compile(char *line)
 int find_target(int x)
 {
 	int y;
+	uint8_t d;
 	for (y = 0; y < 256; y++) {
 		if (!strcmp(program[y].label, program[x].tgt)) {
 			return y;
@@ -210,6 +219,9 @@ int find_target(int x)
 		if (!strcmp(symbols[y].label, program[x].tgt)) {
 			return symbols[y].value;
 		}
+	}
+	if (sscanf(program[x].tgt, "%"SCNx8, &d) == 1) {
+		return d;
 	}
 	printf("Line %d: Target '%s' not found!\n", program[x].line_number, program[x].tgt);
 	exit(-1);
@@ -317,6 +329,7 @@ int main(int argc, char **argv)
 	
 	for (x = 0; x < 256; x++) {
 		program[x].opcode = 0xAF; // CLR
+		program[x].line_number = -1;
 	}
 	
 	f = fopen(argv[1], "r");
