@@ -61,6 +61,9 @@ module useq_tb();
 		$display("Should be triggering last IRQ now (back on pin 0)...\n");
 		i_port = 8'h01;
 		repeat(20) step_cpu(); // ensure IRQ doesn't trip again
+		$display("Should NOT be triggering last IRQ now (on pin 7)...\n");
+		i_port = 8'h80;
+		repeat(20) step_cpu(); // ensure IRQ doesn't trip again
         
 		$finish;
 	end
