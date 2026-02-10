@@ -3,10 +3,10 @@ all: blink.s.hex test_useq.pass
 useq_as: useq_as.c
 	${CC} -Wall -O2 -g3 $^ -o $@
 
-test_useq.pass: useq.v exec1_top.v useq_tb.v
+test_useq.pass: useq.v useq_tb.v blink.s.hex exec1_top.v
 	grep -v "^#" blink.s.hex > blink_clean.hex
-	verilator --lint-only $^
-	iverilog -Wall -o sim.vvp $^
+	verilator --lint-only useq.v useq_tb.v
+	iverilog -Wall -o sim.vvp useq.v useq_tb.v
 	(vvp sim.vvp -fst > $@.log && touch $@) || cat $@.log
 
 blink.s.hex: blink.s useq_as
