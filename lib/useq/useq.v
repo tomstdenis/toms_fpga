@@ -126,7 +126,7 @@ module useq
 								state <= FETCH;			// need another FETCH cycle
 							end else begin
 								// no interrupt so jump here
-	`include "exec1_top.v"
+`include "exec1_top.v"
 							end
 							if (can_chain_exec1) begin
 								PC <= PC + 1'b1;			// advance to next PC

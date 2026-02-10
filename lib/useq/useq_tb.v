@@ -43,9 +43,24 @@ module useq_tb();
         $dumpvars(0, useq_tb);
 
 		$readmemh("test1_clean.hex", mem);
+		i_port = 8'hAB;
 		reset_cpu();
+		repeat(48) step_cpu();
 		
-		repeat(64) step_cpu();
+		$display("Trying out interrupts...");
+		$readmemh("test2_clean.hex", mem);
+		i_port = 8'h00;
+		reset_cpu();
+		repeat(10) step_cpu();
+		$display("Should be triggering an IRQ now...\n");
+		i_port = 8'h01;
+		repeat(20) step_cpu(); // ensure IRQ doesn't trip again
+		$display("Should be triggering another IRQ now...\n");
+		i_port = 8'h02;
+		repeat(20) step_cpu(); // ensure IRQ doesn't trip again
+		$display("Should be triggering last IRQ now (back on pin 0)...\n");
+		i_port = 8'h01;
+		repeat(20) step_cpu(); // ensure IRQ doesn't trip again
         
 		$finish;
 	end
@@ -72,7 +87,6 @@ module useq_tb();
 			// Initialize signals
 			clk = 0;
 			rst_n = 0;
-			i_port = 8'hAB;
 			read_fifo = 0;
 			write_fifo = 0;
 			T_PC = 0;
