@@ -6,6 +6,7 @@ begin
 				if (d_imm < 15) begin
 					A <= R[d_imm];							// regular register load
 				end else begin
+					// LD from R[15] means read from the FIFO
 					if (R[15] > 0) begin
 						// if FIFO isn't empty read from it 
 						A <= FIFO[fifo_rptr];				// read fifo data
@@ -22,7 +23,7 @@ begin
 				if (d_imm < 15) begin
 					R[d_imm] <= A;							// regular register store
 				end else begin
-					if (R[15] < (FIFO_DEPTH-1)) begin
+					if (R[15] != (FIFO_DEPTH-1)) begin
 						FIFO[fifo_wptr] <= A;				// store fifo data
 						fifo_wptr <= fifo_wptr + 1'b1;		// increment write pointer
 						R[15] <= R[15] + 1'b1;				// increment fifo count
@@ -147,7 +148,7 @@ begin
 								mem_addr <= PC + 8'd2;
 							end else begin
 								PC <= PC + 1'b1;
-								mem_addr <= PC + 1'b1;
+									mem_addr <= PC + 1'b1;
 							end
 							state <= FETCH;
 						end

@@ -12,8 +12,16 @@ module useq_tb();
 	reg rst_n;
 	reg [7:0] i_port;
 	wire [7:0] o_port;
+	reg read_fifo;
+	reg write_fifo;
+	wire fifo_empty;
 
-	useq #(.FIFO_DEPTH(4), .ISR_VECT(8'hF0)) useq_dut(.clk(clk), .rst_n(rst_n), .mem_data(mem_data), .i_port(i_port), .mem_addr(mem_addr), .o_port(o_port));
+	useq #(.FIFO_DEPTH(4), .ISR_VECT(8'hF0)) useq_dut(
+		.clk(clk), .rst_n(rst_n), 
+		.mem_data(mem_data), .i_port(i_port), 
+		.mem_addr(mem_addr), .o_port(o_port),
+		.read_fifo(read_fifo), .write_fifo(write_fifo), .fifo_empty(fifo_empty));
+
 
     // Parameters for the simulation
     localparam CLK_PERIOD = 20; // 50MHz Clock
@@ -33,6 +41,8 @@ module useq_tb();
         clk = 0;
         rst_n = 0;
         i_port = 0;
+        read_fifo = 0;
+        write_fifo = 0;
 		$readmemh("blink_clean.hex", mem);
     
         // Reset

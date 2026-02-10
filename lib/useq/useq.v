@@ -8,6 +8,10 @@ module useq
 	
 	input [7:0] mem_data,
 	input [7:0] i_port,
+
+	input read_fifo,
+	input write_fifo,
+	output fifo_empty,
 	
 	output reg [7:0] mem_addr,
 	output reg [7:0] o_port
@@ -39,6 +43,7 @@ module useq
 	wire [2:0] s_imm = instruct[3:1];
 	wire       b_imm = instruct[0];
 	wire       int_triggered = |((i_port & ~l_i_port) & int_mask) & int_enable;
+	assign fifo_empty = (R[15] == 0) ? 1'b1 : 1'b0;
 
 	// can_chain = 1 means "Single-Cycle Turbo is GO"
 	// can_chain = 0 means "Wait, we need a FETCH cycle to realign"
@@ -74,53 +79,73 @@ module useq
 			fifo_wptr <= 0;
 			o_port <= 0;
 		end else begin
-			l_i_port <= i_port;
-			case(state)
-				FETCH:
-					begin
-						if (int_triggered) begin
-							// we hit an interrupt, so disable further interrupts until an RTI
-							int_enable <= 0;
-							ILR <= PC;     			// save where we interrupted
-							mem_addr <= ISR_VECT;	// jump to ISR vector
-							PC <= ISR_VECT;
-							state <= FETCH;			// need another FETCH cycle
-						end else begin
-							instruct <= mem_data;
-							state <= EXECUTE;
-							mem_addr <= mem_addr + 1'b1; // FETCH PC+1 for the EXECUTE stage so we can latch it for a potential EXECUTE2 stage
+			if (read_fifo ^ write_fifo) begin
+				if (read_fifo) begin
+					// read fifo to o_port
+					if (R[15] != 0) begin
+						o_port <= FIFO[fifo_rptr];
+						fifo_rptr <= fifo_rptr + 1'b1;
+						R[15] <= R[15] - 1'b1;
+					end else begin
+						// fifo empty so write 0 to the port
+						o_port <= 8'd0;
+					end
+				end else begin
+					if (R[15] != (FIFO_DEPTH-1)) begin
+						FIFO[fifo_wptr] <= l_i_port;		// store fifo data
+						fifo_wptr <= fifo_wptr + 1'b1;		// increment write pointer
+						R[15] <= R[15] + 1'b1;				// increment fifo count
+					end
+				end
+			end else begin
+				l_i_port <= i_port;						// only latch port when we're running the CPU
+				case(state)
+					FETCH:
+						begin
+							if (int_triggered) begin
+								// we hit an interrupt, so disable further interrupts until an RTI
+								int_enable <= 0;
+								ILR <= PC;     			// save where we interrupted
+								mem_addr <= ISR_VECT;	// jump to ISR vector
+								PC <= ISR_VECT;
+								state <= FETCH;			// need another FETCH cycle
+							end else begin
+								instruct <= mem_data;
+								state <= EXECUTE;
+								mem_addr <= mem_addr + 1'b1; // FETCH PC+1 for the EXECUTE stage so we can latch it for a potential EXECUTE2 stage
+							end
 						end
-					end
-				EXECUTE:
-					begin
-						if (int_triggered) begin
-							// we hit an interrupt, so disable further interrupts until an RTI
-							int_enable <= 0;
-							ILR <= PC;     			// save where we interrupted
-							mem_addr <= ISR_VECT;	// jump to ISR vector
-							PC <= ISR_VECT;
-							state <= FETCH;			// need another FETCH cycle
-						end else begin
-							// no interrupt so jump here
-`include "exec1_top.v"
+					EXECUTE:
+						begin
+							if (int_triggered) begin
+								// we hit an interrupt, so disable further interrupts until an RTI
+								int_enable <= 0;
+								ILR <= PC;     			// save where we interrupted
+								mem_addr <= ISR_VECT;	// jump to ISR vector
+								PC <= ISR_VECT;
+								state <= FETCH;			// need another FETCH cycle
+							end else begin
+								// no interrupt so jump here
+	`include "exec1_top.v"
+							end
+							if (can_chain_exec1) begin
+								PC <= PC + 1'b1;			// advance to next PC
+								mem_addr <= PC + 8'd2;		// load what will be the "next opcode" in the next cycle
+								instruct <= mem_data;   // latch the current "next opcode"
+								state <= EXECUTE;
+							end
 						end
-						if (can_chain_exec1) begin
-							PC <= PC + 1'b1;			// advance to next PC
-							mem_addr <= PC + 8'd2;		// load what will be the "next opcode" in the next cycle
-							instruct <= mem_data;   // latch the current "next opcode"
-							state <= EXECUTE;
+					LOADA: // load A with whatever was read from ROM
+						begin
+							A <= mem_data;
+							mem_addr <= PC;
+							state <= FETCH;
 						end
-					end
-				LOADA: // load A with whatever was read from ROM
-					begin
-						A <= mem_data;
-						mem_addr <= PC;
-						state <= FETCH;
-					end
-				default:
-					begin
-					end
-			endcase
+					default:
+						begin
+						end
+				endcase
+			end
 		end
 	end
 endmodule
