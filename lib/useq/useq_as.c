@@ -152,6 +152,14 @@ void compile(char *line)
 		while (PC % x) {
 			++PC;
 		}
+	} else if (!memcmp(line, ".DB ", 4)) {
+		uint8_t x;
+		line += 4;
+		consume_whitespace(&line);
+		sscanf(line, "%"SCNx8, &x);
+		program[PC].opcode = x;
+		program[PC].line_number = line_number;
+		++PC;
 	} else if (line[0] == ':') {
 		// it's a label
 		++line;
@@ -366,5 +374,14 @@ int main(int argc, char **argv)
 		}
 	}
 	printf("%s created, used %d out of 256 bytes.\n", outname, y);
+	if (y > 224 && y != 256) {
+		// find the user some space
+		printf("Limited free space here's a map of free space:\n");
+		for (x = 0; x < 256; x++) {
+			if (program[x].line_number == -1) {
+				printf("ROM[%x] is free\n", x);
+			}
+		}
+	}
 	return 0;
 }
