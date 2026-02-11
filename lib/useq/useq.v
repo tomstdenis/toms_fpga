@@ -6,7 +6,8 @@ module useq
 	ISR_VECT=8'hF0,
 	ENABLE_EXEC1=1,
 	ENABLE_EXEC2=1,
-	ENABLE_IRQ=1
+	ENABLE_IRQ=1,
+	ENABLE_HOST_FIFO_CTRL=1
 )(
 	input clk,
 	input rst_n,
@@ -90,22 +91,23 @@ module useq
 
 	always @(posedge clk) begin
 		if (!rst_n) begin
-			A <= 0;
 			if (ENABLE_IRQ == 1) begin
 				tA <= 0;
 				tR[0] <= 0;
 				tR[1] <= 0;
 				ILR <= 0;
+				int_mask <= 0;
+				int_enable <= 0;
 			end
+			A <= 0;
 			PC <= 0;
 			T <= 0;
 			LR <= 0;
 			state <= FETCH;
 			l_i_port <= 0;
+			o_port <= 0;
 			instruct <= 0;
-			int_mask <= 0;
 			mem_addr <= 0;
-			int_enable <= 0;
 			mode <= 0;
 			prevmode <= 0;
 			for (i=0; i<16; i=i+1) begin
@@ -116,10 +118,9 @@ module useq
 			end
 			fifo_rptr <= 0;
 			fifo_wptr <= 0;
-            fifo_out <= 0;
-			o_port <= 0;
+			fifo_out <= 0;
 		end else begin
-			if (host_wants_fifo) begin
+			if (ENABLE_HOST_FIFO_CTRL == 1 && host_wants_fifo) begin
 				if (read_fifo) begin
 					// read fifo to o_port
 					if (R[15] != 0) begin
@@ -139,7 +140,7 @@ module useq
 				end
 			end else begin
 				l_i_port <= i_port;						// only latch port when we're running the CPU
-				if (ENABLE_IRQ == 1 && int_triggered) begin
+				if (int_triggered) begin
 					// we hit an interrupt, so disable further interrupts until an RTI
 					int_enable <= 0;
 					ILR <= PC;     			// save where we interrupted
@@ -188,7 +189,7 @@ module useq
 								end
 							end
 						LOADA: // load A with whatever was read from ROM
-							begin
+							if (ENABLE_EXEC1 == 1) begin
 								A <= mem_data;
 								mem_addr <= PC;
 								state <= FETCH;

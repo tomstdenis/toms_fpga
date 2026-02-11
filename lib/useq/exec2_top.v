@@ -69,7 +69,7 @@ begin
 			endcase
 		4'h8: // SIGT
 			begin
-				if (R[e2_r] > R[e2_r]) begin
+				if (R[e2_r] > R[e2_s]) begin
 					PC <= PC + 8'd2;
 					mem_addr <= PC + 8'd2;
 				end else begin
@@ -80,7 +80,7 @@ begin
 			end
 		4'h9: // SIEQ
 			begin
-				if (R[e2_r] == R[e2_r]) begin
+				if (R[e2_r] == R[e2_s]) begin
 					PC <= PC + 8'd2;
 					mem_addr <= PC + 8'd2;
 				end else begin
@@ -91,7 +91,7 @@ begin
 			end
 		4'hA: // SILT
 			begin
-				if (R[e2_r] < R[e2_r]) begin
+				if (R[e2_r] < R[e2_s]) begin
 					PC <= PC + 8'd2;
 					mem_addr <= PC + 8'd2;
 				end else begin
