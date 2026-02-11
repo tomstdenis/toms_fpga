@@ -315,7 +315,7 @@ begin
 								end
 								T <= 0;
 								PC <= PC + 1'b1;
-								mem_addr <= PC + 2'd2;
+								mem_addr <= PC + 8'd2;
 								instruct <= mem_data;		// chain to the next opcode
 							end else begin
 								if (!T[8]) begin

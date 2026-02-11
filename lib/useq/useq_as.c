@@ -15,6 +15,7 @@ struct {
 	int use_top_half;
 	int use_bottom_half;
 	int line_number;
+	int opidx;
 } program[256];
 
 struct {
@@ -95,6 +96,69 @@ const struct {
 	{ NULL, 0x00, 0 },
 };
 
+/* exec2 has these formats
+ * 
+ *
+OP r, s
+OP r, imm [2 bytes]
+OP r
+OP imm [2 bytes]
+OP
+*/
+
+#define E2_OP_FMT_RS 0 // r, s
+#define E2_OP_FMT_RI 1 // r, imm
+#define E2_OP_FMT_R  2 // r
+#define E2_OP_FMT_I  3 // imm
+#define E2_OP_FMT_NO 4 // no operands
+const struct {
+	char *opname;
+	uint8_t opcode;
+	int fmt, bytes;
+} e2_opcodes[] = {
+	{ "ADD", 0x00, E2_OP_FMT_RS, 1 },
+	{ "SUB", 0x10, E2_OP_FMT_RS, 1 },
+	{ "EOR", 0x20, E2_OP_FMT_RS, 1 },
+	{ "AND", 0x30, E2_OP_FMT_RS, 1 },
+	{ "OR",  0x40, E2_OP_FMT_RS, 1 },
+	{ "MOV", 0x50, E2_OP_FMT_RS, 1 },
+	{ "NEG", 0x60, E2_OP_FMT_R,  1 },
+	{ "CLR", 0x64, E2_OP_FMT_R,  1 },
+	{ "LDI", 0x68, E2_OP_FMT_RI, 2 },
+	{ "XCH", 0x6c, E2_OP_FMT_R,  1 },
+	{ "LDIND1", 0x70, E2_OP_FMT_R, 1},
+	{ "LDIND2", 0x74, E2_OP_FMT_R, 1},
+	{ "STIND1", 0x78, E2_OP_FMT_R, 1},
+	{ "STIND2", 0x7C, E2_OP_FMT_R, 1},
+	{ "SIGT", 0x80, E2_OP_FMT_RS, 1 },
+	{ "SIEQ", 0x90, E2_OP_FMT_RS, 1 },
+	{ "SILT", 0xA0, E2_OP_FMT_RS, 1 },
+	{ "ASR", 0xB0, E2_OP_FMT_R, 1 },
+	{ "LSR", 0xB4, E2_OP_FMT_R, 1 },
+	{ "ADDA", 0xB8, E2_OP_FMT_R, 1 },
+	{ "SUBA", 0xBC, E2_OP_FMT_R, 1 },
+	{ "RFIFO", 0xC0, E2_OP_FMT_R, 1 },
+	{ "WFIFO", 0xC4, E2_OP_FMT_R, 1 },
+	{ "QFIFO", 0xC8, E2_OP_FMT_R, 1 },
+	{ "WAITF", 0xCC, E2_OP_FMT_R, 1 },
+	{ "ANDA", 0xD0, E2_OP_FMT_R, 1 },
+	{ "ORA", 0xD4, E2_OP_FMT_R, 1 },
+	{ "EORA", 0xD8, E2_OP_FMT_R, 1 },
+	{ "LDA", 0xDC, E2_OP_FMT_R, 1 },
+	{ "JNZ", 0xE0, E2_OP_FMT_RI, 2 },
+	{ "JZ", 0xE4, E2_OP_FMT_RI, 2 },
+	{ "DEC", 0xE8, E2_OP_FMT_R, 1 },
+	{ "INC", 0xEC, E2_OP_FMT_R, 1 },
+	{ "JMP", 0xF0, E2_OP_FMT_I, 2 },
+	{ "CALL", 0xF1, E2_OP_FMT_I, 2 },
+	{ "RET", 0xF2, E2_OP_FMT_NO, 1 },
+	{ "IN", 0xFC, E2_OP_FMT_NO, 1 },
+	{ "OUT", 0xFD, E2_OP_FMT_NO, 1 },
+	{ "EXEC1", 0xFE, E2_OP_FMT_NO, 1 },
+	{ "WAITA", 0xFF, E2_OP_FMT_NO, 1 },
+	{ NULL, 0, 0, 0 }
+};
+
 int iswhitespace(char *s)
 {
 	return (*s == '\n' || *s == '\r' || *s == ' ' || *s == '\t');
@@ -171,6 +235,7 @@ void compile_exec1(char *line)
 			break;
 		}
 	}
+	
 	++PC;
 	if (!PC) {
 		printf("Warning line %d: We've wrapped PC around back to 0\n", program[PC].line_number);
@@ -183,6 +248,103 @@ void compile_exec1(char *line)
 
 void compile_exec2(char *line)
 {
+	int x;
+	uint8_t op1, op2;
+	for (x = 0; e2_opcodes[x].opname; x++) {
+		if (!memcmp(line, e2_opcodes[x].opname, strlen(e2_opcodes[x].opname)) && iswhitespace(&line[strlen(e2_opcodes[x].opname)])) {
+			// matched an opcode
+			line += strlen(e2_opcodes[x].opname);
+			consume_whitespace(&line);
+			program[PC].opcode = e2_opcodes[x].opcode;
+			program[PC].opidx = x;
+			program[PC].mode = 1;
+			if (program[PC].line_number == -1) {
+				program[PC].line_number = line_number;
+			} else {
+				printf("line %d: byte location %x already was programmed on line %d\n", line_number, PC, program[PC].line_number);
+				exit(-1);
+			}
+			// warn about 2 byte opcodes
+			if (PC == 255 && e2_opcodes[x].bytes == 2) {
+				printf("line %d: Trying to use a 2 byte opcode at offset PC=255\n", line_number);
+				exit(-1);
+			}
+			switch (e2_opcodes[x].fmt) {
+				case E2_OP_FMT_RS: // r, s
+					if (sscanf(line, "%"SCNu8", %"SCNu8, &op1, &op2) != 2 || op1 > 3 || op2 > 3) {
+						printf("line %d: Expecting 'r, s' pair between 0 and 3\n", line_number);
+						exit(-1);
+					}
+					program[PC].opcode |= (op1 << 2) | op2;
+					break;
+				case E2_OP_FMT_R: // r
+					if (sscanf(line, "%"SCNu8, &op1) != 1 || op1 > 3) {
+						printf("line %d: Expecting 'r, s' pair between 0 and 3\n", line_number);
+						exit(-1);
+					}
+					program[PC].opcode |= op1;
+					break;
+				case E2_OP_FMT_NO:
+					break;
+				case E2_OP_FMT_I: // imm
+					if (islabel(line)) {
+						// it's a label
+						if (*line == '<') {
+							program[PC].use_top_half = 1;
+							++line;
+						} else if (*line == '>') {
+							program[PC].use_bottom_half = 1;
+							++line;
+						}
+						consume_label(program[PC].tgt, &line);
+					} else {
+						// it's a imm
+						sscanf(line, "%"SCNx8, &op1);
+						program[PC+1].opcode = op1;
+					}
+					PC += 1; // skip over imm
+					break;
+				case E2_OP_FMT_RI: // r, imm
+					sscanf(line, "%"SCNu8, &op1);
+					program[PC].opcode |= op1 & 3;
+					
+					// skip over first operand
+					while (*line && *line != ',') ++line;
+					if (!*line) {
+						printf("Line %d: Error expecting ', imm' for this opcode\n", line_number);
+						exit(-1);
+					}
+					++line; // skip comma
+					consume_whitespace(&line);
+					if (islabel(line)) {
+						// it's a label
+						if (*line == '<') {
+							program[PC].use_top_half = 1;
+							++line;
+						} else if (*line == '>') {
+							program[PC].use_bottom_half = 1;
+							++line;
+						}
+						consume_label(program[PC].tgt, &line);
+					} else {
+						// it's a imm
+						sscanf(line, "%"SCNx8, &op1);
+						program[PC+1].opcode = op1;
+					}
+					PC += 1; // skip over imm
+					break;
+			}
+			break;
+		}
+	}
+	++PC;
+	if (!PC) {
+		printf("Warning line %d: We've wrapped PC around back to 0\n", program[PC].line_number);
+	}
+	if (!e2_opcodes[x].opname) {
+		printf("Line %d: Malformed line: '%s'\n", line_number, line);
+		exit(-1);
+	}
 }
 
 void compile(char *line)
@@ -238,11 +400,11 @@ void compile(char *line)
 		uint8_t x;
 		line += 6;
 		sscanf(line, "%"SCNu8, &x);
-		if (x != 0 && x != 1) {
+		if (x != 1 && x != 2) {
 			printf("Line %d: Invalid .MODE selection (%u)\n", line_number, x);
 			exit(-1);
 		}
-		mode = x;
+		mode = x - 1;
 	} else if (line[0] == ':') {
 		// it's a label
 		++line;
@@ -363,6 +525,24 @@ void resolve_exec1(int x)
 void resolve_exec2(int x)
 {
 	int y;
+	switch(e2_opcodes[program[x].opidx].fmt) {
+		case E2_OP_FMT_NO:
+		case E2_OP_FMT_R:
+		case E2_OP_FMT_RS: // no imms to resolve
+			break;
+		case E2_OP_FMT_I: // imm in 2nd byte
+		case E2_OP_FMT_RI:
+			if (program[x].tgt[0]) {
+				y = find_target(x);
+				if (program[x].use_top_half) {
+					y >>= 4;
+				} else if (program[x].use_bottom_half) {
+					y &= 0xF;
+				}
+				program[x+1].opcode = y;
+			}
+			break;
+	}
 }
 
 void resolve_labels(void)

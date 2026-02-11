@@ -130,10 +130,20 @@ E0r: JNZ r, imm			PC = R[r] == 0 ? PC + 2 : ROM[PC + 1], 2 cycle
 E1r: JZ r, imm          PC = R[r] != 0 ? PC + 2 : ROM[PC + 1], 2 cycle, both of these can use the same stage since it's just doing PC <= mem_data, mem_addr <= mem_data, state <= FETCH
 E2r: DEC r				R[r] -= 1, PC += 1
 E3r: INC r				R[r] += 1, PC += 1
-F0r: JMP imm			PC = ROM[PC+1], 2 cycle, same as JNZ/JZ stage 
-F1r: CALL imm			LR = PC + 2, PC = ROM[PC+1], 2 cycle, same as JNZ/JZ/JMP stage
-F2r, RET				PC = LR
+F00: JMP imm			PC = ROM[PC+1], 2 cycle, same as JNZ/JZ stage 
+F01: CALL imm			LR = PC + 2, PC = ROM[PC+1], 2 cycle, same as JNZ/JZ/JMP stage
+F02: RET				PC = LR
+F03: ** empty (cannot take operands)
+F1x: ** 4 empty (can take an 'r' param, or do 4 more no operand opcodes)
+F2x: ** 4 empty (can take an 'r' param, or do 4 more no operand opcodes)
 F30: IN					A = i_port, PC += 1
 F31: OUT				o_port = A, PC += 1
 F32: EXEC1				Byte that follows PC is from EXEC1 table, PC = PC + 1
 F33: WAITA				like mode==0 WAITA, PC += 1
+
+opcode fmt:
+OP r, s
+OP r, imm [2 bytes]
+OP r
+OP imm [2 bytes]
+OP

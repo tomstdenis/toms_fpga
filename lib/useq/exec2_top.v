@@ -202,28 +202,32 @@ begin
 						R[e2_s] <= R[e2_s] + 1'b1;
 					end
 			endcase
-		4'hF: // JMP/CALL/RET/EXEC1
-			case(e2_r[1:0])
-				2'h0: // JMP
-					begin
-						PC <= mem_data;
-						mem_addr <= mem_data;
-						state <= FETCH;
-					end
-				2'h1: // CALL
-					begin
-						LR <= PC + 8'd2;
-						PC <= mem_data;
-						mem_addr <= mem_data;
-						state <= FETCH;
-					end
-				2'h2: // RET
-					begin
-						PC <= LR;
-						mem_addr <= LR;
-						state <= FETCH;
-					end
-				2'h3: // MISC
+		4'hF: // JMP/CALL/RET/EXEC1/etc...
+			case(e2_r[1:0]) // bits 3:2 of opcode
+				2'h0: // JMP,CALL,RET
+					case (e2_s[1:0]) // bits 1:0 of opcode
+						2'h0: // JMP
+							begin
+								PC <= mem_data;
+								mem_addr <= mem_data;
+								state <= FETCH;
+							end
+						2'h1: // CALL
+							begin
+								LR <= PC + 8'd2;
+								PC <= mem_data;
+								mem_addr <= mem_data;
+								state <= FETCH;
+							end
+						2'h2: // RET
+							begin
+								PC <= LR;
+								mem_addr <= LR;
+								state <= FETCH;
+							end
+						default: begin end
+					endcase
+				2'h3: // MISC (bits 3:2 of opcode)
 					begin
 						case(e2_s[1:0])
 							2'd0: // IN
@@ -258,8 +262,10 @@ begin
 									end
 									state <= FETCH;
 								end
+							default: begin end
 						endcase
 					end
+				default: begin end
 			endcase
 	endcase
 end
