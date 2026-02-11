@@ -9,6 +9,7 @@ module top(input clk, input in1, output out1);
     reg read_fifo;
     reg write_fifo;
     wire fifo_empty;
+    wire fifo_full;
     reg [7:0] fifo_in;
     wire [7:0] fifo_out;
     reg [3:0] rstcnt = 4'b0;
@@ -16,12 +17,14 @@ module top(input clk, input in1, output out1);
     assign rst_n = rstcnt[3];
     assign out1 = o_port[0];
 
+/*
     Gowin_rPLL rPLL(
         .clkout(pll_clk), //output clkout
         .clkin(clk) //input clkin
     );
+*/
 
-    always @(posedge pll_clk) begin
+    always @(posedge clk) begin
         rstcnt <= {rstcnt[2:0], 1'b1};
         if (!rst_n) begin
             write_fifo <= 0;
@@ -38,9 +41,9 @@ module top(input clk, input in1, output out1);
         .ad(mem_addr) //input [7:0] ad
     );
 
-    useq test_useq(.clk(pll_clk), .rst_n(rst_n), 
+    useq #(.ENABLE_EXEC1(1), .ENABLE_EXEC2(1),.ENABLE_IRQ(1)) test_useq(.clk(clk), .rst_n(rst_n), 
         .mem_data(mem_data), .i_port(i_port), .mem_addr(mem_addr), .o_port(o_port),
-        .read_fifo(read_fifo), .write_fifo(write_fifo), .fifo_empty(fifo_empty),
+        .read_fifo(read_fifo), .write_fifo(write_fifo), .fifo_empty(fifo_empty), .fifo_full(fifo_full),
         .fifo_out(fifo_out), .fifo_in(fifo_in));
 
 endmodule
