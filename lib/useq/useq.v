@@ -20,22 +20,24 @@ module useq
 	output reg [7:0] o_port
 );
 
-	reg [7:0] A;
-	reg [7:0] PC;
-	reg [8:0] T;
-	reg [7:0] LR;
-	reg [7:0] ILR;
-	reg [7:0] instruct;
-	reg [7:0] R[15:0];
-	reg [3:0] state;
-	reg [7:0] l_i_port;
-	reg [7:0] int_mask;
-	reg int_enable;
-	reg [7:0] FIFO[FIFO_DEPTH-1:0];
-	reg [$clog2(FIFO_DEPTH)-1:0] fifo_rptr;
-	reg [$clog2(FIFO_DEPTH)-1:0] fifo_wptr;
-	reg mode;
-	reg prevmode;
+	reg [7:0] A;								// A accumulator
+	reg [7:0] tA;								// temporaty A used for IRQ
+	reg [7:0] tR[1:0];							// temporary R[0..1] used for IRQ
+	reg [7:0] PC;								// PC program counter
+	reg [8:0] T;								// T temporary register used for WAITA opcode
+	reg [7:0] LR;								// LR link register
+	reg [7:0] ILR;								// ILR IRQ link register
+	reg [7:0] instruct;							// current opcode
+	reg [7:0] R[15:0];							// R register file
+	reg [3:0] state;							// current FSM state
+	reg [7:0] l_i_port;							// latched copy of i_port
+	reg [7:0] int_mask;							// The IRQ mask applied to i_port set by SEI opcode
+	reg int_enable;								// Interrupt enable (set by SEI, disabled during IRQ)
+	reg [7:0] FIFO[FIFO_DEPTH-1:0];				// Message passing FIFO
+	reg [$clog2(FIFO_DEPTH)-1:0] fifo_rptr;		// FIFO read pointer
+	reg [$clog2(FIFO_DEPTH)-1:0] fifo_wptr;		// FIFO write pointer
+	reg mode;									// Current opcode mode (mode == 0 means EXEC1, mode == 1 means EXEC2)
+	reg prevmode;								// previous mode used for handling IRQs since ISRs have to be EXEC1
 
 	localparam
 		FETCH=0,
@@ -83,6 +85,9 @@ module useq
 	always @(posedge clk) begin
 		if (!rst_n) begin
 			A <= 0;
+			tA <= 0;
+			tR[0] <= 0;
+			tR[1] <= 0;
 			PC <= 0;
 			T <= 0;
 			LR <= 0;
@@ -134,6 +139,9 @@ module useq
 								int_enable <= 0;
 								ILR <= PC;     			// save where we interrupted
 								mem_addr <= ISR_VECT;	// jump to ISR vector
+								tA <= A;
+								tR[0] <= R[0];
+								tR[1] <= R[1];
 								PC <= ISR_VECT;
 								state <= FETCH;			// need another FETCH cycle
 								prevmode <= mode;		// save the execution mode
@@ -157,6 +165,9 @@ module useq
 								int_enable <= 0;
 								ILR <= PC;     			// save where we interrupted
 								mem_addr <= ISR_VECT;	// jump to ISR vector
+								tA <= A;
+								tR[0] <= R[0];
+								tR[1] <= R[1];
 								PC <= ISR_VECT;
 								state <= FETCH;			// need another FETCH cycle
 								prevmode <= mode;		// save the execution mode
@@ -179,6 +190,9 @@ module useq
 								int_enable <= 0;
 								ILR <= PC;     			// save where we interrupted
 								mem_addr <= ISR_VECT;	// jump to ISR vector
+								tA <= A;
+								tR[0] <= R[0];
+								tR[1] <= R[1];
 								PC <= ISR_VECT;
 								state <= FETCH;			// need another FETCH cycle
 								prevmode <= mode;		// save the execution mode

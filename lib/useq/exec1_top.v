@@ -269,6 +269,9 @@ begin
 							if (ENABLE_IRQ == 1) begin
 								int_enable <= 1;	// restore interrupt enabled
 								PC <= ILR;
+								A <= tA;
+								R[0] <= tR[0];
+								R[1] <= tR[1];
 								mem_addr <= ILR;
 								state <= FETCH;
 								mode <= prevmode;
