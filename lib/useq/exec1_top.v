@@ -3,7 +3,7 @@ begin
 	case(instruct[7:4])
 		4'h0: // LD R[r]
 			begin
-				if (d_imm < 15) begin
+				if (d_imm != 15) begin
 					A <= R[d_imm];							// regular register load
 				end else begin
 					// LD from R[15] means read from the FIFO
@@ -20,7 +20,7 @@ begin
 			end
 		4'h1: // ST R[r]
 			begin
-				if (d_imm < 15) begin
+				if (d_imm != 15) begin
 					R[d_imm] <= A;							// regular register store
 				end else begin
 					if (R[15] != FIFO_DEPTH) begin
@@ -223,16 +223,7 @@ begin
 						end
 					4'h4: // INBIT
 						begin
-							case(R[0][2:0])
-								3'd0: A <= l_i_port[0] ? 1 : 0;
-								3'd1: A <= l_i_port[1] ? 1 : 0;
-								3'd2: A <= l_i_port[2] ? 1 : 0;
-								3'd3: A <= l_i_port[3] ? 1 : 0;
-								3'd4: A <= l_i_port[4] ? 1 : 0;
-								3'd5: A <= l_i_port[5] ? 1 : 0;
-								3'd6: A <= l_i_port[6] ? 1 : 0;
-								3'd7: A <= l_i_port[7] ? 1 : 0;
-							endcase
+							A <= ((l_i_port >> R[0][2:0]) & 8'b1);
 						end
 					4'h5: // NEG
 						begin
@@ -268,13 +259,13 @@ begin
 						begin
 							if (ENABLE_IRQ == 1) begin
 								int_enable <= 1;	// restore interrupt enabled
-								PC <= ILR;
-								A <= tA;
-								R[0] <= tR[0];
+								PC <= ILR;			// restore PC
+								A <= tA;			// restore A
+								R[0] <= tR[0];		// restore R[0] and R[1]
 								R[1] <= tR[1];
-								mem_addr <= ILR;
-								state <= FETCH;
-								mode <= prevmode;
+								mem_addr <= ILR;	// fetch instruction we interrupted
+								state <= FETCH;		// we need a FETCH cycle to load instruct
+								mode <= prevmode;	// restore previous EXEC mode
 							end else begin
 								PC <= PC + 1'b1;
 								mem_addr <= PC + 1'b1;
@@ -283,31 +274,19 @@ begin
 						end
 					4'hB: // WAIT0
 						begin
-							state <= FETCH;
-							case(R[1][2:0])
-								3'd0: begin PC <= PC - (l_i_port[0] + 8'hFF); mem_addr <= mem_addr - (l_i_port[0] + 8'hFF); end
-								3'd1: begin PC <= PC - (l_i_port[1] + 8'hFF); mem_addr <= mem_addr - (l_i_port[1] + 8'hFF); end
-								3'd2: begin PC <= PC - (l_i_port[2] + 8'hFF); mem_addr <= mem_addr - (l_i_port[2] + 8'hFF); end
-								3'd3: begin PC <= PC - (l_i_port[3] + 8'hFF); mem_addr <= mem_addr - (l_i_port[3] + 8'hFF); end
-								3'd4: begin PC <= PC - (l_i_port[4] + 8'hFF); mem_addr <= mem_addr - (l_i_port[4] + 8'hFF); end
-								3'd5: begin PC <= PC - (l_i_port[5] + 8'hFF); mem_addr <= mem_addr - (l_i_port[5] + 8'hFF); end
-								3'd6: begin PC <= PC - (l_i_port[6] + 8'hFF); mem_addr <= mem_addr - (l_i_port[6] + 8'hFF); end
-								3'd7: begin PC <= PC - (l_i_port[7] + 8'hFF); mem_addr <= mem_addr - (l_i_port[7] + 8'hFF); end
-							endcase
+							if (((l_i_port >> R[1][2:0]) & 8'b1) == 0) begin
+								PC <= PC + 1'b1;
+								mem_addr <= PC + 1'b1;
+								state <= FETCH;
+							end
 						end
 					4'hC: // WAIT1
 						begin
-							state <= FETCH;
-							case(R[1][2:0])
-								3'd0: begin PC <= PC + l_i_port[0]; mem_addr <= mem_addr + l_i_port[0]; end
-								3'd1: begin PC <= PC + l_i_port[1]; mem_addr <= mem_addr + l_i_port[1]; end
-								3'd2: begin PC <= PC + l_i_port[2]; mem_addr <= mem_addr + l_i_port[2]; end
-								3'd3: begin PC <= PC + l_i_port[3]; mem_addr <= mem_addr + l_i_port[3]; end
-								3'd4: begin PC <= PC + l_i_port[4]; mem_addr <= mem_addr + l_i_port[4]; end
-								3'd5: begin PC <= PC + l_i_port[5]; mem_addr <= mem_addr + l_i_port[5]; end
-								3'd6: begin PC <= PC + l_i_port[6]; mem_addr <= mem_addr + l_i_port[6]; end
-								3'd7: begin PC <= PC + l_i_port[7]; mem_addr <= mem_addr + l_i_port[7]; end
-							endcase
+							if (((l_i_port >> R[1][2:0]) & 8'b1) == 1) begin
+								PC <= PC + 1'b1;
+								mem_addr <= PC + 1'b1;
+								state <= FETCH;
+							end
 						end
 					4'hD: // eventually EXEC2
 						begin
@@ -322,12 +301,10 @@ begin
 						begin
 							// only advance PC if fifo_cnt >= A
 							if (R[15] >= A) begin
-								PC <= PC + 1'b1;
-								mem_addr <= PC + 1'b1;
-							end else begin
-								mem_addr <= PC;
+								PC <= PC + 1'b1;			// FIFO has enough contents advance to the next
+								mem_addr <= PC + 8'd2;		// we're chaining so we need to tell the ROM to load the next next opcode
+								instruct <= mem_data;		// we can technically just advance since we loaded the opcode for PC+1 already
 							end
-							state <= FETCH;
 						end
 					4'hF: // WAITA
 						begin
@@ -357,8 +334,8 @@ begin
 			end
 		4'hF: // SBIT
 			begin
-				PC <= PC + 1'b1 + ((((A >> s_imm) & 8'd1) == {7'b0, b_imm}) ? 8'd1 : 8'd0);
-				mem_addr <= PC + 1'b1 + ((((A >> s_imm) & 8'd1) == {7'b0, b_imm}) ? 8'd1 : 8'd0);
+				PC <= PC + ((((A >> s_imm) & 8'd1) == {7'b0, b_imm}) ? 8'd2 : 8'd1);
+				mem_addr <= PC + ((((A >> s_imm) & 8'd1) == {7'b0, b_imm}) ? 8'd2 : 8'd1);
 				state <= FETCH;
 			end
 	endcase

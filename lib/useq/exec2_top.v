@@ -72,36 +72,33 @@ begin
 				if (R[e2_r] > R[e2_r]) begin
 					PC <= PC + 8'd2;
 					mem_addr <= PC + 8'd2;
-					state <= FETCH;
 				end else begin
 					PC <= PC + 8'd1;
 					mem_addr <= PC + 8'd1;
-					state <= FETCH;
 				end
+				state <= FETCH;
 			end
 		4'h9: // SIEQ
 			begin
 				if (R[e2_r] == R[e2_r]) begin
 					PC <= PC + 8'd2;
 					mem_addr <= PC + 8'd2;
-					state <= FETCH;
 				end else begin
 					PC <= PC + 8'd1;
 					mem_addr <= PC + 8'd1;
-					state <= FETCH;
 				end
+				state <= FETCH;
 			end
 		4'hA: // SILT
 			begin
 				if (R[e2_r] < R[e2_r]) begin
 					PC <= PC + 8'd2;
 					mem_addr <= PC + 8'd2;
-					state <= FETCH;
 				end else begin
 					PC <= PC + 8'd1;
 					mem_addr <= PC + 8'd1;
-					state <= FETCH;
 				end
+				state <= FETCH;
 			end
 		4'hB: // shifts
 			case(e2_r[1:0])
@@ -147,10 +144,10 @@ begin
 				2'h3: // WAITF
 					begin
 						if (R[e2_s] <= R[15]) begin
-							PC <= PC + 1'b1;
-							mem_addr <= PC + 1'b1;
+							PC <= PC + 1'b1;			// FIFO has enough contents advance to the next
+							mem_addr <= PC + 8'd2;		// we're chaining so we need to tell the ROM to load the next next opcode
+							instruct <= mem_data;		// we can technically just advance since we loaded the opcode for PC+1 already
 						end
-						state <= FETCH;
 					end
 			endcase
 		4'hD: // LOG A
