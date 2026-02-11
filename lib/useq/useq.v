@@ -79,6 +79,7 @@ module useq
 			end
 			fifo_rptr <= 0;
 			fifo_wptr <= 0;
+            fifo_out <= 0;
 			o_port <= 0;
 		end else begin
 			if (read_fifo ^ write_fifo) begin

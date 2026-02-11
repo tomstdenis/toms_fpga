@@ -9,6 +9,8 @@ module top(input clk, input in1, output out1);
     reg read_fifo;
     reg write_fifo;
     wire fifo_empty;
+    reg [7:0] fifo_in;
+    wire [7:0] fifo_out;
     reg [3:0] rstcnt = 4'b0;
 
     assign rst_n = rstcnt[3];
@@ -24,6 +26,7 @@ module top(input clk, input in1, output out1);
         if (!rst_n) begin
             write_fifo <= 0;
             read_fifo <= 0;
+            fifo_in <= 0;
             ticker <= 0;
         end else begin
             ticker <= ticker ^ 1;
@@ -37,6 +40,7 @@ module top(input clk, input in1, output out1);
 
     useq test_useq(.clk(pll_clk), .rst_n(rst_n), 
         .mem_data(mem_data), .i_port(i_port), .mem_addr(mem_addr), .o_port(o_port),
-        .read_fifo(read_fifo), .write_fifo(write_fifo), .fifo_empty(fifo_empty));
+        .read_fifo(read_fifo), .write_fifo(write_fifo), .fifo_empty(fifo_empty),
+        .fifo_out(fifo_out), .fifo_in(fifo_in));
 
 endmodule

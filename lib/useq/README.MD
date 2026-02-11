@@ -76,7 +76,7 @@ D2: TGLBIT, 			o_port[R1[2:0]] ^= 1, PC += 1    // fast toggle-1			<--- things c
 D3: IN, 				A = i_port, PC += 1
 D4: INBIT, 		 		A = i_port[R0[2:0]] ? 1 : 0 , PC += 1
 D5: NEG:				A = -A, PC += 1
-D6: SEI, 				PC += 1, int_mask = A, if i_port & int_mask is a posedge (prev < cur) (from registered copy), then during fetch R[14] = PC, PC = 0xF0, further interrupts disabled until RTI
+D6: SEI, 				PC += 1, int_mask = A, if i_port & int_mask is a posedge (prev < cur) (from registered copy) then IRQ
 D7: *JMPA, 				PC = A
 D8: *CALL, 				LR = PC + 1, PC = A
 D9: *RET, 				PC = LR
@@ -84,7 +84,7 @@ DA: *RTI, 				PC = ILR, re-enable interrupts and return
 DB: *WAIT0,				PC = PC + (i_port[R1[2:0]]) ? 0 : 1							<---- since WAIT's are likely clock related we use R1 to address the pin here
 DC: *WAIT1,				PC = PC + (i_port[R1[2:0]]) ? 1 : 0
 DD: *EXEC2 				Byte that follows PC is from the EXEC2 table
-DE: *WAITF: 			PC = PC + (R[15] == A) ? 1 : 0, // wait for FIFO to have A bytes in it, you need an ISR that stores in the fifo for this to advance
+DE: *WAITF: 			PC = PC + (R[15] >= A) ? 1 : 0, // wait for FIFO to have at least A bytes in it, you need an ISR that stores in the fifo for this to advance
 DF: *WAITA, 			T = A, A = A - 1, PC += (A == 0) ? 1 : 0, A = T when it stops waiting
 Er: *JSR r, 			PC = r << 4 // (jump to a 16 byte aligned ROM address)
 Fsb: *SBIT s, b			Skip next instruction bit s of A is b, PC = PC + 1 + (A[s] == b) ? 1 : 0
@@ -120,7 +120,7 @@ B3r: LSR4 r				R[r] >>= 4, PC += 1;
 C0r: RFIFO r			R[r] == read_from fifo (0 if empty), PC += 1
 C1r: WFIFO r			write R[r] to fifo (or nothing if full), PC += 1
 C2r: QFIFO r			Store the fifo_count in R[r], PC += 1
-C3r: WAITF r			PC = PC + (QFIFO == R[r]) ? 1 : 0, you need an ISR that stores to the FIFO otherwise this never advances (waits till R[r] bytes are in FIFO)
+C3r: WAITF r			PC = PC + (QFIFO >= R[r]) ? 1 : 0, you need an ISR that stores to the FIFO otherwise this never advances (waits till R[r] bytes are in FIFO)
 D0r: ANDA r				R[r] &= A, PC += 1
 D1r: ORA r				R[r] |= A, PC += 1
 D2r: EORA r				R[r] ^= A, PC += 1
