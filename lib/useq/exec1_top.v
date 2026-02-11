@@ -145,34 +145,34 @@ begin
 						begin
 							if (A > R[0]) begin
 								PC <= PC + 8'd2;
-								mem_addr <= PC + 8'd2;
+								state <= FETCH;
 							end else begin
-								PC <= PC + 1'b1;
-								mem_addr <= PC + 1'b1;
+								PC <= PC + 1'b1; // execute the next opcode we already fetched
+								instruct <= mem_data;
 							end
-							state <= FETCH;
+							mem_addr <= PC + 8'd2; // either we're skipping and we need PC+2 or we're prefetching the next next opcode for PC+1 :-)
 						end
 					4'hE: // SIEQ
 						begin
 							if (A == R[0]) begin
 								PC <= PC + 8'd2;
-								mem_addr <= PC + 8'd2;
+								state <= FETCH;
 							end else begin
-								PC <= PC + 1'b1;
-								mem_addr <= PC + 1'b1;
+								PC <= PC + 1'b1; // execute the next opcode we already fetched
+								instruct <= mem_data;
 							end
-							state <= FETCH;
+							mem_addr <= PC + 8'd2; // either we're skipping and we need PC+2 or we're prefetching the next next opcode for PC+1 :-)
 						end
 					4'hF: // SILT
 						begin
 							if (A < R[0]) begin
 								PC <= PC + 8'd2;
-								mem_addr <= PC + 8'd2;
+								state <= FETCH;
 							end else begin
-								PC <= PC + 1'b1;
-								mem_addr <= PC + 1'b1;
+								PC <= PC + 1'b1; // execute the next opcode we already fetched
+								instruct <= mem_data;
 							end
-							state <= FETCH;
+							mem_addr <= PC + 8'd2; // either we're skipping and we need PC+2 or we're prefetching the next next opcode for PC+1 :-)
 						end
 				endcase
 			end
@@ -276,26 +276,27 @@ begin
 						begin
 							if (((l_i_port >> R[1][2:0]) & 8'b1) == 0) begin
 								PC <= PC + 1'b1;
-								mem_addr <= PC + 1'b1;
-								state <= FETCH;
+								mem_addr <= PC + 8'd2;
+								instruct <= mem_data;
 							end
 						end
 					4'hC: // WAIT1
 						begin
 							if (((l_i_port >> R[1][2:0]) & 8'b1) == 1) begin
 								PC <= PC + 1'b1;
-								mem_addr <= PC + 1'b1;
-								state <= FETCH;
+								mem_addr <= PC + 8'd2;
+								instruct <= mem_data;
 							end
 						end
-					4'hD: // eventually EXEC2
+					4'hD: // EXEC2
 						begin
 							if (ENABLE_EXEC2) begin
 								mode <= 1;
 							end
 							PC <= PC + 1'b1;
-							mem_addr <= PC + 1'b1;
-							state <= FETCH;							
+							mem_addr <= PC + 8'd2;
+							instruct <= mem_data;
+							state <= EXECUTE2;		// we already prefetched the next opcode we can just jump into the EXEC2 state
 						end
 					4'hE: // WAITF
 						begin
@@ -314,15 +315,15 @@ begin
 								end
 								T <= 0;
 								PC <= PC + 1'b1;
-								mem_addr <= PC + 1'b1;
+								mem_addr <= PC + 2'd2;
+								instruct <= mem_data;		// chain to the next opcode
 							end else begin
 								if (!T[8]) begin
 									T <= {1'b1, A};
 								end
 								A <= A - 1'b1;
-								mem_addr <= PC;
+								// we don't update PC/mem_addr since we're re-running this opcode
 							end
-							state <= FETCH;
 						end
 				endcase
 			end
