@@ -135,7 +135,7 @@ begin
 						end
 					end
 				2'h1: // WFIFO
-					if (R[15] != (FIFO_DEPTH-1)) begin
+					if (R[15] != FIFO_DEPTH) begin
 						FIFO[fifo_wptr] <= R[e2_s];
 						fifo_wptr <= fifo_wptr + 1'b1;
 						R[15] <= R[15] + 1'b1;

@@ -12,6 +12,7 @@ module useq
 	input read_fifo,
 	input write_fifo,
 	output fifo_empty,
+	output fifo_full,
 	input [7:0] fifo_in,
 	output reg [7:0] fifo_out,
 	
@@ -57,6 +58,7 @@ module useq
 	
 	wire       int_triggered = |((i_port & ~l_i_port) & int_mask) & int_enable & (ENABLE_IRQ ? 1'b1 : 1'b0);
 	assign fifo_empty = (R[15] == 0) ? 1'b1 : 1'b0;
+	assign fifo_full = (R[15] == FIFO_DEPTH) ? 1'b1 : 1'b0;
 
 	// can_chain = 1 means "Single-Cycle Turbo is GO"
 	// can_chain = 0 means "Wait, we need a FETCH cycle to realign"
@@ -116,7 +118,7 @@ module useq
 						o_port <= 8'd0;
 					end
 				end else begin
-					if (R[15] != (FIFO_DEPTH-1)) begin
+					if (R[15] != FIFO_DEPTH) begin
 						FIFO[fifo_wptr] <= fifo_in;			// store fifo data
 						fifo_wptr <= fifo_wptr + 1'b1;		// increment write pointer
 						R[15] <= R[15] + 1'b1;				// increment fifo count
@@ -145,7 +147,7 @@ module useq
 								end else begin
 									state <= EXECUTE2;
 								end
-								mem_addr <= mem_addr + 1'b1; // FETCH PC+1 for the EXECUTE stage so we can latch it for a potential EXECUTE2 stage
+								mem_addr <= PC + 1'b1; // FETCH PC+1 for the EXECUTE stage so we can latch it for a potential EXECUTE2 stage
 							end
 						end
 					EXECUTE:

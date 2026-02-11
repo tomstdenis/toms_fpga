@@ -23,7 +23,7 @@ begin
 				if (d_imm < 15) begin
 					R[d_imm] <= A;							// regular register store
 				end else begin
-					if (R[15] != (FIFO_DEPTH-1)) begin
+					if (R[15] != FIFO_DEPTH) begin
 						FIFO[fifo_wptr] <= A;				// store fifo data
 						fifo_wptr <= fifo_wptr + 1'b1;		// increment write pointer
 						R[15] <= R[15] + 1'b1;				// increment fifo count
@@ -148,7 +148,7 @@ begin
 								mem_addr <= PC + 8'd2;
 							end else begin
 								PC <= PC + 1'b1;
-									mem_addr <= PC + 1'b1;
+								mem_addr <= PC + 1'b1;
 							end
 							state <= FETCH;
 						end

@@ -15,14 +15,15 @@ module useq_tb();
 	reg read_fifo;
 	reg write_fifo;
 	wire fifo_empty;
+	wire fifo_full;
 	wire [7:0] fifo_out;
 	reg [7:0] fifo_in;
 
-	useq #(.FIFO_DEPTH(4), .ISR_VECT(8'hF0), .ENABLE_EXEC1(1), .ENABLE_EXEC2(1), .ENABLE_IRQ(1)) useq_dut(
+	useq #(.FIFO_DEPTH(2), .ISR_VECT(8'hF0), .ENABLE_EXEC1(1), .ENABLE_EXEC2(1), .ENABLE_IRQ(1)) useq_dut(
 		.clk(clk), .rst_n(rst_n), 
 		.mem_data(mem_data), .i_port(i_port), 
 		.mem_addr(mem_addr), .o_port(o_port),
-		.read_fifo(read_fifo), .write_fifo(write_fifo), .fifo_empty(fifo_empty),
+		.read_fifo(read_fifo), .write_fifo(write_fifo), .fifo_empty(fifo_empty), .fifo_full(fifo_full),
 		.fifo_out(fifo_out), .fifo_in(fifo_in));
 
     // Parameters for the simulation
@@ -95,7 +96,7 @@ module useq_tb();
 		begin
 			ttpc = useq_dut.PC;
 			@(posedge clk);
-			$write("CPU: inst=%2h PC=%2h, A=%2h LR=%2h ILR=%2h OP=%2h FO=%2h FE=%d R=[", useq_dut.instruct, useq_dut.PC, useq_dut.A, useq_dut.LR, useq_dut.ILR, o_port, fifo_out, fifo_empty);
+			$write("CPU: inst=%2h PC=%2h, A=%2h LR=%2h ILR=%2h OP=%2h FO=%2h FE=%d FF=%d R=[", useq_dut.instruct, useq_dut.PC, useq_dut.A, useq_dut.LR, useq_dut.ILR, o_port, fifo_out, fifo_empty, fifo_full);
 			for (x = 0; x < 16; x++) begin
 				$write("%2h", useq_dut.R[x]);
 				if (x < 15) begin
