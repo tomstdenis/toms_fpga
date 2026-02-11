@@ -1,7 +1,7 @@
 `timescale 1ns/1ps
 
 module useq
-#(parameter FIFO_DEPTH=4,ISR_VECT=8'hF0)
+#(parameter FIFO_DEPTH=16,ISR_VECT=8'hF0,ENABLE_EXEC1=1,ENABLE_EXEC2=1,ENABLE_IRQ=1)
 (
 	input clk,
 	input rst_n,
@@ -26,25 +26,36 @@ module useq
 	reg [7:0] ILR;
 	reg [7:0] instruct;
 	reg [7:0] R[15:0];
-	reg [1:0] state;
+	reg [3:0] state;
 	reg [7:0] l_i_port;
 	reg [7:0] int_mask;
 	reg int_enable;
 	reg [7:0] FIFO[FIFO_DEPTH-1:0];
 	reg [$clog2(FIFO_DEPTH)-1:0] fifo_rptr;
 	reg [$clog2(FIFO_DEPTH)-1:0] fifo_wptr;
+	reg mode;
+	reg prevmode;
 
 	localparam
 		FETCH=0,
 		EXECUTE=1,
-		LOADA=2;
+		EXECUTE2=2,
+		LOADA=3,
+		LOADR=4;
 
 	integer i;
-	
+
+	// exec1 wires
 	wire [3:0] d_imm = instruct[3:0];
 	wire [2:0] s_imm = instruct[3:1];
 	wire       b_imm = instruct[0];
-	wire       int_triggered = |((i_port & ~l_i_port) & int_mask) & int_enable;
+	
+	// exec2 wires
+	wire [3:0] e2_r = {2'b0, instruct[3:2]};
+	wire [3:0] e2_s = {2'b0, instruct[1:0]};
+	wire [7:0] e2_s_wire = R[e2_s];
+	
+	wire       int_triggered = |((i_port & ~l_i_port) & int_mask) & int_enable & (ENABLE_IRQ ? 1'b1 : 1'b0);
 	assign fifo_empty = (R[15] == 0) ? 1'b1 : 1'b0;
 
 	// can_chain = 1 means "Single-Cycle Turbo is GO"
@@ -57,6 +68,15 @@ module useq
 		(instruct[7:4] == 4'hE) || // *JSR r
 		(instruct[7:4] == 4'hF)    // *SBIT
 	);
+	
+	wire can_chain_exec2 = !(
+		(instruct[7:4] == 4'h6 && instruct[3:2] == 2'h2) || // LDI
+		(instruct[7:4] == 4'h8) || // SIGT
+		(instruct[7:4] == 4'h9) || // SIEQ
+		(instruct[7:4] == 4'hA) || // SILT
+		(instruct[7:4] == 4'hE && instruct[3:2] < 2'h2) || // JNZ, JZ
+		(instruct[7:4] == 4'hF && instruct[3:2] < 2'h3) || // JMP, CALL, RET
+		(instruct[7:0] == 8'hFF)); // WAITA
 
 	always @(posedge clk) begin
 		if (!rst_n) begin
@@ -71,6 +91,8 @@ module useq
 			int_mask <= 0;
 			mem_addr <= 0;
 			int_enable <= 0;
+			mode <= 0;
+			prevmode <= 0;
 			for (i=0; i<16; i=i+1) begin
 				R[i] <= 0;
 			end
@@ -105,37 +127,69 @@ module useq
 				case(state)
 					FETCH:
 						begin
-							if (int_triggered) begin
+							if (ENABLE_IRQ == 1 && int_triggered) begin
 								// we hit an interrupt, so disable further interrupts until an RTI
 								int_enable <= 0;
 								ILR <= PC;     			// save where we interrupted
 								mem_addr <= ISR_VECT;	// jump to ISR vector
 								PC <= ISR_VECT;
 								state <= FETCH;			// need another FETCH cycle
+								prevmode <= mode;		// save the execution mode
+								mode <= 0;				// go back to ACC mode
 							end else begin
 								instruct <= mem_data;
-								state <= EXECUTE;
+								if (ENABLE_EXEC1 == 1 && ENABLE_EXEC2 == 1) begin
+									state <= mode ? EXECUTE2 : EXECUTE;
+								end else if (ENABLE_EXEC1 == 1) begin
+									state <= EXECUTE;
+								end else begin
+									state <= EXECUTE2;
+								end
 								mem_addr <= mem_addr + 1'b1; // FETCH PC+1 for the EXECUTE stage so we can latch it for a potential EXECUTE2 stage
 							end
 						end
 					EXECUTE:
-						begin
-							if (int_triggered) begin
+						if (ENABLE_EXEC1 == 1) begin
+							if (ENABLE_IRQ == 1 && int_triggered) begin
 								// we hit an interrupt, so disable further interrupts until an RTI
 								int_enable <= 0;
 								ILR <= PC;     			// save where we interrupted
 								mem_addr <= ISR_VECT;	// jump to ISR vector
 								PC <= ISR_VECT;
 								state <= FETCH;			// need another FETCH cycle
+								prevmode <= mode;		// save the execution mode
+								mode <= 0;				// go back to ACC mode
 							end else begin
 								// no interrupt so jump here
-`include "exec1_top.v"
+								`include "exec1_top.v"
+								if (can_chain_exec1) begin
+									PC <= PC + 1'b1;			// advance to next PC
+									mem_addr <= PC + 8'd2;		// load what will be the "next opcode" in the next cycle
+									instruct <= mem_data;   // latch the current "next opcode"
+									state <= EXECUTE;
+								end
 							end
-							if (can_chain_exec1) begin
-								PC <= PC + 1'b1;			// advance to next PC
-								mem_addr <= PC + 8'd2;		// load what will be the "next opcode" in the next cycle
-								instruct <= mem_data;   // latch the current "next opcode"
-								state <= EXECUTE;
+						end
+					EXECUTE2:
+						if (ENABLE_EXEC2 == 1) begin
+							if (ENABLE_EXEC1 == 1 && ENABLE_IRQ == 1 && int_triggered) begin		// IRQs require EXEC1 support
+								// we hit an interrupt, so disable further interrupts until an RTI
+								int_enable <= 0;
+								ILR <= PC;     			// save where we interrupted
+								mem_addr <= ISR_VECT;	// jump to ISR vector
+								PC <= ISR_VECT;
+								state <= FETCH;			// need another FETCH cycle
+								prevmode <= mode;		// save the execution mode
+								mode <= 0;				// go back to ACC mode
+							end else begin
+								// no interrupt so jump here
+								`include "exec2_top.v"
+								if (can_chain_exec2) begin
+									PC <= PC + 1'b1;			// advance to next PC
+									mem_addr <= PC + 8'd2;		// load what will be the "next opcode" in the next cycle
+									instruct <= mem_data;   // latch the current "next opcode"
+									state <= EXECUTE2;
+								end
 							end
 						end
 					LOADA: // load A with whatever was read from ROM

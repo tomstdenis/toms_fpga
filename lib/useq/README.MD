@@ -95,6 +95,7 @@ In EXEC2 we focus mostly on R[] to R[] operations to the opcode is 4 bits for op
 TODO: when you hit an IRQ save which mode you are in and restore it with RTI
 TODO: add a .MODE directive to tell assembler which table to use...
 
+// NOT FINAL!!! SUPER SERIOUS!!! hehehehe
 EXEC2:
 0rs: ADD r, s			R[r] += R[s], PC += 1
 1rs: SUB r, s			R[r] -= R[s], PC += 1
@@ -106,17 +107,17 @@ EXEC2:
 61r: CLR r				R[r] = 0, PC += 1 (2'b01, etc...)
 62r: LDI r, imm			R[r] = ROM[PC+1], PC += 2 (note this is a 2 cycle opcode)
 63r: XCH r				A <=> R[r], PC += 1
-70r: LDIND r			R[r] = R[A[3:0]], PC += 1
-71r: STIND r			R[A[3:0]] = R[r], PC += 1
-72r: ADDA r				R[r] += A, PC += 1
-73r: SUBA r				R[r] -= A, PC += 1
-8rs: SIGT r, s			PC = PC + 1 + (R[r] > R[s]) ? 1 : 0
+70r: LDIND1 r			A = R[4 + r], PC += 1
+71r: LDIND2 r			A = R[8 + r], PC += 1
+72r: STIND1 r			R[4 + r] = A, PC += 1
+73r: STIND2 r			R[8 + r] = A, PC += 1
+8rs: SIGT r, s			PC = PC + 1 + (R[r] > R[s]) ? 1 : 0		// can only skip over 1 byte opcodes...
 9rs: SIEQ r, s			PC = PC + 1 + (R[r] == R[s]) ? 1 : 0
 Ars: SILT r, s			PC = PC + 1 + (R[r] < R[s]) ? 1 : 0
 B0r: ASR r				R[r] >>= 1, PC += 1, signed
 B1r: LSR r				R[r] >>= 1, PC += 1;
-B2r: ASL4 r				R[r] <<= 4, PC += 1;
-B3r: LSR4 r				R[r] >>= 4, PC += 1;
+B2r: ADDA r				R[r] += A, PC += 1;
+B3r: SUBA r				R[r] -= A, PC += 1;
 C0r: RFIFO r			R[r] == read_from fifo (0 if empty), PC += 1
 C1r: WFIFO r			write R[r] to fifo (or nothing if full), PC += 1
 C2r: QFIFO r			Store the fifo_count in R[r], PC += 1
@@ -132,7 +133,7 @@ E3r: INC r				R[r] += 1, PC += 1
 F0r: JMP imm			PC = ROM[PC+1], 2 cycle, same as JNZ/JZ stage 
 F1r: CALL imm			LR = PC + 2, PC = ROM[PC+1], 2 cycle, same as JNZ/JZ/JMP stage
 F2r, RET				PC = LR
-F30: 
-F31: 
-F32: BANK imm			load bank imm[7:6], PC = imm[5:0] << 2;
-F33: EXEC1				Byte that follows PC is from EXEC1 table, PC = PC + 1
+F30: IN					A = i_port, PC += 1
+F31: OUT				o_port = A, PC += 1
+F32: EXEC1				Byte that follows PC is from EXEC1 table, PC = PC + 1
+F33: WAITA				like mode==0 WAITA, PC += 1

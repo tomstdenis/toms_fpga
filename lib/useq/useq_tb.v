@@ -18,7 +18,7 @@ module useq_tb();
 	wire [7:0] fifo_out;
 	reg [7:0] fifo_in;
 
-	useq #(.FIFO_DEPTH(4), .ISR_VECT(8'hF0)) useq_dut(
+	useq #(.FIFO_DEPTH(4), .ISR_VECT(8'hF0), .ENABLE_EXEC1(1), .ENABLE_EXEC2(1), .ENABLE_IRQ(1)) useq_dut(
 		.clk(clk), .rst_n(rst_n), 
 		.mem_data(mem_data), .i_port(i_port), 
 		.mem_addr(mem_addr), .o_port(o_port),

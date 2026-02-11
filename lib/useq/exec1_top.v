@@ -240,8 +240,10 @@ begin
 						end
 					4'h6: // SEI
 						begin
-							int_mask <= A;
-							int_enable <= (A == 0) ? 1'b0 : 1'b1;
+							if (ENABLE_IRQ == 1) begin
+								int_mask <= A;
+								int_enable <= (A == 0) ? 1'b0 : 1'b1;
+							end
 						end
 					4'h7: // JMPA
 						begin
@@ -264,10 +266,17 @@ begin
 						end
 					4'hA: // RTI
 						begin
-							int_enable <= 1;	// restore interrupt enabled
-							PC <= ILR;
-							mem_addr <= ILR;
-							state <= FETCH;
+							if (ENABLE_IRQ == 1) begin
+								int_enable <= 1;	// restore interrupt enabled
+								PC <= ILR;
+								mem_addr <= ILR;
+								state <= FETCH;
+								mode <= prevmode;
+							end else begin
+								PC <= PC + 1'b1;
+								mem_addr <= PC + 1'b1;
+								state <= FETCH;
+							end
 						end
 					4'hB: // WAIT0
 						begin
@@ -299,10 +308,12 @@ begin
 						end
 					4'hD: // eventually EXEC2
 						begin
-							A <= A & 8'h0F;
+							if (ENABLE_EXEC2) begin
+								mode <= 1;
+							end
 							PC <= PC + 1'b1;
 							mem_addr <= PC + 1'b1;
-							state <= FETCH;
+							state <= FETCH;							
 						end
 					4'hE: // WAITF
 						begin
