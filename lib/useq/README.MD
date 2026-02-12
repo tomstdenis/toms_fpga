@@ -87,7 +87,18 @@ Fun ideas:
 	In I2C mode you'd set R0 to the SDA pin and R1 to the SCL pin.  This allows you to use INBIT/OUTBIT with SDA and TGLBIT with SCL.
 	An OUTBIT of 1 would turn the SDA pin into a pullup input.  An OUTBIT of 0 would turn SDA into an output low.  (Remember your external
 	pullups!)
-	
+
+	- You could also have multiple cores with one as a bus master which pushes into it's FIFO, the parent module then reads those bytes and pushes them
+	into the slave module FIFOs.  If you have a WAITF on the slaves they can wait for a "frame", make the first byte contain a target ID and you 
+	can send a message to a specific slave.  You can setup the parent module to then read from any slave FIFO and send it to the master's FIFO, etc.  The
+	downside is the FIFO can't be used internally for other logic but the upside is you get the full i_port/o_port per core for other connectivity.
+
+	- Variant of the above is you could make one of the target IDs the parent module itself so you could send commands to reconfigure the other slaves for
+	instance if they use SRAM or BRAMs, you could dynamically upload code to the other cores :-) (just hold the target core in reset until you program
+	the code memory, then release reset)
+
+	- A variant of the other idea is you could bitbang data via a SPI or UART like protocol.  E.g. fan the TX pin of the master to the slaves RX pins, and
+	OR the slave TX pins to the masters RX pin
 	
 module useq
 #(parameter
