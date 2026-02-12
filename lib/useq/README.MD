@@ -133,17 +133,10 @@ E3r: INC r				R[r] += 1, PC += 1
 F00: JMP imm			PC = ROM[PC+1], 2 cycle, same as JNZ/JZ stage 
 F01: CALL imm			LR = PC + 2, PC = ROM[PC+1], 2 cycle, same as JNZ/JZ/JMP stage
 F02: RET				PC = LR
-F03: ** empty (cannot take operands)
-F1x: ** 4 empty (can take an 'r' param, or do 4 more no operand opcodes)
-F2x: ** 4 empty (can take an 'r' param, or do 4 more no operand opcodes)
-F30: IN					A = i_port, PC += 1
-F31: OUT				o_port = A, PC += 1
-F32: EXEC1				Byte that follows PC is from EXEC1 table, PC = PC + 1
-F33: WAITA				like mode==0 WAITA, PC += 1
-
-opcode fmt:
-OP r, s
-OP r, imm [2 bytes]
-OP r
-OP imm [2 bytes]
-OP
+F03: RTI
+F10: IN					A = i_port, PC += 1
+F11: OUT				o_port = A, PC += 1
+F12: EXEC1				Byte that follows PC is from EXEC1 table, PC = PC + 1
+F13: WAITA				like mode==0 WAITA, PC += 1
+F2r: SEI				int_mask = R[r], PC += 1
+F3x: ** 4 empty (can take an 'r' param, or do 4 more no operand opcodes)

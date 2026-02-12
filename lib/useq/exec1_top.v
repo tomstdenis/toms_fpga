@@ -234,6 +234,7 @@ begin
 							if (ENABLE_IRQ == 1) begin
 								int_mask <= A;
 								int_enable <= (A == 0) ? 1'b0 : 1'b1;
+								irqmode <= 0; // ISR will be in EXEC1 mode
 							end
 						end
 					4'h7: // JMPA

@@ -40,7 +40,7 @@ begin
 						state <= FETCH;
 						R[e2_s] <= mem_data;			// this was prefetched 
 						PC <= PC + 8'd2;				// skip over immedia
-						mem_addr <= mem_addr + 8'd2;
+						mem_addr <= PC + 8'd2;
 					end
 				2'd3: // XCH
 					begin
@@ -225,9 +225,26 @@ begin
 								mem_addr <= LR;
 								state <= FETCH;
 							end
+						2'h3: // RTI
+							begin
+								if (ENABLE_IRQ == 1) begin
+									int_enable <= 1;	// restore interrupt enabled
+									PC <= ILR;			// restore PC
+									A <= tA;			// restore A
+									R[0] <= tR[0];		// restore R[0] and R[1]
+									R[1] <= tR[1];
+									mem_addr <= ILR;	// fetch instruction we interrupted
+									state <= FETCH;		// we need a FETCH cycle to load instruct
+									mode <= prevmode;	// restore previous EXEC mode
+								end else begin
+									PC <= PC + 1'b1;
+									mem_addr <= PC + 1'b1;
+									state <= FETCH;
+								end
+							end
 						default: begin end
 					endcase
-				2'h3: // MISC (bits 3:2 of opcode)
+				2'h1: // IN/OUT/EXEC1/WAITA (bits 3:2 of opcode)
 					begin
 						case(e2_s[1:0])
 							2'd0: // IN
@@ -242,6 +259,10 @@ begin
 								begin
 									if (ENABLE_EXEC1 == 1) begin
 										mode <= 0;
+										state <= EXECUTE;
+										PC <= PC + 1'b1;
+										mem_addr <= PC + 8'd2;
+										instruct <= mem_data;
 									end
 								end
 							2'd3: // WAITA
@@ -265,6 +286,15 @@ begin
 							default: begin end
 						endcase
 					end
+				2'h2: // SEI
+					begin
+						if (ENABLE_IRQ == 1) begin
+							int_mask <= R[e2_s];
+							int_enable <= (R[e2_s] == 0) ? 1'b0 : 1'b1;
+							irqmode <= 1; // ISR will be in EXEC2 mode
+						end
+					end
+
 				default: begin end
 			endcase
 	endcase

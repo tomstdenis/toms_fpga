@@ -45,6 +45,7 @@ module useq_tb();
         $dumpfile("useq.vcd");
         $dumpvars(0, useq_tb);
 
+/*
 		$readmemh("test1_clean.hex", mem);
 		i_port = 8'hAB;
 		reset_cpu();
@@ -87,7 +88,11 @@ module useq_tb();
 			step_cpu();
 			if (fifo_empty) read_fifo = 0;
 		end
-		
+*/
+		$display("Trying out EXEC2...");
+		$readmemh("test4_clean.hex", mem);
+		reset_cpu();
+		repeat(32) step_cpu();
 		$finish;
 	end
 
@@ -96,7 +101,7 @@ module useq_tb();
 		begin
 			ttpc = useq_dut.PC;
 			@(posedge clk);
-			$write("CPU: inst=%2h PC=%2h, A=%2h LR=%2h ILR=%2h OP=%2h FO=%2h FE=%d FF=%d R=[", useq_dut.instruct, useq_dut.PC, useq_dut.A, useq_dut.LR, useq_dut.ILR, o_port, fifo_out, fifo_empty, fifo_full);
+			$write("CPU%1d: inst=%2h PC=%2h, A=%2h LR=%2h ILR=%2h OP=%2h FO=%2h FE=%d FF=%d R=[", useq_dut.mode, useq_dut.instruct, useq_dut.PC, useq_dut.A, useq_dut.LR, useq_dut.ILR, o_port, fifo_out, fifo_empty, fifo_full);
 			for (x = 0; x < 16; x++) begin
 				$write("%2h", useq_dut.R[x]);
 				if (x < 15) begin

@@ -152,10 +152,12 @@ const struct {
 	{ "JMP", 0xF0, E2_OP_FMT_I, 2 },
 	{ "CALL", 0xF1, E2_OP_FMT_I, 2 },
 	{ "RET", 0xF2, E2_OP_FMT_NO, 1 },
-	{ "IN", 0xFC, E2_OP_FMT_NO, 1 },
-	{ "OUT", 0xFD, E2_OP_FMT_NO, 1 },
-	{ "EXEC1", 0xFE, E2_OP_FMT_NO, 1 },
-	{ "WAITA", 0xFF, E2_OP_FMT_NO, 1 },
+	{ "RTI", 0xF3, E2_OP_FMT_NO, 1 },
+	{ "IN", 0xF4, E2_OP_FMT_NO, 1 },
+	{ "OUT", 0xF5, E2_OP_FMT_NO, 1 },
+	{ "EXEC1", 0xF6, E2_OP_FMT_NO, 1 },
+	{ "WAITA", 0xF7, E2_OP_FMT_NO, 1 },
+	{ "SEI", 0xF8, E2_OP_FMT_R, 1 },
 	{ NULL, 0, 0, 0 }
 };
 

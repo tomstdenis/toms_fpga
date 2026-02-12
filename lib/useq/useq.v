@@ -42,6 +42,7 @@ module useq
 	reg [$clog2(FIFO_DEPTH)-1:0] fifo_rptr;		// FIFO read pointer
 	reg [$clog2(FIFO_DEPTH)-1:0] fifo_wptr;		// FIFO write pointer
 	reg mode;									// Current opcode mode (mode == 0 means EXEC1, mode == 1 means EXEC2)
+	reg irqmode;								// the mode to run IRQs in default to EXEC1
 	reg prevmode;								// previous mode used for handling IRQs since ISRs have to be EXEC1
 	reg [1:0] state;							// current FSM state
 
@@ -86,8 +87,9 @@ module useq
 		(instruct[7:4] == 4'hA) || // SILT
 		(instruct[7:4] == 4'hC && instruct[3:2] == 2'h3) || // WAITF (it's chainable but only if fifo_cnt condition is met)
 		(instruct[7:4] == 4'hE && instruct[3:2] < 2'h2) || // JNZ, JZ
-		(instruct[7:4] == 4'hF && instruct[3:2] < 2'h3) || // JMP, CALL, RET
-		(instruct[7:0] == 8'hFF)); // WAITA
+		(instruct[7:4] == 4'hF && instruct[3:2] == 2'h0) || // JMP, CALL, RET, RTI
+		(instruct[7:0] == 8'hF6) || // EXEC1
+		(instruct[7:0] == 8'hF7)); // WAITA
 
 	always @(posedge clk) begin
 		if (!rst_n) begin
@@ -98,6 +100,7 @@ module useq
 				ILR <= 0;
 				int_mask <= 0;
 				int_enable <= 0;
+				irqmode <= 0;
 			end
 			A <= 0;
 			PC <= 0;
@@ -151,7 +154,7 @@ module useq
 					PC <= ISR_VECT;
 					state <= FETCH;			// need another FETCH cycle
 					prevmode <= mode;		// save the execution mode
-					mode <= 0;				// go back to ACC mode
+					mode <= irqmode;		// go back to ACC mode
 				end else begin
 					case(state)
 						FETCH:
@@ -170,6 +173,7 @@ module useq
 							if (ENABLE_EXEC1 == 1) begin
 								// no interrupt so jump here
 								`include "exec1_top.v"
+//								$display("for opcode instruct=%2h chain=%d", instruct, can_chain_exec1);
 								if (can_chain_exec1) begin
 									PC <= PC + 1'b1;			// advance to next PC
 									mem_addr <= PC + 8'd2;		// load what will be the "next opcode" in the next cycle
@@ -181,6 +185,7 @@ module useq
 							if (ENABLE_EXEC2 == 1) begin
 								// no interrupt so jump here
 								`include "exec2_top.v"
+//								$display("for opcode instruct=%2h chain=%d", instruct, can_chain_exec2);
 								if (can_chain_exec2) begin
 									PC <= PC + 1'b1;			// advance to next PC
 									mem_addr <= PC + 8'd2;		// load what will be the "next opcode" in the next cycle
