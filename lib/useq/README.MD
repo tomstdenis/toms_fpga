@@ -71,6 +71,11 @@ Fun ideas:
 		
 	  Put that at the same address in both banks and then whenever you jump here you load A with the offset you want to move to in the next
 	  bank.  Keep in mind this'll break ISRs unless you also put the same ISR code in each bank.
+	  
+	- Another way is instead of using a ROM primitive you use a 1-cycle RAM primitive (requirement is an address latched in cycle N-1 should
+	be available by cycle N).  If need be you could halt the core by holding the fifo_read signal high.  You would have to OR the core's
+	address with your addressing since the memory would likely be single ported.  You could use DP BSRAM if it satisfies the max 1-cycle latency
+	(which most do).  Point is you could just re-write core memory as long as it's not actively accessing what you're writing.
 	
 	- If you need to jump between EXEC1 and EXEC2 blocks you should switch to EXEC2 before jumping to the body of the EXEC2 code so that
 	you can use the more powerful JMP imm form in EXEC2.  Remember to switch back to EXEC1 before jumping to the EXEC1 body.
@@ -241,7 +246,7 @@ B3r: SUBA r				R[r] -= A, PC += 1;
 C0r: RFIFO r			R[r] == read_from fifo (0 if empty), PC += 1
 C1r: WFIFO r			write R[r] to fifo (or nothing if full), PC += 1
 C2r: QFIFO r			Store the fifo_count in R[r], PC += 1
-C3r: WAITF r			PC = PC + (QFIFO >= R[r]) ? 1 : 0, you need an ISR that stores to the FIFO otherwise this never advances (waits till R[r] bytes are in FIFO)
+C3r: WAITF r			PC = PC + (QFIFO >= R[r]) ? 1 : 0, you need an ISR that stores to the FIFO otherwise this never advances (waits till at least R[r] bytes are in FIFO)
 D0r: ANDA r				R[r] &= A, PC += 1
 D1r: ORA r				R[r] |= A, PC += 1
 D2r: EORA r				R[r] ^= A, PC += 1
