@@ -294,7 +294,12 @@ begin
 							irqmode <= 1; // ISR will be in EXEC2 mode
 						end
 					end
-
+				2'h3: // SIA
+					begin
+						if (ENABLE_IRQ == 1) begin
+							isr_vect <= R[e2_s];
+						end
+					end
 				default: begin end
 			endcase
 	endcase

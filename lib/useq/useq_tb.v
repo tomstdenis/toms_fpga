@@ -44,7 +44,7 @@ module useq_tb();
         // Setup for OSS CAD (GTKWave)
         $dumpfile("useq.vcd");
         $dumpvars(0, useq_tb);
-
+		i_port = 0;
 /*
 		$readmemh("test1_clean.hex", mem);
 		i_port = 8'hAB;
@@ -92,7 +92,14 @@ module useq_tb();
 		$display("Trying out EXEC2...");
 		$readmemh("test4_clean.hex", mem);
 		reset_cpu();
-		repeat(32) step_cpu();
+		repeat(8) step_cpu();
+		repeat(3) begin
+			i_port = 1;
+			$display("Triggering IRQ");
+			repeat(8) step_cpu();
+			i_port = 0;
+			repeat(8) step_cpu();
+		end
 		$finish;
 	end
 
@@ -101,7 +108,7 @@ module useq_tb();
 		begin
 			ttpc = useq_dut.PC;
 			@(posedge clk);
-			$write("CPU%1d: inst=%2h PC=%2h, A=%2h LR=%2h ILR=%2h OP=%2h FO=%2h FE=%d FF=%d R=[", useq_dut.mode, useq_dut.instruct, useq_dut.PC, useq_dut.A, useq_dut.LR, useq_dut.ILR, o_port, fifo_out, fifo_empty, fifo_full);
+			$write("CPU%1d: inst=%2h PC=%2h, A=%2h LR=%2h ILR=%2h IM=%2h IP=%2h OP=%2h FO=%2h FE=%d FF=%d R=[", useq_dut.mode, useq_dut.instruct, useq_dut.PC, useq_dut.A, useq_dut.LR, useq_dut.ILR, useq_dut.int_mask, i_port, o_port, fifo_out, fifo_empty, fifo_full);
 			for (x = 0; x < 16; x++) begin
 				$write("%2h", useq_dut.R[x]);
 				if (x < 15) begin

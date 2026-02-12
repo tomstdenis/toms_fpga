@@ -37,6 +37,7 @@ module useq
 	reg [7:0] R[15:0];							// R register file
 	reg [7:0] l_i_port;							// latched copy of i_port
 	reg [7:0] int_mask;							// The IRQ mask applied to i_port set by SEI opcode
+	reg [7:0] isr_vect;							// Where to jump when an IRQ happens
 	reg int_enable;								// Interrupt enable (set by SEI, disabled during IRQ)
 	reg [7:0] FIFO[FIFO_DEPTH-1:0];				// Message passing FIFO
 	reg [$clog2(FIFO_DEPTH)-1:0] fifo_rptr;		// FIFO read pointer
@@ -101,6 +102,7 @@ module useq
 				int_mask <= 0;
 				int_enable <= 0;
 				irqmode <= 0;
+				isr_vect <= ISR_VECT;
 			end
 			A <= 0;
 			PC <= 0;
@@ -150,8 +152,8 @@ module useq
 					tA <= A;
 					tR[0] <= R[0];
 					tR[1] <= R[1];
-					mem_addr <= ISR_VECT;	// jump to ISR vector
-					PC <= ISR_VECT;
+					mem_addr <= isr_vect;	// jump to ISR vector
+					PC <= isr_vect;
 					state <= FETCH;			// need another FETCH cycle
 					prevmode <= mode;		// save the execution mode
 					mode <= irqmode;		// go back to ACC mode

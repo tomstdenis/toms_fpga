@@ -158,6 +158,7 @@ const struct {
 	{ "EXEC1", 0xF6, E2_OP_FMT_NO, 1 },
 	{ "WAITA", 0xF7, E2_OP_FMT_NO, 1 },
 	{ "SEI", 0xF8, E2_OP_FMT_R, 1 },
+	{ "SIA", 0xFC, E2_OP_FMT_R, 1 },
 	{ NULL, 0, 0, 0 }
 };
 

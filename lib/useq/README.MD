@@ -139,4 +139,4 @@ F11: OUT				o_port = A, PC += 1
 F12: EXEC1				Byte that follows PC is from EXEC1 table, PC = PC + 1
 F13: WAITA				like mode==0 WAITA, PC += 1
 F2r: SEI				int_mask = R[r], PC += 1
-F3x: ** 4 empty (can take an 'r' param, or do 4 more no operand opcodes)
+F3r: SIA				isr_vect = R[r], PC += 1
