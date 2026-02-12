@@ -275,15 +275,15 @@ void compile_exec2(char *line)
 			}
 			switch (e2_opcodes[x].fmt) {
 				case E2_OP_FMT_RS: // r, s
-					if (sscanf(line, "%"SCNu8", %"SCNu8, &op1, &op2) != 2 || op1 > 3 || op2 > 3) {
+					if (!(sscanf(line, "%"SCNu8", %"SCNu8, &op1, &op2) == 2 || sscanf(line, "r%"SCNu8", r%"SCNu8, &op1, &op2) == 2) || (op1 > 3) || (op2 > 3)) {
 						printf("line %d: Expecting 'r, s' pair between 0 and 3\n", line_number);
 						exit(-1);
 					}
 					program[PC].opcode |= (op1 << 2) | op2;
 					break;
 				case E2_OP_FMT_R: // r
-					if (sscanf(line, "%"SCNu8, &op1) != 1 || op1 > 3) {
-						printf("line %d: Expecting 'r, s' pair between 0 and 3\n", line_number);
+					if (!(sscanf(line, "%"SCNu8, &op1) == 1 || sscanf(line, "r%"SCNu8, &op1) == 1) || op1 > 3) {
+						printf("line %d: Expecting 'r' between 0 and 3\n", line_number);
 						exit(-1);
 					}
 					program[PC].opcode |= op1;
@@ -433,6 +433,7 @@ int find_target(int x)
 {
 	int y;
 	uint8_t d;
+
 	for (y = 0; y < 256; y++) {
 		if (!strcmp(program[y].label, program[x].tgt)) {
 			return y;

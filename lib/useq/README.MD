@@ -25,7 +25,7 @@ return 0, writes to a full FIFO are discarded.
 The core also features an IRQ system where you can mask the i_port to tell it which bits you want
 to trigger on a leading positive edge with the SEI instruction.  Whichever execution mode issues the SEI instruction
 is the mode the core will switch to to execute the ISR.  This allows you to have a EXEC1 ISR work
-correctly while running EXEC2 code.  Once in the ISR the core disables intterupts until a RTI
+correctly while running EXEC2 code normally.  Once in the ISR the core disables intterupts until a RTI
 is executed.  The base address of the ISR defaults to 8'hF0 but you can relocate it with the EXEC2 SIA
 instruction (this instruction does not change which mode the ISR runs in, only SEI does that).  When an IRQ happens
 the core saves A, R[0], and R[1] to a temporary space which allows your ISR to destroy their values without 
@@ -44,9 +44,9 @@ by switching modes it's worth doing.
 Both modes can access the I/O and FIFOs so you've got options if you want to go for a one mode only core.  Just keep
 in mind that comes with limitations.
 
-On my Tang Nano 20K (GW2AR-18) I get the following sizes/times (keep in mind these should be treated as estimates...)
+On my Tang Nano 20K (GW2AR-18) I get the following sizes/times (keep in mind these should be treated as estimates and depend on route/place settings...)
 
-	- All enabled: 85MHz, 1110 CLS, 1605 LUT, 129 ALU, 128 ROM16, 259 Registers
+	- All enabled: 85~94MHz, 1110 CLS, 1605 LUT, 129 ALU, 128 ROM16, 259 Registers
 	- SLIM EXEC1+2: 80MHz, 1035 CLS, 1484 LUT, 128 ALU, 128 ROM16, 214 Registers
 	- EXEC1 Only: 104Mhz, 667 CLS, 783 LUT, 84 ALU, 128 ROM16, 248 Registers
 	- SLIM EXEC1 Only (no IRQ/Host FIFO): 100MHz, 649 CLS, 760 LUT, 84 ALU, 128 ROM16, 213 Registers
@@ -99,6 +99,24 @@ Fun ideas:
 
 	- A variant of the other idea is you could bitbang data via a SPI or UART like protocol.  E.g. fan the TX pin of the master to the slaves RX pins, and
 	OR the slave TX pins to the masters RX pin
+	
+	- along the lines of banking, we would make JMPA/CALLA and JMP imm/CALL imm use a different convention where the 8-bit target is actually
+	2-bits bank + 6-bits offset * 4, so you could jump/call any 4-byte aligned target in upto 4 banks.  In this configuration you'd have 1Kbyte of
+	code space.  We'd have to make sure mem_addr/PC/LR/ILR are 10 bits but that's a trivial change.  Probably for sanity just make them 10-bits always and then
+	make the interpretation of the opcodes a parameter.
+	
+	- Delays, the following code
+	
+	; load A
+	:WAITTOP
+	WAITA
+	DEC
+	JNZ WAITTOP
+	
+	will delay if you load A with n for C = 1/2 * (n^2 + 9*n) cycles.  This allows you to make somewhat fine controlled delays from 5 to 33,660 cycles with a 3 byte loop.	
+	for instance at 95MHz you need an n of 36, 53, 95, or 136 for 115200, 57600, 19200, or 9600 baud to time the bits correctly (well with a small error).  To work
+	out what you need for n for a given cycle count of C just use the formula n = (sqrt(8C + 81) - 9) / 2
+	
 	
 module useq
 #(parameter
@@ -239,7 +257,7 @@ EXEC2:
 3rs: AND r, s			R[r] &= R[s], PC += 1
 4rs: OR r, s			R[r] |= R[s], PC += 1
 5rs: MOV r, s           R[r] = R[s], PC += 1
-60r: NEG r              R[r] = ~R[r], PC += 1
+60r: NEG r              R[r] = -R[r], PC += 1
 61r: CLR r				R[r] = 0, PC += 1
 62r: LDI r, imm			R[r] = ROM[PC+1], PC += 2 (note this is a 2 cycle opcode)
 63r: XCH r				A <=> R[r], PC += 1
@@ -261,7 +279,7 @@ C3r: WAITF r			PC = PC + (QFIFO >= R[r]) ? 1 : 0, you need an ISR that stores to
 D0r: ANDA r				R[r] &= A, PC += 1
 D1r: ORA r				R[r] |= A, PC += 1
 D2r: EORA r				R[r] ^= A, PC += 1
-D3r: LDA r				R[r] = A, PC += 1
+D3r: LDA r				R[r] = A, PC += 1  // technically redundant as you can just XCH or do CLR r, ADDA r
 E0r: JNZ r, imm			PC = R[r] == 0 ? PC + 2 : ROM[PC + 1], 2 cycle
 E1r: JZ r, imm          PC = R[r] != 0 ? PC + 2 : ROM[PC + 1], 2 cycle, both of these can use the same stage since it's just doing PC <= mem_data, mem_addr <= mem_data, state <= FETCH
 E2r: DEC r				R[r] -= 1, PC += 1
