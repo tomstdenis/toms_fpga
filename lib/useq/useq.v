@@ -12,18 +12,19 @@ module useq
 	input clk,
 	input rst_n,
 	
-	input [7:0] mem_data,
-	input [7:0] i_port,
+	input [7:0] mem_data,				// ROM[mem_addr]
+	input [7:0] i_port,					// input port you can connect other pins to feed data into the core
 
-	input read_fifo,
-	input write_fifo,
-	output fifo_empty,
-	output fifo_full,
-	input [7:0] fifo_in,
-	output reg [7:0] fifo_out,
+	input read_fifo,					// pulse this high to read a byte from the FIFO into fifo_out in the next clock cycle
+	input write_fifo,					// pulse this high to write from fifo_in into the FIFO
+	output fifo_empty,					// high when the FIFO is empty
+	output fifo_full,					// high when the FIFO is full
+	input [7:0] fifo_in,				// The FIFO input into the core when pulsing write_fifo 
+	output reg [7:0] fifo_out,			// The fifo output from the core when pulsing read_fifo
 	
-	output reg [7:0] mem_addr,
-	output reg [7:0] o_port
+	output reg [7:0] mem_addr,			// The address the core needs mem_data from in the next clock cycle
+	output reg [7:0] o_port,			// output port you can connect other pins to feed data out of the core.
+	output reg o_port_pulse				// This pin toggles when a write to o_port is done.
 );
 
 	reg [7:0] A;								// A accumulator
@@ -115,6 +116,7 @@ module useq
 			mem_addr <= 0;
 			mode <= 0;
 			prevmode <= 0;
+			o_port_pulse <= 0;
 			for (i=0; i<16; i=i+1) begin
 				R[i] <= 0;
 			end
@@ -156,7 +158,7 @@ module useq
 					PC <= isr_vect;
 					state <= FETCH;			// need another FETCH cycle
 					prevmode <= mode;		// save the execution mode
-					mode <= irqmode;		// go back to ACC mode
+					mode <= irqmode;		// go back to ISR execution mode
 				end else begin
 					case(state)
 						FETCH:

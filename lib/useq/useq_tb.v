@@ -18,11 +18,12 @@ module useq_tb();
 	wire fifo_full;
 	wire [7:0] fifo_out;
 	reg [7:0] fifo_in;
+	wire o_port_pulse;
 
 	useq #(.FIFO_DEPTH(2), .ISR_VECT(8'hF0), .ENABLE_EXEC1(1), .ENABLE_EXEC2(1), .ENABLE_IRQ(1), .ENABLE_HOST_FIFO_CTRL(1)) useq_dut(
 		.clk(clk), .rst_n(rst_n), 
 		.mem_data(mem_data), .i_port(i_port), 
-		.mem_addr(mem_addr), .o_port(o_port),
+		.mem_addr(mem_addr), .o_port(o_port), .o_port_pulse(o_port_pulse),
 		.read_fifo(read_fifo), .write_fifo(write_fifo), .fifo_empty(fifo_empty), .fifo_full(fifo_full),
 		.fifo_out(fifo_out), .fifo_in(fifo_in));
 

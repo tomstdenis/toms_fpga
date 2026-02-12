@@ -190,6 +190,7 @@ begin
 					4'h0: // OUT
 						begin
 							o_port <= A;
+							o_port_pulse <= o_port_pulse ^ 1'b1;
 						end
 					4'h1: // OUTBIT
 						begin
@@ -203,6 +204,7 @@ begin
 								3'd6: o_port[6] <= A[0];
 								3'd7: o_port[7] <= A[0];
 							endcase
+							o_port_pulse <= o_port_pulse ^ 1'b1;
 						end
 					4'h2: // TGLBIT
 						begin
@@ -216,6 +218,7 @@ begin
 								3'd6: o_port[6] <= o_port[6] ^ 1;
 								3'd7: o_port[7] <= o_port[7] ^ 1;
 							endcase
+						o_port_pulse <= o_port_pulse ^ 1'b1;
 						end
 					4'h3: // IN
 						begin

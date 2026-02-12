@@ -39,7 +39,7 @@ begin
 					begin
 						state <= FETCH;
 						R[e2_s] <= mem_data;			// this was prefetched 
-						PC <= PC + 8'd2;				// skip over immedia
+						PC <= PC + 8'd2;				// skip over immediate
 						mem_addr <= PC + 8'd2;
 					end
 				2'd3: // XCH
@@ -254,6 +254,7 @@ begin
 							2'd1: // OUT
 								begin
 									o_port <= A;
+									o_port_pulse <= o_port_pulse ^ 1'b1;
 								end
 							2'd2: // EXEC1
 								begin

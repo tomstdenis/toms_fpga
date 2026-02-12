@@ -16,6 +16,7 @@ struct {
 	int use_bottom_half;
 	int line_number;
 	int opidx;
+	char line[512];
 } program[256];
 
 struct {
@@ -176,12 +177,12 @@ void consume_whitespace(char **s)
 
 int islabel(char *s)
 {
-	return *s == '>' || *s == '<' || isalpha(*s);
+	return *s == '>' || *s == '<' || *s == '_' || isalpha(*s);
 }
 
 void consume_label(char *dest, char **s)
 {
-	while (isalnum(**s)) {
+	while (isalnum(**s) || **s == '_') {
 		*dest++ = *((*s)++);
 	}
 	*dest++ = 0;
@@ -290,6 +291,8 @@ void compile_exec2(char *line)
 				case E2_OP_FMT_NO:
 					break;
 				case E2_OP_FMT_I: // imm
+					program[PC+1].line_number = line_number;
+					program[PC+1].mode = mode;
 					if (islabel(line)) {
 						// it's a label
 						if (*line == '<') {
@@ -310,6 +313,8 @@ void compile_exec2(char *line)
 				case E2_OP_FMT_RI: // r, imm
 					sscanf(line, "%"SCNu8, &op1);
 					program[PC].opcode |= op1 & 3;
+					program[PC+1].line_number = line_number;
+					program[PC+1].mode = mode;
 					
 					// skip over first operand
 					while (*line && *line != ',') ++line;
@@ -352,6 +357,7 @@ void compile_exec2(char *line)
 
 void compile(char *line)
 {
+	strcpy(program[PC].line, line);
 	// skip leading white space
 	consume_whitespace(&line);
 	if (!*line || *line == ';') {
@@ -389,6 +395,7 @@ void compile(char *line)
 	} else if (!memcmp(line, ".DB ", 4)) {
 		uint8_t x;
 		if (program[PC].line_number == -1) {
+			// todo: allow symbols/labels here
 			line += 4;
 			consume_whitespace(&line);
 			sscanf(line, "%"SCNx8, &x);
@@ -610,6 +617,34 @@ int main(int argc, char **argv)
 			if (program[x].line_number == -1) {
 				printf("ROM[%x] is free\n", x);
 			}
+		}
+	}
+	printf("Symbols: \n");
+	for (x = 0; x < 256; x++) {
+		if (symbols[x].label[0]) {
+			printf("Symbol %s == %x\n", symbols[x].label, symbols[x].value);
+		}
+	}
+	printf("Listing: \n");
+	for (x = 0; x < 256; x++) {
+		if (program[x].line_number != -1) {
+			if (program[x].label[0]) {
+				printf("[%-15s ", program[x].label);
+			} else {
+				printf("[%16s", "");
+			}
+			strcpy(linebuf, program[x].line);
+			linebuf[20] = 0;
+			for (y = 0; linebuf[y]; y++) {
+				if (linebuf[y] == '\r' || linebuf[y] == '\n') {
+					linebuf[y] = 0;
+					break;
+				}
+				if (linebuf[y] == '\t') {
+					linebuf[y] = ' ';
+				}
+			}
+			printf("0x%02X, E%d]: 0x%02X ; %-20s (%s:%d)\n", x, program[x].mode+1, program[x].opcode, linebuf, argv[1], program[x].line_number);
 		}
 	}
 	return 0;
