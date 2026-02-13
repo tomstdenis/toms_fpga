@@ -4,9 +4,9 @@ module useq_tb();
 
 	reg [7:0] mem[0:4095];
 	wire [11:0] mem_addr;
-	wire [7:0] mem_data;
+	wire [15:0] mem_data;
 	
-	assign mem_data = mem[mem_addr];
+	assign mem_data = {mem[mem_addr+1'b1], mem[mem_addr]};
 	
 	reg clk;
 	reg rst_n;

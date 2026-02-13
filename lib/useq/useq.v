@@ -10,7 +10,7 @@ module useq
 	input clk,
 	input rst_n,
 	
-	input [7:0] mem_data,				// ROM[mem_addr]
+	input [15:0] mem_data,				// ROM[mem_addr..mem_addr+1]
 	input [7:0] i_port,					// input port you can connect other pins to feed data into the core
 
 	input read_fifo,					// pulse this high to read a byte from the FIFO into fifo_out in the next clock cycle
@@ -67,7 +67,6 @@ module useq
 	// can_chain = 0 means "Wait, we need a FETCH cycle to realign"
 	wire can_chain_exec1 = !(
 		(instruct[7:4] == 4'h8) || // IMM form opcodes
-		(instruct[7:4] == 4'h9 && instruct[3:0] >= 4'hF) || // *LDA, *SIGT, *SIEQ, *SILT
 		(instruct[7:4] == 4'hA) || // CALL
 		(instruct[7:4] == 4'hB) || // JMP
 		(instruct[7:4] == 4'hC) || // JZ
@@ -141,7 +140,7 @@ module useq
 					case(state)
 						FETCH:
 							begin
-								instruct <= mem_data;
+								instruct <= mem_data[7:0];
 								state <= EXECUTE;
 								mem_addr <= PC + 1'b1; // FETCH PC+1 for the EXECUTE stage so we can latch it for a potential EXECUTE2 stage
 							end
@@ -153,13 +152,13 @@ module useq
 								if (can_chain_exec1) begin
 									PC <= PC + 1'b1;			// advance to next PC
 									mem_addr <= PC + 12'd2;		// load what will be the "next opcode" in the next cycle
-									instruct <= mem_data;   	// latch the current "next opcode"
+									instruct <= mem_data[7:0];   	// latch the current "next opcode"
 									state <= EXECUTE;
 								end
 							end
 						LOADA: // load A with whatever was read from ROM
 							begin
-								A <= mem_data;
+								A <= mem_data[7:0];
 								mem_addr <= PC;
 								state <= FETCH;
 							end

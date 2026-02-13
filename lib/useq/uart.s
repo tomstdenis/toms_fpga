@@ -10,11 +10,9 @@
 	CALL SENDSTR		; CALL SENDSTR
 
 ; let's insert a decent pause (this works out to ~34000 * 256 cycles... or about 322.4ms)
-	LDI FF				; A = FF
-	ST 2				; inner loop counter = 255
-	ST 1				; outer loop counter = 255
+	LDIR1 FF			; R1 = FF, outer loop counter
 :MAINLOOP1
-	LD 2				; reload inner counter
+	LDI FF				; inner loop counter
 :MAINLOOP2
 	WAITA				; Wait for A cycles, restoring A
 	DEC					; Decrement A
