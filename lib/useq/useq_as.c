@@ -71,9 +71,9 @@ const struct {
 	{ "LDIR12", 0x89, E1_OP_FMT_IMM },
 	{ "LDIR13", 0x8A, E1_OP_FMT_IMM },
 	{ "LDIR14", 0x8B, E1_OP_FMT_IMM },
-	{ "LDM", 0x8C, E1_OP_FMT_FULL },
-	{ "STM", 0x8D, E1_OP_FMT_FULL },
-	{ "MUL", 0x8F, E1_OP_FMT_FULL },
+	{ "MUL", 0x8C, E1_OP_FMT_FULL },
+	{ "LDM", 0x8D, E1_OP_FMT_FULL },
+	{ "STM", 0x8E, E1_OP_FMT_FULL },
 // 8E..8F
 		
 	{ "INC", 0x90, E1_OP_FMT_FULL },

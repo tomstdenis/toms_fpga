@@ -156,7 +156,7 @@ module useq
 									state <= EXECUTE;
 								end
 							end
-						LOADA: // load A with whatever was read from ROM
+						LOADA: // mem_addr was set to the address we want to load and store in A
 							begin
 								A <= mem_data[7:0];
 								mem_addr <= PC;

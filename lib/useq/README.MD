@@ -222,12 +222,12 @@ EXEC1:
 89: LDR12 imm		R[12] = imm, PC += 2;
 8A: LDR13 imm		R[13] = imm, PC += 2;
 8B: LDR14 imm		R[14] = imm, PC += 2;
-8C: LDM 			A <= ROM[{R[14], R[13]}, {R[14], R[13]} <= {R[14], R[13]} + 1'b1;   (ram and rom are the same address space
-8D: STM				RAM{R[12], R[11]} <= A, {R[12], R[11]} <= {R[12], R[11]} + 1'b1;    (not yet implemented)
-8E: MUL				{R[0], A} = A * R[0], PC += 1
+8C: MUL				{R[0], A} = A * R[0], PC += 1
+8D: LDM 			A <= ROM[{R[14], R[13]}, {R[14], R[13]} <= {R[14], R[13]} + 1'b1;   (ram and rom are the same address space
+8E: STM				RAM{R[12], R[11]} <= A, {R[12], R[11]} <= {R[12], R[11]} + 1'b1;    (not yet implemented)
 8F: XXX 
 
-// 1 cycle until 9C then 2 cycles
+// all 1 cycle
 90: INC, 			A = A + 1, PC += 1
 91: DEC, 			A = A - 1, PC += 1
 92: ASL, 			A = A << 1, PC += 1

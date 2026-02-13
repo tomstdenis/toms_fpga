@@ -63,7 +63,7 @@ begin
 			begin
 				A <= A | R[d_imm];
 			end
-		4'h8: // JMPS and other commands with IMM field
+		4'h8: // IMM commands (e.g. LDI, ADDI, etc) we handle chaining here because the other can_chain is only for 1 byte opcodes
 			begin
 				case(instruct[3:0])
 					4'h0: // LDI
@@ -114,22 +114,7 @@ begin
 						begin
 							R[14] <= mem_data[7:0];
 						end
-					4'hC: // LDM
-						begin
-							mem_addr <= {R[14][3:0], R[13]};
-							{R[14], R[13]} <= {R[14], R[13]} + 1'b1;
-							PC <= PC + 12'd1;
-							state <= LOADA;
-						end
-					4'hD: // STM
-						begin
-							mem_addr <= {R[12][3:0], R[11]};
-							{R[12], R[11]} <= {R[12], R[11]} + 1'b1;
-							PC <= PC + 12'd1;
-							state <= STOREA;
-							// TODO: write_enable
-						end
-					4'hE: // MUL (TODO: maybe pipeline this, though most parts can handle a MULT9x9 with a DSP)
+					4'hC: // MUL
 						begin
 							{R[0], A} <= A * R[0];
 							PC <= PC + 12'd1;
@@ -137,11 +122,26 @@ begin
 							instruct <= mem_data[7:0];
 							state <= EXECUTE;
 						end
+					4'hD: // LDM
+						begin
+							mem_addr <= {R[14][3:0], R[13]};
+							{R[14], R[13]} <= {R[14], R[13]} + 1'b1;
+							PC <= PC + 12'd1;
+							state <= LOADA;
+						end
+					4'hE: // STM
+						begin
+							mem_addr <= {R[12][3:0], R[11]};
+							{R[12], R[11]} <= {R[12], R[11]} + 1'b1;
+							PC <= PC + 12'd1;
+							state <= STOREA;
+							// TODO: write_enable
+						end
 					default:
 						begin end
 				endcase
 				case(instruct[3:0])
-					4'hC,4'hD,4'hE: // already handled LDM/STM/MUL
+					4'hC,4'hD,4'hE: // already handled MUL/LDM/STM
 						begin end
 					default:
 						begin
