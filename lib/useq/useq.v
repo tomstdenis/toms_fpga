@@ -56,7 +56,6 @@ module useq
 	wire [3:0] d_imm = instruct[3:0];
 	wire [2:0] s_imm = instruct[3:1];
 	wire       b_imm = instruct[0];
-	
 
 	wire		int_triggered = |((i_port & ~l_i_port) & int_mask) & int_enable & (ENABLE_IRQ ? 1'b1 : 1'b0);
 	wire 		host_wants_fifo = read_fifo ^ write_fifo;

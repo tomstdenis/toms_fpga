@@ -138,7 +138,6 @@ Instruction Map:
 6r: AND r, 			A = A & R[r], PC += 1
 7r: OR r, 			A = A | R[r], PC += 1
 
-
 // all 1 cycle except for LDM/STM
 80: LDI imm			A = ROM[PC+1], PC = PC + 2
 81: ADDI imm		A = A + ROM[PC+1], PC = PC + 2
@@ -146,12 +145,12 @@ Instruction Map:
 83: EORI imm		A = A ^ ROM[PC+1], PC = PC + 2
 84: ANDI imm		A = A & ROM[PC+1], PC = PC + 2
 85: ORI imm			A = A | ROM[PC+1], PC = PC + 2
-86: LDR0 imm		R[0] = imm, PC += 2
-87: LDR1 imm		R[1] = imm, PC += 2;
-88: LDR11 imm		R[11] = imm, PC += 2;
-89: LDR12 imm		R[12] = imm, PC += 2;
-8A: LDR13 imm		R[13] = imm, PC += 2;
-8B: LDR14 imm		R[14] = imm, PC += 2;
+86: LDIR0 imm		R[0] = imm, PC += 2
+87: LDIR1 imm		R[1] = imm, PC += 2;
+88: LDIR11 imm		R[11] = imm, PC += 2;
+89: LDIR12 imm		R[12] = imm, PC += 2;
+8A: LDIR13 imm		R[13] = imm, PC += 2;
+8B: LDIR14 imm		R[14] = imm, PC += 2;
 8C: MUL				{R[0], A} = A * R[0], PC += 1
 8D: LDM 			A <= ROM[{R[14], R[13]}, {R[14], R[13]} <= {R[14], R[13]} + 1'b1;   (ram and rom are the same address space
 8E: STM				RAM{R[12], R[11]} <= A, {R[12], R[11]} <= {R[12], R[11]} + 1'b1;    (not yet implemented)
@@ -181,7 +180,7 @@ Bx: CALL IMM12		LR = PC + 2, PC = {instruct[3:0], imm}
 Cx: JZ IMM12		if (A == 0) PC = {instruct[3:0], imm}
 Dx: JNZ IMM12		if (A != 0) PC = {instruct[3:0], imm}
 
-// 1 cycle, except E7-EF which are 2+ cycles
+// 1 cycle, except EA-EF which are 2+ cycles
 E0: OUT, 			o_port = A, PC += 1
 E1: OUTBIT, 		o_port[R0[2:0]] = A[0], PC += 1  // fast set-1
 E2: TGLBIT, 		o_port[R1[2:0]] ^= 1, PC += 1    // fast toggle-1			<--- things clock pin related use R1 to address the pin

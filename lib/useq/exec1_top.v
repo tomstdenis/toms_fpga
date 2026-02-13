@@ -32,16 +32,7 @@ begin
 			end
 		4'h2: // SETB s, b
 			begin
-				case(s_imm)
-					3'd0: A[0] <= b_imm;
-					3'd1: A[1] <= b_imm;
-					3'd2: A[2] <= b_imm;
-					3'd3: A[3] <= b_imm;
-					3'd4: A[4] <= b_imm;
-					3'd5: A[5] <= b_imm;
-					3'd6: A[6] <= b_imm;
-					3'd7: A[7] <= b_imm;
-				endcase
+				A[s_imm] <= b_imm;
 			end
 		4'h3: // ADD R[r]
 			begin
