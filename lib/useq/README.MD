@@ -205,8 +205,21 @@ EXEC1:
 5r: EOR r, 			A = A ^ R[r], PC += 1
 6r: AND r, 			A = A & R[r], PC += 1
 7r: OR r, 			A = A | R[r], PC += 1
-8r: JMP r,			PC = PC + zeroext(r)
-9r: JNZ r,			if A then PC = PC - zeroext(r), else PC += 1
+80: JMP imm			PC = imm << 2
+81: SJMP imm		PC = PC + { imm[7], imm[7], imm }; // short unaligned jumps
+82: JZ imm			if !A then PC = imm<<2
+83: SJZ imm			if !A then PC = PC + { imm[7], imm[7], imm };  // short unaligned jumps
+84: JNZ imm			if A then PC = imm, else PC += 2
+85  SJNZ imm		if A then PC = PC + { imm[7], imm[7], imm }; // short unaligned jumps
+86: CALL imm 		LR = PC + 2, PC = ROM[PC+1] << 2
+87: LDI imm			A = ROM[PC+1], PC = PC + 2
+88: ADDI imm		A = A + ROM[PC+1], PC = PC + 2
+89: SUBI imm		A = A - ROM[PC+1], PC = PC + 2
+8A: EORI imm		A = A ^ ROM[PC+1], PC = PC + 2
+8B: ANDI imm		A = A & ROM[PC+1], PC = PC + 2
+8C: ORI imm			A = A | ROM[PC+1], PC = PC + 2
+8D..8F: FREE
+9x: XXX FREE
 A0: INC, 			A = A + 1, PC += 1
 A1: DEC, 			A = A - 1, PC += 1
 A2: ASL, 			A = A << 1, PC += 1
@@ -223,8 +236,8 @@ AC: LDA, 			R14 = A + 1, A = ROM[A], PC += 1 (R14 stores a pointer to the next b
 AD: SIGT, 			PC = PC + 1 + (A > R[0]) ? 1 : 0   // skip if greater
 AE: SIEQ, 			PC = PC + 1 + (A == R[0]) ? 1 : 0  // skip if equal
 AF: SILT, 			PC = PC + 1 + (A < R[0]) ? 1 : 0   // skip if less than
-Br: LDIB r, 		A[3:0] = r, PC += 1
-Cr: LDIT r, 		A[7:4] = r, PC += 1
+Bx: XXX FREE
+Cx: XXX FREE
 D0: OUT, 			o_port = A, PC += 1
 D1: OUTBIT, 		o_port[R0[2:0]] = A[0], PC += 1  // fast set-1
 D2: TGLBIT, 		o_port[R1[2:0]] ^= 1, PC += 1    // fast toggle-1			<--- things clock pin related use R1 to address the pin
@@ -233,7 +246,7 @@ D4: INBIT, 		 	A = i_port[R0[2:0]] ? 1 : 0 , PC += 1
 D5: NEG:			A = -A, PC += 1
 D6: SEI, 			PC += 1, int_mask = A, if i_port & int_mask is a posedge (prev < cur) (from registered copy) then IRQ
 D7: JMPA, 			PC = A
-D8: CALL, 			LR = PC + 1, PC = A
+D8: XXX EMPTY
 D9: RET, 			PC = LR
 DA: RTI, 			PC = ILR, re-enable interrupts and return
 DB: WAIT0,			PC = PC + (i_port[R1[2:0]]) ? 0 : 1							<---- since WAIT's are likely clock related we use R1 to address the pin here
@@ -241,7 +254,7 @@ DC: WAIT1,			PC = PC + (i_port[R1[2:0]]) ? 1 : 0
 DD: EXEC2 			Byte that follows PC is from the EXEC2 table
 DE: WAITF: 			PC = PC + (R[15] >= A) ? 1 : 0, // wait for FIFO to have at least A bytes in it, you need an ISR that stores in the fifo for this to advance
 DF: WAITA, 			T = A, A = A - 1, PC += (A == 0) ? 1 : 0, A = T when it stops waiting
-Er: JSR r, 			PC = r << 4 // (jump to a 16 byte aligned ROM address)
+Ex: XXX FREE 
 Fsb: SBIT s, b		Skip next instruction bit s of A is b, PC = PC + 1 + (A[s] == b) ? 1 : 0
 
 In EXEC2 we focus mostly on R[] to R[] operations to the opcode is 4 bits for opcode and typically 2 bits r, and s to pick from R[0..3].

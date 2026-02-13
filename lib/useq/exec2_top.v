@@ -39,8 +39,8 @@ begin
 					begin
 						state <= FETCH;
 						R[e2_s] <= mem_data;			// this was prefetched 
-						PC <= PC + 8'd2;				// skip over immediate
-						mem_addr <= PC + 8'd2;
+						PC <= PC + 10'd2;				// skip over immediate
+						mem_addr <= PC + 10'd2;
 					end
 				2'd3: // XCH
 					begin
@@ -70,33 +70,33 @@ begin
 		4'h8: // SIGT
 			begin
 				if (R[e2_r] > R[e2_s]) begin
-					PC <= PC + 8'd2;
-					mem_addr <= PC + 8'd2;
+					PC <= PC + 10'd2;
+					mem_addr <= PC + 10'd2;
 				end else begin
-					PC <= PC + 8'd1;
-					mem_addr <= PC + 8'd1;
+					PC <= PC + 10'd1;
+					mem_addr <= PC + 10'd1;
 				end
 				state <= FETCH;
 			end
 		4'h9: // SIEQ
 			begin
 				if (R[e2_r] == R[e2_s]) begin
-					PC <= PC + 8'd2;
-					mem_addr <= PC + 8'd2;
+					PC <= PC + 10'd2;
+					mem_addr <= PC + 10'd2;
 				end else begin
-					PC <= PC + 8'd1;
-					mem_addr <= PC + 8'd1;
+					PC <= PC + 10'd1;
+					mem_addr <= PC + 10'd1;
 				end
 				state <= FETCH;
 			end
 		4'hA: // SILT
 			begin
 				if (R[e2_r] < R[e2_s]) begin
-					PC <= PC + 8'd2;
-					mem_addr <= PC + 8'd2;
+					PC <= PC + 10'd2;
+					mem_addr <= PC + 10'd2;
 				end else begin
-					PC <= PC + 8'd1;
-					mem_addr <= PC + 8'd1;
+					PC <= PC + 10'd1;
+					mem_addr <= PC + 10'd1;
 				end
 				state <= FETCH;
 			end
@@ -145,7 +145,7 @@ begin
 					begin
 						if (R[e2_s] <= R[15]) begin
 							PC <= PC + 1'b1;			// FIFO has enough contents advance to the next
-							mem_addr <= PC + 8'd2;		// we're chaining so we need to tell the ROM to load the next next opcode
+							mem_addr <= PC + 10'd2;		// we're chaining so we need to tell the ROM to load the next next opcode
 							instruct <= mem_data;		// we can technically just advance since we loaded the opcode for PC+1 already
 						end
 					end
@@ -174,8 +174,8 @@ begin
 				2'h0: // JNZ
 					begin
 						if (R[e2_s] != 0) begin
-							PC <= PC - mem_data - 8'd1;
-							mem_addr <= PC - mem_data - 8'd1;
+							PC <= PC - {2'b0, mem_data} - 10'd1;
+							mem_addr <= PC - {2'b0, mem_data} - 10'd1;
 						end else begin
 							PC <= PC + 1'b1;
 							mem_addr <= PC + 1'b1;
@@ -185,8 +185,8 @@ begin
 				2'h1: // JZ
 					begin
 						if (R[e2_s] == 0) begin
-							PC <= PC - mem_data - 8'd1;
-							mem_addr <= PC - mem_data - 8'd1;
+							PC <= PC - {2'b0, mem_data} - 10'd1;
+							mem_addr <= PC - {2'b0, mem_data} - 10'd1;
 						end else begin
 							PC <= PC + 1'b1;
 							mem_addr <= PC + 1'b1;
@@ -208,15 +208,15 @@ begin
 					case (e2_s[1:0]) // bits 1:0 of opcode
 						2'h0: // JMP
 							begin
-								PC <= mem_data;
-								mem_addr <= mem_data;
+								PC <= {2'b0, mem_data};
+								mem_addr <= {2'b0, mem_data};
 								state <= FETCH;
 							end
 						2'h1: // CALL
 							begin
-								LR <= PC + 8'd2;
-								PC <= mem_data;
-								mem_addr <= mem_data;
+								LR <= PC + 10'd2;
+								PC <= {2'b0, mem_data};
+								mem_addr <= {2'b0, mem_data};
 								state <= FETCH;
 							end
 						2'h2: // RET
@@ -262,7 +262,7 @@ begin
 										mode <= 0;
 										state <= EXECUTE;
 										PC <= PC + 1'b1;
-										mem_addr <= PC + 8'd2;
+										mem_addr <= PC + 10'd2;
 										instruct <= mem_data;
 									end
 								end
@@ -274,7 +274,7 @@ begin
 										end
 										T <= 0;
 										PC <= PC + 1'b1;
-										mem_addr <= PC + 8'd2;
+										mem_addr <= PC + 10'd2;
 										instruct <= mem_data;		// chain to the next opcode
 									end else begin
 										if (!T[8]) begin
@@ -298,7 +298,7 @@ begin
 				2'h3: // SIA
 					begin
 						if (ENABLE_IRQ == 1) begin
-							isr_vect <= R[e2_s];
+							isr_vect <= {R[e2_s], 2'b0};
 						end
 					end
 				default: begin end

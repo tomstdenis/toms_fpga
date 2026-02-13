@@ -5,7 +5,7 @@
 #include <ctype.h>
 #include <inttypes.h>
 
-// the entire program can only be 256 bytes so just make a simple map here
+// the entire program can only be upto 1024 bytes so just make a simple map here
 struct {
 	int multi_byte; // does this opcode span into the next byte?
 	int mode;		// 0 == EXEC1, 1 == EXEC2
@@ -17,16 +17,16 @@ struct {
 	int line_number;
 	int opidx;
 	char line[512];
-} program[256];
+} program[1024];
 
 struct {
 	char label[64];
 	uint8_t value;
-} symbols[256];
+} symbols[1024];
 
 int line_number = 1;
 int mode = 0;
-uint8_t PC = 0;
+uint16_t PC = 0;
 
 /* bare bones assembler, allows whitespace and comments with ';'
  * 
@@ -41,7 +41,8 @@ uint8_t PC = 0;
 #define E1_OP_FMT_R 0			// has an r
 #define E1_OP_FMT_SB 1			// has an s, b
 #define E1_OP_FMT_FULL 2		// no operands
-
+#define E1_OP_FMT_IMM 3			// 8-bit immediate
+#define E1_OP_FMT_IMMS 4		// 10-bit value shifted right to fit in 8 bits
 // EXEC1 instruction table
 const struct {
 	char *opname;
@@ -56,8 +57,16 @@ const struct {
 	{ "EOR", 0x50, E1_OP_FMT_R }, 
 	{ "AND", 0x60, E1_OP_FMT_R }, 
 	{ "OR" , 0x70, E1_OP_FMT_R }, 
-	{ "JMP", 0x80, E1_OP_FMT_R }, 
-	{ "JNZ", 0x90, E1_OP_FMT_R }, 
+	{ "JMP", 0x80, E1_OP_FMT_IMMS }, 
+	{ "JZ", 0x82, E1_OP_FMT_IMMS }, 
+	{ "JNZ", 0x84, E1_OP_FMT_IMMS },
+	{ "CALL", 0x86, E1_OP_FMT_IMMS },
+	{ "LDI", 0x87, E1_OP_FMT_IMM },
+	{ "ADDI", 0x88, E1_OP_FMT_IMM },
+	{ "SUBI", 0x89, E1_OP_FMT_IMM },
+	{ "EORI", 0x8A, E1_OP_FMT_IMM },
+	{ "ANDI", 0x8B, E1_OP_FMT_IMM },
+	{ "ORI", 0x8C, E1_OP_FMT_IMM },
 	{ "INC", 0xA0, E1_OP_FMT_FULL },
 	{ "DEC", 0xA1, E1_OP_FMT_FULL },
 	{ "ASL", 0xA2, E1_OP_FMT_FULL },
@@ -74,8 +83,6 @@ const struct {
 	{ "SIGT", 0xAD, E1_OP_FMT_FULL },
 	{ "SIEQ", 0xAE, E1_OP_FMT_FULL },
 	{ "SILT", 0xAF, E1_OP_FMT_FULL },
-	{ "LDIB", 0xB0, E1_OP_FMT_R },
-	{ "LDIT", 0xC0, E1_OP_FMT_R },
 	{ "OUT", 0xD0, E1_OP_FMT_FULL },
 	{ "OUTBIT", 0xD1, E1_OP_FMT_FULL },
 	{ "TGLBIT", 0xD2, E1_OP_FMT_FULL },
@@ -84,7 +91,6 @@ const struct {
 	{ "NEG", 0xD5, E1_OP_FMT_FULL },
 	{ "SEI", 0xD6, E1_OP_FMT_FULL },
 	{ "JMPA", 0xD7, E1_OP_FMT_FULL },
-	{ "CALL", 0xD8, E1_OP_FMT_FULL },
 	{ "RET", 0xD9, E1_OP_FMT_FULL },
 	{ "RTI", 0xDA, E1_OP_FMT_FULL },
 	{ "WAIT0", 0xDB, E1_OP_FMT_FULL },
@@ -92,7 +98,7 @@ const struct {
 	{ "EXEC2", 0xDD, E1_OP_FMT_FULL },
 	{ "WAITF", 0xDE, E1_OP_FMT_FULL },
 	{ "WAITA", 0xDF, E1_OP_FMT_FULL },
-	{ "JSR", 0xE0, E1_OP_FMT_R },
+	{ "NOP", 0xE0, E1_OP_FMT_R },
 	{ "SBIT", 0xF0, E1_OP_FMT_SB },
 	{ NULL, 0x00, 0 },
 };
@@ -197,6 +203,8 @@ void compile_exec1(char *line)
 			line += strlen(e1_opcodes[x].opname);
 			consume_whitespace(&line);
 			program[PC].opcode = e1_opcodes[x].opcode;
+			program[PC].mode = mode;
+			program[PC].opidx = x;
 			if (program[PC].line_number == -1) {
 				program[PC].line_number = line_number;
 			} else {
@@ -204,6 +212,28 @@ void compile_exec1(char *line)
 				exit(-1);
 			}
 			switch (e1_opcodes[x].fmt) {
+				case E1_OP_FMT_IMM:
+				case E1_OP_FMT_IMMS:
+					program[PC+1].line_number = line_number;
+					program[PC+1].mode = mode;
+					if (islabel(line)) {
+						// it's a label
+						if (*line == '<') {
+							program[PC].use_top_half = 1;
+							++line;
+						} else if (*line == '>') {
+							program[PC].use_bottom_half = 1;
+							++line;
+						}
+						consume_label(program[PC].tgt, &line);
+					} else {
+						uint8_t r;
+						// it's a value
+						sscanf(line, "%"SCNx8, &r);
+						program[PC+1].opcode = r;
+					}
+					++PC;
+					break;
 				case E1_OP_FMT_R:
 					if (islabel(line)) {
 						// it's a label
@@ -241,6 +271,7 @@ void compile_exec1(char *line)
 	}
 	
 	++PC;
+	PC &= 0x3FF;
 	if (!PC) {
 		printf("Warning line %d: We've wrapped PC around back to 0\n", program[PC].line_number);
 	}
@@ -266,11 +297,6 @@ void compile_exec2(char *line)
 				program[PC].line_number = line_number;
 			} else {
 				printf("line %d: byte location %x already was programmed on line %d\n", line_number, PC, program[PC].line_number);
-				exit(-1);
-			}
-			// warn about 2 byte opcodes
-			if (PC == 255 && e2_opcodes[x].bytes == 2) {
-				printf("line %d: Trying to use a 2 byte opcode at offset PC=255\n", line_number);
 				exit(-1);
 			}
 			switch (e2_opcodes[x].fmt) {
@@ -346,6 +372,7 @@ void compile_exec2(char *line)
 		}
 	}
 	++PC;
+	PC &= 0x3FF;
 	if (!PC) {
 		printf("Warning line %d: We've wrapped PC around back to 0\n", program[PC].line_number);
 	}
@@ -367,12 +394,12 @@ void compile(char *line)
 	// is it .ORG ?
 	if (!memcmp(line, ".ORG ", 5)) {
 		line += 5;
-		sscanf(line, "%"SCNx8, &PC);
+		sscanf(line, "%"SCNx16, &PC);
 	} else if (!memcmp(line, ".EQU ", 5)) {
 		int x;
 		line += 5;
 		consume_whitespace(&line);
-		for (x = 0; x < 256; x++) {
+		for (x = 0; x < 1024; x++) {
 			if (symbols[x].label[0] == 0) {
 				consume_label(symbols[x].label, &line);
 				consume_whitespace(&line);
@@ -434,12 +461,12 @@ int find_target(int x)
 	int y;
 	uint8_t d;
 
-	for (y = 0; y < 256; y++) {
+	for (y = 0; y < 1024; y++) {
 		if (!strcmp(program[y].label, program[x].tgt)) {
 			return y;
 		}
 	}
-	for (y = 0; y < 256; y++) {
+	for (y = 0; y < 1024; y++) {
 		if (!strcmp(symbols[y].label, program[x].tgt)) {
 			return symbols[y].value;
 		}
@@ -454,17 +481,8 @@ int find_target(int x)
 void resolve_exec1(int x)
 {
 	int y;
-	switch(program[x].opcode&0xF0){
-		// generics
-		case 0x00: // LD
-		case 0x10: // ST
-		case 0x30: // ADD
-		case 0x40: // SUB
-		case 0x50: // EOR
-		case 0x60: // AND
-		case 0x70: // OR
-		case 0xB0: // LDIB
-		case 0xC0: // LDIT
+	switch (e1_opcodes[program[x].opidx].fmt) {
+		case E1_OP_FMT_R:
 			if (program[x].tgt[0]) {
 				y = find_target(x);
 				if (program[x].use_top_half) {
@@ -473,13 +491,13 @@ void resolve_exec1(int x)
 					y &= 0xF;
 				}
 				if (y > 15) {
-					printf("line %d: Invalid 4-bit r-value %x\n", program[x].line_number, y);
+					printf("line %d: Invalid 4-bit r-value %x at program offset %2x\n", program[x].line_number, y, x);
 					exit(-1);
 				} 
 				program[x].opcode |= y & 0xF;
 			}
 			break;
-		case 0x80: // JMP
+		case E1_OP_FMT_IMM: // imms
 			if (program[x].tgt[0]) {
 				// jumping to a target 
 				y = find_target(x);
@@ -488,15 +506,10 @@ void resolve_exec1(int x)
 				} else if (program[x].use_bottom_half) {
 					y &= 0xF;
 				}
-				// can only jump PC+1..PC+16
-				if ((y < (x+1)) || (y > x+16)) {
-					printf("line %d: JMP to target %s is out of range on byte %d\n", program[x].line_number, program[x].tgt, x);
-					exit(-1);
-				}
-				program[x].opcode |= (y - (x+1)) & 0x0F;
+				program[x+1].opcode = y;
 			}
 			break;
-		case 0x90: // JNZ
+		case E1_OP_FMT_IMMS: // JMPs (and their short variants which are at +1)
 			if (program[x].tgt[0]) {
 				// jumping to a target 
 				y = find_target(x);
@@ -505,28 +518,15 @@ void resolve_exec1(int x)
 				} else if (program[x].use_bottom_half) {
 					y &= 0xF;
 				}
-				// can only jump PC-1..PC-16
-				if ((y >= x) || (y < x-16)) {
-					printf("line %d: JNZ to target %s is out of range on byte %d\n", program[x].line_number, program[x].tgt, x);
-					exit(-1);
-				}
-				program[x].opcode |= ((x-1)-y) & 0x0F;
-			}
-			break;
-		case 0xE0: // JSR
-			if (program[x].tgt[0]) {
-				y = find_target(x);
-				// if we're using a half make sure it's in the top 4 bits
-				if (program[x].use_top_half) {
-					y &= 0xF0;
-				} else if (program[x].use_bottom_half) {
-					y <<= 4;
-				}
-				if (y & 0x0F) {
-					printf("line %d: JSR can only jump to 16 byte aligned targets %s (%x) is invalid.\n", program[x].line_number, program[x].tgt, y);
-					exit(-1);
+				if (y & 3) {
+					// try to resolve to relative to PC
+					program[x].opcode += 1;
+					printf("relative jump to %x from %x\n", y, x);
+					y = (int)(y - (int)x) & 0xFF;
+					printf("storing offset byte %x\n", y);
+					program[x+1].opcode = y;
 				} else {
-					program[x].opcode |= ((y >> 4) & 0x0F);
+					program[x+1].opcode = y >> 2;
 				}
 			}
 			break;
@@ -560,7 +560,7 @@ void resolve_labels(void)
 {
 	int x;
 	
-	for (x = 0; x < 256; x++) {
+	for (x = 0; x < 1024; x++) {
 		if (program[x].mode == 0) {
 			resolve_exec1(x);
 		} else {
@@ -584,8 +584,8 @@ int main(int argc, char **argv)
 	memset(&program, 0, sizeof program);
 	memset(&symbols, 0, sizeof symbols);
 	
-	for (x = 0; x < 256; x++) {
-		program[x].opcode = 0xAF; // CLR
+	for (x = 0; x < 1024; x++) {
+		program[x].opcode = 0xE0; // NOP
 		program[x].line_number = -1;
 	}
 	
@@ -599,35 +599,35 @@ int main(int argc, char **argv)
 	}
 	resolve_labels();
 	f = fopen(outname, "w");
-	fprintf(f, "#File_format=Hex\n#Address_depth=256\n#Data_width=8\n");
-	for (x = 0; x < 256; x++) {
+	fprintf(f, "#File_format=Hex\n#Address_depth=1024\n#Data_width=8\n");
+	for (x = 0; x < 1024; x++) {
 		fprintf(f, "%02X\n", program[x].opcode);
 	}
 	fclose(f);
 
-	for (x = y = 0; x < 256; x++) {
+	for (x = y = 0; x < 1024; x++) {
 		if (program[x].line_number != -1) {
 			++y;
 		}
 	}
-	printf("%s created, used %d out of 256 bytes.\n", outname, y);
-	if (y > 224 && y != 256) {
+	printf("%s created, used %d out of 1024 bytes.\n", outname, y);
+	if (y > 900 && y != 1024) {
 		// find the user some space
 		printf("Limited free space here's a map of free space:\n");
-		for (x = 0; x < 256; x++) {
+		for (x = 0; x < 1024; x++) {
 			if (program[x].line_number == -1) {
 				printf("ROM[%x] is free\n", x);
 			}
 		}
 	}
 	printf("Symbols: \n");
-	for (x = 0; x < 256; x++) {
+	for (x = 0; x < 1024; x++) {
 		if (symbols[x].label[0]) {
 			printf("Symbol %s == %x\n", symbols[x].label, symbols[x].value);
 		}
 	}
 	printf("Listing: \n");
-	for (x = 0; x < 256; x++) {
+	for (x = 0; x < 1024; x++) {
 		if (program[x].line_number != -1) {
 			if (program[x].label[0]) {
 				printf("[%-15s ", program[x].label);

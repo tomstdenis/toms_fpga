@@ -2,8 +2,8 @@
 
 module useq_tb();
 
-	reg [7:0] mem[0:255];
-	wire [7:0] mem_addr;
+	reg [7:0] mem[0:1023];
+	wire [9:0] mem_addr;
 	wire [7:0] mem_data;
 	
 	assign mem_data = mem[mem_addr];
@@ -20,7 +20,7 @@ module useq_tb();
 	reg [7:0] fifo_in;
 	wire o_port_pulse;
 
-	useq #(.FIFO_DEPTH(2), .ISR_VECT(8'hF0), .ENABLE_EXEC1(1), .ENABLE_EXEC2(1), .ENABLE_IRQ(1), .ENABLE_HOST_FIFO_CTRL(1)) useq_dut(
+	useq #(.FIFO_DEPTH(2), .ISR_VECT(10'hF0), .ENABLE_EXEC1(1), .ENABLE_EXEC2(1), .ENABLE_IRQ(1), .ENABLE_HOST_FIFO_CTRL(1)) useq_dut(
 		.clk(clk), .rst_n(rst_n), 
 		.mem_data(mem_data), .i_port(i_port), 
 		.mem_addr(mem_addr), .o_port(o_port), .o_port_pulse(o_port_pulse),
@@ -33,7 +33,7 @@ module useq_tb();
     always #(CLK_PERIOD/2) clk = ~clk;
 
     // --- Verification Logic ---
-    reg [7:0] T_PC;
+    reg [9:0] T_PC;
     reg [7:0] T_A;
     reg [7:0] T_LR;
     reg [7:0] T_ILR;
@@ -90,22 +90,16 @@ module useq_tb();
 			if (fifo_empty) read_fifo = 0;
 		end
 */
-		$display("Trying out EXEC2...");
-		$readmemh("test4_clean.hex", mem);
+		$display("Trying out uart demo...");
+//		$readmemh("simple_clean.hex", mem);
+		$readmemh("uart_clean.hex", mem);
 		reset_cpu();
-		repeat(8) step_cpu();
-		repeat(3) begin
-			i_port = 1;
-			$display("Triggering IRQ");
-			repeat(8) step_cpu();
-			i_port = 0;
-			repeat(8) step_cpu();
-		end
+		repeat(32768) step_cpu();
 		$finish;
 	end
 
     task step_cpu();
-		integer x;reg [7:0] ttpc;
+		integer x;reg [9:0] ttpc;
 		begin
 			ttpc = useq_dut.PC;
 			@(posedge clk);

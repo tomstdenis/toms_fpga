@@ -3,7 +3,7 @@
 module useq
 #(parameter
 	FIFO_DEPTH=16,
-	ISR_VECT=8'hF0,
+	ISR_VECT=10'hF0,
 	ENABLE_EXEC1=1,
 	ENABLE_EXEC2=1,
 	ENABLE_IRQ=1,
@@ -22,7 +22,7 @@ module useq
 	input [7:0] fifo_in,				// The FIFO input into the core when pulsing write_fifo 
 	output reg [7:0] fifo_out,			// The fifo output from the core when pulsing read_fifo
 	
-	output reg [7:0] mem_addr,			// The address the core needs mem_data from in the next clock cycle
+	output reg [9:0] mem_addr,			// The address the core needs mem_data from in the next clock cycle
 	output reg [7:0] o_port,			// output port you can connect other pins to feed data out of the core.
 	output reg o_port_pulse				// This pin toggles when a write to o_port is done.
 );
@@ -30,15 +30,15 @@ module useq
 	reg [7:0] A;								// A accumulator
 	reg [7:0] tA;								// temporaty A used for IRQ
 	reg [7:0] tR[1:0];							// temporary R[0..1] used for IRQ
-	reg [7:0] PC;								// PC program counter
+	reg [9:0] PC;								// PC program counter
 	reg [8:0] T;								// T temporary register used for WAITA opcode
-	reg [7:0] LR;								// LR link register
-	reg [7:0] ILR;								// ILR IRQ link register
+	reg [9:0] LR;								// LR link register
+	reg [9:0] ILR;								// ILR IRQ link register
 	reg [7:0] instruct;							// current opcode
 	reg [7:0] R[15:0];							// R register file
 	reg [7:0] l_i_port;							// latched copy of i_port
 	reg [7:0] int_mask;							// The IRQ mask applied to i_port set by SEI opcode
-	reg [7:0] isr_vect;							// Where to jump when an IRQ happens
+	reg [9:0] isr_vect;							// Where to jump when an IRQ happens
 	reg int_enable;								// Interrupt enable (set by SEI, disabled during IRQ)
 	reg [7:0] FIFO[FIFO_DEPTH-1:0];				// Message passing FIFO
 	reg [$clog2(FIFO_DEPTH)-1:0] fifo_rptr;		// FIFO read pointer
@@ -74,11 +74,9 @@ module useq
 	// can_chain = 1 means "Single-Cycle Turbo is GO"
 	// can_chain = 0 means "Wait, we need a FETCH cycle to realign"
 	wire can_chain_exec1 = !(
-		(instruct[7:4] == 4'h8) || // *JMP r
-		(instruct[7:4] == 4'h9) || // *JNZ r
+		(instruct[7:4] == 4'h8) || // Jumps and other immediate opcodes
 		(instruct[7:4] == 4'hA && instruct[3:0] >= 4'hC) || // *LDA, *SIGT, *SIEQ, *SILT
 		(instruct[7:4] == 4'hD && instruct[3:0] >= 4'h7) || // *JMPA, *CALL, *RET, *RTI, *WAITs, *EXEC2, *WAITF, *WAITA
-		(instruct[7:4] == 4'hE) || // *JSR r
 		(instruct[7:4] == 4'hF)    // *SBIT
 	);
 	
@@ -180,7 +178,7 @@ module useq
 //								$display("for opcode instruct=%2h chain=%d", instruct, can_chain_exec1);
 								if (can_chain_exec1) begin
 									PC <= PC + 1'b1;			// advance to next PC
-									mem_addr <= PC + 8'd2;		// load what will be the "next opcode" in the next cycle
+									mem_addr <= PC + 10'd2;		// load what will be the "next opcode" in the next cycle
 									instruct <= mem_data;   	// latch the current "next opcode"
 									state <= EXECUTE;
 								end
@@ -192,7 +190,7 @@ module useq
 //								$display("for opcode instruct=%2h chain=%d", instruct, can_chain_exec2);
 								if (can_chain_exec2) begin
 									PC <= PC + 1'b1;			// advance to next PC
-									mem_addr <= PC + 8'd2;		// load what will be the "next opcode" in the next cycle
+									mem_addr <= PC + 10'd2;		// load what will be the "next opcode" in the next cycle
 									instruct <= mem_data;   	// latch the current "next opcode"
 									state <= EXECUTE2;
 								end
