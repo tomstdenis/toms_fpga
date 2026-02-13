@@ -122,6 +122,56 @@ begin
 							mem_addr <= PC + 12'd2;
 							state <= FETCH;
 						end
+					4'h8: // LDIR11
+						begin
+							R[11] <= mem_data;
+							PC <= PC + 12'd2;
+							mem_addr <= PC + 12'd2;
+							state <= FETCH;
+						end
+					4'h9: // LDIR12
+						begin
+							R[12] <= mem_data;
+							PC <= PC + 12'd2;
+							mem_addr <= PC + 12'd2;
+							state <= FETCH;
+						end
+					4'hA: // LDIR13
+						begin
+							R[13] <= mem_data;
+							PC <= PC + 12'd2;
+							mem_addr <= PC + 12'd2;
+							state <= FETCH;
+						end
+					4'hB: // LDIR14
+						begin
+							R[14] <= mem_data;
+							PC <= PC + 12'd2;
+							mem_addr <= PC + 12'd2;
+							state <= FETCH;
+						end
+					4'hC: // LDM
+						begin
+							mem_addr <= {R[14][3:0], R[13]};
+							{R[14], R[13]} <= {R[14], R[13]} + 1'b1;
+							PC <= PC + 12'd1;
+							state <= LOADA;
+						end
+					4'hD: // STM
+						begin
+							mem_addr <= {R[12][3:0], R[11]};
+							{R[12], R[11]} <= {R[12], R[11]} + 1'b1;
+							PC <= PC + 12'd1;
+							state <= STOREA;
+							// TODO: write_enable
+						end
+					4'hE: // MUL (TODO: maybe pipeline this, though most parts can handle a MULT9x9 with a DSP)
+						begin
+							{R[0], A} <= A * R[0];
+							PC <= PC + 12'd1;
+							mem_addr <= PC + 12'd1;
+							state <= FETCH;
+						end
 					default:
 						begin end
 				endcase
@@ -179,45 +229,26 @@ begin
 						begin
 							A <= 8'b0;
 						end
-					4'hC: // LDA (TODO: make this 12 bit aware)
+					4'hC: // SIGT
 						begin
-							mem_addr <= {4'b0, A};
-							R[14] <= A + 1'b1;
-							PC <= PC + 1'b1;
-							state <= LOADA;
+							A <= (A > R[0]) ? 8'd1 : 8'd0;
+							PC <= PC + 12'd1;
+							mem_addr <= PC + 12'd1;
 						end
-					4'hD: // SIGT
+					4'hD: // SIEQ
 						begin
-							if (A > R[0]) begin
-								PC <= PC + 12'd2;
-								state <= FETCH;
-							end else begin
-								PC <= PC + 1'b1; // execute the next opcode we already fetched
-								instruct <= mem_data;
-							end
-							mem_addr <= PC + 12'd2; // either we're skipping and we need PC+2 or we're prefetching the next next opcode for PC+1 :-)
+							A <= (A == R[0]) ? 8'd1 : 8'd0;
+							PC <= PC + 12'd1;
+							mem_addr <= PC + 12'd1;
 						end
-					4'hE: // SIEQ
+					4'hE: // SILT
 						begin
-							if (A == R[0]) begin
-								PC <= PC + 12'd2;
-								state <= FETCH;
-							end else begin
-								PC <= PC + 1'b1; // execute the next opcode we already fetched
-								instruct <= mem_data;
-							end
-							mem_addr <= PC + 12'd2; // either we're skipping and we need PC+2 or we're prefetching the next next opcode for PC+1 :-)
+							A <= (A < R[0]) ? 8'd1 : 8'd0;
+							PC <= PC + 12'd1;
+							mem_addr <= PC + 12'd1;
 						end
-					4'hF: // SILT
+					4'hF: // XXX
 						begin
-							if (A < R[0]) begin
-								PC <= PC + 12'd2;
-								state <= FETCH;
-							end else begin
-								PC <= PC + 1'b1; // execute the next opcode we already fetched
-								instruct <= mem_data;
-							end
-							mem_addr <= PC + 12'd2; // either we're skipping and we need PC+2 or we're prefetching the next next opcode for PC+1 :-)
 						end
 				endcase
 			end

@@ -140,7 +140,7 @@ module useq
 	input [7:0] fifo_in,				// The FIFO input into the core when pulsing write_fifo 
 	output reg [7:0] fifo_out,			// The fifo output from the core when pulsing read_fifo
 	
-	output reg [9:0] mem_addr,			// The address the core needs mem_data from in the next clock cycle
+	output reg [11:0] mem_addr,			// The address the core needs mem_data from in the next clock cycle
 	output reg [7:0] o_port,			// output port you can connect other pins to feed data out of the core.
 	output reg o_port_pulse				// This pin toggles when a write to o_port is done it's not an active high/low 
 );
@@ -197,6 +197,8 @@ Whereas, TGLBIT uses the lower 3 bits of R[1].  This is meant so you can specify
 pin in R[1].
 
 EXEC1:
+
+// all 1 cycle
 0r: LD r, 			A = R[r], PC += 1
 1r: ST r, 			R[r] = A, PC += 1		; for LD and ST if r==15 then it interacts with the FIFO not R[15] itself
 2sb: SETB s, b, 	A[s] = b, PC += 1   	; Set bit s of A to b
@@ -206,6 +208,8 @@ EXEC1:
 6r: AND r, 			A = A & R[r], PC += 1
 7r: OR r, 			A = A | R[r], PC += 1
 
+
+// Group 0x8x are all 2 cycle
 80: LDI imm			A = ROM[PC+1], PC = PC + 2
 81: ADDI imm		A = A + ROM[PC+1], PC = PC + 2
 82: SUBI imm		A = A - ROM[PC+1], PC = PC + 2
@@ -214,8 +218,16 @@ EXEC1:
 85: ORI imm			A = A | ROM[PC+1], PC = PC + 2
 86: LDR0 imm		R[0] = imm, PC += 2
 87: LDR1 imm		R[1] = imm, PC += 2;
-88..8F: XXX 
+88: LDR11 imm		R[11] = imm, PC += 2;
+89: LDR12 imm		R[12] = imm, PC += 2;
+8A: LDR13 imm		R[13] = imm, PC += 2;
+8B: LDR14 imm		R[14] = imm, PC += 2;
+8C: LDM 			A <= ROM[{R[14], R[13]}, {R[14], R[13]} <= {R[14], R[13]} + 1'b1;   (ram and rom are the same address space
+8D: STM				RAM{R[12], R[11]} <= A, {R[12], R[11]} <= {R[12], R[11]} + 1'b1;    (not yet implemented)
+8E: MUL				{R[0], A} = A * R[0], PC += 1
+8E..8F: XXX 
 
+// 1 cycle until 9C then 2 cycles
 90: INC, 			A = A + 1, PC += 1
 91: DEC, 			A = A - 1, PC += 1
 92: ASL, 			A = A << 1, PC += 1
@@ -228,14 +240,18 @@ EXEC1:
 99: SWAPR1, 		A and R[1] swap spaces, PC += 1
 9A: NOT, 			A = ~A, PC += 1
 9B: CLR, 			A = 0, PC += 1
-9C: LDA, 			R14 = A + 1, A = ROM[A], PC += 1 (R14 stores a pointer to the next byte you can fetch with "LD E")
-9D: SIGT, 			PC = PC + 1 + (A > R[0]) ? 1 : 0   // skip if greater
-9E: SIEQ, 			PC = PC + 1 + (A == R[0]) ? 1 : 0  // skip if equal
-9F: SILT, 			PC = PC + 1 + (A < R[0]) ? 1 : 0   // skip if less than
+9C: SIGT, 			A = (A > R[0]) ? 1 : 0, PC += 1
+9D: SIEQ, 			A = (A == R[0]) ? 1 : 0, PC += 1
+9E: SILT, 			A = (A < R[0]) ? 1 : 0, PC += 1
+9F: XXX
+
+// relocations are 2 cycles
 Ax: JMP IMM12		PC = {instruct[3:0], imm}
 Bx: CALL IMM12		LR = PC + 2, PC = {instruct[3:0], imm}
 Cx: JZ IMM12		if (A == 0) PC = {instruct[3:0], imm}
 Dx: JNZ IMM12		if (A != 0) PC = {instruct[3:0], imm}
+
+// 1 cycle until E7 then 2 cycles
 E0: OUT, 			o_port = A, PC += 1
 E1: OUTBIT, 		o_port[R0[2:0]] = A[0], PC += 1  // fast set-1
 E2: TGLBIT, 		o_port[R1[2:0]] ^= 1, PC += 1    // fast toggle-1			<--- things clock pin related use R1 to address the pin
@@ -252,55 +268,6 @@ EC: WAIT0,			PC = PC + (i_port[R1[2:0]]) ? 0 : 1							<---- since WAIT's are li
 ED: WAIT1,			PC = PC + (i_port[R1[2:0]]) ? 1 : 0
 EE: WAITF: 			PC = PC + (R[15] >= A) ? 1 : 0, // wait for FIFO to have at least A bytes in it, you need an ISR that stores in the fifo for this to advance
 EF: WAITA, 			T = A, A = A - 1, PC += (A == 0) ? 1 : 0, A = T when it stops waiting
+
+// 2 cycles
 Fsb: SBIT s, b		Skip next instruction bit s of A is b, PC = PC + 1 + (A[s] == b) ? 1 : 0
-
-In EXEC2 we focus mostly on R[] to R[] operations to the opcode is 4 bits for opcode and typically 2 bits r, and s to pick from R[0..3].
-In this mode you still have access to the I/O port but only on an 8-bit wide unit at a time.  So to toggle a bit you have to recall
-what the o_port was set to and toggle the bit in question.  
-
-Here 'r' and 's' are 2-bit fields.  The opcode format is 4-bit,2-bit,2-bit.  E.g. 0rs means 0000_rr_ss, where as say 62r means 0110_10_rr
-
-EXEC2:
-0rs: ADD r, s			R[r] += R[s], PC += 1
-1rs: SUB r, s			R[r] -= R[s], PC += 1
-2rs: EOR r, s			R[r] ^= R[s], PC += 1
-3rs: AND r, s			R[r] &= R[s], PC += 1
-4rs: OR r, s			R[r] |= R[s], PC += 1
-5rs: MOV r, s           R[r] = R[s], PC += 1
-60r: NEG r              R[r] = -R[r], PC += 1
-61r: CLR r				R[r] = 0, PC += 1
-62r: LDI r, imm			R[r] = ROM[PC+1], PC += 2 (note this is a 2 cycle opcode)
-63r: XCH r				A <=> R[r], PC += 1
-70r: LDIND1 r			A = R[4 + r], PC += 1
-71r: LDIND2 r			A = R[8 + r], PC += 1
-72r: STIND1 r			R[4 + r] = A, PC += 1
-73r: STIND2 r			R[8 + r] = A, PC += 1
-8rs: SIGT r, s			PC = PC + 1 + (R[r] > R[s]) ? 1 : 0		// can only skip over 1 byte opcodes...
-9rs: SIEQ r, s			PC = PC + 1 + (R[r] == R[s]) ? 1 : 0
-Ars: SILT r, s			PC = PC + 1 + (R[r] < R[s]) ? 1 : 0
-B0r: ASR r				R[r] >>= 1, PC += 1, signed
-B1r: LSR r				R[r] >>= 1, PC += 1;
-B2r: ADDA r				R[r] += A, PC += 1;
-B3r: SUBA r				R[r] -= A, PC += 1;
-C0r: RFIFO r			R[r] == read_from fifo (0 if empty), PC += 1
-C1r: WFIFO r			write R[r] to fifo (or nothing if full), PC += 1
-C2r: QFIFO r			Store the fifo_count in R[r], PC += 1
-C3r: WAITF r			PC = PC + (QFIFO >= R[r]) ? 1 : 0, you need an ISR that stores to the FIFO otherwise this never advances (waits till at least R[r] bytes are in FIFO)
-D0r: ANDA r				R[r] &= A, PC += 1
-D1r: ORA r				R[r] |= A, PC += 1
-D2r: EORA r				R[r] ^= A, PC += 1
-D3r: LDA r				R[r] = A, PC += 1  // technically redundant as you can just XCH or do CLR r, ADDA r
-E0r: JNZ r, imm			PC = R[r] == 0 ? PC + 2 : ROM[PC + 1], 2 cycle
-E1r: JZ r, imm          PC = R[r] != 0 ? PC + 2 : ROM[PC + 1], 2 cycle, both of these can use the same stage since it's just doing PC <= mem_data, mem_addr <= mem_data, state <= FETCH
-E2r: DEC r				R[r] -= 1, PC += 1
-E3r: INC r				R[r] += 1, PC += 1
-F00: JMP imm			PC = ROM[PC+1], 2 cycle, same as JNZ/JZ stage 
-F01: CALL imm			LR = PC + 2, PC = ROM[PC+1], 2 cycle, same as JNZ/JZ/JMP stage
-F02: RET				PC = LR
-F03: RTI
-F10: IN					A = i_port, PC += 1
-F11: OUT				o_port = A, PC += 1
-F12: EXEC1				Byte that follows PC is from EXEC1 table, PC = PC + 1
-F13: WAITA				like mode==0 WAITA, PC += 1
-F2r: SEI				int_mask = R[r], PC += 1
-F3r: SIA				isr_vect = R[r], PC += 1

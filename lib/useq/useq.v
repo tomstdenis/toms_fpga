@@ -41,13 +41,14 @@ module useq
 	reg [7:0] FIFO[FIFO_DEPTH-1:0];				// Message passing FIFO
 	reg [$clog2(FIFO_DEPTH)-1:0] fifo_rptr;		// FIFO read pointer
 	reg [$clog2(FIFO_DEPTH)-1:0] fifo_wptr;		// FIFO write pointer
-	reg [1:0] state;							// current FSM state
+	reg [2:0] state;							// current FSM state
 
 	localparam
 		FETCH=0,
 		EXECUTE=1,
 		EXECUTE2=2,
-		LOADA=3;
+		LOADA=3,
+		STOREA=4;
 
 	integer i;
 
@@ -66,7 +67,7 @@ module useq
 	// can_chain = 0 means "Wait, we need a FETCH cycle to realign"
 	wire can_chain_exec1 = !(
 		(instruct[7:4] == 4'h8) || // IMM form opcodes
-		(instruct[7:4] == 4'h9 && instruct[3:0] >= 4'hC) || // *LDA, *SIGT, *SIEQ, *SILT
+		(instruct[7:4] == 4'h9 && instruct[3:0] >= 4'hF) || // *LDA, *SIGT, *SIEQ, *SILT
 		(instruct[7:4] == 4'hA) || // CALL
 		(instruct[7:4] == 4'hB) || // JMP
 		(instruct[7:4] == 4'hC) || // JZ
@@ -159,6 +160,12 @@ module useq
 						LOADA: // load A with whatever was read from ROM
 							begin
 								A <= mem_data;
+								mem_addr <= PC;
+								state <= FETCH;
+							end
+						STOREA: // Cycle after a store is initiated
+							begin
+								// TODO: turn off write enable
 								mem_addr <= PC;
 								state <= FETCH;
 							end

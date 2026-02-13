@@ -9,8 +9,6 @@
 
 // the entire program can only be upto PROG_SIZE bytes so just make a simple map here
 struct {
-	int multi_byte; // does this opcode span into the next byte?
-	int mode;		// 0 == EXEC1, 1 == EXEC2
 	uint8_t opcode;
 	char label[64];
 	char tgt[64];
@@ -27,7 +25,6 @@ struct {
 } symbols[PROG_SIZE];
 
 int line_number = 1;
-int mode = 0;
 uint16_t PC = 0;
 
 /* bare bones assembler, allows whitespace and comments with ';'
@@ -70,7 +67,15 @@ const struct {
 	{ "ORI", 0x85, E1_OP_FMT_IMM },
 	{ "LDIR0", 0x86, E1_OP_FMT_IMM },
 	{ "LDIR1", 0x87, E1_OP_FMT_IMM },
-
+	{ "LDIR11", 0x88, E1_OP_FMT_IMM },
+	{ "LDIR12", 0x89, E1_OP_FMT_IMM },
+	{ "LDIR13", 0x8A, E1_OP_FMT_IMM },
+	{ "LDIR14", 0x8B, E1_OP_FMT_IMM },
+	{ "LDM", 0x8C, E1_OP_FMT_FULL },
+	{ "STM", 0x8D, E1_OP_FMT_FULL },
+	{ "MUL", 0x8F, E1_OP_FMT_FULL },
+// 8E..8F
+		
 	{ "INC", 0x90, E1_OP_FMT_FULL },
 	{ "DEC", 0x91, E1_OP_FMT_FULL },
 	{ "ASL", 0x92, E1_OP_FMT_FULL },
@@ -83,10 +88,10 @@ const struct {
 	{ "SWAPR1", 0x99, E1_OP_FMT_FULL },
 	{ "NOT", 0x9A, E1_OP_FMT_FULL },
 	{ "CLR", 0x9B, E1_OP_FMT_FULL },
-	{ "LDA", 0x9C, E1_OP_FMT_FULL },
-	{ "SIGT", 0x9D, E1_OP_FMT_FULL },
-	{ "SIEQ", 0x9E, E1_OP_FMT_FULL },
-	{ "SILT", 0x9F, E1_OP_FMT_FULL },
+	{ "SIGT", 0x9C, E1_OP_FMT_FULL },
+	{ "SIEQ", 0x9D, E1_OP_FMT_FULL },
+	{ "SILT", 0x9E, E1_OP_FMT_FULL },
+// 9F
 	
 	{ "JMP", 0xA0, E1_OP_FMT_IMM12 },
 	{ "CALL", 0xB0, E1_OP_FMT_IMM12 },
@@ -147,7 +152,6 @@ void compile_exec1(char *line)
 			line += strlen(e1_opcodes[x].opname);
 			consume_whitespace(&line);
 			program[PC].opcode = e1_opcodes[x].opcode;
-			program[PC].mode = mode;
 			program[PC].opidx = x;
 			if (program[PC].line_number == -1) {
 				program[PC].line_number = line_number;
@@ -158,7 +162,6 @@ void compile_exec1(char *line)
 			switch (e1_opcodes[x].fmt) {
 				case E1_OP_FMT_IMMS: // 12 => 8-bit imm
 					program[PC+1].line_number = line_number;
-					program[PC+1].mode = mode;
 					if (islabel(line)) {
 						// it's a label
 						if (*line == '<') {
@@ -180,7 +183,6 @@ void compile_exec1(char *line)
 
 				case E1_OP_FMT_IMM12: // 12-bit imm
 					program[PC+1].line_number = line_number;
-					program[PC+1].mode = mode;
 					if (islabel(line)) {
 						// it's a label
 						if (*line == '<') {
@@ -203,7 +205,6 @@ void compile_exec1(char *line)
 
 				case E1_OP_FMT_IMM:
 					program[PC+1].line_number = line_number;
-					program[PC+1].mode = mode;
 					if (islabel(line)) {
 						// it's a label
 						if (*line == '<') {
@@ -320,15 +321,6 @@ void compile(char *line)
 			printf("Line %d: .DB directive on address that was already programmed on line %d\n", line_number, program[PC].line_number);
 			exit(-1);
 		}
-	} else if (!memcmp(line, ".MODE ", 6)) {
-		uint8_t x;
-		line += 6;
-		sscanf(line, "%"SCNu8, &x);
-		if (x != 1 && x != 2) {
-			printf("Line %d: Invalid .MODE selection (%u)\n", line_number, x);
-			exit(-1);
-		}
-		mode = x - 1;
 	} else if (line[0] == ':') {
 		// it's a label
 		++line;
@@ -473,8 +465,8 @@ int main(int argc, char **argv)
 			++y;
 		}
 	}
-	printf("%s created, used %d out of %d bytes.\n", outname, y, PROG_SIZE);
-	if (y > 900 && y != PROG_SIZE) {
+	printf("%s created, used %d (%d%%) out of %d bytes.\n", outname, y, (y * 100) / PROG_SIZE, PROG_SIZE);
+	if (y > (PROG_SIZE-(PROG_SIZE/10)) && y != PROG_SIZE) {
 		// find the user some space
 		printf("Limited free space here's a map of free space:\n");
 		for (x = 0; x < PROG_SIZE; x++) {
@@ -508,7 +500,7 @@ int main(int argc, char **argv)
 					linebuf[y] = ' ';
 				}
 			}
-			printf("0x%02X, E%d]: 0x%02X ; %-20s (%s:%d)\n", x, program[x].mode+1, program[x].opcode, linebuf, argv[1], program[x].line_number);
+			printf("0x%02X]: 0x%02X ; %-20s (%s:%d)\n", x, program[x].opcode, linebuf, argv[1], program[x].line_number);
 		}
 	}
 	return 0;

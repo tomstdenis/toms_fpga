@@ -1,20 +1,18 @@
 ; UART demo for 27MHz using 115.2K baud meaning each bit lasts 234.4 cycles 
 .ORG 00
-.MODE 1
 
 .EQU BIT_COUNTER E0				; 224 + loop(10) cycles per bit send
 
 :MAIN
-	CLR
-	ST 0				; ensure R0 == 0 so we output to pin 0
-	LDI HELLOTXT
-	ST E 				; R14 = HELLOTXT
+	LDIR0 0				; R0 = 0 so we output on pin 0
+	LDIR13 >HELLOTXT	; load R14:R13 with pointer to text
+	LDIR14 <HELLOTXT
 	CALL SENDSTR		; CALL SENDSTR
 
 ; let's insert a decent pause (this works out to ~34000 * 256 cycles... or about 322.4ms)
 	LDI FF				; A = FF
-	ST 2
-	ST 1				; R[1,2] = FF
+	ST 2				; inner loop counter = 255
+	ST 1				; outer loop counter = 255
 :MAINLOOP1
 	LD 2				; reload inner counter
 :MAINLOOP2
@@ -40,7 +38,7 @@
 ;    R[3] -> 224, bit counter
 ; CHAR to send is in A, R0[2:0] is set to the bit of o_port TX is on
 	LDI 7
-	ST 2   			; R[2] = 8
+	ST 2   			; R[2] = bits to send
 	LDI BIT_COUNTER ; // 224 cycles to account for the 10 taken in the loop
 	ST 3   			; R[3] = counter
 	OUTBIT 			; Output A[0] which is 0, START bit (low)
@@ -69,14 +67,13 @@
 :SENDSTR
 ; Function SENDSTR(R14) -- Transmit a string
 ; INPUT:
-;  R14 - Pointer to string
+;  R14:R13 - Pointer to string
 ;  R0[2:0] - pin to write to
 ;
 ; Destroys:
-;   A, R[1..3, 14]
+;   A, R[1..3, 13, 14]
 ;
-	LD E 			; Byte to send
-	LDA				; A = ROM[A], R14 = A + 1
+	LDM				; A = ROM[R[14],R[13]], R14,R13 += 1
 	JZ SENDSTRDONE ; If it's not NUL send it, otherwise return	
 	ST 1			; R[1] == char to send
 	JMP TXCHAR
@@ -84,6 +81,7 @@
 	RET
 
 
+.ORG 200
 ; DATA
 ; ----
 :HELLOTXT
