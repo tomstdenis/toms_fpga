@@ -5,7 +5,9 @@
 #include <ctype.h>
 #include <inttypes.h>
 
-// the entire program can only be upto 1024 bytes so just make a simple map here
+#define PROG_SIZE 4096
+
+// the entire program can only be upto PROG_SIZE bytes so just make a simple map here
 struct {
 	int multi_byte; // does this opcode span into the next byte?
 	int mode;		// 0 == EXEC1, 1 == EXEC2
@@ -17,12 +19,12 @@ struct {
 	int line_number;
 	int opidx;
 	char line[512];
-} program[1024];
+} program[PROG_SIZE];
 
 struct {
 	char label[64];
 	uint8_t value;
-} symbols[1024];
+} symbols[PROG_SIZE];
 
 int line_number = 1;
 int mode = 0;
@@ -42,7 +44,9 @@ uint16_t PC = 0;
 #define E1_OP_FMT_SB 1			// has an s, b
 #define E1_OP_FMT_FULL 2		// no operands
 #define E1_OP_FMT_IMM 3			// 8-bit immediate
-#define E1_OP_FMT_IMMS 4		// 10-bit value shifted right to fit in 8 bits
+#define E1_OP_FMT_IMM12 4		// 12-bit imm
+#define E1_OP_FMT_IMMS 5		// 12-bit >> 4 => 8-bit
+
 // EXEC1 instruction table
 const struct {
 	char *opname;
@@ -57,18 +61,16 @@ const struct {
 	{ "EOR", 0x50, E1_OP_FMT_R }, 
 	{ "AND", 0x60, E1_OP_FMT_R }, 
 	{ "OR" , 0x70, E1_OP_FMT_R }, 
-	{ "JMP", 0x80, E1_OP_FMT_IMMS }, 
-	{ "JZ", 0x82, E1_OP_FMT_IMMS }, 
-	{ "JNZ", 0x84, E1_OP_FMT_IMMS },
-	{ "CALL", 0x86, E1_OP_FMT_IMMS },
-	{ "LDI", 0x87, E1_OP_FMT_IMM },
-	{ "ADDI", 0x88, E1_OP_FMT_IMM },
-	{ "SUBI", 0x89, E1_OP_FMT_IMM },
-	{ "EORI", 0x8A, E1_OP_FMT_IMM },
-	{ "ANDI", 0x8B, E1_OP_FMT_IMM },
-	{ "ORI", 0x8C, E1_OP_FMT_IMM },
-	{ "LDIR0", 0x8D, E1_OP_FMT_IMM },
-	{ "LDIR1", 0x8E, E1_OP_FMT_IMM },
+
+	{ "LDI", 0x80, E1_OP_FMT_IMM },
+	{ "ADDI", 0x81, E1_OP_FMT_IMM },
+	{ "SUBI", 0x82, E1_OP_FMT_IMM },
+	{ "EORI", 0x83, E1_OP_FMT_IMM },
+	{ "ANDI", 0x84, E1_OP_FMT_IMM },
+	{ "ORI", 0x85, E1_OP_FMT_IMM },
+	{ "LDIR0", 0x86, E1_OP_FMT_IMM },
+	{ "LDIR1", 0x87, E1_OP_FMT_IMM },
+
 	{ "INC", 0x90, E1_OP_FMT_FULL },
 	{ "DEC", 0x91, E1_OP_FMT_FULL },
 	{ "ASL", 0x92, E1_OP_FMT_FULL },
@@ -85,90 +87,30 @@ const struct {
 	{ "SIGT", 0x9D, E1_OP_FMT_FULL },
 	{ "SIEQ", 0x9E, E1_OP_FMT_FULL },
 	{ "SILT", 0x9F, E1_OP_FMT_FULL },
+	
+	{ "JMP", 0xA0, E1_OP_FMT_IMM12 },
+	{ "CALL", 0xB0, E1_OP_FMT_IMM12 },
+	{ "JZ", 0xC0, E1_OP_FMT_IMM12 },
+	{ "JNZ", 0xD0, E1_OP_FMT_IMM12 },
+
 	{ "OUT", 0xE0, E1_OP_FMT_FULL },
 	{ "OUTBIT", 0xE1, E1_OP_FMT_FULL },
 	{ "TGLBIT", 0xE2, E1_OP_FMT_FULL },
 	{ "IN", 0xE3, E1_OP_FMT_FULL },
 	{ "INBIT", 0xE4, E1_OP_FMT_FULL },
 	{ "NEG", 0xE5, E1_OP_FMT_FULL },
-	{ "SEI", 0xE6, E1_OP_FMT_FULL },
-	{ "NOP", 0xE7, E1_OP_FMT_FULL },
-	{ "HLT", 0xE8, E1_OP_FMT_FULL },
-	{ "RET", 0xE9, E1_OP_FMT_FULL },
-	{ "RTI", 0xEA, E1_OP_FMT_FULL },
-	{ "WAIT0", 0xEB, E1_OP_FMT_FULL },
-	{ "WAIT1", 0xEC, E1_OP_FMT_FULL },
-	{ "EXEC2", 0xED, E1_OP_FMT_FULL },
+	{ "NOP", 0xE6, E1_OP_FMT_FULL },
+	{ "SEI", 0xE7, E1_OP_FMT_IMM },
+	{ "SAI", 0xE8, E1_OP_FMT_IMMS },
+	{ "HLT", 0xE9, E1_OP_FMT_FULL },
+	{ "RET", 0xEA, E1_OP_FMT_FULL },
+	{ "RTI", 0xEB, E1_OP_FMT_FULL },
+	{ "WAIT0", 0xEC, E1_OP_FMT_FULL },
+	{ "WAIT1", 0xED, E1_OP_FMT_FULL },
 	{ "WAITF", 0xEE, E1_OP_FMT_FULL },
 	{ "WAITA", 0xEF, E1_OP_FMT_FULL },
 	{ "SBIT", 0xF0, E1_OP_FMT_SB },
 	{ NULL, 0x00, 0 },
-};
-
-/* exec2 has these formats
- * 
- *
-OP r, s
-OP r, imm [2 bytes]
-OP r
-OP imm [2 bytes]
-OP
-*/
-
-#define E2_OP_FMT_RS 0 // r, s
-#define E2_OP_FMT_RI 1 // r, imm
-#define E2_OP_FMT_R  2 // r
-#define E2_OP_FMT_I  3 // imm
-#define E2_OP_FMT_NO 4 // no operands
-const struct {
-	char *opname;
-	uint8_t opcode;
-	int fmt, bytes;
-} e2_opcodes[] = {
-	{ "ADD", 0x00, E2_OP_FMT_RS, 1 },
-	{ "SUB", 0x10, E2_OP_FMT_RS, 1 },
-	{ "EOR", 0x20, E2_OP_FMT_RS, 1 },
-	{ "AND", 0x30, E2_OP_FMT_RS, 1 },
-	{ "OR",  0x40, E2_OP_FMT_RS, 1 },
-	{ "MOV", 0x50, E2_OP_FMT_RS, 1 },
-	{ "NEG", 0x60, E2_OP_FMT_R,  1 },
-	{ "CLR", 0x64, E2_OP_FMT_R,  1 },
-	{ "LDI", 0x68, E2_OP_FMT_RI, 2 },
-	{ "XCH", 0x6c, E2_OP_FMT_R,  1 },
-	{ "LDIND1", 0x70, E2_OP_FMT_R, 1},
-	{ "LDIND2", 0x74, E2_OP_FMT_R, 1},
-	{ "STIND1", 0x78, E2_OP_FMT_R, 1},
-	{ "STIND2", 0x7C, E2_OP_FMT_R, 1},
-	{ "SIGT", 0x80, E2_OP_FMT_RS, 1 },
-	{ "SIEQ", 0x90, E2_OP_FMT_RS, 1 },
-	{ "SILT", 0xA0, E2_OP_FMT_RS, 1 },
-	{ "ASR", 0xB0, E2_OP_FMT_R, 1 },
-	{ "LSR", 0xB4, E2_OP_FMT_R, 1 },
-	{ "ADDA", 0xB8, E2_OP_FMT_R, 1 },
-	{ "SUBA", 0xBC, E2_OP_FMT_R, 1 },
-	{ "RFIFO", 0xC0, E2_OP_FMT_R, 1 },
-	{ "WFIFO", 0xC4, E2_OP_FMT_R, 1 },
-	{ "QFIFO", 0xC8, E2_OP_FMT_R, 1 },
-	{ "WAITF", 0xCC, E2_OP_FMT_R, 1 },
-	{ "ANDA", 0xD0, E2_OP_FMT_R, 1 },
-	{ "ORA", 0xD4, E2_OP_FMT_R, 1 },
-	{ "EORA", 0xD8, E2_OP_FMT_R, 1 },
-	{ "LDA", 0xDC, E2_OP_FMT_R, 1 },
-	{ "JNZ", 0xE0, E2_OP_FMT_RI, 2 },
-	{ "JZ", 0xE4, E2_OP_FMT_RI, 2 },
-	{ "DEC", 0xE8, E2_OP_FMT_R, 1 },
-	{ "INC", 0xEC, E2_OP_FMT_R, 1 },
-	{ "JMP", 0xF0, E2_OP_FMT_I, 2 },
-	{ "CALL", 0xF1, E2_OP_FMT_I, 2 },
-	{ "RET", 0xF2, E2_OP_FMT_NO, 1 },
-	{ "RTI", 0xF3, E2_OP_FMT_NO, 1 },
-	{ "IN", 0xF4, E2_OP_FMT_NO, 1 },
-	{ "OUT", 0xF5, E2_OP_FMT_NO, 1 },
-	{ "EXEC1", 0xF6, E2_OP_FMT_NO, 1 },
-	{ "WAITA", 0xF7, E2_OP_FMT_NO, 1 },
-	{ "SEI", 0xF8, E2_OP_FMT_R, 1 },
-	{ "SIA", 0xFC, E2_OP_FMT_R, 1 },
-	{ NULL, 0, 0, 0 }
 };
 
 int iswhitespace(char *s)
@@ -214,8 +156,52 @@ void compile_exec1(char *line)
 				exit(-1);
 			}
 			switch (e1_opcodes[x].fmt) {
+				case E1_OP_FMT_IMMS: // 12 => 8-bit imm
+					program[PC+1].line_number = line_number;
+					program[PC+1].mode = mode;
+					if (islabel(line)) {
+						// it's a label
+						if (*line == '<') {
+							program[PC].use_top_half = 1;
+							++line;
+						} else if (*line == '>') {
+							program[PC].use_bottom_half = 1;
+							++line;
+						}
+						consume_label(program[PC].tgt, &line);
+					} else {
+						uint16_t r;
+						// it's a value
+						sscanf(line, "%"SCNx16, &r);
+						program[PC+1].opcode = r >> 4;
+					}
+					++PC;
+					break;
+
+				case E1_OP_FMT_IMM12: // 12-bit imm
+					program[PC+1].line_number = line_number;
+					program[PC+1].mode = mode;
+					if (islabel(line)) {
+						// it's a label
+						if (*line == '<') {
+							program[PC].use_top_half = 1;
+							++line;
+						} else if (*line == '>') {
+							program[PC].use_bottom_half = 1;
+							++line;
+						}
+						consume_label(program[PC].tgt, &line);
+					} else {
+						uint16_t r;
+						// it's a value
+						sscanf(line, "%"SCNx16, &r);
+						program[PC].opcode |= (r >> 8);
+						program[PC+1].opcode = r&0xFF;
+					}
+					++PC;
+					break;
+
 				case E1_OP_FMT_IMM:
-				case E1_OP_FMT_IMMS:
 					program[PC+1].line_number = line_number;
 					program[PC+1].mode = mode;
 					if (islabel(line)) {
@@ -283,107 +269,6 @@ void compile_exec1(char *line)
 	}
 }	
 
-void compile_exec2(char *line)
-{
-	int x;
-	uint8_t op1, op2;
-	for (x = 0; e2_opcodes[x].opname; x++) {
-		if (!memcmp(line, e2_opcodes[x].opname, strlen(e2_opcodes[x].opname)) && iswhitespace(&line[strlen(e2_opcodes[x].opname)])) {
-			// matched an opcode
-			line += strlen(e2_opcodes[x].opname);
-			consume_whitespace(&line);
-			program[PC].opcode = e2_opcodes[x].opcode;
-			program[PC].opidx = x;
-			program[PC].mode = 1;
-			if (program[PC].line_number == -1) {
-				program[PC].line_number = line_number;
-			} else {
-				printf("line %d: byte location %x already was programmed on line %d\n", line_number, PC, program[PC].line_number);
-				exit(-1);
-			}
-			switch (e2_opcodes[x].fmt) {
-				case E2_OP_FMT_RS: // r, s
-					if (!(sscanf(line, "%"SCNu8", %"SCNu8, &op1, &op2) == 2 || sscanf(line, "r%"SCNu8", r%"SCNu8, &op1, &op2) == 2) || (op1 > 3) || (op2 > 3)) {
-						printf("line %d: Expecting 'r, s' pair between 0 and 3\n", line_number);
-						exit(-1);
-					}
-					program[PC].opcode |= (op1 << 2) | op2;
-					break;
-				case E2_OP_FMT_R: // r
-					if (!(sscanf(line, "%"SCNu8, &op1) == 1 || sscanf(line, "r%"SCNu8, &op1) == 1) || op1 > 3) {
-						printf("line %d: Expecting 'r' between 0 and 3\n", line_number);
-						exit(-1);
-					}
-					program[PC].opcode |= op1;
-					break;
-				case E2_OP_FMT_NO:
-					break;
-				case E2_OP_FMT_I: // imm
-					program[PC+1].line_number = line_number;
-					program[PC+1].mode = mode;
-					if (islabel(line)) {
-						// it's a label
-						if (*line == '<') {
-							program[PC].use_top_half = 1;
-							++line;
-						} else if (*line == '>') {
-							program[PC].use_bottom_half = 1;
-							++line;
-						}
-						consume_label(program[PC].tgt, &line);
-					} else {
-						// it's a imm
-						sscanf(line, "%"SCNx8, &op1);
-						program[PC+1].opcode = op1;
-					}
-					PC += 1; // skip over imm
-					break;
-				case E2_OP_FMT_RI: // r, imm
-					sscanf(line, "%"SCNu8, &op1);
-					program[PC].opcode |= op1 & 3;
-					program[PC+1].line_number = line_number;
-					program[PC+1].mode = mode;
-					
-					// skip over first operand
-					while (*line && *line != ',') ++line;
-					if (!*line) {
-						printf("Line %d: Error expecting ', imm' for this opcode\n", line_number);
-						exit(-1);
-					}
-					++line; // skip comma
-					consume_whitespace(&line);
-					if (islabel(line)) {
-						// it's a label
-						if (*line == '<') {
-							program[PC].use_top_half = 1;
-							++line;
-						} else if (*line == '>') {
-							program[PC].use_bottom_half = 1;
-							++line;
-						}
-						consume_label(program[PC].tgt, &line);
-					} else {
-						// it's a imm
-						sscanf(line, "%"SCNx8, &op1);
-						program[PC+1].opcode = op1;
-					}
-					PC += 1; // skip over imm
-					break;
-			}
-			break;
-		}
-	}
-	++PC;
-	PC &= 0x3FF;
-	if (!PC) {
-		printf("Warning line %d: We've wrapped PC around back to 0\n", program[PC].line_number);
-	}
-	if (!e2_opcodes[x].opname) {
-		printf("Line %d: Malformed line: '%s'\n", line_number, line);
-		exit(-1);
-	}
-}
-
 void compile(char *line)
 {
 	strcpy(program[PC].line, line);
@@ -401,7 +286,7 @@ void compile(char *line)
 		int x;
 		line += 5;
 		consume_whitespace(&line);
-		for (x = 0; x < 1024; x++) {
+		for (x = 0; x < PROG_SIZE; x++) {
 			if (symbols[x].label[0] == 0) {
 				consume_label(symbols[x].label, &line);
 				consume_whitespace(&line);
@@ -449,12 +334,7 @@ void compile(char *line)
 		++line;
 		consume_label(program[PC].label, &line);
 	} else {
-		// it's an opcode
-		if (mode == 0) {
-			compile_exec1(line);
-		} else {
-			compile_exec2(line);
-		}
+		compile_exec1(line);
 	}
 }
 
@@ -463,12 +343,12 @@ int find_target(int x)
 	int y;
 	uint8_t d;
 
-	for (y = 0; y < 1024; y++) {
+	for (y = 0; y < PROG_SIZE; y++) {
 		if (!strcmp(program[y].label, program[x].tgt)) {
 			return y;
 		}
 	}
-	for (y = 0; y < 1024; y++) {
+	for (y = 0; y < PROG_SIZE; y++) {
 		if (!strcmp(symbols[y].label, program[x].tgt)) {
 			return symbols[y].value;
 		}
@@ -488,9 +368,9 @@ void resolve_exec1(int x)
 			if (program[x].tgt[0]) {
 				y = find_target(x);
 				if (program[x].use_top_half) {
-					y >>= 4;
+					y >>= 8;
 				} else if (program[x].use_bottom_half) {
-					y &= 0xF;
+					y &= 0xFF;
 				}
 				if (y > 15) {
 					printf("line %d: Invalid 4-bit r-value %x at program offset %2x\n", program[x].line_number, y, x);
@@ -504,55 +384,40 @@ void resolve_exec1(int x)
 				// jumping to a target 
 				y = find_target(x);
 				if (program[x].use_top_half) {
-					y >>= 4;
+					y >>= 8;
 				} else if (program[x].use_bottom_half) {
-					y &= 0xF;
+					y &= 0xFF;
 				}
 				program[x+1].opcode = y;
 			}
 			break;
-		case E1_OP_FMT_IMMS: // JMPs (and their short variants which are at +1)
+		case E1_OP_FMT_IMM12: // relocations (JMP/CALL/etc)
 			if (program[x].tgt[0]) {
 				// jumping to a target 
 				y = find_target(x);
 				if (program[x].use_top_half) {
-					y >>= 4;
+					y >>= 8;
 				} else if (program[x].use_bottom_half) {
-					y &= 0xF;
+					y &= 0xFF;
 				}
-				if (y & 3) {
-					// try to resolve to relative to PC
-					program[x].opcode += 1;
-					printf("relative jump to %x from %x\n", y, x);
-					y = (int)(y - (int)x) & 0xFF;
-					printf("storing offset byte %x\n", y);
-					program[x+1].opcode = y;
-				} else {
-					program[x+1].opcode = y >> 2;
-				}
+				program[x].opcode |= (y >> 12);
+				program[x+1].opcode = (y & 0xFF);
 			}
 			break;
-	}
-}
-
-void resolve_exec2(int x)
-{
-	int y;
-	switch(e2_opcodes[program[x].opidx].fmt) {
-		case E2_OP_FMT_NO:
-		case E2_OP_FMT_R:
-		case E2_OP_FMT_RS: // no imms to resolve
-			break;
-		case E2_OP_FMT_I: // imm in 2nd byte
-		case E2_OP_FMT_RI:
+		case E1_OP_FMT_IMMS: // 12 => 8-bit immediates
 			if (program[x].tgt[0]) {
+				// jumping to a target 
 				y = find_target(x);
 				if (program[x].use_top_half) {
-					y >>= 4;
+					y >>= 8;
 				} else if (program[x].use_bottom_half) {
-					y &= 0xF;
+					y &= 0xFF;
 				}
-				program[x+1].opcode = y;
+				if (y & 0xF) {
+					printf("line %d: Invalid SAI target %x\n", program[x].line_number, y);
+					exit(-1);
+				}
+				program[x+1].opcode = y >> 4;
 			}
 			break;
 	}
@@ -562,12 +427,8 @@ void resolve_labels(void)
 {
 	int x;
 	
-	for (x = 0; x < 1024; x++) {
-		if (program[x].mode == 0) {
-			resolve_exec1(x);
-		} else {
-			resolve_exec2(x);
-		}
+	for (x = 0; x < PROG_SIZE; x++) {
+		resolve_exec1(x);
 	}
 }
 
@@ -586,8 +447,8 @@ int main(int argc, char **argv)
 	memset(&program, 0, sizeof program);
 	memset(&symbols, 0, sizeof symbols);
 	
-	for (x = 0; x < 1024; x++) {
-		program[x].opcode = 0xE7; // NOP
+	for (x = 0; x < PROG_SIZE; x++) {
+		program[x].opcode = 0xE6; // NOP
 		program[x].line_number = -1;
 	}
 	
@@ -601,35 +462,35 @@ int main(int argc, char **argv)
 	}
 	resolve_labels();
 	f = fopen(outname, "w");
-	fprintf(f, "#File_format=Hex\n#Address_depth=1024\n#Data_width=8\n");
-	for (x = 0; x < 1024; x++) {
+	fprintf(f, "#File_format=Hex\n#Address_depth=%d\n#Data_width=8\n", PROG_SIZE);
+	for (x = 0; x < PROG_SIZE; x++) {
 		fprintf(f, "%02X\n", program[x].opcode);
 	}
 	fclose(f);
 
-	for (x = y = 0; x < 1024; x++) {
+	for (x = y = 0; x < PROG_SIZE; x++) {
 		if (program[x].line_number != -1) {
 			++y;
 		}
 	}
-	printf("%s created, used %d out of 1024 bytes.\n", outname, y);
-	if (y > 900 && y != 1024) {
+	printf("%s created, used %d out of %d bytes.\n", outname, y, PROG_SIZE);
+	if (y > 900 && y != PROG_SIZE) {
 		// find the user some space
 		printf("Limited free space here's a map of free space:\n");
-		for (x = 0; x < 1024; x++) {
+		for (x = 0; x < PROG_SIZE; x++) {
 			if (program[x].line_number == -1) {
 				printf("ROM[%x] is free\n", x);
 			}
 		}
 	}
 	printf("Symbols: \n");
-	for (x = 0; x < 1024; x++) {
+	for (x = 0; x < PROG_SIZE; x++) {
 		if (symbols[x].label[0]) {
 			printf("Symbol %s == %x\n", symbols[x].label, symbols[x].value);
 		}
 	}
 	printf("Listing: \n");
-	for (x = 0; x < 1024; x++) {
+	for (x = 0; x < PROG_SIZE; x++) {
 		if (program[x].line_number != -1) {
 			if (program[x].label[0]) {
 				printf("[%-15s ", program[x].label);

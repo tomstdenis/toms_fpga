@@ -65,9 +65,7 @@
 	OUTBIT
 	LD 3 			; counter
 	WAITA
-	JMP SENDSTR
 
-.ALIGN 4
 :SENDSTR
 ; Function SENDSTR(R14) -- Transmit a string
 ; INPUT:

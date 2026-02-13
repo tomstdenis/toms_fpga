@@ -205,22 +205,17 @@ EXEC1:
 5r: EOR r, 			A = A ^ R[r], PC += 1
 6r: AND r, 			A = A & R[r], PC += 1
 7r: OR r, 			A = A | R[r], PC += 1
-80: JMP imm			PC = imm << 2
-81: SJMP imm		PC = PC + { imm[7], imm[7], imm }; // short unaligned jumps
-82: JZ imm			if !A then PC = imm<<2
-83: SJZ imm			if !A then PC = PC + { imm[7], imm[7], imm };  // short unaligned jumps
-84: JNZ imm			if A then PC = imm, else PC += 2
-85  SJNZ imm		if A then PC = PC + { imm[7], imm[7], imm }; // short unaligned jumps
-86: CALL imm 		LR = PC + 2, PC = ROM[PC+1] << 2
-87: LDI imm			A = ROM[PC+1], PC = PC + 2
-88: ADDI imm		A = A + ROM[PC+1], PC = PC + 2
-89: SUBI imm		A = A - ROM[PC+1], PC = PC + 2
-8A: EORI imm		A = A ^ ROM[PC+1], PC = PC + 2
-8B: ANDI imm		A = A & ROM[PC+1], PC = PC + 2
-8C: ORI imm			A = A | ROM[PC+1], PC = PC + 2
-8D: LDR0 imm		R[0] = imm, PC += 2
-8E: LDR1 imm		R[1] = imm, PC += 2;
-8F: XXX 
+
+80: LDI imm			A = ROM[PC+1], PC = PC + 2
+81: ADDI imm		A = A + ROM[PC+1], PC = PC + 2
+82: SUBI imm		A = A - ROM[PC+1], PC = PC + 2
+83: EORI imm		A = A ^ ROM[PC+1], PC = PC + 2
+84: ANDI imm		A = A & ROM[PC+1], PC = PC + 2
+85: ORI imm			A = A | ROM[PC+1], PC = PC + 2
+86: LDR0 imm		R[0] = imm, PC += 2
+87: LDR1 imm		R[1] = imm, PC += 2;
+88..8F: XXX 
+
 90: INC, 			A = A + 1, PC += 1
 91: DEC, 			A = A - 1, PC += 1
 92: ASL, 			A = A << 1, PC += 1
@@ -237,24 +232,24 @@ EXEC1:
 9D: SIGT, 			PC = PC + 1 + (A > R[0]) ? 1 : 0   // skip if greater
 9E: SIEQ, 			PC = PC + 1 + (A == R[0]) ? 1 : 0  // skip if equal
 9F: SILT, 			PC = PC + 1 + (A < R[0]) ? 1 : 0   // skip if less than
-Ax: XXX FREE
-Bx: XXX FREE
-Cx: XXX FREE
-Dx: XXX FREE 
+Ax: JMP IMM12		PC = {instruct[3:0], imm}
+Bx: CALL IMM12		LR = PC + 2, PC = {instruct[3:0], imm}
+Cx: JZ IMM12		if (A == 0) PC = {instruct[3:0], imm}
+Dx: JNZ IMM12		if (A != 0) PC = {instruct[3:0], imm}
 E0: OUT, 			o_port = A, PC += 1
 E1: OUTBIT, 		o_port[R0[2:0]] = A[0], PC += 1  // fast set-1
 E2: TGLBIT, 		o_port[R1[2:0]] ^= 1, PC += 1    // fast toggle-1			<--- things clock pin related use R1 to address the pin
 E3: IN, 			A = i_port, PC += 1
 E4: INBIT, 		 	A = i_port[R0[2:0]] ? 1 : 0 , PC += 1
 E5: NEG				A = -A, PC += 1
-E6: SEI, 			PC += 1, int_mask = A, if i_port & int_mask is a posedge (prev < cur) (from registered copy) then IRQ
-E7: NOP
-E8: HLT				PC = PC
-E9: RET, 			PC = LR
-EA: RTI, 			PC = ILR, re-enable interrupts and return
-EB: WAIT0,			PC = PC + (i_port[R1[2:0]]) ? 0 : 1							<---- since WAIT's are likely clock related we use R1 to address the pin here
-EC: WAIT1,			PC = PC + (i_port[R1[2:0]]) ? 1 : 0
-ED: EXEC2 			Byte that follows PC is from the EXEC2 table
+E6: NOP
+E7: SEI imm			int_mask = imm, PC += 2
+E8: SAI imm			int_vect = imm << 4; PC += 2;
+E9: HLT				PC = PC
+EA: RET, 			PC = LR
+EB: RTI, 			PC = ILR, re-enable interrupts and return
+EC: WAIT0,			PC = PC + (i_port[R1[2:0]]) ? 0 : 1							<---- since WAIT's are likely clock related we use R1 to address the pin here
+ED: WAIT1,			PC = PC + (i_port[R1[2:0]]) ? 1 : 0
 EE: WAITF: 			PC = PC + (R[15] >= A) ? 1 : 0, // wait for FIFO to have at least A bytes in it, you need an ISR that stores in the fifo for this to advance
 EF: WAITA, 			T = A, A = A - 1, PC += (A == 0) ? 1 : 0, A = T when it stops waiting
 Fsb: SBIT s, b		Skip next instruction bit s of A is b, PC = PC + 1 + (A[s] == b) ? 1 : 0

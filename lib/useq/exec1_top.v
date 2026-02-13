@@ -66,123 +66,60 @@ begin
 		4'h8: // JMPS and other commands with IMM field
 			begin
 				case(instruct[3:0])
-					4'h0: // JMP
-						begin
-							PC <= { mem_data, 2'b0 };
-							mem_addr <= { mem_data, 2'b0 };
-							state <= FETCH;
-						end
-					4'h1: // SJMP
-						begin
-							PC <= PC + { mem_data[7], mem_data[7], mem_data };
-							mem_addr <= PC +{ mem_data[7], mem_data[7], mem_data };
-							state <= FETCH;
-						end
-					4'h2: // JZ
-						begin
-							if (A == 0) begin
-								PC <= { mem_data, 2'b0 };
-								mem_addr <= { mem_data, 2'b0 };
-							end else begin
-								PC <= PC + 10'd2;
-								mem_addr <= PC + 10'd2;
-							end
-							state <= FETCH;
-						end
-					4'h3: // SJZ
-						begin
-							if (A == 0) begin
-								PC <= PC + { mem_data[7], mem_data[7], mem_data };
-								mem_addr <= PC +{ mem_data[7], mem_data[7], mem_data };
-							end else begin
-								PC <= PC + 10'd2;
-								mem_addr <= PC + 10'd2;
-							end
-							state <= FETCH;
-						end
-					4'h4: // JNZ
-						begin
-							if (A != 0) begin
-								PC <= { mem_data, 2'b0 };
-								mem_addr <= { mem_data, 2'b0 };
-							end else begin
-								PC <= PC + 10'd2;
-								mem_addr <= PC + 10'd2;
-							end
-							state <= FETCH;
-						end
-					4'h5: // SJNZ
-						begin
-							if (A != 0) begin
-								PC <= PC + { mem_data[7], mem_data[7], mem_data };
-								mem_addr <= PC +{ mem_data[7], mem_data[7], mem_data };
-							end else begin
-								PC <= PC + 10'd2;
-								mem_addr <= PC + 10'd2;
-							end
-							state <= FETCH;
-						end
-					4'h6: // CALL
-						begin
-							LR <= PC + 10'd2;
-							PC <= { mem_data, 2'b0 };
-							mem_addr <= { mem_data, 2'b0 };
-							state <= FETCH;
-						end
-					4'h7: // LDI
+					4'h0: // LDI
 						begin
 							A <= mem_data;
-							PC <= PC + 10'd2;
-							mem_addr <= PC + 10'd2;
+							PC <= PC + 12'd2;
+							mem_addr <= PC + 12'd2;
 							state <= FETCH;
 						end
-					4'h8: // ADDI
+					4'h1: // ADDI
 						begin
 							A <= A + mem_data;
-							PC <= PC + 10'd2;
-							mem_addr <= PC + 10'd2;
+							PC <= PC + 12'd2;
+							mem_addr <= PC + 12'd2;
 							state <= FETCH;
 						end
-					4'h9: // SUBI
+					4'h2: // SUBI
 						begin
 							A <= A - mem_data;
-							PC <= PC + 10'd2;
-							mem_addr <= PC + 10'd2;
+							PC <= PC + 12'd2;
+							mem_addr <= PC + 12'd2;
 							state <= FETCH;
 						end
-					4'hA: // EORI
+					4'h3: // EORI
 						begin
 							A <= A ^ mem_data;
-							PC <= PC + 10'd2;
-							mem_addr <= PC + 10'd2;
+							PC <= PC + 12'd2;
+							mem_addr <= PC + 12'd2;
 							state <= FETCH;
 						end
-					4'hB: // ANDI
+					4'h4: // ANDI
 						begin
 							A <= A & mem_data;
-							PC <= PC + 10'd2;
-							mem_addr <= PC + 10'd2;
+							PC <= PC + 12'd2;
+							mem_addr <= PC + 12'd2;
 							state <= FETCH;
 						end
-					4'hC: // ORI
+					4'h5: // ORI
 						begin
 							A <= A | mem_data;
-							PC <= PC + 10'd2;
-							mem_addr <= PC + 10'd2;
+							PC <= PC + 12'd2;
+							mem_addr <= PC + 12'd2;
 							state <= FETCH;
 						end
-					4'hD: // LDIR0
+					4'h6: // LDIR0
 						begin
 							R[0] <= mem_data;
-							PC <= PC + 10'd2;
-							mem_addr <= PC + 10'd2;
+							PC <= PC + 12'd2;
+							mem_addr <= PC + 12'd2;
 							state <= FETCH;
 						end
-					4'hE: // LDIR1
+					4'h7: // LDIR1
 						begin
 							R[1] <= mem_data;
-							PC <= PC + 10'd2;
-							mem_addr <= PC + 10'd2;
+							PC <= PC + 12'd2;
+							mem_addr <= PC + 12'd2;
 							state <= FETCH;
 						end
 					default:
@@ -242,9 +179,9 @@ begin
 						begin
 							A <= 8'b0;
 						end
-					4'hC: // LDA
+					4'hC: // LDA (TODO: make this 12 bit aware)
 						begin
-							mem_addr <= {2'b0, A};
+							mem_addr <= {4'b0, A};
 							R[14] <= A + 1'b1;
 							PC <= PC + 1'b1;
 							state <= LOADA;
@@ -252,49 +189,73 @@ begin
 					4'hD: // SIGT
 						begin
 							if (A > R[0]) begin
-								PC <= PC + 10'd2;
+								PC <= PC + 12'd2;
 								state <= FETCH;
 							end else begin
 								PC <= PC + 1'b1; // execute the next opcode we already fetched
 								instruct <= mem_data;
 							end
-							mem_addr <= PC + 10'd2; // either we're skipping and we need PC+2 or we're prefetching the next next opcode for PC+1 :-)
+							mem_addr <= PC + 12'd2; // either we're skipping and we need PC+2 or we're prefetching the next next opcode for PC+1 :-)
 						end
 					4'hE: // SIEQ
 						begin
 							if (A == R[0]) begin
-								PC <= PC + 10'd2;
+								PC <= PC + 12'd2;
 								state <= FETCH;
 							end else begin
 								PC <= PC + 1'b1; // execute the next opcode we already fetched
 								instruct <= mem_data;
 							end
-							mem_addr <= PC + 10'd2; // either we're skipping and we need PC+2 or we're prefetching the next next opcode for PC+1 :-)
+							mem_addr <= PC + 12'd2; // either we're skipping and we need PC+2 or we're prefetching the next next opcode for PC+1 :-)
 						end
 					4'hF: // SILT
 						begin
 							if (A < R[0]) begin
-								PC <= PC + 10'd2;
+								PC <= PC + 12'd2;
 								state <= FETCH;
 							end else begin
 								PC <= PC + 1'b1; // execute the next opcode we already fetched
 								instruct <= mem_data;
 							end
-							mem_addr <= PC + 10'd2; // either we're skipping and we need PC+2 or we're prefetching the next next opcode for PC+1 :-)
+							mem_addr <= PC + 12'd2; // either we're skipping and we need PC+2 or we're prefetching the next next opcode for PC+1 :-)
 						end
 				endcase
 			end
-		4'hA: // empty
+
+		4'hA: // JMP IMM12
 			begin
+				PC <= {instruct[3:0], mem_data};
+				mem_addr <= {instruct[3:0], mem_data};
+				state <= FETCH;
 			end
-		4'hB: // EMPTY
+		4'hB: // CALL IMM12
 			begin
+				LR <= PC + 12'd2;
+				PC <= {instruct[3:0], mem_data};
+				mem_addr <= {instruct[3:0], mem_data};
+				state <= FETCH;
 			end
-		4'hC: // EMPTY
+		4'hC: // JZ IMM12
 			begin
+				if (A == 0) begin
+					PC <= {instruct[3:0], mem_data};
+					mem_addr <= {instruct[3:0], mem_data};
+				end else begin
+					PC <= PC + 1'b1;
+					mem_addr <= PC + 1'b1;
+				end
+				state <= FETCH;
 			end
-		4'hD: // EMPTY
+		4'hD: // JNZ IMM12
 			begin
+				if (A != 0) begin
+					PC <= {instruct[3:0], mem_data};
+					mem_addr <= {instruct[3:0], mem_data};
+				end else begin
+					PC <= PC + 1'b1;
+					mem_addr <= PC + 1'b1;
+				end
+				state <= FETCH;
 			end
 		4'hE: // I/O opcodes
 			begin
@@ -344,28 +305,37 @@ begin
 						begin
 							A <= -A;
 						end
-					4'h6: // SEI
+					4'h6: // NOP
+						begin
+						end
+					4'h7: // SEI
 						begin
 							if (ENABLE_IRQ == 1) begin
-								int_mask <= A;
-								int_enable <= (A == 0) ? 1'b0 : 1'b1;
-								irqmode <= 0; // ISR will be in EXEC1 mode
+								int_mask <= mem_data;
+								PC <= PC + 12'd2;
+								mem_addr <=  PC + 12'd2;
+								state <= FETCH;
+								int_enable <= (mem_data == 0) ? 1'b0 : 1'b1;
 							end
 						end
-					4'h7: // NOP
+					4'h8: // SAI IMM
 						begin
+							isr_vect <= {mem_data, 4'b0};
+							PC <= PC + 12'd2;
+							mem_addr <= PC + 12'd2;
+							state <= FETCH;
 						end
-					4'h8: // HLT
+					4'h9: // HLT
 						begin
 							state <= FETCH;
 						end
-					4'h9: // RET
+					4'hA: // RET
 						begin
 							PC <= LR;
 							mem_addr <= LR;
 							state <= FETCH;
 						end
-					4'hA: // RTI
+					4'hB: // RTI
 						begin
 							if (ENABLE_IRQ == 1) begin
 								int_enable <= 1;	// restore interrupt enabled
@@ -375,45 +345,34 @@ begin
 								R[1] <= tR[1];
 								mem_addr <= ILR;	// fetch instruction we interrupted
 								state <= FETCH;		// we need a FETCH cycle to load instruct
-								mode <= prevmode;	// restore previous EXEC mode
 							end else begin
 								PC <= PC + 1'b1;
 								mem_addr <= PC + 1'b1;
 								state <= FETCH;
 							end
 						end
-					4'hB: // WAIT0
+					4'hC: // WAIT0
 						begin
 							if (((l_i_port >> R[1][2:0]) & 8'b1) == 0) begin
 								PC <= PC + 1'b1;
-								mem_addr <= PC + 10'd2;
+								mem_addr <= PC + 12'd2;
 								instruct <= mem_data;
 							end
 						end
-					4'hC: // WAIT1
+					4'hD: // WAIT1
 						begin
 							if (((l_i_port >> R[1][2:0]) & 8'b1) == 1) begin
 								PC <= PC + 1'b1;
-								mem_addr <= PC + 10'd2;
+								mem_addr <= PC + 12'd2;
 								instruct <= mem_data;
 							end
-						end
-					4'hD: // EXEC2
-						begin
-							if (ENABLE_EXEC2) begin
-								mode <= 1;
-							end
-							PC <= PC + 1'b1;
-							mem_addr <= PC + 10'd2;
-							instruct <= mem_data;
-							state <= EXECUTE2;		// we already prefetched the next opcode we can just jump into the EXEC2 state
 						end
 					4'hE: // WAITF
 						begin
 							// only advance PC if fifo_cnt >= A
 							if (R[15] >= A) begin
 								PC <= PC + 1'b1;			// FIFO has enough contents advance to the next
-								mem_addr <= PC + 10'd2;		// we're chaining so we need to tell the ROM to load the next next opcode
+								mem_addr <= PC + 12'd2;		// we're chaining so we need to tell the ROM to load the next next opcode
 								instruct <= mem_data;		// we can technically just advance since we loaded the opcode for PC+1 already
 							end
 						end
@@ -425,7 +384,7 @@ begin
 								end
 								T <= 0;
 								PC <= PC + 1'b1;
-								mem_addr <= PC + 10'd2;
+								mem_addr <= PC + 12'd2;
 								instruct <= mem_data;		// chain to the next opcode
 							end else begin
 								if (!T[8]) begin
@@ -439,8 +398,8 @@ begin
 			end
 		4'hF: // SBIT
 			begin
-				PC <= PC + (((({2'b0, A} >> s_imm) & 10'd1) == {9'b0, b_imm}) ? 10'd2 : 10'd1);
-				mem_addr <= PC + (((({2'b0, A} >> s_imm) & 10'd1) == {9'b0, b_imm}) ? 10'd2 : 10'd1);
+				PC <= PC + (((({4'b0, A} >> s_imm) & 12'd1) == {11'b0, b_imm}) ? 12'd2 : 12'd1);
+				mem_addr <= PC + (((({4'b0, A} >> s_imm) & 12'd1) == {11'b0, b_imm}) ? 12'd2 : 12'd1);
 				state <= FETCH;
 			end
 	endcase

@@ -2,8 +2,8 @@
 
 module useq_tb();
 
-	reg [7:0] mem[0:1023];
-	wire [9:0] mem_addr;
+	reg [7:0] mem[0:4095];
+	wire [11:0] mem_addr;
 	wire [7:0] mem_data;
 	
 	assign mem_data = mem[mem_addr];
@@ -20,7 +20,7 @@ module useq_tb();
 	reg [7:0] fifo_in;
 	wire o_port_pulse;
 
-	useq #(.FIFO_DEPTH(2), .ISR_VECT(10'hF0), .ENABLE_EXEC1(1), .ENABLE_EXEC2(1), .ENABLE_IRQ(1), .ENABLE_HOST_FIFO_CTRL(1)) useq_dut(
+	useq #(.FIFO_DEPTH(2), .ISR_VECT(12'hF0), .ENABLE_IRQ(1), .ENABLE_HOST_FIFO_CTRL(1)) useq_dut(
 		.clk(clk), .rst_n(rst_n), 
 		.mem_data(mem_data), .i_port(i_port), 
 		.mem_addr(mem_addr), .o_port(o_port), .o_port_pulse(o_port_pulse),
@@ -94,16 +94,16 @@ module useq_tb();
 //		$readmemh("simple_clean.hex", mem);
 		$readmemh("uart_clean.hex", mem);
 		reset_cpu();
-		repeat(32768) step_cpu();
+		repeat(65536) step_cpu();
 		$finish;
 	end
 
     task step_cpu();
-		integer x;reg [9:0] ttpc;
+		integer x;reg [11:0] ttpc;
 		begin
 			ttpc = useq_dut.PC;
 			@(posedge clk);
-			$write("CPU%1d: inst=%2h PC=%2h, A=%2h LR=%2h ILR=%2h IM=%2h IP=%2h OP=%2h FO=%2h FE=%d FF=%d R=[", useq_dut.mode, useq_dut.instruct, useq_dut.PC, useq_dut.A, useq_dut.LR, useq_dut.ILR, useq_dut.int_mask, i_port, o_port, fifo_out, fifo_empty, fifo_full);
+			$write("CPU: inst=%2h PC=%2h, A=%2h LR=%2h ILR=%2h IM=%2h IP=%2h OP=%2h FO=%2h FE=%d FF=%d R=[", useq_dut.instruct, useq_dut.PC, useq_dut.A, useq_dut.LR, useq_dut.ILR, useq_dut.int_mask, i_port, o_port, fifo_out, fifo_empty, fifo_full);
 			for (x = 0; x < 16; x++) begin
 				$write("%2h", useq_dut.R[x]);
 				if (x < 15) begin
