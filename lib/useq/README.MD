@@ -1,84 +1,34 @@
 Tom's tiny MicroSequencer.
 
-This is a module that implements a tiny 8-bit processor that operates out of a 
-1024 byte ROM space.  The core features two instruction sets (EXEC1 and EXEC2) that are designed
-for bit manipulations (EXEC1), and general ALU math (EXEC2).  Most instructions are
-single cycle.  You can switch instruction set modes with a single cycle instruction.
-
-The core features an 8-bit accumulator, and 16 'R' registers.  In EXEC1 mode math centers around
-the A register which allows for flexbility to test, set, manipula bits and I/O bits.  In EXEC2
-mode math centers around the first 4 R registers allowing more orthogonal ALU operations.
-
-Both modes overlap in registers.  When you switch modes the registers are the same allowing you
-to switch to a mode as necessary if the work requires a different centricity.
+This is a module that implements a tiny 8-bit processor that operates out of an upto
+4096 byte ROM space.  The core features an 8-bit accumulator, and 16 'R' registers.  The
+instruction set is typical of late 70s early 80s accumulator based but with plenty of
+bit twiddling related instructions.  Also being lighlty pipelined most instructions
+are single cycle too.
 
 The core features an 8-bit input port "i_port" and an 8-bit output port "o_port" that you 
-can connect to other modules or pins as you see fit.  The CPUs can write and read from them.
+can connect to other modules or pins as you see fit.  The CPUs can write and read from them.  The
+ports don't have to be overlapping (e.g. you can connect upto 16 distinct nets outside the module
+8 of which are input, 8 are output).
 
-The core features a variable sized FIFO that the processors can read from/write to aswell
+The core features a variable sized FIFO that the processor can read from/write to aswell
 as the parent module can force FIFO actions though a 2nd I/O pair into the core.  This gives 
-flexibility abou how you get data in and out of the cores.  The parent module is also given
+flexibility about how you get data in and out of the cores.  The parent module is also given
 fifo_full and fifo_empty signals to see the status of the fifo.  Whenever a read or write
 command is issued the CPU is halted while the operation happens.  Reads from an empty FIFO
 return 0, writes to a full FIFO are discarded.
 
 The core also features an IRQ system where you can mask the i_port to tell it which bits you want
-to trigger on a leading positive edge with the SEI instruction.  Whichever execution mode issues the SEI instruction
-is the mode the core will switch to to execute the ISR.  This allows you to have a EXEC1 ISR work
-correctly while running EXEC2 code normally.  Once in the ISR the core disables intterupts until a RTI
-is executed.  The base address of the ISR defaults to 8'hF0 but you can relocate it with the EXEC2 SIA
-instruction (this instruction does not change which mode the ISR runs in, only SEI does that).  When an IRQ happens
-the core saves A, R[0], and R[1] to a temporary space which allows your ISR to destroy their values without 
-saving them manually.  Any other register changed (including the FIFO) will be changed when you return from the interrupt.
+to trigger on a leading positive edge with the SEI instruction.  The imm operand to SEI tells the
+core which bits of i_port you care about.  When a posedge is detected on any of them the IRQ is
+triggered.  Once in an ISR interrupts are disabled until an RTI opcode is executed.  The IRQ system
+also saves A, R0, and R1 to a temporary buffer allowing the ISR to overwrite them.
 
-The module allows parameterization.  You can disable EXEC1 or EXEC2 mode, you can disable IRQ support,
-and you can disable host control of the FIFO.
-
-It's best to think of EXEC1 mode as a PIO like block.  It has instructions good for waiting for bit conditions,
-waiting counters, toggling I/O pins, reading/writing single bits of I/O pins, etc.  And, it's best to think
-of EXEC2 as like an AVR sorta processor.  It has more register-register ALU opcodes, has 8-bit immediate
-support for JMP/CALL/LDI/JZ/JNZ (which is more practical than what EXEC1 has), etc.  The core is designed
-to make switching between the two as fast as possible (1 cycle).  So if you can save more than 2 cycles
-by switching modes it's worth doing.
-
-Both modes can access the I/O and FIFOs so you've got options if you want to go for a one mode only core.  Just keep
-in mind that comes with limitations.
-
-On my Tang Nano 20K (GW2AR-18) I get the following sizes/times (keep in mind these should be treated as estimates and depend on route/place settings...)
-
-	- All enabled: 85~94MHz, 1110 CLS, 1605 LUT, 129 ALU, 128 ROM16, 259 Registers
-	- SLIM EXEC1+2: 80MHz, 1035 CLS, 1484 LUT, 128 ALU, 128 ROM16, 214 Registers
-	- EXEC1 Only: 104Mhz, 667 CLS, 783 LUT, 84 ALU, 128 ROM16, 248 Registers
-	- SLIM EXEC1 Only (no IRQ/Host FIFO): 100MHz, 649 CLS, 760 LUT, 84 ALU, 128 ROM16, 213 Registers
-	- EXEC2 Only: 98MHz, 743 CLS, 1033 LUT, 37 ALU, 128 ROM16, 231 Registers
-	- SLIM EXEC2 Only (no IRQ/Host FIFO): 96 Mhz, 667 CLS, 924 LUT, 46 ALU, 128 ROM16, 188 Registers
-
-Keep in mind that at 80+ MHz that means 80+ MIPS :-).  If you filled the memory with TGLBIT you'd have a 40MHz square wave
-coming out of the core.
+ISRs default to address 0xF0 (so that it's at the top of a 256 byte ROM which is the smallest practical size)
+but can be moved with the SAI instruction.  ISRs must be on a 16-byte aligned address.
 
 Fun ideas:
 	- Tie a timer to a one of the pins and make enabled in the int_mask to have a nice timer in your code.
-	
-	- Use one+ of the output pins to do a bank switch, e.g.
-	
-		:TGLBANK
-		ST F			// Save A using FIFO
-		LDIB A,PIN
-		ST 1			// set R[1] to the pin you want to toggle
-		TGLBIT
-		LD F			// Restore A
-		JMPA
-		
-	  Put that at the same address in both banks and then whenever you jump here you load A with the offset you want to move to in the next
-	  bank.  Keep in mind this'll break ISRs unless you also put the same ISR code in each bank.
-	  
-	- Another way is instead of using a ROM primitive you use a 1-cycle RAM primitive (requirement is an address latched in cycle N-1 should
-	be available by cycle N).  If need be you could halt the core by holding the fifo_read signal high.  You would have to OR the core's
-	address with your addressing since the memory would likely be single ported.  You could use DP BSRAM if it satisfies the max 1-cycle latency
-	(which most do).  Point is you could just re-write core memory as long as it's not actively accessing what you're writing.
-	
-	- If you need to jump between EXEC1 and EXEC2 blocks you should switch to EXEC2 before jumping to the body of the EXEC2 code so that
-	you can use the more powerful JMP imm form in EXEC2.  Remember to switch back to EXEC1 before jumping to the EXEC1 body.
 	
 	- If your parent module uses inout pins you can treat o_port like how say an 8574 works.  Writing a 1 bit to o_port makes that pin
 	a high high impedence with a pullup meaning if an external source pulls it low it'll read as low on i_port.  In this way you can map the 16
@@ -100,11 +50,6 @@ Fun ideas:
 	- A variant of the other idea is you could bitbang data via a SPI or UART like protocol.  E.g. fan the TX pin of the master to the slaves RX pins, and
 	OR the slave TX pins to the masters RX pin
 	
-	- along the lines of banking, we would make JMPA/CALLA and JMP imm/CALL imm use a different convention where the 8-bit target is actually
-	2-bits bank + 6-bits offset * 4, so you could jump/call any 4-byte aligned target in upto 4 banks.  In this configuration you'd have 1Kbyte of
-	code space.  We'd have to make sure mem_addr/PC/LR/ILR are 10 bits but that's a trivial change.  Probably for sanity just make them 10-bits always and then
-	make the interpretation of the opcodes a parameter.
-	
 	- Delays, the following code
 	
 	; load A
@@ -117,20 +62,19 @@ Fun ideas:
 	for instance at 95MHz you need an n of 36, 53, 95, or 136 for 115200, 57600, 19200, or 9600 baud to time the bits correctly (well with a small error).  To work
 	out what you need for n for a given cycle count of C just use the formula n = (sqrt(8C + 81) - 9) / 2
 	
+The module is defined as follows:
 	
 module useq
 #(parameter
 	FIFO_DEPTH=16,
-	ISR_VECT=8'hF0,
-	ENABLE_EXEC1=1,
-	ENABLE_EXEC2=1,
+	ISR_VECT=12'hF0,
 	ENABLE_IRQ=1,
 	ENABLE_HOST_FIFO_CTRL=1
 )(
 	input clk,
 	input rst_n,
 	
-	input [7:0] mem_data,				// ROM[mem_addr]
+	input [15:0] mem_data,				// memory[mem_addr..mem_addr+1]
 	input [7:0] i_port,					// input port you can connect other pins to feed data into the core
 
 	input read_fifo,					// pulse this high to read a byte from the FIFO into fifo_out in the next clock cycle
@@ -142,9 +86,14 @@ module useq
 	
 	output reg [11:0] mem_addr,			// The address the core needs mem_data from in the next clock cycle
 	output reg [7:0] o_port,			// output port you can connect other pins to feed data out of the core.
-	output reg o_port_pulse				// This pin toggles when a write to o_port is done it's not an active high/low 
+	output reg o_port_pulse				// This pin toggles when a write to o_port is done.
 );
 
+The memory requires a dual ported memory though while no writes are supported right now from this core will likely only
+write via one port anyways.  So a RW/R configuration would work.  The parent module should feed the two bytes starting at mem_addr
+into mem_data.
+
+On my Tang Nano 20K the design with a 4K BRAM can hit around 95MHz using 1072 LUT, 88 ALU, 273 registers, 751 CLS, 2 DPB, and 1 MULT9x9.
 
 The included assembler useq_as.c is very barebones but complete enough to be useful.  All opcodes must be
 uppercase.  Since the programs are small the assembler just links things in place allowing forward/backward
@@ -177,26 +126,7 @@ The ".DB" directive allows you to insert data directly in the output.  For insta
 	
 Puts the byte 0x55 in memory at that current origin.
 
-The ".MODE" directive tells the assembler to switch instruction set modes.  Mode 1 refers to EXEC1 and mode 2 refers to EXEC2.
-You must use the opcode to switch before setting the mode.  For instance:
-
-	EXEC2
-	.MODE 2
-	; Now we're EXEC2 mode on the 2nd cycle.
-
-This design assumes that mem_data will have the 8 bits from ROM[mem_addr] registered in the previous cycle.
-
-The ROM16s (configured as 8x1024) is loaded at synthesis time and once it comes out of reset
-it starts at address 0.  The "memory" must be able to provide mem_data at the next cycle (must be combinatorial).
-
-The first instruction set is meant for bit manipulations and works around the accumulator A register.  Several
-registers have special meanings for some instructions.  LDA for instance is used to read A = ROM[A].  To speed
-up reading a ROM table it stores the index A + 1 into R14, so you can issue a 'LD E' to load it the next
-address into A.  For OUTBIT and INBIT the core uses the lower 3 bits of R[0] as the bit from the port to use.
-Whereas, TGLBIT uses the lower 3 bits of R[1].  This is meant so you can specify a data pin in R0 and a clock
-pin in R[1].
-
-EXEC1:
+Instruction Map:
 
 // all 1 cycle
 0r: LD r, 			A = R[r], PC += 1
@@ -251,7 +181,7 @@ Bx: CALL IMM12		LR = PC + 2, PC = {instruct[3:0], imm}
 Cx: JZ IMM12		if (A == 0) PC = {instruct[3:0], imm}
 Dx: JNZ IMM12		if (A != 0) PC = {instruct[3:0], imm}
 
-// 1 cycle until E7 then 2 cycles
+// 1 cycle, except E7-EF which are 2+ cycles
 E0: OUT, 			o_port = A, PC += 1
 E1: OUTBIT, 		o_port[R0[2:0]] = A[0], PC += 1  // fast set-1
 E2: TGLBIT, 		o_port[R1[2:0]] ^= 1, PC += 1    // fast toggle-1			<--- things clock pin related use R1 to address the pin
@@ -269,5 +199,5 @@ ED: WAIT1,			PC = PC + (i_port[R1[2:0]]) ? 1 : 0
 EE: WAITF: 			PC = PC + (R[15] >= A) ? 1 : 0, // wait for FIFO to have at least A bytes in it, you need an ISR that stores in the fifo for this to advance
 EF: WAITA, 			T = A, A = A - 1, PC += (A == 0) ? 1 : 0, A = T when it stops waiting
 
-// 2 cycles
-Fsb: SBIT s, b		Skip next instruction bit s of A is b, PC = PC + 1 + (A[s] == b) ? 1 : 0
+// 1 cycle
+Fsb: SBIT s, b		Skip next instruction if bit s of A is b, PC = PC + 1 + (A[s] == b) ? 1 : 0

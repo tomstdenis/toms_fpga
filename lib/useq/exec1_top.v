@@ -402,9 +402,17 @@ begin
 			end
 		4'hF: // SBIT
 			begin
-				PC <= PC + (((({4'b0, A} >> s_imm) & 12'd1) == {11'b0, b_imm}) ? 12'd2 : 12'd1);
-				mem_addr <= PC + (((({4'b0, A} >> s_imm) & 12'd1) == {11'b0, b_imm}) ? 12'd2 : 12'd1);
-				state <= FETCH;
+				if (A[s_imm] == b_imm) begin
+					// skipping next opcode
+					instruct <= mem_data[15:8];
+					PC <= PC + 12'd2;
+					mem_addr <= PC + 12'd3;
+				end else begin
+					// not skipping
+					instruct <= mem_data[7:0];
+					PC <= PC + 12'd1;
+					mem_addr <= PC + 12'd2;
+				end
 			end
 	endcase
 end
