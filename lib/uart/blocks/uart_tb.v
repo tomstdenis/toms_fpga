@@ -32,9 +32,10 @@ module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1)
     output [7:0] uart_rx_byte       // (out) the RX byte
 );
 */
+    localparam fd = 64;
 
 
-	uart #(.FIFO_DEPTH(64), .TX_ENABLE(1), .RX_ENABLE(1))
+	uart #(.FIFO_DEPTH(fd), .TX_ENABLE(1), .RX_ENABLE(1))
 	uart_dut(.clk(clk), .rst_n(rst_n), .baud_div(baud_div), 
 		// TX block
 		.uart_tx_start(uart_tx_start), 
@@ -88,21 +89,21 @@ module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1)
 		$display("PASSED");
 		
 		// loop over just under to just over the FIFO max size
-		for (j = 48; j < 80; j++) begin
-			n = (j > 64) ? 64 : j;
+		for (j = fd - 4; j < fd + 4; j++) begin
+			n = (j > fd) ? fd : j;
 
 			// now try to write 64 bytes and read it back
 			$display("Sending %d bytes...", j);
 			for (i = 0; i < j; i++) begin
 				send_byte(8'b1 + i[7:0]);
-				if (i >= 63) begin
+				if (i > fd) begin
 					// FIFO should be full now
 					test_fifo_full(1);
 				end
 			end
 
 			// wait for the byte to send
-			repeat(n * 15 * BAUD_VALUE) @(posedge clk);
+			repeat(j * 15 * BAUD_VALUE) @(posedge clk);
 
 			// now read back (should get the first 64 bytes back not the 65'th
 			$display("Reading %d bytes...", n);
@@ -137,8 +138,9 @@ module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1)
 			@(posedge clk);
 			uart_rx_read = ~uart_rx_read;
 			@(posedge clk);
+			$display("read: %2h", uart_rx_byte);
 			if (uart_rx_byte != expected) begin
-				$display("ASSERTION FAILED: uart_rx_byte not expected value (%h)\n", expected);
+				$display("ASSERTION FAILED: uart_rx_byte (%h) not expected value (%h)\n", uart_rx_byte, expected);
 				$fatal;
 			end
 		end
