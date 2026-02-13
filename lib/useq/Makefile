@@ -1,4 +1,4 @@
-all: blink.s.hex test_useq.pass
+all: test_useq.pass
 
 useq_as: useq_as.c
 	${CC} -Wall -O2 -g3 $^ -o $@

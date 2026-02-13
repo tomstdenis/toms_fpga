@@ -218,43 +218,45 @@ EXEC1:
 8A: EORI imm		A = A ^ ROM[PC+1], PC = PC + 2
 8B: ANDI imm		A = A & ROM[PC+1], PC = PC + 2
 8C: ORI imm			A = A | ROM[PC+1], PC = PC + 2
-8D..8F: FREE
-9x: XXX FREE
-A0: INC, 			A = A + 1, PC += 1
-A1: DEC, 			A = A - 1, PC += 1
-A2: ASL, 			A = A << 1, PC += 1
-A3: LSR, 			A = A >> 1, PC += 1
-A4: ASR, 			A = signed(A >> 1), PC += 1
-A5: SWAP, 			A = {A[3:0], A{7:4}}, PC += 1 // SWAP
-A6: ROL, 			A = {A[6:0], A[7]}, PC += 1 // ROL
-A7: ROR, 			A = {A[0], A[7:1]}, PC += 1 // ROR
-A8: SWAPR0, 		A and R[0] swap spaces, PC += 1
-A9: SWAPR1, 		A and R[1] swap spaces, PC += 1
-AA: NOT, 			A = ~A, PC += 1
-AB: CLR, 			A = 0, PC += 1
-AC: LDA, 			R14 = A + 1, A = ROM[A], PC += 1 (R14 stores a pointer to the next byte you can fetch with "LD E")
-AD: SIGT, 			PC = PC + 1 + (A > R[0]) ? 1 : 0   // skip if greater
-AE: SIEQ, 			PC = PC + 1 + (A == R[0]) ? 1 : 0  // skip if equal
-AF: SILT, 			PC = PC + 1 + (A < R[0]) ? 1 : 0   // skip if less than
+8D: LDR0 imm		R[0] = imm, PC += 2
+8E: LDR1 imm		R[1] = imm, PC += 2;
+8F: XXX 
+90: INC, 			A = A + 1, PC += 1
+91: DEC, 			A = A - 1, PC += 1
+92: ASL, 			A = A << 1, PC += 1
+93: LSR, 			A = A >> 1, PC += 1
+94: ASR, 			A = signed(A >> 1), PC += 1
+95: SWAP, 			A = {A[3:0], A{7:4}}, PC += 1 // SWAP
+96: ROL, 			A = {A[6:0], A[7]}, PC += 1 // ROL
+97: ROR, 			A = {A[0], A[7:1]}, PC += 1 // ROR
+98: SWAPR0, 		A and R[0] swap spaces, PC += 1
+99: SWAPR1, 		A and R[1] swap spaces, PC += 1
+9A: NOT, 			A = ~A, PC += 1
+9B: CLR, 			A = 0, PC += 1
+9C: LDA, 			R14 = A + 1, A = ROM[A], PC += 1 (R14 stores a pointer to the next byte you can fetch with "LD E")
+9D: SIGT, 			PC = PC + 1 + (A > R[0]) ? 1 : 0   // skip if greater
+9E: SIEQ, 			PC = PC + 1 + (A == R[0]) ? 1 : 0  // skip if equal
+9F: SILT, 			PC = PC + 1 + (A < R[0]) ? 1 : 0   // skip if less than
+Ax: XXX FREE
 Bx: XXX FREE
 Cx: XXX FREE
-D0: OUT, 			o_port = A, PC += 1
-D1: OUTBIT, 		o_port[R0[2:0]] = A[0], PC += 1  // fast set-1
-D2: TGLBIT, 		o_port[R1[2:0]] ^= 1, PC += 1    // fast toggle-1			<--- things clock pin related use R1 to address the pin
-D3: IN, 			A = i_port, PC += 1
-D4: INBIT, 		 	A = i_port[R0[2:0]] ? 1 : 0 , PC += 1
-D5: NEG:			A = -A, PC += 1
-D6: SEI, 			PC += 1, int_mask = A, if i_port & int_mask is a posedge (prev < cur) (from registered copy) then IRQ
-D7: JMPA, 			PC = A
-D8: XXX EMPTY
-D9: RET, 			PC = LR
-DA: RTI, 			PC = ILR, re-enable interrupts and return
-DB: WAIT0,			PC = PC + (i_port[R1[2:0]]) ? 0 : 1							<---- since WAIT's are likely clock related we use R1 to address the pin here
-DC: WAIT1,			PC = PC + (i_port[R1[2:0]]) ? 1 : 0
-DD: EXEC2 			Byte that follows PC is from the EXEC2 table
-DE: WAITF: 			PC = PC + (R[15] >= A) ? 1 : 0, // wait for FIFO to have at least A bytes in it, you need an ISR that stores in the fifo for this to advance
-DF: WAITA, 			T = A, A = A - 1, PC += (A == 0) ? 1 : 0, A = T when it stops waiting
-Ex: XXX FREE 
+Dx: XXX FREE 
+E0: OUT, 			o_port = A, PC += 1
+E1: OUTBIT, 		o_port[R0[2:0]] = A[0], PC += 1  // fast set-1
+E2: TGLBIT, 		o_port[R1[2:0]] ^= 1, PC += 1    // fast toggle-1			<--- things clock pin related use R1 to address the pin
+E3: IN, 			A = i_port, PC += 1
+E4: INBIT, 		 	A = i_port[R0[2:0]] ? 1 : 0 , PC += 1
+E5: NEG:			A = -A, PC += 1
+E6: SEI, 			PC += 1, int_mask = A, if i_port & int_mask is a posedge (prev < cur) (from registered copy) then IRQ
+E7: XXX EMPTY
+E8: XXX EMPTY
+E9: RET, 			PC = LR
+EA: RTI, 			PC = ILR, re-enable interrupts and return
+EB: WAIT0,			PC = PC + (i_port[R1[2:0]]) ? 0 : 1							<---- since WAIT's are likely clock related we use R1 to address the pin here
+EC: WAIT1,			PC = PC + (i_port[R1[2:0]]) ? 1 : 0
+ED: EXEC2 			Byte that follows PC is from the EXEC2 table
+EE: WAITF: 			PC = PC + (R[15] >= A) ? 1 : 0, // wait for FIFO to have at least A bytes in it, you need an ISR that stores in the fifo for this to advance
+EF: WAITA, 			T = A, A = A - 1, PC += (A == 0) ? 1 : 0, A = T when it stops waiting
 Fsb: SBIT s, b		Skip next instruction bit s of A is b, PC = PC + 1 + (A[s] == b) ? 1 : 0
 
 In EXEC2 we focus mostly on R[] to R[] operations to the opcode is 4 bits for opcode and typically 2 bits r, and s to pick from R[0..3].

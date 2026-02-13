@@ -171,14 +171,25 @@ begin
 							mem_addr <= PC + 10'd2;
 							state <= FETCH;
 						end
+					4'hD: // LDIR0
+						begin
+							R[0] <= mem_data;
+							PC <= PC + 10'd2;
+							mem_addr <= PC + 10'd2;
+							state <= FETCH;
+						end
+					4'hE: // LDIR1
+						begin
+							R[1] <= mem_data;
+							PC <= PC + 10'd2;
+							mem_addr <= PC + 10'd2;
+							state <= FETCH;
+						end
 					default:
 						begin end
 				endcase
 			end
-		4'h9: // empty
-			begin
-			end
-		4'hA: // ALU opcodes
+		4'h9: // ALU opcodes
 			begin
 				case(instruct[3:0])
 					4'h0: // INC
@@ -273,13 +284,19 @@ begin
 						end
 				endcase
 			end
+		4'hA: // empty
+			begin
+			end
 		4'hB: // EMPTY
 			begin
 			end
 		4'hC: // EMPTY
 			begin
 			end
-		4'hD: // I/O opcodes
+		4'hD: // EMPTY
+			begin
+			end
+		4'hE: // I/O opcodes
 			begin
 				case(instruct[3:0])
 					4'h0: // OUT
@@ -335,11 +352,8 @@ begin
 								irqmode <= 0; // ISR will be in EXEC1 mode
 							end
 						end
-					4'h7: // JMPA
+					4'h7: // XXX empty
 						begin
-							PC <= { 2'b0, A };
-							mem_addr <= { 2'b0, A };
-							state <= FETCH;
 						end
 					4'h8: // XXX EMPTY
 						begin
@@ -421,9 +435,6 @@ begin
 							end
 						end
 				endcase
-			end
-		4'hE: // NOP
-			begin
 			end
 		4'hF: // SBIT
 			begin
