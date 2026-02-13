@@ -65,6 +65,7 @@
 	OUTBIT
 	LD 3 			; counter
 	WAITA
+	JMP SENDSTR
 
 .ALIGN 4
 :SENDSTR

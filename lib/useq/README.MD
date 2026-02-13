@@ -1,7 +1,7 @@
 Tom's tiny MicroSequencer.
 
 This is a module that implements a tiny 8-bit processor that operates out of a 
-256 byte ROM space.  The core features two instruction sets (EXEC1 and EXEC2) that are designed
+1024 byte ROM space.  The core features two instruction sets (EXEC1 and EXEC2) that are designed
 for bit manipulations (EXEC1), and general ALU math (EXEC2).  Most instructions are
 single cycle.  You can switch instruction set modes with a single cycle instruction.
 
@@ -140,7 +140,7 @@ module useq
 	input [7:0] fifo_in,				// The FIFO input into the core when pulsing write_fifo 
 	output reg [7:0] fifo_out,			// The fifo output from the core when pulsing read_fifo
 	
-	output reg [7:0] mem_addr,			// The address the core needs mem_data from in the next clock cycle
+	output reg [9:0] mem_addr,			// The address the core needs mem_data from in the next clock cycle
 	output reg [7:0] o_port,			// output port you can connect other pins to feed data out of the core.
 	output reg o_port_pulse				// This pin toggles when a write to o_port is done it's not an active high/low 
 );
@@ -186,7 +186,7 @@ You must use the opcode to switch before setting the mode.  For instance:
 
 This design assumes that mem_data will have the 8 bits from ROM[mem_addr] registered in the previous cycle.
 
-The ROM16s (configured as 8x256) is loaded at synthesis time and once it comes out of reset
+The ROM16s (configured as 8x1024) is loaded at synthesis time and once it comes out of reset
 it starts at address 0.  The "memory" must be able to provide mem_data at the next cycle (must be combinatorial).
 
 The first instruction set is meant for bit manipulations and works around the accumulator A register.  Several
@@ -246,10 +246,10 @@ E1: OUTBIT, 		o_port[R0[2:0]] = A[0], PC += 1  // fast set-1
 E2: TGLBIT, 		o_port[R1[2:0]] ^= 1, PC += 1    // fast toggle-1			<--- things clock pin related use R1 to address the pin
 E3: IN, 			A = i_port, PC += 1
 E4: INBIT, 		 	A = i_port[R0[2:0]] ? 1 : 0 , PC += 1
-E5: NEG:			A = -A, PC += 1
+E5: NEG				A = -A, PC += 1
 E6: SEI, 			PC += 1, int_mask = A, if i_port & int_mask is a posedge (prev < cur) (from registered copy) then IRQ
-E7: XXX EMPTY
-E8: XXX EMPTY
+E7: NOP
+E8: HLT				PC = PC
 E9: RET, 			PC = LR
 EA: RTI, 			PC = ILR, re-enable interrupts and return
 EB: WAIT0,			PC = PC + (i_port[R1[2:0]]) ? 0 : 1							<---- since WAIT's are likely clock related we use R1 to address the pin here

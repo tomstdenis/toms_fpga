@@ -92,6 +92,8 @@ const struct {
 	{ "INBIT", 0xE4, E1_OP_FMT_FULL },
 	{ "NEG", 0xE5, E1_OP_FMT_FULL },
 	{ "SEI", 0xE6, E1_OP_FMT_FULL },
+	{ "NOP", 0xE7, E1_OP_FMT_FULL },
+	{ "HLT", 0xE8, E1_OP_FMT_FULL },
 	{ "RET", 0xE9, E1_OP_FMT_FULL },
 	{ "RTI", 0xEA, E1_OP_FMT_FULL },
 	{ "WAIT0", 0xEB, E1_OP_FMT_FULL },
@@ -585,7 +587,7 @@ int main(int argc, char **argv)
 	memset(&symbols, 0, sizeof symbols);
 	
 	for (x = 0; x < 1024; x++) {
-		program[x].opcode = 0xE0; // NOP
+		program[x].opcode = 0xE7; // NOP
 		program[x].line_number = -1;
 	}
 	

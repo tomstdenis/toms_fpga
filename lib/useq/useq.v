@@ -76,7 +76,7 @@ module useq
 	wire can_chain_exec1 = !(
 		(instruct[7:4] == 4'h8) || // Jumps and other immediate opcodes
 		(instruct[7:4] == 4'h9 && instruct[3:0] >= 4'hC) || // *LDA, *SIGT, *SIEQ, *SILT
-		(instruct[7:4] == 4'hE && instruct[3:0] >= 4'h7) || // *JMPA, *CALL, *RET, *RTI, *WAITs, *EXEC2, *WAITF, *WAITA
+		(instruct[7:4] == 4'hE && instruct[3:0] >= 4'h8) || // HLT, *RET, *RTI, *WAITs, *EXEC2, *WAITF, *WAITA
 		(instruct[7:4] == 4'hF)    // *SBIT
 	);
 	

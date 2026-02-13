@@ -352,11 +352,12 @@ begin
 								irqmode <= 0; // ISR will be in EXEC1 mode
 							end
 						end
-					4'h7: // XXX empty
+					4'h7: // NOP
 						begin
 						end
-					4'h8: // XXX EMPTY
+					4'h8: // HLT
 						begin
+							state <= FETCH;
 						end
 					4'h9: // RET
 						begin
