@@ -76,7 +76,7 @@ const struct {
 	{ "MUL", 0x8C, E1_OP_FMT_FULL },
 	{ "LDM", 0x8D, E1_OP_FMT_FULL },
 	{ "STM", 0x8E, E1_OP_FMT_FULL },
-// 8E..8F
+	{ "LDMIND", 0x8F, E1_OP_FMT_FULL },
 		
 	{ "INC", 0x90, E1_OP_FMT_FULL },
 	{ "DEC", 0x91, E1_OP_FMT_FULL },

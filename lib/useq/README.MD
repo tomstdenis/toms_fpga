@@ -152,7 +152,7 @@ Instruction Map:
 8C: MUL				{R[0], A} = A * R[0], PC += 1
 8D: LDM 			A <= ROM[{R[14], R[13]}, {R[14], R[13]} <= {R[14], R[13]} + 1'b1;   (ram and rom are the same address space)
 8E: STM				RAM{R[12], R[11]} <= A, {R[12], R[11]} <= {R[12], R[11]} + 1'b1;    
-8F: XXX 
+8F: LDMIND			R[14]:R[13] <= MEM[R[14]:R[13] + A * 2], PC += 1					(load pointer indirect indexed off A)
 
 90: INC, 			A = A + 1, PC += 1
 91: DEC, 			A = A - 1, PC += 1

@@ -54,7 +54,9 @@ module useq
 		EXECUTE = 2,
 		LOADA = 3,
 		LOADA_REG = 4,
-		STOREA = 5;
+		STOREA = 5,
+		LOADIND = 6,
+		LOADIND_REG = 7;
 
 	integer i;
 
@@ -166,6 +168,18 @@ module useq
 						STOREA: // Cycle after a store is initiated
 							begin
 								wren <= 0;
+								mem_addr <= PC;
+								mem_addr_next <= PC + 12'd1;
+								state <= FETCH;
+							end
+						LOADIND:
+							begin
+								state <= LOADIND_REG;
+							end
+						LOADIND_REG: // load R14:R13 with memory and advance
+							begin
+								R[13] <= mem_data[7:0];
+								R[14] <= mem_data[15:8];
 								mem_addr <= PC;
 								mem_addr_next <= PC + 12'd1;
 								state <= FETCH;

@@ -161,6 +161,13 @@ begin
 							PC <= PC + 12'd1;
 							state <= STOREA;							// wait for write before moving to FETCH
 						end
+					4'hF: // LDMIND
+						begin
+							mem_addr <= {R[14][3:0], R[13]} + { 3'b0, A, 1'b0 };		// we're loading a pointer from R14:R13 + A
+							mem_addr_next <= {R[14][3:0], R[13]} + { 3'b0, A, 1'b1 };
+							PC <= PC + 12'd1;
+							state <= LOADIND;
+						end
 					default:
 						begin end
 				endcase
