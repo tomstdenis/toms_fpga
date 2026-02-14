@@ -1,8 +1,10 @@
 ; UART demo for 27MHz using 115.2K baud meaning each bit lasts 234.4 cycles 
+; We use a variety of LDI/CLR/SETB/LSR/LD/ST to set the output bit
+; to make sure we're covering more of the opcodes
 .ORG 00
 
-.EQU BIT_COUNTER E2		; 224 + loop(10) cycles per bit send
-.EQU INNER_COUNTER CA
+.EQU BIT_COUNTER E2		; This is the freewheeling delay after sending a pulse
+.EQU INNER_COUNTER CA   ; This is the same delay but accounting for the overhead in the BITS loop
 
 	LDIR0 0				; R0 = 0 so we output on pin 0
 	LDI 1
@@ -59,7 +61,7 @@
 	JNZ BITS
 
 ; STOP bit
-	LDI 01
+	SETB 0,1		; Set bit 0 of A to 1 (STOP bit is a high)
 	OUTBIT
 	LDI BIT_COUNTER ; delay for 115.2k baud
 	WAITA
