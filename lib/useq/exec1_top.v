@@ -17,6 +17,10 @@ begin
 						A <= 8'b0;
 					end
 				end
+				PC <= PC + 12'b1;			// advance to next PC
+				mem_addr <= PC + 12'd1;		// load what will be the "next opcode" in the next cycle
+				mem_addr_next <= PC + 12'd2;
+				state <= FETCH;
 			end
 		4'h1: // ST R[r]
 			begin
@@ -29,89 +33,117 @@ begin
 						R[15] <= R[15] + 1'b1;				// increment fifo count
 					end
 				end
+				PC <= PC + 12'b1;			// advance to next PC
+				mem_addr <= PC + 12'd1;		// load what will be the "next opcode" in the next cycle
+				mem_addr_next <= PC + 12'd2;
+				state <= FETCH;
 			end
 		4'h2: // SETB s, b
 			begin
 				A[s_imm] <= b_imm;
+				PC <= PC + 12'b1;			// advance to next PC
+				mem_addr <= PC + 12'd1;		// load what will be the "next opcode" in the next cycle
+				mem_addr_next <= PC + 12'd2;
+				state <= FETCH;
 			end
 		4'h3: // ADD R[r]
 			begin
 				A <= A + R[d_imm];
+				PC <= PC + 12'b1;			// advance to next PC
+				mem_addr <= PC + 12'd1;		// load what will be the "next opcode" in the next cycle
+				mem_addr_next <= PC + 12'd2;
+				state <= FETCH;
 			end
 		4'h4: // SUB R[r]
 			begin
 				A <= A - R[d_imm];
+				PC <= PC + 12'b1;			// advance to next PC
+				mem_addr <= PC + 12'd1;		// load what will be the "next opcode" in the next cycle
+				mem_addr_next <= PC + 12'd2;
+				state <= FETCH;
 			end
 		4'h5: // EOR R[r]
 			begin
 				A <= A ^ R[d_imm];
+				PC <= PC + 12'b1;			// advance to next PC
+				mem_addr <= PC + 12'd1;		// load what will be the "next opcode" in the next cycle
+				mem_addr_next <= PC + 12'd2;
+				state <= FETCH;
 			end
 		4'h6: // AND R[r]
 			begin
 				A <= A & R[d_imm];
+				PC <= PC + 12'b1;			// advance to next PC
+				mem_addr <= PC + 12'd1;		// load what will be the "next opcode" in the next cycle
+				mem_addr_next <= PC + 12'd2;
+				state <= FETCH;
 			end
 		4'h7: // OR R[r]
 			begin
 				A <= A | R[d_imm];
+				PC <= PC + 12'b1;			// advance to next PC
+				mem_addr <= PC + 12'd1;		// load what will be the "next opcode" in the next cycle
+				mem_addr_next <= PC + 12'd2;
+				state <= FETCH;
 			end
 		4'h8: // IMM commands (e.g. LDI, ADDI, etc) we handle chaining here because the other can_chain is only for 1 byte opcodes
 			begin
 				case(instruct[3:0])
 					4'h0: // LDI
 						begin
-							A <= mem_data[7:0];
+							A <= instruct_imm;
 						end
 					4'h1: // ADDI
 						begin
-							A <= A + mem_data[7:0];
+							A <= A + instruct_imm;
 						end
 					4'h2: // SUBI
 						begin
-							A <= A - mem_data[7:0];
+							A <= A - instruct_imm;
 						end
 					4'h3: // EORI
 						begin
-							A <= A ^ mem_data[7:0];
+							A <= A ^ instruct_imm;
 						end
 					4'h4: // ANDI
 						begin
-							A <= A & mem_data[7:0];
+							A <= A & instruct_imm;
 						end
 					4'h5: // ORI
 						begin
-							A <= A | mem_data[7:0];
+							A <= A | instruct_imm;
 						end
 					4'h6: // LDIR0
 						begin
-							R[0] <= mem_data[7:0];
+							R[0] <= instruct_imm;
 						end
 					4'h7: // LDIR1
 						begin
-							R[1] <= mem_data[7:0];
+							R[1] <= instruct_imm;
 						end
 					4'h8: // LDIR11
 						begin
-							R[11] <= mem_data[7:0];
+							R[11] <= instruct_imm;
 						end
 					4'h9: // LDIR12
 						begin
-							R[12] <= mem_data[7:0];
+							R[12] <= instruct_imm;
 						end
 					4'hA: // LDIR13
 						begin
-							R[13] <= mem_data[7:0];
+							R[13] <= instruct_imm;
 						end
 					4'hB: // LDIR14
 						begin
-							R[14] <= mem_data[7:0];
+							R[14] <= instruct_imm;
 						end
 					4'hC: // MUL
 						begin
 							{R[0], A} <= A * R[0];
 							PC <= PC + 12'd1;
-							mem_addr <= PC + 12'd2;
-							instruct <= mem_data[7:0];
-							state <= EXECUTE;
+							mem_addr <= PC + 12'd1;
+							mem_addr_next <= PC + 12'd2;
+							state <= FETCH;
 						end
 					4'hD: // LDM
 						begin
@@ -136,11 +168,11 @@ begin
 						begin end
 					default:
 						begin
-							// IMM opcodes can be chained but it's a bit different since the next opcode is located at PC+2
+							// IMM opcodes have a payload byte following the actually command
 							PC <= PC + 12'd2;
-							mem_addr <= PC + 12'd3;		// we prefetch the next next opcode so PC+3
-							instruct <= mem_data[15:8];
-							state <= EXECUTE;
+							mem_addr <= PC + 12'd2;		// we prefetch the next next opcode so PC+3
+							mem_addr_next <= PC + 12'd3;
+							state <= FETCH;
 						end
 				endcase						
 			end
@@ -213,40 +245,50 @@ begin
 						begin
 						end
 				endcase
+				PC <= PC + 12'b1;			// advance to next PC
+				mem_addr <= PC + 12'd1;		// load what will be the "next opcode" in the next cycle
+				mem_addr_next <= PC + 12'd2;
+				state <= FETCH;
 			end
 
 		4'hA: // JMP IMM12
 			begin
-				PC <= {instruct[3:0], mem_data[7:0]};
-				mem_addr <= {instruct[3:0], mem_data[7:0]};
+				PC <= {instruct[3:0], instruct_imm};
+				mem_addr <= {instruct[3:0], instruct_imm};
+				mem_addr_next <= {instruct[3:0], instruct_imm} + 12'd1;
 				state <= FETCH;
 			end
 		4'hB: // CALL IMM12
 			begin
 				LR <= PC + 12'd2;
-				PC <= {instruct[3:0], mem_data[7:0]};
-				mem_addr <= {instruct[3:0], mem_data[7:0]};
+				PC <= {instruct[3:0], instruct_imm};
+				mem_addr <= {instruct[3:0], instruct_imm};
+				mem_addr_next <= {instruct[3:0], instruct_imm} + 12'd1;
 				state <= FETCH;
 			end
 		4'hC: // JZ IMM12
 			begin
 				if (A == 0) begin
-					PC <= {instruct[3:0], mem_data[7:0]};
-					mem_addr <= {instruct[3:0], mem_data[7:0]};
+					PC <= {instruct[3:0], instruct_imm};
+					mem_addr <= {instruct[3:0], instruct_imm};
+					mem_addr_next <= {instruct[3:0], instruct_imm} + 12'd1;
 				end else begin
 					PC <= PC + 12'd2;
 					mem_addr <= PC + 12'd2;
+					mem_addr_next <= PC + 12'd3;
 				end
 				state <= FETCH;
 			end
 		4'hD: // JNZ IMM12
 			begin
 				if (A != 0) begin
-					PC <= {instruct[3:0], mem_data[7:0]};
-					mem_addr <= {instruct[3:0], mem_data[7:0]};
+					PC <= {instruct[3:0], instruct_imm};
+					mem_addr <= {instruct[3:0], instruct_imm};
+					mem_addr_next <= {instruct[3:0], instruct_imm} + 12'd1;
 				end else begin
 					PC <= PC + 12'd2;
 					mem_addr <= PC + 12'd2;
+					mem_addr_next <= PC + 12'd3;
 				end
 				state <= FETCH;
 			end
@@ -257,6 +299,10 @@ begin
 						begin
 							o_port <= A;
 							o_port_pulse <= o_port_pulse ^ 1'b1;
+							PC <= PC + 12'b1;			// advance to next PC
+							mem_addr <= PC + 12'd1;		// load what will be the "next opcode" in the next cycle
+							mem_addr_next <= PC + 12'd2;
+							state <= FETCH;
 						end
 					4'h1: // OUTBIT
 						begin
@@ -271,6 +317,10 @@ begin
 								3'd7: o_port[7] <= A[0];
 							endcase
 							o_port_pulse <= o_port_pulse ^ 1'b1;
+							PC <= PC + 12'b1;			// advance to next PC
+							mem_addr <= PC + 12'd1;		// load what will be the "next opcode" in the next cycle
+							mem_addr_next <= PC + 12'd2;
+							state <= FETCH;
 						end
 					4'h2: // TGLBIT
 						begin
@@ -284,41 +334,61 @@ begin
 								3'd6: o_port[6] <= o_port[6] ^ 1;
 								3'd7: o_port[7] <= o_port[7] ^ 1;
 							endcase
-						o_port_pulse <= o_port_pulse ^ 1'b1;
+							o_port_pulse <= o_port_pulse ^ 1'b1;
+							PC <= PC + 12'b1;			// advance to next PC
+							mem_addr <= PC + 12'd1;		// load what will be the "next opcode" in the next cycle
+							mem_addr_next <= PC + 12'd2;
+							state <= FETCH;
 						end
 					4'h3: // IN
 						begin
 							A <= l_i_port;
+							PC <= PC + 12'b1;			// advance to next PC
+							mem_addr <= PC + 12'd1;		// load what will be the "next opcode" in the next cycle
+							mem_addr_next <= PC + 12'd2;
+							state <= FETCH;
 						end
 					4'h4: // INBIT
 						begin
 							A <= ((l_i_port >> R[0][2:0]) & 8'b1);
+							PC <= PC + 12'b1;			// advance to next PC
+							mem_addr <= PC + 12'd1;		// load what will be the "next opcode" in the next cycle
+							mem_addr_next <= PC + 12'd2;
+							state <= FETCH;
 						end
 					4'h5: // NEG
 						begin
 							A <= -A;
+							PC <= PC + 12'b1;			// advance to next PC
+							mem_addr <= PC + 12'd1;		// load what will be the "next opcode" in the next cycle
+							mem_addr_next <= PC + 12'd2;
+							state <= FETCH;
 						end
 					4'h6: // NOP
 						begin
+							PC <= PC + 12'b1;			// advance to next PC
+							mem_addr <= PC + 12'd1;		// load what will be the "next opcode" in the next cycle
+							mem_addr_next <= PC + 12'd2;
+							state <= FETCH;
 						end
 					4'h7: // SEI
 						begin
 							if (ENABLE_IRQ == 1) begin
-								int_mask <= mem_data[7:0];
-								instruct <= mem_data[15:8];
+								int_mask <= instruct_imm;
 								PC <= PC + 12'd2;
-								mem_addr <=  PC + 12'd3;
-								state <= EXECUTE;
-								int_enable <= (mem_data[7:0] == 0) ? 1'b0 : 1'b1;
+								mem_addr <=  PC + 12'd2;
+								mem_addr_next <= PC + 12'd3;
+								state <= FETCH;
+								int_enable <= (instruct_imm == 0) ? 1'b0 : 1'b1;
 							end
 						end
 					4'h8: // SAI IMM
 						begin
-							isr_vect <= {mem_data[7:0], 4'b0};
-							instruct <= mem_data[15:8];
+							isr_vect <= {instruct_imm, 4'b0};
 							PC <= PC + 12'd2;
-							mem_addr <= PC + 12'd3;
-							state <= EXECUTE;
+							mem_addr <= PC + 12'd2;
+							mem_addr_next <= PC + 12'd3;
+							state <= FETCH;
 						end
 					4'h9: // HLT
 						begin
@@ -328,6 +398,7 @@ begin
 						begin
 							PC <= LR;
 							mem_addr <= LR;
+							mem_addr_next <= LR + 12'd1;
 							state <= FETCH;
 						end
 					4'hB: // RTI
@@ -339,10 +410,12 @@ begin
 								R[0] <= tR[0];		// restore R[0] and R[1]
 								R[1] <= tR[1];
 								mem_addr <= ILR;	// fetch instruction we interrupted
+								mem_addr_next <= ILR + 12'd1;
 								state <= FETCH;		// we need a FETCH cycle to load instruct
 							end else begin
 								PC <= PC + 1'b1;
 								mem_addr <= PC + 1'b1;
+								mem_addr_next <= PC + 12'd2;
 								state <= FETCH;
 							end
 						end
@@ -350,16 +423,18 @@ begin
 						begin
 							if (((l_i_port >> R[1][2:0]) & 8'b1) == 0) begin
 								PC <= PC + 1'b1;
-								mem_addr <= PC + 12'd2;
-								instruct <= mem_data[7:0];
+								mem_addr <= PC + 12'd1;
+								mem_addr_next <= PC + 12'd2;
+								state <= FETCH;
 							end
 						end
 					4'hD: // WAIT1
 						begin
 							if (((l_i_port >> R[1][2:0]) & 8'b1) == 1) begin
 								PC <= PC + 1'b1;
-								mem_addr <= PC + 12'd2;
-								instruct <= mem_data[7:0];
+								mem_addr <= PC + 12'd1;
+								mem_addr_next <= PC + 12'd2;
+								state <= FETCH;
 							end
 						end
 					4'hE: // WAITF
@@ -367,8 +442,9 @@ begin
 							// only advance PC if fifo_cnt >= A
 							if (R[15] >= A) begin
 								PC <= PC + 1'b1;			// FIFO has enough contents advance to the next
-								mem_addr <= PC + 12'd2;		// we're chaining so we need to tell the ROM to load the next next opcode
-								instruct <= mem_data[7:0];		// we can technically just advance since we loaded the opcode for PC+1 already
+								mem_addr <= PC + 12'd1;		// we're chaining so we need to tell the ROM to load the next next opcode
+								mem_addr_next <= PC + 12'd2;
+								state <= FETCH;
 							end
 						end
 					4'hF: // WAITA
@@ -379,8 +455,9 @@ begin
 								end
 								T <= 0;
 								PC <= PC + 1'b1;
-								mem_addr <= PC + 12'd2;
-								instruct <= mem_data[7:0];		// chain to the next opcode
+								mem_addr <= PC + 12'd1;
+								mem_addr_next <= PC + 12'd2;
+								state <= FETCH;
 							end else begin
 								if (!T[8]) begin
 									T <= {1'b1, A};
@@ -395,14 +472,15 @@ begin
 			begin
 				if (A[s_imm] == b_imm) begin
 					// skipping next opcode
-					instruct <= mem_data[15:8];
 					PC <= PC + 12'd2;
-					mem_addr <= PC + 12'd3;
+					mem_addr <= PC + 12'd2;
+					mem_addr_next <= PC + 12'd3;
 				end else begin
 					// not skipping
-					instruct <= mem_data[7:0];
+					instruct <= instruct_imm;
 					PC <= PC + 12'd1;
-					mem_addr <= PC + 12'd2;
+					mem_addr <= PC + 12'd1;
+					mem_addr_next <= PC + 12'd2;
 				end
 			end
 	endcase

@@ -1,10 +1,13 @@
 ; UART demo for 27MHz using 115.2K baud meaning each bit lasts 234.4 cycles 
 .ORG 00
 
-.EQU BIT_COUNTER E0				; 224 + loop(10) cycles per bit send
+.EQU BIT_COUNTER E2		; 224 + loop(10) cycles per bit send
+.EQU INNER_COUNTER CA
 
-:MAIN
 	LDIR0 0				; R0 = 0 so we output on pin 0
+	LDI 1
+	OUTBIT				; set line high for IDLE
+:MAIN
 	LDIR13 >HELLOTXT	; load R14:R13 with pointer to text
 	LDIR14 <HELLOTXT
 	CALL SENDSTR		; CALL SENDSTR
@@ -35,12 +38,12 @@
 ;    R[2] -> 0 number of bits left
 ;    R[3] -> 224, bit counter
 ; CHAR to send is in A, R0[2:0] is set to the bit of o_port TX is on
-	LDI 7
+	LDI 8
 	ST 2   			; R[2] = bits to send
-	LDI BIT_COUNTER ; // 224 cycles to account for the 10 taken in the loop
-	ST 3   			; R[3] = counter
+
+	CLR
 	OUTBIT 			; Output A[0] which is 0, START bit (low)
-	LD 3
+	LDI BIT_COUNTER ; // 224 cycles to account for the 10 taken in the loop
 	WAITA 			; Wait out the START bit
 
 ; bits (10 cycles + WAITA...)
@@ -49,7 +52,7 @@
 	OUTBIT 			; output bit A[0] to pin R[0][2:0]
 	LSR   			; shift low
 	ST 1  			; R[1] = shifted char to send
-	LD 3  			; load counter
+	LDI INNER_COUNTER ; delay for 115.2k baud
 	WAITA 			; wait
 	LD 2  			; bit count
 	DEC   			; decrement
@@ -57,13 +60,13 @@
 	JNZ BITS
 
 ; STOP bit
-	SBIT 0,1      	; A[0] = 1;
+	LDI 01
 	OUTBIT
-	LD 3 			; counter
+	LDI BIT_COUNTER ; delay for 115.2k baud
 	WAITA
 
 :SENDSTR
-; Function SENDSTR(R14) -- Transmit a string
+; Function SENDSTR(R14:R13) -- Transmit a string
 ; INPUT:
 ;  R14:R13 - Pointer to string
 ;  R0[2:0] - pin to write to

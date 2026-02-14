@@ -21,6 +21,7 @@ module useq
 	output reg [7:0] fifo_out,			// The fifo output from the core when pulsing read_fifo
 	
 	output reg [11:0] mem_addr,			// The address the core needs mem_data from in the next clock cycle
+	output reg [11:0] mem_addr_next,
 	output reg [7:0] o_port,			// output port you can connect other pins to feed data out of the core.
 	output reg o_port_pulse				// This pin toggles when a write to o_port is done.
 );
@@ -33,6 +34,7 @@ module useq
 	reg [11:0] LR;								// LR link register
 	reg [11:0] ILR;								// ILR IRQ link register
 	reg [7:0] instruct;							// current opcode
+	reg [7:0] instruct_imm;						// immediate for the instruction
 	reg [7:0] R[15:0];							// R register file
 	reg [7:0] l_i_port;							// latched copy of i_port
 	reg [7:0] int_mask;							// The IRQ mask applied to i_port set by SEI opcode
@@ -44,11 +46,12 @@ module useq
 	reg [2:0] state;							// current FSM state
 
 	localparam
-		FETCH=0,
-		EXECUTE=1,
-		EXECUTE2=2,
-		LOADA=3,
-		STOREA=4;
+		FETCH = 0,
+		DECODE = 1,
+		EXECUTE = 2,
+		LOADA = 3,
+		LOADA_REG = 4,
+		STOREA = 5;
 
 	integer i;
 
@@ -62,18 +65,6 @@ module useq
 	assign		fifo_empty = (R[15] == 0) ? 1'b1 : 1'b0;
 	assign		fifo_full = (R[15] == FIFO_DEPTH) ? 1'b1 : 1'b0;
 
-	// can_chain = 1 means "Single-Cycle Turbo is GO"
-	// can_chain = 0 means "Wait, we need a FETCH cycle to realign"
-	wire can_chain_exec1 = !(
-		(instruct[7:4] == 4'h8) || // IMM form opcodes
-		(instruct[7:4] == 4'hA) || // CALL
-		(instruct[7:4] == 4'hB) || // JMP
-		(instruct[7:4] == 4'hC) || // JZ
-		(instruct[7:4] == 4'hD) || // JNZ
-		(instruct[7:4] == 4'hE && instruct[3:0] >= 4'h7) || // HLT, SAI, SEI, *RET, *RTI, *WAITs, *EXEC2, *WAITF, *WAITA
-		(instruct[7:4] == 4'hF)    // *SBIT
-	);
-	
 	always @(posedge clk) begin
 		if (!rst_n) begin
 			if (ENABLE_IRQ == 1) begin
@@ -91,9 +82,11 @@ module useq
 			LR <= 0;
 			state <= FETCH;
 			l_i_port <= 0;
-			o_port <= 0;
-			instruct <= 0;
+			o_port <= 8'hff;
+			instruct <= 8'hE6;
+			instruct_imm <= 0;
 			mem_addr <= 0;
+			mem_addr_next <= 1;
 			o_port_pulse <= 0;
 			for (i=0; i<16; i=i+1) begin
 				R[i] <= 0;
@@ -133,38 +126,42 @@ module useq
 					tR[0] <= R[0];
 					tR[1] <= R[1];
 					mem_addr <= isr_vect;	// jump to ISR vector
+					mem_addr_next <= isr_vect + 12'd1;
 					PC <= isr_vect;
 					state <= FETCH;			// need another FETCH cycle
 				end else begin
 					case(state)
 						FETCH:
 							begin
+								state <= DECODE;
+							end							
+						DECODE:
+							begin
 								instruct <= mem_data[7:0];
+								instruct_imm <= mem_data[15:8];
 								state <= EXECUTE;
-								mem_addr <= PC + 1'b1; // FETCH PC+1 for the EXECUTE stage so we can latch it for a potential EXECUTE2 stage
 							end
 						EXECUTE:
 							begin
 								// no interrupt so jump here
 								`include "exec1_top.v"
-//								$display("for opcode instruct=%2h chain=%d", instruct, can_chain_exec1);
-								if (can_chain_exec1) begin
-									PC <= PC + 1'b1;			// advance to next PC
-									mem_addr <= PC + 12'd2;		// load what will be the "next opcode" in the next cycle
-									instruct <= mem_data[7:0];   	// latch the current "next opcode"
-									state <= EXECUTE;
-								end
 							end
-						LOADA: // mem_addr was set to the address we want to load and store in A
+						LOADA: // wait a cycle for the BRAM to respond
+							begin
+								state <= LOADA_REG;
+							end
+						LOADA_REG: // mem_addr was set to the address we want to load and store in A
 							begin
 								A <= mem_data[7:0];
 								mem_addr <= PC;
+								mem_addr_next <= PC + 12'd1;
 								state <= FETCH;
 							end
 						STOREA: // Cycle after a store is initiated
 							begin
 								// TODO: turn off write enable
 								mem_addr <= PC;
+								mem_addr_next <= PC + 12'd1;
 								state <= FETCH;
 							end
 					endcase

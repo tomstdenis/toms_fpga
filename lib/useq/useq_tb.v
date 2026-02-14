@@ -2,11 +2,18 @@
 
 module useq_tb();
 
-	reg [7:0] mem[0:4095];
+
+// Memory storage
+    reg [7:0] mem [0:4095];
+    
+    // Latched data registers to simulate the 1-cycle BRAM latency
+    reg [7:0] douta_reg;
+    reg [7:0] doutb_reg;
+
+    // The CPU sees the latched data
+    wire [15:0] mem_data = {doutb_reg, douta_reg};
 	wire [11:0] mem_addr;
-	wire [15:0] mem_data;
-	
-	assign mem_data = {mem[mem_addr+1'b1], mem[mem_addr]};
+	wire [11:0] mem_addr_next;
 	
 	reg clk;
 	reg rst_n;
@@ -20,10 +27,23 @@ module useq_tb();
 	reg [7:0] fifo_in;
 	wire o_port_pulse;
 
+    // Synchronous memory read: mimics Gowin DPB in Normal/Bypass mode
+    always @(posedge clk) begin
+        if (!rst_n) begin
+            douta_reg <= 8'h00;
+            doutb_reg <= 8'h00;
+        end else begin
+            // The memory array is sampled on the posedge
+            // Data becomes available for the CPU at the NEXT posedge
+            douta_reg <= mem[mem_addr];
+            doutb_reg <= mem[mem_addr_next];
+        end
+    end
+
 	useq #(.FIFO_DEPTH(2), .ISR_VECT(12'hF0), .ENABLE_IRQ(1), .ENABLE_HOST_FIFO_CTRL(1)) useq_dut(
 		.clk(clk), .rst_n(rst_n), 
 		.mem_data(mem_data), .i_port(i_port), 
-		.mem_addr(mem_addr), .o_port(o_port), .o_port_pulse(o_port_pulse),
+		.mem_addr(mem_addr), .mem_addr_next(mem_addr_next), .o_port(o_port), .o_port_pulse(o_port_pulse),
 		.read_fifo(read_fifo), .write_fifo(write_fifo), .fifo_empty(fifo_empty), .fifo_full(fifo_full),
 		.fifo_out(fifo_out), .fifo_in(fifo_in));
 
@@ -103,14 +123,16 @@ module useq_tb();
 		begin
 			ttpc = useq_dut.PC;
 			@(posedge clk);
-			$write("CPU: inst=%2h PC=%2h, A=%2h LR=%2h ILR=%2h IM=%2h IP=%2h OP=%2h FO=%2h FE=%d FF=%d R=[", useq_dut.instruct, useq_dut.PC, useq_dut.A, useq_dut.LR, useq_dut.ILR, useq_dut.int_mask, i_port, o_port, fifo_out, fifo_empty, fifo_full);
-			for (x = 0; x < 16; x++) begin
-				$write("%2h", useq_dut.R[x]);
-				if (x < 15) begin
-					$write(" ");
+			if (useq_dut.state == 2) begin
+				$write("CPU: S=%d inst=%2h PC=%2h, A=%2h LR=%2h ILR=%2h IM=%2h IP=%2h OP=%2h FO=%2h FE=%d FF=%d R=[", useq_dut.state, useq_dut.instruct, useq_dut.PC, useq_dut.A, useq_dut.LR, useq_dut.ILR, useq_dut.int_mask, i_port, o_port, fifo_out, fifo_empty, fifo_full);
+				for (x = 0; x < 16; x++) begin
+					$write("%2h", useq_dut.R[x]);
+					if (x < 15) begin
+						$write(" ");
+					end
 				end
+				$write("]\n");
 			end
-			$write("]\n");
 		end
 	endtask
 
