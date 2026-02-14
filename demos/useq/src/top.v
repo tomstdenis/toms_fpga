@@ -1,10 +1,10 @@
 module top(input clk, input in1, output out1);
-    reg ticker;
-    wire [7:0] i_port = {6'b0, in1, ticker};
+    wire [7:0] i_port = {7'b0, in1};
     wire [7:0] o_port;
     wire o_port_pulse;
-    wire [7:0] mem_data;
-    wire [7:0] mem_addr;
+    wire [15:0] mem_data;
+    wire [11:0] mem_addr;
+    wire [11:0] mem_addr_next;
     wire rst_n;
     wire pll_clk;
     reg read_fifo;
@@ -23,44 +23,38 @@ module top(input clk, input in1, output out1);
         .clkin(clk) //input clkin
     );
 
-    always @(posedge pll_clk) begin
+    always @(posedge clk) begin
         rstcnt <= {rstcnt[2:0], 1'b1};
         if (!rst_n) begin
             write_fifo <= 0;
             read_fifo <= 0;
             fifo_in <= 0;
-            ticker <= 0;
-        end else begin
-            ticker <= ticker ^ 1;
         end
     end
 
-    Gowin_ROM16 useq_rom(
-        .dout(mem_data), //output [7:0] dout
-        .ad(mem_addr) //input [7:0] ad
+    Gowin_DPB useq_ram(
+        .douta(mem_data[7:0]), //output [7:0] douta
+        .doutb(mem_data[15:8]), //output [7:0] doutb
+        .clka(clk), //input clka
+        .ocea(1'b1), //input ocea
+        .cea(1'b1), //input cea
+        .reseta(~rst_n), //input reseta
+        .wrea(1'b0), //input wrea
+        .clkb(clk), //input clkb
+        .oceb(1'b1), //input oceb
+        .ceb(1'b1), //input ceb
+        .resetb(~rst_n), //input resetb
+        .wreb(1'b0), //input wreb
+        .ada(mem_addr), //input [11:0] ada
+        .dina(8'b0), //input [7:0] dina
+        .adb(mem_addr_next), //input [11:0] adb
+        .dinb(8'b0) //input [7:0] dinb
     );
 
-`define BUILD_ALL
-//`define BUILD_EXEC1_ONLY
-//`define BUILD_EXEC2_ONLY
-//`define BUILD_SLIM
-
-    // all build
-`ifdef BUILD_ALL
-    useq #(.ENABLE_EXEC1(1), .ENABLE_EXEC2(1),.ENABLE_IRQ(1), .ENABLE_HOST_FIFO_CTRL(1)) 
-`elsif BUILD_EXEC1_ONLY
-    // exec1 only
-    useq #(.ENABLE_EXEC1(1), .ENABLE_EXEC2(0),.ENABLE_IRQ(1), .ENABLE_HOST_FIFO_CTRL(1)) 
-`elsif BUILD_EXEC2_ONLY
-    // exec2 only
-    useq #(.ENABLE_EXEC1(0), .ENABLE_EXEC2(1),.ENABLE_IRQ(1), .ENABLE_HOST_FIFO_CTRL(1)) 
-`elsif BUILD_SLIM
-    // exec2 only with no host FIFO no IRQ
-    useq #(.ENABLE_EXEC1(1), .ENABLE_EXEC2(0),.ENABLE_IRQ(0), .ENABLE_HOST_FIFO_CTRL(0)) 
-`endif
+    useq #(.ENABLE_IRQ(1), .ENABLE_HOST_FIFO_CTRL(1)) 
         test_useq(
-            .clk(pll_clk), .rst_n(rst_n), 
-            .mem_data(mem_data), .i_port(i_port), .mem_addr(mem_addr), .o_port(o_port), .o_port_pulse(o_port_pulse),
+            .clk(clk), .rst_n(rst_n), 
+            .mem_data(mem_data), .i_port(i_port), .mem_addr(mem_addr), .mem_addr_next(mem_addr_next), .o_port(o_port), .o_port_pulse(o_port_pulse),
             .read_fifo(read_fifo), .write_fifo(write_fifo), .fifo_empty(fifo_empty), .fifo_full(fifo_full),
             .fifo_out(fifo_out), .fifo_in(fifo_in));
 

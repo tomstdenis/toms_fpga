@@ -5,7 +5,7 @@
     <Version>5</Version>
     <Device name="GW2AR-18C" pn="GW2AR-LV18QN88C8/I7">gw2ar18c-000</Device>
     <FileList>
-        <File path="src/gowin_rom16/gowin_rom16.v" type="file.verilog" enable="1"/>
+        <File path="src/gowin_dpb/gowin_dpb.v" type="file.verilog" enable="1"/>
         <File path="src/gowin_rpll/gowin_rpll.v" type="file.verilog" enable="1"/>
         <File path="src/top.v" type="file.verilog" enable="1"/>
         <File path="/home/tom/nas/toms_fpga/lib/useq/useq.v" type="file.verilog" enable="1"/>

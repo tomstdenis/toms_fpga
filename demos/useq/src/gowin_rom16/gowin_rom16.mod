@@ -11,6 +11,5 @@
 -path /home/tom/nas/toms_fpga/demos/useq/src/gowin_rom16/
 -type SSRAM_ROM
 -file_type vlg
--ssram_depth 256
+-ssram_depth 4096
 -ssram_width 8
--init_file /home/tom/nas/toms_fpga/lib/useq/blink.s.hex
