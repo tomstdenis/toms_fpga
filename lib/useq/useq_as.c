@@ -43,6 +43,7 @@ uint16_t PC = 0;
 #define E1_OP_FMT_IMM 3			// 8-bit immediate
 #define E1_OP_FMT_IMM12 4		// 12-bit imm
 #define E1_OP_FMT_IMMS 5		// 12-bit >> 4 => 8-bit
+#define E1_LITERAL 6			// literal byte
 
 // EXEC1 instruction table
 const struct {
@@ -50,6 +51,7 @@ const struct {
 	uint8_t opcode;
 	int fmt;
 } e1_opcodes[] = {
+	{ "", 0x00, E1_LITERAL },
 	{ "LD", 0x00, E1_OP_FMT_R },
 	{ "ST", 0x10, E1_OP_FMT_R },
 	{ "SETB", 0x20, E1_OP_FMT_SB },
@@ -310,12 +312,26 @@ void compile(char *line)
 	} else if (!memcmp(line, ".DB ", 4)) {
 		uint8_t x;
 		if (program[PC].line_number == -1) {
-			// todo: allow symbols/labels here
 			line += 4;
 			consume_whitespace(&line);
-			sscanf(line, "%"SCNx8, &x);
-			program[PC].opcode = x;
+			if (islabel(line)) {
+				// it's a label
+				if (*line == '<') {
+					program[PC].use_top_half = 1;
+					++line;
+				} else if (*line == '>') {
+					program[PC].use_bottom_half = 1;
+					++line;
+				}
+				consume_label(program[PC].tgt, &line);
+			} else {
+				uint8_t r;
+				// it's a value
+				sscanf(line, "%"SCNx8, &r);
+				program[PC].opcode = r;
+			}
 			program[PC].line_number = line_number;
+			program[PC].opidx = 0;
 			++PC;
 		} else {
 			printf("Line %d: .DB directive on address that was already programmed on line %d\n", line_number, program[PC].line_number);
@@ -371,18 +387,6 @@ void resolve_exec1(int x)
 				program[x].opcode |= y & 0xF;
 			}
 			break;
-		case E1_OP_FMT_IMM: // imms
-			if (program[x].tgt[0]) {
-				// jumping to a target 
-				y = find_target(x);
-				if (program[x].use_top_half) {
-					y >>= 8;
-				} else if (program[x].use_bottom_half) {
-					y &= 0xFF;
-				}
-				program[x+1].opcode = y;
-			}
-			break;
 		case E1_OP_FMT_IMM12: // relocations (JMP/CALL/etc)
 			if (program[x].tgt[0]) {
 				// jumping to a target 
@@ -411,6 +415,33 @@ void resolve_exec1(int x)
 				}
 				program[x+1].opcode = y >> 4;
 			}
+			break;
+		case E1_LITERAL:
+			if (program[x].tgt[0]) {
+				// jumping to a target 
+				y = find_target(x);
+				if (program[x].use_top_half) {
+					y >>= 8;
+				} else if (program[x].use_bottom_half) {
+					y &= 0xFF;
+				}
+				program[x].opcode = y;
+			}
+			break;
+		case E1_OP_FMT_IMM: // imm
+			if (program[x].tgt[0]) {
+				// jumping to a target 
+				y = find_target(x);
+				if (program[x].use_top_half) {
+					y >>= 8;
+				} else if (program[x].use_bottom_half) {
+					y &= 0xFF;
+				}
+				program[x+1].opcode = y;
+			}
+			break;
+		case E1_OP_FMT_FULL: // no operand
+		case E1_OP_FMT_SB: //  s,b format
 			break;
 	}
 }

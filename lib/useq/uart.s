@@ -81,6 +81,10 @@
 	RET
 
 
+:HELLOTXTPTR		; pointer to HELLOTXT
+.DB >HELLOTXT		; low byte
+.DB <HELLOTXT		; high byte
+
 .ORG 200
 ; DATA
 ; ----
