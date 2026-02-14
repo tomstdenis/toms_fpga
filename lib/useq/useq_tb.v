@@ -120,7 +120,7 @@ module useq_tb();
 //		$readmemh("simple_clean.hex", mem);
 		$readmemh("uart_clean.hex", mem);
 		reset_cpu();
-		repeat(65536) step_cpu();
+		repeat(131072) step_cpu();
 		$finish;
 	end
 

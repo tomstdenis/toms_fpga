@@ -20,4 +20,4 @@ uart.s.hex: uart.s useq_as
 	./useq_as ./uart.s
 
 clean:
-	rm -f *.vvp *.vcd *.pass *.log useq_as *.hex
+	rm -f *.vvp *.vcd *.pass *.log useq_as *.hex *.lst

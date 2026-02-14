@@ -172,7 +172,7 @@ begin
 						begin end
 				endcase
 				case(instruct[3:0])
-					4'hC,4'hD,4'hE: // already handled MUL/LDM/STM
+					4'hC,4'hD,4'hE,4'hF: // already handled MUL/LDM/STM/LDMIND
 						begin end
 					default:
 						begin

@@ -10,8 +10,21 @@
 	LDI 1
 	OUTBIT				; set line high for IDLE
 :MAIN
-	LDIR13 >HELLOTXT	; load R14:R13 with pointer to text
-	LDIR14 <HELLOTXT
+	; figure out which message to print
+	LDIR13 >TXTSEL
+	LDIR14 <TXTSEL
+	LDM
+	ST 1				; save it
+	EORI 1				; flip bit for next pass
+	LDIR11 >TXTSEL
+	LDIR12 <TXTSEL
+	STM					; store it
+	
+	; now figure out which pointer to use
+	LDIR13 >TXTPTRS		; load R14:R13 with pointer pointer table
+	LDIR14 <TXTPTRS
+	LD 1				; load TXTSEL
+	LDMIND				; now follow pointer table	
 	CALL SENDSTR		; CALL SENDSTR
 
 ; let's insert a decent pause (this works out to ~34000 * 256 cycles... or about 322.4ms)
@@ -26,15 +39,6 @@
 	DEC					;
 	ST 1				; store outer counter
 	JNZ MAINLOOP1		; Loop outer
-
-	; load first byte of string and increment it
-	LDIR13 >HELLOTXT	; load R14:R13 with pointer to text
-	LDIR14 <HELLOTXT
-	LDM					; reads from memory pointed to by R14:R13 with post increment
-	INC
-	LDIR11 >HELLOTXT	; load R12:R11 with pointer to text
-	LDIR12 <HELLOTXT
-	STM					; writes to memory pointed to by R12:11 with post increment (this means you can memcpy with LDM/STM/LD/DEC/ST/JNZ sequence
 	JMP MAIN 			; restart demo
 	
 :TXCHAR
@@ -92,11 +96,16 @@
 	RET
 
 
-:HELLOTXTPTR		; pointer to HELLOTXT
+;TXT selector
+:TXTSEL
+.DB 01
+
+:TXTPTRS			; pointer to text strings
 .DB >HELLOTXT		; low byte
 .DB <HELLOTXT		; high byte
+.DB >WELCOMETXT
+.DB <WELCOMETXT
 
-.ORG 200
 ; DATA
 ; ----
 :HELLOTXT
@@ -112,6 +121,18 @@
 .DB 4C ; L
 .DB 44 ; D
 .DB 21 ; !
+.DB 0D ; CR
+.DB 0A ; LF
+.DB 00 ; NUL
+:WELCOMETXT
+.DB 57 ; W
+.DB 65 ; e
+.DB 6C ; l
+.DB 63 ; c
+.DB 6F ; o
+.DB 6D ; m
+.DB 65 ; e
+.DB 2E ; .
 .DB 0D ; CR
 .DB 0A ; LF
 .DB 00 ; NUL
