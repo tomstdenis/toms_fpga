@@ -26,8 +26,17 @@
 	DEC					;
 	ST 1				; store outer counter
 	JNZ MAINLOOP1		; Loop outer
-	JMP MAIN 			; restart demo
 
+	; load first byte of string and increment it
+	LDIR13 >HELLOTXT	; load R14:R13 with pointer to text
+	LDIR14 <HELLOTXT
+	LDM					; reads from memory pointed to by R14:R13 with post increment
+	INC
+	LDIR11 >HELLOTXT	; load R12:R11 with pointer to text
+	LDIR12 <HELLOTXT
+	STM					; writes to memory pointed to by R12:11 with post increment (this means you can memcpy with LDM/STM/LD/DEC/ST/JNZ sequence
+	JMP MAIN 			; restart demo
+	
 :TXCHAR
 ; Transmit a char (internal subroutine...)
 ; INPUT:

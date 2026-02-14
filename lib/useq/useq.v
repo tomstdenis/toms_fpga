@@ -10,7 +10,9 @@ module useq
 	input clk,
 	input rst_n,
 	
-	input [15:0] mem_data,				// ROM[mem_addr..mem_addr+1]
+	input [15:0] mem_data,				// 16-bit input fed from {MEM[mem_addr_next}, MEM[mem_addr]}
+	output reg wren,					// write enable on portA (uses mem_addr)
+	output reg [7:0] mem_out,			// data to write to portA of memory
 	input [7:0] i_port,					// input port you can connect other pins to feed data into the core
 
 	input read_fifo,					// pulse this high to read a byte from the FIFO into fifo_out in the next clock cycle
@@ -89,6 +91,7 @@ module useq
 			instruct_imm <= 0;
 			mem_addr <= 0;
 			mem_addr_next <= 1;
+			wren <= 0;
 			o_port_pulse <= 0;
 			for (i=0; i<16; i=i+1) begin
 				R[i] <= 0;
@@ -162,7 +165,7 @@ module useq
 							end
 						STOREA: // Cycle after a store is initiated
 							begin
-								// TODO: turn off write enable
+								wren <= 0;
 								mem_addr <= PC;
 								mem_addr_next <= PC + 12'd1;
 								state <= FETCH;

@@ -150,8 +150,8 @@ Instruction Map:
 8A: LDIR13 imm		R[13] = imm, PC += 2;
 8B: LDIR14 imm		R[14] = imm, PC += 2;
 8C: MUL				{R[0], A} = A * R[0], PC += 1
-8D: LDM 			A <= ROM[{R[14], R[13]}, {R[14], R[13]} <= {R[14], R[13]} + 1'b1;   (ram and rom are the same address space
-8E: STM				RAM{R[12], R[11]} <= A, {R[12], R[11]} <= {R[12], R[11]} + 1'b1;    (not yet implemented)
+8D: LDM 			A <= ROM[{R[14], R[13]}, {R[14], R[13]} <= {R[14], R[13]} + 1'b1;   (ram and rom are the same address space)
+8E: STM				RAM{R[12], R[11]} <= A, {R[12], R[11]} <= {R[12], R[11]} + 1'b1;    
 8F: XXX 
 
 90: INC, 			A = A + 1, PC += 1

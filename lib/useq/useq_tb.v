@@ -12,6 +12,8 @@ module useq_tb();
 
     // The CPU sees the latched data
     wire [15:0] mem_data = {doutb_reg, douta_reg};
+	wire wren;
+	wire [7:0]  mem_out;
 	wire [11:0] mem_addr;
 	wire [11:0] mem_addr_next;
 	
@@ -33,17 +35,21 @@ module useq_tb();
             douta_reg <= 8'h00;
             doutb_reg <= 8'h00;
         end else begin
-            // The memory array is sampled on the posedge
-            // Data becomes available for the CPU at the NEXT posedge
-            douta_reg <= mem[mem_addr];
-            doutb_reg <= mem[mem_addr_next];
+			// The memory array is sampled on the posedge
+			if (wren) begin
+				mem[mem_addr] <= mem_out;
+			end else begin
+				// Data becomes available for the CPU at the NEXT posedge
+				douta_reg <= mem[mem_addr];
+				doutb_reg <= mem[mem_addr_next]; // portB only reads if !wren to avoid SRAM address conflicts (can't read from address you're writing to)
+			end
         end
     end
 
 	useq #(.FIFO_DEPTH(2), .ISR_VECT(12'hF0), .ENABLE_IRQ(1), .ENABLE_HOST_FIFO_CTRL(1)) useq_dut(
 		.clk(clk), .rst_n(rst_n), 
 		.mem_data(mem_data), .i_port(i_port), 
-		.mem_addr(mem_addr), .mem_addr_next(mem_addr_next), .o_port(o_port), .o_port_pulse(o_port_pulse),
+		.mem_addr(mem_addr), .wren(wren), .mem_out(mem_out), .mem_addr_next(mem_addr_next), .o_port(o_port), .o_port_pulse(o_port_pulse),
 		.read_fifo(read_fifo), .write_fifo(write_fifo), .fifo_empty(fifo_empty), .fifo_full(fifo_full),
 		.fifo_out(fifo_out), .fifo_in(fifo_in));
 

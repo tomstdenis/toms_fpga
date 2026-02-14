@@ -154,11 +154,12 @@ begin
 						end
 					4'hE: // STM
 						begin
-							mem_addr <= {R[12][3:0], R[11]};
-							{R[12], R[11]} <= {R[12], R[11]} + 1'b1;
+							mem_out <= A;								// store A
+							mem_addr <= {R[12][3:0], R[11]};			// at R12:R11
+							wren <= 1'b1; 								// enable write on memory
+							{R[12], R[11]} <= {R[12], R[11]} + 1'b1;	// post increment 
 							PC <= PC + 12'd1;
-							state <= STOREA;
-							// TODO: write_enable
+							state <= STOREA;							// wait for write before moving to FETCH
 						end
 					default:
 						begin end
