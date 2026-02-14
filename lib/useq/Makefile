@@ -3,7 +3,7 @@ all: test_useq.pass
 useq_as: useq_as.c
 	${CC} -Wall -O2 -g3 $^ -o $@
 
-test_useq.pass: useq.v useq_tb.v exec1_top.v exec2_top.v blink.s.hex uart.s.hex
+test_useq.pass: useq.v useq_tb.v exec1_top.v blink.s.hex uart.s.hex
 	grep -v "^#" uart.s.hex > uart_clean.hex
 	grep -v "^#" blink.s.hex > blink_clean.hex
 	verilator --lint-only useq.v useq_tb.v
