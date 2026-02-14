@@ -36,7 +36,6 @@
 ;	 A
 ;    R[1] -> 0
 ;    R[2] -> 0 number of bits left
-;    R[3] -> 224, bit counter
 ; CHAR to send is in A, R0[2:0] is set to the bit of o_port TX is on
 	LDI 8
 	ST 2   			; R[2] = bits to send

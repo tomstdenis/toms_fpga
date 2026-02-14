@@ -128,7 +128,6 @@ Puts the byte 0x55 in memory at that current origin.
 
 Instruction Map:
 
-// all 1 cycle
 0r: LD r, 			A = R[r], PC += 1
 1r: ST r, 			R[r] = A, PC += 1		; for LD and ST if r==15 then it interacts with the FIFO not R[15] itself
 2sb: SETB s, b, 	A[s] = b, PC += 1   	; Set bit s of A to b
@@ -138,7 +137,6 @@ Instruction Map:
 6r: AND r, 			A = A & R[r], PC += 1
 7r: OR r, 			A = A | R[r], PC += 1
 
-// all 1 cycle except for LDM/STM
 80: LDI imm			A = ROM[PC+1], PC = PC + 2
 81: ADDI imm		A = A + ROM[PC+1], PC = PC + 2
 82: SUBI imm		A = A - ROM[PC+1], PC = PC + 2
@@ -156,7 +154,6 @@ Instruction Map:
 8E: STM				RAM{R[12], R[11]} <= A, {R[12], R[11]} <= {R[12], R[11]} + 1'b1;    (not yet implemented)
 8F: XXX 
 
-// all 1 cycle
 90: INC, 			A = A + 1, PC += 1
 91: DEC, 			A = A - 1, PC += 1
 92: ASL, 			A = A << 1, PC += 1
@@ -174,13 +171,11 @@ Instruction Map:
 9E: SILT, 			A = (A < R[0]) ? 1 : 0, PC += 1
 9F: XXX
 
-// relocations are 2 cycles
 Ax: JMP IMM12		PC = {instruct[3:0], imm}
 Bx: CALL IMM12		LR = PC + 2, PC = {instruct[3:0], imm}
 Cx: JZ IMM12		if (A == 0) PC = {instruct[3:0], imm}
 Dx: JNZ IMM12		if (A != 0) PC = {instruct[3:0], imm}
 
-// 1 cycle, except EA-EF which are 2+ cycles
 E0: OUT, 			o_port = A, PC += 1
 E1: OUTBIT, 		o_port[R0[2:0]] = A[0], PC += 1  // fast set-1
 E2: TGLBIT, 		o_port[R1[2:0]] ^= 1, PC += 1    // fast toggle-1			<--- things clock pin related use R1 to address the pin
@@ -198,5 +193,4 @@ ED: WAIT1,			PC = PC + (i_port[R1[2:0]]) ? 1 : 0
 EE: WAITF: 			PC = PC + (R[15] >= A) ? 1 : 0, // wait for FIFO to have at least A bytes in it, you need an ISR that stores in the fifo for this to advance
 EF: WAITA, 			T = A, A = A - 1, PC += (A == 0) ? 1 : 0, A = T when it stops waiting
 
-// 1 cycle
 Fsb: SBIT s, b		Skip next instruction if bit s of A is b, PC = PC + 1 + (A[s] == b) ? 1 : 0

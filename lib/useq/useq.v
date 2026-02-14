@@ -31,6 +31,7 @@ module useq
 	reg [7:0] tR[1:0];							// temporary R[0..1] used for IRQ
 	reg [11:0] PC;								// PC program counter
 	reg [8:0] T;								// T temporary register used for WAITA opcode
+	reg [8:0] tT;								// copy of T for IRQ context switching
 	reg [11:0] LR;								// LR link register
 	reg [11:0] ILR;								// ILR IRQ link register
 	reg [7:0] instruct;							// current opcode
@@ -71,6 +72,7 @@ module useq
 				tA <= 0;
 				tR[0] <= 0;
 				tR[1] <= 0;
+				tT <= 0;
 				ILR <= 0;
 				int_mask <= 0;
 				int_enable <= 0;
@@ -125,6 +127,7 @@ module useq
 					tA <= A;
 					tR[0] <= R[0];
 					tR[1] <= R[1];
+					tT <= T;
 					mem_addr <= isr_vect;	// jump to ISR vector
 					mem_addr_next <= isr_vect + 12'd1;
 					PC <= isr_vect;

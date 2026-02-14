@@ -409,6 +409,7 @@ begin
 								A <= tA;			// restore A
 								R[0] <= tR[0];		// restore R[0] and R[1]
 								R[1] <= tR[1];
+								T <= tT;			// restore T counter if we interrupted an WAITA
 								mem_addr <= ILR;	// fetch instruction we interrupted
 								mem_addr_next <= ILR + 12'd1;
 								state <= FETCH;		// we need a FETCH cycle to load instruct
