@@ -3,9 +3,10 @@
 module useq
 #(parameter
 	FIFO_DEPTH=16,
-	ISR_VECT=12'hF0,
+	ISR_VECT=12'hFE0,					// 32 bytes short of top of memory
 	ENABLE_IRQ=1,
-	ENABLE_HOST_FIFO_CTRL=1
+	ENABLE_HOST_FIFO_CTRL=1,
+	STACK_DEPTH=16
 )(
 	input clk,
 	input rst_n,
@@ -31,10 +32,11 @@ module useq
 	reg [7:0] A;								// A accumulator
 	reg [7:0] tA;								// temporaty A used for IRQ
 	reg [7:0] tR[1:0];							// temporary R[0..1] used for IRQ
+	reg [$clog2(STACK_DEPTH):0] SP;				// stack pointer
 	reg [11:0] PC;								// PC program counter
 	reg [8:0] T;								// T temporary register used for WAITA opcode
 	reg [8:0] tT;								// copy of T for IRQ context switching
-	reg [11:0] LR;								// LR link register
+	reg [11:0] LR[STACK_DEPTH-1:0];				// LR link register
 	reg [11:0] ILR;								// ILR IRQ link register
 	reg [7:0] instruct;							// current opcode
 	reg [7:0] instruct_imm;						// immediate for the instruction
@@ -85,7 +87,6 @@ module useq
 			A <= 0;
 			PC <= 0;
 			T <= 0;
-			LR <= 0;
 			state <= FETCH;
 			l_i_port <= 0;
 			o_port <= 8'hff;
@@ -100,6 +101,10 @@ module useq
 			end
 			for (i=0; i<FIFO_DEPTH; i=i+1) begin
 				FIFO[i] <= 0;
+			end
+			SP <= 0;
+			for (i=0; i<STACK_DEPTH; i=i+1) begin
+				LR[i] <= 0;
 			end
 			fifo_rptr <= 0;
 			fifo_wptr <= 0;

@@ -1,5 +1,5 @@
-module top(input clk, input in1, output out1);
-    wire [7:0] i_port = {7'b0, in1};                // input port, we only use one pin right now
+module top(input clk, inout [7:0]io);
+    wire [7:0] i_port = io;                // input port, we only use one pin right now
     wire [7:0] o_port;                              // output port
     wire o_port_pulse;                              // this inverts when o_port is written to by the core
     wire [15:0] mem_data;                           // the 16-bits read from the BRAM from mem_addr_next, mem_addr
@@ -18,7 +18,17 @@ module top(input clk, input in1, output out1);
     reg [3:0] rstcnt = 4'b0;
 
     assign rst_n = rstcnt[3];
-    assign out1 = o_port[0];
+// Bit-by-bit Quasi-Bidirectional Logic (PCF8574 style)
+// If o_port[n] is 1, io[n] is High-Z (allows input or pulls high via resistor)
+// If o_port[n] is 0, io[n] is driven Low (0)
+    assign io[0] = o_port[0] ? 1'bz : 1'b0;
+    assign io[1] = o_port[1] ? 1'bz : 1'b0;
+    assign io[2] = o_port[2] ? 1'bz : 1'b0;
+    assign io[3] = o_port[3] ? 1'bz : 1'b0;
+    assign io[4] = o_port[4] ? 1'bz : 1'b0;
+    assign io[5] = o_port[5] ? 1'bz : 1'b0;
+    assign io[6] = o_port[6] ? 1'bz : 1'b0;
+    assign io[7] = o_port[7] ? 1'bz : 1'b0;
 
     wire portBen = ~wren;           // only read if we're not writing
 
@@ -27,7 +37,7 @@ module top(input clk, input in1, output out1);
         .clkin(clk) //input clkin
     );
 
-    always @(posedge clk) begin
+    always @(posedge pll_clk) begin
         rstcnt <= {rstcnt[2:0], 1'b1};
         if (!rst_n) begin
             write_fifo <= 0;
@@ -39,12 +49,12 @@ module top(input clk, input in1, output out1);
     Gowin_DPB useq_ram(
         .douta(mem_data[7:0]), //output [7:0] douta
         .doutb(mem_data[15:8]), //output [7:0] doutb
-        .clka(clk), //input clka
+        .clka(pll_clk), //input clka
         .ocea(1'b1), //input ocea
         .cea(1'b1), //input cea
         .reseta(~rst_n), //input reseta
         .wrea(wren), //input wrea
-        .clkb(clk), //input clkb
+        .clkb(pll_clk), //input clkb
         .oceb(1'b1), //input oceb
         .ceb(portBen), //input ceb
         .resetb(~rst_n), //input resetb
@@ -55,9 +65,9 @@ module top(input clk, input in1, output out1);
         .dinb(8'b0) //input [7:0] dinb
     );
 
-    useq #(.ENABLE_IRQ(1), .ENABLE_HOST_FIFO_CTRL(1)) 
+    useq #(.ENABLE_IRQ(1), .ENABLE_HOST_FIFO_CTRL(1), .FIFO_DEPTH(32), .STACK_DEPTH(32))
         test_useq(
-            .clk(clk), .rst_n(rst_n), 
+            .clk(pll_clk), .rst_n(rst_n), 
             .mem_data(mem_data), .wren(wren), .mem_out(mem_out), .mem_addr(mem_addr), .mem_addr_next(mem_addr_next),
             .i_port(i_port), .o_port(o_port), .o_port_pulse(o_port_pulse),
             .read_fifo(read_fifo), .write_fifo(write_fifo), .fifo_empty(fifo_empty), .fifo_full(fifo_full), .fifo_out(fifo_out), .fifo_in(fifo_in));

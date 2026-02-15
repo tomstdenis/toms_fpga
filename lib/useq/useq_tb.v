@@ -46,7 +46,7 @@ module useq_tb();
         end
     end
 
-	useq #(.FIFO_DEPTH(2), .ISR_VECT(12'hF0), .ENABLE_IRQ(1), .ENABLE_HOST_FIFO_CTRL(1)) useq_dut(
+	useq #(.FIFO_DEPTH(16), .STACK_DEPTH(16), .ISR_VECT(12'hFE0), .ENABLE_IRQ(1), .ENABLE_HOST_FIFO_CTRL(1)) useq_dut(
 		.clk(clk), .rst_n(rst_n), 
 		.mem_data(mem_data), .i_port(i_port), 
 		.mem_addr(mem_addr), .wren(wren), .mem_out(mem_out), .mem_addr_next(mem_addr_next), .o_port(o_port), .o_port_pulse(o_port_pulse),
@@ -130,7 +130,7 @@ module useq_tb();
 			ttpc = useq_dut.PC;
 			@(posedge clk);
 			if (useq_dut.state == 2) begin
-				$write("CPU: S=%d inst=%2h PC=%2h, A=%2h LR=%2h ILR=%2h IM=%2h IP=%2h OP=%2h FO=%2h FE=%d FF=%d R=[", useq_dut.state, useq_dut.instruct, useq_dut.PC, useq_dut.A, useq_dut.LR, useq_dut.ILR, useq_dut.int_mask, i_port, o_port, fifo_out, fifo_empty, fifo_full);
+				$write("CPU: S=%d inst=%2h PC=%2h, A=%2h SP=%2d ILR=%2h IM=%2h IP=%2h OP=%2h FO=%2h FE=%d FF=%d R=[", useq_dut.state, useq_dut.instruct, useq_dut.PC, useq_dut.A, useq_dut.SP, useq_dut.ILR, useq_dut.int_mask, i_port, o_port, fifo_out, fifo_empty, fifo_full);
 				for (x = 0; x < 16; x++) begin
 					$write("%2h", useq_dut.R[x]);
 					if (x < 15) begin

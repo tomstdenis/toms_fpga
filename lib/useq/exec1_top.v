@@ -157,7 +157,7 @@ begin
 							mem_out <= A;								// store A
 							mem_addr <= {R[12][3:0], R[11]};			// at R12:R11
 							wren <= 1'b1; 								// enable write on memory
-							{R[12], R[11]} <= {R[12], R[11]} + 1'b1;	// post increment 
+							{R[12], R[11]} <= ({R[12], R[11]} + 1'b1) & 16'hFFF;	// post increment (12-bit)
 							PC <= PC + 12'd1;
 							state <= STOREA;							// wait for write before moving to FETCH
 						end
@@ -249,7 +249,7 @@ begin
 						begin
 							A <= (A < R[0]) ? 8'd1 : 8'd0;
 						end
-					4'hF: // XXX (must be chainable)
+					4'hF: // NOP
 						begin
 						end
 				endcase
@@ -268,7 +268,10 @@ begin
 			end
 		4'hB: // CALL IMM12
 			begin
-				LR <= PC + 12'd2;
+				if (SP != STACK_DEPTH) begin
+					LR[SP[$clog2(STACK_DEPTH)-1:0]] <= PC + 12'd2;
+					SP <= SP + 1'b1;
+				end
 				PC <= {instruct[3:0], instruct_imm};
 				mem_addr <= {instruct[3:0], instruct_imm};
 				mem_addr_next <= {instruct[3:0], instruct_imm} + 12'd1;
@@ -332,7 +335,7 @@ begin
 						end
 					4'h2: // TGLBIT
 						begin
-							case(R[1][2:0])
+							case(R[0][5:3])
 								3'd0: o_port[0] <= o_port[0] ^ 1;
 								3'd1: o_port[1] <= o_port[1] ^ 1;
 								3'd2: o_port[2] <= o_port[2] ^ 1;
@@ -372,8 +375,12 @@ begin
 							mem_addr_next <= PC + 12'd2;
 							state <= FETCH;
 						end
-					4'h6: // NOP
+					4'h6: // PUSHA
 						begin
+							if (SP < STACK_DEPTH) begin
+								LR[SP[$clog2(STACK_DEPTH)-1:0]] <= { 4'b0, A };
+								SP <= SP + 1'b1;
+							end
 							PC <= PC + 12'b1;			// advance to next PC
 							mem_addr <= PC + 12'd1;		// load what will be the "next opcode" in the next cycle
 							mem_addr_next <= PC + 12'd2;
@@ -398,15 +405,22 @@ begin
 							mem_addr_next <= PC + 12'd3;
 							state <= FETCH;
 						end
-					4'h9: // HLT
+					4'h9: // POPA
 						begin
+							if (SP > 0) begin
+								A <= LR[SP[$clog2(STACK_DEPTH)-1:0] - 1'b1][7:0];
+								SP <= SP - 1'b1;
+							end
 							state <= FETCH;
 						end
 					4'hA: // RET
 						begin
-							PC <= LR;
-							mem_addr <= LR;
-							mem_addr_next <= LR + 12'd1;
+							if (SP > 0) begin
+								PC <= LR[SP[$clog2(STACK_DEPTH)-1:0] - 1'b1];
+								mem_addr <= LR[SP[$clog2(STACK_DEPTH)-1:0] - 1'b1];
+								mem_addr_next <= LR[SP[$clog2(STACK_DEPTH)-1:0] - 1'b1] + 12'd1;
+								SP <= SP - 1'b1;
+							end
 							state <= FETCH;
 						end
 					4'hB: // RTI
@@ -430,7 +444,7 @@ begin
 						end
 					4'hC: // WAIT0
 						begin
-							if (((l_i_port >> R[1][2:0]) & 8'b1) == 0) begin
+							if (((l_i_port >> R[0][5:3]) & 8'b1) == 0) begin
 								PC <= PC + 1'b1;
 								mem_addr <= PC + 12'd1;
 								mem_addr_next <= PC + 12'd2;
@@ -439,7 +453,7 @@ begin
 						end
 					4'hD: // WAIT1
 						begin
-							if (((l_i_port >> R[1][2:0]) & 8'b1) == 1) begin
+							if (((l_i_port >> R[0][5:3]) & 8'b1) == 1) begin
 								PC <= PC + 1'b1;
 								mem_addr <= PC + 12'd1;
 								mem_addr_next <= PC + 12'd2;

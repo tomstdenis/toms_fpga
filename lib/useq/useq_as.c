@@ -26,6 +26,7 @@ struct {
 
 int line_number = 1;
 uint16_t PC = 0;
+uint16_t bin_start = 0;
 
 /* bare bones assembler, allows whitespace and comments with ';'
  * 
@@ -93,7 +94,7 @@ const struct {
 	{ "SIGT", 0x9C, E1_OP_FMT_FULL },
 	{ "SIEQ", 0x9D, E1_OP_FMT_FULL },
 	{ "SILT", 0x9E, E1_OP_FMT_FULL },
-// 9F
+	{ "NOP", 0x9F, E1_OP_FMT_FULL },
 	
 	{ "JMP", 0xA0, E1_OP_FMT_IMM12 },
 	{ "CALL", 0xB0, E1_OP_FMT_IMM12 },
@@ -106,10 +107,10 @@ const struct {
 	{ "IN", 0xE3, E1_OP_FMT_FULL },
 	{ "INBIT", 0xE4, E1_OP_FMT_FULL },
 	{ "NEG", 0xE5, E1_OP_FMT_FULL },
-	{ "NOP", 0xE6, E1_OP_FMT_FULL },
+	{ "PUSHA", 0xE6, E1_OP_FMT_FULL },
 	{ "SEI", 0xE7, E1_OP_FMT_IMM },
 	{ "SAI", 0xE8, E1_OP_FMT_IMMS },
-	{ "HLT", 0xE9, E1_OP_FMT_FULL },
+	{ "POPA", 0xE9, E1_OP_FMT_FULL },
 	{ "RET", 0xEA, E1_OP_FMT_FULL },
 	{ "RTI", 0xEB, E1_OP_FMT_FULL },
 	{ "WAIT0", 0xEC, E1_OP_FMT_FULL },
@@ -285,6 +286,9 @@ void compile(char *line)
 	if (!memcmp(line, ".ORG ", 5)) {
 		line += 5;
 		sscanf(line, "%"SCNx16, &PC);
+	} else 	if (!memcmp(line, ".BIN_START ", 11)) {
+		line += 11;
+		sscanf(line, "%"SCNx16, &bin_start);
 	} else if (!memcmp(line, ".EQU ", 5)) {
 		int x;
 		line += 5;
@@ -310,7 +314,6 @@ void compile(char *line)
 			++PC;
 		}
 	} else if (!memcmp(line, ".DB ", 4)) {
-		uint8_t x;
 		if (program[PC].line_number == -1) {
 			line += 4;
 			consume_whitespace(&line);
@@ -471,7 +474,7 @@ int main(int argc, char **argv)
 	memset(&symbols, 0, sizeof symbols);
 	
 	for (x = 0; x < PROG_SIZE; x++) {
-		program[x].opcode = 0xE6; // NOP
+		program[x].opcode = 0x9F; // NOP
 		program[x].line_number = -1;
 	}
 	
@@ -484,6 +487,14 @@ int main(int argc, char **argv)
 		fclose(f);
 	}
 	resolve_labels();
+	sprintf(outname, "%s.bin", argv[1]);
+	f = fopen(outname, "w");
+	for (x = bin_start; x < PROG_SIZE; x++) {
+		fputc(program[x].opcode, f);
+	}
+	fclose(f);
+	
+	sprintf(outname, "%s.hex", argv[1]);
 	f = fopen(outname, "w");
 	fprintf(f, "#File_format=Hex\n#Address_depth=%d\n#Data_width=8\n", PROG_SIZE);
 	for (x = 0; x < PROG_SIZE; x++) {
