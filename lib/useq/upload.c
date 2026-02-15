@@ -55,7 +55,8 @@ int main(int argc, char **argv)
 			tcdrain(fd);
 			if (read(fd, &b, 1) == 1) {
 				if (b == ch) {
-					printf("Wrote %4d\r", ++bytes);
+					++bytes;
+					printf("Wrote %4d (%d%% done)\r", bytes, (bytes * 100) / (4096 - 0x50));
 					fflush(stdout);
 				} else {
 					printf("\nRead timed out\n");
