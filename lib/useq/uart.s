@@ -1,15 +1,18 @@
 ; UART demo for 27MHz using 115.2K baud meaning each bit lasts 234.4 cycles 
 ; We use a variety of LDI/CLR/SETB/LSR/LD/ST to set the output bit
 ; to make sure we're covering more of the opcodes
-.ORG 00
+
+; boot loadable apps start at 0x50 and we only want from 0x50..0xFFF in the bin file
+.ORG 50
+.BIN_START 50
 
 .EQU BIT_COUNTER E2		; This is the freewheeling delay after sending a pulse
 .EQU INNER_COUNTER CA   ; This is the same delay but accounting for the overhead in the BITS loop
-.EQU RX_BITCOUNTER 97   ; Half of a 1.5 length pulse
+.EQU RX_BITCOUNTER A9   ; Half of a 1.5 length pulse
 
+	LDI FF
+	OUT					; Make all pins inputs
 	LDIR0 08			; R0 = 001_000 so we output on pin 0, and RX on pin 1
-	LDI 01
-	OUTBIT				; set line high for IDLE
 :MAIN
 	; figure out which message to print
 	LDIR13 >TXTSEL
@@ -27,8 +30,6 @@
 	POPA				; load TXTSEL
 	LDMIND				; now follow pointer table	
 	CALL SENDSTR		; CALL SENDSTR
-	CALL RXCHAR			; echo one char
-	CALL TXCHAR
 
 ; let's insert a decent pause (this works out to ~34000 * 256 cycles... or about 322.4ms)
 	LDIR1 FF			; R1 = FF, outer loop counter
@@ -58,7 +59,7 @@
 	LDI RX_BITCOUNTER
 	WAIT0					; wait for a START pulse
 	WAITA
-	WAITA					; we wait 1.5X into the first bit
+	WAITA					; we wait 1.5X into the first bit since 1.5X BIT_COUNTER > 256 we split it into two waits
 :RXBITS
 	LD 2					; load receive byte
 	INBIT					; read a bit
@@ -77,7 +78,7 @@
 
 ; Transmit a char (internal subroutine...)
 ; INPUT:
-;   R1 - Char to send
+;   A - Char to send
 ;   R0[2:0] - pin to write to
 ;
 ; Destroys:
@@ -86,9 +87,9 @@
 ;    R[2] -> 0 number of bits left
 ; CHAR to send is in A, R0[2:0] is set to the bit of o_port TX is on
 :TXCHAR
+	ST 1
 	LDI 8
 	ST 2   			; R[2] = bits to send
-
 	CLR
 	OUTBIT 			; Output A[0] which is 0, START bit (low)
 	LDI BIT_COUNTER ; // 224 cycles to account for the 10 taken in the loop
@@ -125,8 +126,8 @@
 ;
 	LDM				; A = ROM[R[14],R[13]], R14,R13 += 1
 	JZ SENDSTRDONE ; If it's not NUL send it, otherwise return	
-	ST 1			; R[1] == char to send
 	CALL TXCHAR
+	JMP SENDSTR
 :SENDSTRDONE
 	RET
 

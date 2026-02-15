@@ -1,4 +1,4 @@
-module top(input clk, inout [7:0]io);
+module top(input clk, inout [7:0]io, output led);
     wire [7:0] i_port = io;                // input port, we only use one pin right now
     wire [7:0] o_port;                              // output port
     wire o_port_pulse;                              // this inverts when o_port is written to by the core
@@ -16,6 +16,9 @@ module top(input clk, inout [7:0]io);
     reg [7:0] fifo_in;
     wire [7:0] fifo_out;
     reg [3:0] rstcnt = 4'b0;
+
+    reg ledv;
+    assign led = ledv;
 
     assign rst_n = rstcnt[3];
 // Bit-by-bit Quasi-Bidirectional Logic (PCF8574 style)
@@ -42,10 +45,12 @@ module top(input clk, inout [7:0]io);
     always @(posedge clk) begin
         rstcnt <= {rstcnt[2:0], 1'b1};
         if (!rst_n) begin
+            ledv <= 1'b1;            // LED is active low
             write_fifo <= 0;
             read_fifo <= 0;
             fifo_in <= 0;
         end
+        ledv <= 1'b0;
     end
 
     Gowin_DPB useq_ram(

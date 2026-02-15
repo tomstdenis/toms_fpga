@@ -361,9 +361,9 @@ begin
 						end
 					4'h4: // INBIT
 						begin
-							A <= ((l_i_port >> R[0][2:0]) & 8'b1);
-							PC <= PC + 12'b1;			// advance to next PC
-							mem_addr <= PC + 12'd1;		// load what will be the "next opcode" in the next cycle
+							A[0] <= l_i_port[R[0][5:3]];	    	// INBIT only changes A[0]
+							PC <= PC + 12'b1;						// advance to next PC
+							mem_addr <= PC + 12'd1;					// load what will be the "next opcode" in the next cycle
 							mem_addr_next <= PC + 12'd2;
 							state <= FETCH;
 						end
@@ -411,6 +411,9 @@ begin
 								A <= LR[SP[$clog2(STACK_DEPTH)-1:0] - 1'b1][7:0];
 								SP <= SP - 1'b1;
 							end
+							PC <= PC + 1'b1;
+							mem_addr <= PC + 1'b1;
+							mem_addr_next <= PC + 12'd2;
 							state <= FETCH;
 						end
 					4'hA: // RET

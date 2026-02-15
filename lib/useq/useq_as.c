@@ -507,7 +507,7 @@ int main(int argc, char **argv)
 			++y;
 		}
 	}
-	printf("%s created, used %d (%d%%) out of %d bytes.\n", outname, y, (y * 100) / PROG_SIZE, PROG_SIZE);
+	printf("%s created, used %d (%d%%) out of %d bytes.\n", outname, y, (y * 100) / (PROG_SIZE - bin_start), PROG_SIZE - bin_start);
 	if (y > (PROG_SIZE-(PROG_SIZE/10)) && y != PROG_SIZE) {
 		// find the user some space
 		printf("Limited free space here's a map of free space:\n");

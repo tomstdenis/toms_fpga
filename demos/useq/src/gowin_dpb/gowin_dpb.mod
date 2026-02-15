@@ -22,5 +22,5 @@
 -write_mode_1 normal
 -speed false
 -reset_mode sync
--init_file /home/tom/nas/toms_fpga/lib/useq/uart.s.hex
+-init_file /home/tom/nas/toms_fpga/lib/useq/boot.s.hex
 -init_match port_A

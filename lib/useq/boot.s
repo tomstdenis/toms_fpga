@@ -3,17 +3,24 @@
 
 .EQU BIT_COUNTER E2		; This is the freewheeling delay after sending a pulse
 .EQU INNER_COUNTER CA   ; This is the same delay but accounting for the overhead in the BITS loop
-.EQU RX_BITCOUNTER 97   ; Half of a 1.5 length pulse
+.EQU RX_BITCOUNTER A9   ; Half of a 1.5 length pulse
 
 :BOOT
-	LDIR11 >APP			; Load pointer to app, note R12 is zeroed on reset and it's going to be zero here anyways
+	LDIR11 >APP			; Load pointer to app
+	LDIR12 <APP
+	LDIR0  08			; 001_000 use pin1 for input, pin0 for output
 :BOOTLOOP
 	CALL RXCHAR
 	STM					; receive char and store it
 	CALL TXCHAR			; echo char back 
-	LD B				; is R11:R12 zero?
+	LD B				; is R12:R11 zero? (we wrapped around to the bootloader so we should stop)
 	OR C				;
 	JNZ BOOTLOOP
+; done loading let's clear some regs
+	CLR
+	ST 0
+	ST 1
+	ST 2
 	JMP APP
 
 :RXCHAR
@@ -24,13 +31,15 @@
 ;	A - Received byte
 ; Destroys:
 ;   R1, R2 - Temps
+	CLR						; clear received bit
+	ST 2					; save to R2
 	LDIR1 8					; we will process 8 bits
 	LDI RX_BITCOUNTER
 	WAIT0					; wait for a START pulse
 	WAITA
-	WAITA					; we wait 1.5X into the first bit
+	WAITA					; we wait 1.5X into the first bit since 1.5X BIT_COUNTER > 256 we split it into two waits
 :RXBITS
-	LD 2					; load receive byte (we don't init R2 but because we're storing 8 bits into it it doesn't matter)
+	LD 2					; load receive byte
 	INBIT					; read a bit
 	ROR						; rotate right so we can save the next bit
 	ST 2
@@ -40,7 +49,7 @@
 	DEC
 	ST 1					; save counter
 	JNZ RXBITS
-	LDI BIT_COUNTER			; wait for STOP pulse
+	LDI INNER_COUNTER		; wait for STOP pulse
 	WAITA
 	LD 2
 	RET
@@ -56,8 +65,9 @@
 ;    R[2] -> 0 number of bits left
 ; CHAR to send is in A, R0[2:0] is set to the bit of o_port TX is on
 :TXCHAR
-	LDIR13 8		; R13 = 8
-	ST 1			; store byte
+	ST 1
+	LDI 8
+	ST 2   			; R[2] = bits to send
 	CLR
 	OUTBIT 			; Output A[0] which is 0, START bit (low)
 	LDI BIT_COUNTER ; // 224 cycles to account for the 10 taken in the loop
@@ -71,9 +81,9 @@
 	ST 1  			; R[1] = shifted char to send
 	LDI INNER_COUNTER ; delay for 115.2k baud
 	WAITA 			; wait
-	LD C  			; bit count
+	LD 2  			; bit count
 	DEC   			; decrement
-	ST C  			; R[13] = bits left
+	ST 2  			; R[2] = bits left
 	JNZ TXBITS
 
 ; STOP bit
@@ -83,5 +93,5 @@
 	WAITA
 	RET
 
-.ORG 40
+.ORG 50
 :APP
