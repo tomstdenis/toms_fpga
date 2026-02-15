@@ -32,12 +32,14 @@ module top(input clk, inout [7:0]io);
 
     wire portBen = ~wren;           // only read if we're not writing
 
+/*
     Gowin_rPLL rPLL(
         .clkout(pll_clk), //output clkout
         .clkin(clk) //input clkin
     );
+*/
 
-    always @(posedge pll_clk) begin
+    always @(posedge clk) begin
         rstcnt <= {rstcnt[2:0], 1'b1};
         if (!rst_n) begin
             write_fifo <= 0;
@@ -49,12 +51,12 @@ module top(input clk, inout [7:0]io);
     Gowin_DPB useq_ram(
         .douta(mem_data[7:0]), //output [7:0] douta
         .doutb(mem_data[15:8]), //output [7:0] doutb
-        .clka(pll_clk), //input clka
+        .clka(clk), //input clka
         .ocea(1'b1), //input ocea
         .cea(1'b1), //input cea
         .reseta(~rst_n), //input reseta
         .wrea(wren), //input wrea
-        .clkb(pll_clk), //input clkb
+        .clkb(clk), //input clkb
         .oceb(1'b1), //input oceb
         .ceb(portBen), //input ceb
         .resetb(~rst_n), //input resetb
@@ -67,7 +69,7 @@ module top(input clk, inout [7:0]io);
 
     useq #(.ENABLE_IRQ(1), .ENABLE_HOST_FIFO_CTRL(1), .FIFO_DEPTH(32), .STACK_DEPTH(32))
         test_useq(
-            .clk(pll_clk), .rst_n(rst_n), 
+            .clk(clk), .rst_n(rst_n), 
             .mem_data(mem_data), .wren(wren), .mem_out(mem_out), .mem_addr(mem_addr), .mem_addr_next(mem_addr_next),
             .i_port(i_port), .o_port(o_port), .o_port_pulse(o_port_pulse),
             .read_fifo(read_fifo), .write_fifo(write_fifo), .fifo_empty(fifo_empty), .fifo_full(fifo_full), .fifo_out(fifo_out), .fifo_in(fifo_in));

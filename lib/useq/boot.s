@@ -6,13 +6,11 @@
 .EQU RX_BITCOUNTER 97   ; Half of a 1.5 length pulse
 
 :BOOT
-	LDIR11 >APP
-	LDIR12 <APP			; set pointer to start of app
+	LDIR11 >APP			; Load pointer to app, note R12 is zeroed on reset and it's going to be zero here anyways
 :BOOTLOOP
 	CALL RXCHAR
 	STM					; receive char and store it
-	LDI 2E				; ascii period
-	CALL TXCHAR
+	CALL TXCHAR			; echo char back 
 	LD B				; is R11:R12 zero?
 	OR C				;
 	JNZ BOOTLOOP
@@ -26,15 +24,13 @@
 ;	A - Received byte
 ; Destroys:
 ;   R1, R2 - Temps
-	CLR						; clear received bit
-	ST 2					; save to R2
 	LDIR1 8					; we will process 8 bits
 	LDI RX_BITCOUNTER
 	WAIT0					; wait for a START pulse
 	WAITA
 	WAITA					; we wait 1.5X into the first bit
 :RXBITS
-	LD 2					; load receive byte
+	LD 2					; load receive byte (we don't init R2 but because we're storing 8 bits into it it doesn't matter)
 	INBIT					; read a bit
 	ROR						; rotate right so we can save the next bit
 	ST 2
@@ -44,14 +40,14 @@
 	DEC
 	ST 1					; save counter
 	JNZ RXBITS
-	LDI INNER_COUNTER		; wait for STOP pulse
+	LDI BIT_COUNTER			; wait for STOP pulse
 	WAITA
 	LD 2
 	RET
 
 ; Transmit a char (internal subroutine...)
 ; INPUT:
-;   R1 - Char to send
+;   A - Char to send
 ;   R0[2:0] - pin to write to
 ;
 ; Destroys:
@@ -60,9 +56,8 @@
 ;    R[2] -> 0 number of bits left
 ; CHAR to send is in A, R0[2:0] is set to the bit of o_port TX is on
 :TXCHAR
-	LDI 8
-	ST 2   			; R[2] = bits to send
-
+	LDIR13 8		; R13 = 8
+	ST 1			; store byte
 	CLR
 	OUTBIT 			; Output A[0] which is 0, START bit (low)
 	LDI BIT_COUNTER ; // 224 cycles to account for the 10 taken in the loop
@@ -76,9 +71,9 @@
 	ST 1  			; R[1] = shifted char to send
 	LDI INNER_COUNTER ; delay for 115.2k baud
 	WAITA 			; wait
-	LD 2  			; bit count
+	LD C  			; bit count
 	DEC   			; decrement
-	ST 2  			; R[2] = bits left
+	ST C  			; R[13] = bits left
 	JNZ TXBITS
 
 ; STOP bit
@@ -88,5 +83,5 @@
 	WAITA
 	RET
 
-.ORG 50
+.ORG 40
 :APP
