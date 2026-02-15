@@ -63,7 +63,6 @@ module fifo
 				if (FIFO_CNT == 0) begin
 					// FIFO is empty just blast it out
 					data_out <= data_in;
-					// no change to CNT
 				end else begin
 					// FIFO isn't empty so read and write from respective spots
 					data_out <= FIFO[FIFO_RPTR];
@@ -71,6 +70,7 @@ module fifo
 					FIFO[FIFO_WPTR] <= data_in;
 					FIFO_WPTR <= FIFO_WPTR + 'b1;
 				end
+				// no change to CNT
 			end else if (want_write && FIFO_CNT != FIFO_DEPTH) begin
 				FIFO[FIFO_WPTR] <= data_in;
 				FIFO_WPTR <= FIFO_WPTR + 'b1;

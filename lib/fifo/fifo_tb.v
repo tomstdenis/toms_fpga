@@ -136,6 +136,56 @@ module fifo_tb();
 			@(posedge clk);
 			expect_dout(8'hE1);		// should have 2nd read back now
 			expect_state(0, 1, 0); // should be idle
+			
+		// write to fifo then flush
+		state = 7;
+		$display("Starting phase: %d", state);
+		// cycle 1 initiate write
+			write = 1;
+			data_in = 8'hF0;
+			@(posedge clk);
+		// cycle 2 initiate flush
+			write = 0;
+			flush = 1;
+			@(posedge clk);
+			// write should be observed here
+			expect_state(0, 0, 1); // should be not idle
+		// cycle 3 idle 
+			flush = 0;
+			@(posedge clk);
+			// we should have flushed the write here
+			expect_state(0, 1, 0); // should be idle
+			
+		// put something in the fifo then do a write+flush at the same time
+		state = 8;
+		$display("Starting phase: %d", state);
+		// cycle 1 initiate write
+			write = 1;
+			data_in = 8'h11;
+			@(posedge clk);
+		// cycle 2 deassert both
+			write = 0;
+			@(posedge clk);
+			expect_state(0, 0, 1); // should have one value
+		// cycle 3 initiate write+flush
+			write = 1;
+			flush = 1;
+			data_in = 8'h10;
+			@(posedge clk);
+		// cycle 4 deassert both
+			write = 0;
+			flush = 0;
+			@(posedge clk);
+			expect_state(0, 0, 1); // should have one value
+		// cycle 5 read
+			read = 1;
+			@(posedge clk);
+		// cycle 6 deassert read
+			read = 0;
+			@(posedge clk);
+			expect_state(0, 1, 0); // should be empty
+			expect_dout(8'h10);
+	
 		$finish;
 	end
 
