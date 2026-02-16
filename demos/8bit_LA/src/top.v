@@ -45,6 +45,7 @@ module top(
     reg [1:0] timer_state;                      // timer FSM state id
     reg [7:0] timer_io_latch;                   // latched io
     wire [7:0] timer_mem_data_out;              // memory output
+    reg [7:0] timer_mem_data_in;                // memory input
     reg timer_mem_wren;                         // write enable
     reg [7:0] timer_trigger_mask;               // which pins do we care about
     reg [7:0] timer_trigger_pol;                // what is the required value of the pin that changed
@@ -62,7 +63,7 @@ module top(
         .reset(~rst_n), //input reset
         .wre(timer_mem_wren), //input wre
         .ad(timer_mem_ptr), //input [15:0] ad
-        .din(timer_io_latch) //input [7:0] din
+        .din(timer_mem_data_in) //input [7:0] din
     );
 
     // MAIN app
@@ -191,20 +192,20 @@ module top(
                                         if (main_buf_i == 17'h10000) begin
                                             main_state <= MAIN_INIT;
                                         end else begin
-                                            timer_mem_ptr    <= main_buf_i[15:0];
-                                            main_state       <= MAIN_TRANSMIT_READ_MEM1;
+                                            timer_mem_ptr <= main_buf_i[15:0];
+                                            main_state    <= MAIN_TRANSMIT_READ_MEM1;
                                         end
                                     end
-                                MAIN_TRANSMIT_READ_MEM1:
+                                MAIN_TRANSMIT_READ_MEM1:                                // this cycle allows the BRAM to respond to the address
                                     begin
                                         main_state <= MAIN_TRANSMIT_READ_MEM2;
                                     end
-                                MAIN_TRANSMIT_READ_MEM2:
+                                MAIN_TRANSMIT_READ_MEM2:                                // now we transmit what the memory read
                                     begin
                                         main_tx_byte_buf <= timer_mem_data_out;
                                         main_state_tag   <= MAIN_TRANSMIT_BUF;
                                         main_state       <= MAIN_TRANSMIT_WAIT;
-                                        main_buf_i       <= main_buf_i + 1'b1;;
+                                        main_buf_i       <= main_buf_i + 1'b1;
                                     end
                                 default: begin end
                             endcase
@@ -221,6 +222,7 @@ module top(
                             if (timer_prescale_cnt >= timer_prescale) begin
                                 timer_prescale_cnt <= 0;                                // reset prescale count
                                 timer_mem_ptr <= timer_mem_ptr + 1'b1;                  // advance memory pointer
+                                timer_mem_data_in <= io;                                // latch memory to write
                                 timer_post_cnt <= timer_post_cnt - timer_triggered;     // only decrement post count after trigger
                             end else begin
                                 timer_prescale_cnt <= timer_prescale_cnt + 1'b1;
@@ -239,14 +241,4 @@ module top(
             endcase
         end
     end
-
-
-/*
-    Gowin_rPLL rPLL(
-        .clkout(pll_clk), //output clkout
-        .clkin(clk) //input clkin
-    );
-*/
-
-
 endmodule
