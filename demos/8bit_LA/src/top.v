@@ -71,6 +71,7 @@ module top(
     reg [7:0] main_tx_byte_buf;             // buffer holding byte to send for MAIN_TRANSMIT_WAIT
     reg [4:0] main_state;                   // which state is the FSM in
     reg [4:0] main_state_tag;               // tag system allows generic wait and what not
+    reg [16:0] main_buf_i;                  // index into buffer to send
 
     localparam
         TIMER_IDLE = 0,
@@ -79,13 +80,15 @@ module top(
     localparam
         MAIN_INIT = 0,
         MAIN_READ4_BYTES = 1,               // loop on reading 4 bytes
-        MAIN_READ_BYTE = 2,                 // delay cycle after reading a byte
+        MAIN_READ_BYTE_DELAY = 2,           // delay cycle after reading a byte
         MAIN_PROGRAM_TIMER = 3,             // program the timer based on what we read
         MAIN_TRANSMIT_DATA_START = 4,       // init sending the buffer
         MAIN_TRANSMIT_WPTR_0 = 5,           // transmit wptr[7:0]
         MAIN_TRANSMIT_WPTR_1 = 6,           // transmit wptr[15:8]
         MAIN_TRANSMIT_BUF = 7,              // transmit buffer 0..65535
-        MAIN_TRANSMIT_WAIT = 8;             // wait for ability to send byte
+        MAIN_TRANSMIT_WAIT = 8,             // wait for ability to send byte
+        MAIN_TRANSMIT_READ_MEM1 = 9,        // wait cycle for mem to respond to address
+        MAIN_TRANSMIT_READ_MEM2 = 10;       // cycle to read memory output
 
     always @(posedge clk) begin
         rstcnt <= {rstcnt[2:0], 1'b1};
@@ -104,15 +107,16 @@ module top(
             timer_post_cnt <= 0;
             timer_mem_ptr <= 0;
             timer_triggered <= 0;
-            timer_state <= 0;
+            timer_state <= TIMER_IDLE;
             timer_io_latch <= 8'hFF;
             timer_mem_wren <= 0;
             timer_trigger_mask <= 0;
             timer_trigger_pol <= 0;
+            timer_start <= 0;
 
             // reset main
             main_rx_frame_i <= 0;
-            main_state <= 0;
+            main_state <= MAIN_INIT;
             main_state_tag <= 0;
         end else begin
             // main code
@@ -144,18 +148,18 @@ module top(
                                                 main_rx_frame[main_rx_frame_i] <= uart_rx_byte;     // latch byte
                                                 main_rx_frame_i <= main_rx_frame_i + 1'b1;
                                                 uart_rx_read <= uart_rx_read ^ 1'b1;                // toggle line
-                                                main_state <= MAIN_READ_BYTE;
+                                                main_state <= MAIN_READ_BYTE_DELAY;
                                             end
                                         end
                                     end
-                                MAIN_READ_BYTE: // delay cycle
+                                MAIN_READ_BYTE_DELAY: // delay cycle
                                     begin
                                         main_state <= MAIN_READ4_BYTES;
                                     end
                                 MAIN_PROGRAM_TIMER:
                                     begin
-                                        main_state <= MAIN_TRANSMIT_DATA_START;         // get ready for next main task
-                                        timer_state <= TIMER_RUNNING;                   // move timer to running
+                                        main_state <= MAIN_TRANSMIT_WPTR_0;             // get ready for next main task which is sending the lower 8 bits
+                                        timer_start <= 1;                               // start the timer
                                         timer_trigger_mask <= main_rx_frame[0];         // load mask
                                         timer_trigger_pol  <= main_rx_frame[1];         // load pol
                                         timer_prescale     <= main_rx_frame[2];         // prescale
@@ -169,6 +173,39 @@ module top(
                                             main_state <= main_state_tag;               // jump back to next state
                                         end
                                     end
+                                MAIN_TRANSMIT_WPTR_0:
+                                    begin
+                                        main_tx_byte_buf <= timer_mem_wptr[7:0];
+                                        main_state_tag   <= MAIN_TRANSMIT_WPTR_1;
+                                        main_state       <= MAIN_TRANSMIT_WAIT;
+                                    end
+                                MAIN_TRANSMIT_WPTR_1:
+                                    begin
+                                        main_tx_byte_buf <= timer_mem_wptr[15:8];
+                                        main_state_tag   <= MAIN_TRANSMIT_BUF;
+                                        main_state       <= MAIN_TRANSMIT_WAIT;
+                                        main_buf_i       <= 0;                          // clear index into memory to transmit
+                                    end
+                                MAIN_TRANSMIT_BUF:
+                                    begin
+                                        if (main_buf_i == 17'h10000) begin
+                                            main_state <= MAIN_INIT;
+                                        end else begin
+                                            timer_mem_ptr    <= main_buf_i[15:0];
+                                            main_state       <= MAIN_TRANSMIT_READ_MEM1;
+                                        end
+                                    end
+                                MAIN_TRANSMIT_READ_MEM1:
+                                    begin
+                                        main_state <= MAIN_TRANSMIT_READ_MEM2;
+                                    end
+                                MAIN_TRANSMIT_READ_MEM2:
+                                    begin
+                                        main_tx_byte_buf <= timer_mem_data_out;
+                                        main_state_tag   <= MAIN_TRANSMIT_BUF;
+                                        main_state       <= MAIN_TRANSMIT_WAIT;
+                                        main_buf_i       <= main_buf_i + 1'b1;;
+                                    end
                                 default: begin end
                             endcase
                         end
@@ -180,6 +217,7 @@ module top(
                             timer_triggered <= 1'b1;
                         end
                         if (timer_post_cnt > 0) begin
+                            // we haven't yet reached the post count limit
                             if (timer_prescale_cnt >= timer_prescale) begin
                                 timer_prescale_cnt <= 0;                                // reset prescale count
                                 timer_mem_ptr <= timer_mem_ptr + 1'b1;                  // advance memory pointer
@@ -189,9 +227,10 @@ module top(
                             end
                         end else begin
                             // we're done sampling
-                            timer_mem_wren <= 0;
-                            timer_state <= TIMER_IDLE;
-                            timer_mem_wptr <= timer_mem_ptr;
+                            timer_mem_wren <= 0;                                        // turn off memory write
+                            timer_start    <= 0;                                        // disable timer
+                            timer_state    <= TIMER_IDLE;                               // return to IDLE state
+                            timer_mem_wptr <= timer_mem_ptr;                            // save the current WPTR since we reuse timer_mem_ptr to read mem
                         end                            
                     end
                 default:
