@@ -80,16 +80,24 @@ module top(
 
     localparam
         MAIN_INIT = 0,
-        MAIN_READ4_BYTES = 1,               // loop on reading 4 bytes
-        MAIN_READ_BYTE_DELAY = 2,           // delay cycle after reading a byte
-        MAIN_PROGRAM_TIMER = 3,             // program the timer based on what we read
-        MAIN_TRANSMIT_DATA_START = 4,       // init sending the buffer
-        MAIN_TRANSMIT_WPTR_0 = 5,           // transmit wptr[7:0]
-        MAIN_TRANSMIT_WPTR_1 = 6,           // transmit wptr[15:8]
-        MAIN_TRANSMIT_BUF = 7,              // transmit buffer 0..65535
-        MAIN_TRANSMIT_WAIT = 8,             // wait for ability to send byte
-        MAIN_TRANSMIT_READ_MEM1 = 9,        // wait cycle for mem to respond to address
-        MAIN_TRANSMIT_READ_MEM2 = 10;       // cycle to read memory output
+        MAIN_FLUSH_RX = 1,                  // flush any incoming bytes
+        MAIN_FLUSH_RX_DELAY = 2,            // delay after issuing read during flush
+        MAIN_READ4_BYTES = 3,               // loop on reading 4 bytes
+        MAIN_READ_BYTE_DELAY1 = 4,           // delay cycle after reading a byte
+        MAIN_READ_BYTE_DELAY2 = 5,           // delay cycle after reading a byte
+        MAIN_PROGRAM_TIMER = 6,             // program the timer based on what we read
+        MAIN_TRANSMIT_DATA_START = 7,       // init sending the buffer
+        MAIN_TRANSMIT_WPTR_0 = 8,           // transmit wptr[7:0]
+        MAIN_TRANSMIT_WPTR_1 = 9,           // transmit wptr[15:8]
+        MAIN_TRANSMIT_BUF = 10,              // transmit buffer 0..65535
+        MAIN_TRANSMIT_WAIT = 11,            // wait for ability to send byte
+        MAIN_TRANSMIT_READ_MEM1 = 12,       // wait cycle for mem to respond to address
+        MAIN_TRANSMIT_READ_MEM2 = 13;       // cycle to read memory output
+
+    localparam
+        LED_WAITING_ON_RX = 0,
+        LED_WAITING_ON_SAMPLES = 1,
+        LED_WAITING_ON_TX = 2;
 
     always @(posedge clk) begin
         rstcnt <= {rstcnt[2:0], 1'b1};
@@ -138,23 +146,45 @@ module top(
                                 MAIN_INIT:
                                     begin
                                         main_rx_frame_i <= 0;                           // reset frame counter
-                                        main_state <= MAIN_READ4_BYTES;
+                                        ledv[LED_WAITING_ON_RX] <= 1;                   // waiting for serial RX
+                                        ledv[1]         <= 0;                           // not waiting for sampling
+                                        ledv[2]         <= 0;                           // not waiting for transmitting
+                                        main_state      <= MAIN_FLUSH_RX;
+                                    end
+                                MAIN_FLUSH_RX:
+                                    begin
+                                        if (uart_rx_ready) begin
+                                            uart_rx_read <= uart_rx_read ^ 1'b1;
+                                            main_state <= MAIN_FLUSH_RX_DELAY;
+                                        end else begin
+                                            main_state <= MAIN_READ4_BYTES;
+                                        end
+                                    end
+                                MAIN_FLUSH_RX_DELAY:
+                                    begin
+                                        main_state <= MAIN_FLUSH_RX;
                                     end
                                 MAIN_READ4_BYTES:
                                     begin
-                                        if (main_rx_frame_i == 4) begin
+                                        if (main_rx_frame_i == 'd4) begin
+                                            ledv[LED_WAITING_ON_RX]      <= 0;               // not waiting for serial RX
+                                            ledv[LED_WAITING_ON_SAMPLES] <= 1;               // waiting for sampling
                                             main_state <= MAIN_PROGRAM_TIMER;
                                         end else begin
                                             if (uart_rx_ready) begin
-                                                main_rx_frame[main_rx_frame_i] <= uart_rx_byte;     // latch byte
-                                                main_rx_frame_i <= main_rx_frame_i + 1'b1;
                                                 uart_rx_read <= uart_rx_read ^ 1'b1;                // toggle line
-                                                main_state <= MAIN_READ_BYTE_DELAY;
+                                                main_state <= MAIN_READ_BYTE_DELAY1;
                                             end
                                         end
                                     end
-                                MAIN_READ_BYTE_DELAY: // delay cycle
+                                MAIN_READ_BYTE_DELAY1:
                                     begin
+                                        main_state <= MAIN_READ_BYTE_DELAY2;
+                                    end
+                                MAIN_READ_BYTE_DELAY2: // delay cycle
+                                    begin
+                                        main_rx_frame[main_rx_frame_i] <= uart_rx_byte;     // latch byte from UART RX
+                                        main_rx_frame_i <= main_rx_frame_i + 1'b1;
                                         main_state <= MAIN_READ4_BYTES;
                                     end
                                 MAIN_PROGRAM_TIMER:
@@ -179,6 +209,8 @@ module top(
                                         main_tx_byte_buf <= timer_mem_wptr[7:0];
                                         main_state_tag   <= MAIN_TRANSMIT_WPTR_1;
                                         main_state       <= MAIN_TRANSMIT_WAIT;
+                                        ledv[LED_WAITING_ON_SAMPLES]     <= 0;          // not waiting on samples anymore
+                                        ledv[LED_WAITING_ON_TX]          <= 1;          // waiting for transmitting
                                     end
                                 MAIN_TRANSMIT_WPTR_1:
                                     begin
@@ -191,6 +223,7 @@ module top(
                                     begin
                                         if (main_buf_i == 17'h10000) begin
                                             main_state <= MAIN_INIT;
+                                            ledv[LED_WAITING_ON_TX]          <= 0;      // not waiting for transmitting
                                         end else begin
                                             timer_mem_ptr <= main_buf_i[15:0];
                                             main_state    <= MAIN_TRANSMIT_READ_MEM1;
