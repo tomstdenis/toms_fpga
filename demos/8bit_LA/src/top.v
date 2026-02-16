@@ -131,6 +131,19 @@ module top(
             // main code
             timer_io_latch <= io;               // latch the IO pins
 
+/* This application uses two nested FSMs.  The outer FSM is the timer which when IDLE and timer_start hasn't been asserted
+allows the innter "main" FSM to run.  The main FSM is what actually coordinates the device.  It flushes the RX buffer,
+waits for a frame (4 bytes) to program the timer, then asserts timer_start.
+
+Once the timer FSM sees timer_start in it's TIMER_IDLE phase it initializes some values and jumps to TIMER_RUNNING.
+
+In TIMER_RUNNING we detect and latch trigger events, then if we haven't exhausted the post trigger countdown we 
+every prescale cycles we sample the next data and write it to memory.  
+
+This means once TIMER_RUNNING is going it's constantly sampling to memory (every prescale cycles).  Once the trigger
+happens it runs for another post count.  This way you can change how much before/after the trigger you record.  It always
+returns 65536 samples.
+*/
             case(timer_state)
                 TIMER_IDLE:
                     begin
@@ -177,14 +190,14 @@ module top(
                                             end
                                         end
                                     end
-                                MAIN_READ_BYTE_DELAY1:
+                                MAIN_READ_BYTE_DELAY1:                                       // this is the cycle the UART responds to toggling uart_rx_read
                                     begin
                                         main_state <= MAIN_READ_BYTE_DELAY2;
                                     end
-                                MAIN_READ_BYTE_DELAY2: // delay cycle
+                                MAIN_READ_BYTE_DELAY2:                                      // Now we can read the data from the UART RX
                                     begin
                                         main_rx_frame[main_rx_frame_i] <= uart_rx_byte;     // latch byte from UART RX
-                                        main_rx_frame_i <= main_rx_frame_i + 1'b1;
+                                        main_rx_frame_i <= main_rx_frame_i + 1'b1;          // increment the frame offset
                                         main_state <= MAIN_READ4_BYTES;
                                     end
                                 MAIN_PROGRAM_TIMER:
@@ -244,13 +257,16 @@ module top(
                             endcase
                         end
                     end
-                TIMER_RUNNING:
+                TIMER_RUNNING:                                                          // This state records a new sample every timer_prescale cycles
                     begin
-                        if (timer_trigger_event) begin
+                        if (timer_trigger_event) begin                                  // did a trigger event happen?
                             // detect and latch a trigger event
                             timer_triggered <= 1'b1;
+                            if (timer_triggered == 0) begin
+                                timer_mem_wptr <= timer_mem_ptr;                        // save the current WPTR since we reuse timer_mem_ptr to read mem
+                            end
                         end
-                        if (timer_post_cnt > 0) begin
+                        if (timer_post_cnt > 0) begin                                   // if we haven't exhausted post trigger bytes keep going
                             // we haven't yet reached the post count limit
                             if (timer_prescale_cnt >= timer_prescale) begin
                                 timer_prescale_cnt <= 0;                                // reset prescale count
@@ -265,7 +281,6 @@ module top(
                             timer_mem_wren <= 0;                                        // turn off memory write
                             timer_start    <= 0;                                        // disable timer
                             timer_state    <= TIMER_IDLE;                               // return to IDLE state
-                            timer_mem_wptr <= timer_mem_ptr;                            // save the current WPTR since we reuse timer_mem_ptr to read mem
                         end                            
                     end
                 default:
