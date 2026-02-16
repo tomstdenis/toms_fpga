@@ -62,6 +62,10 @@ static void read_config(char *fname)
 			fprintf(stderr, "ERROR: Expecting trigger mask hex value\n");
 			exit(-1);
 		}
+		if (trigger_mask == 0) {
+			fprintf(stderr, "ERROR: trigger mask cannot be zero (it would never trigger)\n");
+			exit(-1);
+		}
 		if (fscanf(f, "%"SCNx8"\n", &trigger_pol) != 1) {
 			fprintf(stderr, "ERROR: Expecting trigger polarity hex value\n");
 			exit(-1);
@@ -69,6 +73,10 @@ static void read_config(char *fname)
 		if (fscanf(f, "%"SCNx8"\n", &post_trigger) != 1) {
 			fprintf(stderr, "ERROR: Expecting post trigger count hex value\n");
 			exit(-1);
+		}
+		if (post_trigger == 0) {
+			fprintf(stderr, "WARNING: Post trigger cannot be zero, setting to 1...\n");
+			post_trigger = 1;
 		}
 		
 		for (x = 0; x < 8; x++) {
@@ -156,9 +164,11 @@ void emit_vcd(const char *filename, uint8_t *buffer, uint16_t wptr, uint8_t post
     uint8_t prev_val = 0; 
     double current_time = 0;
 
+	// we want to map 0..65535 such that 65535 == wptr + post_trigger_samples
+    uint16_t idx = (wptr + post_trigger_samples) & 0xFFFF;
+
     for (uint32_t i = 0; i < total_samples; i++) {
-        uint16_t idx = ((wptr - 256 + i)) & 0xFFFF; 
-        uint8_t val = buffer[idx];
+        uint8_t val = buffer[(idx++) & 0xFFFF];
 
         // Force output on first sample, last sample, or any data change
         if (i == 0 || i == (total_samples - 1) || val != prev_val) {
@@ -204,7 +214,7 @@ int main(int argc, char **argv)
 	tcflush(fd, TCIOFLUSH);
 	
 	read_config(argv[2]);
-	printf("Using a prescale of %u (%g ns per sample), mask=%02x, pol=%02x, post=%02x\n", prescale + 1, NS_PER_SAMPLE, trigger_mask, trigger_pol, post_trigger);
+	printf("Using a prescale of %u (%g ns per sample), mask=%02x, pol=%02x, post=%lu samples\n", prescale + 1, NS_PER_SAMPLE, trigger_mask, trigger_pol, (unsigned long)post_trigger * 256);
 	program_and_read(fd);
 	
 	sprintf(outname, "%s.raw", argv[2]);
