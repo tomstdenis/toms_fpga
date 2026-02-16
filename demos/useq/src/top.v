@@ -72,7 +72,7 @@ module top(input clk, inout [7:0]io, output led);
         .dinb(8'b0) //input [7:0] dinb
     );
 
-    useq #(.ENABLE_IRQ(1), .ENABLE_HOST_FIFO_CTRL(1), .FIFO_DEPTH(32), .STACK_DEPTH(32))
+    useq #(.ENABLE_IRQ(1), .ENABLE_HOST_FIFO_CTRL(1), .FIFO_DEPTH(64), .STACK_DEPTH(64))
         test_useq(
             .clk(clk), .rst_n(rst_n), 
             .mem_data(mem_data), .wren(wren), .mem_out(mem_out), .mem_addr(mem_addr), .mem_addr_next(mem_addr_next),
