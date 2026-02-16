@@ -15,7 +15,7 @@
 // 5x PLL
 #define FPGA_CLOCK 135000000ULL
 
-#define NS_PER_SAMPLE (((uint64_t)((uint64_t)prescale + 1ULL) * 100000000ULL) / (double)FPGA_CLOCK)
+#define NS_PER_SAMPLE (((uint64_t)((uint64_t)prescale + 1ULL) * 1000000000ULL) / (double)FPGA_CLOCK)
 
 static int set_interface_attribs(int fd, int speed) {
     struct termios tty;
