@@ -4,6 +4,12 @@ module top(
     input uart_rx,
     input [7:0] io,
     output [3:0] led);
+    wire pll_clk;
+
+    Gowin_rPLL la_pll(
+        .clkout(pll_clk), //output clkout
+        .clkin(clk) //input clkin
+    );
 
     // RESET
     reg [3:0] rstcnt = 4'b0;
@@ -14,7 +20,7 @@ module top(
     assign led = ~ledv;                                         // LEDs are active low
 
     // UART
-    wire [15:0] uart_bauddiv = 27_000_000 / 115_200;            // bauddiv counter
+    wire [15:0] uart_bauddiv = 135_000_000 / 115_200;            // bauddiv counter
     reg uart_tx_start;                                          // start a transmit of what is in uart_tx_data_in (this is edge triggered so you just toggle it to send)
     reg [7:0] uart_tx_data_in;                                  // data to send
     reg uart_rx_read;                                           // ack a read (toggle, edge triggered like uart_tx_start)
@@ -22,7 +28,7 @@ module top(
     wire [7:0] uart_rx_byte;                                    // the byte that is available to read
 
     uart #(.FIFO_DEPTH(8), .RX_ENABLE(1), .TX_ENABLE(1)) la_uart(
-        .clk(clk), .rst_n(rst_n),
+        .clk(pll_clk), .rst_n(rst_n),
         .baud_div(uart_bauddiv),
         .uart_tx_start(uart_tx_start),
         .uart_tx_data_in(uart_tx_data_in),
@@ -57,7 +63,7 @@ module top(
 
     Gowin_SP timer_mem(
         .dout(timer_mem_data_out), //output [7:0] dout
-        .clk(clk), //input clk
+        .clk(pll_clk), //input clk
         .oce(1'b1), //input oce
         .ce(1'b1), //input ce
         .reset(~rst_n), //input reset
@@ -99,7 +105,7 @@ module top(
         LED_WAITING_ON_SAMPLES = 1,
         LED_WAITING_ON_TX = 2;
 
-    always @(posedge clk) begin
+    always @(posedge pll_clk) begin
         rstcnt <= {rstcnt[2:0], 1'b1};
         if (!rst_n) begin
             // LEDs

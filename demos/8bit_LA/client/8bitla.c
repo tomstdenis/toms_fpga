@@ -9,7 +9,13 @@
 #include <inttypes.h>
 
 // FPGA clock in Hz
-#define FPGA_CLOCK 27000000ULL
+// normal system clock
+//#define FPGA_CLOCK 27000000ULL
+
+// 5x PLL
+#define FPGA_CLOCK 135000000ULL
+
+#define NS_PER_SAMPLE (((uint64_t)((uint64_t)prescale + 1ULL) * 100000000ULL) / (double)FPGA_CLOCK)
 
 static int set_interface_attribs(int fd, int speed) {
     struct termios tty;
@@ -40,7 +46,6 @@ char names[8][256];
 uint16_t WPTR;
 uint8_t outbuf[65538];
 
-#define PS_PER_SAMPLE ((uint64_t)((uint64_t)prescale + 1ULL) * 1000000000ULL / FPGA_CLOCK)
 
 static void read_config(char *fname)
 {
@@ -125,7 +130,7 @@ void emit_vcd(const char *filename, uint8_t *buffer, uint16_t wptr, uint8_t post
     fprintf(f, "$date %s $end\n", ctime(&now));
     fprintf(f, "$version 8-bit Logic Analyzer v1.0 $end\n");
     
-    uint64_t ns_per_sample = (uint64_t)(prescale_val + 1) * 1000000000ULL / FPGA_CLOCK;
+    double ns_per_sample = (uint64_t)(prescale_val + 1) * 1000000000.0 / FPGA_CLOCK;
     fprintf(f, "$timescale 1ns $end\n");
 
     // 2. Variable Definitions
@@ -149,7 +154,7 @@ void emit_vcd(const char *filename, uint8_t *buffer, uint16_t wptr, uint8_t post
 
     // 5. Data Dump
     uint8_t prev_val = 0; 
-    uint64_t current_time = 0;
+    double current_time = 0;
 
     for (uint32_t i = 0; i < total_samples; i++) {
         uint16_t idx = ((wptr - 256 + i)) & 0xFFFF; 
@@ -157,7 +162,7 @@ void emit_vcd(const char *filename, uint8_t *buffer, uint16_t wptr, uint8_t post
 
         // Force output on first sample, last sample, or any data change
         if (i == 0 || i == (total_samples - 1) || val != prev_val) {
-            fprintf(f, "#%" PRIu64 "\n", current_time);
+            fprintf(f, "#%llu\n", (unsigned long long)current_time);
             
             // Output 8-bit Bus
             fprintf(f, "b");
@@ -199,7 +204,7 @@ int main(int argc, char **argv)
 	tcflush(fd, TCIOFLUSH);
 	
 	read_config(argv[2]);
-	printf("Using a prescale of %u (%llu ps per sample), mask=%2x, pol=%2x\n", prescale + 1, PS_PER_SAMPLE, trigger_mask, trigger_pol);
+	printf("Using a prescale of %u (%g ns per sample), mask=%02x, pol=%02x, post=%02x\n", prescale + 1, NS_PER_SAMPLE, trigger_mask, trigger_pol, post_trigger);
 	program_and_read(fd);
 	
 	sprintf(outname, "%s.raw", argv[2]);
