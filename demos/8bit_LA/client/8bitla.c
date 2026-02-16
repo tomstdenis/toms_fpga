@@ -111,12 +111,15 @@ static void program_and_read(int fd)
 	}
 	tcdrain(fd);
 	
+	printf("Reading waveform data...\n");
 	x = 0;
 	for (x = 0; x < 65538; ) {
+		if (!((x + 1) & 255)) { printf("Read: %5d bytes (%3d%%) so far...\r", x + 1,  ((x + 1) * 100) / 65536); fflush(stdout); }
 		if (read(fd, &cmd[0], 1) == 1) {
 			outbuf[x++] = cmd[0];
 		}
 	}
+	printf("Done.                                       \n");
 	
 	// load write pointer
 	WPTR = ((uint16_t)outbuf[0]) | ((uint16_t)outbuf[1] << 8);
@@ -210,11 +213,11 @@ int main(int argc, char **argv)
     int fd = open(argv[1], O_RDWR | O_NOCTTY);
     if (fd < 0) { perror("Open port"); return 1; }
     set_interface_attribs(fd, B115200);
-    usleep(1000000);
+    usleep(500000);
 	tcflush(fd, TCIOFLUSH);
 	
 	read_config(argv[2]);
-	printf("Using a prescale of %u (%g ns per sample), mask=%02x, pol=%02x, post=%lu samples\n", prescale + 1, NS_PER_SAMPLE, trigger_mask, trigger_pol, (unsigned long)post_trigger * 256);
+	printf("Using a prescale of %u (%g ns per sample), mask=%02x, pol=%02x, post=%lu samples\nReady for trigger.\n", prescale + 1, NS_PER_SAMPLE, trigger_mask, trigger_pol, (unsigned long)post_trigger * 256);
 	program_and_read(fd);
 	
 	sprintf(outname, "%s.raw", argv[2]);
