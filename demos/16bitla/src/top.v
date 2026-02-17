@@ -1,0 +1,331 @@
+module top(
+    input clk,
+    output uart_tx,
+    input uart_rx,
+    input [15:0] io,
+    output [3:0] led);
+    wire pll_clk;
+
+    Gowin_rPLL la_pll(
+        .clkout(pll_clk), //output clkout
+        .clkin(clk) //input clkin
+    );
+
+    // RESET
+    reg [3:0] rstcnt = 4'b0;
+    assign rst_n = rstcnt[3];
+
+    // LEDs
+    reg [3:0] ledv;
+    assign led = ~ledv;                                         // LEDs are active low
+
+    // UART
+    wire [15:0] uart_bauddiv = 148_500_000 / 115_200;           // bauddiv counter
+    reg uart_tx_start;                                          // start a transmit of what is in uart_tx_data_in (this is edge triggered so you just toggle it to send)
+    reg [7:0] uart_tx_data_in;                                  // data to send
+    reg uart_rx_read;                                           // ack a read (toggle, edge triggered like uart_tx_start)
+    wire uart_rx_ready;                                         // there's a byte to read
+    wire [7:0] uart_rx_byte;                                    // the byte that is available to read
+
+    uart #(.FIFO_DEPTH(8), .RX_ENABLE(1), .TX_ENABLE(1)) la_uart(
+        .clk(pll_clk), .rst_n(rst_n),
+        .baud_div(uart_bauddiv),
+        .uart_tx_start(uart_tx_start),
+        .uart_tx_data_in(uart_tx_data_in),
+        .uart_tx_pin(uart_tx),
+        .uart_tx_fifo_full(uart_tx_fifo_full),
+        .uart_tx_fifo_empty(uart_tx_fifo_empty),
+        .uart_rx_pin(uart_rx),
+        .uart_rx_read(uart_rx_read),
+        .uart_rx_ready(uart_rx_ready),
+        .uart_rx_byte(uart_rx_byte));
+        
+        
+    // TIMER (and acquire)
+    reg [7:0] timer_prescale_cnt;               // current prescale value
+    reg [7:0] timer_prescale;                   // target prescale value
+    reg [15:0] timer_post_cnt;                  // how many samples post trigger left to store
+    reg [15:0] timer_mem_ptr;                   // the WPTR of the ring buffer (incremented each time timer_prescale_cnt == timer_prescale)
+    reg [15:0] timer_mem_wptr;                  // saved WPTR when done sampling
+    reg timer_mem_ce;                           // Clock enable for memory (wren(1), ce(0): turn clock off for both ports)
+    reg timer_triggered;                        // have we triggered yet
+    reg [1:0] timer_state;                      // timer FSM state id
+    reg [15:0] timer_io_latch;                   // latched io
+    wire [7:0] timer_mem_data_out;              // memory output
+    reg [15:0] timer_mem_data_in;               // memory input
+    reg timer_8ch_mode;                         // are we in 8ch mode if so we can use 64K samples instead of 32K
+    reg timer_8ch_phase;                        // are we on an even or odd 8ch sampling?
+    reg timer_mem_wren;                         // write enable
+    reg [15:0] timer_trigger_mask;               // which pins do we care about
+    reg [15:0] timer_trigger_pol;                // what is the required value of the pin that changed
+    reg timer_start;                            // 1 == switch from IDLE to RUNNING
+
+    wire [15:0] timer_trig_delta = ((io ^ timer_io_latch) & timer_trigger_mask);         // did a pin change that we care about
+    wire [15:0] timer_trig_value = (~(io ^ timer_trigger_pol) & timer_trigger_mask);     // is the current bit equal to the value we wanted
+    wire timer_trigger_event = (|timer_trig_delta & |timer_trig_value);                 // goes true if a trigger event occurred
+
+    // memory is a SDP A = 16x32768, B = 8x65536 so we can stream out the same bytes but store 16-bit samples easier
+    Gowin_SDPB timer_mem(
+        .clka(pll_clk),            //input clka
+        .cea(timer_mem_wren & timer_mem_ce), //Write enable on Port A 
+        .reseta(~rst_n),           //input reseta
+        .clkb(pll_clk),            //input clkb
+        .ceb(~timer_mem_wren),     //Read enable only when not writing
+        .resetb(~rst_n),           //input resetb
+        .oce(1'b1),                //input oce
+        .ada(timer_mem_ptr[14:0]), //Port A addresses are 0..32767 since it's 16-bit words
+        .din(timer_mem_data_in),   //Port A input is 16-bit words
+        .adb(timer_mem_ptr),       //Port B addresses are 0..65535 since they are 8-bit words
+        .dout(timer_mem_data_out)  //Port B outputs 8-bit words
+    );
+
+    // MAIN app
+    reg [7:0] main_rx_frame[5:0];           // each command is 6 bytes
+    reg [2:0] main_rx_frame_i;              // how many bytes have we read so far
+    reg [7:0] main_tx_byte_buf;             // buffer holding byte to send for MAIN_TRANSMIT_WAIT
+    reg [4:0] main_state;                   // which state is the FSM in
+    reg [4:0] main_state_tag;               // tag system allows generic wait and what not
+    reg [16:0] main_buf_i;                  // index into buffer to send
+
+    localparam
+        TIMER_IDLE = 0,
+        TIMER_RUNNING = 1;
+
+    localparam
+        MAIN_INIT = 0,
+        MAIN_FLUSH_RX = 1,                  // flush any incoming bytes
+        MAIN_FLUSH_RX_DELAY = 2,            // delay after issuing read during flush
+        MAIN_CMD_BYTES = 3,               // loop on reading 4 bytes
+        MAIN_READ_BYTE_DELAY1 = 4,           // delay cycle after reading a byte
+        MAIN_READ_BYTE_DELAY2 = 5,           // delay cycle after reading a byte
+        MAIN_PROGRAM_TIMER = 6,             // program the timer based on what we read
+        MAIN_TRANSMIT_DATA_START = 7,       // init sending the buffer
+        MAIN_TRANSMIT_WPTR_0 = 8,           // transmit wptr[7:0]
+        MAIN_TRANSMIT_WPTR_1 = 9,           // transmit wptr[15:8]
+        MAIN_TRANSMIT_BUF = 10,              // transmit buffer 0..65535
+        MAIN_TRANSMIT_WAIT = 11,            // wait for ability to send byte
+        MAIN_TRANSMIT_READ_MEM1 = 12,       // wait cycle for mem to respond to address
+        MAIN_TRANSMIT_READ_MEM2 = 13;       // cycle to read memory output
+
+    localparam
+        LED_WAITING_ON_RX = 0,
+        LED_WAITING_ON_SAMPLES = 1,
+        LED_WAITING_ON_TX = 2;
+
+    always @(posedge pll_clk) begin
+        rstcnt <= {rstcnt[2:0], 1'b1};
+        if (!rst_n) begin
+            // LEDs
+            ledv <= 0;                      // all LEDs off
+
+            // reset UART controller
+            uart_tx_start <= 0;
+            uart_tx_data_in <= 0;
+            uart_rx_read <= 0;
+
+            // reset timer
+            timer_prescale <= 0;
+            timer_prescale_cnt <= 0;
+            timer_post_cnt <= 0;
+            timer_mem_ptr <= 0;
+            timer_mem_ce  <= 0;
+            timer_triggered <= 0;
+            timer_state <= TIMER_IDLE;
+            timer_io_latch <= 8'hFF;
+            timer_mem_wren <= 0;
+            timer_trigger_mask <= 0;
+            timer_trigger_pol <= 0;
+            timer_start <= 0;
+            timer_8ch_mode <= 0;
+            timer_8ch_phase <= 0;
+
+            // reset main
+            main_rx_frame_i <= 0;
+            main_state <= MAIN_INIT;
+            main_state_tag <= 0;
+        end else begin
+            // main code
+            timer_io_latch <= io;               // latch the IO pins
+
+/* This application uses two nested FSMs.  The outer FSM is the timer which when IDLE and timer_start hasn't been asserted
+allows the innter "main" FSM to run.  The main FSM is what actually coordinates the device.  It flushes the RX buffer,
+waits for a frame (4 bytes) to program the timer, then asserts timer_start.
+
+Once the timer FSM sees timer_start in it's TIMER_IDLE phase it initializes some values and jumps to TIMER_RUNNING.
+
+In TIMER_RUNNING we detect and latch trigger events, then if we haven't exhausted the post trigger countdown we 
+every prescale cycles we sample the next data and write it to memory.  
+
+This means once TIMER_RUNNING is going it's constantly sampling to memory (every prescale cycles).  Once the trigger
+happens it runs for another post count.  This way you can change how much before/after the trigger you record.  It always
+returns 65536 samples.
+*/
+            case(timer_state)
+                TIMER_IDLE:
+                    begin
+                        if (timer_start) begin
+                            timer_prescale_cnt <= 0;                                    // zero out prescale count
+                            timer_mem_ptr <= 0;                                         // start at address 0
+                            timer_triggered <= 0;                                       // reset triggered stats
+                            timer_mem_wren <= 1'b1;                                     // enable memory write
+                            timer_state <= TIMER_RUNNING;
+                        end else begin
+                            // MAIN application goes here
+                            case (main_state)
+                                MAIN_INIT:
+                                    begin
+                                        timer_mem_ce                 <= 0;  // turn memory off
+                                        main_rx_frame_i <= 0;               // reset frame counter
+                                        ledv[LED_WAITING_ON_RX]      <= 1;  // waiting for serial RX
+                                        ledv[LED_WAITING_ON_SAMPLES] <= 0;  // not waiting for sampling
+                                        ledv[LED_WAITING_ON_TX]      <= 0;  // not waiting for transmitting
+                                        main_state      <= MAIN_FLUSH_RX;
+                                    end
+                                MAIN_FLUSH_RX:
+                                    begin
+                                        if (uart_rx_ready) begin
+                                            uart_rx_read <= uart_rx_read ^ 1'b1;
+                                            main_state <= MAIN_FLUSH_RX_DELAY;
+                                        end else begin
+                                            main_state <= MAIN_CMD_BYTES;
+                                        end
+                                    end
+                                MAIN_FLUSH_RX_DELAY:
+                                    begin
+                                        main_state <= MAIN_FLUSH_RX;
+                                    end
+                                MAIN_CMD_BYTES:
+                                    begin
+                                        if (main_rx_frame_i == 'd6) begin
+                                            ledv[LED_WAITING_ON_RX]      <= 0;               // not waiting for serial RX
+                                            ledv[LED_WAITING_ON_SAMPLES] <= 1;               // waiting for sampling
+                                            main_state <= MAIN_PROGRAM_TIMER;
+                                        end else begin
+                                            if (uart_rx_ready) begin
+                                                uart_rx_read <= uart_rx_read ^ 1'b1;                // toggle line
+                                                main_state <= MAIN_READ_BYTE_DELAY1;
+                                            end
+                                        end
+                                    end
+                                MAIN_READ_BYTE_DELAY1:                                       // this is the cycle the UART responds to toggling uart_rx_read
+                                    begin
+                                        main_state <= MAIN_READ_BYTE_DELAY2;
+                                    end
+                                MAIN_READ_BYTE_DELAY2:                                      // Now we can read the data from the UART RX
+                                    begin
+                                        main_rx_frame[main_rx_frame_i] <= uart_rx_byte;     // latch byte from UART RX
+                                        main_rx_frame_i <= main_rx_frame_i + 1'b1;          // increment the frame offset
+                                        main_state <= MAIN_CMD_BYTES;
+                                    end
+                                MAIN_PROGRAM_TIMER:
+                                    begin
+                                        main_state <= MAIN_TRANSMIT_WPTR_0;                         // get ready for next main task which is sending the lower 8 bits
+                                        timer_start <= 1;                                           // start the timer
+                                        timer_trigger_mask <= {main_rx_frame[1], main_rx_frame[0]}; // load mask
+                                        timer_trigger_pol  <= {main_rx_frame[3], main_rx_frame[2]}; // load pol
+                                        timer_prescale     <= main_rx_frame[4];                     // prescale
+                                        if (main_rx_frame[1] == 0) begin                            // if the upper 8 bits are zero we enter 8ch mode
+                                            timer_8ch_mode <= 'b1;
+                                            timer_8ch_phase <= 0;
+                                            timer_post_cnt     <= {main_rx_frame[5], 8'b0};             // post_cnt * 256 samples (0..65280)
+                                        end else begin
+                                            timer_8ch_mode <= 0;
+                                            timer_post_cnt     <= {1'b0, main_rx_frame[5], 7'b0};       // post_cnt * 128 samples (0..32640)
+                                        end
+                                        timer_mem_ce <= 1'b1;                                       // turn memory on
+                                    end
+                                MAIN_TRANSMIT_WAIT:
+                                    begin
+                                        if (!uart_tx_fifo_full) begin
+                                            uart_tx_data_in <= main_tx_byte_buf;
+                                            uart_tx_start <= uart_tx_start ^ 1'b1;
+                                            main_state <= main_state_tag;               // jump back to next state
+                                        end
+                                    end
+                                MAIN_TRANSMIT_WPTR_0:
+                                    begin
+                                        main_tx_byte_buf <= timer_mem_wptr[7:0];
+                                        main_state_tag   <= MAIN_TRANSMIT_WPTR_1;
+                                        main_state       <= MAIN_TRANSMIT_WAIT;
+                                        ledv[LED_WAITING_ON_SAMPLES]     <= 0;          // not waiting on samples anymore
+                                        ledv[LED_WAITING_ON_TX]          <= 1;          // waiting for transmitting
+                                    end
+                                MAIN_TRANSMIT_WPTR_1:
+                                    begin
+                                        main_tx_byte_buf <= timer_mem_wptr[15:8];
+                                        main_state_tag   <= MAIN_TRANSMIT_BUF;
+                                        main_state       <= MAIN_TRANSMIT_WAIT;
+                                        main_buf_i       <= 0;                          // clear index into memory to transmit
+                                    end
+                                MAIN_TRANSMIT_BUF:
+                                    begin
+                                        if (main_buf_i == 17'h10000) begin
+                                            main_state <= MAIN_INIT;
+                                            ledv[LED_WAITING_ON_TX]          <= 0;      // not waiting for transmitting
+                                        end else begin
+                                            timer_mem_ptr <= main_buf_i[15:0];
+                                            main_state    <= MAIN_TRANSMIT_READ_MEM1;
+                                        end
+                                    end
+                                MAIN_TRANSMIT_READ_MEM1:                                // this cycle allows the BRAM to respond to the address
+                                    begin
+                                        main_state <= MAIN_TRANSMIT_READ_MEM2;
+                                    end
+                                MAIN_TRANSMIT_READ_MEM2:                                // now we transmit what the memory read
+                                    begin
+                                        main_tx_byte_buf <= timer_mem_data_out;
+                                        main_state_tag   <= MAIN_TRANSMIT_BUF;
+                                        main_state       <= MAIN_TRANSMIT_WAIT;
+                                        main_buf_i       <= main_buf_i + 1'b1;
+                                    end
+                                default: begin end
+                            endcase
+                        end
+                    end
+                TIMER_RUNNING:                                                          // This state records a new sample every timer_prescale cycles
+                    begin
+                        if (timer_trigger_event) begin                                  // did a trigger event happen?
+                            // detect and latch a trigger event
+                            timer_triggered <= 1'b1;
+                            if (timer_triggered == 0) begin
+                                timer_mem_wptr <= timer_mem_ptr;                        // save the current WPTR since we reuse timer_mem_ptr to read mem
+                            end
+                        end
+                        if (timer_post_cnt > 0) begin                                   // if we haven't exhausted post trigger bytes keep going
+                            // we haven't yet reached the post count limit
+                            if (timer_prescale_cnt >= timer_prescale) begin
+                                timer_prescale_cnt <= 0;                                // reset prescale count
+                                if (timer_8ch_mode == 0) begin                          // 16ch mode we store one word per sample
+                                    timer_mem_ptr <= timer_mem_ptr + 1'b1;              // advance memory pointer
+                                    timer_mem_data_in <= io;                            // latch memory to write
+                                end else begin
+                                    // in 8ch mode we form 2 samples per word of memory
+                                    if (timer_8ch_phase == 0) begin
+                                        // even phase we just capture data but don't advance the pointer
+                                        timer_mem_data_in <= {8'b0, io[7:0]};                   // store new sample in bottom half of word
+                                        timer_8ch_phase <= 1;                                   // switch phase
+                                    end else begin
+                                        // odd phase so we're done with this word
+                                        timer_mem_data_in <= {io[7:0], timer_mem_data_in[7:0]}; // store new sample in top half of word
+                                        timer_8ch_phase <= 0;                                   // switch phase
+                                        timer_mem_ptr <= timer_mem_ptr + 1'b1;                  // advance to next memory address
+                                    end
+                                end
+                                timer_post_cnt <= timer_post_cnt - timer_triggered;     // only decrement post count after trigger
+                            end else begin
+                                timer_prescale_cnt <= timer_prescale_cnt + 1'b1;
+                            end
+                        end else begin
+                            // we're done sampling
+                            timer_mem_wren <= 0;                                        // turn off memory write
+                            timer_start    <= 0;                                        // disable timer
+                            timer_state    <= TIMER_IDLE;                               // return to IDLE state
+                        end                            
+                    end
+                default:
+                    begin
+                    end
+            endcase
+        end
+    end
+endmodule
