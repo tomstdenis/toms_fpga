@@ -20,7 +20,7 @@ module top(
     assign led = ~ledv;                                         // LEDs are active low
 
     // UART
-    wire [15:0] uart_bauddiv = 162_000_000 / 115_200;           // bauddiv counter
+    wire [15:0] uart_bauddiv = 155_250_000 / 115_200;           // bauddiv counter
     reg uart_tx_start;                                          // start a transmit of what is in uart_tx_data_in (this is edge triggered so you just toggle it to send)
     reg [7:0] uart_tx_data_in;                                  // data to send
     reg uart_rx_read;                                           // ack a read (toggle, edge triggered like uart_tx_start)
@@ -67,6 +67,7 @@ module top(
         case(timer_trigger_mode)
             3'd1: lut_addr = io[3:0];                               // 4-ch static
             3'd2: lut_addr = {io[1:0], timer_io_latch[1:0]};        // 2-ch over 2 cycles
+            3'd3: lut_addr = {io[6:4], timer_trigger_mask[io[3:0]]};
             default: lut_addr = 4'b0;
         endcase
     end
@@ -241,11 +242,11 @@ returns 65536 samples.
                                         timer_trigger_mask <= {main_rx_frame[1], main_rx_frame[0]}; // load mask
                                         timer_trigger_pol  <= {main_rx_frame[3], main_rx_frame[2]}; // load pol
                                         timer_prescale     <= main_rx_frame[4];                     // prescale
-                                        timer_8ch_mode     <= main_rx_frame[1] == 0 ? 1 : 0;        // 8ch mode enabled if top half of trigger_mask is zero
+                                        timer_8ch_mode     <= main_rx_frame[6][7];                  // 8ch mode enabled if msb is zero
                                         if (main_rx_frame[5] == 0) begin                            // if the post_count is zero then force it to 1.
                                             timer_post_cnt <= 'd1;
                                         end else begin
-                                            if (main_rx_frame[1] == 0) begin                            // if the upper 8 bits are zero we enter 8ch mode
+                                            if (main_rx_frame[6][7] == 0) begin                     // if the upper bit is zero
                                                 timer_post_cnt     <= {main_rx_frame[5], 8'b0};             // post_cnt * 256 samples (0..65280)
                                             end else begin
                                                 timer_post_cnt     <= {1'b0, main_rx_frame[5], 7'b0};       // post_cnt * 128 samples (0..32640)

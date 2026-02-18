@@ -13,7 +13,7 @@
 //#define FPGA_CLOCK 27000000ULL
 
 // 5.25x PLL
-#define FPGA_CLOCK 162000000ULL
+#define FPGA_CLOCK 155250000ULL
 
 #define NS_PER_SAMPLE (((uint64_t)((uint64_t)prescale + 1ULL) * 1000000000ULL) / (double)FPGA_CLOCK)
 
@@ -82,12 +82,8 @@ static void read_config(char *fname)
 			fprintf(stderr, "ERROR: Expecting post trigger count hex value\n");
 			exit(-1);
 		}
-		if (post_trigger == 0) {
-			fprintf(stderr, "WARNING: Post trigger cannot be zero, setting to 1...\n");
-			post_trigger = 1;
-		}
 		
-		if (trigger_mask & 0xFF00) {
+		if (lut4mode & 0x80) {
 			la_channels = 16;
 			la_samples = 32768;
 		} else {

@@ -46,6 +46,19 @@ gcc 16bitla.c -o 16bitla
 
 ```
 
+## Logic Analyzer Config
+
+The .cfg format the tool uses has the following format
+
+| Line | Size | Description |
+| ---- | ---- | ----------- |
+|  1   |  8   | trigger mode + 16ch mode flag stored in the msb, (mode 0 == edge, 1 == use polarity as LUT with io[3:0], 2 == use polarity as LUT with io{1:0] and previous_io[1:0], 3 == use polarity and mask as LUTs with polarity[io[6:4], mask[io[3:0]]].
+|  2   |  8   | Prescaler value divides clock by this. |
+|  3   | 16   | trigger mask |
+|  4   | 16   | trigger polarity |
+|  5   |  8   | post trigger count, 0 == 1 sample, 1..255 means either post*256 or post*128 samples past the trigger (8 and 16ch resp.)
+
+
 ## Repository Structure
 
 * `top.v`: Main FPGA logic including the dual-FSM controller and LUT trigger engine.
