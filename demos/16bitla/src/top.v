@@ -20,7 +20,7 @@ module top(
     assign led = ~ledv;                                         // LEDs are active low
 
     // UART
-    wire [15:0] uart_bauddiv = 148_500_000 / 115_200;           // bauddiv counter
+    wire [15:0] uart_bauddiv = 162_000_000 / 115_200;           // bauddiv counter
     reg uart_tx_start;                                          // start a transmit of what is in uart_tx_data_in (this is edge triggered so you just toggle it to send)
     reg [7:0] uart_tx_data_in;                                  // data to send
     reg uart_rx_read;                                           // ack a read (toggle, edge triggered like uart_tx_start)
@@ -49,15 +49,15 @@ module top(
     reg [15:0] timer_mem_wptr;                  // saved WPTR when done sampling
     reg timer_mem_ce;                           // Clock enable for memory (wren(1), ce(0): turn clock off for both ports)
     reg timer_triggered;                        // have we triggered yet
-    reg [1:0] timer_state;                      // timer FSM state id
-    reg [15:0] timer_io_latch;                   // latched io
+    reg timer_state;                            // timer FSM state id
+    reg [15:0] timer_io_latch;                  // latched io
     wire [7:0] timer_mem_data_out;              // memory output
     reg [15:0] timer_mem_data_in;               // memory input
     reg timer_8ch_mode;                         // are we in 8ch mode if so we can use 64K samples instead of 32K
     reg timer_8ch_phase;                        // are we on an even or odd 8ch sampling?
     reg timer_mem_wren;                         // write enable
-    reg [15:0] timer_trigger_mask;               // which pins do we care about
-    reg [15:0] timer_trigger_pol;                // what is the required value of the pin that changed
+    reg [15:0] timer_trigger_mask;              // which pins do we care about
+    reg [15:0] timer_trigger_pol;               // what is the required value of the pin that changed
     reg timer_start;                            // 1 == switch from IDLE to RUNNING
     reg [3:0] timer_trigger_mode;
 
@@ -71,13 +71,12 @@ module top(
         endcase
     end
 
-    wire lut_trigger = timer_trigger_pol[lut_addr];                                  // in LUT4 mode we use the polarity field as a 4-bit LUT
-    wire [15:0] timer_trig_delta = ((io ^ timer_io_latch) & timer_trigger_mask);     // did a pin change that we care about
-    wire [15:0] timer_trig_value = (~(io ^ timer_trigger_pol) & timer_trigger_mask); // is the current bit equal to the value we wanted
-    wire timer_trigger_event = (timer_trigger_mode != 0) ?                           // are we using a LUT trigger or standard edge trigger?
+    wire lut_trigger = timer_trigger_pol[lut_addr];                 // in LUT4 mode we use the polarity field as a 4-bit LUT
+    wire [15:0] timer_trig_delta = ((io ^ timer_io_latch));         // did a pin change that we care about
+    wire [15:0] timer_trig_value = (~(io ^ timer_trigger_pol));     // is the current bit equal to the value we wanted
+    wire timer_trigger_event = (timer_trigger_mode != 0) ?          // are we using a LUT trigger or standard edge trigger?
                                     lut_trigger : 
-                                        (|(timer_trig_delta & timer_trig_value));
-
+                                        (|(timer_trig_delta & timer_trig_value & timer_trigger_mask));
 
     // memory is a SDP A = 16x32768, B = 8x65536 so we can stream out the same bytes but store 16-bit samples easier
     Gowin_SDPB timer_mem(

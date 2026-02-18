@@ -32,7 +32,7 @@ The analyzer is controlled via a 7-byte serial packet (115,200 baud):
 | 4 | `prescale` | Sample clock divider. |
 | 5 | `post_trigger` | Post-trigger capture depth (multiplied by 128 or 256). |
 | 6 | `mode_select` | <br>**0**: Edge, **1**: Static LUT4, **2**: Temporal LUT4. |
-
+	
 ## Software Usage
 
 The included C tool handles configuration, data retrieval, and VCD generation.
