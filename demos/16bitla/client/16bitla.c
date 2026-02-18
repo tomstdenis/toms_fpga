@@ -41,7 +41,7 @@ static int set_interface_attribs(int fd, int speed) {
     return 0;
 }
 
-uint8_t prescale, post_trigger;
+uint8_t prescale, post_trigger, lut4mode;
 uint16_t trigger_mask, trigger_pol;
 char names[16][256];
 uint16_t WPTR;
@@ -58,6 +58,10 @@ static void read_config(char *fname)
 	
 	f = fopen(fname, "r");
 	if (f) {
+		if (fscanf(f, "%"SCNx8"\n", &lut4mode) != 1) {
+			fprintf(stderr, "ERROR: Expecting lut4mode hex value\n");
+			exit(-1);
+		}
 		if (fscanf(f, "%"SCNx8"\n", &prescale) != 1) {
 			fprintf(stderr, "ERROR: Expecting prescale hex value\n");
 			exit(-1);
@@ -109,7 +113,7 @@ static void read_config(char *fname)
 
 static void program_and_read(int fd)
 {
-	uint8_t cmd[6];
+	uint8_t cmd[7];
 	int x;
 	
 	cmd[0] = trigger_mask & 0xFF;
@@ -118,8 +122,9 @@ static void program_and_read(int fd)
 	cmd[3] = trigger_pol >> 8;
 	cmd[4] = prescale;
 	cmd[5] = post_trigger;
+	cmd[6] = lut4mode;
 	
-	if (write(fd, cmd, 6) != 6) {
+	if (write(fd, cmd, 7) != 7) {
 		fprintf(stderr, "ERROR: Could not write command to logic analyzer...\n");
 		exit(-1);
 	}
@@ -243,7 +248,7 @@ int main(int argc, char **argv)
 	tcflush(fd, TCIOFLUSH);
 	
 	read_config(argv[2]);
-	printf("Performing %d-channel sampling using a prescale of %u (%g ns per sample), mask=%04x, pol=%04x, post=%lu samples\nReady for trigger.\n", la_channels, prescale + 1, NS_PER_SAMPLE, trigger_mask, trigger_pol, (unsigned long)post_trigger * (la_channels == 8 ? 256 : 128));
+	printf("Performing %d-channel sampling using a prescale of %u (%g ns per sample), mask=%04x, pol=%04x(%s triggered), post=%lu samples\nReady for trigger.\n", la_channels, prescale + 1, NS_PER_SAMPLE, trigger_mask, trigger_pol, lut4mode ? "LUT4" : "edge", (unsigned long)post_trigger * (la_channels == 8 ? 256 : 128));
 	program_and_read(fd);
 	
 	sprintf(outname, "%s.raw", argv[2]);
