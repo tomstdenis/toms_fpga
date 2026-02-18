@@ -59,7 +59,7 @@ module top(
     reg [15:0] timer_trigger_mask;               // which pins do we care about
     reg [15:0] timer_trigger_pol;                // what is the required value of the pin that changed
     reg timer_start;                            // 1 == switch from IDLE to RUNNING
-    reg [1:0] timer_trigger_mode;
+    reg [3:0] timer_trigger_mode;
 
     // Address Mux for the LUT
     reg [3:0] lut_addr;
@@ -74,9 +74,11 @@ module top(
     wire lut_trigger = timer_trigger_pol[lut_addr];                                  // in LUT4 mode we use the polarity field as a 4-bit LUT
     wire [15:0] timer_trig_delta = ((io ^ timer_io_latch) & timer_trigger_mask);     // did a pin change that we care about
     wire [15:0] timer_trig_value = (~(io ^ timer_trigger_pol) & timer_trigger_mask); // is the current bit equal to the value we wanted
-    wire timer_trigger_event = (timer_trigger_mode != 0) ?                                     // are we using a LUT trigger or standard edge trigger?
+    wire timer_trigger_event = (timer_trigger_mode != 0) ?                           // are we using a LUT trigger or standard edge trigger?
                                     lut_trigger : 
-                                        (|timer_trig_delta & |timer_trig_value);
+                                        (|(timer_trig_delta & timer_trig_value));
+
+
     // memory is a SDP A = 16x32768, B = 8x65536 so we can stream out the same bytes but store 16-bit samples easier
     Gowin_SDPB timer_mem(
         .clka(pll_clk),            //input clka
@@ -96,8 +98,8 @@ module top(
     reg [7:0] main_rx_frame[6:0];           // each command is 7 bytes
     reg [2:0] main_rx_frame_i;              // how many bytes have we read so far
     reg [7:0] main_tx_byte_buf;             // buffer holding byte to send for MAIN_TRANSMIT_WAIT
-    reg [4:0] main_state;                   // which state is the FSM in
-    reg [4:0] main_state_tag;               // tag system allows generic wait and what not
+    reg [3:0] main_state;                   // which state is the FSM in
+    reg [3:0] main_state_tag;               // tag system allows generic wait and what not
     reg [16:0] main_buf_i;                  // index into buffer to send
 
     localparam
@@ -238,7 +240,7 @@ returns 65536 samples.
                                         timer_trigger_mask <= {main_rx_frame[1], main_rx_frame[0]}; // load mask
                                         timer_trigger_pol  <= {main_rx_frame[3], main_rx_frame[2]}; // load pol
                                         timer_prescale     <= main_rx_frame[4];                     // prescale
-                                        timer_trigger_mode <= main_rx_frame[6][1:0];                // trigger mode (0=edge, 1+ == LUT)
+                                        timer_trigger_mode <= main_rx_frame[6][3:0];                // trigger mode (0=edge, 1+ == LUT)
                                         if (main_rx_frame[1] == 0) begin                            // if the upper 8 bits are zero we enter 8ch mode
                                             timer_8ch_mode <= 'b1;
                                             timer_8ch_phase <= 0;
