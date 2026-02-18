@@ -237,19 +237,22 @@ returns 65536 samples.
                                     begin
                                         main_state <= MAIN_TRANSMIT_WPTR_0;                         // get ready for next main task which is sending the lower 8 bits
                                         timer_start <= 1;                                           // start the timer
+                                        timer_mem_ce <= 1'b1;                                       // turn memory on
+                                        timer_8ch_phase <= 0;                                       // reset phase to 0 so wptr math will always work
                                         timer_trigger_mask <= {main_rx_frame[1], main_rx_frame[0]}; // load mask
                                         timer_trigger_pol  <= {main_rx_frame[3], main_rx_frame[2]}; // load pol
                                         timer_prescale     <= main_rx_frame[4];                     // prescale
-                                        timer_trigger_mode <= main_rx_frame[6][3:0];                // trigger mode (0=edge, 1+ == LUT)
-                                        if (main_rx_frame[1] == 0) begin                            // if the upper 8 bits are zero we enter 8ch mode
-                                            timer_8ch_mode <= 'b1;
-                                            timer_8ch_phase <= 0;
-                                            timer_post_cnt     <= {main_rx_frame[5], 8'b0};             // post_cnt * 256 samples (0..65280)
+                                        timer_8ch_mode     <= main_rx_frame[1] == 0 ? 1 : 0;        // 8ch mode enabled if top half of trigger_mask is zero
+                                        if (main_rx_frame[5] == 0) begin                            // if the post_count is zero then force it to 1.
+                                            timer_post_cnt <= 'd1;
                                         end else begin
-                                            timer_8ch_mode <= 0;
-                                            timer_post_cnt     <= {1'b0, main_rx_frame[5], 7'b0};       // post_cnt * 128 samples (0..32640)
+                                            if (main_rx_frame[1] == 0) begin                            // if the upper 8 bits are zero we enter 8ch mode
+                                                timer_post_cnt     <= {main_rx_frame[5], 8'b0};             // post_cnt * 256 samples (0..65280)
+                                            end else begin
+                                                timer_post_cnt     <= {1'b0, main_rx_frame[5], 7'b0};       // post_cnt * 128 samples (0..32640)
+                                            end
                                         end
-                                        timer_mem_ce <= 1'b1;                                       // turn memory on
+                                        timer_trigger_mode <= main_rx_frame[6][3:0];                // trigger mode (0=edge, 1+ == LUT)
                                     end
                                 MAIN_TRANSMIT_WAIT:
                                     begin
@@ -305,7 +308,7 @@ returns 65536 samples.
                             // detect and latch a trigger event
                             timer_triggered <= 1'b1;
                             if (timer_triggered == 0) begin
-                                timer_mem_wptr <= timer_mem_ptr;                        // save the current WPTR since we reuse timer_mem_ptr to read mem
+                                timer_mem_wptr <= timer_mem_ptr + timer_8ch_phase;      // save the current WPTR since we reuse timer_mem_ptr to read mem
                             end
                         end
                         if (timer_post_cnt > 0) begin                                   // if we haven't exhausted post trigger bytes keep going

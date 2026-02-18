@@ -18,8 +18,6 @@ A high-performance, FPGA-based logic analyzer capable of **148.5 MHz** sampling 
 ## Hardware Specifications
 
 * **FPGA**: Gowin GW2AR-18 (Tang Nano 20K).
-
-
 * **Buffer**: SN74LVC541ADWR (5V tolerant) with 100Ω series termination and 10kΩ pull-downs.
 * **Thermal**: Passive 7mm heatsink with ground-plane thermal dissipation.
 
