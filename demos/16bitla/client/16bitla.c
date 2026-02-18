@@ -13,7 +13,7 @@
 //#define FPGA_CLOCK 27000000ULL
 
 // 5.25x PLL
-#define FPGA_CLOCK 155250000ULL
+#define FPGA_CLOCK 135000000ULL
 
 #define NS_PER_SAMPLE (((uint64_t)((uint64_t)prescale + 1ULL) * 1000000000ULL) / (double)FPGA_CLOCK)
 
@@ -81,7 +81,7 @@ static void read_config(char *fname)
 		if (fscanf(f, "%"SCNx8"\n", &post_trigger) != 1) {
 			fprintf(stderr, "ERROR: Expecting post trigger count hex value\n");
 			exit(-1);
-		}
+		}	
 		
 		if (lut4mode & 0x80) {
 			la_channels = 16;
@@ -138,12 +138,15 @@ static void program_and_read(int fd)
 	
 	// load write pointer
 	WPTR = ((uint16_t)outbuf[0]) | ((uint16_t)outbuf[1] << 8);
+	if (la_channels == 16) {
+		WPTR >>= 1;				// divide the offset by 2 to get a sample index
+	}
 	memmove(outbuf, outbuf + 2, 65536);							// shift array down so 0..65535 is the buffer
 	
 	if (la_channels == 8) {
 		// direct copy
 		for (x = 0; x < la_samples; x++) {
-			samples[x] = outbuf[x];
+			samples[x] = outbuf[x] & 0xFF;
 		}
 	} else {
 		// 2 bytes per sample
@@ -184,7 +187,7 @@ void emit_vcd(const char *filename, uint16_t *buffer, uint16_t wptr, uint8_t pos
     // Total buffer is 65536 samples.
     // In FPGA, timer_post_cnt = post_trigger_val * 256.
     uint32_t total_samples = la_samples;
-    uint32_t post_trigger_samples = (uint32_t)post_trigger_val * 256;
+    uint32_t post_trigger_samples = (uint32_t)post_trigger_val * (la_channels == 16 ? 128 : 256);
     
     // 4. Initial Values
     fprintf(f, "#0\n$dumpvars\nbxxxxxxxx !\n");
@@ -250,8 +253,8 @@ int main(int argc, char **argv)
 	sprintf(outname, "%s.raw", argv[2]);
 	f = fopen(outname, "w");
 	fprintf(f, "WPTR == %x\n", WPTR);
-	for (x = 0; x < 65536; x++) {
-		fprintf(f, "%02x\n", outbuf[x]);
+	for (x = 0; x < la_samples; x++) {
+		fprintf(f, "%04x\n", samples[x]);
 	}
 	sprintf(outname, "%s.vcd", argv[2]);
 	emit_vcd(outname, samples, WPTR, post_trigger, prescale);
