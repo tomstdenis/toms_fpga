@@ -190,7 +190,6 @@ returns 65536 samples.
                             timer_prescale_cnt <= 0;                                    // zero out prescale count
                             timer_mem_ptr <= 0;                                         // start at address 0
                             timer_triggered <= 0;                                       // reset triggered stats
-                            timer_mem_wren <= 1'b1;                                     // enable memory write
                             timer_state <= TIMER_RUNNING;
                         end else begin
                             // MAIN application goes here
@@ -342,7 +341,7 @@ returns 65536 samples.
                                 end
                                 timer_post_cnt <= timer_post_cnt - timer_triggered;     // only decrement post count after trigger
                             end else begin
-                                timer_mem_wren <= 0;
+                                timer_mem_wren <= 0;                                    // outside of prescale we turn off writes
                                 timer_prescale_cnt <= timer_prescale_cnt + 1'b1;
                             end
                         end else begin
