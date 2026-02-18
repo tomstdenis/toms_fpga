@@ -73,13 +73,15 @@ module top(
         endcase
     end
 
+    // if you have trouble hitting timing try turning this off.
+    localparam ENABLE_LUT_TRIGGER = 1;
+
     wire lut_trigger = timer_trigger_pol[lut_addr];                 // in LUT4 mode we use the polarity field as a 4-bit LUT
     wire [15:0] timer_trig_delta = ((io ^ timer_io_latch));         // did a pin change that we care about
     wire [15:0] timer_trig_value = (~(io ^ timer_trigger_pol));     // is the current bit equal to the value we wanted
-    wire timer_trigger_event = (timer_trigger_mode != 0) ?          // are we using a LUT trigger or standard edge trigger?
+    wire timer_trigger_event = (ENABLE_LUT_TRIGGER == 1 && timer_trigger_mode != 0) ?          // are we using a LUT trigger or standard edge trigger?
                                     lut_trigger : 
                                         (|(timer_trig_delta & timer_trig_value & timer_trigger_mask));
-
 
     // dual ported memory 8x65536, let's me write 16-bits at a go,and read it back without mixing port widths
     Gowin_DPB timer_mem(
