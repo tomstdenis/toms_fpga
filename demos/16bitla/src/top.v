@@ -76,28 +76,29 @@ module top(
     wire lut_trigger = timer_trigger_pol[lut_addr];                 // in LUT4 mode we use the polarity field as a 4-bit LUT
     wire [15:0] timer_trig_delta = ((io ^ timer_io_latch));         // did a pin change that we care about
     wire [15:0] timer_trig_value = (~(io ^ timer_trigger_pol));     // is the current bit equal to the value we wanted
-    wire timer_trigger_event = 
-(timer_trigger_mode != 0) ?          // are we using a LUT trigger or standard edge trigger?
+    wire timer_trigger_event = (timer_trigger_mode != 0) ?          // are we using a LUT trigger or standard edge trigger?
                                     lut_trigger : 
                                         (|(timer_trig_delta & timer_trig_value & timer_trigger_mask));
 
+
+    // dual ported memory 8x65536, let's me write 16-bits at a go,and read it back without mixing port widths
     Gowin_DPB timer_mem(
-        .douta(timer_mem_data_out), //output [7:0] douta
-        .doutb(), //output [7:0] doutb
-        .clka(pll_clk), //input clka
-        .ocea(1'b1), //input ocea
-        .cea(timer_mem_ce), //input cea
-        .reseta(~rst_n), //input reseta
-        .wrea(timer_mem_wren), //input wrea
-        .clkb(pll_clk), //input clkb
-        .oceb(1'b1), //input oceb
-        .ceb(timer_mem_ce), //input ceb
-        .resetb(~rst_n), //input resetb
-        .wreb(timer_mem_wren), //input wreb
-        .ada(timer_mem_ptr), //input [15:0] ada
-        .dina(timer_mem_data_in[7:0]), //input [7:0] dina
-        .adb(timer_mem_ptr + 16'd1), //input [15:0] adb
-        .dinb(timer_mem_data_in[15:8]) //input [7:0] dinb
+        .douta(timer_mem_data_out),     //output [7:0] douta
+        .doutb(),                       //output [7:0] doutb (unused as we only read from PORT A)
+        .clka(pll_clk),                 //input clka
+        .ocea(1'b1),                    //input ocea (not used in bypass mode)
+        .cea(timer_mem_ce),             //input cea (along with only enabling wren when we have a sample, we also disable the memory clocks when it's not reading or writing)
+        .reseta(~rst_n),                //input reseta
+        .wrea(timer_mem_wren),          //input wrea
+        .clkb(pll_clk),                 //input clkb
+        .oceb(1'b1),                    //input oceb
+        .ceb(timer_mem_ce),             //input ceb
+        .resetb(~rst_n),                //input resetb
+        .wreb(timer_mem_wren),          //input wreb
+        .ada(timer_mem_ptr),            //input [15:0] ada (we stagger writes so addr goes to PORT A and addr+1 goes to PORT B, as lone as we addr += 2 in our loop we're good
+        .dina(timer_mem_data_in[7:0]),  //input [7:0] dina 
+        .adb(timer_mem_ptr + 16'd1),    //input [15:0] adb
+        .dinb(timer_mem_data_in[15:8])  //input [7:0] dinb
     );
 
     // MAIN app
@@ -248,7 +249,7 @@ returns 65536 samples.
                                         timer_trigger_mask <= {main_rx_frame[1], main_rx_frame[0]}; // load mask
                                         timer_trigger_pol  <= {main_rx_frame[3], main_rx_frame[2]}; // load pol
                                         timer_prescale     <= main_rx_frame[4];                     // prescale
-                                        timer_8ch_mode     <= ~main_rx_frame[6][7];                  // 8ch mode enabled if msb is zero
+                                        timer_8ch_mode     <= ~main_rx_frame[6][7];                 // 8ch mode enabled if msb is zero
                                         if (main_rx_frame[5] == 0) begin                            // if the post_count is zero then force it to 1.
                                             timer_post_cnt <= 'd1;
                                         end else begin
@@ -329,14 +330,14 @@ returns 65536 samples.
                                     // in 8ch mode we form 2 samples per word of memory
                                     if (timer_8ch_phase == 0) begin
                                         // even phase we just capture data but don't advance the pointer
-                                        timer_8ch_phase <= 1;                                   // switch phase
-                                        timer_io_latch2 <= timer_io_latch;
+                                        timer_8ch_phase <= 1;                                              // switch phase
+                                        timer_io_latch2 <= timer_io_latch;                                 // latch sample
                                     end else begin
                                         // odd phase so we're done with this word
-                                        timer_mem_data_in <= {timer_io_latch[7:0], timer_io_latch2[7:0] }; // store new sample in top half of word
-                                        timer_8ch_phase <= 0;                                   // switch phase
-                                        timer_mem_ptr <= timer_mem_ptr + 16'd2;                  // advance to next memory address
-                                        timer_mem_wren <= 1;
+                                        timer_mem_data_in <= {timer_io_latch[7:0], timer_io_latch2[7:0] }; // store new sample in top half of word (because we write the bottom half to even addresses in memory)
+                                        timer_8ch_phase <= 0;                                              // switch phase
+                                        timer_mem_ptr   <= timer_mem_ptr + 16'd2;                          // advance to next memory address
+                                        timer_mem_wren  <= 1;
                                     end
                                 end
                                 timer_post_cnt <= timer_post_cnt - timer_triggered;     // only decrement post count after trigger
