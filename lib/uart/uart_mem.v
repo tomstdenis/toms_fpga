@@ -115,7 +115,7 @@ module uart_mem
                                             begin // DATA
                                                 if (!uart_tx_fifo_full) begin
 													i_data_latch <= i_data[7:0];
-                                                    uart_tx_start <= ~uart_tx_start;
+                                                    uart_tx_start <= 1'b1;
                                                 end
                                             end
                                         `UART_INT_ADDR:
@@ -153,7 +153,7 @@ module uart_mem
                                         `UART_DATA_ADDR:
                                             begin // DATA
                                                 if (uart_rx_ready) begin
-                                                    uart_rx_read <= ~uart_rx_read;      // tell the UART we read the byte
+                                                    uart_rx_read <= 1'b1; 		        // tell the UART we read the byte
                                                     delay <= 1;							// uart needs it's own cycle to respond
                                                 end
                                             end
@@ -176,6 +176,8 @@ module uart_mem
                             end
                         RETIRE:
 							begin
+								uart_rx_read <= 0;
+								uart_tx_start <= 0;
 								if (delay) begin
 									delay <= 0;
 								end else begin

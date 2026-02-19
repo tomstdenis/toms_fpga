@@ -6,18 +6,18 @@
 module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1)
 (
     input clk,                      // main clock
-    input rst_n,                      // active low reset
+    input rst_n,                    // active low reset
     input [15:0] baud_div,          // counter value for baud calculation (e.g. F_CLK/BAUD == baud_div)
-    input uart_tx_start,            // (edge triggered) signal we want to load uart_tx_data_in into the TX FIFO
+    input uart_tx_start,            // signal we want to load uart_tx_data_in into the TX FIFO
     input [7:0] uart_tx_data_in,    // TX data
     output uart_tx_pin,             // (out) pin for transmitting on
     output uart_tx_fifo_full,       // (out) true if the FIFO is currently full
     output uart_tx_fifo_empty,      // (out) true if the FIFO is empty
 
     input uart_rx_pin,              // pin to RX from
-    input uart_rx_read,             // (edge triggered)  signal that we read a byte
+    input uart_rx_read,             // signal that we read a byte
     output reg uart_rx_ready,       // (out) signal that an output byte is available
-    output reg [7:0] uart_rx_byte       // (out) the RX byte
+    output reg [7:0] uart_rx_byte   // (out) the RX byte
 );
     // note: things starting with uart_ are input/outputs to this module (other than clk)
     generate
@@ -47,7 +47,6 @@ module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1)
             // Output signals are combinatorial
             assign uart_tx_fifo_full = (tx_fifo_cnt == (FIFO_DEPTH));
             assign uart_tx_fifo_empty = (tx_fifo_cnt == 0);
-            reg prev_uart_tx_start;
 
             always @(posedge clk) begin
                 if (!rst_n) begin
@@ -56,26 +55,26 @@ module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1)
                     tx_fifo_wptr <= 0;
                     tx_fifo_rptr <= 0;
                     tx_fifo_cnt <= 0;
-                    prev_uart_tx_start <= 0;
                 end else begin
                     // ===== TX =====
-					// Store a new byte on the edge of uart_tx_start if the fifo isn't full
-                    if (uart_tx_start != prev_uart_tx_start && !uart_tx_fifo_full) begin
+					// Store a new byte on uart_tx_start asserted if the fifo isn't full
+                    if (uart_tx_start && !uart_tx_fifo_full) begin
                         // user wants to transmit a byte and the fifo isn't full so store it in the fifo
                         tx_fifo[tx_fifo_wptr] <= uart_tx_data_in;
                         tx_fifo_wptr <= tx_fifo_wptr + 1'd1;
                         tx_fifo_cnt <= tx_fifo_cnt + 1'd1;
-						tx_start <= 1'b0;
+						if (tx_started) begin
+							tx_start <= 1'b0;					// transmit started, deassert tx_start
+						end
                     end else if (!tx_start && tx_done && (tx_fifo_cnt > 0)) begin
 						// send a new byte to the uart_tx if uart_tx is idle (done==1), rptr != wptr, we didn't start a byte recently or the 
                         tx_send <= tx_fifo[tx_fifo_rptr]; 
                         tx_fifo_rptr <= tx_fifo_rptr + 1'd1;
-                        tx_start <= 1'b1;
+                        tx_start <= 1'b1;						// we read a byte out of the fifo to transmit 
                         tx_fifo_cnt <= tx_fifo_cnt - 1'd1;
                     end else begin
-						tx_start <= 1'b0;
+						tx_start <= 1'b0;						// if we're idle ensure we're not asserting tx start
 					end
-					prev_uart_tx_start <= uart_tx_start;
                 end
             end
         end else begin :tx_stub
@@ -122,9 +121,8 @@ module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1)
                     // ===== RX =====
                     rx_sync_pipe <= {rx_sync_pipe[0], uart_rx_pin};
                     uart_rx_ready <= rx_fifo_cnt > 0 ? 1'b1 : 1'b0;
-                    prev_uart_rx_read <= uart_rx_read;
                     // if the user wants something from the fifo and there is a byte advance the read pointer
-                    if (uart_rx_read != prev_uart_rx_read && (rx_fifo_cnt > 0)) begin
+                    if (uart_rx_read && (rx_fifo_cnt > 0)) begin
                         // note the output is combinatorial above ...
                         uart_rx_byte <= rx_fifo[rx_fifo_rptr];
                         rx_fifo_rptr <= rx_fifo_rptr + 1'd1;

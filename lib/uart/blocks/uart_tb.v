@@ -96,14 +96,14 @@ module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1)
 			$display("Sending %d bytes...", j);
 			for (i = 0; i < j; i++) begin
 				send_byte(8'b1 + i[7:0]);
-				if (i > fd) begin
+				if (i == fd) begin
 					// FIFO should be full now
 					test_fifo_full(1);
 				end
 			end
 
 			// wait for the byte to send
-			repeat(j * 15 * BAUD_VALUE) @(posedge clk);
+			repeat(j * 15 * BAUD_VALUE) #CLK_PERIOD;
 
 			// now read back (should get the first 64 bytes back not the 65'th
 			$display("Reading %d bytes...", n);
@@ -111,6 +111,7 @@ module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1)
 				recv_byte(8'b1 + i[7:0], 1);
 			end
 			@(posedge clk);
+			#1;
 			$display("PASSED");
 		end
 
@@ -126,18 +127,24 @@ module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1)
     task send_byte(input [7:0] val);
 		begin
 			@(posedge clk);
+			#1;
 			uart_tx_data_in = val;
-			uart_tx_start = ~uart_tx_start;
+			uart_tx_start = 1'b1;
 			@(posedge clk);
+			#1;
+			uart_tx_start = 1'b0;
 		end
 	endtask
 	
 	task recv_byte(input [7:0] expected, input ready_expected);
 		begin
+			@(posedge clk);
+			#1;
 			test_rx_ready(ready_expected);
+			uart_rx_read = 1'b1;
 			@(posedge clk);
-			uart_rx_read = ~uart_rx_read;
-			@(posedge clk);
+			#1;
+			uart_rx_read = 1'b0;
 			$display("read: %2h", uart_rx_byte);
 			if (uart_rx_byte != expected) begin
 				$display("ASSERTION FAILED: uart_rx_byte (%h) not expected value (%h)\n", uart_rx_byte, expected);
