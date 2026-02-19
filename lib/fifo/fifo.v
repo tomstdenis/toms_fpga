@@ -1,5 +1,17 @@
 `timescale 1ns/1ps
 
+/*
+Simple parallel access full duplex FIFO.  Supports
+flushing, signals full/empty, handles precendence order of 
+
+- Flush (inc. simultaneous write)
+- Reads and Writes
+- Writes
+- Reads
+
+Uses registers for storage.
+*/
+
 module fifo
 #(parameter
 	FIFO_DEPTH=4,
@@ -39,9 +51,6 @@ module fifo
 			FIFO_WPTR <= 0;
 			FIFO_RPTR <= 0;
 			FIFO_CNT <= 0;
-			for (i = 0; i < FIFO_DEPTH; i++) begin
-				FIFO[i] <= 0;
-			end
 			data_out <= 0;
 		end else begin
 			// priority is flush, then read&write, then write, then read

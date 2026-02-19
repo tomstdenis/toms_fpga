@@ -47,7 +47,7 @@ module fifo_tb();
         // Reset system
         repeat(3) @(posedge clk);
         rst_n = 1;
-		@(posedge clk);
+		@(posedge clk); #1;
 		expect_state(0, 1, 0);			// reset so we expect !full, empty, !cnt
 		
 		// write AA into FIFO
@@ -55,18 +55,18 @@ module fifo_tb();
 		$display("Starting phase: %d", state);
 		data_in = 8'hAA;
 		write = 1;
-		@(posedge clk);
+		@(posedge clk); #1;
 		write = 0;						// clear write
-		@(posedge clk);
+		@(posedge clk); #1;
 		expect_state(0, 0, 1);			// reset so we expect !full, !empty, cnt == 1
 		
 		// read it out
 		state = 2;
 		$display("Starting phase: %d", state);
 		read = 1;
-		@(posedge clk);
+		@(posedge clk); #1;
 		read = 0;
-		@(posedge clk);
+		@(posedge clk); #1;
 		expect_state(0, 1, 0);			// reset so we expect !full, empty, !cnt
 		expect_dout(8'hAA);
 		
@@ -76,9 +76,9 @@ module fifo_tb();
 		for (i = 0; i < DEPTH; i++) begin
 			data_in = 8'hC0 + i[7:0];
 			write = 1;
-			@(posedge clk);
+			@(posedge clk); #1;
 			write = 0;						// clear write
-			@(posedge clk);
+			@(posedge clk); #1;
 			expect_state(i == (DEPTH - 1) ? 1 : 0, 0, i[2:0] + 3'b1);
 		end		
 
@@ -87,9 +87,9 @@ module fifo_tb();
 		$display("Starting phase: %d", state);
 		for (i = 0; i < DEPTH; i++) begin
 			read = 1;
-			@(posedge clk);
+			@(posedge clk); #1;
 			read = 0;
-			@(posedge clk);
+			@(posedge clk); #1;
 			expect_state(0, i == (DEPTH - 1) ? 1 : 0, DEPTH[2:0] - i[2:0] - 3'b1);
 			expect_dout((8'hC0 + i[7:0]));
 		end
@@ -101,10 +101,10 @@ module fifo_tb();
 		data_in = 8'hD0;
 		read = 1;
 		write = 1;
-		@(posedge clk);
+		@(posedge clk); #1;
 		read = 0;
 		write = 0;
-		@(posedge clk);
+		@(posedge clk); #1;
 		expect_state(0, 1, 0);
 		expect_dout(8'hD0);
 		
@@ -115,25 +115,25 @@ module fifo_tb();
 			read = 0;
 			write = 1;				// first write
 			data_in = 8'hE0;
-			@(posedge clk);
+			@(posedge clk); #1;
 		// cycle 2: initiate read
 			read = 1;				// initiate read
 			write = 0;
-			@(posedge clk);
+			@(posedge clk); #1;
 		// cycle 3: initiate write of E1
 			data_in = 8'hE1;
 			read = 0;
 			write = 1;
-			@(posedge clk);
+			@(posedge clk); #1;
 			expect_dout(8'hE0);		// should have first read back now
 		// cycle 4: initiate read
 			read = 1;
 			write = 0;
-			@(posedge clk);
+			@(posedge clk); #1;
 		// cycle 5: idle
 			read = 0;
 			write = 0;
-			@(posedge clk);
+			@(posedge clk); #1;
 			expect_dout(8'hE1);		// should have 2nd read back now
 			expect_state(0, 1, 0); // should be idle
 			
@@ -143,18 +143,16 @@ module fifo_tb();
 		// cycle 1 initiate write
 			write = 1;
 			data_in = 8'hF0;
-			@(posedge clk);
-		// cycle 2 initiate flush
+			@(posedge clk); #1;
+			write = 0;
+			@(posedge clk); #1;
+		// cycle 3 initiate flush
+			expect_state(0, 0, 1); // should be not idle
 			write = 0;
 			flush = 1;
-			@(posedge clk);
-			// write should be observed here
-			expect_state(0, 0, 1); // should be not idle
-		// cycle 3 idle 
-			flush = 0;
-			@(posedge clk);
-			// we should have flushed the write here
+			@(posedge clk); #1;
 			expect_state(0, 1, 0); // should be idle
+			flush = 0;
 			
 		// put something in the fifo then do a write+flush at the same time
 		state = 8;
@@ -162,27 +160,27 @@ module fifo_tb();
 		// cycle 1 initiate write
 			write = 1;
 			data_in = 8'h11;
-			@(posedge clk);
+			@(posedge clk); #1;
 		// cycle 2 deassert both
 			write = 0;
-			@(posedge clk);
+			@(posedge clk); #1;
 			expect_state(0, 0, 1); // should have one value
 		// cycle 3 initiate write+flush
 			write = 1;
 			flush = 1;
 			data_in = 8'h10;
-			@(posedge clk);
+			@(posedge clk); #1;
 		// cycle 4 deassert both
 			write = 0;
 			flush = 0;
-			@(posedge clk);
+			@(posedge clk); #1;
 			expect_state(0, 0, 1); // should have one value
 		// cycle 5 read
 			read = 1;
-			@(posedge clk);
+			@(posedge clk); #1;
 		// cycle 6 deassert read
 			read = 0;
-			@(posedge clk);
+			@(posedge clk); #1;
 			expect_state(0, 1, 0); // should be empty
 			expect_dout(8'h10);
 	
@@ -193,7 +191,7 @@ module fifo_tb();
 		begin
 			if (data_out != dout) begin
 				$display("ASSERTION FAILED:  Was expecting data_out to be %2h not %2h", dout, data_out);
-				repeat(16) @(posedge clk);
+				repeat(16) #CLK_PERIOD
 				$fatal;
 			end
 		end
@@ -203,17 +201,17 @@ module fifo_tb();
 		begin
 			if (full != efull) begin
 				$display("ASSERTION FAILED:  Was expecting full to be %d", efull);
-				repeat(16) @(posedge clk);
+				repeat(16) #CLK_PERIOD
 				$fatal;
 			end
 			if (empty != eempty) begin
 				$display("ASSERTION FAILED:  Was expecting empty to be %d", eempty);
-				repeat(16) @(posedge clk);
+				repeat(16) #CLK_PERIOD
 				$fatal;
 			end
 			if (ecnt != fifo_dut.FIFO_CNT) begin
 				$display("ASSERTION FAILED:  Was expecting FIFO_CNT  to be %d not %d", ecnt, fifo_dut.FIFO_CNT);
-				repeat(16) @(posedge clk);
+				repeat(16) #CLK_PERIOD
 				$fatal;
 			end
 		end
