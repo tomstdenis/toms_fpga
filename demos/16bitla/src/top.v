@@ -20,7 +20,7 @@ module top(
     assign led = ~ledv;                                         // LEDs are active low
 
     // UART
-    wire [15:0] uart_bauddiv = 135_000_000 / 115_200;           // bauddiv counter
+    wire [15:0] uart_bauddiv = 148_500_000 / 115_200;           // bauddiv counter
     reg uart_tx_start;                                          // start a transmit of what is in uart_tx_data_in (this is edge triggered so you just toggle it to send)
     reg [7:0] uart_tx_data_in;                                  // data to send
     reg uart_rx_read;                                           // ack a read (toggle, edge triggered like uart_tx_start)
@@ -61,6 +61,7 @@ module top(
     reg [15:0] timer_trigger_pol;               // what is the required value of the pin that changed
     reg timer_start;                            // 1 == switch from IDLE to RUNNING
     reg [3:0] timer_trigger_mode;
+    reg timer_trigger_latch;                    // latched trigger reduces critical path but delays triggering by 1 cycle
 
     // Address Mux for the LUT
     reg [3:0] lut_addr;
@@ -164,6 +165,7 @@ module top(
             timer_8ch_mode <= 0;
             timer_8ch_phase <= 0;
             timer_trigger_mode <= 0;
+            timer_trigger_latch <= 0;
 
             // reset main
             main_rx_frame_i <= 0;
@@ -172,7 +174,7 @@ module top(
         end else begin
             // main code
             timer_io_latch <= io;               // latch the IO pins
-
+            timer_trigger_latch <= timer_trigger_event;
 /* This application uses two nested FSMs.  The outer FSM is the timer which when IDLE and timer_start hasn't been asserted
 allows the innter "main" FSM to run.  The main FSM is what actually coordinates the device.  It flushes the RX buffer,
 waits for a frame (4 bytes) to program the timer, then asserts timer_start.
@@ -313,7 +315,7 @@ returns 65536 samples.
                     end
                 TIMER_RUNNING:                                                          // This state records a new sample every timer_prescale cycles
                     begin
-                        if (timer_trigger_event) begin                                  // did a trigger event happen?
+                        if (timer_trigger_latch) begin                                  // did a trigger event happen?
                             // detect and latch a trigger event
                             timer_triggered <= 1'b1;
                             if (timer_triggered == 0) begin

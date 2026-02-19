@@ -12,8 +12,8 @@
 // normal system clock
 //#define FPGA_CLOCK 27000000ULL
 
-// 5.25x PLL
-#define FPGA_CLOCK 135000000ULL
+// Using PLL
+#define FPGA_CLOCK 148500000ULL
 
 #define NS_PER_SAMPLE (((uint64_t)((uint64_t)prescale + 1ULL) * 1000000000ULL) / (double)FPGA_CLOCK)
 
