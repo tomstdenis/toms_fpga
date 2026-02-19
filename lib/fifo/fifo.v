@@ -44,8 +44,6 @@ module fifo
 	wire want_write = (rst_n & (write && (!full || read)));
 	wire want_flush = (rst_n & (flush));
 	
-	integer i;
-	
 	always @(posedge clk) begin
 		if (!rst_n) begin
 			FIFO_WPTR <= 0;
@@ -55,8 +53,13 @@ module fifo
 		end else begin
 			// priority is flush, then read&write, then write, then read
 			if (want_flush) begin
-				// are we also writing?
-				if (want_write) begin
+				// read and writing and flushing?
+				if (want_write && want_read) begin
+					data_out <= data_in;
+					FIFO_WPTR <= 0;
+					FIFO_RPTR <= 0;
+					FIFO_CNT <= 0;
+				end else if (want_write) begin 	// only writing
 					// we want flush and write so jam the first entry in
 					FIFO[0] <= data_in;
 					FIFO_WPTR <= 'b1;
