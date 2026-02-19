@@ -79,8 +79,10 @@ Modules
       - Has parameters for FIFO depth, RX and TX enables.
   
   - A bus wrapper in **uart/uart_mem.v** with test bench **uart/uart_mem_tb.v**
+    
+    - Supports IRQ for TX and RX using W1C clears
 
-- **timer**: A generic timer with variable with prescaler and counter.  Provides signals for compare match, top match, and PWM signalling.
+- **timer**: A generic timer with variable width prescaler and counter.  Provides signals for compare match, top match, and PWM signalling.
   
   - Low level timer imlemented in **timer/blocks/timer.v** with test bench **timer/blocks/timer_tb.v**
   
