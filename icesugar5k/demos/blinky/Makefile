@@ -19,7 +19,7 @@ $(PROJ).bin: $(PROJ).asc
 
 # 4. Program SRAM (The fast "Brother from another mother" way)
 prog_sram: $(PROJ).bin
-	icesprog -v $<
+	icesprog -S $<
 
 # 5. Program Flash (Permanent)
 prog_flash: $(PROJ).bin
