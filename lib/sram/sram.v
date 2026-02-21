@@ -32,12 +32,23 @@ To read SRAM
 	3.  Cycle N+1...: Read data_out, set data_out_read high, goto 3 for the rest of the payload (you can use data_out_empty to tell when done easily)
 	4.  data_out_read set low
 
+Parameters are setup for 23LC class SPI SRAMs,
+
+for PSRAMs you might need 
+	
+	DUMMY_BYTES=6 (FAST READ QUAD is the only valid QUAD read command, it has 6 dummy bytes)
+	CMD_READ=8'hEB (QUAD FAST READ upto 100MHz usually)
+	CMD_EQIO=8'h35 (ENTER QUAD IO mode)
+
 */
 
 module spi_sram #(
 	parameter FIFO_DEPTH=32,								// controls the max burst size
 	parameter SRAM_ADDR_WIDTH=16,							// how many bits does the address have (e.g. 16 or 24)
-	parameter DUMMY_BYTES=1									// how many dummy reads are required before the first byte is valid
+	parameter DUMMY_BYTES=1,								// how many dummy reads are required before the first byte is valid
+	parameter CMD_READ=8'h03,								// command to read 
+	parameter CMD_WRITE=8'h02,								// command to write
+	parameter CMD_EQIO=8'h38								// command to enter quad IO mode
 )(
 	input clk,												// clock
 	input rst_n,											// active low reset
@@ -77,6 +88,7 @@ module spi_sram #(
 	reg [$clog2(FIFO_DEPTH):0] fifo_wptr;					// our SRAM FIFO write pointer (incremented by data_in_valid)
 	reg [$clog2(FIFO_DEPTH):0] fifo_rptr;					// our SRAM FIFO read pointer (incremented by data_out_read)
 	assign data_out = fifo[fifo_rptr[$clog2(FIFO_DEPTH)-1:0]];	// assign output byte combinatorially	
+	assign data_out_empty = (fifo_rptr == fifo_wptr) ? 1'b1 : 1'b0;
 	
 	reg [4:0] state;										// What state is our FSM in
 	reg [4:0] tag;											// return point for sub-states.
@@ -90,8 +102,6 @@ module spi_sram #(
 								(temp_addr_idx == 2) ? temp_addr[23:16] :
 									(temp_addr_idx == 1) ? temp_addr[15:8] :
 										(temp_addr_idx == 0) ? temp_addr[7:0] : 8'd0;
-
-	assign data_out_empty = (fifo_rptr == fifo_wptr) ? 1'b1 : 1'b0;
 
 	// the SPI pulses FSM
 	always @(posedge clk) begin
@@ -133,7 +143,7 @@ module spi_sram #(
 		STATE_READ_DATA=10,
 		STATE_HANGUP=11,
 		STATE_CMD_START_DELAY=12,
-		STATE_INIT_CMD38=13;
+		STATE_INIT_CMD_EQIO=13;
 
 	always @(posedge clk) begin
 		if (!rst_n) begin
@@ -167,11 +177,11 @@ module spi_sram #(
 						cs_pin <= 1'b0;						// assert CS to wake the device
 						bit_cnt <= 1;						// wait one SPI cycle before sending the initializing command
 						state <= STATE_CMD_START_DELAY;
-						tag <= STATE_INIT_CMD38;
+						tag <= STATE_INIT_CMD_EQIO;
 					end
-				STATE_INIT_CMD38:
+				STATE_INIT_CMD_EQIO:
 					begin
-						temp_bits <= 8'h38;					// enter quad mode
+						temp_bits <= CMD_EQIO;				// enter quad mode
 						bit_cnt <= 8;						// 8 bits to send
 						state <= STATE_SPI_SEND_8;
 						tag <= STATE_IDLE;
@@ -301,8 +311,8 @@ module spi_sram #(
 					end
 				STATE_START_WRITE:	// start a write command
 					begin
-						// send byte 0x02
-						temp_bits <= 8'h02;
+						// send write command
+						temp_bits <= CMD_WRITE;
 						bit_cnt <= 2;
 						state <= STATE_SPI_SEND_2;
 						tag <= STATE_WRITE_ADDR;
@@ -330,8 +340,8 @@ module spi_sram #(
 					end
 				STATE_START_READ:	// start a READ command
 					begin
-						// send byte 0x03
-						temp_bits <= 8'h03;
+						// send read command
+						temp_bits <= CMD_READ;
 						bit_cnt <= 2;
 						state <= STATE_SPI_SEND_2;
 						tag <= STATE_READ_ADDR;
@@ -340,8 +350,8 @@ module spi_sram #(
 					begin
 						temp_bits <= temp_addr_byte;
 						temp_addr_idx <= temp_addr_idx - 1'b1;
-						state <= STATE_SPI_SEND_2;
 						if (temp_addr_idx > 0) begin
+							state <= STATE_SPI_SEND_2;
 							tag <= STATE_READ_ADDR;
 						end else begin
 							state <= STATE_SPI_READ_2;
