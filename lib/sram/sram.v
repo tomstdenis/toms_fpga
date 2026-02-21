@@ -94,7 +94,7 @@ module spi_sram #(
 	reg pulse;												// what part of the 1/4th cycle are we in?
 	reg prev_pulse;											// previous pulse to detect edge of pulse
 	reg [15:0] timer;										// timer to advance pulse
-	reg [7:0] fifo[FIFO_TOTAL_SIZE];	// our SRAM FIFO
+	reg [7:0] fifo[FIFO_TOTAL_SIZE-1:0];	// our SRAM FIFO
 	reg [$clog2(FIFO_TOTAL_SIZE)+2:0] fifo_wptr;					// our SRAM FIFO write pointer (incremented by data_in_valid)
 	reg [$clog2(FIFO_TOTAL_SIZE)+2:0] fifo_rptr;					// our SRAM FIFO read pointer (incremented by data_out_read)
 	reg [$clog2(FIFO_TOTAL_SIZE):0] bytes_to_read;				// our SRAM FIFO read pointer (incremented by data_out_read)
@@ -117,6 +117,7 @@ module spi_sram #(
 			timer <= bauddiv;
 			pulse <= 0;
 			prev_pulse <= 1'b1;								// init prev to 1 so the first pass detects the edge if needed
+			sck_pin <= 0;									// ensure SPI SCK is low during init
 		end else begin
 			if (busy) begin									// only run SPI pulses if the module is busy
 				prev_pulse <= pulse;						// latch previous value of pulse
@@ -159,7 +160,6 @@ module spi_sram #(
 			bit_cnt <= 0;
 			sio_en <= 4'b0000;								// disable all outputs
 			cs_pin <= 1'b1;									// ensure chip isn't selected
-			sck_pin <= 0;									// ensure SPI SCK is low during init
 			fifo[0] <= 0;									// ensure data_out is initialized 
 			dout <= 0;
 			busy <= 0;
@@ -241,7 +241,7 @@ module spi_sram #(
 												end												
 											end
 										end else begin
-											bit_cnt <= bit_cnt - 1;
+											bit_cnt <= bit_cnt - 1'b1;
 										end
 									end
 								end
@@ -286,7 +286,6 @@ module spi_sram #(
 				STATE_IDLE:
 					begin
 						bauddiv <= quad_bauddiv;								// now we're in QUAD IO mode we can use the potentially faster timing
-						timer <= quad_bauddiv;									// ensure timer is set correctly when we jump into being busy
 						if (data_in_valid && fifo_wptr < FIFO_DEPTH) begin		// user is writing data to the FIFO to eventually write to SPI SRAM
 							// payload goes after the cmd and address
 							// note we don't add DUMMY_BYTES here since it's not used in write commands
@@ -309,7 +308,7 @@ module spi_sram #(
 									begin
 										fifo[1] <= address[15:8];
 										fifo[2] <= address[7:0];
-										fifo_wptr <= fifo_wptr + 3; 				// cmd + 2 bytes of address
+										fifo_wptr <= fifo_wptr + 9'd3; 				// cmd + 2 bytes of address
 									end
 								3:
 									begin
@@ -360,7 +359,7 @@ module spi_sram #(
 								state <= STATE_IDLE;
 								done <= 1;
 							end else begin
-								hangup_timer <= hangup_timer - 1;
+								hangup_timer <= hangup_timer - 1'b1;
 							end
 						end
 					end
