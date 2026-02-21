@@ -207,7 +207,7 @@ module spi_sram #(
 								end
 						endcase
 					end
-				STATE_SPI_SEND_2:							// write from fifo_rptr to fifo_wptr, then if read_cmd switch to reads
+				STATE_SPI_SEND_2:							// write nibbles from fifo_rptr to fifo_wptr, then if read_cmd switch to reads
 					begin
 						case(pulse)
 							1'd0:							// we put data on the line mid way through the first half cycle
@@ -268,7 +268,8 @@ module spi_sram #(
 											// write next byte we read out, this starts just after the cmd and address 
 											fifo[fifo_wptr[$clog2(FIFO_TOTAL_SIZE)-1:0]] <= temp_bits;
 											fifo_wptr <= fifo_wptr + 1;
-											if (bytes_to_read == 0) begin
+											if (bytes_to_read == 1) begin
+												// if we only had 1 byte left we're done
 												state <= tag;
 												busy  <= 0;
 											end else begin
