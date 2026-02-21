@@ -109,6 +109,7 @@ module spi_sram #(
 
 	reg [15:0] hangup_timer;
 	reg busy;
+	reg doing_read;
 	
 	// the SPI pulses FSM
 	always @(posedge clk) begin
@@ -119,7 +120,7 @@ module spi_sram #(
 		end else begin
 			if (busy) begin									// only run SPI pulses if the module is busy
 				prev_pulse <= pulse;						// latch previous value of pulse
-				if (timer > 0) begin
+				if (bauddiv > 0 && timer > 0) begin
 					timer <= timer - 1'b1;
 				end else begin
 					pulse <= ~pulse;
@@ -158,10 +159,13 @@ module spi_sram #(
 			bit_cnt <= 0;
 			sio_en <= 4'b0000;								// disable all outputs
 			cs_pin <= 1'b1;									// ensure chip isn't selected
+			sck_pin <= 0;									// ensure SPI SCK is low during init
+			fifo[0] <= 0;									// ensure data_out is initialized 
 			dout <= 0;
 			busy <= 0;
 			done <= 0;
 			bauddiv <= spi_bauddiv;							// we initially use the slower single bit SPI mode timing
+			doing_read <= 0;
 		end else begin
 			case(state)
 				STATE_INIT:
@@ -181,21 +185,18 @@ module spi_sram #(
 						case(pulse)
 							1'd0:							// we put data on the line mid way through the first half cycle
 								begin
-									if (prev_pulse != pulse) begin
-										// this FSM state will be reached many times with pulse==1 so we only process
-										// the state on the leading edge of this pulse
+									if (prev_pulse != pulse) begin			// we detect edges of the pulse so we only process the state once
 										dout[0] <= temp_bits[7];
 										temp_bits <= {temp_bits[6:0], 1'b0};
 									end
 								end
 							1'd1:							// Detect if we should exit this loop
 								begin
-									if (prev_pulse != pulse) begin
-										// this FSM state will be reached many times with pulse==3 so we only process
-										// the state on the leading edge of this pulse
-										if (bit_cnt == 1) begin
+									if (timer == bauddiv - 1) begin			// only move on the last system clock cycle of the SPI clock cycle
+										if (bit_cnt == 1) begin				// we stop at 1 since we execute first then check
 											sio_en <= 4'b0000;				// done sending disable outputs
 											busy   <= 0;					// turn off SPI clock
+											done   <= 1;					// ensure done is asserted when we hit idle
 											state  <= tag;
 										end else begin 
 											bit_cnt <= bit_cnt - 1'b1;
@@ -210,12 +211,10 @@ module spi_sram #(
 				STATE_SPI_SEND_2:							// write nibbles from fifo_rptr to fifo_wptr, then if read_cmd switch to reads
 					begin
 						case(pulse)
-							1'd0:							// we put data on the line mid way through the first half cycle
+							1'd0:							// we put data on the line in the first half cycle
 								begin
 									if (prev_pulse != pulse) begin
-										// this FSM state will be reached many times with pulse==1 so we only process
-										// the state on the leading edge of this pulse
-										dout <= temp_bits[7:4];
+										dout <= temp_bits[7:4];					// in quad mode we shift out the most significant nibble first
 										temp_bits <= {temp_bits[3:0], 4'b0};
 									end
 								end
@@ -224,15 +223,14 @@ module spi_sram #(
 									if (prev_pulse != pulse) begin
 										// if there are more bytes to send ...
 										if (bit_cnt == 1) begin
-											if (fifo_rptr < fifo_wptr) begin
+											if (fifo_rptr < fifo_wptr - 1) begin
 												// load next byte from FIFO
 												temp_bits	<= fifo[fifo_rptr[$clog2(FIFO_TOTAL_SIZE)-1:0] + 1'b1];
 												fifo_rptr	<= fifo_rptr + 1'b1;
 												bit_cnt		<= 2;
 											end else begin
 												// out of bytes we either jump to reading (dummy then payload) or we jump to the tag
-												sio_en <= 4'b0000;
-												if (read_cmd) begin
+												if (doing_read) begin
 													bytes_to_read 	<= read_cmd_size + DUMMY_BYTES;
 													state			<= STATE_SPI_READ_2;
 													bit_cnt 		<= 2;
@@ -251,23 +249,21 @@ module spi_sram #(
 								end
 						endcase
 					end
-				STATE_SPI_READ_2:							// read from the SPI SRAM upto SRAM_ADDR_WIDTH/8 + DUMMY_READ + read_cmd_size bytes
+				STATE_SPI_READ_2:							// read from the SPI SRAM upto DUMMY_READ + read_cmd_size bytes
 					begin
 						case(pulse)
 							1'd0:
 								begin
 									sio_en <= 4'b0000;		// disable all four outputs
 								end
-							1'd1:							// we sample halfway through the 2nd half of the cycle
+							1'd1:							// we sample during the 2nd half of the cycle
 								begin
 									if (prev_pulse != pulse) begin
-										// this FSM state will be reached many times with pulse==3 so we only process
-										// the state on the leading edge of this pulse
-										temp_bits <= {temp_bits[3:0], din};
-										if (bit_cnt == 1) begin
+										temp_bits <= {temp_bits[3:0], din};				// We read the most significant nibble first so we read/shift at the same time
+										if (bit_cnt == 1) begin							// we do the work before checking the counter so we stop at 1 not 0
 											// write next byte we read out, this starts just after the cmd and address 
 											fifo[fifo_wptr[$clog2(FIFO_TOTAL_SIZE)-1:0]] <= temp_bits;
-											fifo_wptr <= fifo_wptr + 1;
+											fifo_wptr <= fifo_wptr + 1'b1;
 											if (bytes_to_read == 1) begin
 												// if we only had 1 byte left we're done
 												state <= tag;
@@ -290,50 +286,55 @@ module spi_sram #(
 					begin
 						bauddiv <= quad_bauddiv;								// now we're in QUAD IO mode we can use the potentially faster timing
 						timer <= quad_bauddiv;									// ensure timer is set correctly when we jump into being busy
-						if (data_in_valid && fifo_wptr < FIFO_DEPTH) begin
+						if (data_in_valid && fifo_wptr < FIFO_DEPTH) begin		// user is writing data to the FIFO to eventually write to SPI SRAM
 							// payload goes after the cmd and address
 							// note we don't add DUMMY_BYTES here since it's not used in write commands
 							// which also means if you write here and then do read_cmd it'll send out a bogus stream confusing the SPI SRAM
 							fifo[1 + (SRAM_ADDR_WIDTH/8) + fifo_wptr[$clog2(FIFO_DEPTH)-1:0]] <= data_in;
 							fifo_wptr <= fifo_wptr + 1'b1;
-						end else if (data_out_read && (fifo_rptr < fifo_wptr)) begin
+						end else if (data_out_read && (fifo_rptr < fifo_wptr)) begin // user is reading from FIFO
 							// after a command wptr is after cmd + address + dummy + payload
 							// rptr is left to just after cmd + address + dummy
 							fifo_rptr <= fifo_rptr + 1'b1;
-						end else if (write_cmd == 1 || read_cmd == 1) begin
+						end else if (write_cmd == 1 || read_cmd == 1) begin		// user wants to issue a read or write so we prepare the SPI write (command + address + optional payload)
 							cs_pin <= 1'b0;										// lower CS pin to select chip
+							sio_en <= 4'b1111;									// enable all 4 outputs
 // we need to form fifo[0..fifo_wptr] which will be 1 byte cmd + SRAM_ADDR_WIDTH/8 bytes of address
 							fifo[0] <= (write_cmd == 1) ? CMD_WRITE : CMD_READ;
-							temp_bits <= (write_cmd == 1) ? CMD_WRITE : CMD_READ;  // first byte we send has to be in temp_bits and it's the command
-							case(SRAM_ADDR_WIDTH/8)
+							temp_bits <= (write_cmd == 1) ? CMD_WRITE : CMD_READ;	// first byte we send has to be in temp_bits and it's the command
+							bit_cnt <= 2;											// reset bit count so we send the full command
+							case(SRAM_ADDR_WIDTH/8)									// store the address in big endian order
 								2:
 									begin
 										fifo[1] <= address[15:8];
 										fifo[2] <= address[7:0];
-										fifo_wptr <= fifo_wptr + 3; // cmd + 2 bytes of address
+										fifo_wptr <= fifo_wptr + 3; 				// cmd + 2 bytes of address
 									end
 								3:
 									begin
 										fifo[1] <= address[23:16];
 										fifo[2] <= address[15:8];
 										fifo[3] <= address[7:0];
-										fifo_wptr <= fifo_wptr + 4; // cmd + 3 bytes of address
+										fifo_wptr <= fifo_wptr + 4; 				// cmd + 3 bytes of address
 									end
 							endcase
 							state 		<= STATE_SPI_SEND_2;							// always jump to sending
 							tag 		<= (write_cmd == 1) ? STATE_POST_WRITE : STATE_POST_READ;
 							done 		<= 0;											// clear done flag
-							busy 		<= 1;
+							busy 		<= 1;											// start the SPI clock
 							fifo_rptr	<= 0;											// reset read pointer so we can send out the command/address/write data if any
+							doing_read  <= (read_cmd == 1) ? 1 : 0;
 						end else begin
 							// we're not running a command make sure CS nor busy are not asserted (needed because we get here from INIT_CMD38)
 							cs_pin <= 1'b1;
-							sio_en <= 4'b0000; // put pins high impedence
+							sio_en <= 4'b0000;	// put pins high impedence
 							busy   <= 1'b0;
+							done   <= 1'b1;		// ensure done is asserted
 						end
 					end
 				STATE_POST_WRITE: // after a write command
 					begin
+						sio_en    <= 4'b0000;									// disable outputs
 						busy      <= 0;
 						state 	  <= STATE_HANGUP;
 						fifo_wptr <= 0;											// reset wptr so we can write next command/payload
@@ -342,7 +343,6 @@ module spi_sram #(
 				STATE_POST_READ: // after a read command
 					begin
 						busy		<= 0;
-						fifo_wptr   <= 0;										// reset wptr so we can write next command
 						fifo_rptr	<= 1 + (SRAM_ADDR_WIDTH/8) + DUMMY_BYTES;	// set to just after command + address + dummy bytes
 						state		<= STATE_HANGUP;
 					end
