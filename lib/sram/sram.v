@@ -11,15 +11,9 @@ for pulse 0, and high for pulse 1.  This means we put data on dout in pulse 0,
 and we read data from din on pulse 1.  since our FSM clocks faster than pulses we use prev_pulse
 to detect the edge of a pulse.
 
-Because of the generic nature of the FSM we pause SPI SCK between bytes being transfered by alternatively
-setting busy to 0 in pulse==1 and setting busy to 1 before jumping to a transfer command.  This is suboptimal
-since we could do back to back transfers.  To do that though I need a linear array to work with.  Like
-maybe always put the address in the first few bytes of FIFO, similarly add space for DUMMY_BYTES so that
-fifo_rptr starts at SRAM_ADDR_WIDTH/8 + DUMMY_BYTES into the FIFO but for now ... simpler FSM.
-
-We technically leave STATE_SPI_SEND_X and STATE_SPI_READ_X early during pulse==1 but since
-the next steps sync up to pulse==0 and prev_pulse != pulse they should be fine (that is the 
-pulse 3 case for the next FSM state we come from shouldn't trigger).
+The FSM works by realizing that all SRAM commands are just writes followed by optional reads.  So 
+we form a payload of command + address + write payload, write that out, then if there are bytes
+to read we switch to reading them (plus any dummy bytes).
 
 To write to SRAM
 
@@ -74,7 +68,7 @@ module spi_sram #(
 	
 	input write_cmd,										// active high we're doing a write
 	input read_cmd,											// active high we're doing a read
-	input [$clog2(FIFO_DEPTH):0] read_cmd_size,				// how many bytes the user wants to read
+	input [$clog2(FIFO_DEPTH):0] read_cmd_size,		// how many bytes the user wants to read
 	input [23:0] address,									// address to read/write from
 
 	inout [3:0] sio_pin,									// data pins
@@ -103,6 +97,7 @@ module spi_sram #(
 	reg [7:0] fifo[FIFO_TOTAL_SIZE];	// our SRAM FIFO
 	reg [$clog2(FIFO_TOTAL_SIZE)+2:0] fifo_wptr;					// our SRAM FIFO write pointer (incremented by data_in_valid)
 	reg [$clog2(FIFO_TOTAL_SIZE)+2:0] fifo_rptr;					// our SRAM FIFO read pointer (incremented by data_out_read)
+	reg [$clog2(FIFO_TOTAL_SIZE):0] bytes_to_read;				// our SRAM FIFO read pointer (incremented by data_out_read)
 	assign data_out = fifo[fifo_rptr[$clog2(FIFO_DEPTH):0]];	// assign output byte combinatorially	
 	assign data_out_empty = (fifo_rptr == fifo_wptr) ? 1'b1 : 1'b0;
 	
@@ -237,7 +232,8 @@ module spi_sram #(
 											end else begin
 												// out of bytes we either jump to reading (dummy then payload) or we jump to the tag
 												sio_en <= 4'b0000;
-												if (read_cmd && read_cmd_size > 0) begin
+												if (read_cmd) begin
+													bytes_to_read <= read_cmd_size + DUMMY_BYTES;
 													state <= STATE_SPI_READ_2;
 													bit_cnt <= 2;
 												end else begin
@@ -272,11 +268,12 @@ module spi_sram #(
 											// write next byte we read out, this starts just after the cmd and address 
 											fifo[fifo_wptr[$clog2(FIFO_TOTAL_SIZE)-1:0]] <= temp_bits;
 											fifo_wptr <= fifo_wptr + 1;
-											if (($clog2(FIFO_DEPTH)+1)'(fifo_wptr - fifo_rptr + 1'b1) < read_cmd_size) begin
-												bit_cnt <= 2;
-											end else begin
+											if (bytes_to_read == 0) begin
 												state <= tag;
-												busy  <= 0;			// turn SPI clock off
+												busy  <= 0;
+											end else begin
+												bit_cnt <= 2;
+												bytes_to_read <= bytes_to_read - 1'b1;
 											end
 										end else begin 
 											bit_cnt <= bit_cnt - 1'b1;
