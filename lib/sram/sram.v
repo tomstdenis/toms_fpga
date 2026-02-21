@@ -69,12 +69,14 @@ module spi_sram #(
 	inout [3:0] sio_pin,									// data pins
 	output reg cs_pin,										// active low CS pin
 	output reg sck_pin,										// SPI clock
-	input [15:0] bauddiv									// This is clock rate / 4x SPI clock (e.g. lasts 1/4th a full SPI clock).
+	input [15:0] spi_bauddiv,								// This is clock rate / 4x SPI clock (e.g. lasts 1/4th a full SPI clock, must be valid during reset)
+	input [15:0] quad_buaddiv								// bauddiv for when we're in QUAD SPI mode
 );
 
 	reg [3:0] dout;											// our output to the SPI bus
 	reg [3:0] sio_en;										// per lane output enables 
-	
+	reg [15:0] bauddiv;
+
 	assign sio_pin[0] = sio_en[0] ? dout[0] : 1'bz;
 	assign sio_pin[1] = sio_en[1] ? dout[1] : 1'bz;
 	assign sio_pin[2] = sio_en[2] ? dout[2] : 1'bz;
@@ -159,6 +161,7 @@ module spi_sram #(
 			busy <= 1;
 			temp_addr <= 0;
 			temp_addr_idx <= 0;
+			bauddiv <= spi_bauddiv;							// we initially use the slower single bit SPI mode timing
 		end else begin
 			case(state)
 				STATE_CMD_START_DELAY:
@@ -280,6 +283,8 @@ module spi_sram #(
 					end
 				STATE_IDLE:
 					begin
+						bauddiv <= quad_buaddiv;								// now we're in QUAD IO mode we can use the potentially faster timing
+						timer <= quad_bauddiv;									// ensure timer is set correctly when we jump into being busy
 						if (data_in_valid && fifo_wptr < FIFO_DEPTH) begin
 							fifo[fifo_wptr[$clog2(FIFO_DEPTH)-1:0]] <= data_in;
 							fifo_wptr <= fifo_wptr + 1'b1;
