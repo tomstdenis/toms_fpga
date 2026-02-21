@@ -80,7 +80,7 @@ module spi_sram #(
 			pulse <= 0;
 			prev_pulse <= 2'd3;								// init prev to 3 so the first pass detects the edge if needed
 		end else begin
-			if (state != STATE_IDLE && state != STATE_INIT) begin
+			if (busy) begin									// only run SPI pulses if the module is busy
 				prev_pulse <= pulse;						// latch previous value of pulse
 				if (timer > 0) begin
 					timer <= timer - 1'b1;
@@ -110,7 +110,9 @@ module spi_sram #(
 		STATE_START_READ=8,
 		STATE_READ_ADDR=9,
 		STATE_READ_DATA=10,
-		STATE_HANGUP=11;
+		STATE_HANGUP=11,
+		STATE_CMD_START_DELAY=12,
+		STATE_INIT_CMD38=13;
 
 	always @(posedge clk) begin
 		if (!rst_n) begin
@@ -122,14 +124,31 @@ module spi_sram #(
 			bit_cnt <= 0;
 			sio_en <= 4'b0000;								// disable all outputs
 			dout <= 0;
-			busy <= 0;
+			busy <= 1;
 			temp_addr <= 0;
 			temp_addr_idx <= 0;
 		end else begin
 			case(state)
+				STATE_CMD_START_DELAY:
+					begin
+						if (prev_pulse != pulse && pulse == 3) begin
+							if (bit_cnt == 0) begin
+								state <= tag;
+							end else begin
+								bit_cnt <= bit_cnt - 1;
+							end
+						end
+					end
 				STATE_INIT:
 					begin
 						// prepare to send SPI command 0x38 to enter quad mode
+						cs_pin <= 1'b0;						// assert CS to wake the device
+						bit_cnt <= 1;						// wait one SPI cycle before sending the initializing command
+						state <= STATE_CMD_START_DELAY;
+						tag <= STATE_INIT_CMD38;
+					end
+				STATE_INIT_CMD38:
+					begin
 						temp_bits <= 8'h38;					// enter quad mode
 						bit_cnt <= 8;						// 8 bits to send
 						state <= STATE_SPI_SEND_8;
@@ -240,12 +259,19 @@ module spi_sram #(
 							temp_addr[SRAM_ADDR_WIDTH-1:0] <= address;
 							temp_addr_idx <= 2'((SRAM_ADDR_WIDTH/8) - 1);						
 							busy <= 1;
+							bit_cnt <= 1; // 1 SPI cycle wait before sending data
+							state <= STATE_CMD_START_DELAY;
+						end else begin
+							// we're not running a command make sure CS nor busy are not asserted (needed because we get here from INIT_CMD38)
+							cs_pin <= 1'b1;
+							sio_en <= 4'b0000; // put pins high impedence
+							busy   <= 1'b0;
 						end
 						if (write_cmd == 1) begin
-							state <= STATE_START_WRITE;
+							tag <= STATE_START_WRITE;
 							fifo_rptr <= 0;
 						end else if (read_cmd == 1) begin
-							state <= STATE_START_READ;
+							tag <= STATE_START_READ;
 						end
 					end
 				STATE_START_WRITE:	// start a write command
