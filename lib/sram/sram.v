@@ -193,7 +193,7 @@ module spi_sram #(
 									if (prev_pulse != pulse) begin
 										// this FSM state will be reached many times with pulse==3 so we only process
 										// the state on the leading edge of this pulse
-										if (bit_cnt == 0) begin
+										if (bit_cnt == 1) begin
 											sio_en <= 4'b0000;				// done sending disable outputs
 											busy   <= 0;					// turn off SPI clock
 											state  <= tag;
@@ -223,22 +223,22 @@ module spi_sram #(
 								begin
 									if (prev_pulse != pulse) begin
 										// if there are more bytes to send ...
-										if (bit_cnt == 0) begin
+										if (bit_cnt == 1) begin
 											if (fifo_rptr < fifo_wptr) begin
 												// load next byte from FIFO
-												temp_bits <= fifo[fifo_rptr[$clog2(FIFO_TOTAL_SIZE)-1:0] + 1'b1];
-												fifo_rptr <= fifo_rptr + 1'b1;
-												bit_cnt <= 2;
+												temp_bits	<= fifo[fifo_rptr[$clog2(FIFO_TOTAL_SIZE)-1:0] + 1'b1];
+												fifo_rptr	<= fifo_rptr + 1'b1;
+												bit_cnt		<= 2;
 											end else begin
 												// out of bytes we either jump to reading (dummy then payload) or we jump to the tag
 												sio_en <= 4'b0000;
 												if (read_cmd) begin
-													bytes_to_read <= read_cmd_size + DUMMY_BYTES;
-													state <= STATE_SPI_READ_2;
-													bit_cnt <= 2;
+													bytes_to_read 	<= read_cmd_size + DUMMY_BYTES;
+													state			<= STATE_SPI_READ_2;
+													bit_cnt 		<= 2;
 												end else begin
-													busy <= 0;
-													state <= tag;
+													busy			<= 0;
+													state			<= tag;
 												end												
 											end
 										end else begin
@@ -264,7 +264,7 @@ module spi_sram #(
 										// this FSM state will be reached many times with pulse==3 so we only process
 										// the state on the leading edge of this pulse
 										temp_bits <= {temp_bits[3:0], din};
-										if (bit_cnt == 0) begin
+										if (bit_cnt == 1) begin
 											// write next byte we read out, this starts just after the cmd and address 
 											fifo[fifo_wptr[$clog2(FIFO_TOTAL_SIZE)-1:0]] <= temp_bits;
 											fifo_wptr <= fifo_wptr + 1;
