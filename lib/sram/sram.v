@@ -20,7 +20,7 @@ pulse 3 case for the next FSM state we come from shouldn't trigger).
 module spi_sram #(
 	parameter FIFO_DEPTH=32,								// controls the max burst size
 	parameter SRAM_ADDR_WIDTH=16,							// how many bits does the address have (e.g. 16 or 24)
-	parameter DUMMY_BYTES=1,								// how many dummy reads are required before the first byte is valid
+	parameter DUMMY_BYTES=1									// how many dummy reads are required before the first byte is valid
 )(
 	input clk,												// clock
 	input rst_n,											// active low reset
@@ -35,13 +35,14 @@ module spi_sram #(
 	input write_cmd,										// active high we're doing a write
 	input read_cmd,											// active high we're doing a read
 	input [$clog2(FIFO_DEPTH):0] read_cmd_size,				// how many bytes the user wants to read
-	input [$clog2(SRAM_ADDR_WIDTH)-1:0] address,			// address to read/write from
+	input [SRAM_ADDR_WIDTH-1:0] address,					// address to read/write from
 
 	inout [3:0] sio_pin,									// data pins
 	output reg cs_pin,										// active low CS pin
 	output reg sck_pin,										// SPI clock
-	input [15:0] bauddiv;									// This is clock rate / 4x SPI clock (e.g. lasts 1/4th a full SPI clock).
+	input [15:0] bauddiv									// This is clock rate / 4x SPI clock (e.g. lasts 1/4th a full SPI clock).
 );
+
 	reg [3:0] dout;											// our output to the SPI bus
 	reg [3:0] sio_en;										// per lane output enables 
 	
@@ -57,7 +58,7 @@ module spi_sram #(
 	reg [7:0] fifo[FIFO_DEPTH];								// our SRAM FIFO
 	reg [$clog2(FIFO_DEPTH):0] fifo_wptr;					// our SRAM FIFO write pointer (incremented by data_in_valid)
 	reg [$clog2(FIFO_DEPTH):0] fifo_rptr;					// our SRAM FIFO read pointer (incremented by data_out_read)
-	assign data_out = fifo[fifo_rptr];						// assign output byte	
+	assign data_out = fifo[fifo_rptr[$clog2(FIFO_DEPTH)-1:0]];						// assign output byte	
 	
 	reg [4:0] state;										// What state is our FSM in
 	reg [4:0] tag;											// return point for sub-states.
@@ -67,15 +68,10 @@ module spi_sram #(
 	reg [31:0] temp_addr;
 	reg [1:0] temp_addr_idx;
 	wire [7:0] temp_addr_byte;
-	
-	always @(*) begin
-		case (temp_addr_idx)
-			2'd3: temp_addr_byte = temp_addr[31:24];
-			2'd2: temp_addr_byte = temp_addr[23:16];
-			2'd1: temp_addr_byte = temp_addr[15:8];
-			2'd0: temp_addr_byte = temp_addr[7:0];
-		endcase
-	end
+	assign temp_addr_byte = (temp_addr_idx == 3) ? temp_addr[31:24] :
+								(temp_addr_idx == 2) ? temp_addr[23:16] :
+									(temp_addr_idx == 1) ? temp_addr[15:8] :
+										(temp_addr_idx == 0) ? temp_addr[7:0] : 8'd0;
 
 	// the SPI pulses FSM
 	always @(posedge clk) begin
@@ -122,17 +118,19 @@ module spi_sram #(
 			fifo_rptr <= 0;
 			state <= STATE_INIT;
 			dummy_cnt <= DUMMY_BYTES;
-			temp_byte <= 0;
+			temp_bits <= 0;
 			bit_cnt <= 0;
 			sio_en <= 4'b0000;								// disable all outputs
 			dout <= 0;
 			busy <= 0;
+			temp_addr <= 0;
+			temp_addr_idx <= 0;
 		end else begin
 			case(state)
 				STATE_INIT:
 					begin
 						// prepare to send SPI command 0x38 to enter quad mode
-						temp_byte <= 8'h38;					// enter quad mode
+						temp_bits <= 8'h38;					// enter quad mode
 						bit_cnt <= 8;						// 8 bits to send
 						state <= STATE_SPI_SEND_8;
 						tag <= STATE_IDLE;
@@ -201,7 +199,6 @@ module spi_sram #(
 								begin
 								end
 						endcase
-						end
 					end
 				STATE_SPI_READ_2:							// read 2 nibbles into temp_bits (sio_en = 4'b1111, bit_cnt = 2)
 					begin
@@ -227,32 +224,28 @@ module spi_sram #(
 								begin
 								end
 						endcase
-						end
 					end
 				STATE_IDLE:
 					begin
 						if (data_in_valid && fifo_wptr < FIFO_DEPTH) begin
-							fifo[fifo_wptr] <= data_in;
+							fifo[fifo_wptr[$clog2(FIFO_DEPTH)-1:0]] <= data_in;
 							fifo_wptr <= fifo_wptr + 1'b1;
 						end
 						if (data_out_read && fifo_rptr < fifo_wptr) begin
 							fifo_rptr <= fifo_rptr + 1'b1;
 						end
+						if (write_cmd == 1 || read_cmd == 1) begin
+							cs_pin <= 1'b0;
+							sio_en <= 4'b1111;
+							temp_addr[SRAM_ADDR_WIDTH-1:0] <= address;
+							temp_addr_idx <= 2'((SRAM_ADDR_WIDTH/8) - 1);						
+							busy <= 1;
+						end
 						if (write_cmd == 1) begin
 							state <= STATE_START_WRITE;
-							cs_pin <= 1'b0;
-							sio_en <= 4'b1111;
-							temp_addr <= { 'b0, address };
 							fifo_rptr <= 0;
-							busy <= 1;
 						end else if (read_cmd == 1) begin
 							state <= STATE_START_READ;
-							cs_pin <= 1'b0;
-							sio_en <= 4'b1111;
-							temp_addr <= { 'b0, address };
-							temp_addr_idx <= (ADDR_WIDTH/8) - 1;
-							fifo_wptr <= 0;
-							busy <= 1;
 						end
 					end
 				STATE_START_WRITE:	// start a write command
@@ -267,15 +260,15 @@ module spi_sram #(
 				STATE_WRITE_ADDR:	// loop that sends the WRITE address 
 					begin
 						temp_bits <= temp_addr_byte;
-						tmp_addr_idx <= tmp_addr_idx - 1'b1;
+						temp_addr_idx <= temp_addr_idx - 1'b1;
 						state <= STATE_SPI_SEND_2;
-						tag <= (temp_addr_idx > 0) ? STATE_SEND_ADDR : STATE_WRITE_DATA;
+						tag <= (temp_addr_idx > 0) ? STATE_WRITE_ADDR : STATE_WRITE_DATA;
 					end
 				STATE_WRITE_DATA:	// loop that transmits the FIFO over SPI
 					begin
 						if (fifo_rptr < fifo_wptr) begin
-							temp_bits <= fifo[fifo_rptr];
-							fifo_rptr <= fifo_rptr + 1'b1
+							temp_bits <= fifo[fifo_rptr[$clog2(FIFO_DEPTH)-1:0]];
+							fifo_rptr <= fifo_rptr + 1'b1;
 							tag <= STATE_WRITE_DATA;
 							state <= STATE_SPI_SEND_2;
 							bit_cnt <= 2;
@@ -283,6 +276,7 @@ module spi_sram #(
 							state <= STATE_HANGUP;
 							fifo_wptr <= 0;					// reset write pointer so new data can be written in
 						end
+					end
 				STATE_START_READ:	// start a READ command
 					begin
 						// send byte 0x03
@@ -294,7 +288,7 @@ module spi_sram #(
 				STATE_READ_ADDR:	// loop that sends the READ address
 					begin
 						temp_bits <= temp_addr_byte;
-						tmp_addr_idx <= tmp_addr_idx - 1'b1;
+						temp_addr_idx <= temp_addr_idx - 1'b1;
 						state <= STATE_SPI_SEND_2;
 						if (temp_addr_idx > 0) begin
 							tag <= STATE_READ_ADDR;
@@ -308,7 +302,7 @@ module spi_sram #(
 				STATE_READ_DATA:	// loop that fills FIFO with data from SPI SRAM
 					begin
 						if (dummy_cnt == 0) begin
-							fifo[fifo_wptr] <= temp_bits;
+							fifo[fifo_wptr[$clog2(FIFO_DEPTH)-1:0]] <= temp_bits;
 							fifo_wptr <= fifo_wptr + 1;
 							if (fifo_wptr < read_cmd_size - 1) begin  // more data?
 								bit_cnt <= 2;
@@ -333,7 +327,7 @@ module spi_sram #(
 							cs_pin <= 1'b1;					// put CS pin high
 							sio_en <= 4'b0000;				// turn inout pins to high impedence
 							bit_cnt <= 2;					// delay two SPI cycles to let device refresh (preparing for PSRAM...)
-						end else
+						end else begin
 							if (prev_pulse != pulse && pulse == 3) begin
 								if (bit_cnt == 0) begin
 									state <= STATE_IDLE;
