@@ -166,6 +166,7 @@ module spi_sram #(
 			done <= 0;
 			bauddiv <= spi_bauddiv;							// we initially use the slower single bit SPI mode timing
 			doing_read <= 0;
+			bytes_to_read <= 0;
 		end else begin
 			case(state)
 				STATE_INIT:

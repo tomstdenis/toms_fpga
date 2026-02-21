@@ -135,6 +135,7 @@ module sram_tb();
 		for (i = 0; i < 16; i++) begin
 			expect_data_out_empty(0);
 			@(posedge clk); #1;			 // wait into the next cycle
+			expect_data(8'hFF);
 			expect_wptr(1 + 2 + 1 + 16); // shouldn't change
 			expect_rptr(1 + 2 + 1 + (i[7:0] + 1'b1));
 		end
@@ -159,6 +160,16 @@ module sram_tb();
 		begin
 			if (sram_dut.fifo_rptr != erptr) begin
 				$display("Was expecting fifo_rptr to be %d not %d", erptr, sram_dut.fifo_rptr);
+				repeat(16) @(posedge clk);
+				$fatal;
+			end
+		end
+	endtask
+
+	task expect_data(input [7:0] edata);
+		begin
+			if (data_out != edata) begin
+				$display("Was expecting data_out to be %2h not %2h", edata, data_out);
 				repeat(16) @(posedge clk);
 				$fatal;
 			end
