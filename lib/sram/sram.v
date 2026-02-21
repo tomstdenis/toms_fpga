@@ -80,8 +80,8 @@ module spi_sram #(
 	inout [3:0] sio_pin,									// data pins
 	output reg cs_pin,										// active low CS pin
 	output reg sck_pin,										// SPI clock
-	input [15:0] spi_bauddiv,								// This is clock rate / 4x SPI clock (e.g. lasts 1/4th a full SPI clock, must be valid during reset)
-	input [15:0] quad_bauddiv								// bauddiv for when we're in QUAD SPI mode
+	input [15:0] spi_bauddiv,								// Sets the SPI SCLK rate to CLK_FREQ_MHZ/(spi_bauddiv+1)
+	input [15:0] quad_bauddiv								// Sets the QPI SCLK rate to CLK_FREQ_MHZ/(quad_bauddiv+1), allowing a higher QPI clock than SPI
 );
 
 	reg [3:0] dout;											// our output to the SPI bus
@@ -272,7 +272,7 @@ module spi_sram #(
 											// write next byte we read out, this starts just after the cmd and address 
 											fifo[fifo_wptr[$clog2(FIFO_TOTAL_SIZE)-1:0]] <= temp_bits;
 											fifo_wptr <= fifo_wptr + 1;
-											if (($clog2(FIFO_DEPTH)+1)'(fifo_wptr - fifo_rptr) < read_cmd_size) begin
+											if (($clog2(FIFO_DEPTH)+1)'(fifo_wptr - fifo_rptr + 1'b1) < read_cmd_size) begin
 												bit_cnt <= 2;
 											end else begin
 												state <= tag;
@@ -298,7 +298,9 @@ module spi_sram #(
 							// which also means if you write here and then do read_cmd it'll send out a bogus stream confusing the SPI SRAM
 							fifo[1 + (SRAM_ADDR_WIDTH/8) + fifo_wptr[$clog2(FIFO_DEPTH)-1:0]] <= data_in;
 							fifo_wptr <= fifo_wptr + 1'b1;
-						end else if (data_out_read && (fifo_rptr - (1 + (SRAM_ADDR_WIDTH/8) + DUMMY_BYTES)) < read_cmd_size) begin
+						end else if (data_out_read && (fifo_rptr < fifo_wptr)) begin
+							// after a command wptr is after cmd + address + dummy + payload
+							// rptr is left to just after cmd + address + dummy
 							fifo_rptr <= fifo_rptr + 1'b1;
 						end else if (write_cmd == 1 || read_cmd == 1) begin
 							cs_pin <= 1'b0;										// lower CS pin to select chip
