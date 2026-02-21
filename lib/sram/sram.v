@@ -43,7 +43,7 @@ for PSRAMs you might need
 	DUMMY_BYTES=6 (FAST READ QUAD is the only valid QUAD read command, it has 6 dummy bytes)
 	CMD_READ=8'hEB (QUAD FAST READ upto 100MHz usually)
 	CMD_EQIO=8'h35 (ENTER QUAD IO mode)
-	MIN_CPH_NS=50 if you're operating at higher speeds you might want to increase this to allow for the 50+ ns delay the PSRAM needs between commands
+	MIN_CPH_NS=50 min delay between commands, check your datasheets!
 	quad_bauddiv: remember to set quad_bauddiv to the highest the SPI PSRAM supports (likely a bauddiv of 0 here)
 	
 		E.g. many PSRAMs can do SPI at ~33MHz and QDI at 100+MHz so if your system clock is say 80MHz you might want
@@ -59,7 +59,7 @@ module spi_sram #(
 	parameter CMD_READ=8'h03,								// command to read 
 	parameter CMD_WRITE=8'h02,								// command to write
 	parameter CMD_EQIO=8'h38,								// command to enter quad IO mode
-	parameter MIN_CPH_NS=50									// how many ns must CS be high between commands
+	parameter MIN_CPH_NS=5									// how many ns must CS be high between commands (23LC's have a min time of mostly nothing)
 )(
 	input clk,												// clock
 	input rst_n,											// active low reset
@@ -237,7 +237,7 @@ module spi_sram #(
 											end else begin
 												// out of bytes we either jump to reading (dummy then payload) or we jump to the tag
 												sio_en <= 4'b0000;
-												if (read_cmd) begin
+												if (read_cmd && read_cmd_size > 0) begin
 													state <= STATE_SPI_READ_2;
 													bit_cnt <= 2;
 												end else begin
@@ -294,6 +294,8 @@ module spi_sram #(
 						timer <= quad_bauddiv;									// ensure timer is set correctly when we jump into being busy
 						if (data_in_valid && fifo_wptr < FIFO_DEPTH) begin
 							// payload goes after the cmd and address
+							// note we don't add DUMMY_BYTES here since it's not used in write commands
+							// which also means if you write here and then do read_cmd it'll send out a bogus stream confusing the SPI SRAM
 							fifo[1 + (SRAM_ADDR_WIDTH/8) + fifo_wptr[$clog2(FIFO_DEPTH)-1:0]] <= data_in;
 							fifo_wptr <= fifo_wptr + 1'b1;
 						end else if (data_out_read && (fifo_rptr - (1 + (SRAM_ADDR_WIDTH/8) + DUMMY_BYTES)) < read_cmd_size) begin
