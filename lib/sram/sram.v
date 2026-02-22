@@ -278,7 +278,7 @@ module spi_sram #(
 							fifo_rptr <= fifo_rptr + 1'b1;
 						end
 						
-						if (write_cmd == 1 || read_cmd == 1) begin		// user wants to issue a read or write so we prepare the SPI write (command + address + optional payload)
+						if (write_cmd | read_cmd) begin		// user wants to issue a read or write so we prepare the SPI write (command + address + optional payload)
 							sio_en 		<= 4'b1111;								// enable all 4 outputs
 							temp_bits 	<= (write_cmd == 1) ? CMD_WRITE : CMD_READ;	// first byte we send has to be in temp_bits and it's the command, no need to load fifo[0]
 							tag         <= (write_cmd == 1) ? STATE_POST_WRITE : STATE_SPI_READ_2;
@@ -330,7 +330,6 @@ module spi_sram #(
 					end
 				STATE_HANGUP:		// hang up the SPI connection
 					begin
-						// deassert CS and turn pins to high impedence
 						hangup_timer	<= hangup_bauddiv[7:0]; // ensure we hit the required MIN_CPH_NS time (round up for safety)
 						fifo_wptr    	<= 1 + (SRAM_ADDR_WIDTH/8);
 						state			<= STATE_HANGUP_WAIT;
