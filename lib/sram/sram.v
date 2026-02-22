@@ -74,13 +74,13 @@ module spi_sram #(
 	inout [3:0] sio_pin,									// data pins
 	output reg cs_pin,										// active low CS pin
 	output reg sck_pin,										// SPI clock
-	input [15:0] spi_bauddiv,								// Sets the SPI SCLK rate to CLK_FREQ_MHZ/(spi_bauddiv+1)
-	input [15:0] quad_bauddiv								// Sets the QPI SCLK rate to CLK_FREQ_MHZ/(quad_bauddiv+1), allowing a higher QPI clock than SPI
+	input [11:0] spi_bauddiv,								// Sets the SPI SCLK rate to CLK_FREQ_MHZ/(spi_bauddiv+1)
+	input [11:0] quad_bauddiv								// Sets the QPI SCLK rate to CLK_FREQ_MHZ/(quad_bauddiv+1), allowing a higher QPI clock than SPI
 );
 
 	reg [3:0] dout;											// our output to the SPI bus
 	reg [3:0] sio_en;										// per lane output enables 
-	reg [15:0] bauddiv;
+	reg [11:0] bauddiv;
 
 	assign sio_pin[0] = sio_en[0] ? dout[0] : 1'bz;
 	assign sio_pin[1] = sio_en[1] ? dout[1] : 1'bz;
@@ -93,24 +93,26 @@ module spi_sram #(
 	
 	reg pulse;												// what part of the 1/4th cycle are we in?
 	reg prev_pulse;											// previous pulse to detect edge of pulse
-	reg [15:0] timer;										// timer to advance pulse
-	reg [7:0] fifo[FIFO_TOTAL_SIZE-1:0];	// our SRAM FIFO
-	reg [$clog2(FIFO_TOTAL_SIZE)+2:0] fifo_wptr;					// our SRAM FIFO write pointer (incremented by data_in_valid)
-	reg [$clog2(FIFO_TOTAL_SIZE)+2:0] read_cmd_wptr;				// copy of WPTR from a SPI SRAM read.
-	reg [$clog2(FIFO_TOTAL_SIZE)+2:0] fifo_rptr;					// our SRAM FIFO read pointer (incremented by data_out_read)
+	reg [11:0] timer;										// timer to advance pulse
+	reg [7:0] fifo[FIFO_TOTAL_SIZE-1:0];					// our SRAM FIFO
+	reg [$clog2(FIFO_TOTAL_SIZE):0] fifo_wptr;					// our SRAM FIFO write pointer (incremented by data_in_valid)
+	reg [$clog2(FIFO_TOTAL_SIZE):0] read_cmd_wptr;				// copy of WPTR from a SPI SRAM read.
+	reg [$clog2(FIFO_TOTAL_SIZE):0] fifo_rptr;					// our SRAM FIFO read pointer (incremented by data_out_read)
 	reg [$clog2(FIFO_TOTAL_SIZE):0] bytes_to_read;				// our SRAM FIFO read pointer (incremented by data_out_read)
-	assign data_out = fifo[fifo_rptr[$clog2(FIFO_DEPTH):0]];	// assign output byte combinatorially	
+	assign data_out = fifo[fifo_rptr[$clog2(FIFO_TOTAL_SIZE)-1:0]];	// assign output byte combinatorially	
 	assign data_out_empty = (fifo_rptr == read_cmd_wptr) ? 1'b1 : 1'b0;
 	
-	reg [4:0] state;										// What state is our FSM in
-	reg [4:0] tag;											// return point for sub-states.
+	reg [3:0] state;										// What state is our FSM in
+	reg [3:0] tag;											// return point for sub-states.
 	reg [$clog2(DUMMY_BYTES):0] dummy_cnt;					// how many dummy bytes left to discard
 	reg [7:0] temp_bits;									// temp bits for single SPI being written or read
 	reg [3:0] bit_cnt;										// bit counter for sending initial 0x38 etc
 
-	reg [15:0] hangup_timer;
+	reg [7:0] hangup_timer;
+	wire [15:0] hangup_bauddiv = ((CLK_FREQ_MHZ * MIN_CPH_NS + 999) / 1000);
 	reg busy;
 	reg doing_read;
+	reg [7:0] temp_spi_bits;
 	
 	// the SPI pulses FSM
 	always @(posedge clk) begin
@@ -171,13 +173,14 @@ module spi_sram #(
 			bauddiv <= spi_bauddiv;							// we initially use the slower single bit SPI mode timing
 			doing_read <= 0;
 			bytes_to_read <= 0;
+			temp_spi_bits <= 0;
 		end else begin
 			case(state)
 				STATE_INIT:
 					begin
 						// prepare to send SPI command 0x38 to enter quad mode
 						bauddiv		<= spi_bauddiv;				// if we somehow jump back to init let's ensure bauddiv is set correctly
-						temp_bits	<= CMD_EQIO;				// enter quad mode
+						temp_spi_bits	<= CMD_EQIO;				// enter quad mode
 						bit_cnt		<= 8;						// 8 bits to send
 						state		<= STATE_SPI_SEND_8;
 						tag			<= STATE_IDLE;
@@ -191,8 +194,8 @@ module spi_sram #(
 							1'd0:							// we put data on the line mid way through the first half cycle
 								begin
 									if (prev_pulse != pulse) begin			// we detect edges of the pulse so we only process the state once
-										dout[0] <= temp_bits[7];
-										temp_bits <= {temp_bits[6:0], 1'b0};
+										dout[0] <= temp_spi_bits[7];
+										temp_spi_bits <= {temp_spi_bits[6:0], 1'b0};
 									end
 								end
 							1'd1:							// Detect if we should exit this loop
@@ -302,7 +305,7 @@ module spi_sram #(
 							// rptr is left to just after cmd + address + dummy
 							fifo_rptr <= fifo_rptr + 1'b1;
 						end else if (write_cmd == 1 || read_cmd == 1) begin		// user wants to issue a read or write so we prepare the SPI write (command + address + optional payload)
-							sio_en <= 4'b1111;									// enable all 4 outputs
+							sio_en 		<= 4'b1111;								// enable all 4 outputs
 // we need to form fifo[0..fifo_wptr] which will be 1 byte cmd + SRAM_ADDR_WIDTH/8 bytes of address
 							fifo[0]		<= (write_cmd == 1) ? CMD_WRITE : CMD_READ;
 							temp_bits 	<= (write_cmd == 1) ? CMD_WRITE : CMD_READ;	// first byte we send has to be in temp_bits and it's the command
@@ -310,7 +313,7 @@ module spi_sram #(
 							tag 		<= (write_cmd == 1) ? STATE_POST_WRITE : STATE_POST_READ;
 							done 		<= 0;											// clear done flag
 							fifo_rptr	<= 1;											// reset read pointer so we can send out the command/address/write data if any
-							doing_read  <= (read_cmd == 1) ? 1 : 0;
+							doing_read  <= read_cmd;
 							state		<= STATE_STORE_ADDR_1;
 						end else begin
 							// we're not running a command make sure CS nor busy are not asserted (needed because we get here from INIT_CMD38)
@@ -381,7 +384,7 @@ module spi_sram #(
 							busy			<= 0;					// sure SPI clock stopped
 							cs_pin			<= 1'b1;				// put CS pin high
 							sio_en			<= 4'b0000;				// turn inout pins to high impedence
-							hangup_timer	<= ((CLK_FREQ_MHZ * MIN_CPH_NS + 999) / 1000); // ensure we hit the required MIN_CPH_NS time (round up for safety)
+							hangup_timer	<= hangup_bauddiv[7:0]; // ensure we hit the required MIN_CPH_NS time (round up for safety)
 						end else begin
 							if (hangup_timer == 0) begin
 								state <= STATE_IDLE;

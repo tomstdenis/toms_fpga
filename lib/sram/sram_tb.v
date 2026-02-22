@@ -17,8 +17,8 @@ module sram_tb();
 	reg [23:0] address;
 	wire cs_pin;
 	wire sck_pin;
-	reg [15:0] spi_bauddiv;
-	reg [15:0] quad_bauddiv;
+	reg [11:0] spi_bauddiv;
+	reg [11:0] quad_bauddiv;
 	tri1 [3:0] sio_pin;
 	reg [4:0] test_phase;
 	
@@ -137,7 +137,7 @@ module sram_tb();
 			@(posedge clk); #1;			 // wait into the next cycle
 			expect_data(8'hFF);
 			expect_wptr(1 + 2 + 1 + 16); // shouldn't change
-			expect_rptr(1 + 2 + 1 + (i[7:0] + 1'b1));
+			expect_rptr(1 + 2 + 1 + (i[6:0] + 1'b1));
 		end
 		expect_data_out_empty(1);
 		data_out_read = 0;
@@ -146,7 +146,7 @@ module sram_tb();
         $finish;
 	end
 	
-	task expect_wptr(input [8:0] ewptr);
+	task expect_wptr(input [6:0] ewptr);
 		begin
 			if (sram_dut.read_cmd_wptr != ewptr) begin
 				$display("Was expecting fifo_wptr to be %d not %d", ewptr, sram_dut.read_cmd_wptr);
@@ -156,7 +156,7 @@ module sram_tb();
 		end
 	endtask
 
-	task expect_rptr(input [8:0] erptr);
+	task expect_rptr(input [6:0] erptr);
 		begin
 			if (sram_dut.fifo_rptr != erptr) begin
 				$display("Was expecting fifo_rptr to be %d not %d", erptr, sram_dut.fifo_rptr);
