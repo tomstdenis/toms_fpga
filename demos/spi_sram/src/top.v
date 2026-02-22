@@ -11,8 +11,8 @@ module top(input clk, inout [3:0] sio, output cs, output sck, output [3:0] led);
     reg sram_read_cmd;
     reg [5:0] sram_read_cmd_size;
     reg [23:0] sram_address;
-    wire [15:0] sram_bauddiv = 108_000_000 / 100_000;             // sitting in a bread board let's clock this slowly...
-    wire [15:0] sram_quaddiv = 108_000_000 / 100_000;
+    wire [11:0] sram_bauddiv = 128_500_000 / 100_000;             // sitting in a bread board let's clock this slowly...
+    wire [11:0] sram_quaddiv = 128_500_000 / 100_000;
     reg [3:0] rstcnt = 4'b0;
     wire rst_n;
     assign rst_n = rstcnt[3];
@@ -30,7 +30,7 @@ module top(input clk, inout [3:0] sio, output cs, output sck, output [3:0] led);
     assign led = leds;
 
     spi_sram #(
-            .CLK_FREQ_MHZ(108), .FIFO_DEPTH(32), .SRAM_ADDR_WIDTH(16),
+            .CLK_FREQ_MHZ(129), .FIFO_DEPTH(32), .SRAM_ADDR_WIDTH(16),
             .DUMMY_BYTES(1), .CMD_READ(8'h03), .CMD_WRITE(8'h02),
             .CMD_EQIO(8'h38), .MIN_CPH_NS(50)) test_sram(
         .clk(pll_clk),
