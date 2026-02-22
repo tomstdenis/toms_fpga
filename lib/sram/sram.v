@@ -155,23 +155,28 @@ module spi_sram #(
 		STATE_STORE_ADDR_2=11,
 		STATE_STORE_ADDR_3=12;
 
+	// put initial values in POR block
+	initial begin
+		fifo_wptr = 1 + (SRAM_ADDR_WIDTH/8);			// user data goes after the write command and address bytes
+		fifo_rptr = 0;
+		read_cmd_wptr = 0;
+		state = STATE_INIT;
+		temp_bits = 0;
+		bit_cnt = 0;
+		sio_en = 4'b0000;								// disable all outputs
+		cs_pin = 1'b1;									// ensure chip isn't selected
+		fifo[0] = 0;									// ensure data_out is initialized 
+		dout = 0;
+		busy = 0;
+		done = 0;
+		bauddiv = spi_bauddiv;							// we initially use the slower single bit SPI mode timing
+		doing_read = 0;
+		bytes_to_read = 0;
+		temp_spi_bits = 0;
+	end
+
 	always @(posedge clk) begin
 		if (!rst_n) begin
-			fifo_wptr <= 1 + (SRAM_ADDR_WIDTH/8);			// user data goes after the write command and address bytes
-			fifo_rptr <= 0;
-			state <= STATE_INIT;
-			temp_bits <= 0;
-			bit_cnt <= 0;
-			sio_en <= 4'b0000;								// disable all outputs
-			cs_pin <= 1'b1;									// ensure chip isn't selected
-			fifo[0] <= 0;									// ensure data_out is initialized 
-			dout <= 0;
-			busy <= 0;
-			done <= 0;
-			bauddiv <= spi_bauddiv;							// we initially use the slower single bit SPI mode timing
-			doing_read <= 0;
-			bytes_to_read <= 0;
-			temp_spi_bits <= 0;
 		end else begin
 			case(state)
 				STATE_INIT:
@@ -333,10 +338,10 @@ module spi_sram #(
 				STATE_STORE_ADDR_2:
 					begin
 						if (SRAM_ADDR_WIDTH == 24) begin
-							fifo[1] <= address[15:8];
+							fifo[2] <= address[15:8];
 							state		<= STATE_STORE_ADDR_3;
 						end else begin
-							fifo[1] <= address[7:0];
+							fifo[2] <= address[7:0];
 							state 		<= STATE_SPI_SEND_2;
 							busy 		<= 1;							// start the SPI clock
 							cs_pin 		<= 1'b0;

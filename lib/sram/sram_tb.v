@@ -78,7 +78,7 @@ module sram_tb();
 		@(posedge clk); #1;
 		data_in_valid = 0;
 		@(posedge clk); #1;
-		expect_wptr(1);
+		expect_wptr(4);
 		expect_rptr(0);
 
 		// issue write
@@ -89,7 +89,7 @@ module sram_tb();
 		write_cmd = 0;
 		@(posedge clk); #1;
 		wait(done == 1);				// wait till send is done
-		expect_wptr(0);
+		expect_wptr(3);
 		expect_rptr(0);
 		
 
@@ -102,7 +102,7 @@ module sram_tb();
 		@(posedge clk); #1;
 		data_in_valid = 0;
 		@(posedge clk); #1;
-		expect_wptr(2);
+		expect_wptr(2 + 3);
 		expect_rptr(0);
 
 		// issue write
@@ -113,7 +113,7 @@ module sram_tb();
 		write_cmd = 0;
 		@(posedge clk); #1;
 		wait(done == 1);				// wait till send is done
-		expect_wptr(0);
+		expect_wptr(3);
 		expect_rptr(0);
 		
 		// issue read of 16 bytes
@@ -125,7 +125,7 @@ module sram_tb();
 		read_cmd = 0;
 		@(posedge clk); #1;
 		wait(done == 1);
-		expect_wptr(1 + 2 + 1 + 16); // expecting the write pointer to be command + address + dummy + 16 byte read
+		expect_read_cmd_wptr(1 + 2 + 1 + 16); // expecting the write pointer to be command + address + dummy + 16 byte read
 		expect_rptr(1 + 2 + 1);      // expecting the read pointer to be command + address + dummy meaning rptr..wptr-1 is the payload
 
 		// perform 16 reads from the fifo
@@ -136,7 +136,7 @@ module sram_tb();
 			expect_data_out_empty(0);
 			@(posedge clk); #1;			 // wait into the next cycle
 			expect_data(8'hFF);
-			expect_wptr(1 + 2 + 1 + 16); // shouldn't change
+			expect_read_cmd_wptr(1 + 2 + 1 + 16); // shouldn't change
 			expect_rptr(1 + 2 + 1 + (i[6:0] + 1'b1));
 		end
 		expect_data_out_empty(1);
@@ -146,10 +146,21 @@ module sram_tb();
         $finish;
 	end
 	
+
 	task expect_wptr(input [6:0] ewptr);
 		begin
+			if (sram_dut.fifo_wptr != ewptr) begin
+				$display("Was expecting fifo_wptr to be %d not %d", ewptr, sram_dut.fifo_wptr);
+				repeat(16) @(posedge clk);
+				$fatal;
+			end
+		end
+	endtask
+
+	task expect_read_cmd_wptr(input [6:0] ewptr);
+		begin
 			if (sram_dut.read_cmd_wptr != ewptr) begin
-				$display("Was expecting fifo_wptr to be %d not %d", ewptr, sram_dut.read_cmd_wptr);
+				$display("Was expecting read_cmd_wptr to be %d not %d", ewptr, sram_dut.read_cmd_wptr);
 				repeat(16) @(posedge clk);
 				$fatal;
 			end
