@@ -202,6 +202,7 @@ module spi_sram #(
 											sio_en <= 4'b0000;				// done sending disable outputs
 											busy   <= 0;					// turn off SPI clock
 											done   <= 1;					// ensure done is asserted when we hit idle
+											cs_pin <= 1'b1;					// release device 
 											state  <= tag;
 										end else begin 
 											bit_cnt <= bit_cnt - 1'b1;
@@ -228,7 +229,7 @@ module spi_sram #(
 									if (prev_pulse != pulse) begin
 										// if there are more bytes to send ...
 										if (bit_cnt == 1) begin
-											if (fifo_rptr < fifo_wptr - 1) begin
+											if (fifo_rptr < fifo_wptr) begin
 												// load next byte from FIFO
 												temp_bits	<= fifo[fifo_rptr[$clog2(FIFO_TOTAL_SIZE)-1:0]];
 												fifo_rptr	<= fifo_rptr + 1'b1;
@@ -271,8 +272,8 @@ module spi_sram #(
 											fifo_wptr <= fifo_wptr + 1'b1;
 											if (bytes_to_read == 1) begin
 												// if we only had 1 byte left we're done
-												state <= tag;
-												busy  <= 0;
+												state  <= tag;
+												busy   <= 0;
 											end else begin
 												bit_cnt <= 2;
 												bytes_to_read <= bytes_to_read - 1'b1;
@@ -301,7 +302,6 @@ module spi_sram #(
 							// rptr is left to just after cmd + address + dummy
 							fifo_rptr <= fifo_rptr + 1'b1;
 						end else if (write_cmd == 1 || read_cmd == 1) begin		// user wants to issue a read or write so we prepare the SPI write (command + address + optional payload)
-							cs_pin <= 1'b0;										// lower CS pin to select chip
 							sio_en <= 4'b1111;									// enable all 4 outputs
 // we need to form fifo[0..fifo_wptr] which will be 1 byte cmd + SRAM_ADDR_WIDTH/8 bytes of address
 							fifo[0]		<= (write_cmd == 1) ? CMD_WRITE : CMD_READ;
@@ -309,7 +309,6 @@ module spi_sram #(
 							bit_cnt		<= 2;											// reset bit count so we send the full command
 							tag 		<= (write_cmd == 1) ? STATE_POST_WRITE : STATE_POST_READ;
 							done 		<= 0;											// clear done flag
-							busy 		<= 1;											// start the SPI clock
 							fifo_rptr	<= 1;											// reset read pointer so we can send out the command/address/write data if any
 							doing_read  <= (read_cmd == 1) ? 1 : 0;
 							state		<= STATE_STORE_ADDR_1;
@@ -347,13 +346,17 @@ module spi_sram #(
 								begin
 									fifo[2] <= address[7:0];
 									state <= STATE_SPI_SEND_2;
+									busy 		<= 1;							// start the SPI clock
+									cs_pin 		<= 1'b0;
 								end
 						endcase
 					end
 				STATE_STORE_ADDR_3:
 					begin
-						fifo[3] <= address[7:0];
-						state <= STATE_SPI_SEND_2;
+						fifo[3]		<= address[7:0];
+						state		<= STATE_SPI_SEND_2;
+						busy 		<= 1;										// start the SPI clock
+						cs_pin		<= 1'b0;
 					end
 				STATE_POST_WRITE: // after a write command
 					begin
