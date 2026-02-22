@@ -96,7 +96,7 @@ module spi_sram #(
 	reg [15:0] timer;										// timer to advance pulse
 	reg [7:0] fifo[FIFO_TOTAL_SIZE-1:0];	// our SRAM FIFO
 	reg [$clog2(FIFO_TOTAL_SIZE)+2:0] fifo_wptr;					// our SRAM FIFO write pointer (incremented by data_in_valid)
-	reg [$clog2(FIFO_TOTAL_SIZE)+2:0] read_cmd_wptr;					// our SRAM FIFO write pointer (incremented by data_in_valid)
+	reg [$clog2(FIFO_TOTAL_SIZE)+2:0] read_cmd_wptr;				// copy of WPTR from a SPI SRAM read.
 	reg [$clog2(FIFO_TOTAL_SIZE)+2:0] fifo_rptr;					// our SRAM FIFO read pointer (incremented by data_out_read)
 	reg [$clog2(FIFO_TOTAL_SIZE):0] bytes_to_read;				// our SRAM FIFO read pointer (incremented by data_out_read)
 	assign data_out = fifo[fifo_rptr[$clog2(FIFO_DEPTH):0]];	// assign output byte combinatorially	
@@ -156,7 +156,7 @@ module spi_sram #(
 
 	always @(posedge clk) begin
 		if (!rst_n) begin
-			fifo_wptr <= 0;
+			fifo_wptr <= 1 + (SRAM_ADDR_WIDTH/8);			// user data goes after the write command and address bytes
 			fifo_rptr <= 0;
 			state <= STATE_INIT;
 			dummy_cnt <= DUMMY_BYTES;
@@ -230,7 +230,7 @@ module spi_sram #(
 										if (bit_cnt == 1) begin
 											if (fifo_rptr < fifo_wptr - 1) begin
 												// load next byte from FIFO
-												temp_bits	<= fifo[fifo_rptr[$clog2(FIFO_TOTAL_SIZE)-1:0] + 1'b1];
+												temp_bits	<= fifo[fifo_rptr[$clog2(FIFO_TOTAL_SIZE)-1:0]];
 												fifo_rptr	<= fifo_rptr + 1'b1;
 												bit_cnt		<= 2;
 											end else begin
@@ -290,11 +290,11 @@ module spi_sram #(
 				STATE_IDLE:
 					begin
 						bauddiv <= quad_bauddiv;								// now we're in QUAD IO mode we can use the potentially faster timing
-						if (data_in_valid && fifo_wptr < FIFO_DEPTH) begin		// user is writing data to the FIFO to eventually write to SPI SRAM
+						if (data_in_valid && fifo_wptr < FIFO_TOTAL_SIZE) begin		// user is writing data to the FIFO to eventually write to SPI SRAM
 							// payload goes after the cmd and address
 							// note we don't add DUMMY_BYTES here since it's not used in write commands
 							// which also means if you write here and then do read_cmd it'll send out a bogus stream confusing the SPI SRAM
-							fifo[1 + (SRAM_ADDR_WIDTH/8) + fifo_wptr[$clog2(FIFO_DEPTH)-1:0]] <= data_in;
+							fifo[fifo_wptr[$clog2(FIFO_DEPTH):0]] <= data_in;
 							fifo_wptr <= fifo_wptr + 1'b1;
 						end else if (data_out_read && (fifo_rptr < read_cmd_wptr)) begin // user is reading from FIFO
 							// after a command wptr is after cmd + address + dummy + payload
@@ -310,7 +310,7 @@ module spi_sram #(
 							tag 		<= (write_cmd == 1) ? STATE_POST_WRITE : STATE_POST_READ;
 							done 		<= 0;											// clear done flag
 							busy 		<= 1;											// start the SPI clock
-							fifo_rptr	<= 0;											// reset read pointer so we can send out the command/address/write data if any
+							fifo_rptr	<= 1;											// reset read pointer so we can send out the command/address/write data if any
 							doing_read  <= (read_cmd == 1) ? 1 : 0;
 							state		<= STATE_STORE_ADDR_1;
 						end else begin
@@ -347,7 +347,6 @@ module spi_sram #(
 								begin
 									fifo[2] <= address[7:0];
 									state <= STATE_SPI_SEND_2;
-									fifo_wptr <= fifo_wptr + 9'd3;
 								end
 						endcase
 					end
@@ -355,21 +354,20 @@ module spi_sram #(
 					begin
 						fifo[3] <= address[7:0];
 						state <= STATE_SPI_SEND_2;
-						fifo_wptr <= fifo_wptr + 9'd4;
 					end
 				STATE_POST_WRITE: // after a write command
 					begin
 						sio_en    <= 4'b0000;									// disable outputs
 						busy      <= 0;
 						fifo_rptr <= 0;											// reset rptr so we can read it during next submission
-						fifo_wptr <= 0;											// reset wptr so we can write next command/payload
+						fifo_wptr <= 1 + (SRAM_ADDR_WIDTH/8);					// reset wptr so we can write next command/payload
 						state 	  <= STATE_HANGUP;
 					end
 				STATE_POST_READ: // after a read command
 					begin
 						busy		  <= 0;
 						fifo_rptr	  <= 1 + (SRAM_ADDR_WIDTH/8) + DUMMY_BYTES;	// set to just after command + address + dummy bytes
-						fifo_wptr     <= 0;
+						fifo_wptr     <= 1 + (SRAM_ADDR_WIDTH/8);
 						read_cmd_wptr <= fifo_wptr;
 						state		  <= STATE_HANGUP;
 					end
