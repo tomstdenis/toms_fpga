@@ -53,7 +53,9 @@ module spi_sram #(
 	parameter CMD_READ=8'h03,								// command to read 
 	parameter CMD_WRITE=8'h02,								// command to write
 	parameter CMD_EQIO=8'h38,								// command to enter quad IO mode
-	parameter MIN_CPH_NS=5									// how many ns must CS be high between commands (23LC's have a min time of mostly nothing)
+	parameter MIN_CPH_NS=5,									// how many ns must CS be high between commands (23LC's have a min time of mostly nothing)
+	parameter SPI_TIMER_BITS=4,								// divide clock by 16 for SPI operations
+	parameter QPI_TIMER_BITS=1								// divide clcok by 2 for QPI operations
 )(
 	input clk,												// clock
 	input rst_n,											// active low reset
@@ -72,15 +74,14 @@ module spi_sram #(
 	input [23:0] address,									// address to read/write from
 
 	inout [3:0] sio_pin,									// data pins
-	output reg cs_pin,										// active low CS pin
-	output reg sck_pin,										// SPI clock
-	input [11:0] spi_bauddiv,								// Sets the SPI SCLK rate to CLK_FREQ_MHZ/(spi_bauddiv+1)
-	input [11:0] quad_bauddiv								// Sets the QPI SCLK rate to CLK_FREQ_MHZ/(quad_bauddiv+1), allowing a higher QPI clock than SPI
+	output cs_pin,											// active low CS pin
+	output sck_pin											// SPI clock
 );
+	reg [QPI_TIMER_BITS-1:0] qpi_timer;
+	reg [SPI_TIMER_BITS-1:0] spi_timer;
 
 	reg [3:0] dout;											// our output to the SPI bus
 	reg [3:0] sio_en;										// per lane output enables 
-	reg [11:0] bauddiv;
 
 	assign sio_pin[0] = sio_en[0] ? dout[0] : 1'bz;
 	assign sio_pin[1] = sio_en[1] ? dout[1] : 1'bz;
@@ -91,8 +92,10 @@ module spi_sram #(
 	// total size of fifo including cmd, address, dummy bytes and max size payload
 	localparam FIFO_TOTAL_SIZE = 1 + FIFO_DEPTH + (SRAM_ADDR_WIDTH/8) + DUMMY_BYTES;
 	
-	reg pulse;												// what part of the 1/4th cycle are we in?
-	reg prev_pulse;											// previous pulse to detect edge of pulse
+	wire spi_pulse;
+	wire qpi_pulse;
+	reg spi_prev_pulse;											// previous pulse to detect edge of pulse
+	reg qpi_prev_pulse;											// previous pulse to detect edge of pulse
 	reg [11:0] timer;										// timer to advance pulse
 	reg [7:0] fifo[FIFO_TOTAL_SIZE-1:0];					// our SRAM FIFO
 	reg [$clog2(FIFO_TOTAL_SIZE):0] fifo_wptr;				// our SRAM FIFO write pointer (incremented by data_in_valid)
@@ -113,30 +116,28 @@ module spi_sram #(
 	reg busy;
 	reg doing_read;
 	reg [7:0] temp_spi_bits;
+
+	assign spi_pulse = spi_timer[SPI_TIMER_BITS-1];
+	assign qpi_pulse = qpi_timer[QPI_TIMER_BITS-1];
 	
 	// the SPI pulses FSM
 	always @(posedge clk) begin
 		if (!rst_n) begin
-			timer <= spi_bauddiv;
-			pulse <= 0;
-			prev_pulse <= 1'b1;								// init prev to 1 so the first pass detects the edge if needed
-			sck_pin <= 0;									// ensure SPI SCK is low during init
+			qpi_timer <= 0;
+			spi_timer <= 0;
+			spi_prev_pulse <= 1'b1;								// init prev to 1 so the first pass detects the edge if needed
+			qpi_prev_pulse <= 1'b1;								// init prev to 1 so the first pass detects the edge if needed
 		end else begin
-			if (busy) begin									// only run SPI pulses if the module is busy
-				prev_pulse <= pulse;						// latch previous value of pulse
-				if (bauddiv > 0 && timer > 0) begin
-					timer <= timer - 1'b1;
-				end else begin
-					pulse <= ~pulse;
-					sck_pin <= ~pulse;
-					timer <= bauddiv;
-				end
+			if (busy) begin
+				qpi_timer <= qpi_timer + 1'b1;
+				spi_timer <= spi_timer + 1'b1;
+				spi_prev_pulse <= spi_pulse;
+				qpi_prev_pulse <= qpi_pulse;
 			end else begin
-				// we're idle so reset pulse
-				timer <= bauddiv;
-				pulse <= 0;
-				prev_pulse <= 1'b1;
-				sck_pin <= 1'b0;							// ensure SPI clk is low if not busy
+				qpi_timer <= 0;
+				spi_timer <= 0;
+				spi_prev_pulse <= 1'b1;								// init prev to 1 so the first pass detects the edge if needed
+				qpi_prev_pulse <= 1'b1;								// init prev to 1 so the first pass detects the edge if needed
 			end
 		end
 	end
@@ -156,6 +157,9 @@ module spi_sram #(
 		STATE_STORE_ADDR_2=11,
 		STATE_STORE_ADDR_3=12;
 
+	assign cs_pin = ~busy;									// active low CS pin
+	assign sck_pin = busy & (state == STATE_SPI_SEND_8 ? spi_pulse : qpi_pulse);
+
 	always @(posedge clk) begin
 		if (!rst_n) begin
             fifo_wptr <= 1 + (SRAM_ADDR_WIDTH/8);			// user data goes after the write command and address bytes
@@ -164,7 +168,6 @@ module spi_sram #(
             state <= STATE_INIT;
             temp_bits <= 0;
             sio_en <= 4'b0000;								// disable all outputs
-            cs_pin <= 1'b1;									// ensure chip isn't selected
             fifo[0] <= 0;									// ensure data_out is initialized 
             dout <= 0;
             busy <= 0;
@@ -172,7 +175,6 @@ module spi_sram #(
             doing_read <= 0;
             bytes_to_read <= 0;
             hangup_phase <= 1;
-            bauddiv <= spi_bauddiv;
 		end else begin
 			case(state)
 				STATE_INIT:
@@ -184,26 +186,24 @@ module spi_sram #(
 
 						// prepare to send SPI command CMD_EQIO to enter quad mode
 						state		<= STATE_SPI_SEND_8;
-						cs_pin		<= 1'b0;					// assert CS to wake the device
 						sio_en		<= 4'b0001;					// enable MOSI output pin SIO[0]
 						busy		<= 1;						// start SPI clock
 					end
 				STATE_SPI_SEND_8:							// send 8 bits in temp_bits (sio_en[0] = 1, bit_cnt = 8)	
 					begin
-						case(pulse)
+						case(spi_pulse)
 							1'd0:							// we put data on the line mid way through the first half cycle
 								begin
-									if (prev_pulse != pulse) begin			// we detect edges of the pulse so we only process the state once
+									if (spi_prev_pulse != spi_pulse) begin			// we detect edges of the pulse so we only process the state once
 										dout[0] <= temp_spi_bits[7];
 										temp_spi_bits <= {temp_spi_bits[6:0], 1'b0};
 									end
 								end
 							1'd1:							// Detect if we should exit this loop
 								begin
-									if (timer == bauddiv - 1) begin			// only move on the last system clock cycle of the SPI clock cycle
+									if (spi_timer == ((1 << SPI_TIMER_BITS) - 1)) begin				// only move on the last system clock cycle of the SPI clock cycle
 										if (bit_cnt == 1) begin				// we stop at 1 since we execute first then check
 											sio_en <= 4'b0000;				// done sending disable outputs
-											cs_pin <= 1'b1;					// release device 
 											busy   <= 0;
 											state  <= STATE_HANGUP;
 										end else begin 
@@ -215,20 +215,17 @@ module spi_sram #(
 					end
 				STATE_SPI_SEND_2:							// write nibbles from fifo_rptr to fifo_wptr, then if read_cmd switch to reads
 					begin
-						case(pulse)
+						case(qpi_pulse)
 							1'd0:							// we put data on the line in the first half cycle
 								begin
-									if (prev_pulse != pulse) begin
+									if (qpi_prev_pulse != qpi_pulse) begin
 										dout <= temp_bits[7:4];					// in quad mode we shift out the most significant nibble first
 										temp_bits <= {temp_bits[3:0], 4'b0};
 									end
 								end
 							1'd1:							// Detect if we should exit from this loop
 								begin
-									if (fifo_rptr == fifo_wptr && bit_cnt == 1) begin
-										cs_pin <= ~doing_read; // release chip if we're not reading and this is the last nibble of the last byte
-									end
-									if (prev_pulse != pulse) begin
+									if (qpi_prev_pulse != qpi_pulse) begin
 										// if there are more bytes to send ...
 										if (bit_cnt == 1) begin
 											bit_cnt		<= 2;
@@ -248,17 +245,14 @@ module spi_sram #(
 					end
 				STATE_SPI_READ_2:							// read from the SPI SRAM upto DUMMY_READ + read_cmd_size bytes
 					begin
-						case(pulse)
+						case(qpi_pulse)
 							1'd0:
 								begin
 									sio_en <= 4'b0000;		// disable all four outputs
 								end
 							1'd1:							// we sample during the 2nd half of the cycle
 								begin
-									if (bytes_to_read == 1 && bit_cnt == 1) begin
-										cs_pin <= 1'b1;
-									end
-									if (prev_pulse != pulse) begin
+									if (qpi_prev_pulse != qpi_pulse) begin
 										temp_bits <= {temp_bits[3:0], din};				// We read the most significant nibble first so we read/shift at the same time
 										if (bit_cnt == 1) begin							// we do the work before checking the counter so we stop at 1 not 0
 											// write next byte we read out, this starts just after the cmd and address 
@@ -281,7 +275,6 @@ module spi_sram #(
 					end
 				STATE_IDLE:
 					begin
-						bauddiv <= quad_bauddiv;									// now we're in QUAD IO mode we can use the potentially faster timing
 						if (data_in_valid && fifo_wptr < FIFO_TOTAL_SIZE) begin		// user is writing data to the FIFO to eventually write to SPI SRAM
 							// payload goes after the cmd and address
 							// note we don't add DUMMY_BYTES here since it's not used in write commands
@@ -304,7 +297,6 @@ module spi_sram #(
 							fifo_rptr	<= 1;											// reset read pointer so we can send out the command/address/write data if any
 						end else begin
 							// we're not running a command make sure CS nor busy are not asserted (needed because we get here from INIT_CMD38)
-							cs_pin <= 1'b1;
 							sio_en <= 4'b0000;	// put pins high impedence
 							busy   <= 1'b0;
 							done   <= 1'b1;		// ensure done is asserted
@@ -328,7 +320,6 @@ module spi_sram #(
 							fifo[2] <= address[7:0];
 							state 		<= STATE_SPI_SEND_2;
 							busy 		<= 1;							// start the SPI clock
-							cs_pin 		<= 1'b0;
 						end
 					end
 				STATE_STORE_ADDR_3:
@@ -337,7 +328,6 @@ module spi_sram #(
 							fifo[3]		<= address[7:0];
 							state		<= STATE_SPI_SEND_2;
 							busy 		<= 1;										// start the SPI clock
-							cs_pin		<= 1'b0;
 						end
 					end
 				STATE_POST_WRITE: // after a write command

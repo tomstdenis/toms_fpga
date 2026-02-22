@@ -17,8 +17,6 @@ module sram_tb();
 	reg [23:0] address;
 	wire cs_pin;
 	wire sck_pin;
-	reg [11:0] spi_bauddiv;
-	reg [11:0] quad_bauddiv;
 	tri1 [3:0] sio_pin;
 	reg [4:0] test_phase;
 	
@@ -30,16 +28,15 @@ module sram_tb();
 		.CMD_READ(8'h03),
 		.CMD_WRITE(8'h02),
 		.CMD_EQIO(8'h38),
-		.MIN_CPH_NS(50)) sram_dut(
+		.MIN_CPH_NS(50),
+		.SPI_TIMER_BITS(2),
+		.QPI_TIMER_BITS(1)) sram_dut(
 			.clk(clk), .rst_n(rst_n),
 			.done(done),
 			.data_in(data_in), .data_in_valid(data_in_valid),
 			.data_out(data_out), .data_out_read(data_out_read), .data_out_empty(data_out_empty),
 			.write_cmd(write_cmd), .read_cmd(read_cmd), .read_cmd_size(read_cmd_size), .address(address),
-			
-			.sio_pin(sio_pin), .cs_pin(cs_pin), .sck_pin(sck_pin),
-			.spi_bauddiv(spi_bauddiv), .quad_bauddiv(quad_bauddiv));
-
+			.sio_pin(sio_pin), .cs_pin(cs_pin), .sck_pin(sck_pin));
     // Parameters
     localparam CLK_PERIOD = 20;    // 50MHz
 	
@@ -63,8 +60,6 @@ module sram_tb();
 		read_cmd = 0;
 		read_cmd_size = 0;
 		address = 0;
-		spi_bauddiv = 1;				// 12.5MHz SPI
-		quad_bauddiv = 0;				// 25MHz QPI
 
         // Reset system
         repeat(10) @(posedge clk);
