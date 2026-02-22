@@ -11,8 +11,6 @@ module top(input clk, inout [3:0] sio, output cs, output sck, output [3:0] led);
     reg sram_read_cmd;
     reg [5:0] sram_read_cmd_size;
     reg [23:0] sram_address;
-    wire [11:0] sram_bauddiv = 141_750_000 / 100_000;             // sitting in a bread board let's clock this slowly...
-    wire [11:0] sram_quaddiv = 141_750_000 / 100_000;
     reg [3:0] rstcnt = 4'b0;
     wire rst_n;
     assign rst_n = rstcnt[3];
@@ -27,12 +25,13 @@ module top(input clk, inout [3:0] sio, output cs, output sck, output [3:0] led);
         rstcnt <= {rstcnt[2:0], 1'b1};
     end
     reg [3:0] leds;
-    assign led = leds;
 
-    spi_sram #(
-            .CLK_FREQ_MHZ(142), .FIFO_DEPTH(32), .SRAM_ADDR_WIDTH(16),
-            .DUMMY_BYTES(1), .CMD_READ(8'h03), .CMD_WRITE(8'h02),
-            .CMD_EQIO(8'h38), .MIN_CPH_NS(50)) test_sram(
+    spi_sram 
+    #(
+            .CLK_FREQ_MHZ(129), .FIFO_DEPTH(32), .SRAM_ADDR_WIDTH(16),
+            .DUMMY_BYTES(1), .CMD_READ(8'h03), .CMD_WRITE(8'h02), .CMD_EQIO(8'h38),
+            .MIN_CPH_NS(5), .SPI_TIMER_BITS(8), .QPI_TIMER_BITS(8)                     // divide by 128 to get ~1MHz breadboard clock
+    ) test_sram(
         .clk(pll_clk),
         .rst_n(rst_n),
         .done(sram_done),
@@ -45,7 +44,7 @@ module top(input clk, inout [3:0] sio, output cs, output sck, output [3:0] led);
         .read_cmd(sram_read_cmd),
         .read_cmd_size(sram_read_cmd_size),
         .address(sram_address),
-        .sio_pin(sio), .cs_pin(cs), .sck_pin(sck), .spi_bauddiv(sram_bauddiv), .quad_bauddiv(sram_bauddiv));
+        .sio_pin(sio), .cs_pin(cs), .sck_pin(sck));
 
     reg [3:0] state;
     reg [3:0] tag;
@@ -57,7 +56,11 @@ module top(input clk, inout [3:0] sio, output cs, output sck, output [3:0] led);
         STATE_WAIT_WRITE = 3,
         STATE_ISSUE_READ = 4,
         STATE_WAIT_READ = 5,
-        STATE_COMPARE_READ = 6;
+        STATE_COMPARE_READ = 6,
+        STATE_SUCCESS = 7,
+        STATE_FAILURE = 8;
+
+    assign led = ~state;
 
     always @(posedge pll_clk) begin
         if (!rst_n) begin
@@ -66,16 +69,15 @@ module top(input clk, inout [3:0] sio, output cs, output sck, output [3:0] led);
             sram_data_out_read <= 0;
             sram_write_cmd <= 0;
             sram_read_cmd <= 0;
+            sram_data_in <= 0;
+            sram_read_cmd_size <= 0;
+            sram_address <= 0;
             state <= STATE_INIT;
         end else begin
             case(state)
                 STATE_INIT:
                     begin
                         // we can initialize these here to split up the reset cycle
-                        sram_data_in <= 0;
-                        sram_read_cmd_size <= 0;
-                        sram_address <= 0;
-                        leds <= 4'b1111;
                         if (sram_done == 1) begin
                             state <= STATE_STUFF_FIFO;
                         end
@@ -117,9 +119,12 @@ module top(input clk, inout [3:0] sio, output cs, output sck, output [3:0] led);
                 STATE_COMPARE_READ:
                     begin
                         if (sram_data_out == 8'hAA) begin
-                            leds[0] <= 0;
+                            state <= STATE_SUCCESS;
+                        end else begin
+                            state <= STATE_FAILURE;
                         end
                     end
+                default: begin end
             endcase
         end         
     end
