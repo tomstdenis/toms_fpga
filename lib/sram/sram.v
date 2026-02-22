@@ -117,7 +117,7 @@ module spi_sram #(
 	// the SPI pulses FSM
 	always @(posedge clk) begin
 		if (!rst_n) begin
-			timer <= bauddiv;
+			timer <= spi_bauddiv;
 			pulse <= 0;
 			prev_pulse <= 1'b1;								// init prev to 1 so the first pass detects the edge if needed
 			sck_pin <= 0;									// ensure SPI SCK is low during init
@@ -156,37 +156,33 @@ module spi_sram #(
 		STATE_STORE_ADDR_2=11,
 		STATE_STORE_ADDR_3=12;
 
-	// put initial values in POR block
-	initial begin
-		fifo_wptr = 1 + (SRAM_ADDR_WIDTH/8);			// user data goes after the write command and address bytes
-		fifo_rptr = 0;
-		read_cmd_wptr = 0;
-		state = STATE_INIT;
-		temp_bits = 0;
-		sio_en = 4'b0000;								// disable all outputs
-		cs_pin = 1'b1;									// ensure chip isn't selected
-		fifo[0] = 0;									// ensure data_out is initialized 
-		dout = 0;
-		busy = 0;
-		done = 0;
-		doing_read = 0;
-		bytes_to_read = 0;
-		hangup_phase = 1;
-
-		// sticking some STATE_INIT initializations here.
-		temp_spi_bits = CMD_EQIO;
-		tag = STATE_HANGUP;
-		bit_cnt = 8;
-	end
-
 	always @(posedge clk) begin
 		if (!rst_n) begin
+            fifo_wptr <= 1 + (SRAM_ADDR_WIDTH/8);			// user data goes after the write command and address bytes
+            fifo_rptr <= 0;
+            read_cmd_wptr <= 0;
+            state <= STATE_INIT;
+            temp_bits <= 0;
+            sio_en <= 4'b0000;								// disable all outputs
+            cs_pin <= 1'b1;									// ensure chip isn't selected
+            fifo[0] <= 0;									// ensure data_out is initialized 
+            dout <= 0;
+            busy <= 0;
+            done <= 0;
+            doing_read <= 0;
+            bytes_to_read <= 0;
+            hangup_phase <= 1;
+            bauddiv <= spi_bauddiv;
 		end else begin
 			case(state)
 				STATE_INIT:
 					begin
+                        // sticking some STATE_INIT initializations here.
+                        temp_spi_bits <= CMD_EQIO;
+                        tag <= STATE_HANGUP;
+                        bit_cnt <= 8;
+
 						// prepare to send SPI command CMD_EQIO to enter quad mode
-						bauddiv		<= spi_bauddiv;				// if we somehow jump back to init let's ensure bauddiv is set correctly
 						state		<= STATE_SPI_SEND_8;
 						cs_pin		<= 1'b0;					// assert CS to wake the device
 						sio_en		<= 4'b0001;					// enable MOSI output pin SIO[0]
