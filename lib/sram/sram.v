@@ -108,6 +108,7 @@ module spi_sram #(
 	reg [3:0] bit_cnt;										// bit counter for sending initial 0x38 etc
 
 	reg [7:0] hangup_timer;
+	reg hangup_phase;
 	wire [15:0] hangup_bauddiv = ((CLK_FREQ_MHZ * MIN_CPH_NS + 999) / 1000);
 	reg busy;
 	reg doing_read;
@@ -170,10 +171,11 @@ module spi_sram #(
 		done = 0;
 		doing_read = 0;
 		bytes_to_read = 0;
+		hangup_phase = 1;
 
 		// sticking some STATE_INIT initializations here.
 		temp_spi_bits = CMD_EQIO;
-		tag = STATE_IDLE;
+		tag = STATE_HANGUP;
 		bit_cnt = 8;
 	end
 
@@ -205,10 +207,9 @@ module spi_sram #(
 									if (timer == bauddiv - 1) begin			// only move on the last system clock cycle of the SPI clock cycle
 										if (bit_cnt == 1) begin				// we stop at 1 since we execute first then check
 											sio_en <= 4'b0000;				// done sending disable outputs
-											busy   <= 0;					// turn off SPI clock
-											done   <= 1;					// ensure done is asserted when we hit idle
 											cs_pin <= 1'b1;					// release device 
-											state  <= tag;
+											busy   <= 0;
+											state  <= STATE_HANGUP;
 										end else begin 
 											bit_cnt <= bit_cnt - 1'b1;
 										end
@@ -234,20 +235,13 @@ module spi_sram #(
 									if (prev_pulse != pulse) begin
 										// if there are more bytes to send ...
 										if (bit_cnt == 1) begin
-											if (fifo_rptr < fifo_wptr) begin
-												// load next byte from FIFO
-												temp_bits	<= fifo[fifo_rptr[$clog2(FIFO_TOTAL_SIZE)-1:0]];
-												fifo_rptr	<= fifo_rptr + 1'b1;
-												bit_cnt		<= 2;
-											end else begin
-												// out of bytes we either jump to reading (dummy then payload) or we jump to the tag
-												if (doing_read) begin
-													bytes_to_read 	<= read_cmd_size + DUMMY_BYTES;
-													state			<= STATE_SPI_READ_2;
-													bit_cnt 		<= 2;
-												end else begin
-													state			<= tag;
-												end												
+											bit_cnt		<= 2;
+											temp_bits	<= fifo[fifo_rptr[$clog2(FIFO_TOTAL_SIZE)-1:0]];
+											fifo_rptr	<= fifo_rptr + 1'b1;
+											if (fifo_rptr == fifo_wptr) begin
+												bytes_to_read 	<= read_cmd_size + DUMMY_BYTES;
+												state			<= tag;
+												busy			<= doing_read;
 											end
 										end else begin
 											bit_cnt <= bit_cnt - 1'b1;
@@ -276,7 +270,8 @@ module spi_sram #(
 											fifo_wptr <= fifo_wptr + 1'b1;
 											if (bytes_to_read == 1) begin
 												// if we only had 1 byte left we're done
-												state <= tag;
+												state <= STATE_POST_READ;
+												busy <= 0;
 											end else begin
 												bit_cnt <= 2;
 												bytes_to_read <= bytes_to_read - 1'b1;
@@ -303,15 +298,14 @@ module spi_sram #(
 							fifo_rptr <= fifo_rptr + 1'b1;
 						end else if (write_cmd == 1 || read_cmd == 1) begin		// user wants to issue a read or write so we prepare the SPI write (command + address + optional payload)
 							sio_en 		<= 4'b1111;								// enable all 4 outputs
-// we need to form fifo[0..fifo_wptr] which will be 1 byte cmd + SRAM_ADDR_WIDTH/8 bytes of address
 							fifo[0]		<= (write_cmd == 1) ? CMD_WRITE : CMD_READ;
 							temp_bits 	<= (write_cmd == 1) ? CMD_WRITE : CMD_READ;	// first byte we send has to be in temp_bits and it's the command
-							tag 		<= (write_cmd == 1) ? STATE_POST_WRITE : STATE_POST_READ;
+							tag         <= (write_cmd == 1) ? STATE_POST_WRITE : STATE_SPI_READ_2;
+							doing_read  <= read_cmd;
+							state		<= STATE_STORE_ADDR_1;
 							bit_cnt		<= 2;											// reset bit count so we send the full command
 							done 		<= 0;											// clear done flag
 							fifo_rptr	<= 1;											// reset read pointer so we can send out the command/address/write data if any
-							doing_read  <= read_cmd;
-							state		<= STATE_STORE_ADDR_1;
 						end else begin
 							// we're not running a command make sure CS nor busy are not asserted (needed because we get here from INIT_CMD38)
 							cs_pin <= 1'b1;
@@ -364,15 +358,17 @@ module spi_sram #(
 					end
 				STATE_HANGUP:		// hang up the SPI connection
 					begin
-						if (busy == 1) begin
+						if (hangup_phase == 1) begin
 							// deassert CS and turn pins to high impedence
 							busy			<= 0;					// sure SPI clock stopped
 							hangup_timer	<= hangup_bauddiv[7:0]; // ensure we hit the required MIN_CPH_NS time (round up for safety)
 							fifo_wptr    	<= 1 + (SRAM_ADDR_WIDTH/8);
+							hangup_phase    <= 0;
 						end else begin
 							if (hangup_timer == 0) begin
 								state <= STATE_IDLE;
 								done <= 1;
+								hangup_phase <= 1;
 							end else begin
 								hangup_timer <= hangup_timer - 1'b1;
 							end

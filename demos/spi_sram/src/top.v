@@ -61,19 +61,21 @@ module top(input clk, inout [3:0] sio, output cs, output sck, output [3:0] led);
 
     always @(posedge pll_clk) begin
         if (!rst_n) begin
-            sram_data_in <= 0;
+            // these must be initialized in reset
             sram_data_in_valid <= 0;
             sram_data_out_read <= 0;
             sram_write_cmd <= 0;
             sram_read_cmd <= 0;
-            sram_read_cmd_size <= 0;
-            sram_address <= 0;
             state <= STATE_INIT;
-            leds <= 4'b1111;
         end else begin
             case(state)
                 STATE_INIT:
                     begin
+                        // we can initialize these here to split up the reset cycle
+                        sram_data_in <= 0;
+                        sram_read_cmd_size <= 0;
+                        sram_address <= 0;
+                        leds <= 4'b1111;
                         if (sram_done == 1) begin
                             state <= STATE_STUFF_FIFO;
                         end
