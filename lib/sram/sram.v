@@ -211,7 +211,6 @@ module spi_sram #(
 								1'd0:							// we put data on the line in the first half cycle
 									begin
 										dout <= temp_bits[7:4];					// in quad mode we shift out the most significant nibble first
-										temp_bits <= {temp_bits[3:0], 4'b0};
 									end
 								1'd1:							// Detect if we should exit from this loop
 									begin
@@ -227,6 +226,7 @@ module spi_sram #(
 											end
 										end else begin
 											bit_cnt <= bit_cnt - 1'b1;
+											temp_bits <= {temp_bits[3:0], 4'b0};
 										end
 									end
 							endcase
