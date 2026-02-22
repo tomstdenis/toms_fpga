@@ -307,8 +307,8 @@ module spi_sram #(
 // we need to form fifo[0..fifo_wptr] which will be 1 byte cmd + SRAM_ADDR_WIDTH/8 bytes of address
 							fifo[0]		<= (write_cmd == 1) ? CMD_WRITE : CMD_READ;
 							temp_bits 	<= (write_cmd == 1) ? CMD_WRITE : CMD_READ;	// first byte we send has to be in temp_bits and it's the command
-							bit_cnt		<= 2;											// reset bit count so we send the full command
 							tag 		<= (write_cmd == 1) ? STATE_POST_WRITE : STATE_POST_READ;
+							bit_cnt		<= 2;											// reset bit count so we send the full command
 							done 		<= 0;											// clear done flag
 							fifo_rptr	<= 1;											// reset read pointer so we can send out the command/address/write data if any
 							doing_read  <= read_cmd;
@@ -323,41 +323,33 @@ module spi_sram #(
 					end
 				STATE_STORE_ADDR_1:
 					begin
-						case (SRAM_ADDR_WIDTH)
-							'd24: 
-								begin
-									fifo[1] <= address[23:16];
-								end
-							'd16:
-								begin
-									fifo[1] <= address[15:8];
-								end
-						endcase
+						if (SRAM_ADDR_WIDTH == 24) begin
+							fifo[1] <= address[23:16];
+						end else begin
+							fifo[1] <= address[15:8];
+						end
 						state <= STATE_STORE_ADDR_2;
 					end
 				STATE_STORE_ADDR_2:
 					begin
-						case (SRAM_ADDR_WIDTH)
-							'd24: 
-								begin
-									fifo[2]		<= address[15:8];
-									state		<= STATE_STORE_ADDR_3;
-								end
-							'd16:
-								begin
-									fifo[2]		<= address[7:0];
-									state 		<= STATE_SPI_SEND_2;
-									busy 		<= 1;							// start the SPI clock
-									cs_pin 		<= 1'b0;
-								end
-						endcase
+						if (SRAM_ADDR_WIDTH == 24) begin
+							fifo[1] <= address[15:8];
+							state		<= STATE_STORE_ADDR_3;
+						end else begin
+							fifo[1] <= address[7:0];
+							state 		<= STATE_SPI_SEND_2;
+							busy 		<= 1;							// start the SPI clock
+							cs_pin 		<= 1'b0;
+						end
 					end
 				STATE_STORE_ADDR_3:
 					begin
-						fifo[3]		<= address[7:0];
-						state		<= STATE_SPI_SEND_2;
-						busy 		<= 1;										// start the SPI clock
-						cs_pin		<= 1'b0;
+						if (SRAM_ADDR_WIDTH == 24) begin
+							fifo[3]		<= address[7:0];
+							state		<= STATE_SPI_SEND_2;
+							busy 		<= 1;										// start the SPI clock
+							cs_pin		<= 1'b0;
+						end
 					end
 				STATE_POST_WRITE: // after a write command
 					begin
