@@ -96,10 +96,11 @@ module spi_sram #(
 	reg [15:0] timer;										// timer to advance pulse
 	reg [7:0] fifo[FIFO_TOTAL_SIZE-1:0];	// our SRAM FIFO
 	reg [$clog2(FIFO_TOTAL_SIZE)+2:0] fifo_wptr;					// our SRAM FIFO write pointer (incremented by data_in_valid)
+	reg [$clog2(FIFO_TOTAL_SIZE)+2:0] read_cmd_wptr;					// our SRAM FIFO write pointer (incremented by data_in_valid)
 	reg [$clog2(FIFO_TOTAL_SIZE)+2:0] fifo_rptr;					// our SRAM FIFO read pointer (incremented by data_out_read)
 	reg [$clog2(FIFO_TOTAL_SIZE):0] bytes_to_read;				// our SRAM FIFO read pointer (incremented by data_out_read)
 	assign data_out = fifo[fifo_rptr[$clog2(FIFO_DEPTH):0]];	// assign output byte combinatorially	
-	assign data_out_empty = (fifo_rptr == fifo_wptr) ? 1'b1 : 1'b0;
+	assign data_out_empty = (fifo_rptr == read_cmd_wptr) ? 1'b1 : 1'b0;
 	
 	reg [4:0] state;										// What state is our FSM in
 	reg [4:0] tag;											// return point for sub-states.
@@ -148,7 +149,10 @@ module spi_sram #(
 		STATE_POST_READ=6,
 		STATE_HANGUP=7,
 		STATE_CMD_START_DELAY=8,
-		STATE_INIT_CMD_EQIO=9;
+		STATE_INIT_CMD_EQIO=9,
+		STATE_STORE_ADDR_1=10,
+		STATE_STORE_ADDR_2=11,
+		STATE_STORE_ADDR_3=12;
 
 	always @(posedge clk) begin
 		if (!rst_n) begin
@@ -292,7 +296,7 @@ module spi_sram #(
 							// which also means if you write here and then do read_cmd it'll send out a bogus stream confusing the SPI SRAM
 							fifo[1 + (SRAM_ADDR_WIDTH/8) + fifo_wptr[$clog2(FIFO_DEPTH)-1:0]] <= data_in;
 							fifo_wptr <= fifo_wptr + 1'b1;
-						end else if (data_out_read && (fifo_rptr < fifo_wptr)) begin // user is reading from FIFO
+						end else if (data_out_read && (fifo_rptr < read_cmd_wptr)) begin // user is reading from FIFO
 							// after a command wptr is after cmd + address + dummy + payload
 							// rptr is left to just after cmd + address + dummy
 							fifo_rptr <= fifo_rptr + 1'b1;
@@ -300,30 +304,15 @@ module spi_sram #(
 							cs_pin <= 1'b0;										// lower CS pin to select chip
 							sio_en <= 4'b1111;									// enable all 4 outputs
 // we need to form fifo[0..fifo_wptr] which will be 1 byte cmd + SRAM_ADDR_WIDTH/8 bytes of address
-							fifo[0] <= (write_cmd == 1) ? CMD_WRITE : CMD_READ;
-							temp_bits <= (write_cmd == 1) ? CMD_WRITE : CMD_READ;	// first byte we send has to be in temp_bits and it's the command
-							bit_cnt <= 2;											// reset bit count so we send the full command
-							case(SRAM_ADDR_WIDTH/8)									// store the address in big endian order
-								2:
-									begin
-										fifo[1] <= address[15:8];
-										fifo[2] <= address[7:0];
-										fifo_wptr <= fifo_wptr + 9'd3; 				// cmd + 2 bytes of address
-									end
-								3:
-									begin
-										fifo[1] <= address[23:16];
-										fifo[2] <= address[15:8];
-										fifo[3] <= address[7:0];
-										fifo_wptr <= fifo_wptr + 4; 				// cmd + 3 bytes of address
-									end
-							endcase
-							state 		<= STATE_SPI_SEND_2;							// always jump to sending
+							fifo[0]		<= (write_cmd == 1) ? CMD_WRITE : CMD_READ;
+							temp_bits 	<= (write_cmd == 1) ? CMD_WRITE : CMD_READ;	// first byte we send has to be in temp_bits and it's the command
+							bit_cnt		<= 2;											// reset bit count so we send the full command
 							tag 		<= (write_cmd == 1) ? STATE_POST_WRITE : STATE_POST_READ;
 							done 		<= 0;											// clear done flag
 							busy 		<= 1;											// start the SPI clock
 							fifo_rptr	<= 0;											// reset read pointer so we can send out the command/address/write data if any
 							doing_read  <= (read_cmd == 1) ? 1 : 0;
+							state		<= STATE_STORE_ADDR_1;
 						end else begin
 							// we're not running a command make sure CS nor busy are not asserted (needed because we get here from INIT_CMD38)
 							cs_pin <= 1'b1;
@@ -332,19 +321,57 @@ module spi_sram #(
 							done   <= 1'b1;		// ensure done is asserted
 						end
 					end
+				STATE_STORE_ADDR_1:
+					begin
+						case (SRAM_ADDR_WIDTH)
+							'd24: 
+								begin
+									fifo[1] <= address[23:16];
+								end
+							'd16:
+								begin
+									fifo[1] <= address[15:8];
+								end
+						endcase
+						state <= STATE_STORE_ADDR_2;
+					end
+				STATE_STORE_ADDR_2:
+					begin
+						case (SRAM_ADDR_WIDTH)
+							'd24: 
+								begin
+									fifo[2] <= address[15:8];
+									state <= STATE_STORE_ADDR_3;
+								end
+							'd16:
+								begin
+									fifo[2] <= address[7:0];
+									state <= STATE_SPI_SEND_2;
+									fifo_wptr <= fifo_wptr + 9'd3;
+								end
+						endcase
+					end
+				STATE_STORE_ADDR_3:
+					begin
+						fifo[3] <= address[7:0];
+						state <= STATE_SPI_SEND_2;
+						fifo_wptr <= fifo_wptr + 9'd4;
+					end
 				STATE_POST_WRITE: // after a write command
 					begin
 						sio_en    <= 4'b0000;									// disable outputs
 						busy      <= 0;
-						state 	  <= STATE_HANGUP;
-						fifo_wptr <= 0;											// reset wptr so we can write next command/payload
 						fifo_rptr <= 0;											// reset rptr so we can read it during next submission
+						fifo_wptr <= 0;											// reset wptr so we can write next command/payload
+						state 	  <= STATE_HANGUP;
 					end
 				STATE_POST_READ: // after a read command
 					begin
-						busy		<= 0;
-						fifo_rptr	<= 1 + (SRAM_ADDR_WIDTH/8) + DUMMY_BYTES;	// set to just after command + address + dummy bytes
-						state		<= STATE_HANGUP;
+						busy		  <= 0;
+						fifo_rptr	  <= 1 + (SRAM_ADDR_WIDTH/8) + DUMMY_BYTES;	// set to just after command + address + dummy bytes
+						fifo_wptr     <= 0;
+						read_cmd_wptr <= fifo_wptr;
+						state		  <= STATE_HANGUP;
 					end
 				STATE_HANGUP:		// hang up the SPI connection
 					begin

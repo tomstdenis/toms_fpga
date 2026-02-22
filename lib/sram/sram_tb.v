@@ -148,8 +148,8 @@ module sram_tb();
 	
 	task expect_wptr(input [8:0] ewptr);
 		begin
-			if (sram_dut.fifo_wptr != ewptr) begin
-				$display("Was expecting fifo_wptr to be %d not %d", ewptr, sram_dut.fifo_wptr);
+			if (sram_dut.read_cmd_wptr != ewptr) begin
+				$display("Was expecting fifo_wptr to be %d not %d", ewptr, sram_dut.read_cmd_wptr);
 				repeat(16) @(posedge clk);
 				$fatal;
 			end
