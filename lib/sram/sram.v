@@ -162,17 +162,19 @@ module spi_sram #(
 		read_cmd_wptr = 0;
 		state = STATE_INIT;
 		temp_bits = 0;
-		bit_cnt = 0;
 		sio_en = 4'b0000;								// disable all outputs
 		cs_pin = 1'b1;									// ensure chip isn't selected
 		fifo[0] = 0;									// ensure data_out is initialized 
 		dout = 0;
 		busy = 0;
 		done = 0;
-		bauddiv = spi_bauddiv;							// we initially use the slower single bit SPI mode timing
 		doing_read = 0;
 		bytes_to_read = 0;
-		temp_spi_bits = 0;
+
+		// sticking some STATE_INIT initializations here.
+		temp_spi_bits = CMD_EQIO;
+		tag = STATE_IDLE;
+		bit_cnt = 8;
 	end
 
 	always @(posedge clk) begin
@@ -181,15 +183,12 @@ module spi_sram #(
 			case(state)
 				STATE_INIT:
 					begin
-						// prepare to send SPI command 0x38 to enter quad mode
-						bauddiv			<= spi_bauddiv;				// if we somehow jump back to init let's ensure bauddiv is set correctly
-						temp_spi_bits	<= CMD_EQIO;				// enter quad mode
-						bit_cnt			<= 8;						// 8 bits to send
-						state			<= STATE_SPI_SEND_8;
-						tag				<= STATE_IDLE;
-						cs_pin			<= 1'b0;					// assert CS to wake the device
-						sio_en			<= 4'b0001;					// enable MOSI output pin SIO[0]
-						busy			<= 1;						// start SPI clock
+						// prepare to send SPI command CMD_EQIO to enter quad mode
+						bauddiv		<= spi_bauddiv;				// if we somehow jump back to init let's ensure bauddiv is set correctly
+						state		<= STATE_SPI_SEND_8;
+						cs_pin		<= 1'b0;					// assert CS to wake the device
+						sio_en		<= 4'b0001;					// enable MOSI output pin SIO[0]
+						busy		<= 1;						// start SPI clock
 					end
 				STATE_SPI_SEND_8:							// send 8 bits in temp_bits (sio_en[0] = 1, bit_cnt = 8)	
 					begin
@@ -214,9 +213,6 @@ module spi_sram #(
 											bit_cnt <= bit_cnt - 1'b1;
 										end
 									end
-								end
-							default:
-								begin
 								end
 						endcase
 					end
@@ -258,9 +254,6 @@ module spi_sram #(
 										end
 									end
 								end
-							default:
-								begin
-								end
 						endcase
 					end
 				STATE_SPI_READ_2:							// read from the SPI SRAM upto DUMMY_READ + read_cmd_size bytes
@@ -292,9 +285,6 @@ module spi_sram #(
 											bit_cnt <= bit_cnt - 1'b1;
 										end
 									end
-								end
-							default:
-								begin
 								end
 						endcase
 					end
@@ -364,13 +354,11 @@ module spi_sram #(
 					begin
 						sio_en    <= 4'b0000;									// disable outputs
 						fifo_rptr <= 0;											// reset rptr so we can read it during next submission
-						fifo_wptr <= 1 + (SRAM_ADDR_WIDTH/8);					// reset wptr so we can write next command/payload
 						state 	  <= STATE_HANGUP;
 					end
 				STATE_POST_READ: // after a read command
 					begin
 						fifo_rptr	  <= 1 + (SRAM_ADDR_WIDTH/8) + DUMMY_BYTES;	// set to just after command + address + dummy bytes
-						fifo_wptr     <= 1 + (SRAM_ADDR_WIDTH/8);
 						read_cmd_wptr <= fifo_wptr;
 						state		  <= STATE_HANGUP;
 					end
@@ -380,6 +368,7 @@ module spi_sram #(
 							// deassert CS and turn pins to high impedence
 							busy			<= 0;					// sure SPI clock stopped
 							hangup_timer	<= hangup_bauddiv[7:0]; // ensure we hit the required MIN_CPH_NS time (round up for safety)
+							fifo_wptr    	<= 1 + (SRAM_ADDR_WIDTH/8);
 						end else begin
 							if (hangup_timer == 0) begin
 								state <= STATE_IDLE;
