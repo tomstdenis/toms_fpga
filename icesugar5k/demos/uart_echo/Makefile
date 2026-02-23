@@ -1,13 +1,13 @@
 # Project setup
-PROJ = blinky
+PROJ = echo
 DEVICE = up5k
 FOOTPRINT = sg48
 
 all: $(PROJ).bin
 
 # 1. Synthesis: Convert Verilog to JSON netlist
-$(PROJ).json: $(PROJ).v
-	yosys -p "synth_ice40 -top top -json $@" $<
+$(PROJ).json: $(PROJ).v uart.v rx_uart.v tx_uart.v
+	yosys -p "synth_ice40 -top top -json $@" $^
 
 # 2. Place & Route: Map netlist to FPGA hardware
 $(PROJ).asc: $(PROJ).json pins.pcf
