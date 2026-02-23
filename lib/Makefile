@@ -1,4 +1,5 @@
 all:
+	make -c sram
 	make -C fifo
 	make -C useq
 	make -C bsram
@@ -6,6 +7,7 @@ all:
 	make -C timer
 
 clean:
+	make -C sram clean
 	make -C fifo clean
 	make -C useq clean
 	make -C bsram clean
