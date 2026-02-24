@@ -171,34 +171,31 @@ module spi_sram #(
 				STATE_INIT:
 					begin
                         // sticking some STATE_INIT initializations here.
-                        temp_spi_bits <= CMD_EQIO;
-                        tag <= STATE_HANGUP;
-                        bit_cnt <= 8;
-
-						// prepare to send SPI command CMD_EQIO to enter quad mode
-						state		<= STATE_SPI_SEND_8;
-						sio_en		<= 4'b0001;					// enable MOSI output pin SIO[0]
-						busy		<= 1;						// start SPI clock
+                        temp_spi_bits	<= CMD_EQIO;			// Send "enter quad mode IO" command
+                        bit_cnt			<= 8;					// we use single bit SPI mode for this command
+                        tag 			<= STATE_HANGUP;		// We need to deselect the chip for a hold timing before we can submit the next command
+						state			<= STATE_SPI_SEND_8;	// Use single bit SEND state
+						sio_en			<= 4'b0001;				// enable MOSI output pin SIO[0]
+						busy			<= 1;					// start SPI clock
 					end
-				STATE_SPI_SEND_8:							// send 8 bits in temp_bits (sio_en[0] = 1, bit_cnt = 8)	
+				STATE_SPI_SEND_8:								// send 8 bits in temp_spi_bits (sio_en[0] = 1, bit_cnt = 8)	
 					begin
 						case(spi_pulse)
-							1'd0:							// we put data on the line mid way through the first half cycle
+							1'd0:								// we put data on the line mid way through the first half cycle
 								begin
 									if (spi_prev_pulse != spi_pulse) begin			// we detect edges of the pulse so we only process the state once
 										dout[0] <= temp_spi_bits[7];
-										temp_spi_bits <= {temp_spi_bits[6:0], 1'b0};
 									end
 								end
 							1'd1:							// Detect if we should exit this loop
 								begin
-									if (timer == ((1 << SPI_TIMER_BITS) - 1)) begin				// only move on the last system clock cycle of the SPI clock cycle
-										if (bit_cnt == 1) begin				// we stop at 1 since we execute first then check
-											sio_en <= 4'b0000;				// done sending disable outputs
+									if (timer == ((1 << SPI_TIMER_BITS) - 1)) begin	// only move on the last system clock cycle of the SPI clock cycle
+										bit_cnt <= bit_cnt - 1'b1;
+										temp_spi_bits <= {temp_spi_bits[6:0], 1'b0};
+										if (bit_cnt == 1) begin						// we stop at 1 since we execute first then check
+											sio_en <= 4'b0000;						// done sending disable outputs
 											busy   <= 0;
 											state  <= STATE_HANGUP;
-										end else begin 
-											bit_cnt <= bit_cnt - 1'b1;
 										end
 									end
 								end
@@ -242,10 +239,10 @@ module spi_sram #(
 									end
 								1'd1:							// we sample during the 2nd half of the cycle
 									begin
-										temp_bits <= {temp_bits[3:0], din};				// We read the most significant nibble first so we read/shift at the same time
-										if (bit_cnt == 1) begin							// we do the work before checking the counter so we stop at 1 not 0
+										temp_bits <= {4'b0, din};				// Store high nibble of input 
+										if (bit_cnt == 1) begin					// we do the work before checking the counter so we stop at 1 not 0
 											// write next byte we read out, this starts just after the cmd and address 
-											fifo[fifo_wptr[$clog2(FIFO_TOTAL_SIZE)-1:0]] <= temp_bits;
+											fifo[fifo_wptr[$clog2(FIFO_TOTAL_SIZE)-1:0]] <= { temp_bits[3:0], din };
 											fifo_wptr <= fifo_wptr + 1'b1;
 											if (bytes_to_read == 1) begin
 												// if we only had 1 byte left we're done
