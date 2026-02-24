@@ -28,7 +28,7 @@ module top(input clk, inout [3:0] sio, output cs, output sck, output [3:0] led);
 
     spi_sram 
     #(
-            .CLK_FREQ_MHZ(129), .FIFO_DEPTH(32), .SRAM_ADDR_WIDTH(16),
+            .CLK_FREQ_MHZ(169), .FIFO_DEPTH(32), .SRAM_ADDR_WIDTH(16),
             .DUMMY_BYTES(1), .CMD_READ(8'h03), .CMD_WRITE(8'h02), .CMD_EQIO(8'h38),
             .MIN_CPH_NS(5), .SPI_TIMER_BITS(8), .QPI_TIMER_BITS(8)                     // divide by 128 to get ~1MHz breadboard clock
     ) test_sram(
@@ -46,19 +46,17 @@ module top(input clk, inout [3:0] sio, output cs, output sck, output [3:0] led);
         .address(sram_address),
         .sio_pin(sio), .cs_pin(cs), .sck_pin(sck));
 
-    reg [3:0] state;
-    reg [3:0] tag;
+    reg [2:0] state;
+    reg [2:0] tag;
 
     localparam
-        STATE_INIT = 0,
-        STATE_STUFF_FIFO = 1,
-        STATE_ISSUE_WRITE = 2,
-        STATE_WAIT_WRITE = 3,
-        STATE_ISSUE_READ = 4,
-        STATE_WAIT_READ = 5,
-        STATE_COMPARE_READ = 6,
-        STATE_SUCCESS = 7,
-        STATE_FAILURE = 8;
+        STATE_STUFF_FIFO = 0,
+        STATE_ISSUE_WRITE = 1,
+        STATE_ISSUE_READ = 2,
+        STATE_COMPARE_READ = 3,
+        STATE_SUCCESS = 4,
+        STATE_FAILURE = 5,
+        STATE_WAIT_DONE = 6;
 
     assign led = ~state;
 
@@ -72,49 +70,39 @@ module top(input clk, inout [3:0] sio, output cs, output sck, output [3:0] led);
             sram_data_in <= 0;
             sram_read_cmd_size <= 0;
             sram_address <= 0;
-            state <= STATE_INIT;
+            state <= STATE_WAIT_DONE;
+            tag <= STATE_STUFF_FIFO;
         end else begin
             case(state)
-                STATE_INIT:
+                STATE_WAIT_DONE:
                     begin
-                        // we can initialize these here to split up the reset cycle
-                        if (sram_done == 1) begin
-                            state <= STATE_STUFF_FIFO;
+                        sram_data_in_valid <= 0;
+                        sram_data_out_read <= 0;
+                        if (sram_done) begin
+                            state <= tag;
                         end
                     end
                 STATE_STUFF_FIFO:
                     begin
                         sram_data_in <= 8'hAA;
                         sram_data_in_valid <= 1;
-                        state <= STATE_ISSUE_WRITE;
+                        state <= STATE_WAIT_DONE;
+                        tag <= STATE_ISSUE_WRITE;
                     end
                 STATE_ISSUE_WRITE:
                     begin
-                        sram_data_in_valid <= 0;
                         sram_write_cmd <= 1;
                         sram_address <= 24'h001122;
-                        state <= STATE_WAIT_WRITE;
-                    end
-                STATE_WAIT_WRITE:
-                    begin
-                        sram_write_cmd <= 0;
-                        if (sram_done == 1) begin
-                            state <= STATE_ISSUE_READ;
-                        end
+                        tag <= STATE_ISSUE_READ;
+                        state <= STATE_WAIT_DONE;
                     end
                 STATE_ISSUE_READ:
                     begin
                         sram_read_cmd <= 1;
                         sram_read_cmd_size <= 1;
                         sram_address <= 24'h001122;
-                        state <= STATE_WAIT_READ;
-                    end
-                STATE_WAIT_READ:
-                    begin
-                        sram_read_cmd <= 0;
-                        if (sram_done == 1) begin
-                            state <= STATE_COMPARE_READ;        // sram_data_out should be valid already since it's combinatorial...
-                        end
+                        tag <= STATE_COMPARE_READ;
+                        state <= STATE_WAIT_DONE;
                     end
                 STATE_COMPARE_READ:
                     begin
