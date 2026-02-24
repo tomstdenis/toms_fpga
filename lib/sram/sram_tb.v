@@ -71,7 +71,7 @@ module sram_tb();
 
 		// write 1 byte
 		test_phase = 0;
-		data_in = 8'h9A;
+		data_in = 8'hC3;
 		data_in_valid = 1;
 		@(posedge clk); #1;
 		data_in_valid = 0;
@@ -81,7 +81,7 @@ module sram_tb();
 
 		// issue write
 		test_phase = 1;
-		address = 24'h5678;
+		address = 24'h1236;
 		write_cmd = 1;
 		@(posedge clk); #1;
 		write_cmd = 0;
@@ -115,7 +115,7 @@ module sram_tb();
 		expect_rptr(0);
 		
 		// issue read of X bytes
-		X = 2;
+		X = 3;
 		
 		test_phase = 4;
 		address = 24'h1234;
@@ -128,12 +128,16 @@ module sram_tb();
 		expect_read_cmd_wptr(1 + 2 + 1 + X[6:0]); // expecting the write pointer to be command + address + dummy + 16 byte read
 		expect_rptr(1 + 2 + 1);      // expecting the read pointer to be command + address + dummy meaning rptr..wptr-1 is the payload
 
-		// perform 16 reads from the fifo
+		// perform X reads from the fifo
 		test_phase = 5;
 		@(posedge clk); #1;
 		data_out_read = 1;
 		for (i = 0; i < X; i++) begin
-			expect_data(i == 0 ? 8'hAB : 8'hCD);
+			case (i)
+				0: expect_data(8'hAB);
+				1: expect_data(8'hCD);
+				2: expect_data(8'hC3);
+			endcase
 			expect_data_out_empty(0);
 			@(posedge clk); #1;			 // wait into the next cycle
 			expect_read_cmd_wptr(1 + 2 + 1 + X[6:0]); // shouldn't change
