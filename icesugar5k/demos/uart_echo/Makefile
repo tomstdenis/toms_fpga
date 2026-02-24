@@ -2,7 +2,7 @@
 PROJ = echo
 DEVICE = up5k
 FOOTPRINT = sg48
-PLLFREQ = 31.875
+PLLFREQ = 48
 
 all: $(PROJ).bin
 
