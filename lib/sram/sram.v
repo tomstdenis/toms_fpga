@@ -1,5 +1,4 @@
 `timescale 1ns/1ps
-
 /* Implementation of FIFO based SPI SRAM
 
 We assume the device inits in SPI mode and we need to send it command 0x38 to ender quad mode, then
@@ -77,6 +76,12 @@ module spi_sram #(
 	output cs_pin,											// active low CS pin
 	output sck_pin											// SPI clock
 );
+`ifdef SIM_MODEL
+	reg [7:0] sim_memory[65535:0];
+	reg [15:0] sim_address;
+	reg [7:0] sim_dummy;
+`endif
+
 	reg [SPI_TIMER_BITS-1:0] timer;
 
 	reg [3:0] dout;											// our output to the SPI bus
@@ -193,9 +198,8 @@ module spi_sram #(
 										bit_cnt <= bit_cnt - 1'b1;
 										temp_spi_bits <= {temp_spi_bits[6:0], 1'b0};
 										if (bit_cnt == 1) begin						// we stop at 1 since we execute first then check
-											sio_en <= 4'b0000;						// done sending disable outputs
 											busy   <= 0;
-											state  <= STATE_HANGUP;
+											state  <= STATE_POST_WRITE;
 										end
 									end
 								end
@@ -207,6 +211,17 @@ module spi_sram #(
 							case(qpi_pulse)
 								1'd0:							// we put data on the line in the first half cycle
 									begin
+`ifdef SIM_MODEL
+	if (fifo_rptr >= (1 + (SRAM_ADDR_WIDTH/8)) + DUMMY_BYTES) begin
+		if (bit_cnt == 2) begin
+			sim_memory[sim_address] <= {temp_bits[7:4], sim_memory[sim_address][3:0]};
+		end else begin
+			sim_memory[sim_address] <= {sim_memory[sim_address][7:4], temp_bits[7:4]};
+			sim_address <= sim_address + 1'b1;
+			$display("Wrote %2h to %4h", {sim_memory[sim_address][7:4], temp_bits[7:4]}, sim_address);
+		end
+	end
+`endif
 										dout <= temp_bits[7:4];					// in quad mode we shift out the most significant nibble first
 									end
 								1'd1:							// Detect if we should exit from this loop
@@ -239,10 +254,28 @@ module spi_sram #(
 									end
 								1'd1:							// we sample during the 2nd half of the cycle
 									begin
+`ifdef SIM_MODEL
+	if (sim_dummy == 0) begin
+		if (bit_cnt == 2) begin
+			temp_bits <= {4'b0, sim_memory[sim_address][7:4]};
+		end else begin
+			temp_bits <= {temp_bits[3:0], sim_memory[sim_address][3:0]};
+			sim_address <= sim_address + 1'b1;
+			$display("We read %2h from %4h", {temp_bits[3:0], sim_memory[sim_address][3:0]}, sim_address);
+		end
+	end else begin
+		sim_dummy <= sim_dummy - 1'b1;
+	end
+`else
 										temp_bits <= {4'b0, din};				// Store high nibble of input 
+`endif
 										if (bit_cnt == 1) begin					// we do the work before checking the counter so we stop at 1 not 0
 											// write next byte we read out, this starts just after the cmd and address 
+`ifdef SIM_MODEL
+											fifo[fifo_wptr[$clog2(FIFO_TOTAL_SIZE)-1:0]] <= {temp_bits[3:0], sim_memory[sim_address][3:0]};
+`else
 											fifo[fifo_wptr[$clog2(FIFO_TOTAL_SIZE)-1:0]] <= { temp_bits[3:0], din };
+`endif
 											fifo_wptr <= fifo_wptr + 1'b1;
 											if (bytes_to_read == 1) begin
 												// if we only had 1 byte left we're done
@@ -281,6 +314,10 @@ module spi_sram #(
 							tag         <= (write_cmd == 1) ? STATE_POST_WRITE : STATE_SPI_READ_2;
 							doing_read  <= read_cmd;
 							state		<= STATE_STORE_ADDR_1;
+`ifdef SIM_MODEL
+	sim_dummy <= DUMMY_BYTES[7:0] * 2;
+	sim_address <= address[15:0];
+`endif
 						end
 					end
 				STATE_STORE_ADDR_1:

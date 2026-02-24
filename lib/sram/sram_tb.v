@@ -45,12 +45,15 @@ module sram_tb();
 
     // --- Test Logic ---
     integer i;
+	integer X;
 
 	initial begin
         // Waveform setup
         $dumpfile("sram.vcd");
         $dumpvars(0, sram_tb);
 
+		X = 0;
+		i = 0;
 		rst_n = 0;
 		clk   = 0;
 		data_in = 0;
@@ -111,27 +114,29 @@ module sram_tb();
 		expect_wptr(3);
 		expect_rptr(0);
 		
-		// issue read of 16 bytes
+		// issue read of X bytes
+		X = 2;
+		
 		test_phase = 4;
-		address = 24'hFEDC;
-		read_cmd_size = 16;
+		address = 24'h1234;
+		read_cmd_size = X[5:0];
 		read_cmd = 1;
 		@(posedge clk); #1;
 		read_cmd = 0;
 		@(posedge clk); #1;
 		wait(done == 1);
-		expect_read_cmd_wptr(1 + 2 + 1 + 16); // expecting the write pointer to be command + address + dummy + 16 byte read
+		expect_read_cmd_wptr(1 + 2 + 1 + X[6:0]); // expecting the write pointer to be command + address + dummy + 16 byte read
 		expect_rptr(1 + 2 + 1);      // expecting the read pointer to be command + address + dummy meaning rptr..wptr-1 is the payload
 
 		// perform 16 reads from the fifo
 		test_phase = 5;
 		@(posedge clk); #1;
 		data_out_read = 1;
-		for (i = 0; i < 16; i++) begin
+		for (i = 0; i < X; i++) begin
+			expect_data(i == 0 ? 8'hAB : 8'hCD);
 			expect_data_out_empty(0);
 			@(posedge clk); #1;			 // wait into the next cycle
-			expect_data(8'hFF);
-			expect_read_cmd_wptr(1 + 2 + 1 + 16); // shouldn't change
+			expect_read_cmd_wptr(1 + 2 + 1 + X[6:0]); // shouldn't change
 			expect_rptr(1 + 2 + 1 + (i[6:0] + 1'b1));
 		end
 		expect_data_out_empty(1);
