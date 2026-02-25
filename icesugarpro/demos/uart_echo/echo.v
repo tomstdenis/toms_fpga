@@ -6,7 +6,7 @@ module top(
 	output tx);
 	
 	reg rst_n;
-	wire [15:0] bauddiv = 100_000_000 / 115_200;
+	wire [15:0] bauddiv = 200_000_000 / 115_200;
 	reg uart_tx_start;
 	reg uart_rx_read;
 	reg [7:0] uart_tx_data_in;
@@ -21,7 +21,7 @@ module top(
 	
 	pll mypll(.clkin(clk), .clkout0(pll_clk), .locked(plllock));
 		
-	uart #(.FIFO_DEPTH(16), .RX_ENABLE(1), .TX_ENABLE(1)) myuart(
+	uart #(.FIFO_DEPTH(32), .RX_ENABLE(1), .TX_ENABLE(1)) myuart(
 		.clk(pll_clk), .rst_n(rst_n),
 		.baud_div(bauddiv), 
 		.uart_tx_start(uart_tx_start), .uart_tx_data_in(uart_tx_data_in), .uart_tx_pin(tx),
