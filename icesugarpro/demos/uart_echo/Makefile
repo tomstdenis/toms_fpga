@@ -25,6 +25,6 @@ pll.v:
 	ecppll -i 25 -o 100 -f pll.v
 
 clean:
-		rm -f *.svf *.bit *.config *.ys pll.v
+		rm -f *.svf *.bit *.config *.ys pll.v *.asc *.json
 
 .PHONY: prog clean

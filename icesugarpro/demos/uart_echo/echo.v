@@ -21,7 +21,7 @@ module top(
 	
 	pll mypll(.clkin(clk), .clkout0(pll_clk), .locked(plllock));
 		
-	uart #(.FIFO_DEPTH(512), .RX_ENABLE(1), .TX_ENABLE(1)) myuart(
+	uart #(.FIFO_DEPTH(16), .RX_ENABLE(1), .TX_ENABLE(1)) myuart(
 		.clk(pll_clk), .rst_n(rst_n),
 		.baud_div(bauddiv), 
 		.uart_tx_start(uart_tx_start), .uart_tx_data_in(uart_tx_data_in), .uart_tx_pin(tx),
