@@ -6,24 +6,28 @@ module top(
 	output tx);
 	
 	reg rst_n;
-	wire [15:0] bauddiv = 48_000_000 / 115_200;
+	wire [15:0] bauddiv = 100_000_000 / 115_200;
 	reg uart_tx_start;
 	reg uart_rx_read;
 	reg [7:0] uart_tx_data_in;
 	wire uart_rx_ready;
 	wire [7:0] uart_rx_byte;
+	wire pll_clk;
+	wire plllock;
 	
 	initial begin
 		rst_n = 0;
 	end
+	
+	pll mypll(.clkin(clk), .clkout0(pll_clk), .locked(plllock));
 		
 	uart #(.FIFO_DEPTH(32), .RX_ENABLE(1), .TX_ENABLE(1)) myuart(
-		.clk(clk), .rst_n(rst_n),
+		.clk(pll_clk), .rst_n(rst_n),
 		.baud_div(bauddiv), 
 		.uart_tx_start(uart_tx_start), .uart_tx_data_in(uart_tx_data_in), .uart_tx_pin(tx),
 		.uart_rx_pin(rx), .uart_rx_read(uart_rx_read), .uart_rx_ready(uart_rx_ready), .uart_rx_byte(uart_rx_byte));
 	
-	always @(posedge clk) begin
+	always @(posedge pll_clk) begin
 		if (!rst_n) begin
 			rst_n <= 1;
 		end
@@ -37,7 +41,7 @@ module top(
 		STATE_WRITE_BYTE=2,
 		STATE_WAIT_WRITE=3;
 
-	always @(posedge clk) begin
+	always @(posedge pll_clk) begin
 		if (rst_n) begin
 			case(state)
 				STATE_IDLE:
