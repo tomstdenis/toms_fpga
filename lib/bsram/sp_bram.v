@@ -1,5 +1,12 @@
 `timescale 1ns/1ps
 
+// Lane enable/steering module for GW2AR-18 FPGAs
+// These lack natural byte enables so this module adds them
+// Allows naturally aligned byte, word, and dword reads and writes
+// Also supports bursts by holding enable high while ready is high
+//
+// Default size is 32KiB (four 8x8192 banks), if you want to change this you need to
+// first regenerate or edit the gowin_sp module.
 module sp_bram #(
     parameter ADDR_WIDTH = 32,
     parameter DATA_WIDTH = 32,
