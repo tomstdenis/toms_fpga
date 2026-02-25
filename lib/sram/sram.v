@@ -47,6 +47,8 @@ for PSRAMs you might need
 module spi_sram #(
 	parameter CLK_FREQ_MHZ=27,								// system clock frequency (required for walltime requirements)
 	parameter FIFO_DEPTH=32,								// controls the max burst size
+
+	// default configuration for a 23LC512 (20MHz max QPI rate)
 	parameter SRAM_ADDR_WIDTH=16,							// how many bits does the address have (e.g. 16 or 24)
 	parameter DUMMY_BYTES=1,								// how many dummy reads are required before the first byte is valid
 	parameter CMD_READ=8'h03,								// command to read 
