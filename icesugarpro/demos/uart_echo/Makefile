@@ -11,7 +11,7 @@ $(TARGET).json: $(OBJS)
 		yosys -p "synth_ecp5 -json $@" $(OBJS)
 
 $(TARGET)_out.config: $(TARGET).json
-		nextpnr-ecp5 --45k --package CABGA381 --speed 6 --json $< --textcfg $@ --lpf $(TARGET).lpf --freq 65
+		nextpnr-ecp5 --45k --package CABGA381 --speed 6 --json $< --textcfg $@ --lpf $(TARGET).lpf
 
 $(TARGET).bit: $(TARGET)_out.config
 		ecppack --compress --svf ${TARGET}.svf $< $@
