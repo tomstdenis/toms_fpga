@@ -327,15 +327,11 @@ module spi_sram_fifo #(
 						end
 						
 						if (write_cmd | read_cmd) begin		// user wants to issue a read or write so we prepare the SPI write (command + address + optional payload)
-							sio_en 		<= 4'b1111;								// enable all 4 outputs
+							sio_en 		<= 4'b1111;			// enable all 4 outputs
 							temp_bits 	<= (write_cmd == 1) ? CMD_WRITE : CMD_READ;	// first byte we send has to be in temp_bits and it's the command, no need to load fifo[0]
 							tag         <= (write_cmd == 1) ? STATE_POST_WRITE : STATE_SPI_READ_2;
 							doing_read  <= read_cmd;
-							state		<= STATE_STORE_ADDR_1;
-`ifdef SIM_MODEL
-	sim_dummy <= DUMMY_BYTES[7:0] * 2;
-	sim_address <= address[15:0];
-`endif
+							state		<= STATE_SPI_SEND_2;
 							fifo_rptr <= 1;
 							bit_cnt <= 2;
 							busy <= 1;
@@ -347,7 +343,10 @@ module spi_sram_fifo #(
 								fifo[1] <= address[15:8];
 								fifo[2] <= address[7:0];
 							end
-							state <= STATE_SPI_SEND_2;
+                        `ifdef SIM_MODEL
+                            sim_dummy <= DUMMY_BYTES[7:0] * 2;
+                            sim_address <= address[15:0];
+                        `endif
 						end
 					end
 				STATE_POST_WRITE: // after a write command
