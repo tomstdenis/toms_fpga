@@ -44,7 +44,7 @@ for PSRAMs you might need
 
 */
 
-module spi_sram #(
+module spi_sram_fifo #(
 	parameter CLK_FREQ_MHZ=27,								// system clock frequency (required for walltime requirements)
 	parameter FIFO_DEPTH=32,								// controls the max burst size
 
@@ -336,36 +336,18 @@ module spi_sram #(
 	sim_dummy <= DUMMY_BYTES[7:0] * 2;
 	sim_address <= address[15:0];
 `endif
-						end
-					end
-				STATE_STORE_ADDR_1:
-					begin
-						fifo_rptr	<= 1;								// reset read pointer so we can send out the command/address/write data if any
-						bit_cnt		<= 2;								// reset bit count so we send the full command
-						if (SRAM_ADDR_WIDTH == 24) begin
-							fifo[1] <= address[23:16];
-						end else begin
-							fifo[1] <= address[15:8];
-						end
-						state <= STATE_STORE_ADDR_2;
-					end
-				STATE_STORE_ADDR_2:
-					begin
-						if (SRAM_ADDR_WIDTH == 24) begin
-							fifo[2] <= address[15:8];
-							state		<= STATE_STORE_ADDR_3;
-						end else begin
-							fifo[2] <= address[7:0];
-							state 		<= STATE_SPI_SEND_2;
-							busy 		<= 1;							// start the SPI clock
-						end
-					end
-				STATE_STORE_ADDR_3:
-					begin
-						if (SRAM_ADDR_WIDTH == 24) begin
-							fifo[3]		<= address[7:0];
-							state		<= STATE_SPI_SEND_2;
-							busy 		<= 1;							// start the SPI clock
+							fifo_rptr <= 1;
+							bit_cnt <= 2;
+							busy <= 1;
+							if (SRAM_ADDR_WIDTH == 24) begin
+								fifo[1] <= address[23:16];
+								fifo[2] <= address[15:8];
+								fifo[3] <= address[7:0];
+							end else begin
+								fifo[1] <= address[15:8];
+								fifo[2] <= address[7:0];
+							end
+							state <= STATE_SPI_SEND_2;
 						end
 					end
 				STATE_POST_WRITE: // after a write command

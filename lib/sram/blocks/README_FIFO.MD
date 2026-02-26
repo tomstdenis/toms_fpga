@@ -1,4 +1,4 @@
-# Simple Quad SPI SRAM/PSRAM controller
+# Simple Quad SPI SRAM/PSRAM FIFO controller
 
 This directory has a portable quad rate SPI SRAM/PSRAM which issues a SPI
 command to enter quad-io mode and then issues standard READ and WRITE commands

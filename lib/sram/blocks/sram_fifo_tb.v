@@ -1,6 +1,6 @@
 `timescale 1ns/1ps
 
-module sram_tb();
+module sram_fifo_tb();
 
 	reg clk;
 	reg rst_n;
@@ -21,7 +21,7 @@ module sram_tb();
 	tri1 [3:0] sio_pin;
 	reg [4:0] test_phase;
 	
-	spi_sram #(
+	spi_sram_fifo #(
 		.CLK_FREQ_MHZ(50),
 		.FIFO_DEPTH(32),
 		.SRAM_ADDR_WIDTH(16),
@@ -29,7 +29,7 @@ module sram_tb();
 		.CMD_READ(8'h03),
 		.CMD_WRITE(8'h02),
 		.CMD_EQIO(8'h38),
-		.MIN_CPH_NS(50),
+		.MIN_CPH_NS(0),
 		.SPI_TIMER_BITS(2),
 		.QPI_TIMER_BITS(1)) sram_dut(
 			.clk(clk), .rst_n(rst_n),
@@ -50,8 +50,8 @@ module sram_tb();
 
 	initial begin
         // Waveform setup
-        $dumpfile("sram.vcd");
-        $dumpvars(0, sram_tb);
+        $dumpfile("sram_fifo.vcd");
+        $dumpvars(0, sram_fifo_tb);
 
 		X = 0;
 		i = 0;

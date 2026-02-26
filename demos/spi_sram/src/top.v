@@ -1,9 +1,10 @@
 module top(input clk, inout [3:0] sio, output cs, output sck, output [3:0] led);
 
     wire sram_done;
-    reg [7:0] sram_data_in;
+    reg [31:0] sram_data_in;
     reg sram_data_in_valid;
-    wire [7:0] sram_data_out;
+    wire [31:0] sram_data_out;
+    reg [3:0] sram_data_be;
     reg sram_data_out_read;
     wire sram_data_out_empty;
 
@@ -26,17 +27,17 @@ module top(input clk, inout [3:0] sio, output cs, output sck, output [3:0] led);
     end
     reg [3:0] leds;
 
-    spi_sram 
+    spi_sram_fifo 
     #(
-            .CLK_FREQ_MHZ(169), .FIFO_DEPTH(32), .SRAM_ADDR_WIDTH(16),
+            .CLK_FREQ_MHZ(122), .FIFO_DEPTH(32), .SRAM_ADDR_WIDTH(16),
             .DUMMY_BYTES(1), .CMD_READ(8'h03), .CMD_WRITE(8'h02), .CMD_EQIO(8'h38),
-            .MIN_CPH_NS(5), .SPI_TIMER_BITS(8), .QPI_TIMER_BITS(8)                     // divide by 128 to get ~1MHz breadboard clock
+            .MIN_CPH_NS(5), .SPI_TIMER_BITS(7), .QPI_TIMER_BITS(7)                     // divide by 128 to get ~1MHz breadboard clock
     ) test_sram(
         .clk(pll_clk),
         .rst_n(rst_n),
         .done(sram_done),
         .data_in(sram_data_in),
-        .data_in_valid(sram_data_in_valid),
+        .data_in_valid(sram_data_in_valid), .data_be(sram_data_be),
         .data_out(sram_data_out),
         .data_out_read(sram_data_out_read),
         .data_out_empty(sram_data_out_empty),
@@ -70,6 +71,7 @@ module top(input clk, inout [3:0] sio, output cs, output sck, output [3:0] led);
             sram_data_in <= 0;
             sram_read_cmd_size <= 0;
             sram_address <= 0;
+            sram_data_be <= 4'b1111;
             state <= STATE_WAIT_DONE;
             tag <= STATE_STUFF_FIFO;
         end else begin
