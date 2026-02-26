@@ -31,7 +31,7 @@ module top(input clk, inout [3:0] sio, output cs, output sck, output [3:0] led);
     #(
             .CLK_FREQ_MHZ(122), .FIFO_DEPTH(32), .SRAM_ADDR_WIDTH(16),
             .DUMMY_BYTES(1), .CMD_READ(8'h03), .CMD_WRITE(8'h02), .CMD_EQIO(8'h38),
-            .MIN_CPH_NS(5), .SPI_TIMER_BITS(7), .QPI_TIMER_BITS(7)                     // divide by 128 to get ~1MHz breadboard clock
+            .MIN_CPH_NS(0), .SPI_TIMER_BITS(7), .QPI_TIMER_BITS(7)                     // divide by 128 to get ~1MHz breadboard clock
     ) test_sram(
         .clk(pll_clk),
         .rst_n(rst_n),
@@ -102,6 +102,7 @@ module top(input clk, inout [3:0] sio, output cs, output sck, output [3:0] led);
                     begin
                         sram_read_cmd <= 1;
                         sram_read_cmd_size <= 1;
+                        sram_data_be <= 4'b0001;
                         sram_address <= 24'h001122;
                         tag <= STATE_COMPARE_READ;
                         state <= STATE_WAIT_DONE;
