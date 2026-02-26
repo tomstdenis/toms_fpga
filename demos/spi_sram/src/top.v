@@ -22,22 +22,23 @@ module top(input clk, inout [3:0] sio, output cs, output sck, output [3:0] led);
         .clkin(clk) //input clkin
     );
 
-    always @(posedge pll_clk) begin
+    always @(posedge clk) begin
         rstcnt <= {rstcnt[2:0], 1'b1};
     end
     reg [3:0] leds;
 
     spi_sram_fifo 
     #(
-            .CLK_FREQ_MHZ(122), .FIFO_DEPTH(32), .SRAM_ADDR_WIDTH(16),
+            .CLK_FREQ_MHZ(27), .FIFO_DEPTH(32), .SRAM_ADDR_WIDTH(16),
             .DUMMY_BYTES(1), .CMD_READ(8'h03), .CMD_WRITE(8'h02), .CMD_EQIO(8'h38),
-            .MIN_CPH_NS(0), .SPI_TIMER_BITS(7), .QPI_TIMER_BITS(7)                     // divide by 128 to get ~1MHz breadboard clock
+            .MIN_CPH_NS(50), .SPI_TIMER_BITS(5), .QPI_TIMER_BITS(5)                     // divide by 32 to get ~1MHz breadboard clock
     ) test_sram(
-        .clk(pll_clk),
+        .clk(clk),
         .rst_n(rst_n),
         .done(sram_done),
         .data_in(sram_data_in),
-        .data_in_valid(sram_data_in_valid), .data_be(sram_data_be),
+        .data_in_valid(sram_data_in_valid), 
+        .data_be(sram_data_be),
         .data_out(sram_data_out),
         .data_out_read(sram_data_out_read),
         .data_out_empty(sram_data_out_empty),
@@ -57,11 +58,12 @@ module top(input clk, inout [3:0] sio, output cs, output sck, output [3:0] led);
         STATE_COMPARE_READ = 3,
         STATE_SUCCESS = 4,
         STATE_FAILURE = 5,
-        STATE_WAIT_DONE = 6;
+        STATE_WAIT_DONE = 6,
+        STATE_DELAY=7;
 
     assign led = ~state;
 
-    always @(posedge pll_clk) begin
+    always @(posedge clk) begin
         if (!rst_n) begin
             // these must be initialized in reset
             sram_data_in_valid <= 0;
@@ -71,45 +73,51 @@ module top(input clk, inout [3:0] sio, output cs, output sck, output [3:0] led);
             sram_data_in <= 0;
             sram_read_cmd_size <= 0;
             sram_address <= 0;
-            sram_data_be <= 4'b1111;
+            sram_data_be <= 4'b0001;
             state <= STATE_WAIT_DONE;
             tag <= STATE_STUFF_FIFO;
         end else begin
             case(state)
+                STATE_DELAY: state <= STATE_WAIT_DONE;
+
                 STATE_WAIT_DONE:
                     begin
                         sram_data_in_valid <= 0;
                         sram_data_out_read <= 0;
+                        sram_write_cmd <= 0;
+                        sram_read_cmd <= 0;
                         if (sram_done) begin
                             state <= tag;
                         end
                     end
                 STATE_STUFF_FIFO:
                     begin
-                        sram_data_in <= 8'hAA;
+                        sram_data_be <= 4'b0001;
+                        sram_data_in[7:0] <= 8'h23;
                         sram_data_in_valid <= 1;
-                        state <= STATE_WAIT_DONE;
                         tag <= STATE_ISSUE_WRITE;
+                        state <= STATE_DELAY;
                     end
                 STATE_ISSUE_WRITE:
                     begin
+                        sram_data_be <= 4'b0001;
                         sram_write_cmd <= 1;
-                        sram_address <= 24'h001122;
+                        sram_address <= 24'h001234;
                         tag <= STATE_ISSUE_READ;
-                        state <= STATE_WAIT_DONE;
+                        state <= STATE_DELAY;
                     end
                 STATE_ISSUE_READ:
                     begin
                         sram_read_cmd <= 1;
                         sram_read_cmd_size <= 1;
                         sram_data_be <= 4'b0001;
-                        sram_address <= 24'h001122;
+                        sram_address <= 24'h001234;
                         tag <= STATE_COMPARE_READ;
-                        state <= STATE_WAIT_DONE;
+                        state <= STATE_DELAY;
                     end
                 STATE_COMPARE_READ:
                     begin
-                        if (sram_data_out == 8'hAA) begin
+                        if (sram_data_out[7:0] == 8'h23) begin
                             state <= STATE_SUCCESS;
                         end else begin
                             state <= STATE_FAILURE;
