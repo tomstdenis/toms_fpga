@@ -63,9 +63,10 @@ module spi_sram #(
 
 	output done,											// active high means the module is done with a request
 	
-	input [7:0] data_in,									// data we want to write to the core
+	input [31:0] data_in,									// data we want to write to the core
 	input data_in_valid,									// active high indicates the user wants to send data to the outgoing FIFO
-	output [7:0] data_out,									// assigned fifo[read_ptr]
+	output [31:0] data_out,									// assigned fifo[read_ptr]
+	input [3:0] data_be,									// byte enables
 	input data_out_read,									// active high indicates read_ptr should be incremented
 	output data_out_empty,									// active high when all data read from the SPI SRAM is read from the fifo
 	
@@ -107,8 +108,6 @@ module spi_sram #(
 	reg [$clog2(FIFO_TOTAL_SIZE):0] read_cmd_wptr;			// copy of WPTR from a SPI SRAM read.
 	reg [$clog2(FIFO_TOTAL_SIZE):0] fifo_rptr;				// our SRAM FIFO read pointer (incremented by data_out_read)
 	reg [$clog2(FIFO_DEPTH)+1:0] bytes_to_read;				// How many bytes left to read
-	assign data_out = fifo[fifo_rptr[$clog2(FIFO_TOTAL_SIZE)-1:0]];	// assign output byte combinatorially	
-	assign data_out_empty = (fifo_rptr == read_cmd_wptr) ? 1'b1 : 1'b0;
 	
 	reg [3:0] state;										// What state is our FSM in
 	reg [3:0] tag;											// return point for sub-states.
@@ -153,6 +152,20 @@ module spi_sram #(
 	assign qpi_pulse 	= timer[QPI_TIMER_BITS-1];											// QPI timed pulses
 	assign sck_pin 		= busy & (state == STATE_SPI_SEND_8 ? spi_pulse : qpi_pulse);		// The SCK pin depending on if we're doing SPI or QPI traffic
 	assign done			= (state == STATE_IDLE);											// 'done' is basically a "are we at idle" flag
+
+	wire [$clog2(FIFO_TOTAL_SIZE)-1:0] fifo_r = fifo_rptr[$clog2(FIFO_TOTAL_SIZE)-1:0];    // shorthand for read index into FIFO
+	wire [$clog2(FIFO_TOTAL_SIZE)-1:0] fifo_w = fifo_wptr[$clog2(FIFO_TOTAL_SIZE)-1:0];	// shorthand for write index into FIFO
+	
+	wire [$clog2(FIFO_TOTAL_SIZE)-1:0]be_bytes  = (data_be == 4'b1111) ? 4 :
+							((data_be == 4'b0011) ? 2 : 1);
+	assign data_out = { 
+						data_be[3] ? fifo[fifo_r + 3] : 8'b0,
+						data_be[2] ? fifo[fifo_r + 2] : 8'b0,
+						data_be[1] ? fifo[fifo_r + 1] : 8'b0,
+						fifo[fifo_r]
+					  };
+	assign data_out_empty = (fifo_rptr >= read_cmd_wptr) ? 1'b1 : 1'b0;
+
 	initial begin
 		hangup_timer[0] = 0;
 	end
@@ -231,7 +244,7 @@ module spi_sram #(
 										// if there are more bytes to send ...
 										if (bit_cnt == 1) begin
 											bit_cnt		<= 2;
-											temp_bits	<= data_out; // fifo[fifo_rptr[$clog2(FIFO_TOTAL_SIZE)-1:0]];
+											temp_bits	<= data_out[7:0]; // fifo[fifo_rptr[$clog2(FIFO_TOTAL_SIZE)-1:0]];
 											fifo_rptr	<= fifo_rptr + 1'b1;
 											if (fifo_rptr == fifo_wptr) begin
 												bytes_to_read 	<= read_cmd_size + DUMMY_BYTES;
@@ -274,9 +287,9 @@ module spi_sram #(
 										if (bit_cnt == 1) begin					// we do the work before checking the counter so we stop at 1 not 0
 											// write next byte we read out, this starts just after the cmd and address 
 `ifdef SIM_MODEL
-											fifo[fifo_wptr[$clog2(FIFO_TOTAL_SIZE)-1:0]] <= {temp_bits[3:0], sim_memory[sim_address][3:0]};
+											fifo[fifo_w] <= {temp_bits[3:0], sim_memory[sim_address][3:0]};
 `else
-											fifo[fifo_wptr[$clog2(FIFO_TOTAL_SIZE)-1:0]] <= { temp_bits[3:0], din };
+											fifo[fifo_w] <= { temp_bits[3:0], din };
 `endif
 											fifo_wptr <= fifo_wptr + 1'b1;
 											if (bytes_to_read == 1) begin
@@ -300,14 +313,17 @@ module spi_sram #(
 							// payload goes after the cmd and address
 							// note we don't add DUMMY_BYTES here since it's not used in write commands
 							// which also means if you write here and then do read_cmd it'll send out a bogus stream confusing the SPI SRAM
-							fifo[fifo_wptr[$clog2(FIFO_TOTAL_SIZE)-1:0]] <= data_in;
-							fifo_wptr <= fifo_wptr + 1'b1;
+							fifo[fifo_w] <= data_in[7:0];
+							if (data_be[1]) begin fifo[fifo_w + 1] <= data_in[15:8]; end
+							if (data_be[2]) begin fifo[fifo_w + 2] <= data_in[23:16]; end
+							if (data_be[3]) begin fifo[fifo_w + 3] <= data_in[31:24]; end
+							fifo_wptr <= fifo_wptr + be_bytes;
 						end
 						
 						if (data_out_read) begin // user is reading from FIFO
 							// after a command wptr is after cmd + address + dummy + payload
 							// rptr is left to just after cmd + address + dummy
-							fifo_rptr <= fifo_rptr + 1'b1;
+							fifo_rptr <= fifo_rptr + be_bytes;
 						end
 						
 						if (write_cmd | read_cmd) begin		// user wants to issue a read or write so we prepare the SPI write (command + address + optional payload)
