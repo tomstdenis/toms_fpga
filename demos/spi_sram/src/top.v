@@ -73,13 +73,12 @@ module top(input clk, inout [3:0] sio, output cs, output sck, output [3:0] led);
             sram_data_in <= 0;
             sram_read_cmd_size <= 0;
             sram_address <= 0;
-            sram_data_be <= 4'b0001;
+            sram_data_be <= 4'b1111;
             state <= STATE_WAIT_DONE;
             tag <= STATE_STUFF_FIFO;
         end else begin
             case(state)
                 STATE_DELAY: state <= STATE_WAIT_DONE;
-
                 STATE_WAIT_DONE:
                     begin
                         sram_data_in_valid <= 0;
@@ -92,15 +91,15 @@ module top(input clk, inout [3:0] sio, output cs, output sck, output [3:0] led);
                     end
                 STATE_STUFF_FIFO:
                     begin
-                        sram_data_be <= 4'b0001;
-                        sram_data_in[7:0] <= 8'h23;
+                        sram_data_be <= 4'b1111;
+                        sram_data_in <= 32'h12345678;
                         sram_data_in_valid <= 1;
                         tag <= STATE_ISSUE_WRITE;
                         state <= STATE_DELAY;
                     end
                 STATE_ISSUE_WRITE:
                     begin
-                        sram_data_be <= 4'b0001;
+                        sram_data_be <= 4'b1111;
                         sram_write_cmd <= 1;
                         sram_address <= 24'h001234;
                         tag <= STATE_ISSUE_READ;
@@ -109,15 +108,15 @@ module top(input clk, inout [3:0] sio, output cs, output sck, output [3:0] led);
                 STATE_ISSUE_READ:
                     begin
                         sram_read_cmd <= 1;
-                        sram_read_cmd_size <= 1;
-                        sram_data_be <= 4'b0001;
+                        sram_read_cmd_size <= 4;
+                        sram_data_be <= 4'b1111;
                         sram_address <= 24'h001234;
                         tag <= STATE_COMPARE_READ;
                         state <= STATE_DELAY;
                     end
                 STATE_COMPARE_READ:
                     begin
-                        if (sram_data_out[7:0] == 8'h23) begin
+                        if (sram_data_out == 32'h12345678) begin
                             state <= STATE_SUCCESS;
                         end else begin
                             state <= STATE_FAILURE;
