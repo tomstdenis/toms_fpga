@@ -46,6 +46,8 @@ module sram_fifo_tb();
 
     // --- Test Logic ---
     integer i;
+    integer j;
+    integer k;
 	integer X;
 
 	initial begin
@@ -166,9 +168,83 @@ module sram_fifo_tb();
 		// single byte
 		test_phase = 10;
 		issue_read(24'h2003, 32'h00000012, 4'b0001, 1);
+
+		// try out all depths of FIFO for 8, 16, and 32-bit operations
+		test_phase = 11;
+		for (i = 1; i <= 32; i++) begin
+			issue_write_loop(24'h3000, 32'h01 * i, 4'b0001, i[5:0], 32'hff);
+			issue_read_loop(24'h3000, 32'h01 * i, 4'b0001, i[5:0], 32'hff, 1);
+		end
+
+		test_phase = 12;
+		for (i = 1; i <= 16; i++) begin
+			issue_write_loop(24'h4000, 32'h0101 * i, 4'b0011, i[5:0], 32'hffff);
+			issue_read_loop(24'h4000, 32'h0101 * i, 4'b0011, i[5:0] * 2, 32'h0000ffff, 2);
+		end
+
+		test_phase = 13;
+		for (i = 1; i <= 8; i++) begin
+			issue_write_loop(24'h5000, 32'h01010101 * i, 4'b1111, i[5:0], 32'hffffffff);
+			issue_read_loop(24'h5000, 32'h01010101 * i, 4'b1111, i[5:0] * 4, 32'hffffffff, 4);
+		end
+
         repeat(10) @(posedge clk);
         $finish;
 	end
+
+	// repeated writes of a datum (writes w_data count times...)
+	task issue_write_loop(input [23:0] w_addr, input [31:0] w_data, input [3:0] w_be, input [5:0] count, input [31:0] mask );
+		integer x;
+		begin
+			for (x = 0; x < count; x++) begin
+				// write to fifo (we change the value per loop so we're not stuff the same bytes in
+				data_in = w_data + (32'h12345678 & mask) * x;
+				data_be = w_be;
+				data_in_valid = 1;
+				@(posedge clk); #1;
+			end
+			
+			// issue SRAM write
+			data_in_valid = 0;
+			read_cmd = 0;
+			write_cmd = 1;
+			address = w_addr;
+			@(posedge clk); #1;
+			
+			// wait for done
+			write_cmd = 0;
+			wait(done == 1);
+		end
+	endtask
+	
+	task issue_read_loop(input [23:0] r_addr, input [31:0] e_data, input [3:0] r_be, input [5:0] readsize, input [31:0] mask, input [31:0] bytes);
+		integer x;
+		begin
+			// issue read
+			read_cmd_size = readsize;
+			read_cmd = 1;
+			address = r_addr;
+			data_be = r_be;
+			@(posedge clk); #1;
+			// wait for done
+			read_cmd = 0;
+			@(posedge clk); #1;
+			wait(done == 1);
+			for (x = 0; x < readsize; x += bytes) begin
+				// read from fifo
+				if (data_out !== ((e_data + (32'h12345678 & mask) * (x/bytes)) & mask)) begin
+					$display("Read value (%h) not expected (%h) at %h (%d)", data_out,  ((e_data + x/bytes) & mask), r_addr, sram_dut.fifo_rptr);
+					$fatal;
+				end
+				// consume word
+				data_out_read = 1;
+				@(posedge clk); #1;
+			end
+			data_out_read = 0;
+			@(posedge clk); #1;
+		end
+	endtask
+
 	
 	task issue_write(input [23:0] w_addr, input [31:0] w_data, input [3:0] w_be );
 		begin
@@ -205,7 +281,7 @@ module sram_fifo_tb();
 			wait(done == 1);
 			// read from fifo
 			if (data_out !== e_data) begin
-				$display("Read value (%h) not expected (%h) at %h", data_out, e_data, r_addr);
+				$display("Read value (%h) not expected (%h) at %h (%d)", data_out, e_data, r_addr, sram_dut.fifo_rptr);
 				$fatal;
 			end
 			// consume word
