@@ -130,7 +130,8 @@ module top(
         MAIN_TRANSMIT_BUF = 10,              // transmit buffer 0..65535
         MAIN_TRANSMIT_WAIT = 11,            // wait for ability to send byte
         MAIN_TRANSMIT_READ_MEM1 = 12,       // wait cycle for mem to respond to address
-        MAIN_TRANSMIT_READ_MEM2 = 13;       // cycle to read memory output
+        MAIN_TRANSMIT_READ_MEM2 = 13,       // cycle to read memory output
+        MAIN_PROGRAM_HALT = 14;
 
     localparam
         LED_WAITING_ON_RX = 0,
@@ -188,133 +189,139 @@ This means once TIMER_RUNNING is going it's constantly sampling to memory (every
 happens it runs for another post count.  This way you can change how much before/after the trigger you record.  It always
 returns 65536 samples.
 */
+            // MAIN application goes here
+            case (main_state)
+                MAIN_INIT:
+                    begin
+                        timer_mem_ce                 <= 0;  // turn memory off
+                        main_rx_frame_i <= 0;               // reset frame counter
+                        ledv[LED_WAITING_ON_RX]      <= 1;  // waiting for serial RX
+                        ledv[LED_WAITING_ON_SAMPLES] <= 0;  // not waiting for sampling
+                        ledv[LED_WAITING_ON_TX]      <= 0;  // not waiting for transmitting
+                        main_state      <= MAIN_FLUSH_RX;
+                    end
+                MAIN_FLUSH_RX:
+                    begin
+                        if (uart_rx_ready) begin
+                            uart_rx_read <= 1'b1;
+                            main_state <= MAIN_FLUSH_RX_DELAY;
+                        end else begin
+                            main_state <= MAIN_CMD_BYTES;
+                        end
+                    end
+                MAIN_FLUSH_RX_DELAY:
+                    begin
+                        uart_rx_read <= 1'b0;
+                        main_state <= MAIN_FLUSH_RX;
+                    end
+                MAIN_CMD_BYTES:
+                    begin
+                        if (main_rx_frame_i == 'd8) begin
+                            ledv[LED_WAITING_ON_RX]      <= 0;               // not waiting for serial RX
+                            ledv[LED_WAITING_ON_SAMPLES] <= 1;               // waiting for sampling
+                            main_state <= MAIN_PROGRAM_TIMER;
+                        end else begin
+                            if (uart_rx_ready) begin
+                                uart_rx_read <= 1'b1;                // toggle line
+                                main_state <= MAIN_READ_BYTE_DELAY1;
+                            end
+                        end
+                    end
+                MAIN_READ_BYTE_DELAY1:                                       // this is the cycle the UART responds to toggling uart_rx_read
+                    begin
+                        uart_rx_read <= 1'b0;
+                        main_state <= MAIN_READ_BYTE_DELAY2;
+                    end
+                MAIN_READ_BYTE_DELAY2:                                      // Now we can read the data from the UART RX
+                    begin
+                        main_rx_frame[main_rx_frame_i] <= uart_rx_byte;     // latch byte from UART RX
+                        main_rx_frame_i <= main_rx_frame_i + 1'b1;          // increment the frame offset
+                        main_state <= MAIN_CMD_BYTES;
+                    end
+                MAIN_PROGRAM_TIMER:
+                    begin
+                        main_state <= MAIN_PROGRAM_HALT;                         // get ready for next main task which is sending the lower 8 bits
+                        timer_start <= 1;                                           // start the timer
+                        timer_mem_ce <= 1'b1;                                       // turn memory on
+                        timer_8ch_phase <= 0;                                       // reset phase to 0 so wptr math will always work
+                        timer_trigger_mask <= {main_rx_frame[1], main_rx_frame[0]}; // load mask
+                        timer_trigger_pol  <= {main_rx_frame[3], main_rx_frame[2]}; // load pol
+                        timer_prescale     <= main_rx_frame[4];                     // prescale
+                        timer_8ch_mode     <= ~main_rx_frame[6][7];                 // 8ch mode enabled if msb is zero
+                        if (main_rx_frame[5] == 0) begin                            // if the post_count is zero then force it to 1.
+                            timer_post_cnt <= 'd1;
+                        end else begin
+                            if (main_rx_frame[6][7] == 0) begin                     // if the upper bit is zero
+                                timer_post_cnt     <= {main_rx_frame[5], 8'b0};             // post_cnt * 256 samples (0..65280)
+                            end else begin
+                                timer_post_cnt     <= {1'b0, main_rx_frame[5], 7'b0};       // post_cnt * 128 samples (0..32640)
+                            end
+                        end
+                        timer_trigger_mode <= main_rx_frame[6][3:0];                // trigger mode (0=edge, 1+ == LUT)
+                    end
+                MAIN_PROGRAM_HALT:// Halt MAIN waiting for the TIMER task to go back to IDLE 
+                    begin
+                        if (timer_state == TIMER_IDLE) begin
+                            main_state <= MAIN_TRANSMIT_WPTR_0;
+                        end
+                    end
+                MAIN_TRANSMIT_WAIT:
+                    begin
+                        if (!uart_tx_fifo_full) begin
+                            uart_tx_data_in <= main_tx_byte_buf;
+                            uart_tx_start <= 1'b1;
+                            main_state <= main_state_tag;               // jump back to next state
+                        end
+                    end
+                MAIN_TRANSMIT_WPTR_0:
+                    begin
+                        main_tx_byte_buf <= timer_mem_wptr[7:0];
+                        main_state_tag   <= MAIN_TRANSMIT_WPTR_1;
+                        main_state       <= MAIN_TRANSMIT_WAIT;
+                        ledv[LED_WAITING_ON_SAMPLES]     <= 0;          // not waiting on samples anymore
+                        ledv[LED_WAITING_ON_TX]          <= 1;          // waiting for transmitting
+                    end
+                MAIN_TRANSMIT_WPTR_1:
+                    begin
+                        main_tx_byte_buf <= timer_mem_wptr[15:8];
+                        main_state_tag   <= MAIN_TRANSMIT_BUF;
+                        main_state       <= MAIN_TRANSMIT_WAIT;
+                        main_buf_i       <= 0;                          // clear index into memory to transmit
+                        uart_tx_start    <= 1'b0;
+                    end
+                MAIN_TRANSMIT_BUF:
+                    begin
+                        uart_tx_start    <= 1'b0;
+                        if (main_buf_i == 17'h10000) begin
+                            main_state <= MAIN_INIT;
+                            ledv[LED_WAITING_ON_TX]          <= 0;      // not waiting for transmitting
+                        end else begin
+                            timer_mem_ptr <= main_buf_i[15:0];
+                            main_state    <= MAIN_TRANSMIT_READ_MEM1;
+                        end
+                    end
+                MAIN_TRANSMIT_READ_MEM1:                                // this cycle allows the BRAM to respond to the address
+                    begin
+                        main_state <= MAIN_TRANSMIT_READ_MEM2;
+                    end
+                MAIN_TRANSMIT_READ_MEM2:                                // now we transmit what the memory read
+                    begin
+                        main_tx_byte_buf <= timer_mem_data_out;
+                        main_state_tag   <= MAIN_TRANSMIT_BUF;
+                        main_state       <= MAIN_TRANSMIT_WAIT;
+                        main_buf_i       <= main_buf_i + 1'b1;
+                    end
+                default: begin end
+            endcase
+
             case(timer_state)
                 TIMER_IDLE:
                     begin
                         if (timer_start) begin
-                            timer_prescale_cnt <= 0;                                    // zero out prescale count
-                            timer_mem_ptr <= 0;                                         // start at address 0
-                            timer_triggered <= 0;                                       // reset triggered stats
-                            timer_state <= TIMER_RUNNING;
-                        end else begin
-                            // MAIN application goes here
-                            case (main_state)
-                                MAIN_INIT:
-                                    begin
-                                        timer_mem_ce                 <= 0;  // turn memory off
-                                        main_rx_frame_i <= 0;               // reset frame counter
-                                        ledv[LED_WAITING_ON_RX]      <= 1;  // waiting for serial RX
-                                        ledv[LED_WAITING_ON_SAMPLES] <= 0;  // not waiting for sampling
-                                        ledv[LED_WAITING_ON_TX]      <= 0;  // not waiting for transmitting
-                                        main_state      <= MAIN_FLUSH_RX;
-                                    end
-                                MAIN_FLUSH_RX:
-                                    begin
-                                        if (uart_rx_ready) begin
-                                            uart_rx_read <= 1'b1;
-                                            main_state <= MAIN_FLUSH_RX_DELAY;
-                                        end else begin
-                                            main_state <= MAIN_CMD_BYTES;
-                                        end
-                                    end
-                                MAIN_FLUSH_RX_DELAY:
-                                    begin
-                                        uart_rx_read <= 1'b0;
-                                        main_state <= MAIN_FLUSH_RX;
-                                    end
-                                MAIN_CMD_BYTES:
-                                    begin
-                                        if (main_rx_frame_i == 'd8) begin
-                                            ledv[LED_WAITING_ON_RX]      <= 0;               // not waiting for serial RX
-                                            ledv[LED_WAITING_ON_SAMPLES] <= 1;               // waiting for sampling
-                                            main_state <= MAIN_PROGRAM_TIMER;
-                                        end else begin
-                                            if (uart_rx_ready) begin
-                                                uart_rx_read <= 1'b1;                // toggle line
-                                                main_state <= MAIN_READ_BYTE_DELAY1;
-                                            end
-                                        end
-                                    end
-                                MAIN_READ_BYTE_DELAY1:                                       // this is the cycle the UART responds to toggling uart_rx_read
-                                    begin
-                                        uart_rx_read <= 1'b0;
-                                        main_state <= MAIN_READ_BYTE_DELAY2;
-                                    end
-                                MAIN_READ_BYTE_DELAY2:                                      // Now we can read the data from the UART RX
-                                    begin
-                                        main_rx_frame[main_rx_frame_i] <= uart_rx_byte;     // latch byte from UART RX
-                                        main_rx_frame_i <= main_rx_frame_i + 1'b1;          // increment the frame offset
-                                        main_state <= MAIN_CMD_BYTES;
-                                    end
-                                MAIN_PROGRAM_TIMER:
-                                    begin
-                                        main_state <= MAIN_TRANSMIT_WPTR_0;                         // get ready for next main task which is sending the lower 8 bits
-                                        timer_start <= 1;                                           // start the timer
-                                        timer_mem_ce <= 1'b1;                                       // turn memory on
-                                        timer_8ch_phase <= 0;                                       // reset phase to 0 so wptr math will always work
-                                        timer_trigger_mask <= {main_rx_frame[1], main_rx_frame[0]}; // load mask
-                                        timer_trigger_pol  <= {main_rx_frame[3], main_rx_frame[2]}; // load pol
-                                        timer_prescale     <= main_rx_frame[4];                     // prescale
-                                        timer_8ch_mode     <= ~main_rx_frame[6][7];                 // 8ch mode enabled if msb is zero
-                                        if (main_rx_frame[5] == 0) begin                            // if the post_count is zero then force it to 1.
-                                            timer_post_cnt <= 'd1;
-                                        end else begin
-                                            if (main_rx_frame[6][7] == 0) begin                     // if the upper bit is zero
-                                                timer_post_cnt     <= {main_rx_frame[5], 8'b0};             // post_cnt * 256 samples (0..65280)
-                                            end else begin
-                                                timer_post_cnt     <= {1'b0, main_rx_frame[5], 7'b0};       // post_cnt * 128 samples (0..32640)
-                                            end
-                                        end
-                                        timer_trigger_mode <= main_rx_frame[6][3:0];                // trigger mode (0=edge, 1+ == LUT)
-                                    end
-                                MAIN_TRANSMIT_WAIT:
-                                    begin
-                                        if (!uart_tx_fifo_full) begin
-                                            uart_tx_data_in <= main_tx_byte_buf;
-                                            uart_tx_start <= 1'b1;
-                                            main_state <= main_state_tag;               // jump back to next state
-                                        end
-                                    end
-                                MAIN_TRANSMIT_WPTR_0:
-                                    begin
-                                        main_tx_byte_buf <= timer_mem_wptr[7:0];
-                                        main_state_tag   <= MAIN_TRANSMIT_WPTR_1;
-                                        main_state       <= MAIN_TRANSMIT_WAIT;
-                                        ledv[LED_WAITING_ON_SAMPLES]     <= 0;          // not waiting on samples anymore
-                                        ledv[LED_WAITING_ON_TX]          <= 1;          // waiting for transmitting
-                                    end
-                                MAIN_TRANSMIT_WPTR_1:
-                                    begin
-                                        main_tx_byte_buf <= timer_mem_wptr[15:8];
-                                        main_state_tag   <= MAIN_TRANSMIT_BUF;
-                                        main_state       <= MAIN_TRANSMIT_WAIT;
-                                        main_buf_i       <= 0;                          // clear index into memory to transmit
-                                        uart_tx_start    <= 1'b0;
-                                    end
-                                MAIN_TRANSMIT_BUF:
-                                    begin
-                                        uart_tx_start    <= 1'b0;
-                                        if (main_buf_i == 17'h10000) begin
-                                            main_state <= MAIN_INIT;
-                                            ledv[LED_WAITING_ON_TX]          <= 0;      // not waiting for transmitting
-                                        end else begin
-                                            timer_mem_ptr <= main_buf_i[15:0];
-                                            main_state    <= MAIN_TRANSMIT_READ_MEM1;
-                                        end
-                                    end
-                                MAIN_TRANSMIT_READ_MEM1:                                // this cycle allows the BRAM to respond to the address
-                                    begin
-                                        main_state <= MAIN_TRANSMIT_READ_MEM2;
-                                    end
-                                MAIN_TRANSMIT_READ_MEM2:                                // now we transmit what the memory read
-                                    begin
-                                        main_tx_byte_buf <= timer_mem_data_out;
-                                        main_state_tag   <= MAIN_TRANSMIT_BUF;
-                                        main_state       <= MAIN_TRANSMIT_WAIT;
-                                        main_buf_i       <= main_buf_i + 1'b1;
-                                    end
-                                default: begin end
-                            endcase
+                            timer_prescale_cnt  <= 0;                                   // zero out prescale count
+                            timer_mem_ptr       <= 0;                                   // start at address 0
+                            timer_triggered     <= 0;                                   // reset triggered stats
+                            timer_state         <= TIMER_RUNNING;
                         end
                     end
                 TIMER_RUNNING:                                                          // This state records a new sample every timer_prescale cycles

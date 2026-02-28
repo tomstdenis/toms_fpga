@@ -27,11 +27,19 @@ module top(input clk, inout [3:0] sio, output cs, output sck, output [3:0] led);
     end
     reg [3:0] leds;
 
+`define USE_23LC512
+
     spi_sram_fifo 
     #(
+`ifdef USE_23LC512
             .CLK_FREQ_MHZ(27), .FIFO_DEPTH(32), .SRAM_ADDR_WIDTH(16),
             .DUMMY_BYTES(1), .CMD_READ(8'h03), .CMD_WRITE(8'h02), .CMD_EQIO(8'h38),
             .MIN_CPH_NS(50), .SPI_TIMER_BITS(5), .QPI_TIMER_BITS(5)                     // divide by 32 to get ~1MHz breadboard clock
+`else
+            .CLK_FREQ_MHZ(27), .FIFO_DEPTH(32), .SRAM_ADDR_WIDTH(24),
+            .DUMMY_BYTES(6), .CMD_READ(8'hEB), .CMD_WRITE(8'h38 ), .CMD_EQIO(8'h35),
+            .MIN_CPH_NS(50), .SPI_TIMER_BITS(1), .QPI_TIMER_BITS(1)                     // divide by 32 to get ~1MHz breadboard clock
+`endif  
     ) test_sram(
         .clk(clk),
         .rst_n(rst_n),
