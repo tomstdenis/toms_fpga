@@ -100,7 +100,7 @@ module tx_uart_tb();
         begin
             // Calculate timing: (baud_div + 1) * clock_period
             // Your module counts baud_div down to 0, so total cycles per bit = baud_div + 1
-            bit_time = (baud_div + 1) * CLK_PERIOD;
+            bit_time = (BAUD_VALUE + 1) * CLK_PERIOD;
 
             // 1. Wait for Start Bit (falling edge)
             @(negedge tx_pin);

@@ -14,7 +14,7 @@ test_rx.pass: tx_uart.v rx_uart.v rx_uart_tb.v
 	(vvp sim.vvp -fst > $@.log && touch $@) || cat $@.log
 
 test_tx.pass: tx_uart.v tx_uart_tb.v
-	verilator --lint-only $^
+	verilator --no-sched-zero-delay --lint-only $^
 	iverilog -o sim.vvp $^
 	(vvp sim.vvp -fst > $@.log && touch $@) || cat $@.log
 
