@@ -20,7 +20,7 @@ module top(
     assign led = ~ledv;                                         // LEDs are active low
 
     // UART
-    wire [15:0] uart_bauddiv = 148_500_000 / 115_200;           // bauddiv counter
+    wire [15:0] uart_bauddiv = 148_500_000 / 230_400;           // bauddiv counter (230.4Kbaud)
     reg uart_tx_start;                                          // start a transmit of what is in uart_tx_data_in (this is edge triggered so you just toggle it to send)
     reg [7:0] uart_tx_data_in;                                  // data to send
     reg uart_rx_read;                                           // ack a read (toggle, edge triggered like uart_tx_start)
@@ -43,7 +43,7 @@ module top(
         
     // TIMER (and acquire)
     reg [7:0] timer_prescale_cnt;               // current prescale value
-    reg [7:0] timer_prescale;                   // target prescale value
+    reg [7:0] timer_prescale;                   // target prescale value (we sample when current == target)
     reg [15:0] timer_post_cnt;                  // how many samples post trigger left to store
     reg [15:0] timer_mem_ptr;                   // the WPTR of the ring buffer (incremented each time timer_prescale_cnt == timer_prescale)
     reg [15:0] timer_mem_wptr;                  // saved WPTR when done sampling
@@ -113,138 +113,138 @@ module top(
     reg [16:0] main_buf_i;                  // index into buffer to send
 
     localparam
-        TIMER_IDLE = 0,
-        TIMER_RUNNING = 1;
+        TIMER_IDLE = 0,                     // Timer FSM idling waiting for timer_start
+        TIMER_RUNNING = 1;                  // Timer FSM sampling waiting for a trigger and post_trigger samples to exhaust
 
     localparam
-        MAIN_INIT = 0,
-        MAIN_FLUSH_RX = 1,                  // flush any incoming bytes
-        MAIN_FLUSH_RX_DELAY = 2,            // delay after issuing read during flush
-        MAIN_CMD_BYTES = 3,               // loop on reading 4 bytes
-        MAIN_READ_BYTE_DELAY1 = 4,           // delay cycle after reading a byte
-        MAIN_READ_BYTE_DELAY2 = 5,           // delay cycle after reading a byte
-        MAIN_PROGRAM_TIMER = 6,             // program the timer based on what we read
-        MAIN_TRANSMIT_DATA_START = 7,       // init sending the buffer
-        MAIN_TRANSMIT_WPTR_0 = 8,           // transmit wptr[7:0]
-        MAIN_TRANSMIT_WPTR_1 = 9,           // transmit wptr[15:8]
-        MAIN_TRANSMIT_BUF = 10,              // transmit buffer 0..65535
-        MAIN_TRANSMIT_WAIT = 11,            // wait for ability to send byte
-        MAIN_TRANSMIT_READ_MEM1 = 12,       // wait cycle for mem to respond to address
-        MAIN_TRANSMIT_READ_MEM2 = 13,       // cycle to read memory output
-        MAIN_PROGRAM_HALT = 14,
-        MAIN_PROGRAM_DELAYED_HALT = 15;
+        MAIN_INIT                   = 0,    // Init the main FSM
+        MAIN_FLUSH_RX               = 1,    // flush any incoming bytes
+        MAIN_FLUSH_RX_DELAY         = 2,    // delay after issuing read during flush
+        MAIN_CMD_BYTES              = 3,    // loop on reading 4 bytes
+        MAIN_READ_BYTE_DELAY1       = 4,    // delay cycle after reading a byte
+        MAIN_READ_BYTE_DELAY2       = 5,    // Latch the incoming serial RX byte
+        MAIN_PROGRAM_TIMER          = 6,    // program the timer based on what we read
+        MAIN_TRANSMIT_DATA_START    = 7,    // init sending the buffer
+        MAIN_TRANSMIT_WPTR_0        = 8,    // transmit wptr[7:0]
+        MAIN_TRANSMIT_WPTR_1        = 9,    // transmit wptr[15:8]
+        MAIN_TRANSMIT_BUF           = 10,   // transmit buffer 0..65535
+        MAIN_TRANSMIT_WAIT          = 11,   // wait for ability to send byte
+        MAIN_TRANSMIT_READ_MEM1     = 12,   // wait cycle for mem to respond to address
+        MAIN_TRANSMIT_READ_MEM2     = 13,   // cycle to read memory output
+        MAIN_PROGRAM_HALT           = 14,   // Halt main FSM waiting for timer to go idle
+        MAIN_PROGRAM_DELAYED_HALT   = 15;   // delay cycle to allow timer FSM to respond to timer_start going high
 
     localparam
-        LED_WAITING_ON_RX = 0,
-        LED_WAITING_ON_SAMPLES = 1,
-        LED_WAITING_ON_TX = 2;
+        LED_WAITING_ON_RX      = 0,         // Waiting for the client to submit a command packet
+        LED_WAITING_ON_SAMPLES = 1,         // Waiting on trigger
+        LED_WAITING_ON_TX      = 2;         // Waiting on transmitting the entire sample buffer over serial TX
 
     always @(posedge pll_clk) begin
         rstcnt <= {rstcnt[2:0], 1'b1};
         if (!rst_n) begin
             // LEDs
-            ledv <= 0;                      // all LEDs off
+            ledv                <= 0;       // all LEDs off
 
             // reset UART controller
-            uart_tx_start <= 0;
-            uart_tx_data_in <= 0;
-            uart_rx_read <= 0;
+            uart_tx_start       <= 0;       // idle the UART FIFO
+            uart_rx_read        <= 0;
+            uart_tx_data_in     <= 0;
 
-            // reset timer
-            timer_prescale <= 0;
-            timer_prescale_cnt <= 0;
-            timer_post_cnt <= 0;
-            timer_mem_ptr <= 0;
-            timer_mem_ce  <= 0;
-            timer_triggered <= 0;
-            timer_state <= TIMER_IDLE;
-            timer_io_latch <= 8'hFF;
-            timer_io_latch2 <= 8'hFF;
-            timer_mem_wren <= 0;
-            timer_trigger_mask <= 0;
-            timer_trigger_pol <= 0;
-            timer_start <= 0;
-            timer_8ch_mode <= 0;
-            timer_8ch_phase <= 0;
-            timer_trigger_mode <= 0;
+            // reset timer FSM
+            timer_state         <= TIMER_IDLE;
+            timer_prescale      <= 0;
+            timer_prescale_cnt  <= 0;
+            timer_post_cnt      <= 0;
+            timer_mem_ptr       <= 0;
+            timer_mem_ce        <= 0;
+            timer_triggered     <= 0;
+            timer_io_latch      <= 8'hFF;
+            timer_io_latch2     <= 8'hFF;
+            timer_mem_wren      <= 0;
+            timer_trigger_mask  <= 0;
+            timer_trigger_pol   <= 0;
+            timer_start         <= 0;
+            timer_8ch_mode      <= 0;
+            timer_8ch_phase     <= 0;
+            timer_trigger_mode  <= 0;
             timer_trigger_latch <= 0;
 
-            // reset main
-            main_rx_frame_i <= 0;
-            main_state <= MAIN_INIT;
-            main_state_tag <= 0;
+            // reset main FSM
+            main_state          <= MAIN_INIT;
+            main_rx_frame_i     <= 0;
+            main_state_tag      <= 0;
         end else begin
             // main code
-            timer_io_latch <= io;               // latch the IO pins
+            timer_io_latch      <= io;               // latch the IO pins
             timer_trigger_latch <= timer_trigger_event;
-/* This application uses two nested FSMs.  The outer FSM is the timer which when IDLE and timer_start hasn't been asserted
-allows the innter "main" FSM to run.  The main FSM is what actually coordinates the device.  It flushes the RX buffer,
-waits for a frame (4 bytes) to program the timer, then asserts timer_start.
+/* This application uses two FSMs.  The timer FSM is IDLE when timer_start hasn't been asserted
+allows the "main" FSM to run.  The main FSM is what actually coordinates the device.  It flushes the RX buffer,
+waits for a frame (8 bytes) to program the timer, then asserts timer_start.
 
 Once the timer FSM sees timer_start in it's TIMER_IDLE phase it initializes some values and jumps to TIMER_RUNNING.
 
-In TIMER_RUNNING we detect and latch trigger events, then if we haven't exhausted the post trigger countdown we 
+In TIMER_RUNNING we detect and latch trigger events, then if we haven't exhausted the post trigger countdown then
 every prescale cycles we sample the next data and write it to memory.  
 
 This means once TIMER_RUNNING is going it's constantly sampling to memory (every prescale cycles).  Once the trigger
 happens it runs for another post count.  This way you can change how much before/after the trigger you record.  It always
 returns 65536 samples.
 */
-            // MAIN application goes here
+            // main FSM
             case (main_state)
-                MAIN_INIT:
+                MAIN_INIT:                                                          // Initialize the main FSM
                     begin
-                        timer_mem_ce                 <= 0;  // turn memory off
-                        main_rx_frame_i <= 0;               // reset frame counter
-                        ledv[LED_WAITING_ON_RX]      <= 1;  // waiting for serial RX
-                        ledv[LED_WAITING_ON_SAMPLES] <= 0;  // not waiting for sampling
-                        ledv[LED_WAITING_ON_TX]      <= 0;  // not waiting for transmitting
-                        main_state      <= MAIN_FLUSH_RX;
+                        timer_mem_ce                 <= 0;                          // turn memory off
+                        main_rx_frame_i              <= 0;                          // reset frame counter
+                        ledv[LED_WAITING_ON_RX]      <= 1;                          // waiting for serial RX
+                        ledv[LED_WAITING_ON_SAMPLES] <= 0;                          // not waiting for sampling
+                        ledv[LED_WAITING_ON_TX]      <= 0;                          // not waiting for transmitting
+                        main_state                   <= MAIN_FLUSH_RX;
                     end
-                MAIN_FLUSH_RX:
+                MAIN_FLUSH_RX:                                                      // Flush any random bytes from the serial so we have a clean slate
                     begin
                         if (uart_rx_ready) begin
                             uart_rx_read <= 1'b1;
-                            main_state <= MAIN_FLUSH_RX_DELAY;
+                            main_state   <= MAIN_FLUSH_RX_DELAY;
                         end else begin
-                            main_state <= MAIN_CMD_BYTES;
+                            main_state   <= MAIN_CMD_BYTES;
                         end
                     end
-                MAIN_FLUSH_RX_DELAY:
+                MAIN_FLUSH_RX_DELAY:                                                // Delay to wait for UART to respond to uart_rx_read
                     begin
                         uart_rx_read <= 1'b0;
                         main_state <= MAIN_FLUSH_RX;
                     end
-                MAIN_CMD_BYTES:
+                MAIN_CMD_BYTES:                                                     // Main loop to receive command packet from client
                     begin
-                        if (main_rx_frame_i == 'd8) begin
-                            ledv[LED_WAITING_ON_RX]      <= 0;               // not waiting for serial RX
-                            ledv[LED_WAITING_ON_SAMPLES] <= 1;               // waiting for sampling
-                            main_state <= MAIN_PROGRAM_TIMER;
+                        if (main_rx_frame_i == 'd8) begin                           // read 8 bytes from serial
+                            ledv[LED_WAITING_ON_RX]      <= 0;                      // not waiting for serial RX
+                            ledv[LED_WAITING_ON_SAMPLES] <= 1;                      // waiting for sampling
+                            main_state                   <= MAIN_PROGRAM_TIMER;
                         end else begin
                             if (uart_rx_ready) begin
-                                uart_rx_read <= 1'b1;                // toggle line
-                                main_state <= MAIN_READ_BYTE_DELAY1;
+                                uart_rx_read <= 1'b1;                               // read a byte
+                                main_state   <= MAIN_READ_BYTE_DELAY1;
                             end
                         end
                     end
-                MAIN_READ_BYTE_DELAY1:                                       // this is the cycle the UART responds to toggling uart_rx_read
+                MAIN_READ_BYTE_DELAY1:                                              // this is the cycle the UART responds to toggling uart_rx_read
                     begin
-                        uart_rx_read <= 1'b0;
+                        uart_rx_read <= 1'b0;                                       // done reading from serial
                         main_state <= MAIN_READ_BYTE_DELAY2;
                     end
-                MAIN_READ_BYTE_DELAY2:                                      // Now we can read the data from the UART RX
+                MAIN_READ_BYTE_DELAY2:                                              // Now we can read the data from the UART RX
                     begin
-                        main_rx_frame[main_rx_frame_i] <= uart_rx_byte;     // latch byte from UART RX
-                        main_rx_frame_i <= main_rx_frame_i + 1'b1;          // increment the frame offset
-                        main_state <= MAIN_CMD_BYTES;
+                        main_rx_frame[main_rx_frame_i] <= uart_rx_byte;             // latch byte from UART RX
+                        main_rx_frame_i <= main_rx_frame_i + 1'b1;                  // increment the frame offset
+                        main_state      <= MAIN_CMD_BYTES;
                     end
                 MAIN_PROGRAM_TIMER:
                     begin
-                        main_state <= MAIN_PROGRAM_DELAYED_HALT;                         // get ready for next main task which is sending the lower 8 bits
-                        timer_start <= 1;                                           // start the timer
-                        timer_mem_ce <= 1'b1;                                       // turn memory on
-                        timer_8ch_phase <= 0;                                       // reset phase to 0 so wptr math will always work
+                        main_state         <= MAIN_PROGRAM_DELAYED_HALT;            // get ready for next main task which is sending the lower 8 bits
+                        timer_start        <= 1;                                    // start the timer
+                        timer_mem_ce       <= 1'b1;                                 // turn memory on
+                        timer_8ch_phase    <= 0;                                    // reset phase to 0 so wptr math will always work
                         timer_trigger_mask <= {main_rx_frame[1], main_rx_frame[0]}; // load mask
                         timer_trigger_pol  <= {main_rx_frame[3], main_rx_frame[2]}; // load pol
                         timer_prescale     <= main_rx_frame[4];                     // prescale
@@ -253,9 +253,9 @@ returns 65536 samples.
                             timer_post_cnt <= 'd1;
                         end else begin
                             if (main_rx_frame[6][7] == 0) begin                     // if the upper bit is zero
-                                timer_post_cnt     <= {main_rx_frame[5], 8'b0};             // post_cnt * 256 samples (0..65280)
+                                timer_post_cnt     <= {main_rx_frame[5], 8'b0};     // post_cnt * 256 samples (0..65280)
                             end else begin
-                                timer_post_cnt     <= {1'b0, main_rx_frame[5], 7'b0};       // post_cnt * 128 samples (0..32640)
+                                timer_post_cnt     <= {1'b0, main_rx_frame[5], 7'b0}; // post_cnt * 128 samples (0..32640)
                             end
                         end
                         timer_trigger_mode <= main_rx_frame[6][3:0];                // trigger mode (0=edge, 1+ == LUT)
@@ -264,69 +264,71 @@ returns 65536 samples.
                     begin
                         main_state <= MAIN_PROGRAM_HALT;
                     end
-                MAIN_PROGRAM_HALT:// Halt MAIN waiting for the TIMER task to go back to IDLE 
+                MAIN_PROGRAM_HALT:                                                  // Halt MAIN waiting for the TIMER task to go back to IDLE 
                     begin
                         if (timer_state == TIMER_IDLE) begin
                             main_state <= MAIN_TRANSMIT_WPTR_0;
                         end
                     end
-                MAIN_TRANSMIT_WAIT:
+                MAIN_TRANSMIT_WAIT:                                                 // wait loop on sending next byte from main_tx_byte_buf
                     begin
                         if (!uart_tx_fifo_full) begin
                             uart_tx_data_in <= main_tx_byte_buf;
                             uart_tx_start <= 1'b1;
-                            main_state <= main_state_tag;               // jump back to next state
+                            main_state <= main_state_tag;                           // jump back to next state (next state must set uart_tx_start to 0 immediately)
                         end
                     end
-                MAIN_TRANSMIT_WPTR_0:
+                MAIN_TRANSMIT_WPTR_0:                                               // write wptr[7:0] over serial
                     begin
                         main_tx_byte_buf <= timer_mem_wptr[7:0];
                         main_state_tag   <= MAIN_TRANSMIT_WPTR_1;
                         main_state       <= MAIN_TRANSMIT_WAIT;
-                        ledv[LED_WAITING_ON_SAMPLES]     <= 0;          // not waiting on samples anymore
-                        ledv[LED_WAITING_ON_TX]          <= 1;          // waiting for transmitting
+                        ledv[LED_WAITING_ON_SAMPLES]     <= 0;                      // not waiting on samples anymore
+                        ledv[LED_WAITING_ON_TX]          <= 1;                      // waiting for transmitting
                     end
-                MAIN_TRANSMIT_WPTR_1:
+                MAIN_TRANSMIT_WPTR_1:                                               // write wptr[15:8] over serial
                     begin
-                        uart_tx_start    <= 1'b0;
+                        uart_tx_start    <= 1'b0;                                   // turn off uart_tx since we just transmitted the lower byte
                         main_tx_byte_buf <= timer_mem_wptr[15:8];
                         main_state_tag   <= MAIN_TRANSMIT_BUF;
                         main_state       <= MAIN_TRANSMIT_WAIT;
-                        main_buf_i       <= 0;                          // clear index into memory to transmit
+                        main_buf_i       <= 0;                                      // clear index into memory to transmit
                     end
-                MAIN_TRANSMIT_BUF:
+                MAIN_TRANSMIT_BUF:                                                  // main loop to transmit the 64K sample buffer
                     begin
-                        uart_tx_start    <= 1'b0;
-                        if (main_buf_i == 17'h10000) begin
-                            main_state <= MAIN_INIT;
-                            ledv[LED_WAITING_ON_TX]          <= 0;      // not waiting for transmitting
+                        uart_tx_start     <= 1'b0;                                  // repeatedly turn off uart_tx 
+                        if (main_buf_i == 17'h10000) begin                          // stop at 64K
+                            main_state              <= MAIN_INIT;                   // re initialize the main FSM
+                            ledv[LED_WAITING_ON_TX] <= 1'b0;                        // not waiting for transmitting
+                            timer_mem_ce            <= 1'b0;                        // turn off memory clocks
                         end else begin
                             timer_mem_ptr <= main_buf_i[15:0];
                             main_state    <= MAIN_TRANSMIT_READ_MEM1;
                         end
                     end
-                MAIN_TRANSMIT_READ_MEM1:                                // this cycle allows the BRAM to respond to the address
+                MAIN_TRANSMIT_READ_MEM1:                                            // this cycle allows the BRAM to respond to the address
                     begin
                         main_state <= MAIN_TRANSMIT_READ_MEM2;
                     end
-                MAIN_TRANSMIT_READ_MEM2:                                // now we transmit what the memory read
+                MAIN_TRANSMIT_READ_MEM2:                                            // now we transmit what the memory read
                     begin
-                        main_tx_byte_buf <= timer_mem_data_out;
-                        main_state_tag   <= MAIN_TRANSMIT_BUF;
-                        main_state       <= MAIN_TRANSMIT_WAIT;
+                        main_tx_byte_buf <= timer_mem_data_out;                     // byte read from memory
+                        main_state_tag   <= MAIN_TRANSMIT_BUF;                      // return to main buffer loop
+                        main_state       <= MAIN_TRANSMIT_WAIT;                     // wait to send byte to UART
                         main_buf_i       <= main_buf_i + 1'b1;
                     end
                 default: begin end
             endcase
 
+            // timer FSM
             case(timer_state)
-                TIMER_IDLE:
+                TIMER_IDLE:                                                             // timer idle state
                     begin
                         if (timer_start) begin
                             timer_prescale_cnt  <= 0;                                   // zero out prescale count
                             timer_mem_ptr       <= 0;                                   // start at address 0
                             timer_triggered     <= 0;                                   // reset triggered stats
-                            timer_trigger_latch <= 0;                                 // reset trigger latch
+                            timer_trigger_latch <= 0;                                   // reset trigger latch
                             timer_state         <= TIMER_RUNNING;
                         end
                     end
@@ -341,14 +343,14 @@ returns 65536 samples.
                         end
                         if (timer_post_cnt > 0) begin                                   // if we haven't exhausted post trigger bytes keep going
                             // we haven't yet reached the post count limit
-                            if (timer_prescale_cnt >= timer_prescale) begin
-                                timer_prescale_cnt <= 0;                               // reset prescale count
-                                if (timer_8ch_mode == 0) begin                         // 16ch mode we store one word per sample
-                                    timer_mem_ptr <= timer_mem_ptr + 16'd2;            // advance memory pointer
-                                    timer_mem_data_in <= timer_io_latch;               // latch memory to write
+                            if (timer_prescale_cnt >= timer_prescale) begin             // we sample when current == target
+                                timer_prescale_cnt <= 0;                                // reset prescale count
+                                if (timer_8ch_mode == 0) begin                          // 16ch mode we store one word per sample
+                                    timer_mem_ptr <= timer_mem_ptr + 16'd2;             // advance memory pointer
+                                    timer_mem_data_in <= timer_io_latch;                // latch memory to write
                                     timer_mem_wren <= 1;
                                 end else begin
-                                    // in 8ch mode we form 2 samples per word of memory
+                                    // in 8ch mode we form 2 samples per word of memory (this allows 64K samples in 8ch mode as opposed to 32K samples in 16ch mode)
                                     if (timer_8ch_phase == 0) begin
                                         // even phase we just capture data but don't advance the pointer
                                         timer_8ch_phase <= 1;                                              // switch phase
@@ -361,16 +363,16 @@ returns 65536 samples.
                                         timer_mem_wren  <= 1;
                                     end
                                 end
-                                timer_post_cnt <= timer_post_cnt - timer_triggered;     // only decrement post count after trigger
+                                timer_post_cnt <= timer_post_cnt - timer_triggered;                        // only decrement post count after trigger
                             end else begin
-                                timer_mem_wren <= 0;                                    // outside of prescale we turn off writes
+                                timer_mem_wren <= 0;                                                       // outside of prescale we turn off writes
                                 timer_prescale_cnt <= timer_prescale_cnt + 1'b1;
                             end
                         end else begin
                             // we're done sampling
-                            timer_mem_wren <= 0;                                        // turn off memory write
-                            timer_start    <= 0;                                        // disable timer
-                            timer_state    <= TIMER_IDLE;                               // return to IDLE state
+                            timer_mem_wren <= 0;                                                           // turn off memory write
+                            timer_start    <= 0;                                                           // disable timer
+                            timer_state    <= TIMER_IDLE;                                                  // return to IDLE state
                         end                            
                     end
                 default:

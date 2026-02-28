@@ -243,7 +243,7 @@ int main(int argc, char **argv)
 	
     int fd = open(argv[1], O_RDWR | O_NOCTTY);
     if (fd < 0) { perror("Open port"); return 1; }
-    set_interface_attribs(fd, B115200);
+    set_interface_attribs(fd, B230400);
     usleep(500000);
 	tcflush(fd, TCIOFLUSH);
 	
