@@ -131,7 +131,8 @@ module top(
         MAIN_TRANSMIT_WAIT = 11,            // wait for ability to send byte
         MAIN_TRANSMIT_READ_MEM1 = 12,       // wait cycle for mem to respond to address
         MAIN_TRANSMIT_READ_MEM2 = 13,       // cycle to read memory output
-        MAIN_PROGRAM_HALT = 14;
+        MAIN_PROGRAM_HALT = 14,
+        MAIN_PROGRAM_DELAYED_HALT = 15;
 
     localparam
         LED_WAITING_ON_RX = 0,
@@ -240,7 +241,7 @@ returns 65536 samples.
                     end
                 MAIN_PROGRAM_TIMER:
                     begin
-                        main_state <= MAIN_PROGRAM_HALT;                         // get ready for next main task which is sending the lower 8 bits
+                        main_state <= MAIN_PROGRAM_DELAYED_HALT;                         // get ready for next main task which is sending the lower 8 bits
                         timer_start <= 1;                                           // start the timer
                         timer_mem_ce <= 1'b1;                                       // turn memory on
                         timer_8ch_phase <= 0;                                       // reset phase to 0 so wptr math will always work
@@ -258,6 +259,10 @@ returns 65536 samples.
                             end
                         end
                         timer_trigger_mode <= main_rx_frame[6][3:0];                // trigger mode (0=edge, 1+ == LUT)
+                    end
+                MAIN_PROGRAM_DELAYED_HALT:
+                    begin
+                        main_state <= MAIN_PROGRAM_HALT;
                     end
                 MAIN_PROGRAM_HALT:// Halt MAIN waiting for the TIMER task to go back to IDLE 
                     begin
@@ -283,11 +288,11 @@ returns 65536 samples.
                     end
                 MAIN_TRANSMIT_WPTR_1:
                     begin
+                        uart_tx_start    <= 1'b0;
                         main_tx_byte_buf <= timer_mem_wptr[15:8];
                         main_state_tag   <= MAIN_TRANSMIT_BUF;
                         main_state       <= MAIN_TRANSMIT_WAIT;
                         main_buf_i       <= 0;                          // clear index into memory to transmit
-                        uart_tx_start    <= 1'b0;
                     end
                 MAIN_TRANSMIT_BUF:
                     begin
@@ -321,6 +326,7 @@ returns 65536 samples.
                             timer_prescale_cnt  <= 0;                                   // zero out prescale count
                             timer_mem_ptr       <= 0;                                   // start at address 0
                             timer_triggered     <= 0;                                   // reset triggered stats
+                            timer_trigger_latch <= 0;                                 // reset trigger latch
                             timer_state         <= TIMER_RUNNING;
                         end
                     end
