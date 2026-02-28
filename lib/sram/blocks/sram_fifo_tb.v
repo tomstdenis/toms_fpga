@@ -1,6 +1,8 @@
 `timescale 1ns/1ps
 
 module sram_fifo_tb();
+	localparam
+		DUMMY = 6;
 
 	reg clk;
 	reg rst_n;
@@ -25,7 +27,7 @@ module sram_fifo_tb();
 		.CLK_FREQ_MHZ(50),
 		.FIFO_DEPTH(32),
 		.SRAM_ADDR_WIDTH(16),
-		.DUMMY_BYTES(1),
+		.DUMMY_BYTES(DUMMY),
 		.CMD_READ(8'h03),
 		.CMD_WRITE(8'h02),
 		.CMD_EQIO(8'h38),
@@ -39,7 +41,7 @@ module sram_fifo_tb();
 			.write_cmd(write_cmd), .read_cmd(read_cmd), .read_cmd_size(read_cmd_size), .address(address),
 			.sio_pin(sio_pin), .cs_pin(cs_pin), .sck_pin(sck_pin));
     // Parameters
-    localparam CLK_PERIOD = 20;    // 50MHz
+    localparam CLK_PERIOD = 20;    //  50MHz
 	
     // Clock Generation
     always #(CLK_PERIOD/2) clk = ~clk;
@@ -128,8 +130,8 @@ module sram_fifo_tb();
 		read_cmd = 0;
 		@(posedge clk); #1;
 		wait(done == 1);
-		expect_read_cmd_wptr(1 + 2 + 1 + X[6:0]); // expecting the write pointer to be command + address + dummy + 16 byte read
-		expect_rptr(1 + 2 + 1);      // expecting the read pointer to be command + address + dummy meaning rptr..wptr-1 is the payload
+		expect_read_cmd_wptr(1 + 2 + DUMMY + X[6:0]); // expecting the write pointer to be command + address + dummy + 16 byte read
+		expect_rptr(1 + 2 + DUMMY);      // expecting the read pointer to be command + address + dummy meaning rptr..wptr-1 is the payload
 
 		// perform X reads from the fifo
 		test_phase = 5;
@@ -143,8 +145,8 @@ module sram_fifo_tb();
 			endcase
 			expect_data_out_empty(0);
 			@(posedge clk); #1;			 // wait into the next cycle
-			expect_read_cmd_wptr(1 + 2 + 1 + X[6:0]); // shouldn't change
-			expect_rptr(1 + 2 + 1 + (i[6:0] + 1'b1));
+			expect_read_cmd_wptr(1 + 2 + DUMMY + X[6:0]); // shouldn't change
+			expect_rptr(1 + 2 + DUMMY + (i[6:0] + 1'b1));
 		end
 		expect_data_out_empty(1);
 		data_out_read = 0;

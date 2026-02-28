@@ -166,26 +166,19 @@ module spi_sram_fifo #(
 					  };
 	assign data_out_empty = (fifo_rptr >= read_cmd_wptr) ? 1'b1 : 1'b0;
 
-	initial begin
-		hangup_timer[0] = 0;
-	end
 	always @(posedge clk) begin
 		if (!rst_n) begin
-			hangup_timer[0] <= hangup_timer[0] ^ 1'b1;
-			if (hangup_timer[0]) begin
-				fifo_wptr <= 1 + (SRAM_ADDR_WIDTH/8);			// user data goes after the write command and address bytes
-				fifo_rptr <= 0;
-				read_cmd_wptr <= 0;
-				state <= STATE_INIT;
-				temp_bits <= 0;
-			end else begin
-				sio_en <= 4'b0000;								// disable all outputs
-				fifo[0] <= 0;									// ensure data_out is initialized 
-				dout <= 0;
-				busy <= 0;
-				doing_read <= 0;
-				bytes_to_read <= 0;
-			end
+            fifo_wptr <= 1 + (SRAM_ADDR_WIDTH/8);			// user data goes after the write command and address bytes
+            fifo_rptr <= 0;
+            read_cmd_wptr <= 0;
+            state <= STATE_INIT;
+            temp_bits <= 0;
+            sio_en <= 4'b0000;								// disable all outputs
+            fifo[0] <= 0;									// ensure data_out is initialized 
+            dout <= 0;
+            busy <= 0;
+            doing_read <= 0;
+            bytes_to_read <= 0;
 		end else begin
 			case(state)
 				STATE_INIT:
@@ -227,7 +220,7 @@ module spi_sram_fifo #(
 								1'd0:							// we put data on the line in the first half cycle
 									begin
 `ifdef SIM_MODEL
-	if (fifo_rptr >= (1 + (SRAM_ADDR_WIDTH/8)) + DUMMY_BYTES) begin
+	if (fifo_rptr >= (1 + (SRAM_ADDR_WIDTH/8))) begin
 		if (bit_cnt == 2) begin
 			sim_memory[sim_address] <= {temp_bits[7:4], sim_memory[sim_address][3:0]};
 		end else begin
@@ -279,6 +272,7 @@ module spi_sram_fifo #(
 			$display("We read %2h from %4h", {temp_bits[3:0], sim_memory[sim_address][3:0]}, sim_address);
 		end
 	end else begin
+		$display("dummy == %d", sim_dummy);
 		sim_dummy <= sim_dummy - 1'b1;
 	end
 `else
