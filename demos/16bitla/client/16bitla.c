@@ -109,7 +109,7 @@ static void read_config(char *fname)
 
 static void program_and_read(int fd)
 {
-	uint8_t cmd[7];
+	uint8_t cmd[8];
 	int x;
 	
 	cmd[0] = trigger_mask & 0xFF;
@@ -119,8 +119,9 @@ static void program_and_read(int fd)
 	cmd[4] = prescale;
 	cmd[5] = post_trigger;
 	cmd[6] = lut4mode;
+	cmd[7] = 0;
 	
-	if (write(fd, cmd, 7) != 7) {
+	if (write(fd, cmd, 8) != 8) {
 		fprintf(stderr, "ERROR: Could not write command to logic analyzer...\n");
 		exit(-1);
 	}
@@ -247,7 +248,7 @@ int main(int argc, char **argv)
 	tcflush(fd, TCIOFLUSH);
 	
 	read_config(argv[2]);
-	printf("Performing %d-channel sampling using a prescale of %u (%g ns per sample), mask=%04x, pol=%04x(%s triggered), post=%lu samples\nReady for trigger.\n", la_channels, prescale + 1, NS_PER_SAMPLE, trigger_mask, trigger_pol, lut4mode ? "LUT4" : "edge", (unsigned long)post_trigger * (la_channels == 8 ? 256 : 128));
+	printf("Performing %d-channel sampling using a prescale of %u (%g ns per sample, %g kHz), mask=%04x, pol=%04x(%s triggered), post=%lu samples\nReady for trigger.\n", la_channels, prescale + 1, NS_PER_SAMPLE, (1000000000.0f / NS_PER_SAMPLE) / 1000.0, trigger_mask, trigger_pol, lut4mode ? "LUT4" : "edge", (unsigned long)post_trigger * (la_channels == 8 ? 256 : 128));
 	program_and_read(fd);
 	
 	sprintf(outname, "%s.raw", argv[2]);

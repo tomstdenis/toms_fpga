@@ -27,7 +27,7 @@ module top(
     wire uart_rx_ready;                                         // there's a byte to read
     wire [7:0] uart_rx_byte;                                    // the byte that is available to read
 
-    uart #(.FIFO_DEPTH(8), .RX_ENABLE(1), .TX_ENABLE(1)) la_uart(
+    uart #(.FIFO_DEPTH(16), .RX_ENABLE(1), .TX_ENABLE(1)) la_uart(
         .clk(pll_clk), .rst_n(rst_n),
         .baud_div(uart_bauddiv),
         .uart_tx_start(uart_tx_start),
@@ -105,8 +105,8 @@ module top(
     );
 
     // MAIN app
-    reg [7:0] main_rx_frame[6:0];           // each command is 7 bytes
-    reg [2:0] main_rx_frame_i;              // how many bytes have we read so far
+    reg [7:0] main_rx_frame[7:0];           // each command is 8 bytes
+    reg [3:0] main_rx_frame_i;              // how many bytes have we read so far
     reg [7:0] main_tx_byte_buf;             // buffer holding byte to send for MAIN_TRANSMIT_WAIT
     reg [3:0] main_state;                   // which state is the FSM in
     reg [3:0] main_state_tag;               // tag system allows generic wait and what not
@@ -211,7 +211,7 @@ returns 65536 samples.
                                 MAIN_FLUSH_RX:
                                     begin
                                         if (uart_rx_ready) begin
-                                            uart_rx_read <= uart_rx_read ^ 1'b1;
+                                            uart_rx_read <= 1'b1;
                                             main_state <= MAIN_FLUSH_RX_DELAY;
                                         end else begin
                                             main_state <= MAIN_CMD_BYTES;
@@ -219,23 +219,25 @@ returns 65536 samples.
                                     end
                                 MAIN_FLUSH_RX_DELAY:
                                     begin
+                                        uart_rx_read <= 1'b0;
                                         main_state <= MAIN_FLUSH_RX;
                                     end
                                 MAIN_CMD_BYTES:
                                     begin
-                                        if (main_rx_frame_i == 'd7) begin
+                                        if (main_rx_frame_i == 'd8) begin
                                             ledv[LED_WAITING_ON_RX]      <= 0;               // not waiting for serial RX
                                             ledv[LED_WAITING_ON_SAMPLES] <= 1;               // waiting for sampling
                                             main_state <= MAIN_PROGRAM_TIMER;
                                         end else begin
                                             if (uart_rx_ready) begin
-                                                uart_rx_read <= uart_rx_read ^ 1'b1;                // toggle line
+                                                uart_rx_read <= 1'b1;                // toggle line
                                                 main_state <= MAIN_READ_BYTE_DELAY1;
                                             end
                                         end
                                     end
                                 MAIN_READ_BYTE_DELAY1:                                       // this is the cycle the UART responds to toggling uart_rx_read
                                     begin
+                                        uart_rx_read <= 1'b0;
                                         main_state <= MAIN_READ_BYTE_DELAY2;
                                     end
                                 MAIN_READ_BYTE_DELAY2:                                      // Now we can read the data from the UART RX
@@ -269,7 +271,7 @@ returns 65536 samples.
                                     begin
                                         if (!uart_tx_fifo_full) begin
                                             uart_tx_data_in <= main_tx_byte_buf;
-                                            uart_tx_start <= uart_tx_start ^ 1'b1;
+                                            uart_tx_start <= 1'b1;
                                             main_state <= main_state_tag;               // jump back to next state
                                         end
                                     end
@@ -287,9 +289,11 @@ returns 65536 samples.
                                         main_state_tag   <= MAIN_TRANSMIT_BUF;
                                         main_state       <= MAIN_TRANSMIT_WAIT;
                                         main_buf_i       <= 0;                          // clear index into memory to transmit
+                                        uart_tx_start    <= 1'b0;
                                     end
                                 MAIN_TRANSMIT_BUF:
                                     begin
+                                        uart_tx_start    <= 1'b0;
                                         if (main_buf_i == 17'h10000) begin
                                             main_state <= MAIN_INIT;
                                             ledv[LED_WAITING_ON_TX]          <= 0;      // not waiting for transmitting
