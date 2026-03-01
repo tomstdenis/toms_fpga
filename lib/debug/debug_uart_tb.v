@@ -33,7 +33,7 @@ module debug_uart_tb();
 	 *
 	 * This would sit inside your design and it's what the host talks to over UART
 	 */
-	wire [15:0] baud_div = 16'd434;
+	wire [15:0] baud_div = 16'd9;					// ludicrously fast UART but more importantly not equal to our SPI clock prescaler
 	wire uart_rx_pin;								// these are relative to the controller
 	wire uart_tx_pin;								// the host UART transmits to the rx_pin and receives from the tx_pin, etc...
 	
@@ -191,6 +191,7 @@ module debug_uart_tb();
 		begin
 			// transmit over UART (we assume the FIFO_DEPTH > SF_BITS/8
 			for (x = 0; x < SF_BITS/8; x++) begin
+				while (host_uart_tx_fifo_full == 1);
 				host_uart_tx_data_in 	= bits[SF_BITS-1:SF_BITS-8];
 				host_uart_tx_start 		= 1;
 				bits 					= {bits[SF_BITS-9:0], 8'b0};
