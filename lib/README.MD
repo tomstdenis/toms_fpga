@@ -62,6 +62,8 @@ The bus uses the lower 8 or 16 bits of i_data and o_data when be is 4'b0001 or 4
 Modules
 -------
 
+- **debug**: A chainable debug system that allows reading and writing 128-bit payloads deep inside design, supports dynamic addressing with identifiable nodes.
+
 - **fifo**: A generic read/write single clock FIFO with flush support
   
   - Implemented in **fifo/fifo.v** with test bench **fifo/fifo_tb.v**.
