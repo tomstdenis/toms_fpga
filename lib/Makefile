@@ -1,6 +1,6 @@
 all:
-	make -c debug
-	make -c sram
+	make -C debug
+	make -C sram
 	make -C fifo
 	make -C useq
 	make -C bsram
