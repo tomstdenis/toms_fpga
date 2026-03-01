@@ -1,4 +1,5 @@
 all:
+	make -c debug
 	make -c sram
 	make -C fifo
 	make -C useq
@@ -7,6 +8,7 @@ all:
 	make -C timer
 
 clean:
+	make -C debug clean
 	make -C sram clean
 	make -C fifo clean
 	make -C useq clean

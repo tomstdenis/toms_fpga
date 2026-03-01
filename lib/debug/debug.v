@@ -72,7 +72,7 @@ module serial_debug(
 	output reg [127:0] debug_incoming_data,				// data the host is writing to us
 	
 	// identity
-	wire [127:0] identity								// 128-bit identity provided with a read and CMD == IDENT used to tell the host what module this address is
+	input [127:0] identity								// 128-bit identity provided with a read and CMD == IDENT used to tell the host what module this address is
 );
 	localparam
 		SF_BITS = 128 + 16,								// bits per store-forward frame, 128 data bits + 15 address bits + 1 direction bit
@@ -127,9 +127,9 @@ module serial_debug(
 				STATE_IDLE:
 					begin
 						if (cur_rx_clk_prev == 1'b1 && cur_rx_clk == 1'b0) begin				// detect falling edge of clk
-							state <= STATE_LOADING_SF;
+							state 		 <= STATE_LOADING_SF;
 							sf_bits_left <= SF_BITS;
-							sf_buf <= 0;
+							sf_buf		 <= 0;
 						end
 					end
 				STATE_LOADING_SF:
@@ -150,6 +150,9 @@ module serial_debug(
 						sf_bits_left 	 <= SF_BITS;											// total bits
 						sf_prescale_cnt  <= 2;													// We want to align to a falling edge of the clock
 						tx_clk 			 <= 1'b1;												// ensure clock is high for at least 2 cycles
+
+$display("sf_address = %h, sf_direction = %d", sf_address, sf_direction);
+
 						if (our_address == BROADCAST_ADDR && sf_address == BROADCAST_ADDR) begin
 							// first packet will be enumeration
 							our_address   <= sf_buf[30:16];										// store our address
@@ -190,7 +193,7 @@ module serial_debug(
 								// we're transition to low so load the next bit
 								tx_data			 <= sf_buf[SF_BITS-1];							// send the MSB
 								sf_buf 			 <= {sf_buf[SF_BITS-2:0], 1'b0 };				// shift store forward buffer left
-								if (sf_bits_left == 1) begin
+								if (sf_bits_left == 0) begin
 									state 		 <= STATE_IDLE;									// out of bits return to IDLE state
 									tx_clk 		 <= 1'b1;										// ensure clock goes high
 								end else begin
