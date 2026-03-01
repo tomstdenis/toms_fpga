@@ -9,24 +9,24 @@ module debug_uart_tb();
 	reg [7:0] prescaler;
 	
 	/* The debug node itself */
-	wire rx_data;
-	wire rx_clk;
-	wire tx_data;
-	wire tx_clk;
-	reg [127:0] debug_outgoing_data;
-	wire debug_incoming_tgl;
+	wire node_rx_data;
+	wire node_rx_clk;
+	wire node_tx_data;
+	wire node_tx_clk;
+	reg [127:0] node_debug_outgoing_data;
+	wire node_debug_incoming_tgl;
 	reg  prev_debug_incoming_tgl;
-	wire [127:0] debug_incoming_data;
-	reg [127:0] identity;
+	wire [127:0] node_debug_incoming_data;
+	reg [127:0] node_identity;
 	
 	serial_debug debug_dut(
 		.clk(clk), .rst_n(rst_n),
-		.prescaler(prescaler), .rx_data(rx_data), .rx_clk(rx_clk),
-		.tx_data(tx_data), .tx_clk(tx_clk),
-		.debug_outgoing_data(debug_outgoing_data),
-		.debug_incoming_data(debug_incoming_data),
-		.debug_incoming_tgl(debug_incoming_tgl),
-		.identity(identity)
+		.prescaler(prescaler), .rx_data(node_rx_data), .rx_clk(node_rx_clk),
+		.tx_data(node_tx_data), .tx_clk(node_tx_clk),
+		.debug_outgoing_data(node_debug_outgoing_data),
+		.debug_incoming_data(node_debug_incoming_data),
+		.debug_incoming_tgl(node_debug_incoming_tgl),
+		.identity(node_identity)
 	);
 	
 	/* UART module attached to the debug node 
@@ -34,23 +34,23 @@ module debug_uart_tb();
 	 * This would sit inside your design and it's what the host talks to over UART
 	 */
 	wire [15:0] baud_div = 16'd9;					// ludicrously fast UART but more importantly not equal to our SPI clock prescaler
-	wire uart_rx_pin;								// these are relative to the controller
-	wire uart_tx_pin;								// the host UART transmits to the rx_pin and receives from the tx_pin, etc...
+	wire uart_debug_rx_pin;							// these are relative to the controller
+	wire uart_debug_tx_pin;							// the host UART transmits to the rx_pin and receives from the tx_pin, etc...
 	
 	serial_debug_uart debug_uart(
 		.clk(clk), .rst_n(rst_n),
 		.prescaler(prescaler),
 		
 		// connect to node
-		.debug_tx_data(tx_data),					// this is connected to our one debug node.  In practice
-		.debug_tx_clk(tx_clk),						// tx_* is connected to the last nodes tx
-		.debug_rx_data(rx_data),					// and rx is connected to the first nodes RX
-		.debug_rx_clk(rx_clk),
+		.debug_tx_data(node_tx_data),				// this is connected to our one debug node.  In practice
+		.debug_tx_clk(node_tx_clk),					// tx_* is connected to the last nodes tx
+		.debug_rx_data(node_rx_data),				// and rx is connected to the first nodes RX
+		.debug_rx_clk(node_rx_clk),
 		
 		// connect uart
 		.uart_bauddiv(baud_div),
-		.uart_rx_pin(uart_rx_pin),
-		.uart_tx_pin(uart_tx_pin)
+		.uart_rx_pin(uart_debug_rx_pin),			// these are the wires for the debugger's UART
+		.uart_tx_pin(uart_debug_tx_pin)				// they would be crossed to talk with a the host (see below)
 	);
 
 	/* "host" is the UART that the PC controls
@@ -68,9 +68,14 @@ module debug_uart_tb();
 	uart #(.FIFO_DEPTH(32), .RX_ENABLE(1), .TX_ENABLE(1)) host_uart(
 		.clk(clk), .rst_n(rst_n),
 		.baud_div(baud_div),
-		.uart_tx_start(host_uart_tx_start), .uart_tx_data_in(host_uart_tx_data_in),
-		.uart_tx_pin(uart_rx_pin), .uart_tx_fifo_full(host_uart_tx_fifo_full), .uart_tx_fifo_empty(),
-		.uart_rx_pin(uart_tx_pin), .uart_rx_read(host_uart_rx_read), .uart_rx_ready(host_uart_rx_ready),
+		.uart_tx_start(host_uart_tx_start),
+		.uart_tx_data_in(host_uart_tx_data_in),
+		.uart_tx_pin(uart_debug_rx_pin), 						// note we flip TX/RX, recall "host_uart" represents your PC's UART connecting to this design
+		.uart_rx_pin(uart_debug_tx_pin),
+		.uart_tx_fifo_full(host_uart_tx_fifo_full),
+		.uart_tx_fifo_empty(),
+		.uart_rx_read(host_uart_rx_read),
+		.uart_rx_ready(host_uart_rx_ready),
 		.uart_rx_byte(host_uart_rx_byte)
 	);
 
@@ -96,8 +101,8 @@ module debug_uart_tb();
         rst_n = 0;
         prescaler = 2;
         prev_debug_incoming_tgl = 0;
-        identity = 128'h12345678_11223344_55667788_99AABBCC;
-        debug_outgoing_data = 128'hFEDCBA98_76543210_00112233_44556677;
+        node_identity = 128'h12345678_11223344_55667788_99AABBCC;
+        node_debug_outgoing_data = 128'hFEDCBA98_76543210_00112233_44556677;
         test_phase = 0;
         i = 0;
         sf_buf = 0;
@@ -128,7 +133,7 @@ module debug_uart_tb();
 		
 		// check feedback
 		test_phase = 3;
-		sf_buf[SF_BITS-1:16] = identity;
+		sf_buf[SF_BITS-1:16] = node_identity;
 		receive_sfbuf(sf_buf);
 		
 		// ask identity of non-existent node should just pass through
@@ -149,7 +154,7 @@ module debug_uart_tb();
 		
 		// check feedback
 		test_phase = 7;
-		sf_buf[SF_BITS-1:16] = debug_outgoing_data;
+		sf_buf[SF_BITS-1:16] = node_debug_outgoing_data;
 		receive_sfbuf(sf_buf);
 
 		// read node that doesn't exist
@@ -172,11 +177,11 @@ module debug_uart_tb();
 		
 		// expect incoming data to change
 		test_phase = 12;
-		wait (debug_incoming_tgl != prev_debug_incoming_tgl);
-		prev_debug_incoming_tgl = debug_incoming_tgl;
-		if (debug_incoming_data != sf_buf[SF_BITS-1:16]) begin
+		wait (node_debug_incoming_tgl != prev_debug_incoming_tgl);
+		prev_debug_incoming_tgl = node_debug_incoming_tgl;
+		if (node_debug_incoming_data != sf_buf[SF_BITS-1:16]) begin
 			for (i = 0; i < 128; i++) begin
-				if (sf_buf[16+i] != debug_incoming_data[i]) begin
+				if (sf_buf[16+i] != node_debug_incoming_data[i]) begin
 					$display("Bit %d of written data doesn't match expected (%d)", i, sf_buf[16+i]);
 					$fatal;
 				end
