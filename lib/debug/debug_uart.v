@@ -1,12 +1,10 @@
 `timescale 1ns/1ps
-
 /*
 
 	Simple serial debugger - UART bridge
 	
 This module accepts SF_BITS sized packets from the UART RX, sends it over the serial debug wire, and then transmits
 what it receives on the other side via the UART TX.
-
 
 */
 
@@ -52,26 +50,119 @@ module serial_debug_uart (
 	reg [SF_BITS-1:0] uart_buf;
 	reg [7:0] uart_buf_i;
 	reg [3:0] uart_state;
-	
+	reg [3:0] uart_tag;
+	reg [7:0] prescale_cnt;
+	reg [3:0] tx_data_pipe;								// sync pipe for rx_data
+	reg [3:0] tx_clk_pipe;								// sync pipe for rx_clk
+	wire cur_tx_data = tx_data_pipe[2];					// current synced data
+	wire cur_tx_clk  = tx_clk_pipe[2];					// current synced clock
+	wire cur_tx_clk_prev = tx_clk_pipe[3];				// previous current synced clock
+
 	localparam
 		STATE_IDLE 			= 0,
 		STATE_RX_LOOP		= 1,
-		START_DBG_TX_LOOP	= 2,
-		START_DBG_RX_LOOP	= 3,
-		START_TX_LOOP		= 4;
+		STATE_DBG_TX_LOOP	= 2,
+		STATE_DBG_RX_LOOP	= 3,
+		STATE_TX_LOOP		= 4,
+		STATE_DELAY         = 5;
 		
 	always @(posedge clk) begin
 		if (!rst_n) begin
-			uart_tx_start <= 0;
-			uart_tx_data_in <= 0;
-			uart_rx_read <= 0;
-			uart_buf <= 0;
-			uart_buf_i <= 0;
-			uart_state <= STATE_IDLE;
+			uart_tx_start 		<= 0;
+			uart_tx_data_in		<= 0;
+			uart_rx_read		<= 0;
+			uart_buf			<= 0;
+			uart_buf_i			<= 0;
+			uart_state			<= STATE_IDLE;
+			debug_rx_clk		<= 1'b1;
+			debug_rx_data		<= 0;
 		end else begin
+			// solve for metastability
+			tx_data_pipe <= {tx_data_pipe[2:0], debug_tx_data};
+			tx_clk_pipe  <= {tx_clk_pipe[2:0], debug_tx_clk};
 			case(uart_state)
+				STATE_DELAY:
+					begin
+						uart_state		<= uart_tag;
+						uart_rx_read	<= 0;						// disable RX/TX command 
+						uart_tx_start	<= 0;
+					end
 				STATE_IDLE:
 					begin
+						uart_buf_i		<= SF_BITS/8;				// we expect to read SF_BITS/8 bytes
+						if (uart_rx_ready) begin					// are there incoming bytes?
+							uart_rx_read 	<= 1'b1;				// start read
+							uart_tag 		<= STATE_RX_LOOP;		// head into RX loop
+							uart_state 		<= STATE_DELAY;			// give the UART a cycle to respond
+						end
+					end
+				STATE_RX_LOOP:										// read the store forward buffer 8 bits at a time from the UART
+					begin
+						if (uart_rx_read) begin
+							uart_buf <= {uart_buf[SF_BITS-9:0], uart_rx_byte};
+							uart_rx_read <= 0;
+							if (uart_buf_i == 1) begin
+								uart_state		<= STATE_DBG_TX_LOOP;
+								uart_buf_i		<= SF_BITS;
+								prescale_cnt	<= prescaler;
+								debug_rx_clk    <= 1'b1;			// clock starts high
+							end else begin
+								uart_buf_i		<= uart_buf_i - 1'b1;
+							end
+						end else if (uart_rx_ready) begin
+							uart_rx_read 		<= 1'b1;
+							uart_state 			<= STATE_DELAY;
+							uart_tag 			<= STATE_RX_LOOP;
+						end
+					end
+				STATE_DBG_TX_LOOP:									// transmit the entire store_forward
+					begin
+						if (prescale_cnt == 1) begin
+							if (debug_rx_clk == 1) begin
+								// we're going low so store the next bit
+								debug_rx_data	<= uart_buf[SF_BITS-1];
+								uart_buf		<= {uart_buf[SF_BITS-2:0], 1'b0 };
+								if (uart_buf_i == 1) begin
+									// we're done
+									uart_state 	<= STATE_DBG_RX_LOOP;
+									uart_buf_i  <= SF_BITS;
+								end else begin
+									// next bit (and we only set clock low if there is a next bit)
+									uart_buf_i	<= uart_buf_i - 1'b1;
+									debug_rx_clk <= 1'b0;
+								end
+							end else begin
+								// we're going high so keep data steady
+								debug_rx_clk 	<= 1'b1;
+							end
+							prescale_cnt		<= prescaler;
+						end else begin
+							prescale_cnt		<= prescale_cnt - 1'b1;
+						end
+					end
+				STATE_DBG_RX_LOOP:									// receive the entire store forward
+					begin
+						if (cur_tx_clk_prev == 1'b0 && cur_tx_clk == 1'b1) begin	// detect raising edge of clock
+							uart_buf <= {uart_buf[SF_BITS-2:0], cur_tx_data};
+							if (uart_buf_i == 1) begin
+								// we're done
+								uart_buf_i <= SF_BITS/8;
+								uart_state <= STATE_TX_LOOP;
+							end else begin
+								uart_buf_i <= uart_buf_i - 1'b1;
+							end
+						end
+					end
+				STATE_TX_LOOP:										// transmit the store forward over UART
+					begin
+						if (!uart_tx_fifo_full) begin
+							uart_tx_data_in <= uart_buf[SF_BITS-1:SF_BITS-8];
+							uart_buf 		<= {uart_buf[SF_BITS-9:0], 8'b0};
+							uart_tx_start   <= 1;
+							uart_tag		<= (uart_buf_i == 1) ? STATE_IDLE : STATE_TX_LOOP;
+							uart_state		<= STATE_DELAY;
+							uart_buf_i		<= uart_buf_i - 1'b1;
+						end
 					end
 				default:
 					begin
