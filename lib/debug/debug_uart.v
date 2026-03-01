@@ -99,7 +99,7 @@ module serial_debug_uart (
 				STATE_RX_LOOP_GETBYTE:								// store a UART incoming byte and advance state
 					begin
 						uart_buf <= {uart_buf[SF_BITS-9:0], uart_rx_byte};
-						if (uart_buf_i == 1) begin
+						if (uart_buf_i == 0) begin
 							uart_state		<= STATE_DBG_TX_LOOP;
 							uart_buf_i		<= SF_BITS;
 							prescale_cnt	<= prescaler;

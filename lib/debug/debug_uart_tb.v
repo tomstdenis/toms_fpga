@@ -116,7 +116,7 @@ module debug_uart_tb();
 		
 		// read back enumeration
 		test_phase = 1;
-		sf_buf[30:16] = 15'h1235;					// we expect an enumeration of 1 back
+		sf_buf[30:16] = 15'h1235;					// we expect an enumeration of +1 back
 		receive_sfbuf(sf_buf);
 
 		// probe identity
