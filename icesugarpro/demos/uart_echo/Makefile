@@ -20,7 +20,7 @@ $(TARGET).bit: $(TARGET)_out.config
 ${TARGET}.svf : ${TARGET}.bit
 
 prog: ${TARGET}.svf
-		dapprog ${TARGET}.svf
+		ecpprog -S ${TARGET}.svf
 
 pll.v:
 	ecppll -i 25 -o ${FREQ} -f pll.v
