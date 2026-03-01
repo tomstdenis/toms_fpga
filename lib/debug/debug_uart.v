@@ -26,7 +26,7 @@ module serial_debug_uart (
 	// uart
 	input [15:0] uart_bauddiv,
 	input uart_rx_pin,
-	output reg uart_tx_pin
+	output uart_tx_pin
 );
 
 	reg uart_tx_start;
@@ -59,12 +59,13 @@ module serial_debug_uart (
 	wire cur_tx_clk_prev = tx_clk_pipe[3];				// previous current synced clock
 
 	localparam
-		STATE_IDLE 			= 0,
-		STATE_RX_LOOP		= 1,
-		STATE_DBG_TX_LOOP	= 2,
-		STATE_DBG_RX_LOOP	= 3,
-		STATE_TX_LOOP		= 4,
-		STATE_DELAY         = 5;
+		STATE_IDLE 				= 0,
+		STATE_RX_LOOP			= 1,
+		STATE_RX_LOOP_GETBYTE 	= 2,
+		STATE_DBG_TX_LOOP		= 3,
+		STATE_DBG_RX_LOOP		= 4,
+		STATE_TX_LOOP			= 5,
+		STATE_DELAY         	= 6;
 		
 	always @(posedge clk) begin
 		if (!rst_n) begin
@@ -81,7 +82,7 @@ module serial_debug_uart (
 			tx_data_pipe <= {tx_data_pipe[2:0], debug_tx_data};
 			tx_clk_pipe  <= {tx_clk_pipe[2:0], debug_tx_clk};
 			case(uart_state)
-				STATE_DELAY:
+				STATE_DELAY:										// delay cycle to allow UART to respond to command
 					begin
 						uart_state		<= uart_tag;
 						uart_rx_read	<= 0;						// disable RX/TX command 
@@ -91,28 +92,29 @@ module serial_debug_uart (
 					begin
 						uart_buf_i		<= SF_BITS/8;				// we expect to read SF_BITS/8 bytes
 						if (uart_rx_ready) begin					// are there incoming bytes?
-							uart_rx_read 	<= 1'b1;				// start read
-							uart_tag 		<= STATE_RX_LOOP;		// head into RX loop
-							uart_state 		<= STATE_DELAY;			// give the UART a cycle to respond
+							uart_tag 	<= STATE_RX_LOOP_GETBYTE;	// head into RX loop
+							uart_state  <= STATE_DELAY;
+						end
+					end
+				STATE_RX_LOOP_GETBYTE:								// store a UART incoming byte and advance state
+					begin
+						uart_buf <= {uart_buf[SF_BITS-9:0], uart_rx_byte};
+						if (uart_buf_i == 1) begin
+							uart_state		<= STATE_DBG_TX_LOOP;
+							uart_buf_i		<= SF_BITS;
+							prescale_cnt	<= prescaler;
+							debug_rx_clk    <= 1'b1;			// clock starts high
+						end else begin
+							uart_buf_i		<= uart_buf_i - 1'b1;
+							uart_state 		<= STATE_RX_LOOP;
 						end
 					end
 				STATE_RX_LOOP:										// read the store forward buffer 8 bits at a time from the UART
 					begin
-						if (uart_rx_read) begin
-							uart_buf <= {uart_buf[SF_BITS-9:0], uart_rx_byte};
-							uart_rx_read <= 0;
-							if (uart_buf_i == 1) begin
-								uart_state		<= STATE_DBG_TX_LOOP;
-								uart_buf_i		<= SF_BITS;
-								prescale_cnt	<= prescaler;
-								debug_rx_clk    <= 1'b1;			// clock starts high
-							end else begin
-								uart_buf_i		<= uart_buf_i - 1'b1;
-							end
-						end else if (uart_rx_ready) begin
-							uart_rx_read 		<= 1'b1;
-							uart_state 			<= STATE_DELAY;
-							uart_tag 			<= STATE_RX_LOOP;
+						if (uart_rx_ready) begin					// wait for an RX byte to be ready
+							uart_rx_read 		<= 1;
+							uart_state			<= STATE_DELAY;
+							uart_tag			<= STATE_RX_LOOP_GETBYTE;
 						end
 					end
 				STATE_DBG_TX_LOOP:									// transmit the entire store_forward
@@ -122,7 +124,7 @@ module serial_debug_uart (
 								// we're going low so store the next bit
 								debug_rx_data	<= uart_buf[SF_BITS-1];
 								uart_buf		<= {uart_buf[SF_BITS-2:0], 1'b0 };
-								if (uart_buf_i == 1) begin
+								if (uart_buf_i == 0) begin
 									// we're done
 									uart_state 	<= STATE_DBG_RX_LOOP;
 									uart_buf_i  <= SF_BITS;
