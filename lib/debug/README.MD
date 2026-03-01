@@ -89,7 +89,7 @@ module serial_debug(
 
 To make this easy to integrate into designs there is also a serial_debug_uart module which makes uses of the FIFO based UART
 from lib/uart/blocks/.  This is used by instantiating your node(s) as required and then you hook up debug_rx_* to **input of the FIRST
-node** in the chain, and attach debug_tx_* to the ((output of the LAST node in the chain**.  The bridge reads 18 bytes at a time from the UART RX
+node** in the chain, and attach debug_tx_* to the **output of the LAST node in the chain**.  The bridge reads 18 bytes at a time from the UART RX
 pin, sends it over the simple serial bus, reads the 18 byte output and sends it to the UART TX pin.  
 
 ```
