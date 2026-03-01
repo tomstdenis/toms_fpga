@@ -151,8 +151,9 @@ module serial_debug(
 						sf_prescale_cnt  <= 2;													// We want to align to a falling edge of the clock
 						tx_clk 			 <= 1'b1;												// ensure clock is high for at least 2 cycles
 
-$display("sf_address = %h, sf_direction = %d", sf_address, sf_direction);
-
+						`ifdef SIM_MODEL
+						$display("sf_address = %h, sf_direction = %d", sf_address, sf_direction);
+						`endif
 						if (our_address == BROADCAST_ADDR && sf_address == BROADCAST_ADDR) begin
 							// first packet will be enumeration
 							our_address   <= sf_buf[30:16];										// store our address
