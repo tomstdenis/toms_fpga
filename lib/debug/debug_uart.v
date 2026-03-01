@@ -20,7 +20,7 @@ module serial_debug_uart (
 	input debug_tx_clk,									// incoming debug serial clock
 	
 	// serial output
-	output reg debug_rx_data,							// outgoing debug serial data
+	output reg debug_rx_data,							// outgoing debug serial data (to the first debug node)
 	output reg debug_rx_clk,							// outgoing debug serial clock
 	
 	// uart
