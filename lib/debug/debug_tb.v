@@ -126,10 +126,11 @@ module debug_tb();
 		sf_buf[0]	  = 1;							// WRITE
 		sf_buf[SF_BITS-1:16] = 128'hAABBCCDD_EEFF0011_22334455_66778899;
 		transmit_sfbuf(sf_buf);
-		@(posedge clk);
+		test_phase = 11;
+		receive_sfbuf(sf_buf);						// writes should pass through
 		
 		// expect incoming data to change
-		test_phase = 11;
+		test_phase = 12;
 		wait (debug_incoming_tgl != prev_debug_incoming_tgl);
 		prev_debug_incoming_tgl = debug_incoming_tgl;
 		if (debug_incoming_data != sf_buf[SF_BITS-1:16]) begin
