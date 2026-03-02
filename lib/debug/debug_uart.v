@@ -38,7 +38,7 @@ module serial_debug_uart #(
 	wire uart_rx_ready;
 	wire [7:0] uart_rx_byte;
 
-	uart #(.FIFO_DEPTH(8), .RX_ENABLE(1), .TX_ENABLE(1)) debug_uart
+	uart #(.FIFO_DEPTH(4), .RX_ENABLE(1), .TX_ENABLE(1)) debug_uart
 		(
 			.clk(clk), .rst_n(rst_n),
 			.baud_div(uart_bauddiv),
