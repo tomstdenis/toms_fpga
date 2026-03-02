@@ -5,8 +5,18 @@ module top(
     output [3:0] led);
 
     localparam
-        BITS=128,
+        BITS=32,
         ENABLE=1;
+   
+    wire pll_clk;
+
+    // 81 MHz PLL
+    Gowin_rPLL debug_node_1_pll(
+        .clkout(pll_clk), //output clkout
+        .clkin(clk) //input clkin
+    );
+
+
 
     wire node0_rx_data;
     wire node0_rx_clk;
@@ -48,6 +58,7 @@ module top(
 
     wire [15:0] baud_div = 27_000_000 / 115_200;
 
+    // node0 -- Runs at 27MHz
     serial_debug #(.BITS(BITS), .ENABLE(ENABLE)) node0(
         .clk(clk), .rst_n(rst_n),
         .prescaler(8'h4),
@@ -57,15 +68,17 @@ module top(
         .debug_incoming_tgl(node0_incoming_tgl), .debug_incoming_data(node0_incoming_data),
         .identity(node0_identity));
 
+    // node1 -- runs at 81MHz 
     serial_debug #(.BITS(BITS), .ENABLE(ENABLE)) node1(
-        .clk(clk), .rst_n(rst_n),
-        .prescaler(8'h4),
+        .clk(pll_clk), .rst_n(rst_n),
+        .prescaler(8'hC),                                   // node1 runs 3x faster than the other nodes so it needs a 3x prescaler
         .rx_data(node0_tx_data), .rx_clk(node0_tx_clk),
         .tx_data(node1_tx_data), .tx_clk(node1_tx_clk),
         .debug_outgoing_data(node1_outgoing_data),
         .debug_incoming_tgl(node1_incoming_tgl), .debug_incoming_data(node1_incoming_data),
         .identity(node1_identity));
 
+    // node2 -- runs at 27MHz
     serial_debug #(.BITS(BITS), .ENABLE(ENABLE)) node2(
         .clk(clk), .rst_n(rst_n),
         .prescaler(8'h4),
@@ -75,6 +88,7 @@ module top(
         .debug_incoming_tgl(node2_incoming_tgl), .debug_incoming_data(node2_incoming_data),
         .identity(node2_identity));
 
+    // node3 -- runs at 27MHz
     serial_debug #(.BITS(BITS), .ENABLE(ENABLE)) node3(
         .clk(clk), .rst_n(rst_n),
         .prescaler(8'h4),
@@ -84,6 +98,7 @@ module top(
         .debug_incoming_tgl(node3_incoming_tgl), .debug_incoming_data(node3_incoming_data),
         .identity(node3_identity));
 
+    // uartdebug -- runs at 27MHz
     serial_debug_uart #(.BITS(BITS), .ENABLE(ENABLE)) debug_uart(
         .clk(clk), .rst_n(rst_n),
         .prescaler(8'h4),
@@ -91,42 +106,40 @@ module top(
         .debug_rx_data(node0_rx_data), .debug_rx_clk(node0_rx_clk),
         .uart_bauddiv(baud_div), .uart_rx_pin(uart_rx), .uart_tx_pin(uart_tx));
 
-
-/*
-    serial_debug_uart #(.BITS(BITS), .ENABLE(ENABLE)) debug_uart(
-        .clk(clk), .rst_n(rst_n),
-        .prescaler(8'h4),
-        .debug_tx_data(node0_tx_data), .debug_tx_clk(node0_tx_clk),
-        .debug_rx_data(node0_rx_data), .debug_rx_clk(node0_rx_clk),
-        .uart_bauddiv(baud_div), .uart_rx_pin(uart_rx), .uart_tx_pin(uart_tx));
-*/
     // RESET
     reg [3:0] rstcnt = 4'b0;
     assign rst_n = rstcnt[3];
+
+    // node1 resides in the pll_clk domain so we manipulate it here
+    always @(posedge pll_clk) begin
+        if (!rst_n) begin
+            node1_outgoing_data <= 0;
+            node1_incoming_tgl_prev <= 0;
+            node1_identity <= 32'h11223301;
+        end else begin
+            if (node1_incoming_tgl_prev != node1_incoming_tgl) begin
+                node1_incoming_tgl_prev <= node1_incoming_tgl;
+                node1_outgoing_data <= node1_incoming_data;
+            end
+        end
+    end
 
     always @(posedge clk) begin
         rstcnt <= {rstcnt[2:0], 1'b1};
         if (!rst_n) begin
             node0_outgoing_data <= 0;
-            node1_outgoing_data <= 0;
             node2_outgoing_data <= 0;
             node3_outgoing_data <= 0;
             node0_incoming_tgl_prev <= 0;
-            node1_incoming_tgl_prev <= 0;
             node2_incoming_tgl_prev <= 0;
             node3_incoming_tgl_prev <= 0;
             node0_identity <= 32'h11223300;
-            node1_identity <= 32'h11223301;
             node2_identity <= 32'h11223302;
             node3_identity <= 32'h11223303;
         end else begin
             if (node0_incoming_tgl_prev != node0_incoming_tgl) begin
                 node0_incoming_tgl_prev <= node0_incoming_tgl;
                 node0_outgoing_data <= node0_incoming_data;
-            end
-            if (node1_incoming_tgl_prev != node1_incoming_tgl) begin
-                node1_incoming_tgl_prev <= node1_incoming_tgl;
-                node1_outgoing_data <= node1_incoming_data;
             end
             if (node2_incoming_tgl_prev != node2_incoming_tgl) begin
                 node2_incoming_tgl_prev <= node2_incoming_tgl;
