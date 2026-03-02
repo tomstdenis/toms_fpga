@@ -9,7 +9,7 @@
 #include <inttypes.h>
 #include <time.h>
 
-#define PAYLOAD 16
+#define PAYLOAD 16											// how many bytes of payload must match BITS/8 in your instantiated debuggers
 #define FRAME   (PAYLOAD+2)
 static int set_interface_attribs(int fd, int speed) {
     struct termios tty;
@@ -82,7 +82,7 @@ void list_identities(int fd)
 			break;
 		}
 		printf("Node %04x: Identity = ", addr);
-		for(x = 0; x < 16; x++) { printf("%02x ", frame[x]); }
+		for(x = 0; x < PAYLOAD; x++) { printf("%02x ", frame[x]); }
 		printf("\n");
 	}
 	printf("Done.\n");
@@ -110,8 +110,8 @@ void blink(int fd)
 		send_cmd(fd, loss, loss);
 		if (memcmp(frame, loss, PAYLOAD)) {									// we should get the payload back
 			printf("Returned payload differs unexpectedly...\n");
-			{ int x; for (x = 0; x < 18; x++) printf("%2x ", loss[x]); printf("\n"); }
-			{ int x; for (x = 0; x < 18; x++) printf("%2x ", frame[x]); printf("\n"); }
+			{ int x; for (x = 0; x < FRAME; x++) printf("%2x ", loss[x]); printf("\n"); }
+			{ int x; for (x = 0; x < FRAME; x++) printf("%2x ", frame[x]); printf("\n"); }
 			exit(-1);
 		}
 		usleep(250000);
