@@ -16,6 +16,15 @@ module top(
         .clkin(clk) //input clkin
     );
 
+    // RESET
+    reg [3:0] rstcnt = 4'b0;
+    assign rst_n = rstcnt[3];
+
+    reg [2:0] rst_n_81_sync;
+    always @(posedge pll_clk) begin
+        rst_n_81_sync <= {rst_n_81_sync[1:0], rst_n}; // rst_n is from the 27MHz logic
+    end
+    wire rst_n_81 = rst_n_81_sync[2];
 
 
     wire node0_rx_data;
@@ -70,7 +79,7 @@ module top(
 
     // node1 -- runs at 81MHz 
     serial_debug #(.BITS(BITS), .ENABLE(ENABLE)) node1(
-        .clk(pll_clk), .rst_n(rst_n),
+        .clk(pll_clk), .rst_n(rst_n_81),
         .prescaler(8'hC),                                   // node1 runs 3x faster than the other nodes so it needs a 3x prescaler
         .rx_data(node0_tx_data), .rx_clk(node0_tx_clk),
         .tx_data(node1_tx_data), .tx_clk(node1_tx_clk),
@@ -105,10 +114,6 @@ module top(
         .debug_tx_data(node3_tx_data), .debug_tx_clk(node3_tx_clk),
         .debug_rx_data(node0_rx_data), .debug_rx_clk(node0_rx_clk),
         .uart_bauddiv(baud_div), .uart_rx_pin(uart_rx), .uart_tx_pin(uart_tx));
-
-    // RESET
-    reg [3:0] rstcnt = 4'b0;
-    assign rst_n = rstcnt[3];
 
     // node1 resides in the pll_clk domain so we manipulate it here
     always @(posedge pll_clk) begin
