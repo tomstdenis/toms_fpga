@@ -49,7 +49,9 @@ host application to make a UI or application around that on a per design basis.
 
 */
 
-module serial_debug(
+module serial_debug #(
+	parameter BITS=128
+)(
 	input clk,
 	input rst_n,
 	
@@ -65,17 +67,17 @@ module serial_debug(
 	output reg tx_clk,									// outgoing serial clock
 	
 	// controller input
-	input [127:0] debug_outgoing_data,					// default data we want to provide when given a READ (cmd != IDENT)
+	input [BITS-1:0] debug_outgoing_data,					// default data we want to provide when given a READ (cmd != IDENT)
 	
 	// control output
 	output reg debug_incoming_tgl,						// toggle indicating whether debug_incoming_data changed
-	output reg [127:0] debug_incoming_data,				// data the host is writing to us
+	output reg [BITS-1:0] debug_incoming_data,				// data the host is writing to us
 	
 	// identity
-	input [127:0] identity								// 128-bit identity provided with a read and CMD == IDENT used to tell the host what module this address is
+	input [BITS-1:0] identity								// 128-bit identity provided with a read and CMD == IDENT used to tell the host what module this address is
 );
 	localparam
-		SF_BITS = 128 + 16,								// bits per store-forward frame, 128 data bits + 15 address bits + 1 direction bit
+		SF_BITS = BITS + 16,								// bits per store-forward frame, 128 data bits + 15 address bits + 1 direction bit
 		BROADCAST_ADDR = 15'h7FFF,						// default broadcast address
 		READ_DIRECTION = 0,								// packet is a read
 		WRITE_DIRECTION = 1;							// packet is a write 

@@ -8,7 +8,9 @@ what it receives on the other side via the UART TX.
 
 */
 
-module serial_debug_uart (
+module serial_debug_uart #(
+	parameter BITS=128
+)(
 	input clk,
 	input rst_n,
 	
@@ -36,7 +38,7 @@ module serial_debug_uart (
 	wire uart_rx_ready;
 	wire [7:0] uart_rx_byte;
 
-	uart #(.FIFO_DEPTH(32), .RX_ENABLE(1), .TX_ENABLE(1)) debug_uart
+	uart #(.FIFO_DEPTH(8), .RX_ENABLE(1), .TX_ENABLE(1)) debug_uart
 		(
 			.clk(clk), .rst_n(rst_n),
 			.baud_div(uart_bauddiv),
@@ -45,7 +47,7 @@ module serial_debug_uart (
 		);
 
 	localparam
-		SF_BITS = 128 + 16;								// bits per store-forward frame, 128 data bits + 15 address bits + 1 direction bit
+		SF_BITS = BITS + 16;								// bits per store-forward frame, 128 data bits + 15 address bits + 1 direction bit
 
 	reg [SF_BITS-1:0] uart_buf;
 	reg [7:0] uart_buf_i;
