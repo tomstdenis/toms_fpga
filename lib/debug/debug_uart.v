@@ -9,7 +9,9 @@ what it receives on the other side via the UART TX.
 */
 
 module serial_debug_uart #(
-	parameter BITS=128
+	parameter 
+		BITS=128,
+		ENABLE=1
 )(
 	input clk,
 	input rst_n,
@@ -38,7 +40,7 @@ module serial_debug_uart #(
 	wire uart_rx_ready;
 	wire [7:0] uart_rx_byte;
 
-	uart #(.FIFO_DEPTH(4), .RX_ENABLE(1), .TX_ENABLE(1)) debug_uart
+	uart #(.FIFO_DEPTH(4), .RX_ENABLE(ENABLE), .TX_ENABLE(ENABLE)) debug_uart
 		(
 			.clk(clk), .rst_n(rst_n),
 			.baud_div(uart_bauddiv),
@@ -70,6 +72,7 @@ module serial_debug_uart #(
 		STATE_DELAY         	= 6;
 		
 	always @(posedge clk) begin
+if (ENABLE == 1) begin
 		if (!rst_n) begin
 			uart_tx_start 		<= 0;
 			uart_tx_data_in		<= 0;
@@ -173,5 +176,6 @@ module serial_debug_uart #(
 					end
 			endcase
 		end
+end
 	end
 endmodule

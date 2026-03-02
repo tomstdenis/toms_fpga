@@ -50,7 +50,9 @@ host application to make a UI or application around that on a per design basis.
 */
 
 module serial_debug #(
-	parameter BITS=128
+	parameter 
+		BITS=128,
+		ENABLE=1
 )(
 	input clk,
 	input rst_n,
@@ -111,6 +113,7 @@ module serial_debug #(
 	reg [3:0] state;									// current FSM state
 
 	always @(posedge clk) begin
+if (ENABLE == 1) begin
 		if (!rst_n) begin
 			our_address <= BROADCAST_ADDR;														// default to broadcast address
 			state <= STATE_IDLE;																// enter the IDLE state
@@ -212,5 +215,6 @@ module serial_debug #(
 				default: begin end
 			endcase
 		end
+end
 	end
 endmodule

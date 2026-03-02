@@ -20,7 +20,7 @@ module debug_tb();
 	wire [127:0] debug_incoming_data;
 	reg [127:0] identity;
 	
-	serial_debug #(.BITS(128)) debug_dut(
+	serial_debug #(.BITS(128), .ENABLE(1)) debug_dut(
 		.clk(clk), .rst_n(rst_n),
 		.prescaler(prescaler), .rx_data(rx_data), .rx_clk(rx_clk),
 		.tx_data(tx_data), .tx_clk(tx_clk),

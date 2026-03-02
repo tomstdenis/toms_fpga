@@ -5,7 +5,8 @@ module top(
     output [3:0] led);
 
     localparam
-        BITS=128;
+        BITS=128,
+        ENABLE=1;
 
     wire node0_rx_data;
     wire node0_rx_clk;
@@ -19,9 +20,9 @@ module top(
     wire node3_tx_clk;
 
     assign led[0] = ~node0_outgoing_data[0];
-    assign led[1] = ~node0_outgoing_data[1];
-    assign led[2] = ~node0_outgoing_data[2];
-    assign led[3] = ~node0_outgoing_data[3];
+    assign led[1] = ~node1_outgoing_data[0];
+    assign led[2] = ~node2_outgoing_data[0];
+    assign led[3] = ~node3_outgoing_data[0];
 
     reg [BITS-1:0] node0_outgoing_data;
     reg [BITS-1:0] node1_outgoing_data;
@@ -47,7 +48,7 @@ module top(
 
     wire [15:0] baud_div = 27_000_000 / 115_200;
 
-    serial_debug #(.BITS(BITS)) node0(
+    serial_debug #(.BITS(BITS), .ENABLE(ENABLE)) node0(
         .clk(clk), .rst_n(rst_n),
         .prescaler(8'h4),
         .rx_data(node0_rx_data), .rx_clk(node0_rx_clk),
@@ -56,7 +57,7 @@ module top(
         .debug_incoming_tgl(node0_incoming_tgl), .debug_incoming_data(node0_incoming_data),
         .identity(node0_identity));
 
-    serial_debug #(.BITS(BITS)) node1(
+    serial_debug #(.BITS(BITS), .ENABLE(ENABLE)) node1(
         .clk(clk), .rst_n(rst_n),
         .prescaler(8'h4),
         .rx_data(node0_tx_data), .rx_clk(node0_tx_clk),
@@ -65,7 +66,7 @@ module top(
         .debug_incoming_tgl(node1_incoming_tgl), .debug_incoming_data(node1_incoming_data),
         .identity(node1_identity));
 
-    serial_debug #(.BITS(BITS)) node2(
+    serial_debug #(.BITS(BITS), .ENABLE(ENABLE)) node2(
         .clk(clk), .rst_n(rst_n),
         .prescaler(8'h4),
         .rx_data(node1_tx_data), .rx_clk(node1_tx_clk),
@@ -74,7 +75,7 @@ module top(
         .debug_incoming_tgl(node2_incoming_tgl), .debug_incoming_data(node2_incoming_data),
         .identity(node2_identity));
 
-    serial_debug #(.BITS(BITS)) node3(
+    serial_debug #(.BITS(BITS), .ENABLE(ENABLE)) node3(
         .clk(clk), .rst_n(rst_n),
         .prescaler(8'h4),
         .rx_data(node2_tx_data), .rx_clk(node2_tx_clk),
@@ -83,7 +84,7 @@ module top(
         .debug_incoming_tgl(node3_incoming_tgl), .debug_incoming_data(node3_incoming_data),
         .identity(node3_identity));
 
-    serial_debug_uart debug_uart(
+    serial_debug_uart #(.ENABLE(ENABLE)) debug_uart(
         .clk(clk), .rst_n(rst_n),
         .prescaler(8'h4),
         .debug_tx_data(node3_tx_data), .debug_tx_clk(node3_tx_clk),
