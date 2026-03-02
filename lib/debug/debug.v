@@ -159,7 +159,7 @@ if (ENABLE == 1) begin
 						`ifdef SIM_MODEL
 						$display("sf_address = %h, sf_direction = %d", sf_address, sf_direction);
 						`endif
-						if (our_address == BROADCAST_ADDR && sf_address == BROADCAST_ADDR) begin
+						if (sf_address == BROADCAST_ADDR) begin
 							// first packet will be enumeration
 							our_address   <= sf_buf[30:16];										// store our address
 							sf_buf[30:16] <= sf_buf[30:16] + 1'b1;								// increment it 

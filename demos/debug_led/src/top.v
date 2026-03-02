@@ -91,6 +91,15 @@ module top(
         .debug_rx_data(node0_rx_data), .debug_rx_clk(node0_rx_clk),
         .uart_bauddiv(baud_div), .uart_rx_pin(uart_rx), .uart_tx_pin(uart_tx));
 
+
+/*
+    serial_debug_uart #(.BITS(BITS), .ENABLE(ENABLE)) debug_uart(
+        .clk(clk), .rst_n(rst_n),
+        .prescaler(8'h4),
+        .debug_tx_data(node0_tx_data), .debug_tx_clk(node0_tx_clk),
+        .debug_rx_data(node0_rx_data), .debug_rx_clk(node0_rx_clk),
+        .uart_bauddiv(baud_div), .uart_rx_pin(uart_rx), .uart_tx_pin(uart_tx));
+*/
     // RESET
     reg [3:0] rstcnt = 4'b0;
     assign rst_n = rstcnt[3];
