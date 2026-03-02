@@ -9,10 +9,16 @@ module top(
         ENABLE=1;
    
     wire pll_clk;
+    wire pll2_clk;
 
     // 81 MHz PLL
     Gowin_rPLL debug_node_1_pll(
         .clkout(pll_clk), //output clkout
+        .clkin(clk) //input clkin
+    );
+
+    Gowin_rPLL2 debug_node_3_pll(
+        .clkout(pll2_clk), //output clkout
         .clkin(clk) //input clkin
     );
 
@@ -26,6 +32,11 @@ module top(
     end
     wire rst_n_81 = rst_n_81_sync[2];
 
+    reg [2:0] rst_n_75_sync;
+    always @(posedge pll2_clk) begin
+        rst_n_75_sync <= {rst_n_75_sync[1:0], rst_n}; // rst_n is from the 27MHz logic
+    end
+    wire rst_n_75 = rst_n_75_sync[2];
 
     wire node0_rx_data;
     wire node0_rx_clk;
@@ -97,10 +108,10 @@ module top(
         .debug_incoming_tgl(node2_incoming_tgl), .debug_incoming_data(node2_incoming_data),
         .identity(node2_identity));
 
-    // node3 -- runs at 27MHz
+    // node3 -- runs at 75MHz
     serial_debug #(.BITS(BITS), .ENABLE(ENABLE)) node3(
-        .clk(clk), .rst_n(rst_n),
-        .prescaler(8'h4),
+        .clk(pll2_clk), .rst_n(rst_n_75),
+        .prescaler(8'hC),                               // at 75MHz we need 3x the prescaler since 2.77 isn't an option
         .rx_data(node2_tx_data), .rx_clk(node2_tx_clk),
         .tx_data(node3_tx_data), .tx_clk(node3_tx_clk),
         .debug_outgoing_data(node3_outgoing_data),
@@ -117,7 +128,7 @@ module top(
 
     // node1 resides in the pll_clk domain so we manipulate it here
     always @(posedge pll_clk) begin
-        if (!rst_n) begin
+        if (!rst_n_81) begin
             node1_outgoing_data <= 0;
             node1_incoming_tgl_prev <= 0;
             node1_identity <= 32'h11223301;
@@ -129,18 +140,29 @@ module top(
         end
     end
 
+    // node1 resides in the pll_clk domain so we manipulate it here
+    always @(posedge pll2_clk) begin
+        if (!rst_n_75) begin
+            node3_outgoing_data <= 0;
+            node3_incoming_tgl_prev <= 0;
+            node3_identity <= 32'h11223303;
+        end else begin
+            if (node3_incoming_tgl_prev != node3_incoming_tgl) begin
+                node3_incoming_tgl_prev <= node3_incoming_tgl;
+                node3_outgoing_data <= node3_incoming_data;
+            end
+        end
+    end
+
     always @(posedge clk) begin
         rstcnt <= {rstcnt[2:0], 1'b1};
         if (!rst_n) begin
             node0_outgoing_data <= 0;
             node2_outgoing_data <= 0;
-            node3_outgoing_data <= 0;
             node0_incoming_tgl_prev <= 0;
             node2_incoming_tgl_prev <= 0;
-            node3_incoming_tgl_prev <= 0;
             node0_identity <= 32'h11223300;
             node2_identity <= 32'h11223302;
-            node3_identity <= 32'h11223303;
         end else begin
             if (node0_incoming_tgl_prev != node0_incoming_tgl) begin
                 node0_incoming_tgl_prev <= node0_incoming_tgl;
@@ -149,10 +171,6 @@ module top(
             if (node2_incoming_tgl_prev != node2_incoming_tgl) begin
                 node2_incoming_tgl_prev <= node2_incoming_tgl;
                 node2_outgoing_data <= node2_incoming_data;
-            end
-            if (node3_incoming_tgl_prev != node3_incoming_tgl) begin
-                node3_incoming_tgl_prev <= node3_incoming_tgl;
-                node3_outgoing_data <= node3_incoming_data;
             end
         end
     end
