@@ -84,7 +84,7 @@ module top(
         .debug_incoming_tgl(node3_incoming_tgl), .debug_incoming_data(node3_incoming_data),
         .identity(node3_identity));
 
-    serial_debug_uart #(.ENABLE(ENABLE)) debug_uart(
+    serial_debug_uart #(.BITS(BITS), .ENABLE(ENABLE)) debug_uart(
         .clk(clk), .rst_n(rst_n),
         .prescaler(8'h4),
         .debug_tx_data(node3_tx_data), .debug_tx_clk(node3_tx_clk),
