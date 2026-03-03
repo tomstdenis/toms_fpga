@@ -8,7 +8,7 @@ Every module that wants to have debug support instantiates one or more of these 
 rx_{data/clk} to the tx_{data/clk}, meaning modules that use this need to export/import those nets and the parent module
 has to ensure they're all connected.
 
-The protocol uses a 144 bit packet consisting of 1 bit direction (read or write) 15 bit address, and (dfl) 128 bits of payload.
+The protocol uses a 144 bit packet consisting of 1 bit direction (read or write) 15 bit address, and (dfl) BITS=128 bits of payload.
 
 Upon reset every node assigns themselves the address 7FFF.  The host controller sends out a frame consisting of 
 [15:1] == 7FFF and [30:16] == 0000.  This assigns the first node the address 0000.  That node increments the address
@@ -16,14 +16,14 @@ by 1 and transmits [30:16] == 0001 assigning the next node a 0001 and so on.
 
 After the host sees a broadcast packet come out it now knows how many nodes are in the chain.
 
-Now the host can send a node a packet by setting [0] to the direction, bits [15:1] to the address, and [143:16] to the payload.
+Now the host can send a node a packet by setting [0] to the direction, bits [15:1] to the address, and [BITS+15:16] to the payload.
 
-For write commands the payload is copied to the debug_incoming_data[127:0] and the register debug_incoming_tgl is inverted.  The
+For write commands the payload is copied to the debug_incoming_data[BITS-1:0] and the register debug_incoming_tgl is inverted.  The
 parent module must latch that and detect an edge (falling or raising) to know when the value changed.
 
 For read commands the first byte of payload [23:16] is the READ "command" where only one command READ_CMD_IDENT is defined.
-If the read command is READ_CMD_IDENT then the payload identity[127:0] is sent in response, otherwise the default
-contents of debug_outgoing_data[127:0] is sent.  The theory of operation being you'd assign debug_outgoing_data[127:0] to be
+If the read command is READ_CMD_IDENT then the payload identity[BITS-1:0] is sent in response, otherwise the default
+contents of debug_outgoing_data[BITS-1:0] is sent.  The theory of operation being you'd assign debug_outgoing_data[BITS-1:0] to be
 either a wire that collects several important nets together, or similarly a register that does the same.  Each module can choose
 what it wants to pack into the net.  It could even respond to write commands that for instance ask for a specific datum from
 the module.
@@ -60,25 +60,25 @@ module serial_debug #(
 	input [7:0] prescaler,								// prescaler against clk to control tx_clk (ideally >= 2) (meant to be a constant wire not subject to reset)
 	
 	// serial input
-	input rx_data,										// incoming serial data
+	input rx_data,										// incoming serial data from previous node (or serial_debug_uart's debug_rx_*)
 	input rx_clk,										// incoming serial clock
 	
 	// serial output
-	output reg tx_data,									// outgoing serial data
+	output reg tx_data,									// outgoing serial data to next node (or serial_debug_uart's debug_tx_*)
 	output reg tx_clk,									// outgoing serial clock
 	
 	// controller input
-	input [BITS-1:0] debug_outgoing_data,					// default data we want to provide when given a READ (cmd != IDENT)
+	input [BITS-1:0] debug_outgoing_data,				// default data we want to provide the host when given a READ (cmd != IDENT)
 	
 	// control output
 	output reg debug_incoming_tgl,						// toggle indicating whether debug_incoming_data changed
-	output reg [BITS-1:0] debug_incoming_data,				// data the host is writing to us
+	output reg [BITS-1:0] debug_incoming_data,			// data the host is writing to us
 	
 	// identity
-	input [BITS-1:0] identity								// 128-bit identity provided with a read and CMD == IDENT used to tell the host what module this address is
+	input [BITS-1:0] identity							// identity provided with a read and CMD == IDENT used to tell the host what module this address is
 );
 	localparam
-		SF_BITS = BITS + 16,								// bits per store-forward frame, 128 data bits + 15 address bits + 1 direction bit
+		SF_BITS = BITS + 16,							// bits per store-forward frame, BITS data bits + 15 address bits + 1 direction bit
 		BROADCAST_ADDR = 15'h7FFF,						// default broadcast address
 		READ_DIRECTION = 0,								// packet is a read
 		WRITE_DIRECTION = 1;							// packet is a write 

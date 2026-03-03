@@ -6,6 +6,29 @@
 This module accepts SF_BITS sized packets from the UART RX, sends it over the serial debug wire, and then transmits
 what it receives on the other side via the UART TX.
 
+                  rx_clk    ┌────────────┐  tx_clk                  rx_clk    ┌────────────┐  tx_clk            
+┌──────────────────────────►│            ├───────────────────────────────────►│            ├───────────►...────┐
+│                 rx_data   │ Debug Node │  tx_data                 rx_data   │ Debug Node │  tx_data          │
+│   ┌──────────────────────►│     #1     ├───────────────────────────────────►│     #2     ├───────────►...─┐  │
+│   │                       └────┬───────┘                                    └────┬───────┘                │  │
+│   │                         ▲  │                                              ▲  │                        │  │
+│   │                         │  │                                              │  │                        │  │
+│   │                         │  ├─► debug_incoming_data                        │  ├─► debug_incoming_data  │  │
+│   │   debug_outgoing_data ──┘  └─► debug_incoming_tgl   debug_outgoing_data ──┘  └─► debug_incoming_tgl   │  │
+│   │                                                                                                       │  │
+│   │                                                                                                       │  │
+│   │                                                                                                       │  │
+│   │                                                                                                       │  │
+│   │                                                                                                       │  │
+│   │                                debug_rx_data ┌──────────────────┐  debug_tx_data                      │  │
+│   └──────────────────────────────────────────────┤                  │◄────────────────────────────────────┘  │
+│                                    debug_rx_clk  │    Debug Uart    │  debug_tx_clk                          │
+└──────────────────────────────────────────────────┤                  │◄───────────────────────────────────────┘
+                                                   └───────────┬──────┘                                         
+                                                         ▲     │                                                
+                                                         │     │                                                
+                                        uart_rx_pin ─────┘     └────► uart_tx_pin                               
+
 */
 
 module serial_debug_uart #(
@@ -28,9 +51,9 @@ module serial_debug_uart #(
 	output reg debug_rx_clk,							// outgoing debug serial clock
 	
 	// uart
-	input [15:0] uart_bauddiv,
-	input uart_rx_pin,
-	output uart_tx_pin
+	input [15:0] uart_bauddiv,							// baudrate prescaler
+	input uart_rx_pin,									// UART RX pin
+	output uart_tx_pin									// UART TX pin
 );
 
 	reg uart_tx_start;
@@ -63,13 +86,13 @@ module serial_debug_uart #(
 	wire cur_tx_clk_prev = tx_clk_pipe[3];				// previous current synced clock
 
 	localparam
-		STATE_IDLE 				= 0,
-		STATE_RX_LOOP			= 1,
-		STATE_RX_LOOP_GETBYTE 	= 2,
-		STATE_DBG_TX_LOOP		= 3,
-		STATE_DBG_RX_LOOP		= 4,
-		STATE_TX_LOOP			= 5,
-		STATE_DELAY         	= 6;
+		STATE_IDLE 				= 0,					// Idle waiting for UART input
+		STATE_RX_LOOP			= 1,					// Wait for next byte
+		STATE_RX_LOOP_GETBYTE 	= 2,					// read it
+		STATE_DBG_TX_LOOP		= 3,					// Transmit packet over serial wire to first debug_rx
+		STATE_DBG_RX_LOOP		= 4,					// Receive packet as it came out from debug_tx
+		STATE_TX_LOOP			= 5,					// Transmit the buffer to the UART TX
+		STATE_DELAY         	= 6;					// Delay cycle required for UART FIFO actions
 		
 	always @(posedge clk) begin
 if (ENABLE == 1) begin
