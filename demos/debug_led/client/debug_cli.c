@@ -35,6 +35,7 @@ static int set_interface_attribs(int fd, int speed) {
     return 0;
 }
 
+// send a frame in, read one back
 void send_cmd(int fd, uint8_t *in, uint8_t *out)
 {
 	int x, n;
@@ -51,6 +52,7 @@ void send_cmd(int fd, uint8_t *in, uint8_t *out)
 	}
 }
 
+// tells the debug nodes to enumerate themselves, returns the # of nodes for informational purposes
 uint16_t enumerate_bus(int fd)
 {
 	uint8_t frame[FRAME];
@@ -65,6 +67,7 @@ uint16_t enumerate_bus(int fd)
 	return n;
 }
 
+// print out all of the identities
 void list_identities(int fd)
 {
 	uint8_t frame[FRAME], allzero[PAYLOAD];
@@ -75,7 +78,7 @@ void list_identities(int fd)
 	printf("Identifying Devices...\n");
 	for (addr = 0; addr < 32768; addr++) {
 		memset(frame, 0, sizeof frame);
-		frame[PAYLOAD] = (addr << 1) >> 8;
+		frame[PAYLOAD] = (addr << 1) >> 8;			// assign the node address, we're reading (so LSB is 0), and we're reading identity so PAYLOAD-1 must be zero
 		frame[PAYLOAD+1] = (addr << 1) & 0xFF;
 		send_cmd(fd, frame, frame);
 		if (!memcmp(frame, allzero, PAYLOAD)) {
@@ -88,6 +91,10 @@ void list_identities(int fd)
 	printf("Done.\n");
 }
 
+// blink (flow) demo that fills the payload with random data
+// except the LSbyte which is assigned 1 or 0 in succession to create
+// a wave pattern.   The random payload is designed to catch any bit errors
+// in the pipe.
 void blink(int fd)
 {
 	uint8_t frame[FRAME], loss[FRAME];
@@ -97,25 +104,25 @@ void blink(int fd)
 	rng = open("/dev/urandom", O_RDONLY);
 	for (loops = 0; loops < -1; loops++) {
 		memset(frame, 0, sizeof frame);
-		frame[PAYLOAD] = (addr << 1) >> 8;
+		frame[PAYLOAD] = (addr << 1) >> 8;				// address
 		frame[PAYLOAD+1] = (addr << 1) & 0xFF;
-		frame[PAYLOAD+1] |= 1;
-		frame[PAYLOAD-1] = x;
-		if (read(rng, frame, PAYLOAD-1) != PAYLOAD-1) {
+		frame[PAYLOAD+1] |= 1;							// we're writing
+		frame[PAYLOAD-1] = x;							// assign LED byte
+		if (read(rng, frame, PAYLOAD-1) != PAYLOAD-1) { // fill rest of payload with random bytes
 			printf("Could not read %d bytes from /dev/urandom...\n", PAYLOAD-1);
 			exit(-1);
 		}
 		addr = (addr + 1) & 3;
-		if (addr == 0) { x ^= 1 ; }
+		if (addr == 0) { x ^= 1 ; }						// change the LED every 4 writes
 		send_cmd(fd, frame, loss);
-		if (memcmp(frame, loss, FRAME)) {									// writes should pass through the write command
+		if (memcmp(frame, loss, FRAME)) {				// writes should pass through the write command
 			printf("Return write command differs unexpectedly...\n");
 			exit(-1);
 		}
-		loss[PAYLOAD+1] &= ~1; // READ
-		loss[PAYLOAD-1] = 1; // don't send READ IDENTITY command
+		loss[PAYLOAD+1] &= ~1; 							// READ
+		loss[PAYLOAD-1] = 1; 							// don't send READ IDENTITY command (any non-zero byte here)
 		send_cmd(fd, loss, loss);
-		if (memcmp(frame, loss, PAYLOAD)) {									// we should get the payload back
+		if (memcmp(frame, loss, PAYLOAD)) {				// we should get the same payload back
 			printf("Returned payload differs unexpectedly...\n");
 			{ int x; for (x = 0; x < FRAME; x++) printf("%2x ", loss[x]); printf("\n"); }
 			{ int x; for (x = 0; x < FRAME; x++) printf("%2x ", frame[x]); printf("\n"); }
