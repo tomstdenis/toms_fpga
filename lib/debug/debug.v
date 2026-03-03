@@ -8,7 +8,7 @@ Every module that wants to have debug support instantiates one or more of these 
 rx_{data/clk} to the tx_{data/clk}, meaning modules that use this need to export/import those nets and the parent module
 has to ensure they're all connected.
 
-The protocol uses a 144 bit packet consisting of 1 bit direction (read or write) 15 bit address, and 128 bits of payload.
+The protocol uses a 144 bit packet consisting of 1 bit direction (read or write) 15 bit address, and (dfl) 128 bits of payload.
 
 Upon reset every node assigns themselves the address 7FFF.  The host controller sends out a frame consisting of 
 [15:1] == 7FFF and [30:16] == 0000.  This assigns the first node the address 0000.  That node increments the address
@@ -43,8 +43,7 @@ prescaler of 8 for the 4MHz block and 2 for the 1MHz block yielding an overall 2
 - For the receiving side it's self clocking so you can have have prescaler mismatches provided the 4 cycle period minimum is observed
 across all clock domains.
 
-- At the root you'd use a debug_host.v module (yet to be written) that provides a UART to Serial Debugger interface with commands
-for enumerating nodes, fetching identities of a node, and reading/writing payload from/to nodes.  It'd be then up to the PC side
+- At the root you'd use a debug_uart.v module that provides a UART to Serial Debugger bridge  It'd be then up to the PC side
 host application to make a UI or application around that on a per design basis.
 
 */
