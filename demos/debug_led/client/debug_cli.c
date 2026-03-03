@@ -9,7 +9,7 @@
 #include <inttypes.h>
 #include <time.h>
 
-#define PAYLOAD 16												// how many bytes of payload must match BITS/8 in your instantiated debuggers
+#define PAYLOAD 5												// how many bytes of payload must match BITS/8 in your instantiated debuggers
 #define FRAME   (PAYLOAD+2)
 static int set_interface_attribs(int fd, int speed) {
     struct termios tty;

@@ -5,7 +5,7 @@ module top(
     output [3:0] led);
 
     localparam
-        BITS=128,
+        BITS=40,
         ENABLE=1;
    
     wire pll_clk;
@@ -140,7 +140,7 @@ module top(
         end
     end
 
-    // node1 resides in the pll_clk domain so we manipulate it here
+    // node3 resides in the pll_clk domain so we manipulate it here
     always @(posedge pll2_clk) begin
         if (!rst_n_75) begin
             node3_outgoing_data <= 0;
