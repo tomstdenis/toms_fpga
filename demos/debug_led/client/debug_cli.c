@@ -9,7 +9,7 @@
 #include <inttypes.h>
 #include <time.h>
 
-#define PAYLOAD 4											// how many bytes of payload must match BITS/8 in your instantiated debuggers
+#define PAYLOAD 16												// how many bytes of payload must match BITS/8 in your instantiated debuggers
 #define FRAME   (PAYLOAD+2)
 static int set_interface_attribs(int fd, int speed) {
     struct termios tty;
@@ -92,12 +92,19 @@ void blink(int fd)
 {
 	uint8_t frame[FRAME], loss[FRAME];
 	uint16_t addr = 0, x = 0;
-	for (;;) {
+	unsigned loops;
+	int rng;
+	rng = open("/dev/urandom", O_RDONLY);
+	for (loops = 0; loops < -1; loops++) {
 		memset(frame, 0, sizeof frame);
 		frame[PAYLOAD] = (addr << 1) >> 8;
 		frame[PAYLOAD+1] = (addr << 1) & 0xFF;
 		frame[PAYLOAD+1] |= 1;
 		frame[PAYLOAD-1] = x;
+		if (read(rng, frame, PAYLOAD-1) != PAYLOAD-1) {
+			printf("Could not read %d bytes from /dev/urandom...\n", PAYLOAD-1);
+			exit(-1);
+		}
 		addr = (addr + 1) & 3;
 		if (addr == 0) { x ^= 1 ; }
 		send_cmd(fd, frame, loss);
@@ -114,8 +121,9 @@ void blink(int fd)
 			{ int x; for (x = 0; x < FRAME; x++) printf("%2x ", frame[x]); printf("\n"); }
 			exit(-1);
 		}
-		usleep(250000);
+		usleep(50000);
 	}
+	close(rng);
 }
 
 int main(int argc, char **argv)

@@ -5,7 +5,7 @@ module top(
     output [3:0] led);
 
     localparam
-        BITS=32,
+        BITS=128,
         ENABLE=1;
    
     wire pll_clk;
