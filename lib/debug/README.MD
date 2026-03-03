@@ -93,28 +93,27 @@ node** in the chain, and attach debug_tx_* to the **output of the LAST node in t
 pin, sends it over the simple serial bus, reads the 18 byte output and sends it to the UART TX pin.  
 
 ```
-                            ┌────────────┐                                    ┌────────────┐                    
-                  rx_clk    │            │  tx_clk                  rx_clk    │            │  tx_clk            
+                  rx_clk    ┌────────────┐  tx_clk                  rx_clk    ┌────────────┐  tx_clk            
 ┌──────────────────────────►│            ├───────────────────────────────────►│            ├───────────►...────┐
 │                 rx_data   │ Debug Node │  tx_data                 rx_data   │ Debug Node │  tx_data          │
-│   ┌──────────────────────►│     #1     ├───────────────────────────────────►│     #2     ├───────────►..─┐   │
-│   │                       │            │                                    │            │               │   │
-│   │                       └────┬───────┘                                    └────┬───────┘               │   │
-│   │                         ▲  │                                              ▲  │                       │   │
-│   │                         │  ├─► debug_incoming_data                        │  ├─► debug_incoming_data │   │
-│   │   debug_outgoing_data ──┘  └─► debug_incoming_tgl   debug_outgoing_data ──┘  └─► debug_incoming_tgl  │   │
-│   │                                                                                                      │   │
-│   │                                                                                                      │   │
-│   │                                                                                                      │   │
-│   │                                                                                                      │   │
-│   │                                              ┌──────────────────┐                                    │   │
-│   │                                debug_rx_data │                  │  debug_tx_data                     │   │
-│   └──────────────────────────────────────────────┤                  │◄───────────────────────────────────┘   │
+│   ┌──────────────────────►│     #1     ├───────────────────────────────────►│     #2     ├───────────►...─┐  │
+│   │                       └────┬───────┘                                    └────┬───────┘                │  │
+│   │                         ▲  │                                              ▲  │                        │  │
+│   │                         │  │                                              │  │                        │  │
+│   │                         │  ├─► debug_incoming_data                        │  ├─► debug_incoming_data  │  │
+│   │   debug_outgoing_data ──┘  └─► debug_incoming_tgl   debug_outgoing_data ──┘  └─► debug_incoming_tgl   │  │
+│   │                                                                                                       │  │
+│   │                                                                                                       │  │
+│   │                                                                                                       │  │
+│   │                                                                                                       │  │
+│   │                                                                                                       │  │
+│   │                                debug_rx_data ┌──────────────────┐  debug_tx_data                      │  │
+│   └──────────────────────────────────────────────┤                  │◄────────────────────────────────────┘  │
 │                                    debug_rx_clk  │    Debug Uart    │  debug_tx_clk                          │
 └──────────────────────────────────────────────────┤                  │◄───────────────────────────────────────┘
-                                                   │                  │                                         
                                                    └───────────┬──────┘                                         
                                                          ▲     │                                                
+                                                         │     │                                                
                                         uart_rx_pin ─────┘     └────► uart_tx_pin                               
 ```
 
