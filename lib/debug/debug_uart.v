@@ -40,7 +40,7 @@ module serial_debug_uart #(
 	input rst_n,
 	
 	// baud rate
-	input [7:0] prescaler,								// prescaler against clk to control tx_clk (ideally >= 2) (meant to be a constant wire not subject to reset)
+	input [3:0] prescaler,								// prescaler against clk to control tx_clk (ideally >= 2) (meant to be a constant wire not subject to reset)
 	
 	// serial input
 	input debug_tx_data,								// incoming debug serial data (from the last debug node)
@@ -78,7 +78,7 @@ module serial_debug_uart #(
 	reg [$clog2(SF_BITS):0] uart_buf_i;
 	reg [2:0] uart_state;
 	reg [2:0] uart_tag;
-	reg [7:0] prescale_cnt;
+	reg [3:0] prescale_cnt;
 	reg [3:0] tx_data_pipe;								// sync pipe for rx_data
 	reg [3:0] tx_clk_pipe;								// sync pipe for rx_clk
 	wire cur_tx_data = tx_data_pipe[2];					// current synced data

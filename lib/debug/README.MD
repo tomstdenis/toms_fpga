@@ -63,7 +63,7 @@ module serial_debug(
 	input rst_n,
 	
 	// baud rate
-	input [7:0] prescaler,						// prescaler against clk to control tx_clk (ideally >= 2) (meant to be a constant wire not subject to reset)
+	input [3:0] prescaler,						// prescaler against clk to control tx_clk (ideally >= 2) (meant to be a constant wire not subject to reset)
 	
 	// serial input
 	input rx_data,								// incoming serial data
@@ -127,7 +127,7 @@ module serial_debug_uart (
 	input rst_n,
 	
 	// baud rate
-	input [7:0] prescaler,						// prescaler against clk to control tx_clk (ideally >= 2) (meant to be a constant wire not subject to reset)
+	input [3:0] prescaler,						// prescaler against clk to control tx_clk (ideally >= 2) (meant to be a constant wire not subject to reset)
 	
 	// serial input
 	input debug_tx_data,						// incoming debug serial data (from the last debug node)

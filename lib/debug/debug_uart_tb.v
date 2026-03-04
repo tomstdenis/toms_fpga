@@ -6,7 +6,7 @@ module debug_uart_tb();
 
 	reg clk;
 	reg rst_n;
-	reg [7:0] prescaler;
+	reg [3:0] prescaler;
 	
 	/* The debug node itself */
 	wire node_rx_data;

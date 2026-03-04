@@ -6,7 +6,7 @@ module debug_tb();
 
 	reg clk;
 	reg rst_n;
-	reg [7:0] prescaler;
+	reg [3:0] prescaler;
 	
 	reg rx_data;
 	reg rx_clk;

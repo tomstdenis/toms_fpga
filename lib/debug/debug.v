@@ -57,7 +57,7 @@ module serial_debug #(
 	input rst_n,
 	
 	// baud rate
-	input [7:0] prescaler,								// prescaler against clk to control tx_clk (ideally >= 2) (meant to be a constant wire not subject to reset)
+	input [3:0] prescaler,								// prescaler against clk to control tx_clk (ideally >= 2) (meant to be a constant wire not subject to reset)
 	
 	// serial input
 	input rx_data,										// incoming serial data from previous node (or serial_debug_uart's debug_rx_*)
@@ -86,8 +86,8 @@ module serial_debug #(
 	reg [SF_BITS-1:0] sf_buf;							// local store forward buffer
 	reg [14:0] our_address;								// our address
 	reg [$clog2(SF_BITS):0] sf_bits_left;				// how many bits left to transmit or read
-	reg [7:0] sf_prescale_cnt;							// prescaler used to generate tx_clk
-	reg [7:0] sf_prescaler;
+	reg [3:0] sf_prescale_cnt;							// prescaler used to generate tx_clk
+	reg [3:0] sf_prescaler;
 	
 	wire [14:0] sf_address = sf_buf[15:1];				// what address is the packet for
 	wire sf_direction = sf_buf[0];						// what direction is the traffic (READ=0, WRITE=1)
