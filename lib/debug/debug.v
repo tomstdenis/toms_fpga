@@ -100,14 +100,14 @@ module serial_debug #(
 	wire cur_rx_clk_prev = rx_clk_pipe[3];				// previous current synced clock
 
 	localparam
-		STATE_IDLE = 0,
-		STATE_LOADING_SF = 1,
+		STATE_IDLE 				= 0,
+		STATE_LOADING_SF 		= 1,
 		STATE_WAIT_TO_DECODE_SF = 2,
-		STATE_DECODING_SF = 3,
-		STATE_SENDING_SF = 4;
+		STATE_DECODING_SF 		= 3,
+		STATE_SENDING_SF 		= 4;
 
 	localparam
-		READ_CMD_IDENT = 0;
+		READ_CMD_IDENT 			= 0;
 		
 	reg [2:0] state;									// current FSM state
 

@@ -72,7 +72,7 @@ module serial_debug_uart #(
 		);
 
 	localparam
-		SF_BITS = BITS + 16;								// bits per store-forward frame, 128 data bits + 15 address bits + 1 direction bit
+		SF_BITS = BITS + 16;							// bits per store-forward frame, BITS data bits + 15 address bits + 1 direction bit
 
 	reg [SF_BITS-1:0] uart_buf;
 	reg [$clog2(SF_BITS):0] uart_buf_i;
@@ -118,7 +118,7 @@ if (ENABLE == 1) begin
 					end
 				STATE_IDLE:
 					begin
-						uart_buf_i		<= (SF_BITS/8)-1;				// we expect to read SF_BITS/8 bytes
+						uart_buf_i		<= (SF_BITS/8)-1;			// we expect to read SF_BITS/8 bytes
 						if (uart_rx_ready) begin					// are there incoming bytes?
 							uart_tag 	  <= STATE_RX_LOOP_GETBYTE;	// head into RX loop
 							uart_state    <= STATE_DELAY;
@@ -132,7 +132,7 @@ if (ENABLE == 1) begin
 							uart_state		<= STATE_DBG_TX_LOOP;
 							uart_buf_i		<= SF_BITS;
 							prescale_cnt	<= prescaler;
-							debug_rx_clk    <= 1'b1;			// clock starts high
+							debug_rx_clk    <= 1'b1;				// clock starts high
 						end else begin
 							uart_buf_i		<= uart_buf_i - 1'b1;
 							uart_state 		<= STATE_RX_LOOP;
