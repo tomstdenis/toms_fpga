@@ -118,7 +118,7 @@ if (ENABLE == 1) begin
 					end
 				STATE_IDLE:
 					begin
-						uart_buf_i		<= SF_BITS/8;				// we expect to read SF_BITS/8 bytes
+						uart_buf_i		<= (SF_BITS/8)-1;				// we expect to read SF_BITS/8 bytes
 						if (uart_rx_ready) begin					// are there incoming bytes?
 							uart_tag 	  <= STATE_RX_LOOP_GETBYTE;	// head into RX loop
 							uart_state    <= STATE_DELAY;
@@ -128,7 +128,7 @@ if (ENABLE == 1) begin
 				STATE_RX_LOOP_GETBYTE:								// store a UART incoming byte and advance state
 					begin
 						uart_buf <= {uart_buf[SF_BITS-9:0], uart_rx_byte};
-						if (uart_buf_i == 1) begin
+						if (uart_buf_i == 0) begin
 							uart_state		<= STATE_DBG_TX_LOOP;
 							uart_buf_i		<= SF_BITS;
 							prescale_cnt	<= prescaler;
@@ -141,9 +141,9 @@ if (ENABLE == 1) begin
 				STATE_RX_LOOP:										// read the store forward buffer 8 bits at a time from the UART
 					begin
 						if (uart_rx_ready) begin					// wait for an RX byte to be ready
-							uart_rx_read 		<= 1;
-							uart_state			<= STATE_DELAY;
-							uart_tag			<= STATE_RX_LOOP_GETBYTE;
+							uart_rx_read 	<= 1;
+							uart_state		<= STATE_DELAY;
+							uart_tag		<= STATE_RX_LOOP_GETBYTE;
 						end
 					end
 				STATE_DBG_TX_LOOP:									// transmit the entire store_forward
@@ -156,7 +156,7 @@ if (ENABLE == 1) begin
 								if (uart_buf_i == 0) begin
 									// we're done
 									uart_state 	<= STATE_DBG_RX_LOOP;
-									uart_buf_i  <= SF_BITS;
+									uart_buf_i  <= SF_BITS-1;
 								end else begin
 									// next bit (and we only set clock low if there is a next bit)
 									uart_buf_i	<= uart_buf_i - 1'b1;
@@ -175,9 +175,9 @@ if (ENABLE == 1) begin
 					begin
 						if (cur_tx_clk_prev == 1'b0 && cur_tx_clk == 1'b1) begin	// detect raising edge of clock
 							uart_buf <= {uart_buf[SF_BITS-2:0], cur_tx_data};
-							if (uart_buf_i == 1) begin
+							if (uart_buf_i == 0) begin
 								// we're done
-								uart_buf_i <= SF_BITS/8;
+								uart_buf_i <= (SF_BITS/8)-1;
 								uart_state <= STATE_TX_LOOP;
 							end else begin
 								uart_buf_i <= uart_buf_i - 1'b1;
@@ -190,7 +190,7 @@ if (ENABLE == 1) begin
 							uart_tx_data_in <= uart_buf[SF_BITS-1:SF_BITS-8];
 							uart_buf 		<= {uart_buf[SF_BITS-9:0], 8'b0};
 							uart_tx_start   <= 1;
-							uart_tag		<= (uart_buf_i == 1) ? STATE_IDLE : STATE_TX_LOOP;
+							uart_tag		<= (uart_buf_i == 0) ? STATE_IDLE : STATE_TX_LOOP;
 							uart_state		<= STATE_DELAY;
 							uart_buf_i		<= uart_buf_i - 1'b1;
 						end

@@ -85,7 +85,7 @@ module serial_debug #(
 
 	reg [SF_BITS-1:0] sf_buf;							// local store forward buffer
 	reg [14:0] our_address;								// our address
-	reg [$clog2(SF_BITS):0] sf_bits_left;								// how many bits left to transmit or read
+	reg [$clog2(SF_BITS):0] sf_bits_left;				// how many bits left to transmit or read
 	reg [7:0] sf_prescale_cnt;							// prescaler used to generate tx_clk
 	reg [7:0] sf_prescaler;
 	
@@ -114,15 +114,15 @@ module serial_debug #(
 	always @(posedge clk) begin
 if (ENABLE == 1) begin
 		if (!rst_n) begin
-			our_address <= BROADCAST_ADDR;														// default to broadcast address
-			state <= STATE_IDLE;																// enter the IDLE state
-			rx_data_pipe <= 0;																	// clear the RX data pipe
-			rx_clk_pipe <= 0;																	// clear the RX clk pipe
-			tx_clk <= 1'b1;																		// ensure our TX clk is idle high
-			tx_data <= 1'b0;																	// set the TX data to a known value
+			our_address 		<= BROADCAST_ADDR;												// default to broadcast address
+			state 				<= STATE_IDLE;													// enter the IDLE state
+			rx_data_pipe 		<= 0;															// clear the RX data pipe
+			rx_clk_pipe 		<= 0;															// clear the RX clk pipe
+			tx_clk 				<= 1'b1;														// ensure our TX clk is idle high
+			tx_data 			<= 1'b0;														// set the TX data to a known value
 			debug_incoming_data <= 0;															// clear the incoming data 
-			debug_incoming_tgl <= 0;															// set the toggle to a default state
-			sf_prescaler <= prescaler < 2 ? 2 : prescaler;										// save the prescaler at a minimum period of 4 (2*sf_prescaler)
+			debug_incoming_tgl 	<= 0;															// set the toggle to a default state
+			sf_prescaler 		<= prescaler < 2 ? 2 : prescaler;								// save the prescaler at a minimum period of 4 (2*sf_prescaler)
 		end else begin
 			// solve for metastability
 			rx_data_pipe <= {rx_data_pipe[2:0], rx_data};
@@ -150,7 +150,7 @@ if (ENABLE == 1) begin
 					begin
 						state 			 <= STATE_SENDING_SF;									// we always jump to sending the store forward
 						sf_bits_left 	 <= SF_BITS;											// total bits
-						sf_prescale_cnt  <= 2;													// We want to align to a falling edge of the clock
+						sf_prescale_cnt  <= 1;													// We want to align to a falling edge of the clock
 						tx_clk 			 <= 1'b1;												// ensure clock is high for at least 2 cycles
 
 						`ifdef SIM_MODEL
@@ -177,8 +177,8 @@ if (ENABLE == 1) begin
 									endcase
 								end else begin
 									// WRITE for us
-									debug_incoming_data 	  <= sf_buf[SF_BITS-1:16];			// write to our incoming debug wire
-									debug_incoming_tgl		  <= ~debug_incoming_tgl;			// flip the incoming tgl bit to let the parent know we stored something new
+									debug_incoming_data	<= sf_buf[SF_BITS-1:16];				// write to our incoming debug wire
+									debug_incoming_tgl		<= ~debug_incoming_tgl;				// flip the incoming tgl bit to let the parent know we stored something new
 								end
 							end else begin
 								// not for us
@@ -197,6 +197,8 @@ if (ENABLE == 1) begin
 								tx_data			 <= sf_buf[SF_BITS-1];							// send the MSB
 								sf_buf 			 <= {sf_buf[SF_BITS-2:0], 1'b0 };				// shift store forward buffer left
 								if (sf_bits_left == 0) begin
+									// note we stop at 0 not 1 because we have to wait the entire high cycle
+									// for the receiver to sample 
 									state 		 <= STATE_IDLE;									// out of bits return to IDLE state
 									tx_clk 		 <= 1'b1;										// ensure clock goes high
 								end else begin
