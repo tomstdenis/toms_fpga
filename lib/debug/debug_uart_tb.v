@@ -14,6 +14,8 @@ module debug_uart_tb();
 	wire node_tx_data;
 	wire node_tx_clk;
 	reg [127:0] node_debug_outgoing_data;
+	wire node_debug_outgoing_tgl;
+	reg prev_debug_outgoing_tgl;
 	wire node_debug_incoming_tgl;
 	reg  prev_debug_incoming_tgl;
 	wire [127:0] node_debug_incoming_data;
@@ -24,6 +26,7 @@ module debug_uart_tb();
 		.prescaler(prescaler), .rx_data(node_rx_data), .rx_clk(node_rx_clk),
 		.tx_data(node_tx_data), .tx_clk(node_tx_clk),
 		.debug_outgoing_data(node_debug_outgoing_data),
+		.debug_outgoing_tgl(node_debug_outgoing_tgl),
 		.debug_incoming_data(node_debug_incoming_data),
 		.debug_incoming_tgl(node_debug_incoming_tgl),
 		.identity(node_identity)
@@ -101,6 +104,7 @@ module debug_uart_tb();
         rst_n = 0;
         prescaler = 2;
         prev_debug_incoming_tgl = 0;
+        prev_debug_outgoing_tgl = 0;
         node_identity = 128'h12345678_11223344_55667788_99AABBCC;
         node_debug_outgoing_data = 128'hFEDCBA98_76543210_00112233_44556677;
         test_phase = 0;
@@ -151,6 +155,8 @@ module debug_uart_tb();
 		sf_buf[0]	  = 0;							// READ
 		sf_buf[23:16] = 8'hFF;						// read node
 		transmit_sfbuf(sf_buf);
+		wait (node_debug_outgoing_tgl != prev_debug_outgoing_tgl);
+		prev_debug_outgoing_tgl = node_debug_outgoing_tgl;
 		
 		// check feedback
 		test_phase = 7;

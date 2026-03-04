@@ -69,6 +69,7 @@ module serial_debug #(
 	
 	// controller input
 	input [BITS-1:0] debug_outgoing_data,				// default data we want to provide the host when given a READ (cmd != IDENT)
+	output reg debug_outgoing_tgl,						// toggled when the node reads from the data reg
 	
 	// control output
 	output reg debug_incoming_tgl,						// toggle indicating whether debug_incoming_data changed
@@ -122,6 +123,7 @@ if (ENABLE == 1) begin
 			tx_data			<= 1'b0;															// set the TX data to a known value
 			debug_incoming_data <= 0;															// clear the incoming data 
 			debug_incoming_tgl	<= 0;															// set the toggle to a default state
+			debug_outgoing_tgl	<= 0;															// set the out toggle to default state
 			sf_prescaler		<= prescaler < 2 ? 2 : prescaler;								// save the prescaler at a minimum period of 4 (2*sf_prescaler)
 		end else begin
 			// solve for metastability
@@ -172,6 +174,7 @@ if (ENABLE == 1) begin
 											end
 										default:
 											begin
+												debug_outgoing_tgl <= ~debug_outgoing_tgl;		// toggle the outgoing strobe so the module knows we just read from it
 												sf_buf[SF_BITS-1:16] <= debug_outgoing_data;	// default is to just copy whatever is in the outgoing wire
 											end
 									endcase

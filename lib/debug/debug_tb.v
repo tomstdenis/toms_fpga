@@ -15,6 +15,8 @@ module debug_tb();
 	wire tx_clk;
 	reg tx_clk_prev;
 	reg [127:0] debug_outgoing_data;
+	wire debug_outgoing_tgl;
+	reg prev_debug_outgoing_tgl;
 	wire debug_incoming_tgl;
 	reg  prev_debug_incoming_tgl;
 	wire [127:0] debug_incoming_data;
@@ -25,6 +27,7 @@ module debug_tb();
 		.prescaler(prescaler), .rx_data(rx_data), .rx_clk(rx_clk),
 		.tx_data(tx_data), .tx_clk(tx_clk),
 		.debug_outgoing_data(debug_outgoing_data),
+		.debug_outgoing_tgl(debug_outgoing_tgl),
 		.debug_incoming_data(debug_incoming_data),
 		.debug_incoming_tgl(debug_incoming_tgl),
 		.identity(identity)
@@ -55,6 +58,7 @@ module debug_tb();
         rx_clk = 1;
         tx_clk_prev = 1;
         prev_debug_incoming_tgl = 0;
+        prev_debug_outgoing_tgl = 0;
         identity = 128'h12345678_11223344_55667788_99AABBCC;
         debug_outgoing_data = 128'hFEDCBA98_76543210_00112233_44556677;
         test_phase = 0;
@@ -70,12 +74,12 @@ module debug_tb();
 		test_phase = 0;
 		sf_buf = 0;
 		sf_buf[15:1] = 15'h7FFF;					// broadcast packet
-		sf_buf[30:16] = 15'h1234;							// first address (pick something non zero)
+		sf_buf[30:16] = 15'h1234;					// first address (pick something non zero)
 		transmit_sfbuf(sf_buf);
 		
 		// read back enumeration
 		test_phase = 1;
-		sf_buf[30:16] = 15'h1235;							// we expect an enumeration of 1 back
+		sf_buf[30:16] = 15'h1235;					// we expect an enumeration of 1 back
 		receive_sfbuf(sf_buf);
 
 		// probe identity
@@ -105,6 +109,8 @@ module debug_tb();
 		sf_buf[0]	  = 0;							// READ
 		sf_buf[23:16] = 8'hFF;						// read node
 		transmit_sfbuf(sf_buf);
+		wait (debug_outgoing_tgl != prev_debug_outgoing_tgl);
+		prev_debug_outgoing_tgl = debug_outgoing_tgl;
 		
 		// check feedback
 		test_phase = 7;

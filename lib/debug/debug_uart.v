@@ -14,8 +14,8 @@ what it receives on the other side via the UART TX.
 │   │                         ▲  │                                              ▲  │                        │  │
 │   │                         │  │                                              │  │                        │  │
 │   │                         │  ├─► debug_incoming_data                        │  ├─► debug_incoming_data  │  │
-│   │   debug_outgoing_data ──┘  └─► debug_incoming_tgl   debug_outgoing_data ──┘  └─► debug_incoming_tgl   │  │
-│   │                                                                                                       │  │
+│   │   debug_outgoing_data ──┘  ├─► debug_incoming_tgl   debug_outgoing_data ──┘  ├─► debug_incoming_tgl   │  │
+│   │                            └─► debug_outgoing_tgl                            └─► debug_outgoing_tgl   │  │
 │   │                                                                                                       │  │
 │   │                                                                                                       │  │
 │   │                                                                                                       │  │
@@ -28,7 +28,6 @@ what it receives on the other side via the UART TX.
                                                          ▲     │                                                
                                                          │     │                                                
                                         uart_rx_pin ─────┘     └────► uart_tx_pin                               
-
 */
 
 module serial_debug_uart #(
