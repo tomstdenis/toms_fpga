@@ -178,7 +178,7 @@ if (ENABLE == 1) begin
 								end else begin
 									// WRITE for us
 									debug_incoming_data	<= sf_buf[SF_BITS-1:16];				// write to our incoming debug wire
-									debug_incoming_tgl		<= ~debug_incoming_tgl;				// flip the incoming tgl bit to let the parent know we stored something new
+									debug_incoming_tgl	<= ~debug_incoming_tgl;					// flip the incoming tgl bit to let the parent know we stored something new
 								end
 							end else begin
 								// not for us
