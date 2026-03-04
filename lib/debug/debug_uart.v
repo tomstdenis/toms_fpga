@@ -120,14 +120,15 @@ if (ENABLE == 1) begin
 					begin
 						uart_buf_i		<= SF_BITS/8;				// we expect to read SF_BITS/8 bytes
 						if (uart_rx_ready) begin					// are there incoming bytes?
-							uart_tag 	<= STATE_RX_LOOP_GETBYTE;	// head into RX loop
-							uart_state  <= STATE_DELAY;
+							uart_tag 	  <= STATE_RX_LOOP_GETBYTE;	// head into RX loop
+							uart_state    <= STATE_DELAY;
+							uart_rx_read  <= 1'b1;					// initiate read from RX fifo
 						end
 					end
 				STATE_RX_LOOP_GETBYTE:								// store a UART incoming byte and advance state
 					begin
 						uart_buf <= {uart_buf[SF_BITS-9:0], uart_rx_byte};
-						if (uart_buf_i == 0) begin
+						if (uart_buf_i == 1) begin
 							uart_state		<= STATE_DBG_TX_LOOP;
 							uart_buf_i		<= SF_BITS;
 							prescale_cnt	<= prescaler;
