@@ -75,9 +75,9 @@ module serial_debug_uart #(
 		SF_BITS = BITS + 16;								// bits per store-forward frame, 128 data bits + 15 address bits + 1 direction bit
 
 	reg [SF_BITS-1:0] uart_buf;
-	reg [7:0] uart_buf_i;
-	reg [3:0] uart_state;
-	reg [3:0] uart_tag;
+	reg [$clog2(SF_BITS):0] uart_buf_i;
+	reg [2:0] uart_state;
+	reg [2:0] uart_tag;
 	reg [7:0] prescale_cnt;
 	reg [3:0] tx_data_pipe;								// sync pipe for rx_data
 	reg [3:0] tx_clk_pipe;								// sync pipe for rx_clk

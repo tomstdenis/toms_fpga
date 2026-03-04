@@ -85,7 +85,7 @@ module serial_debug #(
 
 	reg [SF_BITS-1:0] sf_buf;							// local store forward buffer
 	reg [14:0] our_address;								// our address
-	reg [7:0] sf_bits_left;								// how many bits left to transmit or read
+	reg [$clog2(SF_BITS):0] sf_bits_left;								// how many bits left to transmit or read
 	reg [7:0] sf_prescale_cnt;							// prescaler used to generate tx_clk
 	reg [7:0] sf_prescaler;
 	
@@ -109,7 +109,7 @@ module serial_debug #(
 	localparam
 		READ_CMD_IDENT = 0;
 		
-	reg [3:0] state;									// current FSM state
+	reg [2:0] state;									// current FSM state
 
 	always @(posedge clk) begin
 if (ENABLE == 1) begin
@@ -132,8 +132,7 @@ if (ENABLE == 1) begin
 					begin
 						if (cur_rx_clk_prev == 1'b1 && cur_rx_clk == 1'b0) begin				// detect falling edge of clk
 							state 		 <= STATE_LOADING_SF;
-							sf_bits_left <= SF_BITS;
-							sf_buf		 <= 0;
+							sf_buf		 <= 1;
 						end
 					end
 				STATE_LOADING_SF:
@@ -141,11 +140,10 @@ if (ENABLE == 1) begin
 						if (cur_rx_clk_prev == 1'b0 && cur_rx_clk == 1'b1) begin				// detect raising edge of clk
 							// sample on high
 							sf_buf <= {sf_buf[SF_BITS-2:0], cur_rx_data};
-							if (sf_bits_left == 1) begin
+							if (sf_buf[SF_BITS-1]) begin
 								// we're done
 								state <= STATE_DECODING_SF;
 							end
-							sf_bits_left <= sf_bits_left - 1'b1;
 						end
 					end
 				STATE_DECODING_SF:
