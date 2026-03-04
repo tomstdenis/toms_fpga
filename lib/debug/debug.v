@@ -47,10 +47,10 @@ across all clock domains.
 host application to make a UI or application around that on a per design basis.
 
 */
-
+	
 module serial_debug #(
 	parameter 
-		BITS=128,
+		BITS=128,										// how many bits of payload, MUST be the same for every node in the chain
 		ENABLE=1
 )(
 	input clk,
@@ -100,29 +100,29 @@ module serial_debug #(
 	wire cur_rx_clk_prev = rx_clk_pipe[3];				// previous current synced clock
 
 	localparam
-		STATE_IDLE 				= 0,
-		STATE_LOADING_SF 		= 1,
+		STATE_IDLE				= 0,
+		STATE_LOADING_SF		= 1,
 		STATE_WAIT_TO_DECODE_SF = 2,
-		STATE_DECODING_SF 		= 3,
-		STATE_SENDING_SF 		= 4;
+		STATE_DECODING_SF		= 3,
+		STATE_SENDING_SF		= 4;
 
 	localparam
-		READ_CMD_IDENT 			= 0;
+		READ_CMD_IDENT			= 0;
 		
 	reg [2:0] state;									// current FSM state
 
 	always @(posedge clk) begin
 if (ENABLE == 1) begin
 		if (!rst_n) begin
-			our_address 		<= BROADCAST_ADDR;												// default to broadcast address
-			state 				<= STATE_IDLE;													// enter the IDLE state
-			rx_data_pipe 		<= 0;															// clear the RX data pipe
-			rx_clk_pipe 		<= 0;															// clear the RX clk pipe
-			tx_clk 				<= 1'b1;														// ensure our TX clk is idle high
-			tx_data 			<= 1'b0;														// set the TX data to a known value
+			our_address		<= BROADCAST_ADDR;													// default to broadcast address
+			state			<= STATE_IDLE;														// enter the IDLE state
+			rx_data_pipe	<= 0;																// clear the RX data pipe
+			rx_clk_pipe		<= 0;																// clear the RX clk pipe
+			tx_clk			<= 1'b1;															// ensure our TX clk is idle high
+			tx_data			<= 1'b0;															// set the TX data to a known value
 			debug_incoming_data <= 0;															// clear the incoming data 
-			debug_incoming_tgl 	<= 0;															// set the toggle to a default state
-			sf_prescaler 		<= prescaler < 2 ? 2 : prescaler;								// save the prescaler at a minimum period of 4 (2*sf_prescaler)
+			debug_incoming_tgl	<= 0;															// set the toggle to a default state
+			sf_prescaler		<= prescaler < 2 ? 2 : prescaler;								// save the prescaler at a minimum period of 4 (2*sf_prescaler)
 		end else begin
 			// solve for metastability
 			rx_data_pipe <= {rx_data_pipe[2:0], rx_data};
@@ -131,7 +131,7 @@ if (ENABLE == 1) begin
 				STATE_IDLE:
 					begin
 						if (cur_rx_clk_prev == 1'b1 && cur_rx_clk == 1'b0) begin				// detect falling edge of clk
-							state 		 <= STATE_LOADING_SF;
+							state		 <= STATE_LOADING_SF;
 							sf_buf		 <= 1;
 						end
 					end
@@ -148,10 +148,10 @@ if (ENABLE == 1) begin
 					end
 				STATE_DECODING_SF:
 					begin
-						state 			 <= STATE_SENDING_SF;									// we always jump to sending the store forward
-						sf_bits_left 	 <= SF_BITS;											// total bits
+						state			 <= STATE_SENDING_SF;									// we always jump to sending the store forward
+						sf_bits_left	 <= SF_BITS;											// total bits
 						sf_prescale_cnt  <= 1;													// We want to align to a falling edge of the clock
-						tx_clk 			 <= 1'b1;												// ensure clock is high for at least 2 cycles
+						tx_clk			 <= 1'b1;												// ensure clock is high for at least 2 cycles
 
 						`ifdef SIM_MODEL
 						$display("sf_address = %h, sf_direction = %d", sf_address, sf_direction);
@@ -195,15 +195,15 @@ if (ENABLE == 1) begin
 							end else begin
 								// we're transition to low so load the next bit
 								tx_data			 <= sf_buf[SF_BITS-1];							// send the MSB
-								sf_buf 			 <= {sf_buf[SF_BITS-2:0], 1'b0 };				// shift store forward buffer left
+								sf_buf			 <= {sf_buf[SF_BITS-2:0], 1'b0 };				// shift store forward buffer left
 								if (sf_bits_left == 0) begin
 									// note we stop at 0 not 1 because we have to wait the entire high cycle
 									// for the receiver to sample 
-									state 		 <= STATE_IDLE;									// out of bits return to IDLE state
-									tx_clk 		 <= 1'b1;										// ensure clock goes high
+									state		 <= STATE_IDLE;									// out of bits return to IDLE state
+									tx_clk		 <= 1'b1;										// ensure clock goes high
 								end else begin
 									sf_bits_left <= sf_bits_left - 1'b1;						// otherwise decrement count and keep going
-									tx_clk 		 <= 1'b0;										// clock was high, force it low now
+									tx_clk		 <= 1'b0;										// clock was high, force it low now
 								end
 							end
 							sf_prescale_cnt <= sf_prescaler;									// reset prescaler count to hold TX clk steady
