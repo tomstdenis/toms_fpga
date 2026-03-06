@@ -20,8 +20,12 @@ $(TARGET).bit: $(TARGET)_out.config
 ${TARGET}.svf : ${TARGET}.bit
 
 sram: ${TARGET}.svf
-	openFPGALoader -b colorlight-i9 ${TARGET}.svf 
-
+	openFPGALoader -b colorlight-i9 ${TARGET}.svf
+	
+flash: ${TARGET}.bit
+	openFPGALoader -b colorlight-i9 --unprotect-flash --bulk-erase
+	openFPGALoader -b colorlight-i9 -f ${TARGET}.bit --verify
+	
 pll.v:
 	ecppll -i 25 -o ${FREQ} -f pll.v
 
