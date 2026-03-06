@@ -5,6 +5,10 @@ module top(
 	input rx,
 	output tx);
 	
+//`define LOOPBACK
+`ifdef LOOPBACK
+	assign tx = rx;
+`else
 	reg rst_n;
 	wire [15:0] bauddiv = 200_000_000 / 115_200;
 	reg uart_tx_start;
@@ -26,12 +30,6 @@ module top(
 		.baud_div(bauddiv), 
 		.uart_tx_start(uart_tx_start), .uart_tx_data_in(uart_tx_data_in), .uart_tx_pin(tx),
 		.uart_rx_pin(rx), .uart_rx_read(uart_rx_read), .uart_rx_ready(uart_rx_ready), .uart_rx_byte(uart_rx_byte));
-	
-	always @(posedge pll_clk) begin
-		if (!rst_n) begin
-			rst_n <= 1;
-		end
-	end
 
 	reg [1:0] state;
 	
@@ -42,7 +40,10 @@ module top(
 		STATE_WAIT_WRITE=3;
 
 	always @(posedge pll_clk) begin
-		if (rst_n) begin
+		if (!rst_n) begin
+			rst_n <= 1;
+			state <= STATE_IDLE;
+		end else begin
 			case(state)
 				STATE_IDLE:
 					begin
@@ -72,4 +73,5 @@ module top(
 			endcase
 		end
 	end
+`endif
 endmodule

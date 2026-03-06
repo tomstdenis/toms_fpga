@@ -19,8 +19,8 @@ $(TARGET).bit: $(TARGET)_out.config
 
 ${TARGET}.svf : ${TARGET}.bit
 
-prog: ${TARGET}.svf
-		ecpprog -S ${TARGET}.svf
+sram: ${TARGET}.svf
+	openFPGALoader -b colorlight-i9 ${TARGET}.svf 
 
 pll.v:
 	ecppll -i 25 -o ${FREQ} -f pll.v
