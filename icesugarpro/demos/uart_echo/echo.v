@@ -25,7 +25,7 @@ module top(
 	
 	pll mypll(.clkin(clk), .clkout0(pll_clk), .locked(plllock));
 		
-	uart #(.FIFO_DEPTH(32), .RX_ENABLE(1), .TX_ENABLE(1)) myuart(
+	uart #(.FIFO_DEPTH(4), .RX_ENABLE(1), .TX_ENABLE(1)) myuart(
 		.clk(pll_clk), .rst_n(rst_n),
 		.baud_div(bauddiv), 
 		.uart_tx_start(uart_tx_start), .uart_tx_data_in(uart_tx_data_in), .uart_tx_pin(tx),
@@ -61,7 +61,7 @@ module top(
 					end
 				STATE_WRITE_BYTE:
 					begin
-						uart_tx_data_in <= uart_rx_byte;	// copy RX byte to TX 
+						uart_tx_data_in <= uart_rx_byte + 8'h01;	// copy RX byte to TX 
 						uart_tx_start <= 1'b1;				// issue write
 						state <= STATE_WAIT_WRITE;			// next cycle is waiting for the write to finish
 					end
