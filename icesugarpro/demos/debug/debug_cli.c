@@ -97,11 +97,12 @@ void list_identities(int fd)
 // in the pipe.
 void blink(int fd)
 {
-	uint8_t frame[FRAME], loss[FRAME], loss2[FRAME];
+	uint8_t frame[FRAME], loss[FRAME], loss2[FRAME], led[4];
 	uint16_t addr = 0, x = 0;
 	unsigned loops;
 	int rng;
 	rng = open("/dev/urandom", O_RDONLY);
+	memset(led, 0, 4);
 	for (loops = 0; loops < -1; loops++) {
 		memset(frame, 0, sizeof frame);
 		frame[PAYLOAD] = (addr << 1) >> 8;				// address
@@ -112,11 +113,14 @@ void blink(int fd)
 			printf("Could not read %d bytes from /dev/urandom...\n", PAYLOAD-1);
 			exit(-1);
 		}
+		led[addr] = x;
 		addr = (addr + 1) & 3;
 		if (addr == 0) { x ^= 1 ; }						// change the LED every 4 writes
 		send_cmd(fd, frame, loss);
 		if (memcmp(frame, loss, FRAME)) {				// writes should pass through the write command
 			printf("Return write command differs unexpectedly...\n");
+			{ int x; for (x = 0; x < FRAME; x++) printf("%2x ", frame[x]); printf("\n"); }
+			{ int x; for (x = 0; x < FRAME; x++) printf("%2x ", loss2[x]); printf("\n"); }
 			exit(-1);
 		}
 		loss[PAYLOAD+1] &= ~1; 							// READ
@@ -128,6 +132,12 @@ void blink(int fd)
 			{ int x; for (x = 0; x < FRAME; x++) printf("%2x ", loss2[x]); printf("\n"); }
 			exit(-1);
 		}
+		printf("%s%s%s%s\r", 
+			led[0] ? "*" : " ",
+			led[1] ? "*" : " ",
+			led[2] ? "*" : " ",
+			led[3] ? "*" : " ");
+		fflush(stdout);
 		usleep(50000);
 	}
 	close(rng);
