@@ -12,17 +12,18 @@ $(PROJ).json: $(PROJ).v uart.v rx_uart.v tx_uart.v pll.v
 
 # 2. Place & Route: Map netlist to FPGA hardware
 $(PROJ).asc: $(PROJ).json pins.pcf
-	nextpnr-ice40 --freq ${PLLFREQ}  -r --$(DEVICE) --package $(FOOTPRINT) --pcf pins.pcf --json $< --asc $@
+	nextpnr-ice40 --freq ${PLLFREQ} --$(DEVICE) --package $(FOOTPRINT) --pcf pins.pcf --json $< --asc $@
 
 # 3. Pack: Create the final bitstream
 $(PROJ).bin: $(PROJ).asc
 	icepack $< $@
 
-# 4. Program SRAM (The fast "Brother from another mother" way)
+prog_icelink: ${PROJ}.bin
+	cp ${PROJ}.bin /media/${USER}/iCELink/ -vf
+
 prog_sram: $(PROJ).bin
 	icesprog -S $<
 
-# 5. Program Flash (Permanent)
 prog_flash: $(PROJ).bin
 	icesprog -o 0 $<
 
