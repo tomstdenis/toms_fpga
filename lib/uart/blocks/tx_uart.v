@@ -4,7 +4,7 @@
 module tx_uart
 (
     input clk,                          
-    input rst_n,                          // active low reset
+    input rst_n,                        // active low reset
     input [15:0] baud_div,              // counter value for baud calculation (e.g. F_CLK/BAUD == baud_div)
     input start_tx,                     // active high start transmitting whatever is in data_in (which is latched after the first cycle)
     input [7:0] data_in,
@@ -25,20 +25,20 @@ module tx_uart
 
     always @(posedge clk) begin
         if (!rst_n) begin
-            state <= IDLE;
-            tx_pin <= 1'b1;
-            tx_done <= 1'b1;
-            tx_started <= 0;
-            data_latch <= 0;
-            bit_timer <= 0;
-            bit_index <= 0;
+            state 		<= IDLE;
+            tx_pin 		<= 1'b1;
+            tx_done 	<= 1'b1;
+            tx_started 	<= 0;
+            data_latch 	<= 0;
+            bit_timer 	<= 0;
+            bit_index 	<= 0;
         end else begin
             case (state)
-                IDLE: begin
+                IDLE: begin									// IDLE state waiting for start_tx to go high
                     tx_pin <= 1'b1; // UART idle is HIGH
                     if (start_tx) begin
-                        data_latch <= data_in;
-                        bit_timer  <= baud_div;
+                        data_latch <= data_in;				// latch the data being transmitted
+                        bit_timer  <= baud_div;				// and the current baud_div
                         bit_index  <= 0;
                         state      <= START_BIT;
                         tx_started <= 1'b1;
@@ -46,7 +46,7 @@ module tx_uart
                     end
                 end
 
-                START_BIT: begin
+                START_BIT: begin							// transmit the START bit which is a pulse of LOW
                     tx_pin <= 1'b0; // Pull low for START
                     if (bit_timer == 0) begin
                         bit_timer <= baud_div;
@@ -56,8 +56,8 @@ module tx_uart
                     end
                 end
 
-                DATA_BITS: begin
-                    tx_pin <= data_latch[bit_index]; // Send current bit
+                DATA_BITS: begin							// Send data bits as pulse width signals
+                    tx_pin <= data_latch[bit_index]; 		// Send current bit
                     if (bit_timer == 0) begin
                         bit_timer <= baud_div;
                         if (bit_index == 7) begin
@@ -70,7 +70,7 @@ module tx_uart
                     end
                 end
 
-                STOP_BIT: begin
+                STOP_BIT: begin								// Send STOP bit which is a pulse of HIGH
                     tx_pin <= 1'b1; // Pull high for STOP
                     if (bit_timer == 0) begin
                         tx_done <= 1'b1;

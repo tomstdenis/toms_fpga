@@ -68,12 +68,12 @@ module tx_uart_tb();
             fork
                 // Process 1: The Driver
                 begin
-                    @(posedge clk);
+                    @(posedge clk); #1;
                     data_in = test_data;
                     start_tx = 1;
-                    @(posedge clk);
+                    @(posedge clk); #1;
                     start_tx = 0;
-					@(posedge clk);
+					@(posedge clk); #1;
 					if (tx_started !== 1) begin
 						$display("ASSERTION FAILED: tx_started should be high after pulsing start_tx\n");
 						$fatal;

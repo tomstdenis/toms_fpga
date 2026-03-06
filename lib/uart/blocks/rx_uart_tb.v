@@ -89,12 +89,12 @@ module uart_full_loopback_tb();
 			end
 			
             // 1. Trigger TX
-            @(posedge clk);
+            @(posedge clk); #1;
             tx_data_in = data_to_send;
             start_tx = 1;
-            @(posedge clk);
+            @(posedge clk); #1;
             start_tx = 0;
-            @(posedge clk);
+            @(posedge clk); #1;
             
             // TX should be started by now ...
 			if (tx_started !== 1) begin
@@ -128,11 +128,11 @@ module uart_full_loopback_tb();
             end
 
             // 4. Clear the RX flag (Pulse rx_read)
-            @(posedge clk);
+            @(posedge clk); #1;
             rx_read = 1;
-            @(posedge clk);
+            @(posedge clk); #1;
             rx_read = 0;
-            @(posedge clk);
+            @(posedge clk); #1;
             
 			// 5. Ensure rx_done is clear
 			if (rx_done !== 0) begin
