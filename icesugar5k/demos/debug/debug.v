@@ -7,7 +7,7 @@ module top(
         BITS=40,
         ENABLE=1;
    
-    wire pll_clk; // 24
+    wire pll_clk; // 36
 	wire pll_locked;
 	
 	pll mypll(.clock_in(clk), .clock_out(pll_clk), .locked(pll_locked));
@@ -54,7 +54,7 @@ module top(
     // These are the debug nodes, in a real design
     // there would be one of these (at least) per module that can be debugged with it
     // they wouldn't be placed all in the same module like this
-    // node0 -- Runs at 24MHz
+    // node0 -- Runs at 36MHz
     serial_debug #(.BITS(BITS), .ENABLE(ENABLE)) node0(
         .clk(pll_clk), .rst_n(rst_n),
         .prescaler(4'd2),									// 2x faster than base so prescale == 2 * 2 == 4
@@ -64,7 +64,7 @@ module top(
         .debug_incoming_tgl(node0_incoming_tgl), .debug_incoming_data(node0_incoming_data),
         .identity(node0_identity));
 
-    // node1 -- runs at 24MHz 
+    // node1 -- runs at 36MHz 
     serial_debug #(.BITS(BITS), .ENABLE(ENABLE)) node1(
         .clk(pll_clk), .rst_n(rst_n),
         .prescaler(4'h2),                                   // node1 runs 1x
@@ -74,7 +74,7 @@ module top(
         .debug_incoming_tgl(node1_incoming_tgl), .debug_incoming_data(node1_incoming_data),
         .identity(node1_identity));
 
-    // node2 -- runs at 24MHz
+    // node2 -- runs at 36MHz
     serial_debug #(.BITS(BITS), .ENABLE(ENABLE)) node2(
         .clk(pll_clk), .rst_n(rst_n),
         .prescaler(4'd2),									// 2x faster than base so prescale == 2 * 2 == 4
@@ -84,7 +84,7 @@ module top(
         .debug_incoming_tgl(node2_incoming_tgl), .debug_incoming_data(node2_incoming_data),
         .identity(node2_identity));
 
-    // node3 -- runs at 24MHz
+    // node3 -- runs at 36MHz
     serial_debug #(.BITS(BITS), .ENABLE(ENABLE)) node3(
         .clk(pll_clk), .rst_n(rst_n),
         .prescaler(4'h2),                               	// 1x speed
@@ -97,7 +97,7 @@ module top(
     // This is the UART that binds to the debugger input node0 and output node3
     // You'd put one of these per debug loop to grant access to the outside world to the 
     // debug loop.
-    // uartdebug -- runs at 24MHz
+    // uartdebug -- runs at 36MHz
     serial_debug_uart #(.BITS(BITS), .ENABLE(ENABLE)) debug_uart(
         .clk(pll_clk), .rst_n(rst_n),
         .prescaler(4'h2),
