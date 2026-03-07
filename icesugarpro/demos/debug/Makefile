@@ -12,7 +12,7 @@ $(TARGET).json: $(OBJS)
 		yosys -p "synth_ecp5 -json $@" $(OBJS)
 
 $(TARGET)_out.config: $(TARGET).json
-		nextpnr-ecp5 --tmg-ripup -r --45k --package CABGA381 --speed 6 --json $< --textcfg $@ --lpf $(TARGET).lpf
+		nextpnr-ecp5 --45k --package CABGA381 --speed 6 --json $< --textcfg $@ --lpf $(TARGET).lpf
 
 $(TARGET).bit: $(TARGET)_out.config
 		ecppack --compress --svf ${TARGET}.svf $< $@
@@ -27,7 +27,7 @@ flash: ${TARGET}.bit
 	openFPGALoader -b colorlight-i9 -f ${TARGET}.bit --verify
 	
 pll1.v:
-	ecppll -i 25 -o 50 -f pll1.v --module pll1
+	ecppll -i 25 -o 150 -f pll1.v --module pll1
 
 pll2.v:
 	ecppll -i 25 -o 75 -f pll2.v --module pll2

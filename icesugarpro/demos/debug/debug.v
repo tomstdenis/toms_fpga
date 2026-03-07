@@ -7,7 +7,7 @@ module top(
         BITS=64,
         ENABLE=1;
    
-    wire pll1_clk; // 50
+    wire pll1_clk; // 150
     wire pll2_clk; // 75
 	wire pll3_clk; // 100
 	wire pll4_clk; // 83.3333
@@ -26,14 +26,14 @@ module top(
     reg [3:0] rstcnt = 4'b0;
     assign rst_n = rstcnt[3];
 
-    // drive 50MHz reset from the 25MHz reset.
-    reg [2:0] rst_n_50_sync = 3'b0;
+    // drive 150MHz reset from the 25MHz reset.
+    reg [2:0] rst_n_150_sync = 3'b0;
     always @(posedge pll1_clk) begin
 		if (pll1_locked) begin
-			rst_n_50_sync <= {rst_n_50_sync[1:0], rst_n}; // rst_n is from the 25MHz logic
+			rst_n_150_sync <= {rst_n_150_sync[1:0], rst_n}; // rst_n is from the 25MHz logic
 		end
     end
-    wire rst_n_50 = rst_n_50_sync[2];
+    wire rst_n_150 = rst_n_150_sync[2];
 
     // drive 75MHz reset from the 25MHz reset.
     reg [2:0] rst_n_75_sync = 3'b0;
@@ -100,10 +100,10 @@ module top(
     // These are the debug nodes, in a real design
     // there would be one of these (at least) per module that can be debugged with it
     // they wouldn't be placed all in the same module like this
-    // node0 -- Runs at 50MHz
+    // node0 -- Runs at 150MHz
     serial_debug #(.BITS(BITS), .ENABLE(ENABLE)) node0(
-        .clk(pll1_clk), .rst_n(rst_n_50),
-        .prescaler(4'h4),									// 2x faster than base so prescale == 2 * 2 ==4
+        .clk(pll1_clk), .rst_n(rst_n_150),
+        .prescaler(4'd12),									// 6x faster than base so prescale == 2 * 6 == 12
         .rx_data(node0_rx_data), .rx_clk(node0_rx_clk),
         .tx_data(node0_tx_data), .tx_clk(node0_tx_clk),
         .debug_outgoing_data(node0_outgoing_data),
@@ -153,7 +153,7 @@ module top(
 
     // node1 resides in the pll_clk domain so we manipulate it here
     always @(posedge pll1_clk) begin
-        if (!rst_n_50) begin
+        if (!rst_n_150) begin
             node0_outgoing_data <= 0;
             node0_incoming_tgl_prev <= 0;
             node0_identity <= 32'h11223300;
