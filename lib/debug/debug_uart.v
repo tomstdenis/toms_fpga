@@ -75,8 +75,8 @@ module serial_debug_uart #(
 
 	reg [SF_BITS-1:0] uart_buf;
 	reg [$clog2(SF_BITS):0] uart_buf_i;
-	reg [2:0] uart_state;
-	reg [2:0] uart_tag;
+	reg [3:0] uart_state;
+	reg [3:0] uart_tag;
 	reg [3:0] prescale_cnt;
 	reg [3:0] tx_data_pipe;								// sync pipe for rx_data
 	reg [3:0] tx_clk_pipe;								// sync pipe for rx_clk
@@ -85,13 +85,15 @@ module serial_debug_uart #(
 	wire cur_tx_clk_prev = tx_clk_pipe[3];				// previous current synced clock
 
 	localparam
-		STATE_IDLE 				= 0,					// Idle waiting for UART input
-		STATE_RX_LOOP			= 1,					// Wait for next byte
-		STATE_RX_LOOP_GETBYTE 	= 2,					// read it
-		STATE_DBG_TX_LOOP		= 3,					// Transmit packet over serial wire to first debug_rx
-		STATE_DBG_RX_LOOP		= 4,					// Receive packet as it came out from debug_tx
-		STATE_TX_LOOP			= 5,					// Transmit the buffer to the UART TX
-		STATE_DELAY         	= 6;					// Delay cycle required for UART FIFO actions
+		STATE_FLUSH				= 0,
+		STATE_IDLE 				= 1,					// Idle waiting for UART input
+		STATE_HEADER_BYTE		= 2,
+		STATE_RX_LOOP			= 3,					// Wait for next byte
+		STATE_RX_LOOP_GETBYTE 	= 4,					// read it
+		STATE_DBG_TX_LOOP		= 5,					// Transmit packet over serial wire to first debug_rx
+		STATE_DBG_RX_LOOP		= 6,					// Receive packet as it came out from debug_tx
+		STATE_TX_LOOP			= 7,					// Transmit the buffer to the UART TX
+		STATE_DELAY         	= 8;					// Delay cycle required for UART FIFO actions
 		
 	always @(posedge clk) begin
 if (ENABLE == 1) begin
@@ -101,7 +103,7 @@ if (ENABLE == 1) begin
 			uart_rx_read		<= 0;
 			uart_buf			<= 0;
 			uart_buf_i			<= 0;
-			uart_state			<= STATE_IDLE;
+			uart_state			<= STATE_FLUSH;
 			debug_rx_clk		<= 1'b1;
 			debug_rx_data		<= 0;
 		end else begin
@@ -115,13 +117,31 @@ if (ENABLE == 1) begin
 						uart_rx_read	<= 0;						// disable RX/TX command 
 						uart_tx_start	<= 0;
 					end
+				STATE_FLUSH:										// empty the RX FIFO
+					begin
+						if (uart_rx_ready) begin
+							uart_tag 	 <= STATE_FLUSH;
+							uart_state 	 <= STATE_DELAY;
+							uart_rx_read <= 1'b1;
+						end else begin
+							uart_state	 <= STATE_IDLE;
+						end
+					end
 				STATE_IDLE:
 					begin
 						uart_buf_i		<= (SF_BITS/8)-1;			// we expect to read SF_BITS/8 bytes
 						if (uart_rx_ready) begin					// are there incoming bytes?
-							uart_tag 	  <= STATE_RX_LOOP_GETBYTE;	// head into RX loop
+							uart_tag 	  <= STATE_HEADER_BYTE;		// head into RX loop
 							uart_state    <= STATE_DELAY;
 							uart_rx_read  <= 1'b1;					// initiate read from RX fifo
+						end
+					end
+				STATE_HEADER_BYTE:									// check for good header byte AA
+					begin
+						if (uart_rx_byte != 8'hAA) begin
+							uart_state			<= STATE_FLUSH;				// it's not the header byte so just flush any incoming bytes
+						end else begin
+							uart_state 			<= STATE_RX_LOOP;
 						end
 					end
 				STATE_RX_LOOP_GETBYTE:								// store a UART incoming byte and advance state

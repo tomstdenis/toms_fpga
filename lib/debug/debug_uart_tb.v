@@ -108,13 +108,15 @@ module debug_uart_tb();
         node_identity = 128'h12345678_11223344_55667788_99AABBCC;
         node_debug_outgoing_data = 128'hFEDCBA98_76543210_00112233_44556677;
         test_phase = 0;
+        host_uart_rx_read = 0;
+        host_uart_tx_start = 0;	
         i = 0;
         sf_buf = 0;
 
         // Reset system
         repeat(10) @(posedge clk);
         rst_n = 1;
-		@(posedge clk);
+        repeat(10) @(posedge clk);					// allow delay so RX flush happens
 
 		// send enumeration
 		test_phase = 0;
@@ -200,6 +202,14 @@ module debug_uart_tb();
 	task transmit_sfbuf(input [SF_BITS-1:0] bits);
 		integer x;
 		begin
+			// transmit header byte
+			while (host_uart_tx_fifo_full == 1);
+			host_uart_tx_data_in 	= 8'hAA;
+			host_uart_tx_start 		= 1;
+			@(posedge clk); #1;
+			host_uart_tx_start      = 0;
+			@(posedge clk); #1;
+			
 			// transmit over UART (we assume the FIFO_DEPTH > SF_BITS/8
 			for (x = 0; x < SF_BITS/8; x++) begin
 				while (host_uart_tx_fifo_full == 1);
