@@ -39,7 +39,10 @@ static int set_interface_attribs(int fd, int speed) {
 void send_cmd(int fd, uint8_t *in, uint8_t *out)
 {
 	int x, n;
-	if (write(fd, in, FRAME) != FRAME) {
+	uint8_t tmp[1+FRAME];
+	tmp[0] = 0xAA; // header byte
+	memcpy(tmp+1, in, FRAME);
+	if (write(fd, tmp, FRAME+1) != FRAME+1) {
 		printf("Could not write packet to debugger\n");
 		exit(-1);
 	}
