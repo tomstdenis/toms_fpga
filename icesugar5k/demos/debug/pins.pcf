@@ -1,0 +1,5 @@
+# Clock (Internal 12MHz Crystal)
+set_io clk 35
+set_io uart_rx 4
+set_io uart_tx 6
+
