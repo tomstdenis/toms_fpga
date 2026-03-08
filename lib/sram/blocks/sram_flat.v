@@ -1,4 +1,4 @@
-	`timescale 1ns/1ps
+`timescale 1ns/1ps
 /* Flat register base SRAM driver
 
 Meant for bulk line size data (e.g. scanline/cacheline).
@@ -40,7 +40,7 @@ module spi_sram_flat #(
 	// I/O
 	inout [3:0] sio_pin,									// data pins
 	output cs_pin,											// active low CS pin
-	output sck_pin											// SPI clock
+	output reg sck_pin										// SPI clock
 );
 `ifdef SIM_MODEL
 	reg [7:0] sim_memory[(1<<SRAM_ADDR_WIDTH)-1:0];
@@ -115,15 +115,24 @@ module spi_sram_flat #(
 	assign cs_pin 		= ~busy;															// active low CS pin
 	assign spi_pulse 	= timer[SPI_TIMER_BITS-1];											// SPI timed pulses
 	assign qpi_pulse 	= timer[QPI_TIMER_BITS-1];											// QPI timed pulses
-	assign sck_pin 		= busy & (state == STATE_SPI_SEND_8 ? spi_pulse : qpi_pulse);		// The SCK pin depending on if we're doing SPI or QPI traffic
+	//assign sck_pin 		= busy & (state == STATE_SPI_SEND_8 ? spi_pulse : qpi_pulse);		// The SCK pin depending on if we're doing SPI or QPI traffic
 	assign done			= (state == STATE_IDLE);											// 'done' is basically a "are we at idle" flag
 	
 	// assign data out
 	always @(*) begin
+		if (busy) begin
+			case (state)
+				STATE_SPI_SEND_8: 													sck_pin = spi_pulse;	// use SPI clock when doing SPI stuff
+				STATE_SPI_SEND_2_READ, STATE_SPI_SEND_2_WRITE, STATE_SPI_READ_2: 	sck_pin = qpi_pulse;	// use QPI clock when doing QPI stuff
+				default: sck_pin = 1'b0;																	// default is off
+			endcase
+		end else begin
+			sck_pin = 1'b0;																					// default is off
+		end
 		if (DATA_WIDTH == 32) begin
 			case (read_data_be)
 				4'b1111: data_out = send_data;
-				4'b0011: data_out = {{(DATA_WIDTH-16){1'b0}}, send_data[31:16]};
+				4'b0011: data_out = {{(DATA_WIDTH-16){1'b0}}, send_data[31:16]};			// data comes into the MSB side of send_data first
 				default: data_out = {{(DATA_WIDTH-8){1'b0}}, send_data[31:24]};
 			endcase
 		end else begin
@@ -145,22 +154,22 @@ module spi_sram_flat #(
 				STATE_INIT:
 					begin
                         // sticking some STATE_INIT initializations here.
-                        temp_spi_bits	<= CMD_EQIO;			// Send "enter quad mode IO" command
-                        bit_cnt			<= 7;					// we use single bit SPI mode for this command
-						state			<= STATE_SPI_SEND_8;	// Use single bit SEND state
-						sio_en			<= 4'b0001;				// enable MOSI output pin SIO[0]
-						busy			<= 1;					// start SPI clock
+                        temp_spi_bits	<= CMD_EQIO;					// Send "enter quad mode IO" command
+                        bit_cnt			<= 7;							// we use single bit SPI mode for this command
+						state			<= STATE_SPI_SEND_8;			// Use single bit SEND state
+						sio_en			<= 4'b0001;						// enable MOSI output pin SIO[0]
+						busy			<= 1;							// start SPI clock
 					end
-				STATE_SPI_SEND_8:								// send 8 bits in temp_spi_bits (sio_en[0] = 1, bit_cnt = 8)	
+				STATE_SPI_SEND_8:										// send 8 bits in temp_spi_bits (sio_en[0] = 1, bit_cnt = 8)	
 					begin
 						case(spi_pulse)
-							1'd0:								// we put data on the line mid way through the first half cycle
+							1'd0:										// we put data on the line mid way through the first half cycle
 								begin
 									if (spi_prev_pulse != spi_pulse) begin			// we detect edges of the pulse so we only process the state once
 										dout[0] <= temp_spi_bits[7];
 									end
 								end
-							1'd1:							// Detect if we should exit this loop
+							1'd1:										// Detect if we should exit this loop
 								begin
 									if (timer == ((1 << SPI_TIMER_BITS) - 1)) begin	// only move on the last system clock cycle of the SPI clock cycle
 										bit_cnt <= bit_cnt - 1'b1;
@@ -173,11 +182,11 @@ module spi_sram_flat #(
 								end
 						endcase
 					end
-				STATE_SPI_SEND_2_WRITE:							// WRITE: Write the cmd + address + line in QPI mode
+				STATE_SPI_SEND_2_WRITE:									// WRITE: Write the cmd + address + line in QPI mode
 					begin
-						if (qpi_prev_pulse != qpi_pulse) begin	// only run the case statement on the edge of the QPI clock pulse
+						if (qpi_prev_pulse != qpi_pulse) begin			// only run the case statement on the edge of the QPI clock pulse
 							case(qpi_pulse)
-								1'd0:							// we put data on the line in the first half cycle
+								1'd0:									// we put data on the line in the first half cycle
 									begin
 `ifdef SIM_MODEL
 										if (nibble_idx[0]) begin
@@ -202,15 +211,15 @@ module spi_sram_flat #(
 							endcase
 						end
 					end
-				STATE_SPI_SEND_2_READ:							// READ: Write the cmd + address in QPI mode
+				STATE_SPI_SEND_2_READ:												// READ: Write the cmd + address in QPI mode
 					begin
-						if (qpi_prev_pulse != qpi_pulse) begin	// only run the case statement on the edge of the QPI clock pulse
+						if (qpi_prev_pulse != qpi_pulse) begin						// only run the case statement on the edge of the QPI clock pulse
 							case(qpi_pulse)
-								1'd0:							// we put data on the line in the first half cycle
+								1'd0:												// we put data on the line in the first half cycle
 									begin
 										dout <= read_wire[nibble_idx[$clog2(READ_SIZE)-1:0] +: 4];			// in quad mode we shift out the most significant nibble first
 									end
-								1'd1:							// Detect if we should exit from this loop
+								1'd1:												// Detect if we should exit from this loop
 									begin
 										// if there are more bytes to send ...
 										nibble_idx  <= nibble_idx - 4;
