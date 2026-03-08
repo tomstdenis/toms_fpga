@@ -149,6 +149,8 @@ module spi_sram_flat #(
             send_address	<= 0;										// latched address
             send_data		<= 0;										// latched data
             send_cmd		<= 0;										// latched memory command
+            dummy_nibbles   <= 0;
+            nibble_idx      <= 0;
 		end else begin
 			case(state)
 				STATE_INIT:
