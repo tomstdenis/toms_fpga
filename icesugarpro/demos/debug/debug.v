@@ -1,3 +1,16 @@
+/* node debugger example for ECP5-45F
+
+  This example sets up four debug nodes and wires them in a chain, then wires the 
+outside to the debug_uart so a PC can talk to it.  The four nodes all operate at different
+PLL driven frequencies with prescalers tuned to their multiple of the base 25MHz clock the 
+debug_uart runs at.
+
+  This demo is derived from the one I wrote for my Tang Nano 20K which had LEDs to blink.  In this
+case we blink on the PC side :-).  The demo basically is just a relay where whatever the host writes
+to a node is what it can read back.  We assign the four nodes unique identities, etc.
+
+*/
+
 module top(
     input clk,
     output uart_tx,
@@ -17,6 +30,7 @@ module top(
 	wire pll3_locked;
 	wire pll4_locked;
 	
+	// our four PLL instantiations
 	pll1 pll1(.clkin(clk), .clkout0(pll1_clk), .locked(pll1_locked));
 	pll2 pll2(.clkin(clk), .clkout0(pll2_clk), .locked(pll2_locked));
 	pll3 pll3(.clkin(clk), .clkout0(pll3_clk), .locked(pll3_locked));
@@ -154,13 +168,13 @@ module top(
     // node1 resides in the pll_clk domain so we manipulate it here
     always @(posedge pll1_clk) begin
         if (!rst_n_150) begin
-            node0_outgoing_data <= 0;
+            node0_outgoing_data 	<= 0;
             node0_incoming_tgl_prev <= 0;
-            node0_identity <= 32'h11223300;
+            node0_identity 			<= 32'h11223300;
         end else begin
             if (node0_incoming_tgl_prev != node0_incoming_tgl) begin
                 node0_incoming_tgl_prev <= node0_incoming_tgl;
-                node0_outgoing_data <= node0_incoming_data;
+                node0_outgoing_data 	<= node0_incoming_data;
             end
         end
     end
@@ -168,13 +182,13 @@ module top(
     // node2 resides in the pll2_clk domain so we manipulate it here
     always @(posedge pll2_clk) begin
         if (!rst_n_75) begin
-            node1_outgoing_data <= 0;
+            node1_outgoing_data 	<= 0;
             node1_incoming_tgl_prev <= 0;
-            node1_identity <= 32'h11223301;
+            node1_identity 			<= 32'h11223301;
         end else begin
             if (node1_incoming_tgl_prev != node1_incoming_tgl) begin
                 node1_incoming_tgl_prev <= node1_incoming_tgl;
-                node1_outgoing_data <= node1_incoming_data;
+                node1_outgoing_data 	<= node1_incoming_data;
             end
         end
     end
@@ -182,13 +196,13 @@ module top(
     // node3 resides in the pll3_clk domain so we manipulate it here
     always @(posedge pll3_clk) begin
         if (!rst_n_100) begin
-            node2_outgoing_data <= 0;
+            node2_outgoing_data 	<= 0;
             node2_incoming_tgl_prev <= 0;
-            node2_identity <= 32'h11223302;
+            node2_identity 			<= 32'h11223302;
         end else begin
             if (node2_incoming_tgl_prev != node2_incoming_tgl) begin
                 node2_incoming_tgl_prev <= node2_incoming_tgl;
-                node2_outgoing_data <= node2_incoming_data;
+                node2_outgoing_data 	<= node2_incoming_data;
             end
         end
     end
@@ -196,13 +210,13 @@ module top(
     // node4 resides in the pll4_clk domain so we manipulate it here
     always @(posedge pll4_clk) begin
         if (!rst_n_83) begin
-            node3_outgoing_data <= 0;
+            node3_outgoing_data 	<= 0;
             node3_incoming_tgl_prev <= 0;
-            node3_identity <= 32'h11223303;
+            node3_identity 			<= 32'h11223303;
         end else begin
             if (node3_incoming_tgl_prev != node3_incoming_tgl) begin
                 node3_incoming_tgl_prev <= node3_incoming_tgl;
-                node3_outgoing_data <= node3_incoming_data;
+                node3_outgoing_data 	<= node3_incoming_data;
             end
         end
     end
