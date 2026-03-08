@@ -1,9 +1,9 @@
 `timescale 1ns/1ps
 
-module sram_flat_tb();
+module sram_flat_wide_tb();
 	localparam
 		DUMMY = 6,
-		DATA_WIDTH=32,
+		DATA_WIDTH=256,
 		SRAM_ADDR_WIDTH=16;
 
 	reg clk;
@@ -48,8 +48,8 @@ module sram_flat_tb();
 
 	initial begin
         // Waveform setup
-        $dumpfile("sram_flat.vcd");
-        $dumpvars(0, sram_flat_tb);
+        $dumpfile("sram_flat_wide.vcd");
+        $dumpvars(0, sram_flat_wide_tb);
 
 		X = 0;
 		i = 0;
@@ -69,9 +69,9 @@ module sram_flat_tb();
         rst_n = 1;
         wait(done == 1);				// wait for init to finish
 
-		// write 4 bytes
+		// write 32 bytes
 		test_phase = 0;
-		data_in = 32'h12345678;
+		data_in = 'h12345678;
 		data_in_valid = 1;
 		write_cmd = 1;
 		address = 'h1234;
@@ -80,35 +80,9 @@ module sram_flat_tb();
 		write_cmd = 0;
 		@(posedge clk); #1;
 		wait(done == 1); #1;
-		
-		// write 2 bytes
+				
+		// read 32 bytes
 		test_phase = 1;
-		data_in = 32'h0000ABCD;
-		data_in_valid = 1;
-		write_cmd = 1;
-		address = 'h1238;
-		data_be = 4'b0011;
-		@(posedge clk); #1;
-		data_in_valid = 0;
-		write_cmd = 0;
-		@(posedge clk); #1;
-		wait(done == 1); #1;
-
-		// write 1 bytes
-		test_phase = 2;
-		data_in = 32'h000000EF;
-		data_in_valid = 1;
-		write_cmd = 1;
-		address = 'h123A;
-		data_be = 4'b0001;
-		@(posedge clk); #1;
-		data_in_valid = 0;
-		write_cmd = 0;
-		@(posedge clk); #1;
-		wait(done == 1); #1;
-		
-		// read 4 bytes
-		test_phase = 3;
 		address = 'h1234;
 		data_be = 4'b1111;
 		read_cmd = 1;
@@ -116,38 +90,11 @@ module sram_flat_tb();
 		read_cmd = 0;
 		@(posedge clk); #1;
 		wait(done == 1);
-		if (data_out != 32'h12345678) begin
+		if (data_out != 'h12345678) begin
 			$display("We expected 12345678 back not %h", data_out);
 			$fatal;
 		end
 
-		// read 2 bytes
-		test_phase = 4;
-		address = 'h1238;
-		data_be = 4'b0011;
-		read_cmd = 1;
-		@(posedge clk); #1;
-		read_cmd = 0;
-		@(posedge clk); #1;
-		wait(done == 1);
-		if (data_out != 32'h0000ABCD) begin
-			$display("We expected 0000ABCD back not %h", data_out);
-			$fatal;
-		end
-
-		// read 1 bytes
-		test_phase = 5;
-		address = 'h123A;
-		data_be = 4'b0001;
-		read_cmd = 1;
-		@(posedge clk); #1;
-		read_cmd = 0;
-		@(posedge clk); #1;
-		wait(done == 1);
-		if (data_out != 32'h000000EF) begin
-			$display("We expected 000000EF back not %h", data_out);
-			$fatal;
-		end
 
         repeat(10) @(posedge clk);
         $finish;

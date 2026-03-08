@@ -82,6 +82,7 @@ module spi_sram_flat #(
 	reg [3:0] bit_cnt;										// bit counter a variety of FSM states
 	reg [$clog2(DUMMY_BYTES*2):0] dummy_nibbles;			// how many nibbles to ignore
 	reg [$clog2(SEND_SIZE)-1:0] nibble_idx;					// index into reg/wires in steps of 4 bits
+	reg [$clog2(SEND_SIZE)-1:0] nibble_stop;				// index into reg/wires in steps of 4 bits
 
 	reg [7:0] hangup_timer;
 	wire [15:0] hangup_bauddiv = ((CLK_FREQ_MHZ * MIN_CPH_NS + 999) / 1000);
@@ -132,8 +133,8 @@ module spi_sram_flat #(
 		if (DATA_WIDTH == 32) begin
 			case (read_data_be)
 				4'b1111: data_out = send_data;
-				4'b0011: data_out = {{(DATA_WIDTH-16){1'b0}}, send_data[31:16]};			// data comes into the MSB side of send_data first
-				default: data_out = {{(DATA_WIDTH-8){1'b0}}, send_data[31:24]};
+				4'b0011: data_out = {{(DATA_WIDTH-16){1'b0}}, send_data[15:0]};			// data comes into the MSB side of send_data first
+				default: data_out = {{(DATA_WIDTH-8){1'b0}}, send_data[7:0]};
 			endcase
 		end else begin
 			data_out = send_data;
@@ -191,12 +192,15 @@ module spi_sram_flat #(
 								1'd0:									// we put data on the line in the first half cycle
 									begin
 `ifdef SIM_MODEL
-										if (nibble_idx[0]) begin
-											// sending the top nibble
-											sim_memory[sim_address] <= {send_wire[nibble_idx +: 4], sim_memory[sim_address][3:0] };
-										end else begin
-											sim_memory[sim_address] <= {sim_memory[sim_address][7:4], send_wire[nibble_idx +: 4]};
-											sim_address 			<= sim_address + 1;
+										if (nibble_idx < DATA_WIDTH) begin
+											if (nibble_idx[2]) begin
+												// sending the top nibble
+												sim_memory[sim_address] <= {send_wire[nibble_idx +: 4], 4'h0 };
+											end else begin
+												sim_memory[sim_address] <= {sim_memory[sim_address][7:4], send_wire[nibble_idx +: 4]};
+												$display("Wrote %h%h to %h", sim_memory[sim_address][7:4], send_wire[nibble_idx +: 4], sim_address);
+												sim_address 			<= sim_address + 1;
+											end
 										end
 `endif
 										dout <= send_wire[nibble_idx +: 4];			// in quad mode we shift out the most significant nibble first
@@ -205,7 +209,7 @@ module spi_sram_flat #(
 									begin
 										// if there are more bytes to send ...
 										nibble_idx  <= nibble_idx - 4;
-										if (nibble_idx == 0) begin
+										if (nibble_idx == nibble_stop) begin
 											state			<= STATE_HANGUP;
 											busy			<= 0;					// it was a write command so we're done
 										end
@@ -225,7 +229,7 @@ module spi_sram_flat #(
 									begin
 										// if there are more bytes to send ...
 										nibble_idx  <= nibble_idx - 4;
-										if (nibble_idx == 0) begin
+										if (nibble_idx == nibble_stop) begin
 											state			<= STATE_SPI_READ_2;					// jump to reading
 											dummy_nibbles   <= DUMMY_BYTES * 2;
 											if (DATA_WIDTH == 32) begin
@@ -262,12 +266,15 @@ module spi_sram_flat #(
 								1'd1:							// we sample during the 2nd half of the cycle
 									begin
 `ifdef SIM_MODEL
-										if (nibble_idx[0]) begin
-											send_data[nibble_idx[$clog2(DATA_WIDTH)-1:0] +: 4] <= sim_memory[sim_address][7:4]; // store top nibble
-										end else begin
-											send_data[nibble_idx[$clog2(DATA_WIDTH)-1:0] +: 4] <= sim_memory[sim_address][3:0]; // store bottom nibble
-											if (dummy_nibbles == 0) begin
-												sim_address <= sim_address + 1;
+										if (nibble_idx < DATA_WIDTH) begin
+											if (nibble_idx[2]) begin
+												send_data[nibble_idx[$clog2(DATA_WIDTH)-1:0] +: 4] <= sim_memory[sim_address][7:4]; // store top nibble
+											end else begin
+												send_data[nibble_idx[$clog2(DATA_WIDTH)-1:0] +: 4] <= sim_memory[sim_address][3:0]; // store bottom nibble
+												$display("Read %h from %h", sim_memory[sim_address], sim_address);
+												if (dummy_nibbles == 0) begin
+													sim_address <= sim_address + 1;
+												end
 											end
 										end
 `else
@@ -317,24 +324,25 @@ module spi_sram_flat #(
 							state			<= (write_cmd == 1) ? STATE_SPI_SEND_2_WRITE : STATE_SPI_SEND_2_READ;	// jump to state relevant to the operation requested
 							busy 			<= 1;																	// we're going to be busy in the next cycle
 							read_data_be	<= data_be;																// latch the data_be so we can use it during reads
+							nibble_idx 		<= SEND_SIZE - 4;
 							if (write_cmd) begin
 								if (DATA_WIDTH == 32) begin
 									case(data_be)
 										4'b1111: // 32-bit operation
 											begin
-												nibble_idx      <= SEND_SIZE - 4;		// start at the most significant nibble of the send_cmd byte
+												nibble_stop		<= 0;
 											end
 										4'b0011: // 16-bit operation
 											begin
-												nibble_idx      <= SEND_SIZE - 4 - 16;  // sub 4 so we can match without using a computed sub (sub 16 since we're only sending 16 bits out of 32)
+												nibble_stop      <= 16;
 											end
 										default: // default to 8 bit
 											begin
-												nibble_idx      <= SEND_SIZE - 4 - 24;  // sub 4 so we can match without using a computed sub (sub 24 since we're only sending 8 bits out of 32)
+												nibble_stop      <= 24;
 											end
 									endcase
 								end else begin
-									nibble_idx <= SEND_SIZE - 4;
+									nibble_stop <= 0;
 								end
 							end else begin
 								// read commands are just the cmd + address
