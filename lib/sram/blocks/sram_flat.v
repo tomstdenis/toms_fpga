@@ -1,4 +1,4 @@
-`timescale 1ns/1ps
+	`timescale 1ns/1ps
 /* Flat register base SRAM driver
 
 Meant for bulk line size data (e.g. scanline/cacheline).
@@ -123,8 +123,8 @@ module spi_sram_flat #(
 		if (DATA_WIDTH == 32) begin
 			case (read_data_be)
 				4'b1111: data_out = send_data;
-				4'b0011: data_out = {{(DATA_WIDTH-32){1'b0}}, 16'b0, send_data[31:16]};
-				default: data_out = {{(DATA_WIDTH-32){1'b0}}, 24'b0, send_data[31:24]};
+				4'b0011: data_out = {{(DATA_WIDTH-16){1'b0}}, send_data[31:16]};
+				default: data_out = {{(DATA_WIDTH-8){1'b0}}, send_data[31:24]};
 			endcase
 		end else begin
 			data_out = send_data;
@@ -133,13 +133,13 @@ module spi_sram_flat #(
 	
 	always @(posedge clk) begin
 		if (!rst_n) begin
-            state			<= STATE_INIT;
+            state			<= STATE_INIT;								// Jump to initial FSM state
             sio_en			<= 4'b0000;									// disable all outputs
-            dout			<= 0;
-            busy			<= 0;
-            send_address	<= 0;
-            send_data		<= 0;
-            send_cmd		<= 0;
+            dout			<= 0;										// SPI bus output
+            busy			<= 0;										// busy flag (controls CS pin)
+            send_address	<= 0;										// latched address
+            send_data		<= 0;										// latched data
+            send_cmd		<= 0;										// latched memory command
 		end else begin
 			case(state)
 				STATE_INIT:
@@ -220,7 +220,6 @@ module spi_sram_flat #(
 										nibble_idx  <= nibble_idx - 4;
 										if (nibble_idx == 0) begin
 											state			<= STATE_SPI_READ_2;					// jump to reading
-											busy			<= 1;									// it was a READ command so we're not done yet
 											dummy_nibbles   <= DUMMY_BYTES * 2;
 											if (DATA_WIDTH == 32) begin
 												case(read_data_be)
@@ -275,9 +274,9 @@ module spi_sram_flat #(
 `endif
 										// write next byte we read out, this starts just after the cmd and address 
 										if (dummy_nibbles == 0) begin
-											nibble_idx <= nibble_idx - 4;
+											nibble_idx		<= nibble_idx - 4;
 										end else begin
-											dummy_nibbles <= dummy_nibbles - 1;
+											dummy_nibbles	<= dummy_nibbles - 1;
 										end
 										if (nibble_idx == 0) begin
 											state <= STATE_HANGUP;
@@ -298,11 +297,11 @@ module spi_sram_flat #(
 										end
 									4'b0011: // 16-bit operation
 										begin
-											send_data <= { data_in[15:0], 16'b0, {(DATA_WIDTH-32){1'b0}} };
+											send_data <= { data_in[15:0], {(DATA_WIDTH-16){1'b0}} };
 										end
 									default: // default to 8 bit
 										begin
-											send_data <= { data_in[7:0], 24'b0, {(DATA_WIDTH-32){1'b0}} };
+											send_data <= { data_in[7:0], {(DATA_WIDTH-8){1'b0}} };
 										end
 								endcase
 							end else begin
@@ -330,7 +329,7 @@ module spi_sram_flat #(
 											end
 										default: // default to 8 bit
 											begin
-												nibble_idx      <= SEND_SIZE - 4 - 24; // sub 4 so we can match without using a computed sub (sub 24 since we're only sending 8 bits out of 32)
+												nibble_idx      <= SEND_SIZE - 4 - 24;  // sub 4 so we can match without using a computed sub (sub 24 since we're only sending 8 bits out of 32)
 											end
 									endcase
 								end else begin
