@@ -180,17 +180,13 @@ module spi_sram_flat #(
 								1'd0:							// we put data on the line in the first half cycle
 									begin
 `ifdef SIM_MODEL
-/*
-	if (fifo_rptr >= (1 + (SRAM_ADDR_WIDTH/8))) begin
-		if (bit_cnt == 2) begin
-			sim_memory[sim_address] <= {temp_bits[7:4], sim_memory[sim_address][3:0]};
-		end else begin
-			sim_memory[sim_address] <= {sim_memory[sim_address][7:4], temp_bits[7:4]};
-			sim_address <= sim_address + 1'b1;
-			$display("Wrote %2h to %4h", {sim_memory[sim_address][7:4], temp_bits[7:4]}, sim_address);
-		end
-	end
-*/
+										if (nibble_idx[0]) begin
+											// sending the top nibble
+											sim_memory[sim_address] <= {send_wire[nibble_idx +: 4], sim_memory[sim_address][3:0] };
+										end else begin
+											sim_memory[sim_address] <= {sim_memory[sim_address][7:4], send_wire[nibble_idx +: 4]};
+											sim_address 			<= sim_address + 1;
+										end
 `endif
 										dout <= send_wire[nibble_idx +: 4];			// in quad mode we shift out the most significant nibble first
 									end
@@ -255,20 +251,14 @@ module spi_sram_flat #(
 								1'd1:							// we sample during the 2nd half of the cycle
 									begin
 `ifdef SIM_MODEL
-/*
-	if (sim_dummy == 0) begin
-		if (bit_cnt == 2) begin
-			temp_bits <= {4'b0, sim_memory[sim_address][7:4]};
-		end else begin
-			temp_bits <= {temp_bits[3:0], sim_memory[sim_address][3:0]};
-			sim_address <= sim_address + 1'b1;
-			$display("We read %2h from %4h", {temp_bits[3:0], sim_memory[sim_address][3:0]}, sim_address);
-		end
-	end else begin
-		$display("dummy == %d", sim_dummy);
-		sim_dummy <= sim_dummy - 1'b1;
-	end
-*/
+										if (nibble_idx[0]) begin
+											send_data[nibble_idx[$clog2(DATA_WIDTH)-1:0] +: 4] <= sim_memory[sim_address][7:4]; // store top nibble
+										end else begin
+											send_data[nibble_idx[$clog2(DATA_WIDTH)-1:0] +: 4] <= sim_memory[sim_address][3:0]; // store bottom nibble
+											if (dummy_nibbles == 0) begin
+												sim_address <= sim_address + 1;
+											end
+										end
 `else
 										send_data[nibble_idx[$clog2(DATA_WIDTH)-1:0] +: 4] <= din; // store nibble
 `endif
