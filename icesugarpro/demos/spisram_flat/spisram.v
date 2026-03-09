@@ -35,11 +35,11 @@ module top(input clk, inout [3:0] sio, output cs, output sck, output reg good);
     spi_sram_flat
     #(
 `ifdef USE_23LC512
-            .DATA_WIDTH(DATA_WIDTH), .CLK_FREQ_MHZ(75), .SRAM_ADDR_WIDTH(SRAM_ADDR_WIDTH),
+            .DATA_WIDTH(DATA_WIDTH), .CLK_FREQ_MHZ(50), .SRAM_ADDR_WIDTH(SRAM_ADDR_WIDTH),
             .DUMMY_BYTES(1), .CMD_READ(8'h03), .CMD_WRITE(8'h02), .CMD_EQIO(8'h38),
             .MIN_CPH_NS(50), .SPI_TIMER_BITS(1), .QPI_TIMER_BITS(1)                     // divide by 2 to get 37.5MHz clock
 `else
-            .DATA_WIDTH(DATA_WIDTH), .CLK_FREQ_MHZ(75), .SRAM_ADDR_WIDTH(SRAM_ADDR_WIDTH),
+            .DATA_WIDTH(DATA_WIDTH), .CLK_FREQ_MHZ(50), .SRAM_ADDR_WIDTH(SRAM_ADDR_WIDTH),
             .DUMMY_BYTES(6), .CMD_READ(8'hEB), .CMD_WRITE(8'h38), .CMD_EQIO(8'h35),
             .MIN_CPH_NS(50), .SPI_TIMER_BITS(1), .QPI_TIMER_BITS(1)
 `endif  

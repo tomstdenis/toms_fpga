@@ -1,7 +1,7 @@
 # Makefile for the SPI FLAT SRAM demo for a ECP5-LF45 on the Colorlight-i9 board
 TARGET=spisram
 TOP=top
-FREQ=110
+FREQ=50
 
 OBJS+=${TARGET}.v ../../../lib/sram/blocks/sram_flat.v pll1.v
 
@@ -13,7 +13,7 @@ $(TARGET).json: $(OBJS)
 
 # Place and Route
 $(TARGET)_out.config: $(TARGET).json
-		nextpnr-ecp5 --45k --package CABGA381 --speed 6 --json $< --textcfg $@ --lpf $(TARGET).lpf
+		nextpnr-ecp5 -r --45k --package CABGA381 --speed 6 --json $< --textcfg $@ --lpf $(TARGET).lpf
 
 # Create a bitfile and jtag stream
 $(TARGET).bit: $(TARGET)_out.config
