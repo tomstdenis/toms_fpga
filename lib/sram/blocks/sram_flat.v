@@ -74,7 +74,7 @@ module spi_sram_flat #(
 	reg [SRAM_ADDR_WIDTH-1:0] send_address;					// latched address
 	reg [DATA_WIDTH-1:0] send_data;							// latched data to send
 	reg [7:0] send_cmd;										// the command byte to send
-
+	wire [7:0] cmd_byte = (write_cmd == 1) ? CMD_WRITE : CMD_READ;
 	// thes wires forms the basic command we send when doing a read or a write
 	wire [SEND_SIZE-1:0] send_wire = { send_cmd, send_address, send_data };
 	wire [READ_SIZE-1:0] read_wire = { send_cmd, send_address };
@@ -327,7 +327,8 @@ module spi_sram_flat #(
 						
 						if (write_cmd | read_cmd) begin																// user wants to issue a read or write so we prepare the SPI write (command + address + optional payload)
 							sio_en 			<= 4'b1111;																// enable all 4 outputs
-							send_cmd 		<= (write_cmd == 1) ? CMD_WRITE : CMD_READ;								// the SPI command we need
+							dout			<= cmd_byte[7:4];														// preload output for eventual 1-cycle cadence
+							send_cmd 		<= cmd_byte;															// the SPI command we need
 							send_address	<= address;																// latch the address
 							state			<= (write_cmd == 1) ? STATE_SPI_SEND_2_WRITE : STATE_SPI_SEND_2_READ;	// jump to state relevant to the operation requested
 							busy 			<= 1;																	// we're going to be busy in the next cycle
@@ -338,7 +339,7 @@ module spi_sram_flat #(
 									case(data_be)
 										4'b1111: // 32-bit operation
 											begin
-												nibble_stop		<= 0;		// full transfer
+												nibble_stop		 <= 0;		// full transfer
 											end
 										4'b0011: // 16-bit operation
 											begin
@@ -355,6 +356,7 @@ module spi_sram_flat #(
 							end else begin
 								// read commands are just the cmd + address
 								nibble_idx <= 8 + SRAM_ADDR_WIDTH - 4;
+								nibble_stop <= 0;
 							end
                         `ifdef SIM_MODEL
                             sim_dummy <= DUMMY_BYTES[7:0] * 2;
