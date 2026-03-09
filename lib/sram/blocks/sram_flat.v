@@ -338,15 +338,15 @@ module spi_sram_flat #(
 									case(data_be)
 										4'b1111: // 32-bit operation
 											begin
-												nibble_stop		<= 0;
+												nibble_stop		<= 0;		// full transfer
 											end
 										4'b0011: // 16-bit operation
 											begin
-												nibble_stop      <= 16;
+												nibble_stop      <= 16;		// stop with 16 bits left since we're only writing 16
 											end
 										default: // default to 8 bit
 											begin
-												nibble_stop      <= 24;
+												nibble_stop      <= 24;		// stop with 24 bits left since we're only writing 8
 											end
 									endcase
 								end else begin
