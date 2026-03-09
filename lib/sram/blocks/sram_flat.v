@@ -1,11 +1,19 @@
-`timescale 1ns/1ps
 /* Flat register base SRAM driver
 
-Meant for bulk line size data (e.g. scanline/cacheline).
+This module implements a Quad IO (SPI) based PSRAM/SRAM interface
+that is meant to provide a single unit of data access at a time.
+
+On the lower end DATA_WIDTH=32 gives a CPU friendly interface to
+memory (albeit with high latency) with byte enables that shift data
+around as required.
+
+On the upper end DATA_WIDTH >= 128 can be used by a cache or scan line
+controller to access an entire lines worth of data.  Really only
+limited by the enable time of the CS pin (typically has to be less
+than 4 uS).
 
 */
-
-
+`timescale 1ns/1ps
 module spi_sram_flat #(
 	parameter CLK_FREQ_MHZ=27,								// system clock frequency (required for walltime requirements)
 	parameter DATA_WIDTH=32,								// controls the line size

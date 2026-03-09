@@ -1,0 +1,2761 @@
+FST info: dumpfile sram_fifo.vcd opened for output.
+Wrote 36 to 1236
+Wrote c3 to 1237
+Wrote 34 to 1234
+Wrote ab to 1235
+Wrote cd to 1236
+Wrote 34 to 1234
+dummy ==  12
+dummy ==  11
+dummy ==  10
+dummy ==   9
+dummy ==   8
+dummy ==   7
+dummy ==   6
+dummy ==   5
+dummy ==   4
+dummy ==   3
+dummy ==   2
+dummy ==   1
+We read ab from 1235
+We read cd from 1236
+We read c3 from 1237
+Wrote 34 to 1234
+dummy ==  12
+dummy ==  11
+dummy ==  10
+dummy ==   9
+dummy ==   8
+dummy ==   7
+dummy ==   6
+dummy ==   5
+dummy ==   4
+dummy ==   3
+dummy ==   2
+dummy ==   1
+We read ab from 1235
+We read cd from 1236
+Wrote 00 to 2000
+Wrote 78 to 2001
+Wrote 56 to 2002
+Wrote 34 to 2003
+Wrote 12 to 2004
+Wrote 00 to 2000
+dummy ==  12
+dummy ==  11
+dummy ==  10
+dummy ==   9
+dummy ==   8
+dummy ==   7
+dummy ==   6
+dummy ==   5
+dummy ==   4
+dummy ==   3
+dummy ==   2
+dummy ==   1
+We read 78 from 2001
+We read 56 from 2002
+We read 34 from 2003
+We read 12 from 2004
+Wrote 01 to 2001
+dummy ==  12
+dummy ==  11
+dummy ==  10
+dummy ==   9
+dummy ==   8
+dummy ==   7
+dummy ==   6
+dummy ==   5
+dummy ==   4
+dummy ==   3
+dummy ==   2
+dummy ==   1
+We read 56 from 2002
+We read 34 from 2003
+Wrote 03 to 2003
+dummy ==  12
+dummy ==  11
+dummy ==  10
+dummy ==   9
+dummy ==   8
+dummy ==   7
+dummy ==   6
+dummy ==   5
+dummy ==   4
+dummy ==   3
+dummy ==   2
+dummy ==   1
+We read 12 from 2004
+Wrote 00 to 3000
+Wrote 01 to 3001
+Wrote 00 to 3000
+dummy ==  12
+dummy ==  11
+dummy ==  10
+dummy ==   9
+dummy ==   8
+dummy ==   7
+dummy ==   6
+dummy ==   5
+dummy ==   4
+dummy ==   3
+dummy ==   2
+dummy ==   1
+We read 01 from 3001
+Wrote 00 to 3000
+Wrote 02 to 3001
+Wrote 7a to 3002
+Wrote 00 to 3000
+dummy ==  12
+dummy ==  11
+dummy ==  10
+dummy ==   9
+dummy ==   8
+dummy ==   7
+dummy ==   6
+dummy ==   5
+dummy ==   4
+dummy ==   3
+dummy ==   2
+dummy ==   1
+We read 02 from 3001
+We read 7a from 3002
+Wrote 00 to 3000
+Wrote 03 to 3001
+Wrote 7b to 3002
+Wrote f3 to 3003
+Wrote 00 to 3000
+dummy ==  12
+dummy ==  11
+dummy ==  10
+dummy ==   9
+dummy ==   8
+dummy ==   7
+dummy ==   6
+dummy ==   5
+dummy ==   4
+dummy ==   3
+dummy ==   2
+dummy ==   1
+We read 03 from 3001
+We read 7b from 3002
+We read f3 from 3003
+Wrote 00 to 3000
+Wrote 04 to 3001
+Wrote 7c to 3002
+Wrote f4 to 3003
+Wrote 6c to 3004
+Wrote 00 to 3000
+dummy ==  12
+dummy ==  11
+dummy ==  10
+dummy ==   9
+dummy ==   8
+dummy ==   7
+dummy ==   6
+dummy ==   5
+dummy ==   4
+dummy ==   3
+dummy ==   2
+dummy ==   1
+We read 04 from 3001
+We read 7c from 3002
+We read f4 from 3003
+We read 6c from 3004
+Wrote 00 to 3000
+Wrote 05 to 3001
+Wrote 7d to 3002
+Wrote f5 to 3003
+Wrote 6d to 3004
+Wrote e5 to 3005
+Wrote 00 to 3000
+dummy ==  12
+dummy ==  11
+dummy ==  10
+dummy ==   9
+dummy ==   8
+dummy ==   7
+dummy ==   6
+dummy ==   5
+dummy ==   4
+dummy ==   3
+dummy ==   2
+dummy ==   1
+We read 05 from 3001
+We read 7d from 3002
+We read f5 from 3003
+We read 6d from 3004
+We read e5 from 3005
+Wrote 00 to 3000
+Wrote 06 to 3001
+Wrote 7e to 3002
+Wrote f6 to 3003
+Wrote 6e to 3004
+Wrote e6 to 3005
+Wrote 5e to 3006
+Wrote 00 to 3000
+dummy ==  12
+dummy ==  11
+dummy ==  10
+dummy ==   9
+dummy ==   8
+dummy ==   7
+dummy ==   6
+dummy ==   5
+dummy ==   4
+dummy ==   3
+dummy ==   2
+dummy ==   1
+We read 06 from 3001
+We read 7e from 3002
+We read f6 from 3003
+We read 6e from 3004
+We read e6 from 3005
+We read 5e from 3006
+Wrote 00 to 3000
+Wrote 07 to 3001
+Wrote 7f to 3002
+Wrote f7 to 3003
+Wrote 6f to 3004
+Wrote e7 to 3005
+Wrote 5f to 3006
+Wrote d7 to 3007
+Wrote 00 to 3000
+dummy ==  12
+dummy ==  11
+dummy ==  10
+dummy ==   9
+dummy ==   8
+dummy ==   7
+dummy ==   6
+dummy ==   5
+dummy ==   4
+dummy ==   3
+dummy ==   2
+dummy ==   1
+We read 07 from 3001
+We read 7f from 3002
+We read f7 from 3003
+We read 6f from 3004
+We read e7 from 3005
+We read 5f from 3006
+We read d7 from 3007
+Wrote 00 to 3000
+Wrote 08 to 3001
+Wrote 80 to 3002
+Wrote f8 to 3003
+Wrote 70 to 3004
+Wrote e8 to 3005
+Wrote 60 to 3006
+Wrote d8 to 3007
+Wrote 50 to 3008
+Wrote 00 to 3000
+dummy ==  12
+dummy ==  11
+dummy ==  10
+dummy ==   9
+dummy ==   8
+dummy ==   7
+dummy ==   6
+dummy ==   5
+dummy ==   4
+dummy ==   3
+dummy ==   2
+dummy ==   1
+We read 08 from 3001
+We read 80 from 3002
+We read f8 from 3003
+We read 70 from 3004
+We read e8 from 3005
+We read 60 from 3006
+We read d8 from 3007
+We read 50 from 3008
+Wrote 00 to 3000
+Wrote 09 to 3001
+Wrote 81 to 3002
+Wrote f9 to 3003
+Wrote 71 to 3004
+Wrote e9 to 3005
+Wrote 61 to 3006
+Wrote d9 to 3007
+Wrote 51 to 3008
+Wrote c9 to 3009
+Wrote 00 to 3000
+dummy ==  12
+dummy ==  11
+dummy ==  10
+dummy ==   9
+dummy ==   8
+dummy ==   7
+dummy ==   6
+dummy ==   5
+dummy ==   4
+dummy ==   3
+dummy ==   2
+dummy ==   1
+We read 09 from 3001
+We read 81 from 3002
+We read f9 from 3003
+We read 71 from 3004
+We read e9 from 3005
+We read 61 from 3006
+We read d9 from 3007
+We read 51 from 3008
+We read c9 from 3009
+Wrote 00 to 3000
+Wrote 0a to 3001
+Wrote 82 to 3002
+Wrote fa to 3003
+Wrote 72 to 3004
+Wrote ea to 3005
+Wrote 62 to 3006
+Wrote da to 3007
+Wrote 52 to 3008
+Wrote ca to 3009
+Wrote 42 to 300a
+Wrote 00 to 3000
+dummy ==  12
+dummy ==  11
+dummy ==  10
+dummy ==   9
+dummy ==   8
+dummy ==   7
+dummy ==   6
+dummy ==   5
+dummy ==   4
+dummy ==   3
+dummy ==   2
+dummy ==   1
+We read 0a from 3001
+We read 82 from 3002
+We read fa from 3003
+We read 72 from 3004
+We read ea from 3005
+We read 62 from 3006
+We read da from 3007
+We read 52 from 3008
+We read ca from 3009
+We read 42 from 300a
+Wrote 00 to 3000
+Wrote 0b to 3001
+Wrote 83 to 3002
+Wrote fb to 3003
+Wrote 73 to 3004
+Wrote eb to 3005
+Wrote 63 to 3006
+Wrote db to 3007
+Wrote 53 to 3008
+Wrote cb to 3009
+Wrote 43 to 300a
+Wrote bb to 300b
+Wrote 00 to 3000
+dummy ==  12
+dummy ==  11
+dummy ==  10
+dummy ==   9
+dummy ==   8
+dummy ==   7
+dummy ==   6
+dummy ==   5
+dummy ==   4
+dummy ==   3
+dummy ==   2
+dummy ==   1
+We read 0b from 3001
+We read 83 from 3002
+We read fb from 3003
+We read 73 from 3004
+We read eb from 3005
+We read 63 from 3006
+We read db from 3007
+We read 53 from 3008
+We read cb from 3009
+We read 43 from 300a
+We read bb from 300b
+Wrote 00 to 3000
+Wrote 0c to 3001
+Wrote 84 to 3002
+Wrote fc to 3003
+Wrote 74 to 3004
+Wrote ec to 3005
+Wrote 64 to 3006
+Wrote dc to 3007
+Wrote 54 to 3008
+Wrote cc to 3009
+Wrote 44 to 300a
+Wrote bc to 300b
+Wrote 34 to 300c
+Wrote 00 to 3000
+dummy ==  12
+dummy ==  11
+dummy ==  10
+dummy ==   9
+dummy ==   8
+dummy ==   7
+dummy ==   6
+dummy ==   5
+dummy ==   4
+dummy ==   3
+dummy ==   2
+dummy ==   1
+We read 0c from 3001
+We read 84 from 3002
+We read fc from 3003
+We read 74 from 3004
+We read ec from 3005
+We read 64 from 3006
+We read dc from 3007
+We read 54 from 3008
+We read cc from 3009
+We read 44 from 300a
+We read bc from 300b
+We read 34 from 300c
+Wrote 00 to 3000
+Wrote 0d to 3001
+Wrote 85 to 3002
+Wrote fd to 3003
+Wrote 75 to 3004
+Wrote ed to 3005
+Wrote 65 to 3006
+Wrote dd to 3007
+Wrote 55 to 3008
+Wrote cd to 3009
+Wrote 45 to 300a
+Wrote bd to 300b
+Wrote 35 to 300c
+Wrote ad to 300d
+Wrote 00 to 3000
+dummy ==  12
+dummy ==  11
+dummy ==  10
+dummy ==   9
+dummy ==   8
+dummy ==   7
+dummy ==   6
+dummy ==   5
+dummy ==   4
+dummy ==   3
+dummy ==   2
+dummy ==   1
+We read 0d from 3001
+We read 85 from 3002
+We read fd from 3003
+We read 75 from 3004
+We read ed from 3005
+We read 65 from 3006
+We read dd from 3007
+We read 55 from 3008
+We read cd from 3009
+We read 45 from 300a
+We read bd from 300b
+We read 35 from 300c
+We read ad from 300d
+Wrote 00 to 3000
+Wrote 0e to 3001
+Wrote 86 to 3002
+Wrote fe to 3003
+Wrote 76 to 3004
+Wrote ee to 3005
+Wrote 66 to 3006
+Wrote de to 3007
+Wrote 56 to 3008
+Wrote ce to 3009
+Wrote 46 to 300a
+Wrote be to 300b
+Wrote 36 to 300c
+Wrote ae to 300d
+Wrote 26 to 300e
+Wrote 00 to 3000
+dummy ==  12
+dummy ==  11
+dummy ==  10
+dummy ==   9
+dummy ==   8
+dummy ==   7
+dummy ==   6
+dummy ==   5
+dummy ==   4
+dummy ==   3
+dummy ==   2
+dummy ==   1
+We read 0e from 3001
+We read 86 from 3002
+We read fe from 3003
+We read 76 from 3004
+We read ee from 3005
+We read 66 from 3006
+We read de from 3007
+We read 56 from 3008
+We read ce from 3009
+We read 46 from 300a
+We read be from 300b
+We read 36 from 300c
+We read ae from 300d
+We read 26 from 300e
+Wrote 00 to 3000
+Wrote 0f to 3001
+Wrote 87 to 3002
+Wrote ff to 3003
+Wrote 77 to 3004
+Wrote ef to 3005
+Wrote 67 to 3006
+Wrote df to 3007
+Wrote 57 to 3008
+Wrote cf to 3009
+Wrote 47 to 300a
+Wrote bf to 300b
+Wrote 37 to 300c
+Wrote af to 300d
+Wrote 27 to 300e
+Wrote 9f to 300f
+Wrote 00 to 3000
+dummy ==  12
+dummy ==  11
+dummy ==  10
+dummy ==   9
+dummy ==   8
+dummy ==   7
+dummy ==   6
+dummy ==   5
+dummy ==   4
+dummy ==   3
+dummy ==   2
+dummy ==   1
+We read 0f from 3001
+We read 87 from 3002
+We read ff from 3003
+We read 77 from 3004
+We read ef from 3005
+We read 67 from 3006
+We read df from 3007
+We read 57 from 3008
+We read cf from 3009
+We read 47 from 300a
+We read bf from 300b
+We read 37 from 300c
+We read af from 300d
+We read 27 from 300e
+We read 9f from 300f
+Wrote 00 to 3000
+Wrote 10 to 3001
+Wrote 88 to 3002
+Wrote 00 to 3003
+Wrote 78 to 3004
+Wrote f0 to 3005
+Wrote 68 to 3006
+Wrote e0 to 3007
+Wrote 58 to 3008
+Wrote d0 to 3009
+Wrote 48 to 300a
+Wrote c0 to 300b
+Wrote 38 to 300c
+Wrote b0 to 300d
+Wrote 28 to 300e
+Wrote a0 to 300f
+Wrote 18 to 3010
+Wrote 00 to 3000
+dummy ==  12
+dummy ==  11
+dummy ==  10
+dummy ==   9
+dummy ==   8
+dummy ==   7
+dummy ==   6
+dummy ==   5
+dummy ==   4
+dummy ==   3
+dummy ==   2
+dummy ==   1
+We read 10 from 3001
+We read 88 from 3002
+We read 00 from 3003
+We read 78 from 3004
+We read f0 from 3005
+We read 68 from 3006
+We read e0 from 3007
+We read 58 from 3008
+We read d0 from 3009
+We read 48 from 300a
+We read c0 from 300b
+We read 38 from 300c
+We read b0 from 300d
+We read 28 from 300e
+We read a0 from 300f
+We read 18 from 3010
+Wrote 00 to 3000
+Wrote 11 to 3001
+Wrote 89 to 3002
+Wrote 01 to 3003
+Wrote 79 to 3004
+Wrote f1 to 3005
+Wrote 69 to 3006
+Wrote e1 to 3007
+Wrote 59 to 3008
+Wrote d1 to 3009
+Wrote 49 to 300a
+Wrote c1 to 300b
+Wrote 39 to 300c
+Wrote b1 to 300d
+Wrote 29 to 300e
+Wrote a1 to 300f
+Wrote 19 to 3010
+Wrote 91 to 3011
+Wrote 00 to 3000
+dummy ==  12
+dummy ==  11
+dummy ==  10
+dummy ==   9
+dummy ==   8
+dummy ==   7
+dummy ==   6
+dummy ==   5
+dummy ==   4
+dummy ==   3
+dummy ==   2
+dummy ==   1
+We read 11 from 3001
+We read 89 from 3002
+We read 01 from 3003
+We read 79 from 3004
+We read f1 from 3005
+We read 69 from 3006
+We read e1 from 3007
+We read 59 from 3008
+We read d1 from 3009
+We read 49 from 300a
+We read c1 from 300b
+We read 39 from 300c
+We read b1 from 300d
+We read 29 from 300e
+We read a1 from 300f
+We read 19 from 3010
+We read 91 from 3011
+Wrote 00 to 3000
+Wrote 12 to 3001
+Wrote 8a to 3002
+Wrote 02 to 3003
+Wrote 7a to 3004
+Wrote f2 to 3005
+Wrote 6a to 3006
+Wrote e2 to 3007
+Wrote 5a to 3008
+Wrote d2 to 3009
+Wrote 4a to 300a
+Wrote c2 to 300b
+Wrote 3a to 300c
+Wrote b2 to 300d
+Wrote 2a to 300e
+Wrote a2 to 300f
+Wrote 1a to 3010
+Wrote 92 to 3011
+Wrote 0a to 3012
+Wrote 00 to 3000
+dummy ==  12
+dummy ==  11
+dummy ==  10
+dummy ==   9
+dummy ==   8
+dummy ==   7
+dummy ==   6
+dummy ==   5
+dummy ==   4
+dummy ==   3
+dummy ==   2
+dummy ==   1
+We read 12 from 3001
+We read 8a from 3002
+We read 02 from 3003
+We read 7a from 3004
+We read f2 from 3005
+We read 6a from 3006
+We read e2 from 3007
+We read 5a from 3008
+We read d2 from 3009
+We read 4a from 300a
+We read c2 from 300b
+We read 3a from 300c
+We read b2 from 300d
+We read 2a from 300e
+We read a2 from 300f
+We read 1a from 3010
+We read 92 from 3011
+We read 0a from 3012
+Wrote 00 to 3000
+Wrote 13 to 3001
+Wrote 8b to 3002
+Wrote 03 to 3003
+Wrote 7b to 3004
+Wrote f3 to 3005
+Wrote 6b to 3006
+Wrote e3 to 3007
+Wrote 5b to 3008
+Wrote d3 to 3009
+Wrote 4b to 300a
+Wrote c3 to 300b
+Wrote 3b to 300c
+Wrote b3 to 300d
+Wrote 2b to 300e
+Wrote a3 to 300f
+Wrote 1b to 3010
+Wrote 93 to 3011
+Wrote 0b to 3012
+Wrote 83 to 3013
+Wrote 00 to 3000
+dummy ==  12
+dummy ==  11
+dummy ==  10
+dummy ==   9
+dummy ==   8
+dummy ==   7
+dummy ==   6
+dummy ==   5
+dummy ==   4
+dummy ==   3
+dummy ==   2
+dummy ==   1
+We read 13 from 3001
+We read 8b from 3002
+We read 03 from 3003
+We read 7b from 3004
+We read f3 from 3005
+We read 6b from 3006
+We read e3 from 3007
+We read 5b from 3008
+We read d3 from 3009
+We read 4b from 300a
+We read c3 from 300b
+We read 3b from 300c
+We read b3 from 300d
+We read 2b from 300e
+We read a3 from 300f
+We read 1b from 3010
+We read 93 from 3011
+We read 0b from 3012
+We read 83 from 3013
+Wrote 00 to 3000
+Wrote 14 to 3001
+Wrote 8c to 3002
+Wrote 04 to 3003
+Wrote 7c to 3004
+Wrote f4 to 3005
+Wrote 6c to 3006
+Wrote e4 to 3007
+Wrote 5c to 3008
+Wrote d4 to 3009
+Wrote 4c to 300a
+Wrote c4 to 300b
+Wrote 3c to 300c
+Wrote b4 to 300d
+Wrote 2c to 300e
+Wrote a4 to 300f
+Wrote 1c to 3010
+Wrote 94 to 3011
+Wrote 0c to 3012
+Wrote 84 to 3013
+Wrote fc to 3014
+Wrote 00 to 3000
+dummy ==  12
+dummy ==  11
+dummy ==  10
+dummy ==   9
+dummy ==   8
+dummy ==   7
+dummy ==   6
+dummy ==   5
+dummy ==   4
+dummy ==   3
+dummy ==   2
+dummy ==   1
+We read 14 from 3001
+We read 8c from 3002
+We read 04 from 3003
+We read 7c from 3004
+We read f4 from 3005
+We read 6c from 3006
+We read e4 from 3007
+We read 5c from 3008
+We read d4 from 3009
+We read 4c from 300a
+We read c4 from 300b
+We read 3c from 300c
+We read b4 from 300d
+We read 2c from 300e
+We read a4 from 300f
+We read 1c from 3010
+We read 94 from 3011
+We read 0c from 3012
+We read 84 from 3013
+We read fc from 3014
+Wrote 00 to 3000
+Wrote 15 to 3001
+Wrote 8d to 3002
+Wrote 05 to 3003
+Wrote 7d to 3004
+Wrote f5 to 3005
+Wrote 6d to 3006
+Wrote e5 to 3007
+Wrote 5d to 3008
+Wrote d5 to 3009
+Wrote 4d to 300a
+Wrote c5 to 300b
+Wrote 3d to 300c
+Wrote b5 to 300d
+Wrote 2d to 300e
+Wrote a5 to 300f
+Wrote 1d to 3010
+Wrote 95 to 3011
+Wrote 0d to 3012
+Wrote 85 to 3013
+Wrote fd to 3014
+Wrote 75 to 3015
+Wrote 00 to 3000
+dummy ==  12
+dummy ==  11
+dummy ==  10
+dummy ==   9
+dummy ==   8
+dummy ==   7
+dummy ==   6
+dummy ==   5
+dummy ==   4
+dummy ==   3
+dummy ==   2
+dummy ==   1
+We read 15 from 3001
+We read 8d from 3002
+We read 05 from 3003
+We read 7d from 3004
+We read f5 from 3005
+We read 6d from 3006
+We read e5 from 3007
+We read 5d from 3008
+We read d5 from 3009
+We read 4d from 300a
+We read c5 from 300b
+We read 3d from 300c
+We read b5 from 300d
+We read 2d from 300e
+We read a5 from 300f
+We read 1d from 3010
+We read 95 from 3011
+We read 0d from 3012
+We read 85 from 3013
+We read fd from 3014
+We read 75 from 3015
+Wrote 00 to 3000
+Wrote 16 to 3001
+Wrote 8e to 3002
+Wrote 06 to 3003
+Wrote 7e to 3004
+Wrote f6 to 3005
+Wrote 6e to 3006
+Wrote e6 to 3007
+Wrote 5e to 3008
+Wrote d6 to 3009
+Wrote 4e to 300a
+Wrote c6 to 300b
+Wrote 3e to 300c
+Wrote b6 to 300d
+Wrote 2e to 300e
+Wrote a6 to 300f
+Wrote 1e to 3010
+Wrote 96 to 3011
+Wrote 0e to 3012
+Wrote 86 to 3013
+Wrote fe to 3014
+Wrote 76 to 3015
+Wrote ee to 3016
+Wrote 00 to 3000
+dummy ==  12
+dummy ==  11
+dummy ==  10
+dummy ==   9
+dummy ==   8
+dummy ==   7
+dummy ==   6
+dummy ==   5
+dummy ==   4
+dummy ==   3
+dummy ==   2
+dummy ==   1
+We read 16 from 3001
+We read 8e from 3002
+We read 06 from 3003
+We read 7e from 3004
+We read f6 from 3005
+We read 6e from 3006
+We read e6 from 3007
+We read 5e from 3008
+We read d6 from 3009
+We read 4e from 300a
+We read c6 from 300b
+We read 3e from 300c
+We read b6 from 300d
+We read 2e from 300e
+We read a6 from 300f
+We read 1e from 3010
+We read 96 from 3011
+We read 0e from 3012
+We read 86 from 3013
+We read fe from 3014
+We read 76 from 3015
+We read ee from 3016
+Wrote 00 to 3000
+Wrote 17 to 3001
+Wrote 8f to 3002
+Wrote 07 to 3003
+Wrote 7f to 3004
+Wrote f7 to 3005
+Wrote 6f to 3006
+Wrote e7 to 3007
+Wrote 5f to 3008
+Wrote d7 to 3009
+Wrote 4f to 300a
+Wrote c7 to 300b
+Wrote 3f to 300c
+Wrote b7 to 300d
+Wrote 2f to 300e
+Wrote a7 to 300f
+Wrote 1f to 3010
+Wrote 97 to 3011
+Wrote 0f to 3012
+Wrote 87 to 3013
+Wrote ff to 3014
+Wrote 77 to 3015
+Wrote ef to 3016
+Wrote 67 to 3017
+Wrote 00 to 3000
+dummy ==  12
+dummy ==  11
+dummy ==  10
+dummy ==   9
+dummy ==   8
+dummy ==   7
+dummy ==   6
+dummy ==   5
+dummy ==   4
+dummy ==   3
+dummy ==   2
+dummy ==   1
+We read 17 from 3001
+We read 8f from 3002
+We read 07 from 3003
+We read 7f from 3004
+We read f7 from 3005
+We read 6f from 3006
+We read e7 from 3007
+We read 5f from 3008
+We read d7 from 3009
+We read 4f from 300a
+We read c7 from 300b
+We read 3f from 300c
+We read b7 from 300d
+We read 2f from 300e
+We read a7 from 300f
+We read 1f from 3010
+We read 97 from 3011
+We read 0f from 3012
+We read 87 from 3013
+We read ff from 3014
+We read 77 from 3015
+We read ef from 3016
+We read 67 from 3017
+Wrote 00 to 3000
+Wrote 18 to 3001
+Wrote 90 to 3002
+Wrote 08 to 3003
+Wrote 80 to 3004
+Wrote f8 to 3005
+Wrote 70 to 3006
+Wrote e8 to 3007
+Wrote 60 to 3008
+Wrote d8 to 3009
+Wrote 50 to 300a
+Wrote c8 to 300b
+Wrote 40 to 300c
+Wrote b8 to 300d
+Wrote 30 to 300e
+Wrote a8 to 300f
+Wrote 20 to 3010
+Wrote 98 to 3011
+Wrote 10 to 3012
+Wrote 88 to 3013
+Wrote 00 to 3014
+Wrote 78 to 3015
+Wrote f0 to 3016
+Wrote 68 to 3017
+Wrote e0 to 3018
+Wrote 00 to 3000
+dummy ==  12
+dummy ==  11
+dummy ==  10
+dummy ==   9
+dummy ==   8
+dummy ==   7
+dummy ==   6
+dummy ==   5
+dummy ==   4
+dummy ==   3
+dummy ==   2
+dummy ==   1
+We read 18 from 3001
+We read 90 from 3002
+We read 08 from 3003
+We read 80 from 3004
+We read f8 from 3005
+We read 70 from 3006
+We read e8 from 3007
+We read 60 from 3008
+We read d8 from 3009
+We read 50 from 300a
+We read c8 from 300b
+We read 40 from 300c
+We read b8 from 300d
+We read 30 from 300e
+We read a8 from 300f
+We read 20 from 3010
+We read 98 from 3011
+We read 10 from 3012
+We read 88 from 3013
+We read 00 from 3014
+We read 78 from 3015
+We read f0 from 3016
+We read 68 from 3017
+We read e0 from 3018
+Wrote 00 to 3000
+Wrote 19 to 3001
+Wrote 91 to 3002
+Wrote 09 to 3003
+Wrote 81 to 3004
+Wrote f9 to 3005
+Wrote 71 to 3006
+Wrote e9 to 3007
+Wrote 61 to 3008
+Wrote d9 to 3009
+Wrote 51 to 300a
+Wrote c9 to 300b
+Wrote 41 to 300c
+Wrote b9 to 300d
+Wrote 31 to 300e
+Wrote a9 to 300f
+Wrote 21 to 3010
+Wrote 99 to 3011
+Wrote 11 to 3012
+Wrote 89 to 3013
+Wrote 01 to 3014
+Wrote 79 to 3015
+Wrote f1 to 3016
+Wrote 69 to 3017
+Wrote e1 to 3018
+Wrote 59 to 3019
+Wrote 00 to 3000
+dummy ==  12
+dummy ==  11
+dummy ==  10
+dummy ==   9
+dummy ==   8
+dummy ==   7
+dummy ==   6
+dummy ==   5
+dummy ==   4
+dummy ==   3
+dummy ==   2
+dummy ==   1
+We read 19 from 3001
+We read 91 from 3002
+We read 09 from 3003
+We read 81 from 3004
+We read f9 from 3005
+We read 71 from 3006
+We read e9 from 3007
+We read 61 from 3008
+We read d9 from 3009
+We read 51 from 300a
+We read c9 from 300b
+We read 41 from 300c
+We read b9 from 300d
+We read 31 from 300e
+We read a9 from 300f
+We read 21 from 3010
+We read 99 from 3011
+We read 11 from 3012
+We read 89 from 3013
+We read 01 from 3014
+We read 79 from 3015
+We read f1 from 3016
+We read 69 from 3017
+We read e1 from 3018
+We read 59 from 3019
+Wrote 00 to 3000
+Wrote 1a to 3001
+Wrote 92 to 3002
+Wrote 0a to 3003
+Wrote 82 to 3004
+Wrote fa to 3005
+Wrote 72 to 3006
+Wrote ea to 3007
+Wrote 62 to 3008
+Wrote da to 3009
+Wrote 52 to 300a
+Wrote ca to 300b
+Wrote 42 to 300c
+Wrote ba to 300d
+Wrote 32 to 300e
+Wrote aa to 300f
+Wrote 22 to 3010
+Wrote 9a to 3011
+Wrote 12 to 3012
+Wrote 8a to 3013
+Wrote 02 to 3014
+Wrote 7a to 3015
+Wrote f2 to 3016
+Wrote 6a to 3017
+Wrote e2 to 3018
+Wrote 5a to 3019
+Wrote d2 to 301a
+Wrote 00 to 3000
+dummy ==  12
+dummy ==  11
+dummy ==  10
+dummy ==   9
+dummy ==   8
+dummy ==   7
+dummy ==   6
+dummy ==   5
+dummy ==   4
+dummy ==   3
+dummy ==   2
+dummy ==   1
+We read 1a from 3001
+We read 92 from 3002
+We read 0a from 3003
+We read 82 from 3004
+We read fa from 3005
+We read 72 from 3006
+We read ea from 3007
+We read 62 from 3008
+We read da from 3009
+We read 52 from 300a
+We read ca from 300b
+We read 42 from 300c
+We read ba from 300d
+We read 32 from 300e
+We read aa from 300f
+We read 22 from 3010
+We read 9a from 3011
+We read 12 from 3012
+We read 8a from 3013
+We read 02 from 3014
+We read 7a from 3015
+We read f2 from 3016
+We read 6a from 3017
+We read e2 from 3018
+We read 5a from 3019
+We read d2 from 301a
+Wrote 00 to 3000
+Wrote 1b to 3001
+Wrote 93 to 3002
+Wrote 0b to 3003
+Wrote 83 to 3004
+Wrote fb to 3005
+Wrote 73 to 3006
+Wrote eb to 3007
+Wrote 63 to 3008
+Wrote db to 3009
+Wrote 53 to 300a
+Wrote cb to 300b
+Wrote 43 to 300c
+Wrote bb to 300d
+Wrote 33 to 300e
+Wrote ab to 300f
+Wrote 23 to 3010
+Wrote 9b to 3011
+Wrote 13 to 3012
+Wrote 8b to 3013
+Wrote 03 to 3014
+Wrote 7b to 3015
+Wrote f3 to 3016
+Wrote 6b to 3017
+Wrote e3 to 3018
+Wrote 5b to 3019
+Wrote d3 to 301a
+Wrote 4b to 301b
+Wrote 00 to 3000
+dummy ==  12
+dummy ==  11
+dummy ==  10
+dummy ==   9
+dummy ==   8
+dummy ==   7
+dummy ==   6
+dummy ==   5
+dummy ==   4
+dummy ==   3
+dummy ==   2
+dummy ==   1
+We read 1b from 3001
+We read 93 from 3002
+We read 0b from 3003
+We read 83 from 3004
+We read fb from 3005
+We read 73 from 3006
+We read eb from 3007
+We read 63 from 3008
+We read db from 3009
+We read 53 from 300a
+We read cb from 300b
+We read 43 from 300c
+We read bb from 300d
+We read 33 from 300e
+We read ab from 300f
+We read 23 from 3010
+We read 9b from 3011
+We read 13 from 3012
+We read 8b from 3013
+We read 03 from 3014
+We read 7b from 3015
+We read f3 from 3016
+We read 6b from 3017
+We read e3 from 3018
+We read 5b from 3019
+We read d3 from 301a
+We read 4b from 301b
+Wrote 00 to 3000
+Wrote 1c to 3001
+Wrote 94 to 3002
+Wrote 0c to 3003
+Wrote 84 to 3004
+Wrote fc to 3005
+Wrote 74 to 3006
+Wrote ec to 3007
+Wrote 64 to 3008
+Wrote dc to 3009
+Wrote 54 to 300a
+Wrote cc to 300b
+Wrote 44 to 300c
+Wrote bc to 300d
+Wrote 34 to 300e
+Wrote ac to 300f
+Wrote 24 to 3010
+Wrote 9c to 3011
+Wrote 14 to 3012
+Wrote 8c to 3013
+Wrote 04 to 3014
+Wrote 7c to 3015
+Wrote f4 to 3016
+Wrote 6c to 3017
+Wrote e4 to 3018
+Wrote 5c to 3019
+Wrote d4 to 301a
+Wrote 4c to 301b
+Wrote c4 to 301c
+Wrote 00 to 3000
+dummy ==  12
+dummy ==  11
+dummy ==  10
+dummy ==   9
+dummy ==   8
+dummy ==   7
+dummy ==   6
+dummy ==   5
+dummy ==   4
+dummy ==   3
+dummy ==   2
+dummy ==   1
+We read 1c from 3001
+We read 94 from 3002
+We read 0c from 3003
+We read 84 from 3004
+We read fc from 3005
+We read 74 from 3006
+We read ec from 3007
+We read 64 from 3008
+We read dc from 3009
+We read 54 from 300a
+We read cc from 300b
+We read 44 from 300c
+We read bc from 300d
+We read 34 from 300e
+We read ac from 300f
+We read 24 from 3010
+We read 9c from 3011
+We read 14 from 3012
+We read 8c from 3013
+We read 04 from 3014
+We read 7c from 3015
+We read f4 from 3016
+We read 6c from 3017
+We read e4 from 3018
+We read 5c from 3019
+We read d4 from 301a
+We read 4c from 301b
+We read c4 from 301c
+Wrote 00 to 3000
+Wrote 1d to 3001
+Wrote 95 to 3002
+Wrote 0d to 3003
+Wrote 85 to 3004
+Wrote fd to 3005
+Wrote 75 to 3006
+Wrote ed to 3007
+Wrote 65 to 3008
+Wrote dd to 3009
+Wrote 55 to 300a
+Wrote cd to 300b
+Wrote 45 to 300c
+Wrote bd to 300d
+Wrote 35 to 300e
+Wrote ad to 300f
+Wrote 25 to 3010
+Wrote 9d to 3011
+Wrote 15 to 3012
+Wrote 8d to 3013
+Wrote 05 to 3014
+Wrote 7d to 3015
+Wrote f5 to 3016
+Wrote 6d to 3017
+Wrote e5 to 3018
+Wrote 5d to 3019
+Wrote d5 to 301a
+Wrote 4d to 301b
+Wrote c5 to 301c
+Wrote 3d to 301d
+Wrote 00 to 3000
+dummy ==  12
+dummy ==  11
+dummy ==  10
+dummy ==   9
+dummy ==   8
+dummy ==   7
+dummy ==   6
+dummy ==   5
+dummy ==   4
+dummy ==   3
+dummy ==   2
+dummy ==   1
+We read 1d from 3001
+We read 95 from 3002
+We read 0d from 3003
+We read 85 from 3004
+We read fd from 3005
+We read 75 from 3006
+We read ed from 3007
+We read 65 from 3008
+We read dd from 3009
+We read 55 from 300a
+We read cd from 300b
+We read 45 from 300c
+We read bd from 300d
+We read 35 from 300e
+We read ad from 300f
+We read 25 from 3010
+We read 9d from 3011
+We read 15 from 3012
+We read 8d from 3013
+We read 05 from 3014
+We read 7d from 3015
+We read f5 from 3016
+We read 6d from 3017
+We read e5 from 3018
+We read 5d from 3019
+We read d5 from 301a
+We read 4d from 301b
+We read c5 from 301c
+We read 3d from 301d
+Wrote 00 to 3000
+Wrote 1e to 3001
+Wrote 96 to 3002
+Wrote 0e to 3003
+Wrote 86 to 3004
+Wrote fe to 3005
+Wrote 76 to 3006
+Wrote ee to 3007
+Wrote 66 to 3008
+Wrote de to 3009
+Wrote 56 to 300a
+Wrote ce to 300b
+Wrote 46 to 300c
+Wrote be to 300d
+Wrote 36 to 300e
+Wrote ae to 300f
+Wrote 26 to 3010
+Wrote 9e to 3011
+Wrote 16 to 3012
+Wrote 8e to 3013
+Wrote 06 to 3014
+Wrote 7e to 3015
+Wrote f6 to 3016
+Wrote 6e to 3017
+Wrote e6 to 3018
+Wrote 5e to 3019
+Wrote d6 to 301a
+Wrote 4e to 301b
+Wrote c6 to 301c
+Wrote 3e to 301d
+Wrote b6 to 301e
+Wrote 00 to 3000
+dummy ==  12
+dummy ==  11
+dummy ==  10
+dummy ==   9
+dummy ==   8
+dummy ==   7
+dummy ==   6
+dummy ==   5
+dummy ==   4
+dummy ==   3
+dummy ==   2
+dummy ==   1
+We read 1e from 3001
+We read 96 from 3002
+We read 0e from 3003
+We read 86 from 3004
+We read fe from 3005
+We read 76 from 3006
+We read ee from 3007
+We read 66 from 3008
+We read de from 3009
+We read 56 from 300a
+We read ce from 300b
+We read 46 from 300c
+We read be from 300d
+We read 36 from 300e
+We read ae from 300f
+We read 26 from 3010
+We read 9e from 3011
+We read 16 from 3012
+We read 8e from 3013
+We read 06 from 3014
+We read 7e from 3015
+We read f6 from 3016
+We read 6e from 3017
+We read e6 from 3018
+We read 5e from 3019
+We read d6 from 301a
+We read 4e from 301b
+We read c6 from 301c
+We read 3e from 301d
+We read b6 from 301e
+Wrote 00 to 3000
+Wrote 1f to 3001
+Wrote 97 to 3002
+Wrote 0f to 3003
+Wrote 87 to 3004
+Wrote ff to 3005
+Wrote 77 to 3006
+Wrote ef to 3007
+Wrote 67 to 3008
+Wrote df to 3009
+Wrote 57 to 300a
+Wrote cf to 300b
+Wrote 47 to 300c
+Wrote bf to 300d
+Wrote 37 to 300e
+Wrote af to 300f
+Wrote 27 to 3010
+Wrote 9f to 3011
+Wrote 17 to 3012
+Wrote 8f to 3013
+Wrote 07 to 3014
+Wrote 7f to 3015
+Wrote f7 to 3016
+Wrote 6f to 3017
+Wrote e7 to 3018
+Wrote 5f to 3019
+Wrote d7 to 301a
+Wrote 4f to 301b
+Wrote c7 to 301c
+Wrote 3f to 301d
+Wrote b7 to 301e
+Wrote 2f to 301f
+Wrote 00 to 3000
+dummy ==  12
+dummy ==  11
+dummy ==  10
+dummy ==   9
+dummy ==   8
+dummy ==   7
+dummy ==   6
+dummy ==   5
+dummy ==   4
+dummy ==   3
+dummy ==   2
+dummy ==   1
+We read 1f from 3001
+We read 97 from 3002
+We read 0f from 3003
+We read 87 from 3004
+We read ff from 3005
+We read 77 from 3006
+We read ef from 3007
+We read 67 from 3008
+We read df from 3009
+We read 57 from 300a
+We read cf from 300b
+We read 47 from 300c
+We read bf from 300d
+We read 37 from 300e
+We read af from 300f
+We read 27 from 3010
+We read 9f from 3011
+We read 17 from 3012
+We read 8f from 3013
+We read 07 from 3014
+We read 7f from 3015
+We read f7 from 3016
+We read 6f from 3017
+We read e7 from 3018
+We read 5f from 3019
+We read d7 from 301a
+We read 4f from 301b
+We read c7 from 301c
+We read 3f from 301d
+We read b7 from 301e
+We read 2f from 301f
+Wrote 00 to 3000
+Wrote 20 to 3001
+Wrote 98 to 3002
+Wrote 10 to 3003
+Wrote 88 to 3004
+Wrote 00 to 3005
+Wrote 78 to 3006
+Wrote f0 to 3007
+Wrote 68 to 3008
+Wrote e0 to 3009
+Wrote 58 to 300a
+Wrote d0 to 300b
+Wrote 48 to 300c
+Wrote c0 to 300d
+Wrote 38 to 300e
+Wrote b0 to 300f
+Wrote 28 to 3010
+Wrote a0 to 3011
+Wrote 18 to 3012
+Wrote 90 to 3013
+Wrote 08 to 3014
+Wrote 80 to 3015
+Wrote f8 to 3016
+Wrote 70 to 3017
+Wrote e8 to 3018
+Wrote 60 to 3019
+Wrote d8 to 301a
+Wrote 50 to 301b
+Wrote c8 to 301c
+Wrote 40 to 301d
+Wrote b8 to 301e
+Wrote 30 to 301f
+Wrote a8 to 3020
+Wrote 00 to 3000
+dummy ==  12
+dummy ==  11
+dummy ==  10
+dummy ==   9
+dummy ==   8
+dummy ==   7
+dummy ==   6
+dummy ==   5
+dummy ==   4
+dummy ==   3
+dummy ==   2
+dummy ==   1
+We read 20 from 3001
+We read 98 from 3002
+We read 10 from 3003
+We read 88 from 3004
+We read 00 from 3005
+We read 78 from 3006
+We read f0 from 3007
+We read 68 from 3008
+We read e0 from 3009
+We read 58 from 300a
+We read d0 from 300b
+We read 48 from 300c
+We read c0 from 300d
+We read 38 from 300e
+We read b0 from 300f
+We read 28 from 3010
+We read a0 from 3011
+We read 18 from 3012
+We read 90 from 3013
+We read 08 from 3014
+We read 80 from 3015
+We read f8 from 3016
+We read 70 from 3017
+We read e8 from 3018
+We read 60 from 3019
+We read d8 from 301a
+We read 50 from 301b
+We read c8 from 301c
+We read 40 from 301d
+We read b8 from 301e
+We read 30 from 301f
+We read a8 from 3020
+Wrote 00 to 4000
+Wrote 01 to 4001
+Wrote 01 to 4002
+Wrote 00 to 4000
+dummy ==  12
+dummy ==  11
+dummy ==  10
+dummy ==   9
+dummy ==   8
+dummy ==   7
+dummy ==   6
+dummy ==   5
+dummy ==   4
+dummy ==   3
+dummy ==   2
+dummy ==   1
+We read 01 from 4001
+We read 01 from 4002
+Wrote 00 to 4000
+Wrote 02 to 4001
+Wrote 02 to 4002
+Wrote 7a to 4003
+Wrote 58 to 4004
+Wrote 00 to 4000
+dummy ==  12
+dummy ==  11
+dummy ==  10
+dummy ==   9
+dummy ==   8
+dummy ==   7
+dummy ==   6
+dummy ==   5
+dummy ==   4
+dummy ==   3
+dummy ==   2
+dummy ==   1
+We read 02 from 4001
+We read 02 from 4002
+We read 7a from 4003
+We read 58 from 4004
+Wrote 00 to 4000
+Wrote 03 to 4001
+Wrote 03 to 4002
+Wrote 7b to 4003
+Wrote 59 to 4004
+Wrote f3 to 4005
+Wrote af to 4006
+Wrote 00 to 4000
+dummy ==  12
+dummy ==  11
+dummy ==  10
+dummy ==   9
+dummy ==   8
+dummy ==   7
+dummy ==   6
+dummy ==   5
+dummy ==   4
+dummy ==   3
+dummy ==   2
+dummy ==   1
+We read 03 from 4001
+We read 03 from 4002
+We read 7b from 4003
+We read 59 from 4004
+We read f3 from 4005
+We read af from 4006
+Wrote 00 to 4000
+Wrote 04 to 4001
+Wrote 04 to 4002
+Wrote 7c to 4003
+Wrote 5a to 4004
+Wrote f4 to 4005
+Wrote b0 to 4006
+Wrote 6c to 4007
+Wrote 07 to 4008
+Wrote 00 to 4000
+dummy ==  12
+dummy ==  11
+dummy ==  10
+dummy ==   9
+dummy ==   8
+dummy ==   7
+dummy ==   6
+dummy ==   5
+dummy ==   4
+dummy ==   3
+dummy ==   2
+dummy ==   1
+We read 04 from 4001
+We read 04 from 4002
+We read 7c from 4003
+We read 5a from 4004
+We read f4 from 4005
+We read b0 from 4006
+We read 6c from 4007
+We read 07 from 4008
+Wrote 00 to 4000
+Wrote 05 to 4001
+Wrote 05 to 4002
+Wrote 7d to 4003
+Wrote 5b to 4004
+Wrote f5 to 4005
+Wrote b1 to 4006
+Wrote 6d to 4007
+Wrote 08 to 4008
+Wrote e5 to 4009
+Wrote 5e to 400a
+Wrote 00 to 4000
+dummy ==  12
+dummy ==  11
+dummy ==  10
+dummy ==   9
+dummy ==   8
+dummy ==   7
+dummy ==   6
+dummy ==   5
+dummy ==   4
+dummy ==   3
+dummy ==   2
+dummy ==   1
+We read 05 from 4001
+We read 05 from 4002
+We read 7d from 4003
+We read 5b from 4004
+We read f5 from 4005
+We read b1 from 4006
+We read 6d from 4007
+We read 08 from 4008
+We read e5 from 4009
+We read 5e from 400a
+Wrote 00 to 4000
+Wrote 06 to 4001
+Wrote 06 to 4002
+Wrote 7e to 4003
+Wrote 5c to 4004
+Wrote f6 to 4005
+Wrote b2 to 4006
+Wrote 6e to 4007
+Wrote 09 to 4008
+Wrote e6 to 4009
+Wrote 5f to 400a
+Wrote 5e to 400b
+Wrote b6 to 400c
+Wrote 00 to 4000
+dummy ==  12
+dummy ==  11
+dummy ==  10
+dummy ==   9
+dummy ==   8
+dummy ==   7
+dummy ==   6
+dummy ==   5
+dummy ==   4
+dummy ==   3
+dummy ==   2
+dummy ==   1
+We read 06 from 4001
+We read 06 from 4002
+We read 7e from 4003
+We read 5c from 4004
+We read f6 from 4005
+We read b2 from 4006
+We read 6e from 4007
+We read 09 from 4008
+We read e6 from 4009
+We read 5f from 400a
+We read 5e from 400b
+We read b6 from 400c
+Wrote 00 to 4000
+Wrote 07 to 4001
+Wrote 07 to 4002
+Wrote 7f to 4003
+Wrote 5d to 4004
+Wrote f7 to 4005
+Wrote b3 to 4006
+Wrote 6f to 4007
+Wrote 0a to 4008
+Wrote e7 to 4009
+Wrote 60 to 400a
+Wrote 5f to 400b
+Wrote b7 to 400c
+Wrote d7 to 400d
+Wrote 0d to 400e
+Wrote 00 to 4000
+dummy ==  12
+dummy ==  11
+dummy ==  10
+dummy ==   9
+dummy ==   8
+dummy ==   7
+dummy ==   6
+dummy ==   5
+dummy ==   4
+dummy ==   3
+dummy ==   2
+dummy ==   1
+We read 07 from 4001
+We read 07 from 4002
+We read 7f from 4003
+We read 5d from 4004
+We read f7 from 4005
+We read b3 from 4006
+We read 6f from 4007
+We read 0a from 4008
+We read e7 from 4009
+We read 60 from 400a
+We read 5f from 400b
+We read b7 from 400c
+We read d7 from 400d
+We read 0d from 400e
+Wrote 00 to 4000
+Wrote 08 to 4001
+Wrote 08 to 4002
+Wrote 80 to 4003
+Wrote 5e to 4004
+Wrote f8 to 4005
+Wrote b4 to 4006
+Wrote 70 to 4007
+Wrote 0b to 4008
+Wrote e8 to 4009
+Wrote 61 to 400a
+Wrote 60 to 400b
+Wrote b8 to 400c
+Wrote d8 to 400d
+Wrote 0e to 400e
+Wrote 50 to 400f
+Wrote 65 to 4010
+Wrote 00 to 4000
+dummy ==  12
+dummy ==  11
+dummy ==  10
+dummy ==   9
+dummy ==   8
+dummy ==   7
+dummy ==   6
+dummy ==   5
+dummy ==   4
+dummy ==   3
+dummy ==   2
+dummy ==   1
+We read 08 from 4001
+We read 08 from 4002
+We read 80 from 4003
+We read 5e from 4004
+We read f8 from 4005
+We read b4 from 4006
+We read 70 from 4007
+We read 0b from 4008
+We read e8 from 4009
+We read 61 from 400a
+We read 60 from 400b
+We read b8 from 400c
+We read d8 from 400d
+We read 0e from 400e
+We read 50 from 400f
+We read 65 from 4010
+Wrote 00 to 4000
+Wrote 09 to 4001
+Wrote 09 to 4002
+Wrote 81 to 4003
+Wrote 5f to 4004
+Wrote f9 to 4005
+Wrote b5 to 4006
+Wrote 71 to 4007
+Wrote 0c to 4008
+Wrote e9 to 4009
+Wrote 62 to 400a
+Wrote 61 to 400b
+Wrote b9 to 400c
+Wrote d9 to 400d
+Wrote 0f to 400e
+Wrote 51 to 400f
+Wrote 66 to 4010
+Wrote c9 to 4011
+Wrote bc to 4012
+Wrote 00 to 4000
+dummy ==  12
+dummy ==  11
+dummy ==  10
+dummy ==   9
+dummy ==   8
+dummy ==   7
+dummy ==   6
+dummy ==   5
+dummy ==   4
+dummy ==   3
+dummy ==   2
+dummy ==   1
+We read 09 from 4001
+We read 09 from 4002
+We read 81 from 4003
+We read 5f from 4004
+We read f9 from 4005
+We read b5 from 4006
+We read 71 from 4007
+We read 0c from 4008
+We read e9 from 4009
+We read 62 from 400a
+We read 61 from 400b
+We read b9 from 400c
+We read d9 from 400d
+We read 0f from 400e
+We read 51 from 400f
+We read 66 from 4010
+We read c9 from 4011
+We read bc from 4012
+Wrote 00 to 4000
+Wrote 0a to 4001
+Wrote 0a to 4002
+Wrote 82 to 4003
+Wrote 60 to 4004
+Wrote fa to 4005
+Wrote b6 to 4006
+Wrote 72 to 4007
+Wrote 0d to 4008
+Wrote ea to 4009
+Wrote 63 to 400a
+Wrote 62 to 400b
+Wrote ba to 400c
+Wrote da to 400d
+Wrote 10 to 400e
+Wrote 52 to 400f
+Wrote 67 to 4010
+Wrote ca to 4011
+Wrote bd to 4012
+Wrote 42 to 4013
+Wrote 14 to 4014
+Wrote 00 to 4000
+dummy ==  12
+dummy ==  11
+dummy ==  10
+dummy ==   9
+dummy ==   8
+dummy ==   7
+dummy ==   6
+dummy ==   5
+dummy ==   4
+dummy ==   3
+dummy ==   2
+dummy ==   1
+We read 0a from 4001
+We read 0a from 4002
+We read 82 from 4003
+We read 60 from 4004
+We read fa from 4005
+We read b6 from 4006
+We read 72 from 4007
+We read 0d from 4008
+We read ea from 4009
+We read 63 from 400a
+We read 62 from 400b
+We read ba from 400c
+We read da from 400d
+We read 10 from 400e
+We read 52 from 400f
+We read 67 from 4010
+We read ca from 4011
+We read bd from 4012
+We read 42 from 4013
+We read 14 from 4014
+Wrote 00 to 4000
+Wrote 0b to 4001
+Wrote 0b to 4002
+Wrote 83 to 4003
+Wrote 61 to 4004
+Wrote fb to 4005
+Wrote b7 to 4006
+Wrote 73 to 4007
+Wrote 0e to 4008
+Wrote eb to 4009
+Wrote 64 to 400a
+Wrote 63 to 400b
+Wrote bb to 400c
+Wrote db to 400d
+Wrote 11 to 400e
+Wrote 53 to 400f
+Wrote 68 to 4010
+Wrote cb to 4011
+Wrote be to 4012
+Wrote 43 to 4013
+Wrote 15 to 4014
+Wrote bb to 4015
+Wrote 6b to 4016
+Wrote 00 to 4000
+dummy ==  12
+dummy ==  11
+dummy ==  10
+dummy ==   9
+dummy ==   8
+dummy ==   7
+dummy ==   6
+dummy ==   5
+dummy ==   4
+dummy ==   3
+dummy ==   2
+dummy ==   1
+We read 0b from 4001
+We read 0b from 4002
+We read 83 from 4003
+We read 61 from 4004
+We read fb from 4005
+We read b7 from 4006
+We read 73 from 4007
+We read 0e from 4008
+We read eb from 4009
+We read 64 from 400a
+We read 63 from 400b
+We read bb from 400c
+We read db from 400d
+We read 11 from 400e
+We read 53 from 400f
+We read 68 from 4010
+We read cb from 4011
+We read be from 4012
+We read 43 from 4013
+We read 15 from 4014
+We read bb from 4015
+We read 6b from 4016
+Wrote 00 to 4000
+Wrote 0c to 4001
+Wrote 0c to 4002
+Wrote 84 to 4003
+Wrote 62 to 4004
+Wrote fc to 4005
+Wrote b8 to 4006
+Wrote 74 to 4007
+Wrote 0f to 4008
+Wrote ec to 4009
+Wrote 65 to 400a
+Wrote 64 to 400b
+Wrote bc to 400c
+Wrote dc to 400d
+Wrote 12 to 400e
+Wrote 54 to 400f
+Wrote 69 to 4010
+Wrote cc to 4011
+Wrote bf to 4012
+Wrote 44 to 4013
+Wrote 16 to 4014
+Wrote bc to 4015
+Wrote 6c to 4016
+Wrote 34 to 4017
+Wrote c3 to 4018
+Wrote 00 to 4000
+dummy ==  12
+dummy ==  11
+dummy ==  10
+dummy ==   9
+dummy ==   8
+dummy ==   7
+dummy ==   6
+dummy ==   5
+dummy ==   4
+dummy ==   3
+dummy ==   2
+dummy ==   1
+We read 0c from 4001
+We read 0c from 4002
+We read 84 from 4003
+We read 62 from 4004
+We read fc from 4005
+We read b8 from 4006
+We read 74 from 4007
+We read 0f from 4008
+We read ec from 4009
+We read 65 from 400a
+We read 64 from 400b
+We read bc from 400c
+We read dc from 400d
+We read 12 from 400e
+We read 54 from 400f
+We read 69 from 4010
+We read cc from 4011
+We read bf from 4012
+We read 44 from 4013
+We read 16 from 4014
+We read bc from 4015
+We read 6c from 4016
+We read 34 from 4017
+We read c3 from 4018
+Wrote 00 to 4000
+Wrote 0d to 4001
+Wrote 0d to 4002
+Wrote 85 to 4003
+Wrote 63 to 4004
+Wrote fd to 4005
+Wrote b9 to 4006
+Wrote 75 to 4007
+Wrote 10 to 4008
+Wrote ed to 4009
+Wrote 66 to 400a
+Wrote 65 to 400b
+Wrote bd to 400c
+Wrote dd to 400d
+Wrote 13 to 400e
+Wrote 55 to 400f
+Wrote 6a to 4010
+Wrote cd to 4011
+Wrote c0 to 4012
+Wrote 45 to 4013
+Wrote 17 to 4014
+Wrote bd to 4015
+Wrote 6d to 4016
+Wrote 35 to 4017
+Wrote c4 to 4018
+Wrote ad to 4019
+Wrote 1a to 401a
+Wrote 00 to 4000
+dummy ==  12
+dummy ==  11
+dummy ==  10
+dummy ==   9
+dummy ==   8
+dummy ==   7
+dummy ==   6
+dummy ==   5
+dummy ==   4
+dummy ==   3
+dummy ==   2
+dummy ==   1
+We read 0d from 4001
+We read 0d from 4002
+We read 85 from 4003
+We read 63 from 4004
+We read fd from 4005
+We read b9 from 4006
+We read 75 from 4007
+We read 10 from 4008
+We read ed from 4009
+We read 66 from 400a
+We read 65 from 400b
+We read bd from 400c
+We read dd from 400d
+We read 13 from 400e
+We read 55 from 400f
+We read 6a from 4010
+We read cd from 4011
+We read c0 from 4012
+We read 45 from 4013
+We read 17 from 4014
+We read bd from 4015
+We read 6d from 4016
+We read 35 from 4017
+We read c4 from 4018
+We read ad from 4019
+We read 1a from 401a
+Wrote 00 to 4000
+Wrote 0e to 4001
+Wrote 0e to 4002
+Wrote 86 to 4003
+Wrote 64 to 4004
+Wrote fe to 4005
+Wrote ba to 4006
+Wrote 76 to 4007
+Wrote 11 to 4008
+Wrote ee to 4009
+Wrote 67 to 400a
+Wrote 66 to 400b
+Wrote be to 400c
+Wrote de to 400d
+Wrote 14 to 400e
+Wrote 56 to 400f
+Wrote 6b to 4010
+Wrote ce to 4011
+Wrote c1 to 4012
+Wrote 46 to 4013
+Wrote 18 to 4014
+Wrote be to 4015
+Wrote 6e to 4016
+Wrote 36 to 4017
+Wrote c5 to 4018
+Wrote ae to 4019
+Wrote 1b to 401a
+Wrote 26 to 401b
+Wrote 72 to 401c
+Wrote 00 to 4000
+dummy ==  12
+dummy ==  11
+dummy ==  10
+dummy ==   9
+dummy ==   8
+dummy ==   7
+dummy ==   6
+dummy ==   5
+dummy ==   4
+dummy ==   3
+dummy ==   2
+dummy ==   1
+We read 0e from 4001
+We read 0e from 4002
+We read 86 from 4003
+We read 64 from 4004
+We read fe from 4005
+We read ba from 4006
+We read 76 from 4007
+We read 11 from 4008
+We read ee from 4009
+We read 67 from 400a
+We read 66 from 400b
+We read be from 400c
+We read de from 400d
+We read 14 from 400e
+We read 56 from 400f
+We read 6b from 4010
+We read ce from 4011
+We read c1 from 4012
+We read 46 from 4013
+We read 18 from 4014
+We read be from 4015
+We read 6e from 4016
+We read 36 from 4017
+We read c5 from 4018
+We read ae from 4019
+We read 1b from 401a
+We read 26 from 401b
+We read 72 from 401c
+Wrote 00 to 4000
+Wrote 0f to 4001
+Wrote 0f to 4002
+Wrote 87 to 4003
+Wrote 65 to 4004
+Wrote ff to 4005
+Wrote bb to 4006
+Wrote 77 to 4007
+Wrote 12 to 4008
+Wrote ef to 4009
+Wrote 68 to 400a
+Wrote 67 to 400b
+Wrote bf to 400c
+Wrote df to 400d
+Wrote 15 to 400e
+Wrote 57 to 400f
+Wrote 6c to 4010
+Wrote cf to 4011
+Wrote c2 to 4012
+Wrote 47 to 4013
+Wrote 19 to 4014
+Wrote bf to 4015
+Wrote 6f to 4016
+Wrote 37 to 4017
+Wrote c6 to 4018
+Wrote af to 4019
+Wrote 1c to 401a
+Wrote 27 to 401b
+Wrote 73 to 401c
+Wrote 9f to 401d
+Wrote c9 to 401e
+Wrote 00 to 4000
+dummy ==  12
+dummy ==  11
+dummy ==  10
+dummy ==   9
+dummy ==   8
+dummy ==   7
+dummy ==   6
+dummy ==   5
+dummy ==   4
+dummy ==   3
+dummy ==   2
+dummy ==   1
+We read 0f from 4001
+We read 0f from 4002
+We read 87 from 4003
+We read 65 from 4004
+We read ff from 4005
+We read bb from 4006
+We read 77 from 4007
+We read 12 from 4008
+We read ef from 4009
+We read 68 from 400a
+We read 67 from 400b
+We read bf from 400c
+We read df from 400d
+We read 15 from 400e
+We read 57 from 400f
+We read 6c from 4010
+We read cf from 4011
+We read c2 from 4012
+We read 47 from 4013
+We read 19 from 4014
+We read bf from 4015
+We read 6f from 4016
+We read 37 from 4017
+We read c6 from 4018
+We read af from 4019
+We read 1c from 401a
+We read 27 from 401b
+We read 73 from 401c
+We read 9f from 401d
+We read c9 from 401e
+Wrote 00 to 4000
+Wrote 10 to 4001
+Wrote 10 to 4002
+Wrote 88 to 4003
+Wrote 66 to 4004
+Wrote 00 to 4005
+Wrote bd to 4006
+Wrote 78 to 4007
+Wrote 13 to 4008
+Wrote f0 to 4009
+Wrote 69 to 400a
+Wrote 68 to 400b
+Wrote c0 to 400c
+Wrote e0 to 400d
+Wrote 16 to 400e
+Wrote 58 to 400f
+Wrote 6d to 4010
+Wrote d0 to 4011
+Wrote c3 to 4012
+Wrote 48 to 4013
+Wrote 1a to 4014
+Wrote c0 to 4015
+Wrote 70 to 4016
+Wrote 38 to 4017
+Wrote c7 to 4018
+Wrote b0 to 4019
+Wrote 1d to 401a
+Wrote 28 to 401b
+Wrote 74 to 401c
+Wrote a0 to 401d
+Wrote ca to 401e
+Wrote 18 to 401f
+Wrote 21 to 4020
+Wrote 00 to 4000
+dummy ==  12
+dummy ==  11
+dummy ==  10
+dummy ==   9
+dummy ==   8
+dummy ==   7
+dummy ==   6
+dummy ==   5
+dummy ==   4
+dummy ==   3
+dummy ==   2
+dummy ==   1
+We read 10 from 4001
+We read 10 from 4002
+We read 88 from 4003
+We read 66 from 4004
+We read 00 from 4005
+We read bd from 4006
+We read 78 from 4007
+We read 13 from 4008
+We read f0 from 4009
+We read 69 from 400a
+We read 68 from 400b
+We read c0 from 400c
+We read e0 from 400d
+We read 16 from 400e
+We read 58 from 400f
+We read 6d from 4010
+We read d0 from 4011
+We read c3 from 4012
+We read 48 from 4013
+We read 1a from 4014
+We read c0 from 4015
+We read 70 from 4016
+We read 38 from 4017
+We read c7 from 4018
+We read b0 from 4019
+We read 1d from 401a
+We read 28 from 401b
+We read 74 from 401c
+We read a0 from 401d
+We read ca from 401e
+We read 18 from 401f
+We read 21 from 4020
+Wrote 00 to 5000
+Wrote 01 to 5001
+Wrote 01 to 5002
+Wrote 01 to 5003
+Wrote 01 to 5004
+Wrote 00 to 5000
+dummy ==  12
+dummy ==  11
+dummy ==  10
+dummy ==   9
+dummy ==   8
+dummy ==   7
+dummy ==   6
+dummy ==   5
+dummy ==   4
+dummy ==   3
+dummy ==   2
+dummy ==   1
+We read 01 from 5001
+We read 01 from 5002
+We read 01 from 5003
+We read 01 from 5004
+Wrote 00 to 5000
+Wrote 02 to 5001
+Wrote 02 to 5002
+Wrote 02 to 5003
+Wrote 02 to 5004
+Wrote 7a to 5005
+Wrote 58 to 5006
+Wrote 36 to 5007
+Wrote 14 to 5008
+Wrote 00 to 5000
+dummy ==  12
+dummy ==  11
+dummy ==  10
+dummy ==   9
+dummy ==   8
+dummy ==   7
+dummy ==   6
+dummy ==   5
+dummy ==   4
+dummy ==   3
+dummy ==   2
+dummy ==   1
+We read 02 from 5001
+We read 02 from 5002
+We read 02 from 5003
+We read 02 from 5004
+We read 7a from 5005
+We read 58 from 5006
+We read 36 from 5007
+We read 14 from 5008
+Wrote 00 to 5000
+Wrote 03 to 5001
+Wrote 03 to 5002
+Wrote 03 to 5003
+Wrote 03 to 5004
+Wrote 7b to 5005
+Wrote 59 to 5006
+Wrote 37 to 5007
+Wrote 15 to 5008
+Wrote f3 to 5009
+Wrote af to 500a
+Wrote 6b to 500b
+Wrote 27 to 500c
+Wrote 00 to 5000
+dummy ==  12
+dummy ==  11
+dummy ==  10
+dummy ==   9
+dummy ==   8
+dummy ==   7
+dummy ==   6
+dummy ==   5
+dummy ==   4
+dummy ==   3
+dummy ==   2
+dummy ==   1
+We read 03 from 5001
+We read 03 from 5002
+We read 03 from 5003
+We read 03 from 5004
+We read 7b from 5005
+We read 59 from 5006
+We read 37 from 5007
+We read 15 from 5008
+We read f3 from 5009
+We read af from 500a
+We read 6b from 500b
+We read 27 from 500c
+Wrote 00 to 5000
+Wrote 04 to 5001
+Wrote 04 to 5002
+Wrote 04 to 5003
+Wrote 04 to 5004
+Wrote 7c to 5005
+Wrote 5a to 5006
+Wrote 38 to 5007
+Wrote 16 to 5008
+Wrote f4 to 5009
+Wrote b0 to 500a
+Wrote 6c to 500b
+Wrote 28 to 500c
+Wrote 6c to 500d
+Wrote 07 to 500e
+Wrote a1 to 500f
+Wrote 3a to 5010
+Wrote 00 to 5000
+dummy ==  12
+dummy ==  11
+dummy ==  10
+dummy ==   9
+dummy ==   8
+dummy ==   7
+dummy ==   6
+dummy ==   5
+dummy ==   4
+dummy ==   3
+dummy ==   2
+dummy ==   1
+We read 04 from 5001
+We read 04 from 5002
+We read 04 from 5003
+We read 04 from 5004
+We read 7c from 5005
+We read 5a from 5006
+We read 38 from 5007
+We read 16 from 5008
+We read f4 from 5009
+We read b0 from 500a
+We read 6c from 500b
+We read 28 from 500c
+We read 6c from 500d
+We read 07 from 500e
+We read a1 from 500f
+We read 3a from 5010
+Wrote 00 to 5000
+Wrote 05 to 5001
+Wrote 05 to 5002
+Wrote 05 to 5003
+Wrote 05 to 5004
+Wrote 7d to 5005
+Wrote 5b to 5006
+Wrote 39 to 5007
+Wrote 17 to 5008
+Wrote f5 to 5009
+Wrote b1 to 500a
+Wrote 6d to 500b
+Wrote 29 to 500c
+Wrote 6d to 500d
+Wrote 08 to 500e
+Wrote a2 to 500f
+Wrote 3b to 5010
+Wrote e5 to 5011
+Wrote 5e to 5012
+Wrote d6 to 5013
+Wrote 4d to 5014
+Wrote 00 to 5000
+dummy ==  12
+dummy ==  11
+dummy ==  10
+dummy ==   9
+dummy ==   8
+dummy ==   7
+dummy ==   6
+dummy ==   5
+dummy ==   4
+dummy ==   3
+dummy ==   2
+dummy ==   1
+We read 05 from 5001
+We read 05 from 5002
+We read 05 from 5003
+We read 05 from 5004
+We read 7d from 5005
+We read 5b from 5006
+We read 39 from 5007
+We read 17 from 5008
+We read f5 from 5009
+We read b1 from 500a
+We read 6d from 500b
+We read 29 from 500c
+We read 6d from 500d
+We read 08 from 500e
+We read a2 from 500f
+We read 3b from 5010
+We read e5 from 5011
+We read 5e from 5012
+We read d6 from 5013
+We read 4d from 5014
+Wrote 00 to 5000
+Wrote 06 to 5001
+Wrote 06 to 5002
+Wrote 06 to 5003
+Wrote 06 to 5004
+Wrote 7e to 5005
+Wrote 5c to 5006
+Wrote 3a to 5007
+Wrote 18 to 5008
+Wrote f6 to 5009
+Wrote b2 to 500a
+Wrote 6e to 500b
+Wrote 2a to 500c
+Wrote 6e to 500d
+Wrote 09 to 500e
+Wrote a3 to 500f
+Wrote 3c to 5010
+Wrote e6 to 5011
+Wrote 5f to 5012
+Wrote d7 to 5013
+Wrote 4e to 5014
+Wrote 5e to 5015
+Wrote b6 to 5016
+Wrote 0b to 5017
+Wrote 61 to 5018
+Wrote 00 to 5000
+dummy ==  12
+dummy ==  11
+dummy ==  10
+dummy ==   9
+dummy ==   8
+dummy ==   7
+dummy ==   6
+dummy ==   5
+dummy ==   4
+dummy ==   3
+dummy ==   2
+dummy ==   1
+We read 06 from 5001
+We read 06 from 5002
+We read 06 from 5003
+We read 06 from 5004
+We read 7e from 5005
+We read 5c from 5006
+We read 3a from 5007
+We read 18 from 5008
+We read f6 from 5009
+We read b2 from 500a
+We read 6e from 500b
+We read 2a from 500c
+We read 6e from 500d
+We read 09 from 500e
+We read a3 from 500f
+We read 3c from 5010
+We read e6 from 5011
+We read 5f from 5012
+We read d7 from 5013
+We read 4e from 5014
+We read 5e from 5015
+We read b6 from 5016
+We read 0b from 5017
+We read 61 from 5018
+Wrote 00 to 5000
+Wrote 07 to 5001
+Wrote 07 to 5002
+Wrote 07 to 5003
+Wrote 07 to 5004
+Wrote 7f to 5005
+Wrote 5d to 5006
+Wrote 3b to 5007
+Wrote 19 to 5008
+Wrote f7 to 5009
+Wrote b3 to 500a
+Wrote 6f to 500b
+Wrote 2b to 500c
+Wrote 6f to 500d
+Wrote 0a to 500e
+Wrote a4 to 500f
+Wrote 3d to 5010
+Wrote e7 to 5011
+Wrote 60 to 5012
+Wrote d8 to 5013
+Wrote 4f to 5014
+Wrote 5f to 5015
+Wrote b7 to 5016
+Wrote 0c to 5017
+Wrote 62 to 5018
+Wrote d7 to 5019
+Wrote 0d to 501a
+Wrote 41 to 501b
+Wrote 74 to 501c
+Wrote 00 to 5000
+dummy ==  12
+dummy ==  11
+dummy ==  10
+dummy ==   9
+dummy ==   8
+dummy ==   7
+dummy ==   6
+dummy ==   5
+dummy ==   4
+dummy ==   3
+dummy ==   2
+dummy ==   1
+We read 07 from 5001
+We read 07 from 5002
+We read 07 from 5003
+We read 07 from 5004
+We read 7f from 5005
+We read 5d from 5006
+We read 3b from 5007
+We read 19 from 5008
+We read f7 from 5009
+We read b3 from 500a
+We read 6f from 500b
+We read 2b from 500c
+We read 6f from 500d
+We read 0a from 500e
+We read a4 from 500f
+We read 3d from 5010
+We read e7 from 5011
+We read 60 from 5012
+We read d8 from 5013
+We read 4f from 5014
+We read 5f from 5015
+We read b7 from 5016
+We read 0c from 5017
+We read 62 from 5018
+We read d7 from 5019
+We read 0d from 501a
+We read 41 from 501b
+We read 74 from 501c
+Wrote 00 to 5000
+Wrote 08 to 5001
+Wrote 08 to 5002
+Wrote 08 to 5003
+Wrote 08 to 5004
+Wrote 80 to 5005
+Wrote 5e to 5006
+Wrote 3c to 5007
+Wrote 1a to 5008
+Wrote f8 to 5009
+Wrote b4 to 500a
+Wrote 70 to 500b
+Wrote 2c to 500c
+Wrote 70 to 500d
+Wrote 0b to 500e
+Wrote a5 to 500f
+Wrote 3e to 5010
+Wrote e8 to 5011
+Wrote 61 to 5012
+Wrote d9 to 5013
+Wrote 50 to 5014
+Wrote 60 to 5015
+Wrote b8 to 5016
+Wrote 0d to 5017
+Wrote 63 to 5018
+Wrote d8 to 5019
+Wrote 0e to 501a
+Wrote 42 to 501b
+Wrote 75 to 501c
+Wrote 50 to 501d
+Wrote 65 to 501e
+Wrote 76 to 501f
+Wrote 87 to 5020
+Wrote 00 to 5000
+dummy ==  12
+dummy ==  11
+dummy ==  10
+dummy ==   9
+dummy ==   8
+dummy ==   7
+dummy ==   6
+dummy ==   5
+dummy ==   4
+dummy ==   3
+dummy ==   2
+dummy ==   1
+We read 08 from 5001
+We read 08 from 5002
+We read 08 from 5003
+We read 08 from 5004
+We read 80 from 5005
+We read 5e from 5006
+We read 3c from 5007
+We read 1a from 5008
+We read f8 from 5009
+We read b4 from 500a
+We read 70 from 500b
+We read 2c from 500c
+We read 70 from 500d
+We read 0b from 500e
+We read a5 from 500f
+We read 3e from 5010
+We read e8 from 5011
+We read 61 from 5012
+We read d9 from 5013
+We read 50 from 5014
+We read 60 from 5015
+We read b8 from 5016
+We read 0d from 5017
+We read 63 from 5018
+We read d8 from 5019
+We read 0e from 501a
+We read 42 from 501b
+We read 75 from 501c
+We read 50 from 501d
+We read 65 from 501e
+We read 76 from 501f
+We read 87 from 5020
+sram_fifo_tb.v:194: $finish called at 250830000 (1ps)

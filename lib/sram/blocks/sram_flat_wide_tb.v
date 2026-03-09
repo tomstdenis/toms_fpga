@@ -95,7 +95,6 @@ module sram_flat_wide_tb();
 			$fatal;
 		end
 
-
         repeat(10) @(posedge clk);
         $finish;
 	end
