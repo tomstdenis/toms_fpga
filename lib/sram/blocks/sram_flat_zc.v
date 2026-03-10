@@ -1,5 +1,13 @@
 /* Flat register base SRAM driver
 
+This is a variant of sram_flat.v where the QPI clock
+is the module clock.  This is meant for designs that operate at sub ~100-120MHz (within
+the PSRAM/SRAM clock speed).  In this module the QPI clock
+runs at your module clock meaning you can still have a fast read/write cycle.
+
+The SPI_TIMER_BITS is still provided so you can divide down the initial SPI clock if you need
+to.  Typically, PSRAMs/SRAMs want a SPI clock below 40MHz or so.
+
 This module implements a Quad IO (SPI) based PSRAM/SRAM interface
 that is meant to provide a single unit of data access at a time.
 
@@ -14,7 +22,7 @@ than 4 uS).
 
 */
 `timescale 1ns/1ps
-module spi_sram_flat #(
+module spi_sram_flat_zc #(
 	parameter CLK_FREQ_MHZ=27,								// system clock frequency (required for walltime requirements)
 	parameter DATA_WIDTH=32,								// controls the line size
 
@@ -25,8 +33,7 @@ module spi_sram_flat #(
 	parameter CMD_WRITE=8'h02,								// command to write
 	parameter CMD_EQIO=8'h38,								// command to enter quad IO mode
 	parameter MIN_CPH_NS=5,									// how many ns must CS be high between commands (23LC's have a min time of mostly nothing)
-	parameter SPI_TIMER_BITS=4,								// divide clock by 16 for SPI operations
-	parameter QPI_TIMER_BITS=1								// divide clcok by 2 for QPI operations
+	parameter SPI_TIMER_BITS=4								// divide clock by 16 for SPI operations
 )(
 	input clk,												// clock
 	input rst_n,											// active low reset
@@ -82,9 +89,7 @@ module spi_sram_flat #(
 	reg [3:0] read_data_be;									// latch the data_be
 	
 	wire spi_pulse;
-	wire qpi_pulse;
 	reg spi_prev_pulse;										// previous pulse to detect edge of pulse
-	reg qpi_prev_pulse;										// previous pulse to detect edge of pulse
 	
 	reg [2:0] state;										// What state is our FSM in
 	reg [3:0] bit_cnt;										// bit counter a variety of FSM states
@@ -103,11 +108,9 @@ module spi_sram_flat #(
 		if (!rst_n || !busy) begin
 			timer <= 0;
 			spi_prev_pulse <= 1'b1;								// init prev to 1 so the first pass detects the edge if needed
-			qpi_prev_pulse <= 1'b1;								// init prev to 1 so the first pass detects the edge if needed
 		end else if (busy) begin
 			timer <= timer + 1'b1;
 			spi_prev_pulse <= spi_pulse;
-			qpi_prev_pulse <= qpi_pulse;
 		end
 	end
 	
@@ -123,8 +126,6 @@ module spi_sram_flat #(
 
 	assign cs_pin 		= ~busy;															// active low CS pin
 	assign spi_pulse 	= timer[SPI_TIMER_BITS-1];											// SPI timed pulses
-	assign qpi_pulse 	= timer[QPI_TIMER_BITS-1];											// QPI timed pulses
-	//assign sck_pin 		= busy & (state == STATE_SPI_SEND_8 ? spi_pulse : qpi_pulse);		// The SCK pin depending on if we're doing SPI or QPI traffic
 	assign done			= (state == STATE_IDLE);											// 'done' is basically a "are we at idle" flag
 	
 	// assign data out
@@ -132,7 +133,7 @@ module spi_sram_flat #(
 		if (busy) begin
 			case (state)
 				STATE_SPI_SEND_8: 													sck_pin = spi_pulse;	// use SPI clock when doing SPI stuff
-				STATE_SPI_SEND_2_READ, STATE_SPI_SEND_2_WRITE, STATE_SPI_READ_2: 	sck_pin = qpi_pulse;	// use QPI clock when doing QPI stuff
+				STATE_SPI_SEND_2_READ, STATE_SPI_SEND_2_WRITE, STATE_SPI_READ_2: 	sck_pin = clk;			// Use system clock
 				default: sck_pin = 1'b0;																	// default is off
 			endcase
 		end else begin
@@ -195,111 +196,81 @@ module spi_sram_flat #(
 					end
 				STATE_SPI_SEND_2_WRITE:									// WRITE: Write the cmd + address + line in QPI mode
 					begin
-						if (qpi_prev_pulse != qpi_pulse) begin			// only run the case statement on the edge of the QPI clock pulse
-							case(qpi_pulse)
-								1'd0:									// we put data on the line in the first half cycle
-									begin
 `ifdef SIM_MODEL
-										if (nibble_idx < DATA_WIDTH) begin
-											if (nibble_idx[2]) begin
-												// sending the top nibble
-												sim_memory[sim_address] <= {send_wire[nibble_idx +: 4], 4'h0 };
-											end else begin
-												sim_memory[sim_address] <= {sim_memory[sim_address][7:4], send_wire[nibble_idx +: 4]};
-												$display("Wrote %h%h to %h", sim_memory[sim_address][7:4], send_wire[nibble_idx +: 4], sim_address);
-												sim_address 			<= sim_address + 1;
-											end
-										end
+						if (nibble_idx < DATA_WIDTH) begin
+							if (nibble_idx[2]) begin
+								// sending the top nibble
+								sim_memory[sim_address] <= {send_wire[nibble_idx +: 4], 4'h0 };
+							end else begin
+								sim_memory[sim_address] <= {sim_memory[sim_address][7:4], send_wire[nibble_idx +: 4]};
+								$display("Wrote %h%h to %h", sim_memory[sim_address][7:4], send_wire[nibble_idx +: 4], sim_address);
+								sim_address 			<= sim_address + 1;
+							end
+						end
 `endif
-										dout <= send_wire[nibble_idx +: 4];			// in quad mode we shift out the most significant nibble first
-									end
-								1'd1:												// Detect if we should exit from this loop
-									begin
-										// if there are more bytes to send ...
-										nibble_idx  <= nibble_idx - 4;
-										if (nibble_idx == nibble_stop) begin
-											state			<= STATE_HANGUP;
-											busy			<= 0;					// it was a write command so we're done
-										end
-									end
-							endcase
+						dout <= send_wire[(nibble_idx - 4) +: 4];			// in quad mode we shift out the most significant nibble first
+						// if there are more bytes to send ...
+						nibble_idx  <= nibble_idx - 4;
+						if (nibble_idx == nibble_stop) begin
+							state			<= STATE_HANGUP;
+							busy			<= 0;					// it was a write command so we're done
 						end
 					end
 				STATE_SPI_SEND_2_READ:												// READ: Write the cmd + address in QPI mode
 					begin
-						if (qpi_prev_pulse != qpi_pulse) begin						// only run the case statement on the edge of the QPI clock pulse
-							case(qpi_pulse)
-								1'd0:												// we put data on the line in the first half cycle
-									begin
-										dout <= read_wire[nibble_idx[$clog2(READ_SIZE)-1:0] +: 4];			// in quad mode we shift out the most significant nibble first
-									end
-								1'd1:												// Detect if we should exit from this loop
-									begin
-										// if there are more bytes to send ...
-										nibble_idx  <= nibble_idx - 4;
-										if (nibble_idx == nibble_stop) begin
-											state			<= STATE_SPI_READ_2;					// jump to reading
-											dummy_nibbles   <= (DUMMY_BYTES * 2) - 1;
-											if (DATA_WIDTH == 32) begin
-												case(read_data_be)
-													4'b1111: // 32-bit operation
-														begin
-															nibble_idx      <= DATA_WIDTH - 4;		// start at the most significant nibble of the send_cmd byte
-														end
-													4'b0011: // 16-bit operation
-														begin
-															nibble_idx      <= DATA_WIDTH - 4 - 16;  // sub 4 so we can match without using a computed sub (sub 16 since we're only sending 16 bits out of 32)
-														end
-													default: // default to 8 bit
-														begin
-															nibble_idx      <= DATA_WIDTH - 4 - 24; // sub 4 so we can match without using a computed sub (sub 24 since we're only sending 8 bits out of 32)
-														end
-												endcase
-											end else begin
-												nibble_idx <= DATA_WIDTH - 4;
-											end
+						dout <= read_wire[(nibble_idx[$clog2(READ_SIZE)-1:0] - 4) +: 4];			// in quad mode we shift out the most significant nibble first
+						// if there are more bytes to send ...
+						nibble_idx  <= nibble_idx - 4;
+						if (nibble_idx == nibble_stop) begin
+							state			<= STATE_SPI_READ_2;					// jump to reading
+							sio_en			<= 4'b0000;								// turn off output enables
+							dummy_nibbles   <= (DUMMY_BYTES * 2) - 1;
+							if (DATA_WIDTH == 32) begin
+								case(read_data_be)
+									4'b1111: // 32-bit operation
+										begin
+											nibble_idx      <= DATA_WIDTH - 4;		// start at the most significant nibble of the send_cmd byte
 										end
-									end
-							endcase
+									4'b0011: // 16-bit operation
+										begin
+											nibble_idx      <= DATA_WIDTH - 4 - 16;  // sub 4 so we can match without using a computed sub (sub 16 since we're only sending 16 bits out of 32)
+										end
+									default: // default to 8 bit
+										begin
+											nibble_idx      <= DATA_WIDTH - 4 - 24; // sub 4 so we can match without using a computed sub (sub 24 since we're only sending 8 bits out of 32)
+										end
+								endcase
+							end else begin
+								nibble_idx <= DATA_WIDTH - 4;
+							end
 						end
 					end
 				STATE_SPI_READ_2:							// read from the SPI SRAM upto DUMMY_READ + read_cmd_size bytes
 					begin
-						if (qpi_prev_pulse != qpi_pulse) begin
-							case(qpi_pulse)
-								1'd0:
-									begin
-										sio_en <= 4'b0000;		// disable all four outputs
-									end
-								1'd1:							// we sample during the 2nd half of the cycle
-									begin
 `ifdef SIM_MODEL
-										if (nibble_idx < DATA_WIDTH) begin
-											if (nibble_idx[2]) begin
-												send_data[nibble_idx[$clog2(DATA_WIDTH)-1:0] +: 4] <= sim_memory[sim_address][7:4]; // store top nibble
-											end else begin
-												send_data[nibble_idx[$clog2(DATA_WIDTH)-1:0] +: 4] <= sim_memory[sim_address][3:0]; // store bottom nibble
-												$display("Read %h from %h", sim_memory[sim_address], sim_address);
-												if (dummy_nibbles == 0) begin
-													sim_address <= sim_address + 1;
-												end
-											end
-										end
+						if (nibble_idx < DATA_WIDTH) begin
+							if (nibble_idx[2]) begin
+								send_data[nibble_idx[$clog2(DATA_WIDTH)-1:0] +: 4] <= sim_memory[sim_address][7:4]; // store top nibble
+							end else begin
+								send_data[nibble_idx[$clog2(DATA_WIDTH)-1:0] +: 4] <= sim_memory[sim_address][3:0]; // store bottom nibble
+								$display("Read %h from %h", sim_memory[sim_address], sim_address);
+								if (dummy_nibbles == 0) begin
+									sim_address <= sim_address + 1;
+								end
+							end
+						end
 `else
-										send_data[nibble_idx[$clog2(DATA_WIDTH)-1:0] +: 4] <= din; // store nibble
+						send_data[nibble_idx[$clog2(DATA_WIDTH)-1:0] +: 4] <= din; // store nibble
 `endif
-										// write next byte we read out, this starts just after the cmd and address 
-										if (dummy_nibbles == 0) begin
-											nibble_idx		<= nibble_idx - 4;
-										end else begin
-											dummy_nibbles	<= dummy_nibbles - 1;
-										end
-										if (nibble_idx == 0) begin
-											state <= STATE_HANGUP;
-											busy  <= 0;
-										end
-									end
-							endcase
+						// write next byte we read out, this starts just after the cmd and address 
+						if (dummy_nibbles == 0) begin
+							nibble_idx		<= nibble_idx - 4;
+						end else begin
+							dummy_nibbles	<= dummy_nibbles - 1;
+						end
+						if (nibble_idx == 0) begin
+							state <= STATE_HANGUP;
+							busy  <= 0;
 						end
 					end
 				STATE_IDLE:																	// IDLE state, we look for data_in_valid, write_cmd, read_cmd here
