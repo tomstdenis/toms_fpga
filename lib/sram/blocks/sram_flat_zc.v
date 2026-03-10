@@ -208,7 +208,8 @@ module spi_sram_flat_zc #(
 							end
 						end
 `endif
-						dout <= send_wire[(nibble_idx - 4) +: 4];			// in quad mode we shift out the most significant nibble first
+						dout <= send_wire[(nibble_idx - 4) +: 4];	// in quad mode we shift out the most significant nibble first
+																	// note we sub 4 here because in IDLE we loaded the first nibble into dout
 						// if there are more bytes to send ...
 						nibble_idx  <= nibble_idx - 4;
 						if (nibble_idx == nibble_stop) begin
@@ -218,7 +219,8 @@ module spi_sram_flat_zc #(
 					end
 				STATE_SPI_SEND_2_READ:												// READ: Write the cmd + address in QPI mode
 					begin
-						dout <= read_wire[(nibble_idx[$clog2(READ_SIZE)-1:0] - 4) +: 4];			// in quad mode we shift out the most significant nibble first
+						dout <= read_wire[(nibble_idx[$clog2(READ_SIZE)-1:0] - 4) +: 4];	// in quad mode we shift out the most significant nibble first
+																							// sub 4 here because in IDLE we load the first nibble into dout
 						// if there are more bytes to send ...
 						nibble_idx  <= nibble_idx - 4;
 						if (nibble_idx == nibble_stop) begin
@@ -298,7 +300,7 @@ module spi_sram_flat_zc #(
 						
 						if (write_cmd | read_cmd) begin																// user wants to issue a read or write so we prepare the SPI write (command + address + optional payload)
 							sio_en 			<= 4'b1111;																// enable all 4 outputs
-							dout			<= cmd_byte[7:4];														// preload output for eventual 1-cycle cadence
+							dout			<= cmd_byte[7:4];														// preload output for 1-cycle cadence
 							send_cmd 		<= cmd_byte;															// the SPI command we need
 							send_address	<= address;																// latch the address
 							state			<= (write_cmd == 1) ? STATE_SPI_SEND_2_WRITE : STATE_SPI_SEND_2_READ;	// jump to state relevant to the operation requested
