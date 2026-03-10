@@ -1,0 +1,25 @@
+LOCATE      COMP "clk"    SITE "P3";
+IOBUF       PORT "clk"    IO_TYPE=LVCMOS33;
+FREQUENCY   PORT "clk"    25 MHZ;
+
+LOCATE      COMP "uart_rx"       SITE "H18";   // iCELink-UART3-RX
+IOBUF       PORT "uart_rx"       IO_TYPE=LVCMOS33;
+
+LOCATE      COMP "uart_tx"       SITE "J17";
+IOBUF       PORT "uart_tx"       IO_TYPE=LVCMOS33;
+
+// using the corner of P3 (corner of P3 and P4)...(These should map to the rev001 board but I haven't 100% checked it out)
+LOCATE		COMP "sio[0]"		SITE "E3";
+IOBUF		PORT "sio[0]"		IO_TYPE=LVCMOS33;
+LOCATE		COMP "sio[1]"		SITE "C2";
+IOBUF		PORT "sio[1]"		IO_TYPE=LVCMOS33;
+LOCATE		COMP "sio[2]"		SITE "C1";
+IOBUF		PORT "sio[2]"		IO_TYPE=LVCMOS33;
+LOCATE		COMP "sio[3]"		SITE "D1";
+IOBUF		PORT "sio[3]"		IO_TYPE=LVCMOS33;
+LOCATE		COMP "sck"		 	SITE "A3";
+IOBUF		PORT "sck"			IO_TYPE=LVCMOS33;
+LOCATE		COMP "cs"			SITE "B1";
+IOBUF		PORT "cs"		 	IO_TYPE=LVCMOS33;
+LOCATE		COMP "good"		 	SITE "B4";
+IOBUF		PORT "good"		 	IO_TYPE=LVCMOS33;
