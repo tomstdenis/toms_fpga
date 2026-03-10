@@ -14,6 +14,8 @@ const char *password = "";  //Enter your wifi Password
 void setup() 
 {
   Serial.begin(921600);
+  Serial.setRxBufferSize(128);
+  Serial.setTxBufferSize(128);
   Serial.println();
 
   WiFi.mode(WIFI_STA);
