@@ -29,6 +29,7 @@ module top(input clk, inout [3:0] sio, output cs, output sck, output reg good, i
 	wire tx_data;
 	wire tx_clk;
 	
+	/* Our debug node mostly used to spy on the FSM state and sram_data_out */
 	reg [(DATA_WIDTH+7):0] debug_outgoing_data;
 	wire debug_outgoing_tgl;
 	reg prev_debug_outgoing_tgl;
@@ -46,8 +47,8 @@ module top(input clk, inout [3:0] sio, output cs, output sck, output reg good, i
 		.debug_incoming_data(debug_incoming_data), .debug_incoming_tgl(debug_incoming_tgl),
 		.identity(debug_identity));
 
+	/* Our debug_uart instance to communicate to the outside world */
 	wire [15:0] uart_bauddiv = 50_000_000 / 115_200;
-
 	serial_debug_uart #(.BITS((DATA_WIDTH+8)), .ENABLE(1)) debug_uart(
 		.clk(pll_clk), .rst_n(rst_n),
 		.prescaler(2),
@@ -110,8 +111,8 @@ module top(input clk, inout [3:0] sio, output cs, output sck, output reg good, i
             sram_data_in 			<= 0;
             sram_address 			<= 0;
             sram_data_be 			<= 4'b1111;
-            state 					<= STATE_WAIT_DONE;
-            tag 					<= STATE_ISSUE_WRITE;
+            state 					<= STATE_WAIT_DONE;			// we start in WAIT since the SPI SRAM module needs to init first
+            tag 					<= STATE_ISSUE_WRITE;		// jump to issuing the write once the SPI is done init
             good 					<= 0;
             debug_outgoing_data 	<= 0;
             prev_debug_incoming_tgl <= 0;
@@ -119,7 +120,7 @@ module top(input clk, inout [3:0] sio, output cs, output sck, output reg good, i
             debug_identity 			<= 'hFF000001;
             test_value 				<= 'h12345678;
         end else begin
-			debug_outgoing_data <= { sram_data_out, 1'b0, sram_done, tag, state };
+			debug_outgoing_data <= { sram_data_out, 1'b0, sram_done, tag, state };	// outgoing data contains what the SRAM read/done, and FSM state
 			if (prev_debug_incoming_tgl) begin
 				test_value 				<= debug_incoming_data[DATA_WIDTH+7:8];
 				state 					<= STATE_ISSUE_WRITE;
@@ -129,29 +130,29 @@ module top(input clk, inout [3:0] sio, output cs, output sck, output reg good, i
 					STATE_DELAY: state 	<= STATE_WAIT_DONE;
 					STATE_WAIT_DONE:
 						begin
-							sram_data_in_valid <= 0;
-							sram_write_cmd <= 0;
+							sram_data_in_valid <= 0;			// turn off data in
+							sram_write_cmd <= 0;				// turn off read/write commands
 							sram_read_cmd <= 0;
-							if (sram_done) begin
+							if (sram_done) begin				// if SRAM is done jump to the tag FSM state
 								state <= tag;
 							end
 						end
 					STATE_ISSUE_WRITE:
 						begin
-							sram_data_be <= 4'b1111;
-							sram_address <= 'h001234;
-							sram_data_in <= test_value;
-							sram_data_in_valid <= 1;
-							sram_write_cmd <= 1;
-							tag <= STATE_ISSUE_READ;
+							sram_data_be <= 4'b1111;			// enable all four bytes (used in 32-bit mode)
+							sram_address <= 'h001234;			// always use address 1234
+							sram_data_in <= test_value;			// we write the test value which is 12345678 by default or assigned by the debug
+							sram_data_in_valid <= 1;			// data in is valid
+							sram_write_cmd <= 1;				// we want to write it
+							tag <= STATE_ISSUE_READ;			// jump to read when done
 							state <= STATE_WAIT_DONE;
 						end
 					STATE_ISSUE_READ:
 						begin
-							sram_read_cmd <= 1;
-							sram_data_be <= 4'b1111;
-							sram_address <= 'h001234;
-							tag <= STATE_COMPARE_READ;
+							sram_read_cmd <= 1;					// issue a read
+							sram_data_be <= 4'b1111;			// of all four bytes (in 32-bit mode)
+							sram_address <= 'h001234;			// address 1234
+							tag <= STATE_COMPARE_READ;			// jump to compare when done
 							state <= STATE_WAIT_DONE;
 						end
 					STATE_COMPARE_READ:
