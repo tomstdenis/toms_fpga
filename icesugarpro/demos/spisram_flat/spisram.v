@@ -37,6 +37,7 @@ module top(input clk, inout [3:0] sio, output cs, output sck, input uart_rx, out
 	wire debug_incoming_tgl;
 	reg prev_debug_incoming_tgl;
 	reg [(DATA_WIDTH+7):0] debug_identity;
+	wire [15:0] debug_identity_bits = `BITS;
 	
 	serial_debug #(.BITS((DATA_WIDTH+8)), .ENABLE(1)) debug_node(
 		.clk(pll_clk), .rst_n(rst_n),
@@ -105,7 +106,6 @@ module top(input clk, inout [3:0] sio, output cs, output sck, input uart_rx, out
         if (!rst_n) begin
             // these must be initialized in reset
             sram_data_in_valid 		<= 0;
-            sram_data_out_read 		<= 0;
             sram_write_cmd 			<= 0;
             sram_read_cmd 			<= 0;
             sram_data_in 			<= 0;
@@ -116,7 +116,7 @@ module top(input clk, inout [3:0] sio, output cs, output sck, input uart_rx, out
             debug_outgoing_data 	<= 0;
             prev_debug_incoming_tgl <= 0;
             prev_debug_outgoing_tgl <= 0;
-            debug_identity 			<= 'hFF000001;
+            debug_identity 			<= {{{DATA_WIDTH - 24}{1'b0}}, 16'hFFDD, debug_identity_bits};
             test_value 				<= 'h12345678;
         end else begin
 			debug_outgoing_data <= { sram_data_out, 1'b0, sram_done, tag, state };	// outgoing data contains what the SRAM read/done, and FSM state
