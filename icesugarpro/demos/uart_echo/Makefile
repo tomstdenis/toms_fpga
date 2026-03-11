@@ -2,7 +2,8 @@ TARGET=echo
 TOP=top
 FREQ=200
 
-OBJS+=echo.v uart.v tx_uart.v rx_uart.v pll.v
+OBJS+=${TARGET}.v pll.v \
+../../../lib/uart/blocks/tx_uart.v ../../../lib/uart/blocks/rx_uart.v ../../../lib/uart/blocks/uart.v
 
 all: ${TARGET}.bit
 
