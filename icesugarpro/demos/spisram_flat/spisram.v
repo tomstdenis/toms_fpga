@@ -89,6 +89,7 @@ module top(input clk, inout [3:0] sio, output cs, output sck, output reg good, i
 
     reg [2:0] state;
     reg [2:0] tag;
+    reg [DATA_WIDTH-1:0] test_value;
 
     localparam
         STATE_ISSUE_WRITE = 1,
@@ -102,63 +103,70 @@ module top(input clk, inout [3:0] sio, output cs, output sck, output reg good, i
     always @(posedge pll_clk) begin
         if (!rst_n) begin
             // these must be initialized in reset
-            sram_data_in_valid <= 0;
-            sram_data_out_read <= 0;
-            sram_write_cmd <= 0;
-            sram_read_cmd <= 0;
-            sram_data_in <= 0;
-            sram_address <= 0;
-            sram_data_be <= 4'b1111;
-            state <= STATE_WAIT_DONE;
-            tag <= STATE_ISSUE_WRITE;
-            good <= 0;
-            debug_outgoing_data <= 0;
+            sram_data_in_valid 		<= 0;
+            sram_data_out_read 		<= 0;
+            sram_write_cmd 			<= 0;
+            sram_read_cmd 			<= 0;
+            sram_data_in 			<= 0;
+            sram_address 			<= 0;
+            sram_data_be 			<= 4'b1111;
+            state 					<= STATE_WAIT_DONE;
+            tag 					<= STATE_ISSUE_WRITE;
+            good 					<= 0;
+            debug_outgoing_data 	<= 0;
             prev_debug_incoming_tgl <= 0;
             prev_debug_outgoing_tgl <= 0;
-            debug_identity <= 'hFF000001;
+            debug_identity 			<= 'hFF000001;
+            test_value 				<= 'h12345678;
         end else begin
 			debug_outgoing_data <= { sram_data_out, 1'b0, sram_done, tag, state };
-            case(state)
-                STATE_DELAY: state <= STATE_WAIT_DONE;
-                STATE_WAIT_DONE:
-                    begin
-                        sram_data_in_valid <= 0;
-                        sram_write_cmd <= 0;
-                        sram_read_cmd <= 0;
-                        if (sram_done) begin
-                            state <= tag;
-                        end
-                    end
-                STATE_ISSUE_WRITE:
-                    begin
-                        sram_data_be <= 4'b1111;
-                        sram_address <= 'h001234;
-                        sram_data_in <= 'h12345678;
-                        sram_data_in_valid <= 1;
-                        sram_write_cmd <= 1;
-                        tag <= STATE_ISSUE_READ;
-                        state <= STATE_WAIT_DONE;
-                    end
-                STATE_ISSUE_READ:
-                    begin
-                        sram_read_cmd <= 1;
-                        sram_data_be <= 4'b1111;
-                        sram_address <= 'h001234;
-                        tag <= STATE_COMPARE_READ;
-                        state <= STATE_WAIT_DONE;
-                    end
-                STATE_COMPARE_READ:
-                    begin
-                        if (sram_data_out == 'h12345678) begin
-                            state <= STATE_SUCCESS;
-							good <= 1'b1;
-                        end else begin
-                            state <= STATE_FAILURE;
-                            good <= 1'b0;
-                        end
-                    end
-                default: begin end
-            endcase
+			if (prev_debug_incoming_tgl) begin
+				test_value 				<= debug_incoming_data[DATA_WIDTH+7:8];
+				state 					<= STATE_ISSUE_WRITE;
+				prev_debug_incoming_tgl <= debug_incoming_tgl;
+			end else begin
+				case(state)
+					STATE_DELAY: state 	<= STATE_WAIT_DONE;
+					STATE_WAIT_DONE:
+						begin
+							sram_data_in_valid <= 0;
+							sram_write_cmd <= 0;
+							sram_read_cmd <= 0;
+							if (sram_done) begin
+								state <= tag;
+							end
+						end
+					STATE_ISSUE_WRITE:
+						begin
+							sram_data_be <= 4'b1111;
+							sram_address <= 'h001234;
+							sram_data_in <= test_value;
+							sram_data_in_valid <= 1;
+							sram_write_cmd <= 1;
+							tag <= STATE_ISSUE_READ;
+							state <= STATE_WAIT_DONE;
+						end
+					STATE_ISSUE_READ:
+						begin
+							sram_read_cmd <= 1;
+							sram_data_be <= 4'b1111;
+							sram_address <= 'h001234;
+							tag <= STATE_COMPARE_READ;
+							state <= STATE_WAIT_DONE;
+						end
+					STATE_COMPARE_READ:
+						begin
+							if (sram_data_out == test_value) begin
+								state <= STATE_SUCCESS;
+								good <= 1'b1;
+							end else begin
+								state <= STATE_FAILURE;
+								good <= 1'b0;
+							end
+						end
+					default: begin end
+				endcase
+			end
         end         
     end
 endmodule
