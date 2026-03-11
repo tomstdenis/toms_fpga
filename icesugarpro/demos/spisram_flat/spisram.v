@@ -2,7 +2,7 @@
 	Realllly simple SPI FIFO SRAM demo, does a write then read.  Raises 'good' pin to high if successful.
 
 */
-module top(input clk, inout [3:0] sio, output cs, output sck, output reg good, input uart_rx, output uart_tx);
+module top(input clk, inout [3:0] sio, output cs, output sck, input uart_rx, output uart_tx);
 
 	localparam
 		DATA_WIDTH = `BITS,
@@ -113,7 +113,6 @@ module top(input clk, inout [3:0] sio, output cs, output sck, output reg good, i
             sram_data_be 			<= 4'b1111;
             state 					<= STATE_WAIT_DONE;			// we start in WAIT since the SPI SRAM module needs to init first
             tag 					<= STATE_ISSUE_WRITE;		// jump to issuing the write once the SPI is done init
-            good 					<= 0;
             debug_outgoing_data 	<= 0;
             prev_debug_incoming_tgl <= 0;
             prev_debug_outgoing_tgl <= 0;
@@ -121,10 +120,14 @@ module top(input clk, inout [3:0] sio, output cs, output sck, output reg good, i
             test_value 				<= 'h12345678;
         end else begin
 			debug_outgoing_data <= { sram_data_out, 1'b0, sram_done, tag, state };	// outgoing data contains what the SRAM read/done, and FSM state
-			if (prev_debug_incoming_tgl) begin
-				test_value 				<= debug_incoming_data[DATA_WIDTH+7:8];
-				state 					<= STATE_ISSUE_WRITE;
+			if (prev_debug_incoming_tgl) begin										// if we receive a node write change the test
+				test_value 				<= debug_incoming_data[DATA_WIDTH+7:8];		// store new test value
+				tag 					<= STATE_ISSUE_WRITE;						// re-issue the write
+				state					<= STATE_WAIT_DONE;							// wait for done (in case we were in the middle of a test)
 				prev_debug_incoming_tgl <= debug_incoming_tgl;
+				sram_write_cmd 			<= 0;										// ensure sram inputs are off
+				sram_read_cmd 			<= 0;
+				sram_data_in_valid		<= 0;
 			end else begin
 				case(state)
 					STATE_DELAY: state 	<= STATE_WAIT_DONE;
@@ -159,10 +162,8 @@ module top(input clk, inout [3:0] sio, output cs, output sck, output reg good, i
 						begin
 							if (sram_data_out == test_value) begin
 								state <= STATE_SUCCESS;
-								good <= 1'b1;
 							end else begin
 								state <= STATE_FAILURE;
-								good <= 1'b0;
 							end
 						end
 					default: begin end
