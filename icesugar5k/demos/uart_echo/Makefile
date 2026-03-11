@@ -5,10 +5,12 @@ FOOTPRINT = sg48
 PLLFREQ = 48
 
 all: $(PROJ).bin
+OBJS=$(PROJ).v pll.v \
+../../../lib/uart/blocks/rx_uart.v ../../../lib/uart/blocks/tx_uart.v ../../../lib/uart/blocks/uart.v
 
 # 1. Synthesis: Convert Verilog to JSON netlist
-$(PROJ).json: $(PROJ).v uart.v rx_uart.v tx_uart.v pll.v
-	yosys -p "synth_ice40 -top top -json $@" $^
+$(PROJ).json: $(OBJS)
+	yosys -p "synth_ice40 -top top -json $@" $(OBJS)
 
 # 2. Place & Route: Map netlist to FPGA hardware
 $(PROJ).asc: $(PROJ).json pins.pcf
