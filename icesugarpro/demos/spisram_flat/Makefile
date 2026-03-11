@@ -2,18 +2,22 @@
 TARGET=spisram
 TOP=top
 FREQ=50
+BITS=256
 
-OBJS+=${TARGET}.v ../../../lib/sram/blocks/sram_flat.v pll1.v
+OBJS+=${TARGET}.v pll1.v \
+../../../lib/sram/blocks/sram_flat.v \
+../../../lib/debug/debug.v ../../../lib/debug/debug_uart.v \
+../../../lib/uart/blocks/rx_uart.v ../../../lib/uart/blocks/tx_uart.v ../../../lib/uart/blocks/uart.v
 
 all: ${TARGET}.bit
 
 # Synthesize the source
 $(TARGET).json: $(OBJS)
-		yosys -p "synth_ecp5 -json $@" $(OBJS)
+		yosys -DBITS=${BITS} -p "synth_ecp5 -json $@" $(OBJS)
 
 # Place and Route
 $(TARGET)_out.config: $(TARGET).json
-		nextpnr-ecp5 -r --45k --package CABGA381 --speed 6 --json $< --textcfg $@ --lpf $(TARGET).lpf
+		nextpnr-ecp5 --parallel-refine -r --45k --package CABGA381 --speed 6 --json $< --textcfg $@ --lpf $(TARGET).lpf
 
 # Create a bitfile and jtag stream
 $(TARGET).bit: $(TARGET)_out.config
@@ -34,6 +38,9 @@ flash: ${TARGET}.bit
 # Generate the four PLLs we need for this design
 pll1.v:
 	ecppll -i 25 -o ${FREQ} -f pll1.v --module pll1
+
+debug_cli: debug_cli.c
+	${CC} -O2 -Wall -DBITS=${BITS} debug_cli.c -o debug_cli
 
 clean:
 		rm -f *.svf *.bit *.config *.ys pll*.v *.asc *.json debug_cli

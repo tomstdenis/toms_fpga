@@ -2,10 +2,10 @@
 	Realllly simple SPI FIFO SRAM demo, does a write then read.  Raises 'good' pin to high if successful.
 
 */
-module top(input clk, inout [3:0] sio, output cs, output sck, output reg good);
+module top(input clk, inout [3:0] sio, output cs, output sck, output reg good, input uart_rx, output uart_tx);
 
 	localparam
-		DATA_WIDTH = 256,
+		DATA_WIDTH = `BITS,
 		SRAM_ADDR_WIDTH = 16;
     wire sram_done;
     reg [DATA_WIDTH-1:0] sram_data_in;
@@ -23,6 +23,37 @@ module top(input clk, inout [3:0] sio, output cs, output sck, output reg good);
 	wire pll_locked;
 
 	pll1 pll(.clkin(clk), .clkout0(pll_clk), .locked(pll_locked));
+	
+	wire rx_data;
+	wire rx_clk;
+	wire tx_data;
+	wire tx_clk;
+	
+	reg [(DATA_WIDTH+7):0] debug_outgoing_data;
+	wire debug_outgoing_tgl;
+	reg prev_debug_outgoing_tgl;
+	wire [(DATA_WIDTH+7):0] debug_incoming_data;
+	wire debug_incoming_tgl;
+	reg prev_debug_incoming_tgl;
+	reg [(DATA_WIDTH+7):0] debug_identity;
+	
+	serial_debug #(.BITS((DATA_WIDTH+8)), .ENABLE(1)) debug_node(
+		.clk(pll_clk), .rst_n(rst_n),
+		.prescaler(2),
+		.rx_data(rx_data), .rx_clk(rx_clk),
+		.tx_data(tx_data), .tx_clk(tx_clk),
+		.debug_outgoing_data(debug_outgoing_data), .debug_outgoing_tgl(debug_outgoing_tgl),
+		.debug_incoming_data(debug_incoming_data), .debug_incoming_tgl(debug_incoming_tgl),
+		.identity(debug_identity));
+
+	wire [15:0] uart_bauddiv = 50_000_000 / 115_200;
+
+	serial_debug_uart #(.BITS((DATA_WIDTH+8)), .ENABLE(1)) debug_uart(
+		.clk(pll_clk), .rst_n(rst_n),
+		.prescaler(2),
+		.debug_tx_clk(tx_clk), .debug_tx_data(tx_data),
+		.debug_rx_clk(rx_clk), .debug_rx_data(rx_data),
+		.uart_bauddiv(uart_bauddiv), .uart_rx_pin(uart_rx), .uart_tx_pin(uart_tx));
 
     always @(posedge pll_clk) begin
 		if (pll_locked) begin
@@ -81,7 +112,12 @@ module top(input clk, inout [3:0] sio, output cs, output sck, output reg good);
             state <= STATE_WAIT_DONE;
             tag <= STATE_ISSUE_WRITE;
             good <= 0;
+            debug_outgoing_data <= 0;
+            prev_debug_incoming_tgl <= 0;
+            prev_debug_outgoing_tgl <= 0;
+            debug_identity <= 'hFF000001;
         end else begin
+			debug_outgoing_data <= { sram_data_out, 1'b0, sram_done, tag, state };
             case(state)
                 STATE_DELAY: state <= STATE_WAIT_DONE;
                 STATE_WAIT_DONE:
