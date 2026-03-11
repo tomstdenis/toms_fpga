@@ -5,6 +5,7 @@ When instantiated for a 32-bit bus the byte enables are available which allows f
 albeit high latency interface to mass memory.  When instantiated as a wider bus the
 byte enables are ignored.
 
+```
 module spi_sram_flat #(
 	parameter CLK_FREQ_MHZ=27,								// system clock frequency (required for walltime requirements)
 	parameter DATA_WIDTH=32,								// controls the line size
@@ -41,30 +42,35 @@ module spi_sram_flat #(
 	output cs_pin,											// active low CS pin
 	output reg sck_pin										// SPI clock
 );
+```
 
 # Theory of Operation
 ## Writing Memory
 
 Set the following
-	- data_in to the data  to write
-	- data_in_valid to tell the module the data can be latched
-	- data_be to the byte enable you need
-	- address to the address
-	- write_cmd to 1
+
+- **data_in** to the data  to write
+- **data_in_valid** to tell the module the data can be latched
+- **data_be** to the byte enable you need
+- **address** to the address
+- **write_cmd** to 1
 
 Next Cycle
-	- write_cmd to 0
-	- Wait for done==1
+
+- **write_cmd** to 0
+- Wait for **done**==1
 
 ## Reading memory
-	- data_be to the byte enable you need
-	- address to the address
-	- read_cmd to 1
+
+- **data_be** to the byte enable you need
+- **address** to the address
+- **read_cmd** to 1
 	
 Next Cycle:
-	- read_cmd to 0
-	- wait for done==1
+
+- **read_cmd** to 0
+- wait for **done**==1
 	
 Later:
-	- read data_out
+- read **data_out**
 
