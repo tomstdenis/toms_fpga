@@ -120,7 +120,7 @@ module top(input clk, inout [3:0] sio, output cs, output sck, input uart_rx, out
             test_value 				<= 'h12345678;
         end else begin
 			debug_outgoing_data <= { sram_data_out, 1'b0, sram_done, tag, state };	// outgoing data contains what the SRAM read/done, and FSM state
-			if (prev_debug_incoming_tgl) begin										// if we receive a node write change the test
+			if (prev_debug_incoming_tgl != debug_incoming_tgl) begin				// if we receive a node write change the test
 				test_value 				<= debug_incoming_data[DATA_WIDTH+7:8];		// store new test value
 				tag 					<= STATE_ISSUE_WRITE;						// re-issue the write
 				state					<= STATE_WAIT_DONE;							// wait for done (in case we were in the middle of a test)

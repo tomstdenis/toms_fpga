@@ -141,7 +141,7 @@ void rand_nodes(int fd, int nodes)
 		}
 		printf("Node %04x: Payload = [", addr);
 		for(x = 0; x < PAYLOAD-1; x++) { printf("%02x", frame[x]); }
-		printf("], done=%d, tag=%d, state=%d\n", frame[PAYLOAD-1]>>6, (frame[PAYLOAD-1]>>3)&7, frame[PAYLOAD-1]&7);
+		printf("]\n");
 	}
 	printf("Done.\n");
 }
