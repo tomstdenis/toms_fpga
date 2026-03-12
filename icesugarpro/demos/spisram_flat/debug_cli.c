@@ -134,7 +134,7 @@ void rand_nodes(int fd, int nodes)
 		memset(frame, 0, sizeof frame);
 		read(rng, frame, PAYLOAD-1);
 		frame[PAYLOAD] = (addr << 1) >> 8;			// assign the node address, we're reading (so LSB is 0), and we're reading identity so PAYLOAD-1 must be zero
-		frame[PAYLOAD+1] = 1 | ((addr << 1) & 0xFF);
+		frame[PAYLOAD+1] = 1 | ((addr << 1) & 0xFF);// write command plus bottom seven bits of address
 		send_cmd(fd, frame, frame);
 		if (!memcmp(frame, allzero, PAYLOAD)) {
 			break;
@@ -143,6 +143,7 @@ void rand_nodes(int fd, int nodes)
 		for(x = 0; x < PAYLOAD-1; x++) { printf("%02x", frame[x]); }
 		printf("]\n");
 	}
+	close(rng);
 	printf("Done.\n");
 }
 
