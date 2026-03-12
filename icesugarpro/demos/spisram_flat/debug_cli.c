@@ -9,7 +9,7 @@
 #include <inttypes.h>
 #include <time.h>
 
-#define PAYLOAD (BITS/8)												// how many bytes of payload must match BITS/8 in your instantiated debuggers
+#define PAYLOAD ((BITS+8)/8)												// how many bytes of payload must match BITS/8 in your instantiated debuggers
 #define FRAME   (PAYLOAD+2)
 static int set_interface_attribs(int fd, int speed) {
     struct termios tty;
@@ -64,6 +64,7 @@ uint16_t enumerate_bus(int fd)
 	memset(frame, 0, sizeof frame);
 	frame[PAYLOAD] = 0xFF; // address 0x7FFF is broadcast
 	frame[PAYLOAD+1] = 0xFE;
+//	{ int x; for (x = 0; x < 18; x++) printf("%2x ", frame[x]); printf("\n"); }
 	send_cmd(fd, frame, frame);
 //	{ int x; for (x = 0; x < 18; x++) printf("%2x ", frame[x]); printf("\n"); }
 	n = ((uint16_t)frame[PAYLOAD-2] << 8) | frame[PAYLOAD-1];
@@ -112,9 +113,35 @@ void dump_nodes(int fd, int nodes)
 		if (!memcmp(frame, allzero, PAYLOAD)) {
 			break;
 		}
-		printf("Node %04x: Data Out = ", addr);
-		for(x = 0; x < PAYLOAD; x++) { printf("%02x ", frame[x]); }
-		printf("\n");
+		printf("Node %04x: Payload = [", addr);
+		for(x = 0; x < PAYLOAD-1; x++) { printf("%02x", frame[x]); }
+		printf("], done=%d, tag=%d, state=%d\n", frame[PAYLOAD-1]>>6, (frame[PAYLOAD-1]>>3)&7, frame[PAYLOAD-1]&7);
+	}
+	printf("Done.\n");
+}
+
+// print out all of the nodes
+void rand_nodes(int fd, int nodes)
+{
+	uint8_t frame[FRAME], allzero[PAYLOAD];
+	uint16_t addr;
+	int x, rng;
+	
+	memset(allzero, 0, PAYLOAD);
+	printf("Randing nodes...\n");
+	rng = open("/dev/urandom", O_RDONLY);
+	for (addr = 0; addr < nodes; addr++) {
+		memset(frame, 0, sizeof frame);
+		read(rng, frame, PAYLOAD-1);
+		frame[PAYLOAD] = (addr << 1) >> 8;			// assign the node address, we're reading (so LSB is 0), and we're reading identity so PAYLOAD-1 must be zero
+		frame[PAYLOAD+1] = 1 | ((addr << 1) & 0xFF);
+		send_cmd(fd, frame, frame);
+		if (!memcmp(frame, allzero, PAYLOAD)) {
+			break;
+		}
+		printf("Node %04x: Payload = [", addr);
+		for(x = 0; x < PAYLOAD-1; x++) { printf("%02x", frame[x]); }
+		printf("], done=%d, tag=%d, state=%d\n", frame[PAYLOAD-1]>>6, (frame[PAYLOAD-1]>>3)&7, frame[PAYLOAD-1]&7);
 	}
 	printf("Done.\n");
 }
@@ -129,4 +156,7 @@ int main(int argc, char **argv)
 	printf("Bus has %u devices on it...\n", nodes = enumerate_bus(fd));
 	list_identities(fd);
 	dump_nodes(fd, nodes);
+	rand_nodes(fd, nodes);
+	dump_nodes(fd, nodes);
+	
 }
