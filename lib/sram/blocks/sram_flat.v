@@ -239,7 +239,7 @@ module spi_sram_flat #(
 										nibble_idx  <= nibble_idx - 4;
 										if (nibble_idx == nibble_stop) begin
 											state			<= STATE_SPI_READ_2;					// jump to reading
-											dummy_nibbles   <= (DUMMY_BYTES * 2) - 1;
+											dummy_nibbles   <= (DUMMY_BYTES * 2);
 											if (DATA_WIDTH == 32) begin
 												case(read_data_be)
 													4'b1111: // 32-bit operation
