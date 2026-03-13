@@ -1,12 +1,9 @@
-/*
-	Realllly simple SPI FIFO SRAM demo, does a write then read.  Raises 'good' pin to high if successful.
-
-*/
-module top(input clk, inout [3:0] sio, output cs, output sck, output reg good);
+module top(input clk, inout [3:0] sio, output cs, output sck, input uart_rx, output uart_tx);
 
 	localparam
-		DATA_WIDTH = 32,
-		SRAM_ADDR_WIDTH = 16;
+		DATA_WIDTH = `BITS,
+		SRAM_ADDR_WIDTH = 16,
+		DEBUG_ENABLE = 1;
     wire sram_done;
     reg [DATA_WIDTH-1:0] sram_data_in;
     reg sram_data_in_valid;
@@ -23,6 +20,39 @@ module top(input clk, inout [3:0] sio, output cs, output sck, output reg good);
 	wire pll_locked;
 
 	pll1 pll(.clkin(clk), .clkout0(pll_clk), .locked(pll_locked));
+	
+	wire rx_data;
+	wire rx_clk;
+	wire tx_data;
+	wire tx_clk;
+	
+	/* Our debug node mostly used to spy on the FSM state and sram_data_out */
+	reg [(DATA_WIDTH+23):0] debug_outgoing_data;
+	wire debug_outgoing_tgl;
+	reg prev_debug_outgoing_tgl;
+	wire [(DATA_WIDTH+23):0] debug_incoming_data;
+	wire debug_incoming_tgl;
+	reg prev_debug_incoming_tgl;
+	reg [(DATA_WIDTH+23):0] debug_identity;
+	wire [15:0] debug_identity_bits = `BITS;
+	
+	serial_debug #(.BITS((DATA_WIDTH+24)), .ENABLE(DEBUG_ENABLE)) debug_node(
+		.clk(pll_clk), .rst_n(rst_n),
+		.prescaler(2),
+		.rx_data(rx_data), .rx_clk(rx_clk),
+		.tx_data(tx_data), .tx_clk(tx_clk),
+		.debug_outgoing_data(debug_outgoing_data), .debug_outgoing_tgl(debug_outgoing_tgl),
+		.debug_incoming_data(debug_incoming_data), .debug_incoming_tgl(debug_incoming_tgl),
+		.identity(debug_identity));
+
+	/* Our debug_uart instance to communicate to the outside world */
+	wire [15:0] uart_bauddiv = 50_000_000 / 115_200;
+	serial_debug_uart #(.BITS((DATA_WIDTH+24)), .ENABLE(DEBUG_ENABLE)) debug_uart(
+		.clk(pll_clk), .rst_n(rst_n),
+		.prescaler(2),
+		.debug_tx_clk(tx_clk), .debug_tx_data(tx_data),
+		.debug_rx_clk(rx_clk), .debug_rx_data(rx_data),
+		.uart_bauddiv(uart_bauddiv), .uart_rx_pin(uart_rx), .uart_tx_pin(uart_tx));
 
     always @(posedge pll_clk) begin
 		if (pll_locked) begin
@@ -37,7 +67,7 @@ module top(input clk, inout [3:0] sio, output cs, output sck, output reg good);
 `ifdef USE_23LC512
             .DATA_WIDTH(DATA_WIDTH), .CLK_FREQ_MHZ(50), .SRAM_ADDR_WIDTH(SRAM_ADDR_WIDTH),
             .DUMMY_BYTES(1), .CMD_READ(8'h03), .CMD_WRITE(8'h02), .CMD_EQIO(8'h38),
-            .MIN_CPH_NS(50), .SPI_TIMER_BITS(1)                     // divide by 2 to get 37.5MHz clock
+            .MIN_CPH_NS(0), .SPI_TIMER_BITS(1)
 `else
             .DATA_WIDTH(DATA_WIDTH), .CLK_FREQ_MHZ(50), .SRAM_ADDR_WIDTH(SRAM_ADDR_WIDTH),
             .DUMMY_BYTES(6), .CMD_READ(8'hEB), .CMD_WRITE(8'h38), .CMD_EQIO(8'h35),
@@ -58,6 +88,9 @@ module top(input clk, inout [3:0] sio, output cs, output sck, output reg good);
 
     reg [2:0] state;
     reg [2:0] tag;
+    reg [DATA_WIDTH-23:0] test_value;
+    reg [15:0] counter;
+    reg [15:0] job_start;
 
     localparam
         STATE_ISSUE_WRITE = 1,
@@ -71,58 +104,74 @@ module top(input clk, inout [3:0] sio, output cs, output sck, output reg good);
     always @(posedge pll_clk) begin
         if (!rst_n) begin
             // these must be initialized in reset
-            sram_data_in_valid <= 0;
-            sram_data_out_read <= 0;
-            sram_write_cmd <= 0;
-            sram_read_cmd <= 0;
-            sram_data_in <= 0;
-            sram_address <= 0;
-            sram_data_be <= 4'b1111;
-            state <= STATE_WAIT_DONE;
-            tag <= STATE_ISSUE_WRITE;
-            good <= 0;
+            sram_data_in_valid 		<= 0;
+            sram_write_cmd 			<= 0;
+            sram_read_cmd 			<= 0;
+            sram_data_in 			<= 0;
+            sram_address 			<= 0;
+            sram_data_be 			<= 4'b1111;
+            state 					<= STATE_WAIT_DONE;			// we start in WAIT since the SPI SRAM module needs to init first
+            tag 					<= STATE_ISSUE_WRITE;		// jump to issuing the write once the SPI is done init
+            debug_outgoing_data 	<= 0;
+            prev_debug_incoming_tgl <= 0;
+            prev_debug_outgoing_tgl <= 0;
+            debug_identity 			<= {{{DATA_WIDTH - 24}{1'b0}}, 16'hFFDD, debug_identity_bits};
+            test_value 				<= 'h12345678;
+            counter					<= 0;
+            job_start				<= 0;
         end else begin
-            case(state)
-                STATE_DELAY: state <= STATE_WAIT_DONE;
-                STATE_WAIT_DONE:
-                    begin
-                        sram_data_in_valid <= 0;
-                        sram_write_cmd <= 0;
-                        sram_read_cmd <= 0;
-                        if (sram_done) begin
-                            state <= tag;
-                        end
-                    end
-                STATE_ISSUE_WRITE:
-                    begin
-                        sram_data_be <= 4'b1111;
-                        sram_address <= 'h001234;
-                        sram_data_in <= 'h12345678;
-                        sram_data_in_valid <= 1;
-                        sram_write_cmd <= 1;
-                        tag <= STATE_ISSUE_READ;
-                        state <= STATE_WAIT_DONE;
-                    end
-                STATE_ISSUE_READ:
-                    begin
-                        sram_read_cmd <= 1;
-                        sram_data_be <= 4'b1111;
-                        sram_address <= 'h001234;
-                        tag <= STATE_COMPARE_READ;
-                        state <= STATE_WAIT_DONE;
-                    end
-                STATE_COMPARE_READ:
-                    begin
-                        if (sram_data_out == 'h12345678) begin
-                            state <= STATE_SUCCESS;
-							good <= 1'b1;
-                        end else begin
-                            state <= STATE_FAILURE;
-                            good <= 1'b0;
-                        end
-                    end
-                default: begin end
-            endcase
+			counter <= counter + 1;
+			debug_outgoing_data <= { sram_data_out, job_start, 1'b0, sram_done, tag, state };	// outgoing data contains what the SRAM read/done, and FSM state
+			if (prev_debug_incoming_tgl != debug_incoming_tgl) begin				// if we receive a node write change the test
+				test_value 				<= debug_incoming_data[DATA_WIDTH+7:24];	// store new test value
+				tag 					<= STATE_ISSUE_WRITE;						// re-issue the write
+				state					<= STATE_WAIT_DONE;							// wait for done (in case we were in the middle of a test)
+				prev_debug_incoming_tgl <= debug_incoming_tgl;
+				sram_write_cmd 			<= 0;										// ensure sram inputs are off
+				sram_read_cmd 			<= 0;
+				sram_data_in_valid		<= 0;
+			end else begin
+				case(state)
+					STATE_WAIT_DONE:
+						begin
+							sram_data_in_valid	<= 0;			// turn off data in
+							sram_write_cmd		<= 0;			// turn off read/write commands
+							sram_read_cmd		<= 0;
+							if (sram_done) begin				// if SRAM is done jump to the tag FSM state
+								state 			<= tag;
+								job_start 		<= counter - job_start;
+							end
+						end
+					STATE_ISSUE_WRITE:
+						begin
+							sram_data_be 		<= 4'b1111;			// enable all four bytes (used in 32-bit mode)
+							sram_address 		<= 'h001234;		// always use address 1234
+							sram_data_in 		<= test_value;		// we write the test value which is 12345678 by default or assigned by the debug
+							sram_data_in_valid 	<= 1;				// data in is valid
+							sram_write_cmd 		<= 1;				// we want to write it
+							tag 				<= STATE_ISSUE_READ;// jump to read when done
+							state 				<= STATE_WAIT_DONE;
+						end
+					STATE_ISSUE_READ:
+						begin
+							sram_read_cmd 		<= 1;					// issue a read
+							sram_data_be 		<= 4'b1111;				// of all four bytes (in 32-bit mode)
+							sram_address 		<= 'h001234;			// address 1234
+							tag 				<= STATE_COMPARE_READ;	// jump to compare when done
+							state 				<= STATE_WAIT_DONE;
+							job_start 			<= counter;
+						end
+					STATE_COMPARE_READ:
+						begin
+							if (sram_data_out == test_value) begin
+								state <= STATE_SUCCESS;
+							end else begin
+								state <= STATE_FAILURE;
+							end
+						end
+					default: begin end
+				endcase
+			end
         end         
     end
 endmodule
