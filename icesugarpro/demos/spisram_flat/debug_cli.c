@@ -9,7 +9,7 @@
 #include <inttypes.h>
 #include <time.h>
 
-#define PAYLOAD ((BITS+8)/8)												// how many bytes of payload must match BITS/8 in your instantiated debuggers
+#define PAYLOAD ((BITS+24)/8)												// how many bytes of payload must match BITS/8 in your instantiated debuggers
 #define FRAME   (PAYLOAD+2)
 static int set_interface_attribs(int fd, int speed) {
     struct termios tty;
@@ -114,8 +114,8 @@ void dump_nodes(int fd, int nodes)
 			break;
 		}
 		printf("Node %04x: Payload = [", addr);
-		for(x = 0; x < PAYLOAD-1; x++) { printf("%02x", frame[x]); }
-		printf("], done=%d, tag=%d, state=%d\n", frame[PAYLOAD-1]>>6, (frame[PAYLOAD-1]>>3)&7, frame[PAYLOAD-1]&7);
+		for(x = 0; x < PAYLOAD-3; x++) { printf("%02x", frame[x]); }
+		printf("], job_counter=%x%x, done=%d, tag=%d, state=%d\n", frame[PAYLOAD-3], frame[PAYLOAD-2], frame[PAYLOAD-1]>>6, (frame[PAYLOAD-1]>>3)&7, frame[PAYLOAD-1]&7);
 	}
 	printf("Done.\n");
 }
