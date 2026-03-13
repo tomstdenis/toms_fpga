@@ -126,7 +126,7 @@ module spi_sram_flat_zc #(
 
 	assign cs_pin 		= ~busy;															// active low CS pin
 	assign spi_pulse 	= timer[SPI_TIMER_BITS-1];											// SPI timed pulses
-	assign done			= (state == STATE_IDLE);											// 'done' is basically a "are we at idle" flag
+	assign done			= (state == STATE_IDLE && !(write_cmd | read_cmd));					// 'done' is basically a "are we at idle" flag
 	
 	// assign data out
 	always @(*) begin

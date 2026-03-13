@@ -125,7 +125,7 @@ module spi_sram_flat #(
 	assign spi_pulse 	= timer[SPI_TIMER_BITS-1];											// SPI timed pulses
 	assign qpi_pulse 	= timer[QPI_TIMER_BITS-1];											// QPI timed pulses
 	//assign sck_pin 		= busy & (state == STATE_SPI_SEND_8 ? spi_pulse : qpi_pulse);		// The SCK pin depending on if we're doing SPI or QPI traffic
-	assign done			= (state == STATE_IDLE);											// 'done' is basically a "are we at idle" flag
+	assign done			= (state == STATE_IDLE && !(write_cmd | read_cmd));					// 'done' is basically a "are we at idle" flag
 	
 	// assign data out
 	always @(*) begin
