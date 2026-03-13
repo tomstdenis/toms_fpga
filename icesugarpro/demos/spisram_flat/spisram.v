@@ -130,12 +130,11 @@ module top(input clk, inout [3:0] sio, output cs, output sck, input uart_rx, out
 				sram_data_in_valid		<= 0;
 			end else begin
 				case(state)
-					STATE_DELAY: state 	<= STATE_WAIT_DONE;
 					STATE_WAIT_DONE:
 						begin
-							sram_data_in_valid <= 0;			// turn off data in
-							sram_write_cmd <= 0;				// turn off read/write commands
-							sram_read_cmd <= 0;
+							sram_data_in_valid	<= 0;			// turn off data in
+							sram_write_cmd		<= 0;			// turn off read/write commands
+							sram_read_cmd		<= 0;
 							if (sram_done) begin				// if SRAM is done jump to the tag FSM state
 								state <= tag;
 							end
@@ -148,7 +147,7 @@ module top(input clk, inout [3:0] sio, output cs, output sck, input uart_rx, out
 							sram_data_in_valid <= 1;			// data in is valid
 							sram_write_cmd <= 1;				// we want to write it
 							tag <= STATE_ISSUE_READ;			// jump to read when done
-							state <= STATE_DELAY;
+							state <= STATE_WAIT_DONE;
 						end
 					STATE_ISSUE_READ:
 						begin
@@ -156,7 +155,7 @@ module top(input clk, inout [3:0] sio, output cs, output sck, input uart_rx, out
 							sram_data_be <= 4'b1111;			// of all four bytes (in 32-bit mode)
 							sram_address <= 'h001234;			// address 1234
 							tag <= STATE_COMPARE_READ;			// jump to compare when done
-							state <= STATE_DELAY;
+							state <= STATE_WAIT_DONE;
 						end
 					STATE_COMPARE_READ:
 						begin
