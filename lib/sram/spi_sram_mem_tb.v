@@ -83,25 +83,25 @@ module spi_sram_mem_tb();
         rst_n = 1;
         repeat(10) @(posedge clk);
 
-		test_phase = 2;
+		test_phase = 1;
 		// write 32-bits to offset 0x10
 		write_bus(32'h0010, 32'h11223344, 4'b1111, 0);
-		test_phase = 3;
+		test_phase = 2;
 		// read 32-bits back
 		read_bus(32'h0010, 4'b1111, 0, 32'h11223344);
 
-		test_phase = 4;
+		test_phase = 3;
         // read 16-bits
         read_bus(32'h0012, 4'b0011, 0, {16'b0, 16'h3344});
-        test_phase = 5;
+        test_phase = 4;
         read_bus(32'h0010, 4'b0011, 0, {16'b0, 16'h1122});
-        test_phase = 6;
+        test_phase = 5;
         // read 8-bits
         read_bus(32'h0013, 4'b0001, 0, {24'b0, 8'h44});
         read_bus(32'h0012, 4'b0001, 0, {24'b0, 8'h33});
         read_bus(32'h0011, 4'b0001, 0, {24'b0, 8'h22});
         read_bus(32'h0010, 4'b0001, 0, {24'b0, 8'h11});
-        test_phase = 7;
+        test_phase = 6;
         // 16-bit write
         write_bus(32'h20, 32'h00005566, 4'b0011, 0);
         // read back
@@ -115,13 +115,13 @@ module spi_sram_mem_tb();
 		read_bus(32'h0030, 4'b1111, 0, 32'hAA998877);
 
 		// fill memory with predictable data
-		test_phase = 10;
+		test_phase = 7;
 		for (i = 0; i < 1024; i++) begin
 			write_bus({22'b0, i[9:0]}, {24'b0, 8'd255 - i[7:0]}, 4'b0001, 0); // write (255 - x) & 255 to mem[x=0..1023]
 		end
 		
 		// now randomly read
-		test_phase = 11;
+		test_phase = 8;
 		for (i = 0; i < 1024; i++) begin
 			j = $urandom_range(0, 1023);
 			read_bus({22'b0, j[9:0]}, 4'b0001, 0, {24'b0, 8'd255 - j[7:0]});
