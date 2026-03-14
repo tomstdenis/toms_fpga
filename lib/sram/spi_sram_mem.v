@@ -70,6 +70,8 @@ module spi_sram_mem
 		.sio_pin(sio_pin), .cs_pin(cs_pin), .sck_pin(sck_pin));
 
 	reg state;
+	reg error;
+	assign bus_err = enable & error;
 	localparam
 		STATE_IDLE = 0,
 		STATE_WORK = 1;
@@ -84,12 +86,12 @@ module spi_sram_mem
 			state 				<= STATE_IDLE;
 			ready 				<= 0;
 			o_data 				<= 0;
-			irq 				<= 0;
-			bus_err 			<= 0;
+			error	 			<= 0;
 		end else begin
 			if (enable && !error && !ready) begin
 				case(state)
 					STATE_IDLE: // wait for a command
+						if (sram_done)
 						begin
 							if (wr_en) begin									// we're writing 
 								sram_data_in 		<= i_data;					// latch data
@@ -98,14 +100,14 @@ module spi_sram_mem
 							end else begin
 								sram_read_cmd 		<= 1;						// read command
 							end
-							sram_address 	<= address[SRAM_ADDR_WIDTH-1:0];	// store address
+							sram_address 	<= addr[SRAM_ADDR_WIDTH-1:0];		// store address
 							state 			<= STATE_WORK;
 						end
 					STATE_WORK:
 						begin
-							sram_data_in_valid 	<= 0;							// turn off all enables
-							sram_write_cmd 		<= 0;
-							sram_read_cmd 		<= 0;
+							sram_data_in_valid 		<= 0;						// turn off all enables
+							sram_write_cmd 			<= 0;
+							sram_read_cmd 			<= 0;
 							if (sram_done) begin								// wait for SRAM to be done
 								if (!wr_en) begin
 									// it was a read
@@ -121,4 +123,5 @@ module spi_sram_mem
 				error <= 0;
 			end
 		end
+	end
 endmodule
