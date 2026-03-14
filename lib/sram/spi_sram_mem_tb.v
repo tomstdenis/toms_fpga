@@ -117,14 +117,14 @@ module spi_sram_mem_tb();
 		// fill memory with predictable data
 		test_phase = 7;
 		for (i = 0; i < 1024; i++) begin
-			write_bus({22'b0, i[9:0]}, {24'b0, 8'd255 - i[7:0]}, 4'b0001, 0); // write (255 - x) & 255 to mem[x=0..1023]
+			write_bus({22'b0, i[9:0]}, {24'b0, i[8:1] + i[7:0]}, 4'b0001, 0); // write (255 - x) & 255 to mem[x=0..1023]
 		end
 		
 		// now randomly read
 		test_phase = 8;
 		for (i = 0; i < 1024; i++) begin
 			j = $urandom_range(0, 1023);
-			read_bus({22'b0, j[9:0]}, 4'b0001, 0, {24'b0, 8'd255 - j[7:0]});
+			read_bus({22'b0, j[9:0]}, 4'b0001, 0, {24'b0, j[8:1] + j[7:0]});
 		end
 		
         repeat(16) @(posedge clk);
