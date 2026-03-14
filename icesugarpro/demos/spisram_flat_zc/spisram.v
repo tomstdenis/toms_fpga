@@ -21,21 +21,24 @@ module top(input clk, inout [3:0] sio, output cs, output sck, input uart_rx, out
 
 	pll1 pll(.clkin(clk), .clkout0(pll_clk), .locked(pll_locked));
 	
+	/* Our debug node mostly used to spy on the FSM state and sram_data_out 
+	 * Payload is DATA_WIDTH bus data, 16-bit cycle counter, 1 reserved bit, 1 bit sram done, 3 bits tag, 3 bits state 
+	 */
 	wire rx_data;
 	wire rx_clk;
 	wire tx_data;
 	wire tx_clk;
-	
-	/* Our debug node mostly used to spy on the FSM state and sram_data_out */
-	reg [(DATA_WIDTH+23):0] debug_outgoing_data;
-	wire debug_outgoing_tgl;
-	reg prev_debug_outgoing_tgl;
-	wire [(DATA_WIDTH+23):0] debug_incoming_data;
-	wire debug_incoming_tgl;
-	reg prev_debug_incoming_tgl;
-	reg [(DATA_WIDTH+23):0] debug_identity;
+
+	reg [(DATA_WIDTH+23):0] debug_outgoing_data;							// data to write to the PC
+	wire debug_outgoing_tgl;												// toggle for when this is read
+	reg prev_debug_outgoing_tgl;											// previous toggle so we can detect edges
+	wire [(DATA_WIDTH+23):0] debug_incoming_data;							// data written FROM the PC 
+	wire debug_incoming_tgl;												// toggle for when a write happens
+	reg prev_debug_incoming_tgl;											// previous toggle to detect edges
+	reg [(DATA_WIDTH+23):0] debug_identity;									// identity of this node 
 	wire [15:0] debug_identity_bits = `BITS;
 	
+	// the debug node itself
 	serial_debug #(.BITS((DATA_WIDTH+24)), .ENABLE(DEBUG_ENABLE)) debug_node(
 		.clk(pll_clk), .rst_n(rst_n),
 		.prescaler(2),
@@ -120,8 +123,9 @@ module top(input clk, inout [3:0] sio, output cs, output sck, input uart_rx, out
             counter					<= 0;
             job_start				<= 0;
         end else begin
-			counter <= counter + 1;
-			debug_outgoing_data <= { sram_data_out, job_start, 1'b0, sram_done, tag, state };	// outgoing data contains what the SRAM read/done, and FSM state
+			counter <= counter + 1; 												// cycle counter
+			// outgoing data contains what the SRAM read/done, and FSM state
+			debug_outgoing_data <= { sram_data_out, job_start, 1'b0, sram_done, tag, state };
 			if (prev_debug_incoming_tgl != debug_incoming_tgl) begin				// if we receive a node write change the test
 				test_value 				<= debug_incoming_data[DATA_WIDTH+7:24];	// store new test value
 				tag 					<= STATE_ISSUE_WRITE;						// re-issue the write
