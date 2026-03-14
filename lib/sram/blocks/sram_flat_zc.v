@@ -20,6 +20,10 @@ controller to access an entire lines worth of data.  Really only
 limited by the enable time of the CS pin (typically has to be less
 than 4 uS).
 
+Note because SCK == CLK it means on the first cycle with CS low SCK will
+already be high, meaning we need to add a dummy cycle since we're in mode 3.
+
+
 */
 `timescale 1ns/1ps
 module spi_sram_flat_zc #(
@@ -76,15 +80,15 @@ module spi_sram_flat_zc #(
 	
 	// SEND wire
 	// total size of send wire
-	localparam SEND_SIZE = 8 + (SRAM_ADDR_WIDTH) + DATA_WIDTH;
-	localparam READ_SIZE = 8 + SRAM_ADDR_WIDTH;
+	localparam SEND_SIZE = 4 + 8 + (SRAM_ADDR_WIDTH) + DATA_WIDTH;
+	localparam READ_SIZE = 4 + 8 + SRAM_ADDR_WIDTH;
 	reg [SRAM_ADDR_WIDTH-1:0] send_address;					// latched address
 	reg [DATA_WIDTH-1:0] send_data;							// latched data to send
 	reg [7:0] send_cmd;										// the command byte to send
 	wire [7:0] cmd_byte = (write_cmd == 1) ? CMD_WRITE : CMD_READ;
 	// thes wires forms the basic command we send when doing a read or a write
-	wire [SEND_SIZE-1:0] send_wire = { send_cmd, send_address, send_data };
-	wire [READ_SIZE-1:0] read_wire = { send_cmd, send_address };
+	wire [SEND_SIZE-1:0] send_wire = { send_cmd[7:4], send_cmd, send_address, send_data };
+	wire [READ_SIZE-1:0] read_wire = { send_cmd[7:4], send_cmd, send_address };
 
 	reg [3:0] read_data_be;									// latch the data_be
 	
