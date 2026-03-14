@@ -69,7 +69,7 @@ module spi_sram_flat #(
 	
 	// SEND wire
 	// total size of send wire
-	localparam SEND_SIZE = 8 + (SRAM_ADDR_WIDTH) + DATA_WIDTH;
+	localparam SEND_SIZE = 8 + SRAM_ADDR_WIDTH + DATA_WIDTH;
 	localparam READ_SIZE = 8 + SRAM_ADDR_WIDTH;
 	reg [SRAM_ADDR_WIDTH-1:0] send_address;					// latched address
 	reg [DATA_WIDTH-1:0] send_data;							// latched data to send
@@ -153,7 +153,7 @@ module spi_sram_flat #(
 		if (!rst_n) begin
             state			<= STATE_INIT;								// Jump to initial FSM state
             sio_en			<= 4'b0000;									// disable all outputs
-            dout			<= 0;										// SPI bus output
+            dout			<= 4'b1111;									// SPI bus output
             busy			<= 0;										// busy flag (controls CS pin)
             send_address	<= 0;										// latched address
             send_data		<= 0;										// latched data
@@ -195,10 +195,10 @@ module spi_sram_flat #(
 					end
 				STATE_SPI_SEND_2_WRITE:									// WRITE: Write the cmd + address + line in QPI mode
 					begin
-						if (qpi_prev_pulse != qpi_pulse) begin			// only run the case statement on the edge of the QPI clock pulse
-							case(qpi_pulse)
-								1'd0:									// we put data on the line in the first half cycle
-									begin
+						case(qpi_pulse)
+							1'd0:									// we put data on the line in the first half cycle
+								begin
+									if (qpi_prev_pulse != qpi_pulse) begin			// only run the case statement on the edge of the QPI clock pulse
 `ifdef SIM_MODEL
 										if (nibble_idx < DATA_WIDTH) begin
 											if (nibble_idx[2]) begin
@@ -213,33 +213,41 @@ module spi_sram_flat #(
 `endif
 										dout <= send_wire[nibble_idx +: 4];			// in quad mode we shift out the most significant nibble first
 									end
-								1'd1:												// Detect if we should exit from this loop
-									begin
-										// if there are more bytes to send ...
+								end
+							1'd1:												// Detect if we should exit from this loop
+								begin
+									// if there are more bytes to send ...
+									if (timer[QPI_TIMER_BITS-1:0] == ((1 << QPI_TIMER_BITS) - 1)) begin
 										nibble_idx  <= nibble_idx - 4;
 										if (nibble_idx == nibble_stop) begin
 											state			<= STATE_HANGUP;
 											busy			<= 0;					// it was a write command so we're done
+											sio_en			<= 4'b0000;
+											dout			<= 4'b1111;
 										end
 									end
-							endcase
-						end
+								end
+						endcase
 					end
 				STATE_SPI_SEND_2_READ:												// READ: Write the cmd + address in QPI mode
 					begin
-						if (qpi_prev_pulse != qpi_pulse) begin						// only run the case statement on the edge of the QPI clock pulse
-							case(qpi_pulse)
-								1'd0:												// we put data on the line in the first half cycle
-									begin
+						case(qpi_pulse)
+							1'd0:												// we put data on the line in the first half cycle
+								begin
+									if (qpi_prev_pulse != qpi_pulse) begin						// only run the case statement on the edge of the QPI clock pulse
 										dout <= read_wire[nibble_idx[$clog2(READ_SIZE)-1:0] +: 4];			// in quad mode we shift out the most significant nibble first
 									end
-								1'd1:												// Detect if we should exit from this loop
-									begin
-										// if there are more bytes to send ...
-										nibble_idx  <= nibble_idx - 4;
+								end
+							1'd1:												// Detect if we should exit from this loop
+								begin
+									// if there are more bytes to send ...
+									if (timer[QPI_TIMER_BITS-1:0] == ((1 << QPI_TIMER_BITS) - 1)) begin
+										nibble_idx <= nibble_idx - 4;
 										if (nibble_idx == nibble_stop) begin
 											state			<= STATE_SPI_READ_2;					// jump to reading
 											dummy_nibbles   <= (DUMMY_BYTES * 2) - 1;
+											sio_en 			<= 4'b0000;
+											dout			<= 4'b1111;
 											if (DATA_WIDTH == 32) begin
 												case(read_data_be)
 													4'b1111: // 32-bit operation
@@ -260,19 +268,18 @@ module spi_sram_flat #(
 											end
 										end
 									end
-							endcase
-						end
+								end
+						endcase
 					end
 				STATE_SPI_READ_2:							// read from the SPI SRAM upto DUMMY_READ + read_cmd_size bytes
 					begin
-						if (qpi_prev_pulse != qpi_pulse) begin
-							case(qpi_pulse)
-								1'd0:
-									begin
-										sio_en <= 4'b0000;		// disable all four outputs
-									end
-								1'd1:							// we sample during the 2nd half of the cycle
-									begin
+						case(qpi_pulse)
+							1'd0:
+								begin
+								end
+							1'd1:							// we sample during the 2nd half of the cycle
+								begin
+									if (qpi_prev_pulse != qpi_pulse) begin
 `ifdef SIM_MODEL
 										if (nibble_idx < DATA_WIDTH) begin
 											if (nibble_idx[2]) begin
@@ -288,6 +295,8 @@ module spi_sram_flat #(
 `else
 										send_data[nibble_idx[$clog2(DATA_WIDTH)-1:0] +: 4] <= din; // store nibble
 `endif
+									end
+									if (timer[QPI_TIMER_BITS-1:0] == ((1 << QPI_TIMER_BITS) - 1)) begin
 										// write next byte we read out, this starts just after the cmd and address 
 										if (dummy_nibbles == 0) begin
 											nibble_idx		<= nibble_idx - 4;
@@ -299,8 +308,8 @@ module spi_sram_flat #(
 											busy  <= 0;
 										end
 									end
-							endcase
-						end
+								end
+						endcase
 					end
 				STATE_IDLE:																	// IDLE state, we look for data_in_valid, write_cmd, read_cmd here
 					begin
@@ -333,8 +342,8 @@ module spi_sram_flat #(
 							state			<= (write_cmd == 1) ? STATE_SPI_SEND_2_WRITE : STATE_SPI_SEND_2_READ;	// jump to state relevant to the operation requested
 							busy 			<= 1;																	// we're going to be busy in the next cycle
 							read_data_be	<= data_be;																// latch the data_be so we can use it during reads
-							nibble_idx 		<= SEND_SIZE - 4;
 							if (write_cmd) begin
+								nibble_idx 		<= SEND_SIZE - 4;
 								if (DATA_WIDTH == 32) begin
 									case(data_be)
 										4'b1111: // 32-bit operation
@@ -355,7 +364,7 @@ module spi_sram_flat #(
 								end
 							end else begin
 								// read commands are just the cmd + address
-								nibble_idx <= 8 + SRAM_ADDR_WIDTH - 4;
+								nibble_idx <= READ_SIZE - 4;
 								nibble_stop <= 0;
 							end
                         `ifdef SIM_MODEL
@@ -367,6 +376,7 @@ module spi_sram_flat #(
 				STATE_HANGUP:																// hang up the SPI connection
 					begin
 						sio_en    		<= 4'b0000;											// disable outputs
+						dout			<= 4'b1111;
 						hangup_timer	<= hangup_bauddiv[7:0]; 							// ensure we hit the required MIN_CPH_NS time (round up for safety)
 						state			<= STATE_HANGUP_WAIT;
 					end

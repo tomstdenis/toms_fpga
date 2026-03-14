@@ -4,7 +4,7 @@ module sram_flat_tb();
 	localparam
 		DUMMY = 6,
 		DATA_WIDTH=32,
-		SRAM_ADDR_WIDTH=16;
+		SRAM_ADDR_WIDTH=24;
 
 	reg clk;
 	reg rst_n;
@@ -26,7 +26,7 @@ module sram_flat_tb();
 		.CLK_FREQ_MHZ(25), .DATA_WIDTH(DATA_WIDTH),
 		.SRAM_ADDR_WIDTH(SRAM_ADDR_WIDTH), .DUMMY_BYTES(DUMMY), .CMD_READ(8'h03),
 		.CMD_WRITE(8'h02), .CMD_EQIO(8'h38), .MIN_CPH_NS(50),
-		.SPI_TIMER_BITS(2), .QPI_TIMER_BITS(1)) flat(
+		.SPI_TIMER_BITS(4), .QPI_TIMER_BITS(2)) flat(
 			.clk(clk), .rst_n(rst_n),
 			.done(done),
 			.data_in(data_in), .data_in_valid(data_in_valid),
