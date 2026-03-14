@@ -91,10 +91,14 @@ module spi_sram_mem
 			if (enable && !error && !ready) begin
 				case(state)
 					STATE_IDLE: // wait for a command
-						if (sram_done)
-						begin
+						if (sram_done) begin
 							if (wr_en) begin									// we're writing 
-								sram_data_in 		<= i_data;					// latch data
+								case(be)
+									4'b1111: sram_data_in <= {i_data[7:0], i_data[15:8], i_data[23:16], i_data[31:24] };
+									4'b0011: sram_data_in <= {16'b0, i_data[7:0], i_data[15:8] };
+									4'b0001: sram_data_in <= i_data;
+									default: error <= 1;
+								endcase
 								sram_data_in_valid 	<= 1;						// mark as valid
 								sram_write_cmd 		<= 1;						// write command
 							end else begin
@@ -111,7 +115,12 @@ module spi_sram_mem
 							if (sram_done) begin								// wait for SRAM to be done
 								if (!wr_en) begin
 									// it was a read
-									o_data <= sram_data_out;
+									case(be)
+										4'b1111: o_data <= {sram_data_out[7:0], sram_data_out[15:8], sram_data_out[23:16], sram_data_out[31:24] };
+										4'b0011: o_data <= {16'b0, sram_data_out[7:0], sram_data_out[15:8] };
+										4'b0001: o_data <= sram_data_out;
+										default: error <= 1;
+									endcase
 								end
 								ready <= 1;
 								state <= STATE_IDLE;

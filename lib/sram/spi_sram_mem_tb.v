@@ -92,25 +92,25 @@ module spi_sram_mem_tb();
 
 		test_phase = 3;
         // read 16-bits
-        read_bus(32'h0012, 4'b0011, 0, {16'b0, 16'h3344});
+        read_bus(32'h0010, 4'b0011, 0, {16'b0, 16'h3344});
         test_phase = 4;
-        read_bus(32'h0010, 4'b0011, 0, {16'b0, 16'h1122});
+        read_bus(32'h0012, 4'b0011, 0, {16'b0, 16'h1122});
         test_phase = 5;
         // read 8-bits
-        read_bus(32'h0013, 4'b0001, 0, {24'b0, 8'h44});
-        read_bus(32'h0012, 4'b0001, 0, {24'b0, 8'h33});
-        read_bus(32'h0011, 4'b0001, 0, {24'b0, 8'h22});
-        read_bus(32'h0010, 4'b0001, 0, {24'b0, 8'h11});
+        read_bus(32'h0010, 4'b0001, 0, {24'b0, 8'h44});
+        read_bus(32'h0011, 4'b0001, 0, {24'b0, 8'h33});
+        read_bus(32'h0012, 4'b0001, 0, {24'b0, 8'h22});
+        read_bus(32'h0013, 4'b0001, 0, {24'b0, 8'h11});
         test_phase = 6;
         // 16-bit write
         write_bus(32'h20, 32'h00005566, 4'b0011, 0);
         // read back
 		read_bus(32'h20, 4'b0011, 0, 32'h00005566);
         // 8-bit write
-        write_bus(32'h33, 32'h77, 4'b0001, 0);
-        write_bus(32'h32, 32'h88, 4'b0001, 0);
-        write_bus(32'h31, 32'h99, 4'b0001, 0);
-        write_bus(32'h30, 32'hAA, 4'b0001, 0);
+        write_bus(32'h30, 32'h77, 4'b0001, 0);
+        write_bus(32'h31, 32'h88, 4'b0001, 0);
+        write_bus(32'h32, 32'h99, 4'b0001, 0);
+        write_bus(32'h33, 32'hAA, 4'b0001, 0);
         // read back
 		read_bus(32'h0030, 4'b1111, 0, 32'hAA998877);
 
