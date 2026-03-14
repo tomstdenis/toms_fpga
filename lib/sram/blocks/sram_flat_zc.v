@@ -310,8 +310,8 @@ module spi_sram_flat_zc #(
 							state			<= (write_cmd == 1) ? STATE_SPI_SEND_2_WRITE : STATE_SPI_SEND_2_READ;	// jump to state relevant to the operation requested
 							busy 			<= 1;																	// we're going to be busy in the next cycle
 							read_data_be	<= data_be;																// latch the data_be so we can use it during reads
-							nibble_idx 		<= SEND_SIZE - 4;
 							if (write_cmd) begin
+								nibble_idx 		<= SEND_SIZE - 4;
 								if (DATA_WIDTH == 32) begin
 									case(data_be)
 										4'b1111: // 32-bit operation
@@ -332,7 +332,7 @@ module spi_sram_flat_zc #(
 								end
 							end else begin
 								// read commands are just the cmd + address
-								nibble_idx <= 8 + SRAM_ADDR_WIDTH - 4;
+								nibble_idx <= READ_SIZE - 4;
 								nibble_stop <= 0;
 							end
                         `ifdef SIM_MODEL
