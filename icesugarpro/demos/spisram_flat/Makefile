@@ -2,7 +2,7 @@
 TARGET=spisram
 TOP=top
 FREQ=50
-BITS=32
+BITS=256
 
 OBJS+=${TARGET}.v pll1.v \
 ../../../lib/sram/blocks/sram_flat.v \

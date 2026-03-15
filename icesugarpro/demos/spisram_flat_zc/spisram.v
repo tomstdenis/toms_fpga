@@ -12,7 +12,7 @@ module top(input clk, inout [3:0] sio, output cs, output sck, input uart_rx, out
 
     reg sram_write_cmd;
     reg sram_read_cmd;
-    reg [15:0] sram_address;
+    reg [SRAM_ADDR_WIDTH-1:0] sram_address;
     reg [3:0] rstcnt = 4'b0;
     wire rst_n;
     assign rst_n = rstcnt[3];

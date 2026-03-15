@@ -79,7 +79,7 @@ module top(input clk, inout [3:0] sio, output cs, output sck, input uart_rx, out
 `ifdef USE_23AA04M
             .DATA_WIDTH(DATA_WIDTH), .CLK_FREQ_MHZ(50), .SRAM_ADDR_WIDTH(SRAM_ADDR_WIDTH),
             .DUMMY_BYTES(1), .CMD_READ(8'h03), .CMD_WRITE(8'h02), .CMD_EQIO(8'h38),
-            .MIN_CPH_NS(50), .SPI_TIMER_BITS(8), .QPI_TIMER_BITS(4)
+            .MIN_CPH_NS(25), .SPI_TIMER_BITS(4), .QPI_TIMER_BITS(2)
 `else
             .DATA_WIDTH(DATA_WIDTH), .CLK_FREQ_MHZ(50), .SRAM_ADDR_WIDTH(SRAM_ADDR_WIDTH),
             .DUMMY_BYTES(6), .CMD_READ(8'hEB), .CMD_WRITE(8'h38), .CMD_EQIO(8'h35),
