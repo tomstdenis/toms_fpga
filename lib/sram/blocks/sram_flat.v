@@ -186,7 +186,6 @@ module spi_sram_flat #(
 										bit_cnt <= bit_cnt - 1'b1;
 										temp_spi_bits <= {temp_spi_bits[6:0], 1'b0};
 										if (bit_cnt == 0) begin
-											busy   <= 0;
 											state  <= STATE_HANGUP;
 										end
 									end
@@ -221,7 +220,6 @@ module spi_sram_flat #(
 										nibble_idx  <= nibble_idx - 4;
 										if (nibble_idx == nibble_stop) begin
 											state			<= STATE_HANGUP;
-											busy			<= 0;					// it was a write command so we're done
 											sio_en			<= 4'b0000;
 											dout			<= 4'b1111;
 										end
@@ -303,7 +301,6 @@ module spi_sram_flat #(
 										end
 										if (nibble_idx == 0) begin
 											state <= STATE_HANGUP;
-											busy  <= 0;
 										end
 									end
 								end
@@ -373,6 +370,7 @@ module spi_sram_flat #(
 					end
 				STATE_HANGUP:																// hang up the SPI connection
 					begin
+						busy   <= 0;
 						sio_en    		<= 4'b0000;											// disable outputs
 						dout			<= 4'b1111;
 						hangup_timer	<= hangup_bauddiv[7:0]; 							// ensure we hit the required MIN_CPH_NS time (round up for safety)
