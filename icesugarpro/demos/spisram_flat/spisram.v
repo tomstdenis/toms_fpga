@@ -1,12 +1,18 @@
 /*
 	Realllly simple SPI FIFO SRAM demo, does a write then read.  Raises 'good' pin to high if successful.
+	
+	
+	Failure points:
+	
+	- not all nibbles of address are on the wire when doing SPI_SEND_2_READ
+	- probably should make it wait a min of QPI_PULSE time between CS high and low
 
 */
 module top(input clk, inout [3:0] sio, output cs, output sck, input uart_rx, output uart_tx);
 
 	localparam
 		DATA_WIDTH = `BITS,
-		SRAM_ADDR_WIDTH = 16,
+		SRAM_ADDR_WIDTH = 24,
 		DEBUG_ENABLE = 1;
     wire sram_done;
     reg [DATA_WIDTH-1:0] sram_data_in;
@@ -16,7 +22,7 @@ module top(input clk, inout [3:0] sio, output cs, output sck, input uart_rx, out
 
     reg sram_write_cmd;
     reg sram_read_cmd;
-    reg [15:0] sram_address;
+    reg [SRAM_ADDR_WIDTH-1:0] sram_address;
     reg [3:0] rstcnt = 4'b0;
     wire rst_n;
     assign rst_n = rstcnt[3];
@@ -66,14 +72,14 @@ module top(input clk, inout [3:0] sio, output cs, output sck, input uart_rx, out
 		end
     end
 
-`define USE_23LC512
+`define USE_23AA04M
 
     spi_sram_flat
     #(
-`ifdef USE_23LC512
+`ifdef USE_23AA04M
             .DATA_WIDTH(DATA_WIDTH), .CLK_FREQ_MHZ(50), .SRAM_ADDR_WIDTH(SRAM_ADDR_WIDTH),
             .DUMMY_BYTES(1), .CMD_READ(8'h03), .CMD_WRITE(8'h02), .CMD_EQIO(8'h38),
-            .MIN_CPH_NS(0), .SPI_TIMER_BITS(1), .QPI_TIMER_BITS(1)
+            .MIN_CPH_NS(50), .SPI_TIMER_BITS(8), .QPI_TIMER_BITS(4)
 `else
             .DATA_WIDTH(DATA_WIDTH), .CLK_FREQ_MHZ(50), .SRAM_ADDR_WIDTH(SRAM_ADDR_WIDTH),
             .DUMMY_BYTES(6), .CMD_READ(8'hEB), .CMD_WRITE(8'h38), .CMD_EQIO(8'h35),
@@ -94,7 +100,7 @@ module top(input clk, inout [3:0] sio, output cs, output sck, input uart_rx, out
 
     reg [2:0] state;
     reg [2:0] tag;
-    reg [DATA_WIDTH-23:0] test_value;
+    reg [DATA_WIDTH-1:0] test_value;
     reg [15:0] counter;
     reg [15:0] job_start;
 
@@ -130,7 +136,7 @@ module top(input clk, inout [3:0] sio, output cs, output sck, input uart_rx, out
 			// outgoing data contains what the SRAM read/done, and FSM state
 			debug_outgoing_data <= { sram_data_out, job_start, 1'b0, sram_done, tag, state };
 			if (prev_debug_incoming_tgl != debug_incoming_tgl) begin				// if we receive a node write change the test
-				test_value 				<= debug_incoming_data[DATA_WIDTH+7:24];	// store new test value
+				test_value 				<= debug_incoming_data[DATA_WIDTH+23:24];	// store new test value
 				tag 					<= STATE_ISSUE_WRITE;						// re-issue the write
 				state					<= STATE_WAIT_DONE;							// wait for done (in case we were in the middle of a test)
 				prev_debug_incoming_tgl <= debug_incoming_tgl;

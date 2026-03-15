@@ -140,7 +140,7 @@ void rand_nodes(int fd, int nodes)
 			break;
 		}
 		printf("Node %04x: Payload = [", addr);
-		for(x = 0; x < PAYLOAD-1; x++) { printf("%02x", frame[x]); }
+		for(x = 0; x < PAYLOAD-3; x++) { printf("%02x", frame[x]); }
 		printf("]\n");
 	}
 	close(rng);
