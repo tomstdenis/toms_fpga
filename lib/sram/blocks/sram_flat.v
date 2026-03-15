@@ -128,24 +128,24 @@ module spi_sram_flat #(
 	assign done			= (state == STATE_IDLE && !(write_cmd | read_cmd));					// 'done' is basically a "are we at idle" flag
 	
 	// assign data out
-	always @(*) begin
+	always @(posedge clk) begin
 		if (busy) begin
 			case (state)
-				STATE_SPI_SEND_8: 													sck_pin = spi_pulse;	// use SPI clock when doing SPI stuff
-				STATE_SPI_SEND_2_READ, STATE_SPI_SEND_2_WRITE, STATE_SPI_READ_2: 	sck_pin = qpi_pulse;	// use QPI clock when doing QPI stuff
-				default: sck_pin = 1'b0;																	// default is off
+				STATE_SPI_SEND_8: 													sck_pin <= spi_pulse;	// use SPI clock when doing SPI stuff
+				STATE_SPI_SEND_2_READ, STATE_SPI_SEND_2_WRITE, STATE_SPI_READ_2: 	sck_pin <= qpi_pulse;	// use QPI clock when doing QPI stuff
+				default: sck_pin <= 1'b0;																	// default is off
 			endcase
 		end else begin
-			sck_pin = 1'b0;																					// default is off
+			sck_pin <= 1'b0;																					// default is off
 		end
 		if (DATA_WIDTH == 32) begin
 			case (read_data_be)
-				4'b1111: data_out = send_data;
-				4'b0011: data_out = {{(DATA_WIDTH-16){1'b0}}, send_data[15:0]};			// data comes into the MSB side of send_data first
-				default: data_out = {{(DATA_WIDTH-8){1'b0}}, send_data[7:0]};
+				4'b1111: data_out <= send_data;
+				4'b0011: data_out <= {{(DATA_WIDTH-16){1'b0}}, send_data[15:0]};			// data comes into the MSB side of send_data first
+				default: data_out <= {{(DATA_WIDTH-8){1'b0}}, send_data[7:0]};
 			endcase
 		end else begin
-			data_out = send_data;
+			data_out <= send_data;
 		end
 	end
 	
@@ -279,7 +279,7 @@ module spi_sram_flat #(
 								end
 							1'd1:							// we sample during the 2nd half of the cycle
 								begin
-									if (qpi_prev_pulse != qpi_pulse) begin
+									if (timer[QPI_TIMER_BITS-1:0] == ((1 << QPI_TIMER_BITS) - 1)) begin
 `ifdef SIM_MODEL
 										if (nibble_idx < DATA_WIDTH) begin
 											if (nibble_idx[2]) begin
@@ -295,8 +295,6 @@ module spi_sram_flat #(
 `else
 										send_data[nibble_idx[$clog2(DATA_WIDTH)-1:0] +: 4] <= din; // store nibble
 `endif
-									end
-									if (timer[QPI_TIMER_BITS-1:0] == ((1 << QPI_TIMER_BITS) - 1)) begin
 										// write next byte we read out, this starts just after the cmd and address 
 										if (dummy_nibbles == 0) begin
 											nibble_idx		<= nibble_idx - 4;
