@@ -9,7 +9,7 @@
 #include <inttypes.h>
 #include <time.h>
 
-#define PAYLOAD ((BITS+24)/8)												// how many bytes of payload must match BITS/8 in your instantiated debuggers
+#define PAYLOAD ((BITS+SRAM_ADDR_WIDTH+24)/8)												// how many bytes of payload must match BITS/8 in your instantiated debuggers
 #define FRAME   (PAYLOAD+2)
 static int set_interface_attribs(int fd, int speed) {
     struct termios tty;
@@ -114,8 +114,8 @@ void dump_nodes(int fd, int nodes)
 			break;
 		}
 		printf("Node %04x: Payload = [", addr);
-		for(x = 0; x < PAYLOAD-3; x++) { printf("%02x", frame[x]); }
-		printf("], job_counter=%x%x, done=%d, tag=%d, state=%d\n", frame[PAYLOAD-3], frame[PAYLOAD-2], frame[PAYLOAD-1]>>6, (frame[PAYLOAD-1]>>3)&7, frame[PAYLOAD-1]&7);
+		for(x = 0; x < PAYLOAD-3-(SRAM_ADDR_WIDTH/8); x++) { printf("%02x", frame[x]); }
+		printf("], addr=%02x%02x%02x job_counter=%02x%02x, done=%d, tag=%d, state=%d\n", frame[PAYLOAD-6], frame[PAYLOAD-5], frame[PAYLOAD-4], frame[PAYLOAD-3], frame[PAYLOAD-2], frame[PAYLOAD-1]>>6, (frame[PAYLOAD-1]>>3)&7, frame[PAYLOAD-1]&7);
 	}
 	printf("Done.\n");
 }
@@ -132,7 +132,7 @@ void rand_nodes(int fd, int nodes)
 	rng = open("/dev/urandom", O_RDONLY);
 	for (addr = 0; addr < nodes; addr++) {
 		memset(frame, 0, sizeof frame);
-		read(rng, frame, PAYLOAD-1);
+		read(rng, frame, PAYLOAD-3);
 		frame[PAYLOAD] = (addr << 1) >> 8;			// assign the node address, we're reading (so LSB is 0), and we're reading identity so PAYLOAD-1 must be zero
 		frame[PAYLOAD+1] = 1 | ((addr << 1) & 0xFF);// write command plus bottom seven bits of address
 		send_cmd(fd, frame, frame);
@@ -140,24 +140,75 @@ void rand_nodes(int fd, int nodes)
 			break;
 		}
 		printf("Node %04x: Payload = [", addr);
-		for(x = 0; x < PAYLOAD-3; x++) { printf("%02x", frame[x]); }
-		printf("]\n");
+		for(x = 0; x < PAYLOAD-3-(SRAM_ADDR_WIDTH/8); x++) { printf("%02x", frame[x]); }
+		printf("], addr=%02x%02x%02x\n", frame[PAYLOAD-6], frame[PAYLOAD-5], frame[PAYLOAD-4]);
 	}
 	close(rng);
 	printf("Done.\n");
 }
 
+void test_node(int fd, uint16_t node)
+{
+	uint8_t frame[FRAME], loss[FRAME];
+	uint64_t tests = 0;
+	int rng;
+	
+	rng = open("/dev/urandom", O_RDONLY);
+	for (;;) {
+		// configure a node with random data
+		memset(frame, 0, sizeof frame);
+		read(rng, frame, PAYLOAD-3);
+		frame[PAYLOAD] = (node << 1) >> 8;			// assign the node address, we're reading (so LSB is 0), and we're reading identity so PAYLOAD-1 must be zero
+		frame[PAYLOAD+1] = 1 | ((node << 1) & 0xFF);// write command plus bottom seven bits of address
+		send_cmd(fd, frame, loss);
+		if (memcmp(frame, loss, FRAME)) {
+			printf("Returned frame on write differs when it shouldn't\n");
+			{ int x; for (x = 0; x < FRAME; x++) printf("%2x ", frame[x]); printf("\n"); }
+			{ int x; for (x = 0; x < FRAME; x++) printf("%2x ", loss[x]); printf("\n"); }
+			exit(-1);
+		}
+		// now read back the node
+		for (;;) {
+			memset(frame, 0, sizeof frame);
+			frame[PAYLOAD] = (node << 1) >> 8;			// assign the node address, we're reading (so LSB is 0), and we're reading identity so PAYLOAD-1 must be zero
+			frame[PAYLOAD+1] = (node << 1) & 0xFF;
+			frame[PAYLOAD-1] = 1;						// assign a non-zero READ CMD
+			send_cmd(fd, frame, frame);
+			if (frame[PAYLOAD-1]>>6) {
+				// done bit is set compare payload
+				if (memcmp(loss, frame, PAYLOAD-3-(SRAM_ADDR_WIDTH/8))) {
+					// read back SRAM failed
+					printf("Returned SRAM data is wrong\n");
+					printf("Delta:    "); { int x; for (x = 0; x < FRAME; x++) printf("%02x ", loss[x] ^ frame[x]); printf("\n"); }
+					printf("Output:   "); { int x; for (x = 0; x < FRAME; x++) printf("%02x ", frame[x]); printf("\n"); }
+					printf("Original: "); { int x; for (x = 0; x < FRAME; x++) printf("%02x ", loss[x]); printf("\n"); }
+					exit(-1);
+				}
+				break;
+			}
+		}
+		++tests;
+		if (!(tests & 0xFF)) {
+			int x;
+			printf("Tests passed: %10ld, ", tests);
+			fflush(stdout);
+			printf("Payload = [");
+			for(x = 0; x < PAYLOAD-3-(SRAM_ADDR_WIDTH/8); x++) { printf("%02x", frame[x]); }
+			printf("], addr=%02x%02x%02x\n", frame[PAYLOAD-6], frame[PAYLOAD-5], frame[PAYLOAD-4]);
+		}
+	}	
+}
+
+
 int main(int argc, char **argv)
 {	
     int nodes, fd = open(argv[1], O_RDWR | O_NOCTTY);
     if (fd < 0) { perror("Open port"); return 1; }
-    set_interface_attribs(fd, B115200);
+    set_interface_attribs(fd, B230400);
 	tcflush(fd, TCIOFLUSH);
 	
 	printf("Bus has %u devices on it...\n", nodes = enumerate_bus(fd));
 	list_identities(fd);
 	dump_nodes(fd, nodes);
-	rand_nodes(fd, nodes);
-	dump_nodes(fd, nodes);
-	
+	test_node(fd, 0x0000);	
 }

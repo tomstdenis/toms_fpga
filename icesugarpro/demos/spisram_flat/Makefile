@@ -2,6 +2,7 @@
 TARGET=spisram
 TOP=top
 FREQ=50
+SRAM_ADDR_WIDTH=24
 BITS=256
 
 OBJS+=${TARGET}.v pll1.v \
@@ -13,7 +14,7 @@ all: ${TARGET}.bit
 
 # Synthesize the source
 $(TARGET).json: $(OBJS)
-		yosys -DBITS=${BITS} -p "synth_ecp5 -json $@" $(OBJS)
+		yosys -DSRAM_ADDR_WIDTH=${SRAM_ADDR_WIDTH} -DBITS=${BITS} -p "synth_ecp5 -json $@" $(OBJS)
 
 # Place and Route
 $(TARGET)_out.config: $(TARGET).json
@@ -40,7 +41,7 @@ pll1.v:
 	ecppll -i 25 -o ${FREQ} -f pll1.v --module pll1
 
 debug_cli: debug_cli.c
-	${CC} -O2 -Wall -DBITS=${BITS} debug_cli.c -o debug_cli
+	${CC} -O2 -Wall -DSRAM_ADDR_WIDTH=${SRAM_ADDR_WIDTH} -DBITS=${BITS} debug_cli.c -o debug_cli
 
 clean:
 		rm -f *.svf *.bit *.config *.ys pll*.v *.asc *.json debug_cli
