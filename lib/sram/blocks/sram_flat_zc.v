@@ -230,7 +230,7 @@ module spi_sram_flat_zc #(
 						if (nibble_idx == nibble_stop) begin
 							state			<= STATE_SPI_READ_2;					// jump to reading
 							sio_en			<= 4'b0000;								// turn off output enables
-							dummy_nibbles   <= (DUMMY_BYTES * 2) - 1;
+							dummy_nibbles   <= (DUMMY_BYTES * 2);
 							if (DATA_WIDTH == 32) begin
 								case(read_data_be)
 									4'b1111: // 32-bit operation
