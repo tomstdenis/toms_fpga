@@ -1,3 +1,5 @@
+/** OUT OF DATE -- This has to be rebased on sram_flat.v ... */
+
 /* Flat register base SRAM driver
 
 This is a variant of sram_flat.v where the QPI clock
