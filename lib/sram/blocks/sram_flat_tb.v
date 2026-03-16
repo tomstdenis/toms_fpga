@@ -23,10 +23,11 @@ module sram_flat_tb();
 	reg [4:0] test_phase;
 
 	spi_sram_flat #(
-		.CLK_FREQ_MHZ(25), .DATA_WIDTH(DATA_WIDTH),
+		.CLK_FREQ_MHZ(50), .DATA_WIDTH(DATA_WIDTH),
 		.SRAM_ADDR_WIDTH(SRAM_ADDR_WIDTH), .DUMMY_BYTES(DUMMY), .CMD_READ(8'h03),
 		.CMD_WRITE(8'h02), .CMD_EQIO(8'h38), .MIN_CPH_NS(50),
-		.SPI_TIMER_BITS(4), .QPI_TIMER_BITS(2)) flat(
+		.SPI_TIMER_BITS(4), .QPI_TIMER_BITS(2),
+		.MIN_WAKEUP_NS(150000), .PSRAM_RESET(1), .CMD_RESETEN(8'h66), .CMD_RESET(8'h99)) flat(
 			.clk(clk), .rst_n(rst_n),
 			.done(done),
 			.data_in(data_in), .data_in_valid(data_in_valid),

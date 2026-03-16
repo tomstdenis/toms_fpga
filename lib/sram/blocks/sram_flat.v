@@ -24,9 +24,13 @@ module spi_sram_flat #(
 	parameter CMD_READ=8'h03,								// command to read 
 	parameter CMD_WRITE=8'h02,								// command to write
 	parameter CMD_EQIO=8'h38,								// command to enter quad IO mode
+	parameter CMD_RESETEN=8'h66,							// command to enable reset
+	parameter CMD_RESET=8'h99,								// command to reset
 	parameter MIN_CPH_NS=5,									// how many ns must CS be high between commands (23LC's have a min time of mostly nothing)
+	parameter MIN_WAKEUP_NS=5,								// how many ns to wait for it to wakeup
 	parameter SPI_TIMER_BITS=4,								// divide clock by 16 for SPI operations
-	parameter QPI_TIMER_BITS=1								// divide clcok by 2 for QPI operations
+	parameter QPI_TIMER_BITS=1,								// divide clcok by 2 for QPI operations
+	parameter PSRAM_RESET=1									// do you need to send 66 99 to reset?
 )(
 	input clk,												// clock
 	input rst_n,											// active low reset
@@ -86,14 +90,16 @@ module spi_sram_flat #(
 	reg spi_prev_pulse;										// previous pulse to detect edge of pulse
 	reg qpi_prev_pulse;										// previous pulse to detect edge of pulse
 	
-	reg [2:0] state;										// What state is our FSM in
+	reg [3:0] state;										// What state is our FSM in
+	reg [3:0] tag;
 	reg [3:0] bit_cnt;										// bit counter a variety of FSM states
 	reg [$clog2(DUMMY_BYTES*2):0] dummy_nibbles;			// how many nibbles to ignore
 	reg [$clog2(SEND_SIZE)-1:0] nibble_idx;					// index into reg/wires in steps of 4 bits
 	reg [$clog2(SEND_SIZE)-1:0] nibble_stop;				// index into reg/wires in steps of 4 bits
 
-	reg [7:0] hangup_timer;
-	wire [15:0] hangup_bauddiv = ((CLK_FREQ_MHZ * MIN_CPH_NS + 999) / 1000);
+	reg [20:0] hangup_timer;
+	wire [20:0] hangup_bauddiv = ((CLK_FREQ_MHZ * MIN_CPH_NS + 999) / 1000);
+	wire [20:0] wakeup_bauddiv = ((CLK_FREQ_MHZ * MIN_WAKEUP_NS + 999) / 1000);
 	reg busy;
 	reg doing_read;
 	reg [7:0] temp_spi_bits;
@@ -113,13 +119,15 @@ module spi_sram_flat #(
 	
 	localparam
 		STATE_INIT					= 0,													// Initialize the SPI memory by putting into a quad-io mode
-		STATE_SPI_SEND_8			= 1,													// Send a command in 1-bit SPI
-		STATE_IDLE					= 2,													// Idle state waiting for a command
-		STATE_SPI_SEND_2_WRITE		= 3,													// Send out a WRITE command over QPI
-		STATE_SPI_SEND_2_READ		= 4,													// Send out a READ command over QPI
-		STATE_SPI_READ_2			= 5,													// Read dummy + line data over QPI
-		STATE_HANGUP				= 6,													// Hang up SPI bus
-		STATE_HANGUP_WAIT			= 7;													// hold CS high for a count
+		STATE_SEND_66				= 1,
+		STATE_SEND_99				= 2,
+		STATE_SPI_SEND_8			= 3,													// Send a command in 1-bit SPI
+		STATE_IDLE					= 4,													// Idle state waiting for a command
+		STATE_SPI_SEND_2_WRITE		= 5,													// Send out a WRITE command over QPI
+		STATE_SPI_SEND_2_READ		= 6,													// Send out a READ command over QPI
+		STATE_SPI_READ_2			= 7,													// Read dummy + line data over QPI
+		STATE_HANGUP				= 8,													// Hang up SPI bus
+		STATE_HANGUP_WAIT			= 9;													// hold CS high for a count
 
 	assign cs_pin 		= ~busy;															// active low CS pin
 	assign spi_pulse 	= timer[SPI_TIMER_BITS-1];											// SPI timed pulses
@@ -151,7 +159,9 @@ module spi_sram_flat #(
 	
 	always @(posedge clk) begin
 		if (!rst_n) begin
-            state			<= STATE_INIT;								// Jump to initial FSM state
+            state			<= STATE_HANGUP_WAIT;						// Jump to initial FSM state
+            tag				<= PSRAM_RESET == 1 ? STATE_SEND_66 : STATE_INIT;
+            hangup_timer    <= wakeup_bauddiv;
             sio_en			<= 4'b0000;									// disable all outputs
             dout			<= 4'b1111;									// SPI bus output
             busy			<= 0;										// busy flag (controls CS pin)
@@ -162,12 +172,31 @@ module spi_sram_flat #(
             nibble_idx      <= 0;
 		end else begin
 			case(state)
+				STATE_SEND_66:											// Send 0x66 RESET ENABLE
+					begin
+						temp_spi_bits	<= CMD_RESETEN;
+						bit_cnt			<= 7;
+						state			<= STATE_SPI_SEND_8;
+						tag				<= STATE_SEND_99;
+						sio_en			<= 4'b0001;						// enable MOSI output pin SIO[0]
+						busy			<= 1;
+					end
+				STATE_SEND_99:											// Send 0x99 RESET 
+					begin
+						temp_spi_bits	<= CMD_RESET;
+						bit_cnt			<= 7;
+						state			<= STATE_SPI_SEND_8;
+						tag				<= STATE_INIT;
+						sio_en			<= 4'b0001;						// enable MOSI output pin SIO[0]
+						busy			<= 1;
+					end
 				STATE_INIT:
 					begin
                         // sticking some STATE_INIT initializations here.
                         temp_spi_bits	<= CMD_EQIO;					// Send "enter quad mode IO" command
                         bit_cnt			<= 7;							// we use single bit SPI mode for this command
 						state			<= STATE_SPI_SEND_8;			// Use single bit SEND state
+						tag				<= STATE_IDLE;
 						sio_en			<= 4'b0001;						// enable MOSI output pin SIO[0]
 						busy			<= 1;							// start SPI clock
 					end
@@ -186,7 +215,8 @@ module spi_sram_flat #(
 										bit_cnt <= bit_cnt - 1'b1;
 										temp_spi_bits <= {temp_spi_bits[6:0], 1'b0};
 										if (bit_cnt == 0) begin
-											state  <= STATE_HANGUP;
+											hangup_timer <= hangup_bauddiv;
+											state 		 <= STATE_HANGUP_WAIT;
 										end
 									end
 								end
@@ -370,17 +400,19 @@ module spi_sram_flat #(
 					end
 				STATE_HANGUP:																// hang up the SPI connection
 					begin
-						busy   <= 0;
+						busy   			<= 0;
 						sio_en    		<= 4'b0000;											// disable outputs
 						dout			<= 4'b1111;
-						hangup_timer	<= hangup_bauddiv[7:0]; 							// ensure we hit the required MIN_CPH_NS time (round up for safety)
+						hangup_timer	<= hangup_bauddiv;		 							// ensure we hit the required MIN_CPH_NS time (round up for safety)
+						tag				<= STATE_IDLE;
 						state			<= STATE_HANGUP_WAIT;
 					end
 				STATE_HANGUP_WAIT:															// Hangup and hold CS high for a mandatory period
 					begin
+						busy			<= 0;												// drive it low for when we come here via SEND_8
 						hangup_timer 	<= hangup_timer - 1'b1;
 						if (hangup_timer == 0) begin
-							state <= STATE_IDLE;											// Resume IDLE state
+							state <= tag;													// Resume next state
 						end
 					end
 				default:
