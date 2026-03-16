@@ -119,8 +119,8 @@ module spi_sram_flat #(
 	
 	localparam
 		STATE_INIT					= 0,													// Initialize the SPI memory by putting into a quad-io mode
-		STATE_SEND_66				= 1,
-		STATE_SEND_99				= 2,
+		STATE_SEND_RESETEN			= 1,
+		STATE_SEND_RESET			= 2,
 		STATE_SPI_SEND_8			= 3,													// Send a command in 1-bit SPI
 		STATE_IDLE					= 4,													// Idle state waiting for a command
 		STATE_SPI_SEND_2_WRITE		= 5,													// Send out a WRITE command over QPI
@@ -160,7 +160,7 @@ module spi_sram_flat #(
 	always @(posedge clk) begin
 		if (!rst_n) begin
             state			<= STATE_HANGUP_WAIT;						// Jump to initial FSM state
-            tag				<= PSRAM_RESET == 1 ? STATE_SEND_66 : STATE_INIT;
+            tag				<= PSRAM_RESET == 1 ? STATE_SEND_RESETEN : STATE_INIT;
             hangup_timer    <= wakeup_bauddiv;
             sio_en			<= 4'b0000;									// disable all outputs
             dout			<= 4'b1111;									// SPI bus output
@@ -172,16 +172,16 @@ module spi_sram_flat #(
             nibble_idx      <= 0;
 		end else begin
 			case(state)
-				STATE_SEND_66:											// Send 0x66 RESET ENABLE
+				STATE_SEND_RESETEN:										// Send 0x66 RESET ENABLE
 					begin
 						temp_spi_bits	<= CMD_RESETEN;
 						bit_cnt			<= 7;
 						state			<= STATE_SPI_SEND_8;
-						tag				<= STATE_SEND_99;
+						tag				<= STATE_SEND_RESET;
 						sio_en			<= 4'b0001;						// enable MOSI output pin SIO[0]
 						busy			<= 1;
 					end
-				STATE_SEND_99:											// Send 0x99 RESET 
+				STATE_SEND_RESET:										// Send 0x99 RESET 
 					begin
 						temp_spi_bits	<= CMD_RESET;
 						bit_cnt			<= 7;
