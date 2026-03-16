@@ -14,7 +14,7 @@ all: ${TARGET}.bit
 
 # Synthesize the source
 $(TARGET).json: $(OBJS)
-		yosys -DSRAM_ADDR_WIDTH=${SRAM_ADDR_WIDTH} -DBITS=${BITS} -p "synth_ecp5 -json $@" $(OBJS)
+		yosys -DFREQ=${FREQ} -DSRAM_ADDR_WIDTH=${SRAM_ADDR_WIDTH} -DBITS=${BITS} -p "synth_ecp5 -json $@" $(OBJS)
 
 # Place and Route
 $(TARGET)_out.config: $(TARGET).json
