@@ -21,20 +21,17 @@ module spi_sram_mem_tb();
 	wire cs_pin;
 
 	localparam
+		DATA_WIDTH=32,
 		SRAM_ADDR_WIDTH=16;
 
 	spi_sram_mem #(
 		.ADDR_WIDTH(32), .DATA_WIDTH(32),
 		
 		.CLK_FREQ_MHZ(50),
-		.SRAM_ADDR_WIDTH(SRAM_ADDR_WIDTH),
-		.DUMMY_BYTES(6),
-		.CMD_READ(8'h03),
-		.CMD_WRITE(8'h02),
-		.CMD_EQIO(8'h83),
-		.MIN_CPH_NS(50),
-		.SPI_TIMER_BITS(4),
-		.QPI_TIMER_BITS(1)
+		.SRAM_ADDR_WIDTH(SRAM_ADDR_WIDTH), .DUMMY_BYTES(6), .CMD_READ(8'h03),
+		.CMD_WRITE(8'h02), .CMD_EQIO(8'h38), .MIN_CPH_NS(50),
+		.SPI_TIMER_BITS(4), .QPI_TIMER_BITS(2),
+		.MIN_WAKEUP_NS(150000), .PSRAM_RESET(1), .CMD_RESETEN(8'h66), .CMD_RESET(8'h99)
 	) sram (
 		.clk(clk), .rst_n(rst_n),
 		.enable(bus_enable),
