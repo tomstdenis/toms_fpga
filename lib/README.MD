@@ -92,9 +92,11 @@ Modules
 
 - **sram**: SPI PSRAM/SRAM controllers
 
-  - **sram_fifo**: A FIFO based SRAM controller meant for higher latency access (not super efficient)
-  - **sram_flat**: A flat but wide configurable SRAM controller meant for lower latency access (also turns out to just be better)
+  - **sram_flat**: A flat but wide configurable (P)SRAM controller meant for simple linear access to memory
+     - Has a slew of configuration options to support both SRAM and PSRAM devices with various timings for wakeup/hangup
      - Supports byte enables when configured for 32-bit bus allowing for easier drop in as a memory bus
+  - **sram_flat_nc**: A flat but wide configurable (P)SRAM that uses module clock for QPI clock
+     - Otherwise similar features as the **sram_flat** module
 
 - **bsram**: On GW2AR parts the Block SRAM doesn't support a byte enable so this wrapper provides it.  Also allows **burst** mode traffic on the bus protocol.
   

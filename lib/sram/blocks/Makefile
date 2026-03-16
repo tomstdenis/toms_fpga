@@ -1,9 +1,4 @@
-test: test_sram_fifo.pass test_sram_flat.pass test_sram_flat_wide.pass test_sram_flat_zc.pass test_sram_flat_wide_zc.pass
-
-test_sram_fifo.pass: sram_fifo.v sram_fifo_tb.v
-	verilator --lint-only $^
-	iverilog -D SIM_MODEL -o sim.vvp $^
-	(vvp sim.vvp -fst > $@.log && touch $@) || cat $@.log
+test: test_sram_flat.pass test_sram_flat_wide.pass test_sram_flat_zc.pass test_sram_flat_wide_zc.pass
 
 test_sram_flat.pass: sram_flat.v sram_flat_tb.v
 	verilator --lint-only $^
