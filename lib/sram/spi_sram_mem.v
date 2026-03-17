@@ -9,16 +9,16 @@ module spi_sram_mem
 	parameter CLK_FREQ_MHZ=27,								// system clock frequency (required for walltime requirements)
 //	parameter DATA_WIDTH=32,								// controls the line size
 
-	// default configuration for a 23LC512 (20MHz max QPI rate)
-	parameter SRAM_ADDR_WIDTH=16,							// how many bits does the address have (e.g. 16 or 24)
-	parameter DUMMY_BYTES=1,								// how many dummy reads are required before the first byte is valid
-	parameter CMD_READ=8'h03,								// command to read 
-	parameter CMD_WRITE=8'h02,								// command to write
-	parameter CMD_EQIO=8'h38,								// command to enter quad IO mode
+	// default configuration for a typical PSRAM
+	parameter SRAM_ADDR_WIDTH=24,							// how many bits does the address have (e.g. 16 or 24)
+	parameter DUMMY_BYTES=6,								// how many dummy reads are required before the first byte is valid
+	parameter CMD_READ=8'hEB,								// command to read 
+	parameter CMD_WRITE=8'h38,								// command to write
+	parameter CMD_EQIO=8'h35,								// command to enter quad IO mode
 	parameter CMD_RESETEN=8'h66,							// command to enable reset
 	parameter CMD_RESET=8'h99,								// command to reset
-	parameter MIN_CPH_NS=5,									// how many ns must CS be high between commands (23LC's have a min time of mostly nothing)
-	parameter MIN_WAKEUP_NS=5,								// how many ns to wait for it to wakeup after POR
+	parameter MIN_CPH_NS=50,								// how many ns must CS be high between commands (23LC's have a min time of mostly nothing)
+	parameter MIN_WAKEUP_NS=150_000,						// how many ns to wait for it to wakeup after POR
 	parameter SPI_TIMER_BITS=4,								// divide clock by 16 for SPI operations
 	parameter QPI_TIMER_BITS=1,								// divide clcok by 2 for QPI operations    
 	parameter PSRAM_RESET=1									// do you need to send 66 99 to reset required by PSRAM chips?
