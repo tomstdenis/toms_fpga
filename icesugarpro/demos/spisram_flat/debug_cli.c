@@ -158,6 +158,11 @@ void test_node(int fd, uint16_t node)
 		// configure a node with random data
 		memset(frame, 0, sizeof frame);
 		read(rng, frame, PAYLOAD-3);
+/*
+		memset(frame, 0, PAYLOAD-3);
+		frame[PAYLOAD-7] = 0x80;
+		frame[PAYLOAD-6] = (tests & 0xF);
+*/
 		frame[PAYLOAD] = (node << 1) >> 8;			// assign the node address, we're reading (so LSB is 0), and we're reading identity so PAYLOAD-1 must be zero
 		frame[PAYLOAD+1] = 1 | ((node << 1) & 0xFF);// write command plus bottom seven bits of address
 		send_cmd(fd, frame, loss);
@@ -178,7 +183,7 @@ void test_node(int fd, uint16_t node)
 				// done bit is set compare payload
 				if (memcmp(loss, frame, PAYLOAD-3-(SRAM_ADDR_WIDTH/8))) {
 					// read back SRAM failed
-					printf("Returned SRAM data is wrong\n");
+					printf("Returned SRAM data is wrong (Test #%ld)\n", tests);
 					printf("Delta:    "); { int x; for (x = 0; x < FRAME; x++) printf("%02x ", loss[x] ^ frame[x]); printf("\n"); }
 					printf("Output:   "); { int x; for (x = 0; x < FRAME; x++) printf("%02x ", frame[x]); printf("\n"); }
 					printf("Original: "); { int x; for (x = 0; x < FRAME; x++) printf("%02x ", loss[x]); printf("\n"); }
@@ -187,6 +192,7 @@ void test_node(int fd, uint16_t node)
 				break;
 			}
 		}
+//		usleep(1000000);
 		++tests;
 		if (!(tests & 0xFF)) {
 			int x;

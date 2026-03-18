@@ -1,7 +1,7 @@
 /*
-	Realllly simple SPI FIFO SRAM demo, does a write then read.  Uses debug node to receive commands and report status.
+	Realllly simple SPI SRAM demo, does a write then read.  Uses debug node to receive commands and report status.
 */
-module top(input clk, inout [3:0] sio, output cs, output sck, input uart_rx, output uart_tx);
+module top(input clk, inout [3:0] sio, output cs, output cs2, output sck, input uart_rx, output uart_tx);
 
 	localparam
 		DATA_WIDTH = `BITS,
@@ -68,6 +68,7 @@ module top(input clk, inout [3:0] sio, output cs, output sck, input uart_rx, out
 		end
     end
 
+// remember to switch cs pin!!!
 `define USE_23AA04M
 
     spi_sram_flat
@@ -75,14 +76,14 @@ module top(input clk, inout [3:0] sio, output cs, output sck, input uart_rx, out
 `ifdef USE_23AA04M
             .DATA_WIDTH(DATA_WIDTH), .CLK_FREQ_MHZ(`FREQ), .SRAM_ADDR_WIDTH(SRAM_ADDR_WIDTH),
             .DUMMY_BYTES(3), .CMD_READ(8'h0B), .CMD_WRITE(8'h02), .CMD_EQIO(8'h38),
-            .MIN_CPH_NS(75), .SPI_TIMER_BITS(4), .QPI_TIMER_BITS(1), .MIN_WAKEUP_NS(100_000),
-            .PSRAM_RESET(0), .CMD_RESETEN(8'h66), .CMD_RESET(8'h99),
+            .MIN_CPH_NS(25), .SPI_TIMER_BITS(4), .QPI_TIMER_BITS(1), .MIN_WAKEUP_NS(100_000),
+            .PSRAM_RESET(0), .CMD_RESETEN(8'h66), .CMD_RESET(8'h99)
 `else
 			// PSRAM configuration (Some chips allow 1 Tclk between CS low but ESP-PSRAM requires 50ns)
             .DATA_WIDTH(DATA_WIDTH), .CLK_FREQ_MHZ(`FREQ), .SRAM_ADDR_WIDTH(SRAM_ADDR_WIDTH),
-            .DUMMY_BYTES(6), .CMD_READ(8'hEB), .CMD_WRITE(8'h38), .CMD_EQIO(8'h35),
-            .MIN_CPH_NS((50), .SPI_TIMER_BITS(4), .QPI_TIMER_BITS(1), .MIN_WAKEUP_NS(150_000),
-            .PSRAM_RESET(1), .CMD_RESETEN(8'h66), .CMD_RESET(8'h99),
+            .DUMMY_BYTES(3), .CMD_READ(8'hEB), .CMD_WRITE(8'h02), .CMD_EQIO(8'h35),
+            .MIN_CPH_NS(50), .SPI_TIMER_BITS(4), .QPI_TIMER_BITS(1), .MIN_WAKEUP_NS(150_000),
+            .PSRAM_RESET(1), .CMD_RESETEN(8'h66), .CMD_RESET(8'h99)
 `endif  
     ) test_sram(
         .clk(pll_clk),

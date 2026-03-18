@@ -185,8 +185,8 @@ E5: NEG				A = -A, PC += 1
 E6: PUSHA			STACK[SP++] = A, PC += 1
 E7: SEI imm			int_mask = imm, PC += 2
 E8: SAI imm			int_vect = imm << 4; PC += 2;
-E9: POPA			PC = PC
-EA: RET, 			A = STACK[--SP], PC += 1
+E9: POPA			A = STACK[--SP], PC += 1
+EA: RET, 			PC = STACK[SP], SP += 1;
 EB: RTI, 			PC = ILR, re-enable interrupts and return
 EC: WAIT0,			PC = PC + (i_port[R0[5:3]]) ? 0 : 1							<---- since WAIT's are likely clock related we use R1 to address the pin here
 ED: WAIT1,			PC = PC + (i_port[R0[5:3]]) ? 1 : 0
