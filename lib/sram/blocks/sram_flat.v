@@ -250,8 +250,8 @@ module spi_sram_flat #(
 										nibble_idx  <= nibble_idx - 4;
 										if (nibble_idx == nibble_stop) begin
 											state			<= STATE_HANGUP;
-											sio_en			<= 4'b0000;
-											dout			<= 4'b1111;
+//											sio_en			<= 4'b0000;
+//											dout			<= 4'b1111;
 										end
 									end
 								end
@@ -401,11 +401,11 @@ module spi_sram_flat #(
 				STATE_HANGUP:																// hang up the SPI connection
 					begin
 						busy   			<= 0;
-						sio_en    		<= 4'b0000;											// disable outputs
-						dout			<= 4'b1111;
 						hangup_timer	<= hangup_bauddiv;		 							// ensure we hit the required MIN_CPH_NS time (round up for safety)
 						tag				<= STATE_IDLE;
 						state			<= STATE_HANGUP_WAIT;
+						sio_en    		<= 4'b0000;											// disable outputs
+						dout			<= 4'b1111;
 					end
 				STATE_HANGUP_WAIT:															// Hangup and hold CS high for a mandatory period
 					begin
