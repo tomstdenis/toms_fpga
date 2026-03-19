@@ -122,7 +122,8 @@ module spi_sram_flat_zc #(
 		STATE_SPI_SEND_2_READ		= 6,													// Send out a READ command over QPI
 		STATE_SPI_READ_2			= 7,													// Read dummy + line data over QPI
 		STATE_HANGUP				= 8,													// Hang up SPI bus
-		STATE_HANGUP_WAIT			= 9;													// hold CS high for a count
+		STATE_HANGUP_WAIT			= 9,													// hold CS high for a count
+		STATE_DELAY					= 10;
 
 	assign cs_pin 		= ~busy;															// active low CS pin
 	assign spi_pulse 	= timer[SPI_TIMER_BITS-1];											// SPI timed pulses
@@ -168,6 +169,7 @@ module spi_sram_flat_zc #(
             nibble_idx      <= 0;
 		end else begin
 			case(state)
+				STATE_DELAY: state <= tag;
 				STATE_SEND_RESETEN:										// Send 0x66 RESET ENABLE
 					begin
 						temp_spi_bits	<= CMD_RESETEN;
@@ -328,7 +330,8 @@ module spi_sram_flat_zc #(
 							dout			<= cmd_byte[7:4];														// preload output for eventual 1-cycle cadence
 							send_cmd 		<= cmd_byte;															// the SPI command we need
 							send_address	<= address;																// latch the address
-							state			<= (write_cmd == 1) ? STATE_SPI_SEND_2_WRITE : STATE_SPI_SEND_2_READ;	// jump to state relevant to the operation requested
+							tag			<= (write_cmd == 1) ? STATE_SPI_SEND_2_WRITE : STATE_SPI_SEND_2_READ;	// jump to state relevant to the operation requested
+							state <= STATE_DELAY;
 							busy 			<= 1;																	// we're going to be busy in the next cycle
 							read_data_be	<= data_be;																// latch the data_be so we can use it during reads
 							if (write_cmd) begin

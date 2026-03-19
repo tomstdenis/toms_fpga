@@ -2,7 +2,7 @@
 
 module sram_flat_zc_tb();
 	localparam
-		DUMMY = 6,
+		DUMMY = 3,
 		DATA_WIDTH=32,
 		SRAM_ADDR_WIDTH=16;
 

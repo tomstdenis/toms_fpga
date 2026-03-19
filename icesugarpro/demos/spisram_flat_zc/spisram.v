@@ -1,8 +1,11 @@
-module top(input clk, inout [3:0] sio, output cs, output sck, input uart_rx, output uart_tx);
+/*
+	Realllly simple SPI SRAM demo, does a write then read.  Uses debug node to receive commands and report status.
+*/
+module top(input clk, inout [3:0] sio, output cs, output cs2, output sck, input uart_rx, output uart_tx);
 
 	localparam
 		DATA_WIDTH = `BITS,
-		SRAM_ADDR_WIDTH = 16,
+		SRAM_ADDR_WIDTH = `SRAM_ADDR_WIDTH,
 		DEBUG_ENABLE = 1;
     wire sram_done;
     reg [DATA_WIDTH-1:0] sram_data_in;
@@ -22,24 +25,26 @@ module top(input clk, inout [3:0] sio, output cs, output sck, input uart_rx, out
 	pll1 pll(.clkin(clk), .clkout0(pll_clk), .locked(pll_locked));
 	
 	/* Our debug node mostly used to spy on the FSM state and sram_data_out 
-	 * Payload is DATA_WIDTH bus data, 16-bit cycle counter, 1 reserved bit, 1 bit sram done, 3 bits tag, 3 bits state 
+	 * Payload is DATA_WIDTH bus data, SRAM_ADDR_WIDTH worth of address, 16-bit cycle counter, 1 reserved bit, 1 bit sram done, 3 bits tag, 3 bits state 
 	 */
 	wire rx_data;
 	wire rx_clk;
 	wire tx_data;
 	wire tx_clk;
 
-	reg [(DATA_WIDTH+23):0] debug_outgoing_data;							// data to write to the PC
+	localparam
+		DEBUG_SIZE = DATA_WIDTH + 24 + SRAM_ADDR_WIDTH;
+
+	reg [DEBUG_SIZE-1:0] debug_outgoing_data;								// data to write to the PC
 	wire debug_outgoing_tgl;												// toggle for when this is read
 	reg prev_debug_outgoing_tgl;											// previous toggle so we can detect edges
-	wire [(DATA_WIDTH+23):0] debug_incoming_data;							// data written FROM the PC 
+	wire [DEBUG_SIZE-1:0] debug_incoming_data;								// data written FROM the PC 
 	wire debug_incoming_tgl;												// toggle for when a write happens
 	reg prev_debug_incoming_tgl;											// previous toggle to detect edges
-	reg [(DATA_WIDTH+23):0] debug_identity;									// identity of this node 
+	reg [DEBUG_SIZE-1:0] debug_identity;									// identity of this node 
 	wire [15:0] debug_identity_bits = `BITS;
 	
-	// the debug node itself
-	serial_debug #(.BITS((DATA_WIDTH+24)), .ENABLE(DEBUG_ENABLE)) debug_node(
+	serial_debug #(.BITS(DEBUG_SIZE), .ENABLE(DEBUG_ENABLE)) debug_node(
 		.clk(pll_clk), .rst_n(rst_n),
 		.prescaler(2),
 		.rx_data(rx_data), .rx_clk(rx_clk),
@@ -49,8 +54,8 @@ module top(input clk, inout [3:0] sio, output cs, output sck, input uart_rx, out
 		.identity(debug_identity));
 
 	/* Our debug_uart instance to communicate to the outside world */
-	wire [15:0] uart_bauddiv = 50_000_000 / 115_200;
-	serial_debug_uart #(.BITS((DATA_WIDTH+24)), .ENABLE(DEBUG_ENABLE)) debug_uart(
+	wire [15:0] uart_bauddiv = `FREQ * 1_000_000 / 1_000_000;
+	serial_debug_uart #(.BITS(DEBUG_SIZE), .ENABLE(DEBUG_ENABLE)) debug_uart(
 		.clk(pll_clk), .rst_n(rst_n),
 		.prescaler(2),
 		.debug_tx_clk(tx_clk), .debug_tx_data(tx_data),
@@ -63,18 +68,22 @@ module top(input clk, inout [3:0] sio, output cs, output sck, input uart_rx, out
 		end
     end
 
-`define USE_23LC512
+// remember to switch cs pin!!!
+//`define USE_23AA04M
 
     spi_sram_flat_zc
     #(
-`ifdef USE_23LC512
-            .DATA_WIDTH(DATA_WIDTH), .CLK_FREQ_MHZ(50), .SRAM_ADDR_WIDTH(SRAM_ADDR_WIDTH),
-            .DUMMY_BYTES(1), .CMD_READ(8'h03), .CMD_WRITE(8'h02), .CMD_EQIO(8'h38),
-            .MIN_CPH_NS(0), .SPI_TIMER_BITS(1)
+`ifdef USE_23AA04M
+            .DATA_WIDTH(DATA_WIDTH), .CLK_FREQ_MHZ(`FREQ), .SRAM_ADDR_WIDTH(SRAM_ADDR_WIDTH),
+            .DUMMY_BYTES(3), .CMD_READ(8'h0B), .CMD_WRITE(8'h02), .CMD_EQIO(8'h38),
+            .MIN_CPH_NS(25), .SPI_TIMER_BITS(4), .MIN_WAKEUP_NS(100_000),
+            .PSRAM_RESET(0), .CMD_RESETEN(8'h66), .CMD_RESET(8'h99)
 `else
-            .DATA_WIDTH(DATA_WIDTH), .CLK_FREQ_MHZ(50), .SRAM_ADDR_WIDTH(SRAM_ADDR_WIDTH),
-            .DUMMY_BYTES(6), .CMD_READ(8'hEB), .CMD_WRITE(8'h38), .CMD_EQIO(8'h35),
-            .MIN_CPH_NS(50), .SPI_TIMER_BITS(1)
+			// PSRAM configuration (Some chips allow 1 Tclk between CS low but ESP-PSRAM requires 50ns)
+            .DATA_WIDTH(DATA_WIDTH), .CLK_FREQ_MHZ(`FREQ), .SRAM_ADDR_WIDTH(SRAM_ADDR_WIDTH),
+            .DUMMY_BYTES(3), .CMD_READ(8'hEB), .CMD_WRITE(8'h02), .CMD_EQIO(8'h35),
+            .MIN_CPH_NS(50), .SPI_TIMER_BITS(4), .MIN_WAKEUP_NS(150_000),
+            .PSRAM_RESET(1), .CMD_RESETEN(8'h66), .CMD_RESET(8'h99)
 `endif  
     ) test_sram(
         .clk(pll_clk),
@@ -87,11 +96,11 @@ module top(input clk, inout [3:0] sio, output cs, output sck, input uart_rx, out
         .write_cmd(sram_write_cmd),
         .read_cmd(sram_read_cmd),
         .address(sram_address),
-        .sio_pin(sio), .cs_pin(cs), .sck_pin(sck));
+        .sio_pin(sio), .cs_pin(cs2), .sck_pin(sck));
 
     reg [2:0] state;
     reg [2:0] tag;
-    reg [DATA_WIDTH-23:0] test_value;
+    reg [DATA_WIDTH-1:0] test_value;
     reg [15:0] counter;
     reg [15:0] job_start;
 
@@ -111,7 +120,7 @@ module top(input clk, inout [3:0] sio, output cs, output sck, input uart_rx, out
             sram_write_cmd 			<= 0;
             sram_read_cmd 			<= 0;
             sram_data_in 			<= 0;
-            sram_address 			<= 0;
+			sram_address 			<= 'h001234;				// default use address 1234
             sram_data_be 			<= 4'b1111;
             state 					<= STATE_WAIT_DONE;			// we start in WAIT since the SPI SRAM module needs to init first
             tag 					<= STATE_ISSUE_WRITE;		// jump to issuing the write once the SPI is done init
@@ -125,9 +134,10 @@ module top(input clk, inout [3:0] sio, output cs, output sck, input uart_rx, out
         end else begin
 			counter <= counter + 1; 												// cycle counter
 			// outgoing data contains what the SRAM read/done, and FSM state
-			debug_outgoing_data <= { sram_data_out, job_start, 1'b0, sram_done, tag, state };
+			debug_outgoing_data <= { sram_data_out, sram_address, job_start, 1'b0, sram_done, tag, state };
 			if (prev_debug_incoming_tgl != debug_incoming_tgl) begin				// if we receive a node write change the test
-				test_value 				<= debug_incoming_data[DATA_WIDTH+7:24];	// store new test value
+				test_value 				<= debug_incoming_data[DEBUG_SIZE-1:(24+SRAM_ADDR_WIDTH)];	// store new test value (lower 24 bits is job_start, 1'b0, sram_done, tag, state)
+				sram_address			<= debug_incoming_data[24+SRAM_ADDR_WIDTH-1:24];			// store new address	
 				tag 					<= STATE_ISSUE_WRITE;						// re-issue the write
 				state					<= STATE_WAIT_DONE;							// wait for done (in case we were in the middle of a test)
 				prev_debug_incoming_tgl <= debug_incoming_tgl;
@@ -149,7 +159,6 @@ module top(input clk, inout [3:0] sio, output cs, output sck, input uart_rx, out
 					STATE_ISSUE_WRITE:
 						begin
 							sram_data_be 		<= 4'b1111;			// enable all four bytes (used in 32-bit mode)
-							sram_address 		<= 'h001234;		// always use address 1234
 							sram_data_in 		<= test_value;		// we write the test value which is 12345678 by default or assigned by the debug
 							sram_data_in_valid 	<= 1;				// data in is valid
 							sram_write_cmd 		<= 1;				// we want to write it
@@ -160,7 +169,6 @@ module top(input clk, inout [3:0] sio, output cs, output sck, input uart_rx, out
 						begin
 							sram_read_cmd 		<= 1;					// issue a read
 							sram_data_be 		<= 4'b1111;				// of all four bytes (in 32-bit mode)
-							sram_address 		<= 'h001234;			// address 1234
 							tag 				<= STATE_COMPARE_READ;	// jump to compare when done
 							state 				<= STATE_WAIT_DONE;
 							job_start 			<= counter;
