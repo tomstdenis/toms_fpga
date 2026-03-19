@@ -1,14 +1,4 @@
-/** OUT OF DATE -- This has to be rebased on sram_flat.v ... */
-
 /* Flat register base SRAM driver
-
-This is a variant of sram_flat.v where the QPI clock
-is the module clock.  This is meant for designs that operate at sub ~100-120MHz (within
-the PSRAM/SRAM clock speed).  In this module the QPI clock
-runs at your module clock meaning you can still have a fast read/write cycle.
-
-The SPI_TIMER_BITS is still provided so you can divide down the initial SPI clock if you need
-to.  Typically, PSRAMs/SRAMs want a SPI clock below 40MHz or so.
 
 This module implements a Quad IO (SPI) based PSRAM/SRAM interface
 that is meant to provide a single unit of data access at a time.
@@ -22,10 +12,6 @@ controller to access an entire lines worth of data.  Really only
 limited by the enable time of the CS pin (typically has to be less
 than 4 uS).
 
-Note because SCK == CLK it means on the first cycle with CS low SCK will
-already be high, meaning we need to add a dummy cycle since we're in mode 3.
-
-
 */
 `timescale 1ns/1ps
 module spi_sram_flat_zc #(
@@ -38,8 +24,12 @@ module spi_sram_flat_zc #(
 	parameter CMD_READ=8'h03,								// command to read 
 	parameter CMD_WRITE=8'h02,								// command to write
 	parameter CMD_EQIO=8'h38,								// command to enter quad IO mode
+	parameter CMD_RESETEN=8'h66,							// command to enable reset
+	parameter CMD_RESET=8'h99,								// command to reset
 	parameter MIN_CPH_NS=5,									// how many ns must CS be high between commands (23LC's have a min time of mostly nothing)
-	parameter SPI_TIMER_BITS=4								// divide clock by 16 for SPI operations
+	parameter MIN_WAKEUP_NS=5,								// how many ns to wait for it to wakeup after POR
+	parameter SPI_TIMER_BITS=4,								// divide clock by 16 for SPI operations
+	parameter PSRAM_RESET=1									// do you need to send 66 99 to reset required by PSRAM chips?
 )(
 	input clk,												// clock
 	input rst_n,											// active low reset
@@ -82,29 +72,31 @@ module spi_sram_flat_zc #(
 	
 	// SEND wire
 	// total size of send wire
-	localparam SEND_SIZE = 4 + 8 + (SRAM_ADDR_WIDTH) + DATA_WIDTH;
-	localparam READ_SIZE = 4 + 8 + SRAM_ADDR_WIDTH;
+	localparam SEND_SIZE = 8 + SRAM_ADDR_WIDTH + DATA_WIDTH;
+	localparam READ_SIZE = 8 + SRAM_ADDR_WIDTH;
 	reg [SRAM_ADDR_WIDTH-1:0] send_address;					// latched address
 	reg [DATA_WIDTH-1:0] send_data;							// latched data to send
 	reg [7:0] send_cmd;										// the command byte to send
 	wire [7:0] cmd_byte = (write_cmd == 1) ? CMD_WRITE : CMD_READ;
 	// thes wires forms the basic command we send when doing a read or a write
-	wire [SEND_SIZE-1:0] send_wire = { send_cmd[7:4], send_cmd, send_address, send_data };
-	wire [READ_SIZE-1:0] read_wire = { send_cmd[7:4], send_cmd, send_address };
+	wire [SEND_SIZE-1:0] send_wire = { send_cmd, send_address, send_data };
+	wire [READ_SIZE-1:0] read_wire = { send_cmd, send_address };
 
 	reg [3:0] read_data_be;									// latch the data_be
 	
 	wire spi_pulse;
 	reg spi_prev_pulse;										// previous pulse to detect edge of pulse
 	
-	reg [2:0] state;										// What state is our FSM in
+	reg [3:0] state;										// What state is our FSM in
+	reg [3:0] tag;
 	reg [3:0] bit_cnt;										// bit counter a variety of FSM states
 	reg [$clog2(DUMMY_BYTES*2):0] dummy_nibbles;			// how many nibbles to ignore
 	reg [$clog2(SEND_SIZE)-1:0] nibble_idx;					// index into reg/wires in steps of 4 bits
 	reg [$clog2(SEND_SIZE)-1:0] nibble_stop;				// index into reg/wires in steps of 4 bits
 
-	reg [7:0] hangup_timer;
-	wire [15:0] hangup_bauddiv = ((CLK_FREQ_MHZ * MIN_CPH_NS + 999) / 1000);
+	reg [20:0] hangup_timer;
+	wire [20:0] hangup_bauddiv = ((CLK_FREQ_MHZ * MIN_CPH_NS + 999) / 1000);
+	wire [20:0] wakeup_bauddiv = ((CLK_FREQ_MHZ * MIN_WAKEUP_NS + 999) / 1000);
 	reg busy;
 	reg doing_read;
 	reg [7:0] temp_spi_bits;
@@ -122,16 +114,19 @@ module spi_sram_flat_zc #(
 	
 	localparam
 		STATE_INIT					= 0,													// Initialize the SPI memory by putting into a quad-io mode
-		STATE_SPI_SEND_8			= 1,													// Send a command in 1-bit SPI
-		STATE_IDLE					= 2,													// Idle state waiting for a command
-		STATE_SPI_SEND_2_WRITE		= 3,													// Send out a WRITE command over QPI
-		STATE_SPI_SEND_2_READ		= 4,													// Send out a READ command over QPI
-		STATE_SPI_READ_2			= 5,													// Read dummy + line data over QPI
-		STATE_HANGUP				= 6,													// Hang up SPI bus
-		STATE_HANGUP_WAIT			= 7;													// hold CS high for a count
+		STATE_SEND_RESETEN			= 1,
+		STATE_SEND_RESET			= 2,
+		STATE_SPI_SEND_8			= 3,													// Send a command in 1-bit SPI
+		STATE_IDLE					= 4,													// Idle state waiting for a command
+		STATE_SPI_SEND_2_WRITE		= 5,													// Send out a WRITE command over QPI
+		STATE_SPI_SEND_2_READ		= 6,													// Send out a READ command over QPI
+		STATE_SPI_READ_2			= 7,													// Read dummy + line data over QPI
+		STATE_HANGUP				= 8,													// Hang up SPI bus
+		STATE_HANGUP_WAIT			= 9;													// hold CS high for a count
 
 	assign cs_pin 		= ~busy;															// active low CS pin
 	assign spi_pulse 	= timer[SPI_TIMER_BITS-1];											// SPI timed pulses
+	//assign sck_pin 		= busy & (state == STATE_SPI_SEND_8 ? spi_pulse : qpi_pulse);		// The SCK pin depending on if we're doing SPI or QPI traffic
 	assign done			= (state == STATE_IDLE && !(write_cmd | read_cmd));					// 'done' is basically a "are we at idle" flag
 	
 	// assign data out
@@ -139,28 +134,32 @@ module spi_sram_flat_zc #(
 		if (busy) begin
 			case (state)
 				STATE_SPI_SEND_8: 													sck_pin = spi_pulse;	// use SPI clock when doing SPI stuff
-				STATE_SPI_SEND_2_READ, STATE_SPI_SEND_2_WRITE, STATE_SPI_READ_2: 	sck_pin = clk;			// Use system clock
+				STATE_SPI_SEND_2_READ, STATE_SPI_SEND_2_WRITE, STATE_SPI_READ_2: 	sck_pin = clk;			// use QPI clock when doing QPI stuff
 				default: sck_pin = 1'b0;																	// default is off
 			endcase
 		end else begin
 			sck_pin = 1'b0;																					// default is off
 		end
+	end
+	always @(posedge clk) begin
 		if (DATA_WIDTH == 32) begin
 			case (read_data_be)
-				4'b1111: data_out = send_data;
-				4'b0011: data_out = {{(DATA_WIDTH-16){1'b0}}, send_data[15:0]};			// data comes into the MSB side of send_data first
-				default: data_out = {{(DATA_WIDTH-8){1'b0}}, send_data[7:0]};
+				4'b1111: data_out <= send_data;
+				4'b0011: data_out <= {{(DATA_WIDTH-16){1'b0}}, send_data[15:0]};			// data comes into the MSB side of send_data first
+				default: data_out <= {{(DATA_WIDTH-8){1'b0}}, send_data[7:0]};
 			endcase
 		end else begin
-			data_out = send_data;
+			data_out <= send_data;
 		end
 	end
 	
 	always @(posedge clk) begin
 		if (!rst_n) begin
-            state			<= STATE_INIT;								// Jump to initial FSM state
+            state			<= STATE_HANGUP_WAIT;						// Jump to initial FSM state
+            tag				<= PSRAM_RESET == 1 ? STATE_SEND_RESETEN : STATE_INIT;
+            hangup_timer    <= wakeup_bauddiv;
             sio_en			<= 4'b0000;									// disable all outputs
-            dout			<= 0;										// SPI bus output
+            dout			<= 4'b1111;									// SPI bus output
             busy			<= 0;										// busy flag (controls CS pin)
             send_address	<= 0;										// latched address
             send_data		<= 0;										// latched data
@@ -169,12 +168,31 @@ module spi_sram_flat_zc #(
             nibble_idx      <= 0;
 		end else begin
 			case(state)
+				STATE_SEND_RESETEN:										// Send 0x66 RESET ENABLE
+					begin
+						temp_spi_bits	<= CMD_RESETEN;
+						bit_cnt			<= 7;
+						state			<= STATE_SPI_SEND_8;
+						tag				<= STATE_SEND_RESET;
+						sio_en			<= 4'b0001;						// enable MOSI output pin SIO[0]
+						busy			<= 1;
+					end
+				STATE_SEND_RESET:										// Send 0x99 RESET 
+					begin
+						temp_spi_bits	<= CMD_RESET;
+						bit_cnt			<= 7;
+						state			<= STATE_SPI_SEND_8;
+						tag				<= STATE_INIT;
+						sio_en			<= 4'b0001;						// enable MOSI output pin SIO[0]
+						busy			<= 1;
+					end
 				STATE_INIT:
 					begin
                         // sticking some STATE_INIT initializations here.
                         temp_spi_bits	<= CMD_EQIO;					// Send "enter quad mode IO" command
                         bit_cnt			<= 7;							// we use single bit SPI mode for this command
 						state			<= STATE_SPI_SEND_8;			// Use single bit SEND state
+						tag				<= STATE_IDLE;
 						sio_en			<= 4'b0001;						// enable MOSI output pin SIO[0]
 						busy			<= 1;							// start SPI clock
 					end
@@ -193,8 +211,8 @@ module spi_sram_flat_zc #(
 										bit_cnt <= bit_cnt - 1'b1;
 										temp_spi_bits <= {temp_spi_bits[6:0], 1'b0};
 										if (bit_cnt == 0) begin
-											busy   <= 0;
-											state  <= STATE_HANGUP;
+											hangup_timer <= hangup_bauddiv;
+											state 		 <= STATE_HANGUP_WAIT;
 										end
 									end
 								end
@@ -219,8 +237,8 @@ module spi_sram_flat_zc #(
 						// if there are more bytes to send ...
 						nibble_idx  <= nibble_idx - 4;
 						if (nibble_idx == nibble_stop) begin
-							state			<= STATE_HANGUP;
-							busy			<= 0;					// it was a write command so we're done
+							state	<= STATE_HANGUP;
+							busy	<= 1'b0;		
 						end
 					end
 				STATE_SPI_SEND_2_READ:												// READ: Write the cmd + address in QPI mode
@@ -232,6 +250,7 @@ module spi_sram_flat_zc #(
 						if (nibble_idx == nibble_stop) begin
 							state			<= STATE_SPI_READ_2;					// jump to reading
 							sio_en			<= 4'b0000;								// turn off output enables
+							dout			<= 4'b1111;
 							dummy_nibbles   <= (DUMMY_BYTES * 2);
 							if (DATA_WIDTH == 32) begin
 								case(read_data_be)
@@ -278,7 +297,7 @@ module spi_sram_flat_zc #(
 						end
 						if (nibble_idx == 0) begin
 							state <= STATE_HANGUP;
-							busy  <= 0;
+							busy  <= 1'b0;
 						end
 					end
 				STATE_IDLE:																	// IDLE state, we look for data_in_valid, write_cmd, read_cmd here
@@ -306,7 +325,7 @@ module spi_sram_flat_zc #(
 						
 						if (write_cmd | read_cmd) begin																// user wants to issue a read or write so we prepare the SPI write (command + address + optional payload)
 							sio_en 			<= 4'b1111;																// enable all 4 outputs
-							dout			<= cmd_byte[7:4];														// preload output for 1-cycle cadence
+							dout			<= cmd_byte[7:4];														// preload output for eventual 1-cycle cadence
 							send_cmd 		<= cmd_byte;															// the SPI command we need
 							send_address	<= address;																// latch the address
 							state			<= (write_cmd == 1) ? STATE_SPI_SEND_2_WRITE : STATE_SPI_SEND_2_READ;	// jump to state relevant to the operation requested
@@ -345,15 +364,19 @@ module spi_sram_flat_zc #(
 					end
 				STATE_HANGUP:																// hang up the SPI connection
 					begin
-						sio_en    		<= 4'b0000;											// disable outputs
-						hangup_timer	<= hangup_bauddiv[7:0]; 							// ensure we hit the required MIN_CPH_NS time (round up for safety)
+						busy   			<= 0;
+						hangup_timer	<= hangup_bauddiv;		 							// ensure we hit the required MIN_CPH_NS time (round up for safety)
+						tag				<= STATE_IDLE;
 						state			<= STATE_HANGUP_WAIT;
+						sio_en    		<= 4'b0000;											// disable outputs
+						dout			<= 4'b1111;
 					end
 				STATE_HANGUP_WAIT:															// Hangup and hold CS high for a mandatory period
 					begin
+						busy			<= 0;												// drive it low for when we come here via SEND_8
 						hangup_timer 	<= hangup_timer - 1'b1;
 						if (hangup_timer == 0) begin
-							state <= STATE_IDLE;											// Resume IDLE state
+							state <= tag;													// Resume next state
 						end
 					end
 				default:
