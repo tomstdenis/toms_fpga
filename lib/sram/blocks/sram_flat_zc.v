@@ -136,7 +136,7 @@ module spi_sram_flat_zc #(
 			case (state)
 				STATE_SPI_SEND_8: 													sck_pin = spi_pulse;	// use SPI clock when doing SPI stuff
 				STATE_SPI_SEND_2_READ, STATE_SPI_SEND_2_WRITE, STATE_SPI_READ_2: 	sck_pin = clk;			// use QPI clock when doing QPI stuff
-				default: sck_pin = 1'b0;																	// default is off
+				default: 															sck_pin = 1'b0;			// default is off
 			endcase
 		end else begin
 			sck_pin = 1'b0;																					// default is off
@@ -240,6 +240,8 @@ module spi_sram_flat_zc #(
 						nibble_idx  <= nibble_idx - 4;
 						if (nibble_idx == nibble_stop) begin
 							state	<= STATE_HANGUP;
+							sio_en	<= 4'b0000;
+							dout	<= 4'b1111;
 							busy	<= 1'b0;		
 						end
 					end
@@ -249,7 +251,7 @@ module spi_sram_flat_zc #(
 																							// sub 4 here because in IDLE we load the first nibble into dout
 						// if there are more bytes to send ...
 						nibble_idx  <= nibble_idx - 4;
-						if (nibble_idx == nibble_stop) begin
+						if (nibble_idx == 0) begin
 							state			<= STATE_SPI_READ_2;					// jump to reading
 							sio_en			<= 4'b0000;								// turn off output enables
 							dout			<= 4'b1111;
@@ -330,8 +332,8 @@ module spi_sram_flat_zc #(
 							dout			<= cmd_byte[7:4];														// preload output for eventual 1-cycle cadence
 							send_cmd 		<= cmd_byte;															// the SPI command we need
 							send_address	<= address;																// latch the address
-							tag			<= (write_cmd == 1) ? STATE_SPI_SEND_2_WRITE : STATE_SPI_SEND_2_READ;	// jump to state relevant to the operation requested
-							state <= STATE_DELAY;
+							tag				<= (write_cmd == 1) ? STATE_SPI_SEND_2_WRITE : STATE_SPI_SEND_2_READ;	// jump to state relevant to the operation requested
+							state 			<= STATE_DELAY;
 							busy 			<= 1;																	// we're going to be busy in the next cycle
 							read_data_be	<= data_be;																// latch the data_be so we can use it during reads
 							if (write_cmd) begin
