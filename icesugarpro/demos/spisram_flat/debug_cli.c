@@ -151,18 +151,41 @@ void test_node(int fd, uint16_t node)
 {
 	uint8_t frame[FRAME], loss[FRAME];
 	uint64_t tests = 0;
-	int rng;
+	int rng, y;
 	
 	rng = open("/dev/urandom", O_RDONLY);
 	for (;;) {
 		// configure a node with random data
 		memset(frame, 0, sizeof frame);
-		read(rng, frame, PAYLOAD-3);
-/*
-		memset(frame, 0, PAYLOAD-3);
-		frame[PAYLOAD-7] = 0x80;
-		frame[PAYLOAD-6] = (tests & 0xF);
-*/
+		switch((tests / BITS) % 10) {
+			case 0: // all zeroes
+				break;
+			case 1: // all ones
+				memset(frame, 0xFF, BITS/8);
+				break;
+			case 2: // marching one
+				frame[(tests/8) % (BITS/8)] = 1 << (tests % 8);
+				break;
+			case 3: // alternating F's to test the SIO lines violently swinging from 1 to 0 
+				memset(frame, 0xF0, BITS/8);
+				break;
+			case 4: // alternating lines to try and catch crosstalk
+				memset(frame, 0xA5, BITS/8);
+				break;
+			case 5: // slam, all high for a run then all low meant to catch edge faults
+				for (y = 0; y < (BITS/8); y++) {
+					if (!((y & 3) < 2)) {
+						frame[y] = 0xFF;
+					} else {
+						frame[y] = 0;
+					}
+				}
+				break;
+			default: // random data
+				read(rng, frame, BITS/8);
+				break;
+		}
+		read(rng, frame+(BITS/8), 3); // randomize the address;
 		frame[PAYLOAD] = (node << 1) >> 8;			// assign the node address, we're reading (so LSB is 0), and we're reading identity so PAYLOAD-1 must be zero
 		frame[PAYLOAD+1] = 1 | ((node << 1) & 0xFF);// write command plus bottom seven bits of address
 		send_cmd(fd, frame, loss);

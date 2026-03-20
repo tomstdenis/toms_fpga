@@ -69,7 +69,7 @@ module top(input clk, inout [3:0] sio, output cs, output cs2, output sck, input 
     end
 
 // remember to switch cs pin!!!
-`define USE_23AA04M
+//`define USE_23AA04M
 
     spi_sram_flat
     #(
@@ -96,7 +96,7 @@ module top(input clk, inout [3:0] sio, output cs, output cs2, output sck, input 
         .write_cmd(sram_write_cmd),
         .read_cmd(sram_read_cmd),
         .address(sram_address),
-        .sio_pin(sio), .cs_pin(cs), .sck_pin(sck));
+        .sio_pin(sio), .cs_pin(cs2), .sck_pin(sck));
 
     reg [2:0] state;
     reg [2:0] tag;
