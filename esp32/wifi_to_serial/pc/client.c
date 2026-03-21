@@ -49,7 +49,7 @@ int main(int argc, char **argv)
 	// program SSID
 	buf[0] = 0;
 	strcpy(buf+1, argv[2]);
-	if (write(fd, buf, 1+strlen(buf+1)) < 0) {
+	if (write(fd, buf, 1+strlen(buf+1)+1) < 0) {
 		printf("Could not write to serial..\n");
 		exit(-1);
 	}
@@ -58,7 +58,7 @@ int main(int argc, char **argv)
 	// program PSK
 	buf[0] = 1;
 	strcpy(buf+1, argv[3]);
-	if (write(fd, buf, 1+strlen(buf+1)) < 0) {
+	if (write(fd, buf, 1+strlen(buf+1)+1) < 0) {
 		printf("Could not write to serial..\n");
 		exit(-1);
 	}
