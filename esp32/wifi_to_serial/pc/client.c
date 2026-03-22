@@ -33,11 +33,6 @@ static int set_interface_attribs(int fd, int speed) {
     return 0;
 }
 
-#define CFG_ENTER_BYTES_SIZE 4
-const unsigned char cfg_enter_bytes[CFG_ENTER_BYTES_SIZE] = {
-    0x1a, 0x50, 0xfd, 0xef
-};
-
 int main(int argc, char **argv)
 {
 	unsigned char buf[256];

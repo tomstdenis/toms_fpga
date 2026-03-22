@@ -1,12 +1,12 @@
 # Makefile for the SPI FLAT SRAM demo for a ECP5-LF45 on the Colorlight-i9 board
 TARGET=spisram
 TOP=top
-FREQ=65
+FREQ=60
 SRAM_ADDR_WIDTH=24
 BITS=256
 
 OBJS+=${TARGET}.v pll1.v \
-../../../lib/sram/blocks/sram_flat.v \
+../../../lib/sram/blocks/sram.v \
 ../../../lib/debug/debug.v ../../../lib/debug/debug_uart.v \
 ../../../lib/uart/blocks/rx_uart.v ../../../lib/uart/blocks/tx_uart.v ../../../lib/uart/blocks/uart.v
 
