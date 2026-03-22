@@ -2,6 +2,15 @@
 #include <WiFi.h>
 #include <EEPROM.h>
 
+// use GPIO pins for UART (otherwise use USB-ACM)
+//#define USE_GPIO
+
+#ifdef USE_GPIO
+#define UART Serial0
+#else
+#define UART Serial
+#endif
+
 int port = 8888;  //Port number
 WiFiServer server(port);
 
@@ -10,7 +19,8 @@ WiFiServer server(port);
 char ssid[STRLEN];  //Enter your wifi SSID
 char password[STRLEN];  //Enter your wifi Password
 char server_loaded;
-unsigned long blink;
+unsigned long blink, baud = 1000000;
+int first_cfg = 1;
 
 #define EEPROM_MAGIC          0xAA
 #define EEPROM_SSID_OFFSET    1
@@ -29,13 +39,13 @@ int load_eeprom(void)
 {
   EEPROM.begin(512);
   if (EEPROM.read(0) == EEPROM_MAGIC) {
-    Serial.println("Valid EEPROM magic in load...");
+    UART.println("Valid EEPROM magic in load...");
     EEPROM.readBytes(EEPROM_SSID_OFFSET, ssid, STRLEN);
     EEPROM.readBytes(EEPROM_PSK_OFFSET, password, STRLEN);
     EEPROM.end();
     return 0;
   }
-  Serial.println("no valid EEPROM magic in load...");
+  UART.println("no valid EEPROM magic in load...");
   return -1;
 }
 
@@ -43,7 +53,7 @@ int load_eeprom(void)
 void save_eeprom(void)
 {
   EEPROM.begin(512);
-  Serial.println("Storing EEPROM...");
+  UART.println("Storing EEPROM...");
   EEPROM.write(0, EEPROM_MAGIC);
   EEPROM.writeBytes(EEPROM_SSID_OFFSET, ssid, STRLEN);
   EEPROM.writeBytes(EEPROM_PSK_OFFSET, password, STRLEN);
@@ -57,8 +67,8 @@ void read_string(char *p)
   memset(p, 0, STRLEN);
   while (x < STRLEN-1) {
     char ch;
-    while (!Serial.available());
-    ch = Serial.read();
+    while (!UART.available());
+    ch = UART.read();
     if (!ch) {
       return;
     }
@@ -71,9 +81,14 @@ void read_string(char *p)
 //=======================================================================
 void setup() 
 {
-  Serial.begin(1000000);
-  Serial.setRxBufferSize(128);
-  Serial.setTxBufferSize(128);
+//  Serial0.begin(1000000);
+#ifdef USE_GPIO
+  Serial0.begin(baud, SERIAL_8N1, 20, 21);
+#else
+  Serial.begin(baud);
+#endif  
+  Serial0.setTxBufferSize(256);
+  UART.setRxBufferSize(256);
   
   memset(ssid, 0, sizeof ssid);
   memset(password, 0, sizeof password);
@@ -86,35 +101,37 @@ void setup()
   server_loaded = 0;
 
   // try to load from EEPROM
-  Serial.println("Booting...");
-  if (load_eeprom() == 0) {
-    Serial.println("Read settings from EERPOM trying to connect...");
-    Serial.print("SSID: [");
-    Serial.print(ssid);
-    Serial.println("]");
-    Serial.print("Password: [");
-    Serial.print(password);
-    Serial.println("]");
+  UART.println("Booting...");
+  if (digitalRead(PIN_SETUP) == HIGH && load_eeprom() == 0) {
+    UART.println("Read settings from EERPOM trying to connect...");
+    UART.print("SSID: [");
+    UART.print(ssid);
+    UART.println("]");
+    UART.print("Password: [");
+    UART.print(password);
+    UART.println("]");
     int tries = 30;
     WiFi.begin(ssid, password); //Connect to wifi
   
     // Wait for connection  
     while (WiFi.status() != WL_CONNECTED) {   
-      delay(1000);
-      Serial.write('.');
+      delay(250); yield();
+      delay(250); yield();
+      delay(250); yield();
+      delay(250); yield();
+      UART.write('.');
       if (!--tries) {
         break;
       }
     }
 
     if (WiFi.status() == WL_CONNECTED) {
-      Serial.println("Connected.");
+      UART.println("Connected.");
       server.begin();
       server_loaded = 1;
     } else {
-      Serial.println("Not connected.");
+      UART.println("Not connected.");
     }
-  } else {
   }
   blink = millis();
 }
@@ -124,10 +141,24 @@ void setup()
 
 void loop() 
 {
-  unsigned char buf[256];
+  unsigned char buf[64];
   int x, y;
 
   if (digitalRead(PIN_SETUP) == HIGH) {
+    if (server_loaded == 0) {
+      ESP.restart();
+    }
+    if (first_cfg == 0) {
+      UART.end();
+#ifdef USE_GPIO
+      Serial0.begin(baud, SERIAL_8N1, 20, 21);
+#else
+      Serial.begin(baud);
+#endif  
+      UART.setTxBufferSize(256);
+      UART.setRxBufferSize(256);
+      first_cfg = 1;
+    }
     WiFiClient client = server.available();
     
     if (client) {
@@ -135,49 +166,69 @@ void loop()
       {
         digitalWrite(BUILTIN_LED, LOW);
       }
-      while(client.connected()){      
+      while(client.connected()){
+        yield(); // since loop() doesn't exit we need to yield to background tasks
         while((x = client.available())>0){
+          if (x > sizeof(buf)) {
+            x = sizeof(buf);
+          }
           // read data from the connected client
           client.read(buf, x);
-          Serial.write(buf, x); 
+          UART.write(buf, x);
+          yield();
         }
         //Send Data to connected client
-        while((x = Serial.available())>0)
+        while((x = UART.available())>0)
         {
+          if (x > sizeof(buf)) {
+            x = sizeof(buf);
+          }
           // if service mode is disabled just copy from one to the other in bulk
-          Serial.read(buf, x);
+          UART.read(buf, x);
           client.write(buf, x);
+          yield();
         }
       }
       client.stop();
     } else {
+      yield();
       if ((millis() - blink) > 250) {
         blink = millis();
         digitalWrite(BUILTIN_LED, !digitalRead(BUILTIN_LED));
       }
     }
   } else {
+    if (first_cfg) {
+      UART.end();
+#ifdef USE_GPIO
+      Serial0.begin(9600, SERIAL_8N1, 20, 21);
+#else
+      Serial.begin(9600);
+#endif  
+      first_cfg = 0;
+    }
     if ((millis() - blink) > 1000) {
       blink = millis();
       digitalWrite(BUILTIN_LED, !digitalRead(BUILTIN_LED));
     }
     // handle configuration commands
-    if (Serial.available()) {
-      switch (Serial.read()) {
+    if (UART.available()) {
+      switch (UART.read()) {
         case CFG_COMMAND_SET_PSK:
-          Serial.print("Receved CFG_COMMAND_SET_PSK: [");
+          UART.print("Receved CFG_COMMAND_SET_PSK: [");
           read_string(password);
-          Serial.print(password);
-          Serial.println("]");
+          UART.print(password);
+          UART.println("]");
           break;
         case CFG_COMMAND_SET_SSID:
-          Serial.print("Receved CFG_COMMAND_SET_SSID: [");
+          UART.print("Receved CFG_COMMAND_SET_SSID: [");
           read_string(ssid);
-          Serial.print(ssid);
-          Serial.println("]");
+          UART.print(ssid);
+          UART.println("]");
           break;
         case CFG_COMMAND_SET_STORE:
-          Serial.println("Received CFG_COMMAND_SET_STORE command.");
+          UART.println("Received CFG_COMMAND_SET_STORE command.");
+          UART.write(0xAA); // sync byte
           save_eeprom();
           ESP.restart();
           break;

@@ -38,7 +38,7 @@ int main(int argc, char **argv)
 	unsigned char buf[256];
     int fd = open(argv[1], O_RDWR | O_NOCTTY);
     if (fd < 0) { perror("Open port"); return 1; }
-    set_interface_attribs(fd, B1000000);
+    set_interface_attribs(fd, B9600);
 	tcflush(fd, TCIOFLUSH);
 	
 	// program SSID
@@ -66,6 +66,21 @@ int main(int argc, char **argv)
 		exit(-1);
 	}
 	tcdrain(fd);
+
+	for (;;) {
+		if (read(fd, buf, 1) == 1) {
+			fputc(buf[0], stdout);
+			fflush(stdout);
+		}
+		if (buf[0] == 0xAA) {	// sync byte
+			break;
+		}
+	}
+	close(fd);
+
+	fd = open(argv[1], O_RDWR | O_NOCTTY);
+    if (fd < 0) { perror("Open port"); return 1; }    set_interface_attribs(fd, B1000000);
+	tcflush(fd, TCIOFLUSH);
 	
 	for (;;) {
 		if (read(fd, buf, 1) == 1) {
