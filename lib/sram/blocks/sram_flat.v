@@ -250,8 +250,6 @@ module spi_sram_flat #(
 										nibble_idx  <= nibble_idx - 4;
 										if (nibble_idx == nibble_stop) begin
 											state			<= STATE_HANGUP;
-//											sio_en			<= 4'b0000;
-//											dout			<= 4'b1111;
 										end
 									end
 								end

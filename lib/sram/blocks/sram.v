@@ -51,10 +51,10 @@ module spi_sram #(
 
 	// I/O
 	input [3:0] sio_din,
-	output [3:0] sio_dout,
-	output [3:0] sio_en,
-	output cs_pin,											// active low CS pin
-	output sck_pin											// SPI clock
+	output reg [3:0] sio_dout,
+	output reg [3:0] sio_en,
+	output wire cs_pin,											// active low CS pin
+	output reg sck_pin											// SPI clock
 );
 `ifdef SIM_MODEL
 	reg [7:0] sim_memory[(1<<SRAM_ADDR_WIDTH)-1:0];
@@ -156,7 +156,7 @@ module spi_sram #(
             tag				<= PSRAM_RESET == 1 ? STATE_SEND_RESETEN : STATE_INIT;
             hangup_timer    <= wakeup_bauddiv;
             sio_en			<= 4'b0000;									// disable all outputs
-            sio_out			<= 4'b1111;									// SPI bus output
+            sio_dout		<= 4'b1111;									// SPI bus output
             busy			<= 0;										// busy flag (controls CS pin)
             send_address	<= 0;										// latched address
             send_data		<= 0;										// latched data
@@ -199,7 +199,7 @@ module spi_sram #(
 							1'd0:										// we put data on the line mid way through the first half cycle
 								begin
 									if (spi_prev_pulse != spi_pulse) begin			// we detect edges of the pulse so we only process the state once
-										sio_out[0] <= temp_spi_bits[7];
+										sio_dout[0] <= temp_spi_bits[7];
 									end
 								end
 							1'd1:										// Detect if we should exit this loop
@@ -233,7 +233,7 @@ module spi_sram #(
 											end
 										end
 `endif
-										sio_out <= send_wire[nibble_idx +: 4];			// in quad mode we shift out the most significant nibble first
+										sio_dout <= send_wire[nibble_idx +: 4];			// in quad mode we shift out the most significant nibble first
 									end
 								end
 							1'd1:												// Detect if we should exit from this loop
@@ -256,7 +256,7 @@ module spi_sram #(
 							1'd0:												// we put data on the line in the first half cycle
 								begin
 									if (qpi_prev_pulse != qpi_pulse) begin						// only run the case statement on the edge of the QPI clock pulse
-										sio_out <= read_wire[nibble_idx[$clog2(READ_SIZE)-1:0] +: 4];			// in quad mode we shift out the most significant nibble first
+										sio_dout <= read_wire[nibble_idx[$clog2(READ_SIZE)-1:0] +: 4];			// in quad mode we shift out the most significant nibble first
 									end
 								end
 							1'd1:												// Detect if we should exit from this loop
@@ -268,7 +268,7 @@ module spi_sram #(
 											state			<= STATE_SPI_READ_2;					// jump to reading
 											dummy_nibbles   <= (DUMMY_BYTES * 2);
 											sio_en 			<= 4'b0000;
-											sio_out			<= 4'b1111;
+											sio_dout		<= 4'b1111;
 											if (DATA_WIDTH == 32) begin
 												case(read_data_be)
 													4'b1111: // 32-bit operation
@@ -314,7 +314,7 @@ module spi_sram #(
 											end
 										end
 `else
-										send_data[nibble_idx[$clog2(DATA_WIDTH)-1:0] +: 4] <= sio_in; // store nibble
+										send_data[nibble_idx[$clog2(DATA_WIDTH)-1:0] +: 4] <= sio_din; // store nibble
 `endif
 										// write next byte we read out, this starts just after the cmd and address 
 										if (dummy_nibbles == 0) begin
@@ -354,7 +354,7 @@ module spi_sram #(
 						
 						if (write_cmd | read_cmd) begin																// user wants to issue a read or write so we prepare the SPI write (command + address + optional payload)
 							sio_en 			<= 4'b1111;																// enable all 4 outputs
-							sio_out			<= cmd_byte[7:4];														// preload output for eventual 1-cycle cadence
+							sio_dout		<= cmd_byte[7:4];														// preload output for eventual 1-cycle cadence
 							send_cmd 		<= cmd_byte;															// the SPI command we need
 							send_address	<= address;																// latch the address
 							state			<= (write_cmd == 1) ? STATE_SPI_SEND_2_WRITE : STATE_SPI_SEND_2_READ;	// jump to state relevant to the operation requested
@@ -398,7 +398,7 @@ module spi_sram #(
 						tag				<= STATE_IDLE;
 						state			<= STATE_HANGUP_WAIT;
 						sio_en    		<= 4'b0000;											// disable outputs
-						sio_out			<= 4'b1111;
+						sio_dout		<= 4'b1111;
 					end
 				STATE_HANGUP_WAIT:															// Hangup and hold CS high for a mandatory period
 					begin

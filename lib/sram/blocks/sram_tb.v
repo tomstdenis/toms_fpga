@@ -17,14 +17,11 @@ module sram_tb();
 	reg write_cmd;
 	reg read_cmd;
 	reg [SRAM_ADDR_WIDTH-1:0] address;
-	wire cs_pin;
-	wire sck_pin;
-	tri1 [3:0] sio_pin;
 	reg [4:0] test_phase;
 	
-	reg sck_pin;
-	reg cs_pin;
-	reg [3:0] sio_en;
+	wire sck_pin;
+	wire cs_pin;
+	wire [3:0] sio_en;
 	wire [3:0] sio_dout;
 	reg [3:0] sio_din;
 	
@@ -32,7 +29,7 @@ module sram_tb();
 		.CLK_FREQ_MHZ(50), .DATA_WIDTH(DATA_WIDTH),
 		.SRAM_ADDR_WIDTH(SRAM_ADDR_WIDTH), .DUMMY_BYTES(DUMMY), .CMD_READ(8'h03),
 		.CMD_WRITE(8'h02), .CMD_EQIO(8'h38), .MIN_CPH_NS(50),
-		.SPI_TIMER_BITS(4), .QPI_TIMER_BITS(2),
+		.SPI_TIMER_BITS(2), .QPI_TIMER_BITS(1),
 		.MIN_WAKEUP_NS(150000), .PSRAM_RESET(1), .CMD_RESETEN(8'h66), .CMD_RESET(8'h99)) flat(
 			.clk(clk), .rst_n(rst_n),
 			.done(done),
@@ -72,6 +69,7 @@ module sram_tb();
 		read_cmd = 0;
 		address = 0;
 		data_be = 4'b1111;
+		sio_din = 4'b0000;
 
         // Reset system
         repeat(10) @(posedge clk);
