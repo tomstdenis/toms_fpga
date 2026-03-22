@@ -36,6 +36,7 @@ static int set_interface_attribs(int fd, int speed) {
 int main(int argc, char **argv)
 {
 	unsigned char buf[256];
+	uint32_t baud;
     int fd = open(argv[1], O_RDWR | O_NOCTTY);
     if (fd < 0) { perror("Open port"); return 1; }
     set_interface_attribs(fd, B9600);
@@ -43,8 +44,8 @@ int main(int argc, char **argv)
 	
 	// program SSID
 	buf[0] = 0;
-	strcpy(buf+1, argv[2]);
-	if (write(fd, buf, 1+strlen(buf+1)+1) < 0) {
+	strcpy((char*)buf+1, argv[2]);
+	if (write(fd, buf, 1+strlen((char*)buf+1)+1) < 0) {
 		printf("Could not write to serial..\n");
 		exit(-1);
 	}
@@ -52,13 +53,23 @@ int main(int argc, char **argv)
 	
 	// program PSK
 	buf[0] = 1;
-	strcpy(buf+1, argv[3]);
-	if (write(fd, buf, 1+strlen(buf+1)+1) < 0) {
+	strcpy((char*)buf+1, argv[3]);
+	if (write(fd, buf, 1+strlen((char*)argv[3])+1) < 0) {
 		printf("Could not write to serial..\n");
 		exit(-1);
 	}
 	tcdrain(fd);
-
+	
+	// program baud
+	buf[0] = 3;
+	sscanf(argv[4], "%"SCNu32, &baud);
+	memcpy(buf+1, &baud, 4);
+	if (write(fd, buf, 1+4) < 0) {
+		printf("Could not write to serial..\n");
+		exit(-1);
+	}
+	tcdrain(fd);
+	
 	// Store and reboot
 	buf[0] = 2;
 	if (write(fd, buf, 1) < 0) {
@@ -73,13 +84,11 @@ int main(int argc, char **argv)
 			fflush(stdout);
 		}
 		if (buf[0] == 0xAA) {	// sync byte
+			printf("\nGot Sync byte switching to target baud of %u...\n", baud);
 			break;
 		}
 	}
-	close(fd);
-
-	fd = open(argv[1], O_RDWR | O_NOCTTY);
-    if (fd < 0) { perror("Open port"); return 1; }    set_interface_attribs(fd, B1000000);
+    if (fd < 0) { perror("Open port"); return 1; }  set_interface_attribs(fd, baud);
 	tcflush(fd, TCIOFLUSH);
 	
 	for (;;) {

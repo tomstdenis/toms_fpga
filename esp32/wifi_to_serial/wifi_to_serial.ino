@@ -25,11 +25,13 @@ int first_cfg = 1;
 #define EEPROM_MAGIC          0xAA
 #define EEPROM_SSID_OFFSET    1
 #define EEPROM_PSK_OFFSET     (1 + STRLEN)
+#define EEPROM_BAUD_OFFSET    (1 + STRLEN + STRLEN)
 
 enum cfg_commands {
   CFG_COMMAND_SET_SSID = 0,
   CFG_COMMAND_SET_PSK = 1,
   CFG_COMMAND_SET_STORE = 2,
+  CFG_COMMAND_SET_BAUD = 3,
 };
 
 #define PIN_SETUP 0
@@ -42,6 +44,7 @@ int load_eeprom(void)
     UART.println("Valid EEPROM magic in load...");
     EEPROM.readBytes(EEPROM_SSID_OFFSET, ssid, STRLEN);
     EEPROM.readBytes(EEPROM_PSK_OFFSET, password, STRLEN);
+    EEPROM.readBytes(EEPROM_BAUD_OFFSET, &baud, 4);
     EEPROM.end();
     return 0;
   }
@@ -57,6 +60,7 @@ void save_eeprom(void)
   EEPROM.write(0, EEPROM_MAGIC);
   EEPROM.writeBytes(EEPROM_SSID_OFFSET, ssid, STRLEN);
   EEPROM.writeBytes(EEPROM_PSK_OFFSET, password, STRLEN);
+  EEPROM.writeBytes(EEPROM_BAUD_OFFSET, &baud, 4);
   EEPROM.end();
 }
 
@@ -81,6 +85,10 @@ void read_string(char *p)
 //=======================================================================
 void setup() 
 {
+  memset(ssid, 0, sizeof ssid);
+  memset(password, 0, sizeof password);
+
+  int loaded = load_eeprom();
 //  Serial0.begin(1000000);
 #ifdef USE_GPIO
   Serial0.begin(baud, SERIAL_8N1, 20, 21);
@@ -89,9 +97,6 @@ void setup()
 #endif  
   Serial0.setTxBufferSize(256);
   UART.setRxBufferSize(256);
-  
-  memset(ssid, 0, sizeof ssid);
-  memset(password, 0, sizeof password);
 
   WiFi.mode(WIFI_STA);
   WiFi.setTxPower(WIFI_POWER_8_5dBm);
@@ -102,7 +107,7 @@ void setup()
 
   // try to load from EEPROM
   UART.println("Booting...");
-  if (digitalRead(PIN_SETUP) == HIGH && load_eeprom() == 0) {
+  if (digitalRead(PIN_SETUP) == HIGH && loaded == 0) {
     UART.println("Read settings from EERPOM trying to connect...");
     UART.print("SSID: [");
     UART.print(ssid);
@@ -110,6 +115,8 @@ void setup()
     UART.print("Password: [");
     UART.print(password);
     UART.println("]");
+    UART.print("Baud: ");
+    UART.println(baud);
     int tries = 30;
     WiFi.begin(ssid, password); //Connect to wifi
   
@@ -215,16 +222,21 @@ void loop()
     if (UART.available()) {
       switch (UART.read()) {
         case CFG_COMMAND_SET_PSK:
-          UART.print("Receved CFG_COMMAND_SET_PSK: [");
+          UART.print("Received CFG_COMMAND_SET_PSK: [");
           read_string(password);
           UART.print(password);
           UART.println("]");
           break;
         case CFG_COMMAND_SET_SSID:
-          UART.print("Receved CFG_COMMAND_SET_SSID: [");
+          UART.print("Received CFG_COMMAND_SET_SSID: [");
           read_string(ssid);
           UART.print(ssid);
           UART.println("]");
+          break;
+        case CFG_COMMAND_SET_BAUD:
+          UART.print("Received CFG_COMMAND_SET_BAUD: ");
+          UART.readBytes((char *)&baud, 4);
+          UART.println(baud);
           break;
         case CFG_COMMAND_SET_STORE:
           UART.println("Received CFG_COMMAND_SET_STORE command.");
