@@ -66,4 +66,11 @@ int main(int argc, char **argv)
 		exit(-1);
 	}
 	tcdrain(fd);
+	
+	for (;;) {
+		if (read(fd, buf, 1) == 1) {
+			fputc(buf[0], stdout);
+			fflush(stdout);
+		}
+	}
 }

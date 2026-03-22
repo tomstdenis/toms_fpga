@@ -10,6 +10,7 @@ WiFiServer server(port);
 char ssid[STRLEN];  //Enter your wifi SSID
 char password[STRLEN];  //Enter your wifi Password
 char server_loaded;
+unsigned long blink;
 
 #define EEPROM_MAGIC          0xAA
 #define EEPROM_SSID_OFFSET    1
@@ -52,7 +53,7 @@ void save_eeprom(void)
 // read a string upto STRLEN-1 bytes (can terminate early with NUL)
 void read_string(char *p)
 {
-  int x;
+  int x = 0;
   memset(p, 0, STRLEN);
   while (x < STRLEN-1) {
     char ch;
@@ -78,6 +79,7 @@ void setup()
   memset(password, 0, sizeof password);
 
   WiFi.mode(WIFI_STA);
+  WiFi.setTxPower(WIFI_POWER_8_5dBm);
   pinMode(BUILTIN_LED, OUTPUT);
   pinMode(PIN_SETUP, INPUT_PULLUP);
   digitalWrite(BUILTIN_LED, HIGH);
@@ -93,7 +95,7 @@ void setup()
     Serial.print("Password: [");
     Serial.print(password);
     Serial.println("]");
-    int tries = 15;
+    int tries = 30;
     WiFi.begin(ssid, password); //Connect to wifi
   
     // Wait for connection  
@@ -114,6 +116,7 @@ void setup()
     }
   } else {
   }
+  blink = millis();
 }
 //=======================================================================
 //                    Loop
@@ -124,7 +127,7 @@ void loop()
   unsigned char buf[256];
   int x, y;
 
-  if (1 || digitalRead(PIN_SETUP) == HIGH) {
+  if (digitalRead(PIN_SETUP) == HIGH) {
     WiFiClient client = server.available();
     
     if (client) {
@@ -148,22 +151,37 @@ void loop()
       }
       client.stop();
     } else {
-      digitalWrite(BUILTIN_LED, HIGH);
+      if ((millis() - blink) > 250) {
+        blink = millis();
+        digitalWrite(BUILTIN_LED, !digitalRead(BUILTIN_LED));
+      }
     }
   } else {
+    if ((millis() - blink) > 1000) {
+      blink = millis();
+      digitalWrite(BUILTIN_LED, !digitalRead(BUILTIN_LED));
+    }
     // handle configuration commands
-    while (!Serial.available());
-    switch (Serial.read()) {
-      case CFG_COMMAND_SET_PSK:
-        read_string(password);
-        break;
-      case CFG_COMMAND_SET_SSID:
-        read_string(ssid);
-        break;
-      case CFG_COMMAND_SET_STORE:
-        save_eeprom();
-        ESP.restart();
-        break;
+    if (Serial.available()) {
+      switch (Serial.read()) {
+        case CFG_COMMAND_SET_PSK:
+          Serial.print("Receved CFG_COMMAND_SET_PSK: [");
+          read_string(password);
+          Serial.print(password);
+          Serial.println("]");
+          break;
+        case CFG_COMMAND_SET_SSID:
+          Serial.print("Receved CFG_COMMAND_SET_SSID: [");
+          read_string(ssid);
+          Serial.print(ssid);
+          Serial.println("]");
+          break;
+        case CFG_COMMAND_SET_STORE:
+          Serial.println("Received CFG_COMMAND_SET_STORE command.");
+          save_eeprom();
+          ESP.restart();
+          break;
+      }
     }
   }
 }
