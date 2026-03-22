@@ -90,13 +90,13 @@ void setup()
 
   int loaded = load_eeprom();
 //  Serial0.begin(1000000);
+  UART.setTxBufferSize(256);
+  UART.setRxBufferSize(256);
 #ifdef USE_GPIO
   Serial0.begin(baud, SERIAL_8N1, 20, 21);
 #else
   Serial.begin(baud);
 #endif  
-  Serial0.setTxBufferSize(256);
-  UART.setRxBufferSize(256);
 
   WiFi.mode(WIFI_STA);
   WiFi.setTxPower(WIFI_POWER_8_5dBm);
@@ -157,16 +157,16 @@ void loop()
     }
     if (first_cfg == 0) {
       UART.end();
+      UART.setTxBufferSize(256);
+      UART.setRxBufferSize(256);
 #ifdef USE_GPIO
       Serial0.begin(baud, SERIAL_8N1, 20, 21);
 #else
       Serial.begin(baud);
 #endif  
-      UART.setTxBufferSize(256);
-      UART.setRxBufferSize(256);
       first_cfg = 1;
     }
-    WiFiClient client = server.available();
+    WiFiClient client = server.accept();
     
     if (client) {
       if(client.connected())
