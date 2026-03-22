@@ -74,7 +74,8 @@ module top(input clk, inout [3:0] sio, output cs, output cs2, output sck, input 
 	// wiring to our pins from the SPI block
 	wire [3:0] sio_din;
 	reg [3:0] sio_dout;
-	reg sio_sck;
+	reg sram_sck;
+	reg sram_cs;
 	wire [3:0] sio_en;
 	
 	// either output to sio or set to high impedence state
@@ -84,7 +85,8 @@ module top(input clk, inout [3:0] sio, output cs, output cs2, output sck, input 
 	assign sio[3] = sio_en[3] ? sio_dout[3] : 1'bz;
 	// sio input is always just the sio pins
 	assign sio_din = sio;
-	assign sck = sio_sck;
+	assign sck = sram_sck;
+	assign cs2 = sram_cs;
 
     spi_sram
     #(
@@ -112,7 +114,7 @@ module top(input clk, inout [3:0] sio, output cs, output cs2, output sck, input 
         .read_cmd(sram_read_cmd),
         .address(sram_address),
         .sio_din(sio_din), .sio_dout(sio_dout), .sio_en(sio_en),
-        .cs_pin(cs2), .sck_pin(sio_sck));
+        .cs_pin(sram_cs), .sck_pin(sram_sck));
 
     reg [2:0] state;
     reg [2:0] tag;
