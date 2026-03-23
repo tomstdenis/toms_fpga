@@ -1,10 +1,13 @@
 /*
 	Realllly simple SPI SRAM demo, does a write then read.  Uses debug node to receive commands and report status.
+
+Setup to use the right most PMOD header (J4).
+
 */
 module top(input clk, inout [3:0] sio, output cs, output cs2, output sck, input uart_rx, output uart_tx);
 
 	localparam
-        FREQ = 70,
+        FREQ = 65,
 		DATA_WIDTH = 128,
 		SRAM_ADDR_WIDTH = 24,
 		DEBUG_ENABLE = 1;
