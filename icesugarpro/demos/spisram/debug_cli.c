@@ -174,7 +174,7 @@ void test_node(int fd, uint16_t node)
 				break;
 			case 5: // slam, all high for a run then all low meant to catch edge faults
 				for (y = 0; y < (BITS/8); y++) {
-					if (!((y & 3) < 2)) {
+					if (!((y & 3) >= 2)) {
 						frame[y] = 0xFF;
 					} else {
 						frame[y] = 0;
