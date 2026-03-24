@@ -10,7 +10,8 @@ module top(input clk, inout [3:0] sio, output cs, output cs2, output sck, input 
         FREQ = 60,
 		DATA_WIDTH = 128,
 		SRAM_ADDR_WIDTH = 24,
-		DEBUG_ENABLE = 1;
+		DEBUG_ENABLE = 1,
+        DEBUG_USE_MEM = 0;
     wire sram_done;
     reg [DATA_WIDTH-1:0] sram_data_in;
     reg sram_data_in_valid;
@@ -30,7 +31,6 @@ module top(input clk, inout [3:0] sio, output cs, output cs2, output sck, input 
         .clkout0(pll_clk) //output  clkout0
     );
 
-	
 	/* Our debug node mostly used to spy on the FSM state and sram_data_out 
 	 * Payload is DATA_WIDTH bus data, SRAM_ADDR_WIDTH worth of address, 16-bit cycle counter, 1 reserved bit, 1 bit sram done, 3 bits tag, 3 bits state 
 	 */
@@ -51,7 +51,7 @@ module top(input clk, inout [3:0] sio, output cs, output cs2, output sck, input 
 	reg [DEBUG_SIZE-1:0] debug_identity;									// identity of this node 
 	wire [15:0] debug_identity_bits = DATA_WIDTH;
 	
-	serial_debug #(.BITS(DEBUG_SIZE), .ENABLE(DEBUG_ENABLE)) debug_node(
+	serial_debug #(.BITS(DEBUG_SIZE), .ENABLE(DEBUG_ENABLE), .USE_MEM(DEBUG_USE_MEM)) debug_node(
 		.clk(pll_clk), .rst_n(rst_n),
 		.prescaler(2),
 		.rx_data(rx_data), .rx_clk(rx_clk),
@@ -62,7 +62,7 @@ module top(input clk, inout [3:0] sio, output cs, output cs2, output sck, input 
 
 	/* Our debug_uart instance to communicate to the outside world */
 	wire [15:0] uart_bauddiv = FREQ * 1_000_000 / 1_000_000;
-	serial_debug_uart #(.BITS(DEBUG_SIZE), .ENABLE(DEBUG_ENABLE)) debug_uart(
+	serial_debug_uart #(.BITS(DEBUG_SIZE), .ENABLE(DEBUG_ENABLE), .USE_MEM(DEBUG_USE_MEM)) debug_uart(
 		.clk(pll_clk), .rst_n(rst_n),
 		.prescaler(2),
 		.debug_tx_clk(tx_clk), .debug_tx_data(tx_data),

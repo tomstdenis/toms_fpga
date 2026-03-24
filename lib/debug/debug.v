@@ -51,7 +51,8 @@ host application to make a UI or application around that on a per design basis.
 module serial_debug #(
 	parameter 
 		BITS=128,										// how many bits of payload, MUST be the same for every node in the chain
-		ENABLE=1
+		ENABLE=1,
+		USE_MEM=0										// (0) use shift register, (1) use memory (faster but bigger)
 )(
 	input clk,
 	input rst_n,
@@ -134,15 +135,23 @@ if (ENABLE == 1) begin
 					begin
 						if (cur_rx_clk_prev == 1'b1 && cur_rx_clk == 1'b0) begin				// detect falling edge of clk
 							state		 <= STATE_LOADING_SF;
-							sf_buf		 <= 1;
+							if (USE_MEM != 1) begin
+								sf_buf   <= 1;
+							end
+							sf_bits_left <= SF_BITS-1;
 						end
 					end
 				STATE_LOADING_SF:
 					begin
 						if (cur_rx_clk_prev == 1'b0 && cur_rx_clk == 1'b1) begin				// detect raising edge of clk
 							// sample on high
-							sf_buf <= {sf_buf[SF_BITS-2:0], cur_rx_data};
-							if (sf_buf[SF_BITS-1]) begin
+							if (USE_MEM) begin
+								sf_buf[sf_bits_left[$clog2(SF_BITS)-1:0]] <= cur_rx_data;
+							end else begin
+								sf_buf <= {sf_buf[SF_BITS-2:0], cur_rx_data};
+							end
+							sf_bits_left <= sf_bits_left - 1'b1;
+							if (sf_bits_left == 0) begin
 								// we're done
 								state <= STATE_DECODING_SF;
 							end
@@ -197,8 +206,12 @@ if (ENABLE == 1) begin
 								tx_clk <= 1'b1;
 							end else begin
 								// we're transition to low so load the next bit
-								tx_data			 <= sf_buf[SF_BITS-1];							// send the MSB
-								sf_buf			 <= {sf_buf[SF_BITS-2:0], 1'b0 };				// shift store forward buffer left
+								if (USE_MEM) begin
+									tx_data			 <= sf_buf[sf_bits_left[$clog2(SF_BITS)-1:0] - 1'b1];							// send the MSB
+								end else begin
+									tx_data			 <= sf_buf[SF_BITS-1];
+									sf_buf			 <= {sf_buf[SF_BITS-2:0], 1'b0 };				// shift store forward buffer left
+								end
 								if (sf_bits_left == 0) begin
 									// note we stop at 0 not 1 because we have to wait the entire high cycle
 									// for the receiver to sample 

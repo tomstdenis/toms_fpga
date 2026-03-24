@@ -21,7 +21,7 @@ module debug_uart_tb();
 	wire [127:0] node_debug_incoming_data;
 	reg [127:0] node_identity;
 	
-	serial_debug #(.BITS(128), .ENABLE(1)) debug_node(
+	serial_debug #(.BITS(128), .ENABLE(1), .USE_MEM(1)) debug_node(
 		.clk(clk), .rst_n(rst_n),
 		.prescaler(prescaler), .rx_data(node_rx_data), .rx_clk(node_rx_clk),
 		.tx_data(node_tx_data), .tx_clk(node_tx_clk),

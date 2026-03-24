@@ -33,7 +33,8 @@ what it receives on the other side via the UART TX.
 module serial_debug_uart #(
 	parameter 
 		BITS=128,
-		ENABLE=1
+		ENABLE=1,
+		USE_MEM=0										// use a memory like interface instead of a shift register (faster but bigger)
 )(
 	input clk,
 	input rst_n,
@@ -170,8 +171,12 @@ if (ENABLE == 1) begin
 						if (prescale_cnt == 1) begin
 							if (debug_rx_clk == 1) begin
 								// we're going low so store the next bit
-								debug_rx_data	<= uart_buf[SF_BITS-1];
-								uart_buf		<= {uart_buf[SF_BITS-2:0], 1'b0 };
+								if (USE_MEM) begin
+									debug_rx_data	<= uart_buf[uart_buf_i[$clog2(SF_BITS)-1:0]];
+								end else begin
+									debug_rx_data   <= uart_buf[SF_BITS-1];
+									uart_buf        <= {uart_buf[SF_BITS-2:0], 1'b0 };
+                                end
 								if (uart_buf_i == 0) begin
 									// we're done
 									uart_state 	<= STATE_DBG_RX_LOOP;
@@ -193,7 +198,11 @@ if (ENABLE == 1) begin
 				STATE_DBG_RX_LOOP:									// receive the entire store forward
 					begin
 						if (cur_tx_clk_prev == 1'b0 && cur_tx_clk == 1'b1) begin	// detect raising edge of clock
-							uart_buf <= {uart_buf[SF_BITS-2:0], cur_tx_data};
+							if (USE_MEM) begin
+								uart_buf[uart_buf_i[$clog2(SF_BITS)-1:0]] <= cur_tx_data;
+							end else begin
+								uart_buf <= {uart_buf[SF_BITS-2:0], cur_tx_data};
+							end
 							if (uart_buf_i == 0) begin
 								// we're done
 								uart_buf_i <= (SF_BITS/8)-1;
