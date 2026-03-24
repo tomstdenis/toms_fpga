@@ -147,7 +147,11 @@ if (ENABLE == 1) begin
 					end
 				STATE_RX_LOOP_GETBYTE:								// store a UART incoming byte and advance state
 					begin
-						uart_buf <= {uart_buf[SF_BITS-9:0], uart_rx_byte};
+						if (USE_MEM) begin
+							uart_buf[uart_buf_i*8 +: 8] <= uart_rx_byte;
+						end else begin
+							uart_buf <= {uart_buf[SF_BITS-9:0], uart_rx_byte};
+						end
 						if (uart_buf_i == 0) begin
 							uart_state		<= STATE_DBG_TX_LOOP;
 							uart_buf_i		<= SF_BITS;
@@ -172,7 +176,7 @@ if (ENABLE == 1) begin
 							if (debug_rx_clk == 1) begin
 								// we're going low so store the next bit
 								if (USE_MEM) begin
-									debug_rx_data	<= uart_buf[uart_buf_i[$clog2(SF_BITS)-1:0]];
+									debug_rx_data	<= uart_buf[uart_buf_i[$clog2(SF_BITS)-1:0] - 1'b1];
 								end else begin
 									debug_rx_data   <= uart_buf[SF_BITS-1];
 									uart_buf        <= {uart_buf[SF_BITS-2:0], 1'b0 };
@@ -215,8 +219,12 @@ if (ENABLE == 1) begin
 				STATE_TX_LOOP:										// transmit the store forward over UART
 					begin
 						if (!uart_tx_fifo_full) begin
-							uart_tx_data_in <= uart_buf[SF_BITS-1:SF_BITS-8];
-							uart_buf 		<= {uart_buf[SF_BITS-9:0], 8'b0};
+							if (USE_MEM) begin
+								uart_tx_data_in <= uart_buf[(uart_buf_i * 8) +: 8];
+							end else begin
+								uart_tx_data_in <= uart_buf[SF_BITS-1:SF_BITS-8];
+								uart_buf 		<= {uart_buf[SF_BITS-9:0], 8'b0};
+							end
 							uart_tx_start   <= 1;
 							uart_tag		<= (uart_buf_i == 0) ? STATE_IDLE : STATE_TX_LOOP;
 							uart_state		<= STATE_DELAY;
