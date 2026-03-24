@@ -8,7 +8,7 @@ module top(input clk, inout [3:0] sio, output cs, output cs2, output sck, input 
 
 	localparam
         FREQ = 60,
-		DATA_WIDTH = 128,
+		DATA_WIDTH = 256,
 		SRAM_ADDR_WIDTH = 24,
 		DEBUG_ENABLE = 1,
         DEBUG_USE_MEM = 0;
