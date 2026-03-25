@@ -39,7 +39,12 @@ module pla #(
             assign and_comb[i] = &(local_matrix | and_fuses[i*W_WIDTH +: W_WIDTH]);
             
             // The DFF
-            always @(posedge clk or negedge rst_n) and_reg[i] <= (and_comb[i] & rst_n);
+            always @(posedge clk or negedge rst_n) begin
+				if (!rst_n) begin
+					and_reg[i] <= 1'b0;
+				end else begin
+					and_reg[i] <= and_comb[i];
+				end
         end
     endgenerate
 
