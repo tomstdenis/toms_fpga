@@ -15,6 +15,7 @@ module pla_tb();
 	localparam TOTAL_FUSES = 2 * PINS + PINS * TERMS + (1 + W_WIDTH) * TERMS;
 
 	// TB Registers - matching the logic of your offsets
+	reg							tb_clk;
 	reg [(TERMS * W_WIDTH)-1:0] tb_and_fuses;
 	reg [TERMS-1:0]             tb_and_outsel;
 	reg [(PINS * TERMS)-1:0]    tb_or_fuses;
@@ -34,7 +35,7 @@ module pla_tb();
 
 	// Instantiate your cleaner PLA
 	pla #(.PINS(PINS), .TERMS(TERMS)) dut (
-		.clk(clk),
+		.clk(tb_clk),
 		.rst_n(rst_n),
 		.in_sig(tb_in),
 		.out_sig(tb_out),
@@ -58,6 +59,7 @@ module pla_tb();
 		tb_or_outsel = 0;
 		tb_or_invert = 0;
 		tb_in = 0;
+		tb_clk = 0;
 		test_phase = 0;
 		
 		// Reset system
@@ -129,6 +131,28 @@ module pla_tb();
 			tb_and_fuses = -1;
 			tb_or_fuses = 0;
 		
+		// test 4: AND two inputs but one of them is clocked
+		test_phase = 4;
+			// let's try some basic stuff let's AND two inputs
+			tb_and_fuses[0] = 0; // select input[0] (note sense is inverted since we OR unused inputs with 1 before ANDing to effectively cancel them out)
+			tb_and_fuses[2] = 0; // select input[1]
+			tb_and_outsel[0] = 1; // AND[0] output is from the DFF
+			tb_or_fuses[0]  = 1; // select and[0]   (the OR fuses are normal sense, 1==selected, 0==ignore)
+
+			// a AND b
+			for (i = 0; i < 4; i = i + 1) begin
+				tb_in[0] = i[0];
+				tb_in[1] = i[1];
+				@(posedge clk); #1;
+				tb_clk = 1;
+				@(posedge clk); #1;
+				tb_clk = 0;
+				expect_out(tb_out[0], i[0] & i[1]);
+			end
+			// reset fuses
+			tb_and_fuses = -1;
+			tb_or_fuses = 0;
+
 
 		$finish;
 	end
