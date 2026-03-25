@@ -1,22 +1,23 @@
 // Yo dawg, I heard you like programmable logic so I put programmable logic inside your programmable logic.
 
-/* Total bits is 3 * PINS + PINS * TERMS + 2 * (PINS + 2) * TERMS 
+/* Total bits is 3 * PINS + PINS * TERMS + (1 + 2 * (PINS + 2)) * TERMS 
 
-PINS		TERMS		Fuse bits		DFFs
-8			16			464				16
-8			24			696				32
-8			32			920				40
-8			48			1368			56
-8			64			1816			72
-12			24			996				36
-12			48			1956			60
-12			96			3876			108
-16			32			1712			48
-16			48			2544			64
-16			64			3376			80
-16			80			4208			96
-16			96			5040			112
-16			128			6704			144
+PINS TERMS Fuse bits DFFs
+8	16	488	24
+8	24	720	32
+8	32	952	40
+8	48	1416	56
+8	64	1880	72
+12	24	1020	36
+12	48	2004	60
+12	96	3972	108
+16	32	1744	48
+16	48	2592	64
+16	64	3440	80
+16	80	4288	96
+16	96	5136	112
+16	128	6832	144
+
 */
 
 `timescale 1ns/1ps
@@ -29,6 +30,7 @@ module pla #(
     input rst_n,									// active low global reset for the DFFs
     inout [PINS-1:0] gpio,							// the GPIO pins which are tri-state
     input [(TERMS * W_WIDTH)-1:0] and_fuses,		// the AND fuses, each AND gate uses W_WIDTH bits from here
+    input [TERMS-1:0]			  and_outsel_fuses,	// select (1) use and_reg or (0) use and_comb as the AND output to the OR fabric
     input [(PINS * TERMS)-1:0]    or_fuses,			// the OR fuses, each OR gate uses TERMS bits from here
     input [PINS-1:0]			  or_reg_fuses,		// whether the output is (1) registered or (0) combinatorial
     input [PINS-1:0]              or_invert_fuses,	// inverted output fuse (1 per OR gate)
@@ -38,6 +40,7 @@ module pla #(
 	/* verilator lint_off UNOPTFLAT */
     wire [TERMS-1:0] and_comb;
     reg  [TERMS-1:0] and_reg;
+    wire [TERMS-1:0] and_output;
     reg  [PINS-1:0] or_reg;
 
     // --- The Programmable AND Plane ---
@@ -60,6 +63,9 @@ module pla #(
             // The AND Gate
             assign and_comb[i] = &(local_matrix | and_fuses[i*W_WIDTH +: W_WIDTH]);
             
+            // the output
+            assign and_output[i] = (and_outsel_fuses[i] ? and_reg[i] : and_comb[i]);
+
             // The DFF
             always @(posedge clk or negedge rst_n) begin
 				if (!rst_n) begin
@@ -75,7 +81,7 @@ module pla #(
     generate
         for (i = 0; i < PINS; i = i + 1) begin : or_plane
             // Each pin can OR-sum any of the 16 REGISTERED outputs
-            wire or_sum = |(and_reg & ~or_fuses[i*TERMS +: TERMS]) ^ or_invert_fuses[i];
+            wire or_sum = |(and_output & ~or_fuses[i*TERMS +: TERMS]) ^ or_invert_fuses[i];
             
             // The DFF
             always @(posedge clk or negedge rst_n) begin
