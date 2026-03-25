@@ -1,6 +1,30 @@
 // Yo dawg, I heard you like programmable logic so I put programmable logic inside your programmable logic.
 
-/* Total bits is 3 * PINS + PINS * TERMS + (1 + 2 * (PINS + 2)) * TERMS 
+/* 
+
+This is a DIY Programmable Logic Array (PLA) module.  The design uses
+the traditional AND array matrix fed into a OR array matrix.
+
+There are 'TERMS' AND blocks which each take as input
+
+	- the PINS many GPIO as input (and their inverse) (this means outputs can be used as inputs)
+	- the combinatorial output of this AND block (and it's inverse)
+	- the registered output of this AND block (and it's inverse).
+
+The 2*(PINS+2) terms are selectively AND'ed together (based on the and_fuses[])
+to form one of the TERMS outputs.  The output of each AND block that is fed into
+the OR matrix is selectable from the AND combinatorial or registered output.
+
+There are 'PINS' OR blocks which each take as input
+
+	- The 'TERMS' many AND output
+	- A polarity 'invert' fuse
+
+The output is then the selective OR of the AND outputs, inverted optionally
+by the invert fuse, and then registered.  The GPIO output is then selectable
+from the combinatorial or registered OR output (if the output enable is enabled).
+
+Total bits is 3 * PINS + PINS * TERMS + (1 + 2 * (PINS + 2)) * TERMS
 
 PINS TERMS Fuse bits DFFs
 8	16	488	24
@@ -28,13 +52,19 @@ module pla #(
 )(
     input clk,										// this is the PLA clock which should be attached to a GBPIN
     input rst_n,									// active low global reset for the DFFs
-    inout [PINS-1:0] gpio,							// the GPIO pins which are tri-state
+
+	// GPIO pins and tri-state control (determines if a pin is output or input)
+    inout [PINS-1:0] 			  gpio,				// the GPIO pins which are tri-state
+    input [PINS-1:0]              gpio_oe,			// tri-state fuses (1 == output, 0 == input) (1 per OR gate)
+
+	// AND TERMS these selectably AND together inputs/feedback (and their inverted senses) to form an output
     input [(TERMS * W_WIDTH)-1:0] and_fuses,		// the AND fuses, each AND gate uses W_WIDTH bits from here
     input [TERMS-1:0]			  and_outsel_fuses,	// select (1) use and_reg or (0) use and_comb as the AND output to the OR fabric
+
+	// OR PINS these selectably OR the AND outputs together to form GPIO outputs
     input [(PINS * TERMS)-1:0]    or_fuses,			// the OR fuses, each OR gate uses TERMS bits from here
-    input [PINS-1:0]			  or_reg_fuses,		// whether the output is (1) registered or (0) combinatorial
-    input [PINS-1:0]              or_invert_fuses,	// inverted output fuse (1 per OR gate)
-    input [PINS-1:0]              tri_fuses			// tri-state fuses (1 == output, 0 == input) (1 per OR gate)
+    input [PINS-1:0]			  or_outsel_fuses,	// whether the output is (1) registered or (0) combinatorial
+    input [PINS-1:0]              or_invert_fuses	// inverted output fuse (1 per OR gate)
 );
 	// we're intentionally feeding back on ourselves...
 	/* verilator lint_off UNOPTFLAT */
@@ -93,7 +123,7 @@ module pla #(
 			end
 
             // Tri-state and Polarity
-            assign gpio[i] = tri_fuses[i] ? (or_reg_fuses[i] ? or_reg[i] : or_sum) : 1'bz;
+            assign gpio[i] = gpio_oe[i] ? (or_outsel_fuses[i] ? or_reg[i] : or_sum) : 1'bz;
         end
     endgenerate
 endmodule
