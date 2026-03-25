@@ -152,7 +152,8 @@ module pla_tb();
 			// reset fuses
 			tb_and_fuses = -1;
 			tb_or_fuses = 0;
-
+			tb_and_outsel = 0;
+			tb_clk = 0;
 
 		$finish;
 	end
