@@ -240,11 +240,9 @@ module spi_sram #(
 								begin
 									// if there are more bytes to send ...
 									if (timer[QPI_TIMER_BITS-1:0] == ((1 << QPI_TIMER_BITS) - 1)) begin
-										nibble_idx  <= nibble_idx - 3'd4;
+										nibble_idx  <= nibble_idx - 4;
 										if (nibble_idx == nibble_stop) begin
 											state			<= STATE_HANGUP;
-//											sio_en			<= 4'b0000;
-//											sio_out			<= 4'b1111;
 										end
 									end
 								end
@@ -263,7 +261,7 @@ module spi_sram #(
 								begin
 									// if there are more bytes to send ...
 									if (timer[QPI_TIMER_BITS-1:0] == ((1 << QPI_TIMER_BITS) - 1)) begin
-										nibble_idx <= nibble_idx - 3'd4;
+										nibble_idx <= nibble_idx - 4;
 										if (nibble_idx == nibble_stop) begin
 											state			<= STATE_SPI_READ_2;					// jump to reading
 											dummy_nibbles   <= (DUMMY_BYTES * 2);
@@ -318,7 +316,7 @@ module spi_sram #(
 `endif
 										// write next byte we read out, this starts just after the cmd and address 
 										if (dummy_nibbles == 0) begin
-											nibble_idx		<= nibble_idx - 3'd4;
+											nibble_idx		<= nibble_idx - 4;
 										end else begin
 											dummy_nibbles	<= dummy_nibbles - 1'b1;
 										end

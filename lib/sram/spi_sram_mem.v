@@ -39,7 +39,9 @@ module spi_sram_mem
     output wire bus_err,    // active high error signal
 
     // peripheral specific
-	inout [3:0] sio_pin,									// data pins
+	input [3:0] sio_din,
+	output [3:0] sio_dout,
+	output [3:0] sio_en,
 	output cs_pin,											// active low CS pin
 	output sck_pin											// SPI clock
 );
@@ -52,7 +54,7 @@ module spi_sram_mem
 	reg sram_read_cmd;
 	reg [SRAM_ADDR_WIDTH-1:0] sram_address;
 
-	spi_sram_flat #(
+	spi_sram #(
 		.CLK_FREQ_MHZ(CLK_FREQ_MHZ),
 		.DATA_WIDTH(DATA_WIDTH),
 		.CMD_READ(CMD_READ),
@@ -75,11 +77,13 @@ module spi_sram_mem
 		.write_cmd(sram_write_cmd),
 		.read_cmd(sram_read_cmd),
 		.address(sram_address),
-		.sio_pin(sio_pin), .cs_pin(cs_pin), .sck_pin(sck_pin));
+		.sio_din(sio_din), .sio_dout(sio_dout), .sio_en(sio_en),
+		.cs_pin(cs_pin), .sck_pin(sck_pin));
 
 	reg state;
 	reg error;
 	assign bus_err = enable & error;
+	assign irq = 1'b0;
 	localparam
 		STATE_IDLE = 0,
 		STATE_WORK = 1;

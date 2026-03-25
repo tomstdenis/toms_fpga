@@ -16,9 +16,11 @@ module spi_sram_mem_tb();
 	wire bus_tx_pin;
 	reg [15:0] test_phase;
 	
-	tri1 [3:0] sio_pin;
 	wire sck_pin;
 	wire cs_pin;
+	wire [3:0] sio_en;
+	wire [3:0] sio_dout;
+	reg [3:0] sio_din;
 
 	localparam
 		DATA_WIDTH=32,
@@ -43,7 +45,7 @@ module spi_sram_mem_tb();
 		.o_data(bus_o_data),
 		.irq(bus_irq),
 		.bus_err(bus_err),
-		.sio_pin(sio_pin),
+		.sio_din(sio_din), .sio_dout(sio_dout), .sio_en(sio_en),
 		.cs_pin(cs_pin),
 		.sck_pin(sck_pin)
 	);
