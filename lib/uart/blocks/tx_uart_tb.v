@@ -13,7 +13,7 @@ module tx_uart_tb();
 
     // Parameters for the simulation
     localparam CLK_PERIOD = 20; // 50MHz Clock
-    localparam BAUD_VALUE = 434; // Example for 115200 baud @ 50MHz
+    localparam BAUD_VALUE = 10; // Fast baud 
 
     // Instantiate the DUT
     tx_uart dut (

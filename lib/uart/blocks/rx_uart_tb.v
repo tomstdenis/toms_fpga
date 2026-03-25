@@ -19,8 +19,8 @@ module uart_full_loopback_tb();
     wire [7:0] rx_byte_out;
 
     // Parameters
-    localparam CLK_PERIOD = 20;    // 50MHz
-    localparam BAUD_VALUE = 434;   // 115200 Baud
+    localparam CLK_PERIOD = 20;		// 50MHz
+    localparam BAUD_VALUE = 10;		// Fast Baud
     
     // 1. Instantiate verified TX Module
     tx_uart dut_tx (

@@ -50,8 +50,8 @@ module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1)
 		.uart_rx_pin(uart_tx_pin));
 
     // Parameters
-    localparam CLK_PERIOD = 20;    // 50MHz
-    localparam BAUD_VALUE = 434;   // 115200 Baud
+    localparam CLK_PERIOD = 20;		// 50MHz
+    localparam BAUD_VALUE = 15;		// Fast Baud
 	
     // Clock Generation
     always #(CLK_PERIOD/2) clk = ~clk;
