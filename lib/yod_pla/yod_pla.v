@@ -24,23 +24,24 @@ The output is then the selective OR of the AND outputs, inverted optionally
 by the invert fuse, and then registered.  The GPIO output is then selectable
 from the combinatorial or registered OR output (if the output enable is enabled).
 
-Total bits is 3 * PINS + PINS * TERMS + (1 + 2 * (PINS + 2)) * TERMS
+Total bits is 2 * PINS + PINS * TERMS + (1 + 2 * (PINS + 2)) * TERMS
 
-PINS TERMS Fuse bits DFFs
-8	16	488	24
-8	24	720	32
-8	32	952	40
-8	48	1416	56
-8	64	1880	72
-12	24	1020	36
-12	48	2004	60
-12	96	3972	108
-16	32	1744	48
-16	48	2592	64
-16	64	3440	80
-16	80	4288	96
-16	96	5136	112
-16	128	6832	144
+PINS	TERMS	Fuse bits	DFFs
+8	16	480	24
+8	24	712	32
+8	32	944	40
+8	48	1408	56
+8	64	1872	72
+12	24	1008	36
+12	48	1992	60
+12	96	3960	108
+16	32	1728	48
+16	48	2576	64
+16	64	3424	80
+16	80	4272	96
+16	96	5120	112
+16	128	6816	144
+32	256	25920	288
 
 */
 
@@ -48,7 +49,8 @@ PINS TERMS Fuse bits DFFs
 module pla #(
     parameter PINS = 8,								// how many in/out signals
     parameter TERMS = 16,							// the # of AND blocks
-    localparam W_WIDTH = 2 * (PINS + 2) 			// width of the AND block input (determines how many fuses are needed per AND)
+    localparam W_WIDTH = 2 * (PINS + 2), 			// width of the AND block input (determines how many fuses are needed per AND)
+	localparam TOTAL_FUSES = 2 * PINS + PINS * TERMS + (1 + W_WIDTH) * TERMS
 )(
     input clk,										// this is the PLA clock which should be attached to a GBPIN
     input rst_n,									// active low global reset for the DFFs
@@ -57,15 +59,24 @@ module pla #(
     input [PINS-1:0] 			  in_sig,			// The input signals to this tile
     output [PINS-1:0]			  out_sig,			// The output signals from this tile
 
-	// AND TERMS these selectably AND together inputs/feedback (and their inverted senses) to form an output
-    input [(TERMS * W_WIDTH)-1:0] and_fuses,		// the AND fuses, each AND gate uses W_WIDTH bits from here
-    input [TERMS-1:0]			  and_outsel_fuses,	// select (1) use and_reg or (0) use and_comb as the AND output to the OR fabric
-
-	// OR PINS these selectably OR the AND outputs together to form GPIO outputs
-    input [(PINS * TERMS)-1:0]    or_fuses,			// the OR fuses, each OR gate uses TERMS bits from here
-    input [PINS-1:0]			  or_outsel_fuses,	// whether the output is (1) registered or (0) combinatorial
-    input [PINS-1:0]              or_invert_fuses	// inverted output fuse (1 per OR gate)
+	// fuses
+	input [TOTAL_FUSES-1:0]		  fuses				// the fuses controlling this PLA block
 );
+
+	// breakout of the fuses
+    localparam OFFSET_AND_FUSES    = 0;											// there are TERMS * W_WIDTH [aka (2 * (PINS+2))] fuse bits for AND_FUSES
+    localparam OFFSET_AND_OUTSEL   = OFFSET_AND_FUSES    + (TERMS * W_WIDTH);	// there are TERMS fuse bits for AND_OUTSEL
+    localparam OFFSET_OR_FUSES     = OFFSET_AND_OUTSEL   + TERMS;				// there are PINS * TERMS fuse bits for OR_FUSES
+    localparam OFFSET_OR_OUTSEL    = OFFSET_OR_FUSES     + (PINS * TERMS);		// there are PINS fuse bits for OR_OUTSEL
+    localparam OFFSET_OR_INVERT    = OFFSET_OR_OUTSEL    + PINS;				// there are PINS fuse bits for OR_INVERT
+    
+    // --- Internal Fuse Mapping ---
+    wire [(TERMS * W_WIDTH)-1:0] and_fuses        = fuses[OFFSET_AND_FUSES  +: (TERMS * W_WIDTH)];
+    wire [TERMS-1:0]             and_outsel_fuses = fuses[OFFSET_AND_OUTSEL +: TERMS];
+    wire [(PINS * TERMS)-1:0]    or_fuses         = fuses[OFFSET_OR_FUSES   +: (PINS * TERMS)];
+    wire [PINS-1:0]              or_outsel_fuses  = fuses[OFFSET_OR_OUTSEL  +: PINS];
+    wire [PINS-1:0]              or_invert_fuses  = fuses[OFFSET_OR_INVERT  +: PINS];	
+
 	// we're intentionally feeding back on ourselves...
 	/* verilator lint_off UNOPTFLAT */
     wire [TERMS-1:0] and_comb;
