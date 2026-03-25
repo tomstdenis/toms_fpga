@@ -53,9 +53,9 @@ module pla #(
     input clk,										// this is the PLA clock which should be attached to a GBPIN
     input rst_n,									// active low global reset for the DFFs
 
-	// GPIO pins and tri-state control (determines if a pin is output or input)
-    inout [PINS-1:0] 			  gpio,				// the GPIO pins which are tri-state
-    input [PINS-1:0]              gpio_oe,			// tri-state fuses (1 == output, 0 == input) (1 per OR gate)
+	// input/output signals
+    input [PINS-1:0] 			  in_sig,			// The input signals to this tile
+    output [PINS-1:0]			  out_sig,			// The output signals from this tile
 
 	// AND TERMS these selectably AND together inputs/feedback (and their inverted senses) to form an output
     input [(TERMS * W_WIDTH)-1:0] and_fuses,		// the AND fuses, each AND gate uses W_WIDTH bits from here
@@ -71,7 +71,7 @@ module pla #(
     wire [TERMS-1:0] and_comb;
     reg  [TERMS-1:0] and_reg;
     wire [TERMS-1:0] and_output;
-    reg  [PINS-1:0] or_reg;
+    reg  [PINS-1:0]  or_reg;
 
     // --- The Programmable AND Plane ---
     genvar i, j;
@@ -80,8 +80,8 @@ module pla #(
             wire [W_WIDTH-1:0] local_matrix;
             
 			for (j = 0; j < PINS; j = j + 1) begin
-				assign local_matrix[j+j+0] = gpio[j];
-				assign local_matrix[j+j+1] = ~gpio[j];
+				assign local_matrix[j+j+0] = in_sig[j];
+				assign local_matrix[j+j+1] = ~in_sig[j];
 			end
             
             // Wires 16-17: Local Combinatorial Feedback
@@ -123,7 +123,7 @@ module pla #(
 			end
 
             // Tri-state and Polarity
-            assign gpio[i] = gpio_oe[i] ? (or_outsel_fuses[i] ? or_reg[i] : or_sum) : 1'bz;
+            assign out_sig[i] = or_outsel_fuses[i] ? or_reg[i] : or_sum;
         end
     endgenerate
 endmodule
