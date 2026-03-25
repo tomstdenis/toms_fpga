@@ -13,27 +13,27 @@ module pla #(
     input [PINS-1:0]              tri_fuses,		// tri-state fuses (1 == output, 0 == input) (1 per OR gate)
     input [PINS-1:0]              poly_fuses		// inverted output fuse (1 per OR gate)
 );
-
+	// we're intentionally feeding back on ourselves...
+	/* verilator lint_off UNOPTFLAT */
     wire [TERMS-1:0] and_comb;
     reg  [TERMS-1:0] and_reg;
 
     // --- The Programmable AND Plane ---
-    genvar i;
+    genvar i, j;
     generate
         for (i = 0; i < TERMS; i = i + 1) begin : and_block
             wire [W_WIDTH-1:0] local_matrix;
             
-            // Wires 0-15: The 8 GPIOs (Dual-Rail)
-            assign local_matrix[15:0] = {~gpio[7], gpio[7], ~gpio[6], gpio[6], 
-                                         ~gpio[5], gpio[5], ~gpio[4], gpio[4],
-                                         ~gpio[3], gpio[3], ~gpio[2], gpio[2],
-                                         ~gpio[1], gpio[1], ~gpio[0], gpio[0]};
+			for (j = 0; j < PINS; j++) begin
+				assign local_matrix[j+j+0] = gpio[j];
+				assign local_matrix[j+j+1] = ~gpio[j];
+			end
             
             // Wires 16-17: Local Combinatorial Feedback
-            assign local_matrix[17:16] = {~and_comb[i], and_comb[i]};
+            assign local_matrix[PINS * 2 +: 2] = {~and_comb[i], and_comb[i]};
             
             // Wires 18-19: Local Registered Feedback
-            assign local_matrix[19:18] = {~and_reg[i], and_reg[i]};
+            assign local_matrix[PINS * 2 + 2 +: 2] = {~and_reg[i], and_reg[i]};
 
             // The AND Gate
             assign and_comb[i] = &(local_matrix | and_fuses[i*W_WIDTH +: W_WIDTH]);
@@ -45,6 +45,7 @@ module pla #(
 				end else begin
 					and_reg[i] <= and_comb[i];
 				end
+			end
         end
     endgenerate
 
