@@ -4,7 +4,10 @@
 module uart_mem
 #(
     parameter ADDR_WIDTH=32,
-    parameter DATA_WIDTH=32
+    parameter DATA_WIDTH=32,
+    parameter FIFO_DEPTH=64,
+    parameter RX_ENABLE=1,
+    parameter TX_ENABLE=1
 )(
     // common bus in
     input clk,
@@ -45,11 +48,18 @@ module uart_mem
         ISSUE  = 0,
         RETIRE = 1;
 
-    uart u1(
+    uart #(.FIFO_DEPTH(FIFO_DEPTH), .TX_ENABLE(TX_ENABLE), .RX_ENABLE(RX_ENABLE)) u1(
         .clk(clk), .rst_n(rst_n),
         .baud_div(bauddiv), 
-        .uart_tx_start(uart_tx_start), .uart_tx_pin(tx_pin), .uart_tx_fifo_full(uart_tx_fifo_full), .uart_tx_fifo_empty(uart_tx_fifo_empty), .uart_tx_data_in(i_data_latch),
-        .uart_rx_pin(rx_pin), .uart_rx_read(uart_rx_read), .uart_rx_ready(uart_rx_ready), .uart_rx_byte(rx_byte));
+        .uart_tx_start(uart_tx_start),
+        .uart_tx_pin(tx_pin),
+        .uart_tx_fifo_full(uart_tx_fifo_full),
+        .uart_tx_fifo_empty(uart_tx_fifo_empty),
+        .uart_tx_data_in(i_data_latch),
+        .uart_rx_pin(rx_pin),
+        .uart_rx_read(uart_rx_read),
+        .uart_rx_ready(uart_rx_ready),
+        .uart_rx_byte(rx_byte));
 
     // IRQ output is an OR of RX ready 
     assign irq = (int_enables[0] & int_pending[0]) | (int_enables[1] & int_pending[1]);
@@ -86,15 +96,16 @@ module uart_mem
             tx_fifo_empty_prev <= uart_tx_fifo_empty;   // latch TX fifo empty
             rx_ready_prev <= uart_rx_ready;             // latch RX ready
 
-            if (enable & ~be[0]) begin                           // we ignore bits [31:8] if they're enabled but you MUST enable bits [7:0]
+            if (enable & ~be[0]) begin                  // we ignore bits [31:8] if they're enabled but you MUST enable bits [7:0]
                 error <= 1;
                 ready <= 1;                             // assert error and ready so the user knows we've responded
             end else begin
-                if (!error & enable & !ready) begin     // only process the command if we're not in an error state and not waiting for the master to acknowledge the previous command
+                if (enable & !error & !ready) begin     // only process the command if we're not in an error state and not waiting for the master to acknowledge the previous command
                     case(state)
-                        ISSUE:                              // issue commands to the UART block
+                        ISSUE:                          // issue commands to the UART block
                             begin
-                                if (wr_en) begin
+								delay <= 0;				// default to no RETIRE delay cycle
+                                if (wr_en) begin		// writing to the UART controller
                                     case(addr)
                                         `UART_BAUD_L_ADDR:
                                             begin // BAUD_L
@@ -132,7 +143,7 @@ module uart_mem
                                                 ready <= 1;
                                             end
                                     endcase
-                                end else begin // reads
+                                end else begin // Reading from the UART controller
                                     case(addr)
                                         `UART_BAUD_L_ADDR:
                                             begin // BAUD_L
@@ -172,28 +183,28 @@ module uart_mem
                                             end
                                     endcase
                                 end
-                                state <= RETIRE;
+                                state			<= RETIRE;
                             end
-                        RETIRE:
+                        RETIRE:															// Finish the bus command cycle
 							begin
-								uart_rx_read <= 0;
-								uart_tx_start <= 0;
-								if (delay) begin
+								uart_rx_read 	<= 0;									// turn off read/writes from the UART
+								uart_tx_start 	<= 0;
+								if (delay) begin										// reads need a delay cycle so the uart controller can reply
 									delay <= 0;
 								end else begin
-									if (wr_en == 0) begin
+									if (wr_en == 0) begin								// reading from the UART controller
 										case(addr)
 											`UART_DATA_ADDR: o_data <= {24'b0, rx_byte};
 										endcase
 									end
-                                    ready <= 1;
+                                    ready	<= 1;										// assert bus ready
+									state	<= ISSUE;									// resume ISSUE waiting for ready to clear
                                 end
 							end
                     endcase
                 end else if (!enable) begin // !enable (need at least one cycle of !enable to clear the ready flag
                     ready <= 0;
                     error <= 0; // de-assert error to allow for retries
-                    state <= ISSUE;
                 end
             end
         end

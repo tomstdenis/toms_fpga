@@ -31,7 +31,7 @@ module uart_mem_tb();
 	reg [7:0] char;
 	reg [7:0] test_phase;
 
-	uart_mem #(.ADDR_WIDTH(32), .DATA_WIDTH(32))
+	uart_mem #(.ADDR_WIDTH(32), .DATA_WIDTH(32), .FIFO_DEPTH(64), .TX_ENABLE(1), .RX_ENABLE(1))
 	uart_mem_dut(.clk(clk), .rst_n(rst_n), 
 		.enable(bus_enable), .wr_en(bus_wr_en), 
 		.addr(bus_addr), .i_data(bus_i_data), .be(bus_be), 
@@ -39,8 +39,8 @@ module uart_mem_tb();
 		.tx_pin(bus_tx_pin), .rx_pin(bus_tx_pin));
 
     // Parameters
-    localparam CLK_PERIOD = 20;    // 50MHz
-    localparam BAUD_VALUE = 434;   // 115200 Baud
+    localparam CLK_PERIOD = 20;		// 50MHz
+    localparam BAUD_VALUE = 4;		// fast Baud for testing
 	
     // Clock Generation
     always #(CLK_PERIOD/2) clk = ~clk;
@@ -103,18 +103,20 @@ module uart_mem_tb();
 		$display("PASSED.");
 		test_phase = 3;
 
-		// let's try the UART out
+		// let's try the UART out write two chars and see if we read them back in order
 		$display("Trying to echo a byte through the UART");
 			char = 8'hAA;
 			$display("Checking if RX_READY is clear initially...");
 			read_bus(32'h8, 4'b0001, 0, {32'b0});			// read STATUS, lsb should be CLEAR (!RX_READY)
-			$display("Writing 0xAA to DATA");
+			$display("Writing 0xAA and ~0xAA to DATA");
 			write_bus(32'hC, {24'b0, char}, 4'b0001, 0);
+			write_bus(32'hC, {24'b0, ~char}, 4'b0001, 0);
 			// wait for the byte to send
-			repeat(100 + 15 * BAUD_VALUE) @(posedge clk);
+			repeat(100 + 2 * 10 * BAUD_VALUE) @(posedge clk);
 			$display("Checking if RX_READY is not clear after sending...");
 			read_bus(32'h8, 4'b0001, 0, {31'b0, 1'b1});		// read STATUS, lsb should be set (RX_READY)
 			read_bus(32'hC, 4'b0001, 0, {24'b0, char});		// read character back
+			read_bus(32'hC, 4'b0001, 0, {24'b0, ~char});	// read character back
 			read_bus(32'h8, 4'b0001, 0, {32'b0});			// read STATUS, lsb should be CLEAR (!RX_READY)
 		$display("PASSED");
 		test_phase = 4;
@@ -160,6 +162,7 @@ module uart_mem_tb();
 		$display("Reading back 32 bytes...");
 			test_phase = 9;
 			for (i = 0; i < 32; i++) begin
+				$display("i == %d", i);
 				read_bus(32'h14, 4'b0001, 0, i == 0 ? {30'b0, 2'b11} : 0);	// read back should be 11 (TX empty, RX ready)
 				write_bus(32'h14, {30'b0, 2'b11}, 4'b0001, 0);   // clear both interrupts
 				read_bus(32'hC, 4'b0001, 0, {24'b0, (i[7:0] + 8'd10)});
@@ -187,11 +190,13 @@ module uart_mem_tb();
 				repeat(16) @(posedge clk);
 				$fatal;
 			end
+			@(posedge clk); #1;
 			bus_wr_en = 1;
 			bus_addr = address;
 			bus_be = be;
 			bus_i_data = data;
 			bus_enable = 1;
+			@(posedge clk); #1;
 			wait (bus_ready == 1);
 			if (!bus_err_expected && bus_err !== 0) begin
 				$display("ASSERTION ERROR: bus_err is not 0 in write_bus()");
@@ -199,7 +204,9 @@ module uart_mem_tb();
 				$fatal;
 			end
 			bus_enable = 0;
+			@(posedge clk); #1;
 			wait (bus_ready == 0);
+			@(posedge clk); #1;
 		end
 	endtask
 	
@@ -209,11 +216,13 @@ module uart_mem_tb();
 				$display("ASSERTION ERROR: bus_err is not 0 in read_bus()");
 				$fatal;
 			end
+			@(posedge clk); #1;
 			bus_wr_en = 0;
 			bus_addr = address;
 			bus_be = be;
 			bus_enable = 1;
-			wait (bus_ready == 1);
+			@(posedge clk); #1;
+			wait (bus_ready == 1); @(posedge clk); #1;
 			if (!bus_err_expected && bus_err !== 0) begin
 				$display("ASSERTION ERROR: bus_err is not 0 in read_bus()");
 				repeat(16) @(posedge clk);
@@ -225,7 +234,8 @@ module uart_mem_tb();
 				$fatal;
 			end
 			bus_enable = 0;
-			wait (bus_ready == 0);
+			@(posedge clk); #1;
+			wait (bus_ready == 0);  @(posedge clk); #1;
 		end
 	endtask
 endmodule
