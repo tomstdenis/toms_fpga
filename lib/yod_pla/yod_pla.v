@@ -21,8 +21,8 @@ There are 'PINS' OR blocks which each take as input
 	- A polarity 'invert' fuse
 
 The output is then the selective OR of the AND outputs, inverted optionally
-by the invert fuse, and then registered.  The GPIO output is then selectable
-from the combinatorial or registered OR output (if the output enable is enabled).
+by the invert fuse, and then registered.  The output is then selectable
+from the combinatorial or registered OR output.
 
 Total bits is 2 * PINS + PINS * TERMS + (1 + 2 * (PINS + 2)) * TERMS
 
@@ -48,11 +48,9 @@ PINS	TERMS	Fuse bits	DFFs
 `timescale 1ns/1ps
 module pla #(
     parameter PINS = 8,								// how many in/out signals
-    parameter TERMS = 16,							// the # of AND blocks
-    localparam W_WIDTH = 2 * (PINS + 2), 			// width of the AND block input (determines how many fuses are needed per AND)
-	localparam TOTAL_FUSES = 2 * PINS + PINS * TERMS + (1 + W_WIDTH) * TERMS
+    parameter TERMS = 16							// the # of AND blocks
 )(
-    input clk,										// this is the PLA clock which should be attached to a GBPIN
+    input clk,										// this is the PLA clock which should be attached to a GB/GCLK pin
     input rst_n,									// active low global reset for the DFFs
 
 	// input/output signals
@@ -60,10 +58,12 @@ module pla #(
     output [PINS-1:0]			  out_sig,			// The output signals from this tile
 
 	// fuses
-	input [TOTAL_FUSES-1:0]		  fuses				// the fuses controlling this PLA block
+	input [(2*PINS + PINS*TERMS + (1 + (2 * (PINS + 2))) * TERMS)-1:0]		  fuses				// the fuses controlling this PLA block
 );
 
 	// breakout of the fuses
+    localparam W_WIDTH 			   = 2 * (PINS + 2); 							// width of the AND block input (determines how many fuses are needed per AND)
+	localparam TOTAL_FUSES		   = 2 * PINS + PINS * TERMS + (1 + W_WIDTH) * TERMS;
     localparam OFFSET_AND_FUSES    = 0;											// there are TERMS * W_WIDTH [aka (2 * (PINS+2))] fuse bits for AND_FUSES
     localparam OFFSET_AND_OUTSEL   = OFFSET_AND_FUSES    + (TERMS * W_WIDTH);	// there are TERMS fuse bits for AND_OUTSEL
     localparam OFFSET_OR_FUSES     = OFFSET_AND_OUTSEL   + TERMS;				// there are PINS * TERMS fuse bits for OR_FUSES
@@ -122,7 +122,7 @@ module pla #(
     generate
         for (i = 0; i < PINS; i = i + 1) begin : or_plane
             // Each pin can OR-sum any of the and_output[] outputs
-            wire or_sum = |(and_output & ~or_fuses[i*TERMS +: TERMS]) ^ or_invert_fuses[i];
+            wire or_sum = |(and_output & or_fuses[i*TERMS +: TERMS]) ^ or_invert_fuses[i];
             
             // The DFF
             always @(posedge clk or negedge rst_n) begin
