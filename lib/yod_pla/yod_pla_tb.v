@@ -16,9 +16,9 @@ module pla_tb();
 
 	// TB Registers - matching the logic of your offsets
 	reg							tb_clk;
-	reg [(TERMS * W_WIDTH)-1:0] tb_and_fuses;
+	reg [(TERMS * W_WIDTH)-1:0] tb_and_fuses;    // AND[x]'s input signal y is x * W_WIDTH + y
 	reg [TERMS-1:0]             tb_and_outsel;
-	reg [(PINS * TERMS)-1:0]    tb_or_fuses;
+	reg [(PINS * TERMS)-1:0]    tb_or_fuses;     // OR[x]'s AND[y] input is at x * TERMS + y
 	reg [PINS-1:0]              tb_or_outsel;
 	reg [PINS-1:0]              tb_or_invert;
 	wire [PINS-1:0] 			tb_out;
@@ -114,7 +114,7 @@ module pla_tb();
 			// the fuses are arranged as (from lsb up) input[0], ~input[0], input[1], ~input[1], ...
 			tb_and_fuses[0] = 0; // select input[0] (note sense is inverted since we OR unused inputs with 1 before ANDing to effectively cancel them out)
 			tb_and_fuses[3] = 0; // select ~input[1]
-			// AND[1] select input[1]
+			// AND[1] select input[1] and ~input[0]
 			tb_and_fuses[1 * W_WIDTH + 1] = 0; // select ~input[0]
 			tb_and_fuses[1 * W_WIDTH + 2] = 0; // select input[1]
 			tb_or_fuses[0]  = 1; // select and[0]   (the OR fuses are normal sense, 1==selected, 0==ignore)
@@ -153,6 +153,62 @@ module pla_tb();
 			tb_and_fuses = -1;
 			tb_or_fuses = 0;
 			tb_and_outsel = 0;
+			tb_clk = 0;
+
+		// test 5: XNOR two inputs together (a & ~b) | (~a & b) ^ 1
+		test_phase = 5;
+			// let's try some basic stuff let's AND two inputs
+			// AND[0] select input[0] and ~input[1]
+			// the fuses are arranged as (from lsb up) input[0], ~input[0], input[1], ~input[1], ...
+			tb_and_fuses[0] = 0; // select input[0] (note sense is inverted since we OR unused inputs with 1 before ANDing to effectively cancel them out)
+			tb_and_fuses[3] = 0; // select ~input[1]
+			// AND[1] select input[1] and ~input[0]
+			tb_and_fuses[1 * W_WIDTH + 1] = 0; // select ~input[0]
+			tb_and_fuses[1 * W_WIDTH + 2] = 0; // select input[1]
+			tb_or_fuses[0]  = 1; // select and[0]   (the OR fuses are normal sense, 1==selected, 0==ignore)
+			tb_or_fuses[1]  = 1; // select and[1]
+			// set output polarity
+			tb_or_invert[0] = 1; // invert out[0]
+			// a OR b
+			for (i = 0; i < 4; i = i + 1) begin
+				@(posedge clk);
+				tb_in[0] = i[0];
+				tb_in[1] = i[1];
+				@(posedge clk);
+				expect_out(tb_out[0], i[0] ^ i[1] ^ 1);
+			end
+			// reset fuses
+			tb_and_fuses = -1;
+			tb_or_fuses = 0;
+			tb_or_invert = 0;
+			
+		// test 6: XOR two inputs together (a & ~b) | (~a & b) and use registered output
+		test_phase = 6;
+			// let's try some basic stuff let's AND two inputs
+			// AND[0] select input[0] and ~input[1]
+			// the fuses are arranged as (from lsb up) input[0], ~input[0], input[1], ~input[1], ...
+			tb_and_fuses[0] = 0; // select input[0] (note sense is inverted since we OR unused inputs with 1 before ANDing to effectively cancel them out)
+			tb_and_fuses[3] = 0; // select ~input[1]
+			// AND[1] select input[1] and ~input[0]
+			tb_and_fuses[1 * W_WIDTH + 1] = 0; // select ~input[0]
+			tb_and_fuses[1 * W_WIDTH + 2] = 0; // select input[1]
+			tb_or_fuses[0]  = 1; // select and[0]   (the OR fuses are normal sense, 1==selected, 0==ignore)
+			tb_or_fuses[1]  = 1; // select and[1]
+			tb_or_outsel[0] = 1; // use registered output
+			// a OR b
+			for (i = 0; i < 4; i = i + 1) begin
+				tb_in[0] = i[0];
+				tb_in[1] = i[1];
+				@(posedge clk);
+				tb_clk = 1;
+				@(posedge clk);
+				tb_clk = 0;
+				expect_out(tb_out[0], i[0] ^ i[1]);
+			end
+			// reset fuses
+			tb_and_fuses = -1;
+			tb_or_fuses = 0;
+			tb_or_outsel = 0;
 			tb_clk = 0;
 
 		$finish;

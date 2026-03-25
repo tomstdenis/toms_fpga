@@ -95,10 +95,10 @@ module pla #(
 				assign local_matrix[j+j+1] = ~in_sig[j];
 			end
             
-            // Wires 16-17: Local Combinatorial Feedback
+            // Next wires: Local Combinatorial Feedback
             assign local_matrix[PINS * 2 +: 2] = {~and_comb[i], and_comb[i]};
             
-            // Wires 18-19: Local Registered Feedback
+            // Next wires: Local Registered Feedback
             assign local_matrix[PINS * 2 + 2 +: 2] = {~and_reg[i], and_reg[i]};
 
             // The AND Gate
@@ -133,7 +133,7 @@ module pla #(
 				end
 			end
 
-            // Tri-state and Polarity
+            // output selector between combinatorial and registered
             assign out_sig[i] = or_outsel_fuses[i] ? or_reg[i] : or_sum;
         end
     endgenerate
