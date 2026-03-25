@@ -79,7 +79,7 @@ module pla #(
         for (i = 0; i < TERMS; i = i + 1) begin : and_block
             wire [W_WIDTH-1:0] local_matrix;
             
-			for (j = 0; j < PINS; j++) begin
+			for (j = 0; j < PINS; j = j + 1) begin
 				assign local_matrix[j+j+0] = gpio[j];
 				assign local_matrix[j+j+1] = ~gpio[j];
 			end
@@ -110,7 +110,7 @@ module pla #(
     // --- The Programmable OR Plane ---
     generate
         for (i = 0; i < PINS; i = i + 1) begin : or_plane
-            // Each pin can OR-sum any of the 16 REGISTERED outputs
+            // Each pin can OR-sum any of the and_output[] outputs
             wire or_sum = |(and_output & ~or_fuses[i*TERMS +: TERMS]) ^ or_invert_fuses[i];
             
             // The DFF
