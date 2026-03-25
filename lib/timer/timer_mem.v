@@ -4,7 +4,9 @@
 module timer_mem
 #(
     parameter ADDR_WIDTH=32,
-    parameter DATA_WIDTH=32
+    parameter DATA_WIDTH=32,
+	parameter PRESCALER_BITS=8,
+	parameter TIMER_BITS=16
 )(
     // common bus in
     input clk,
@@ -39,7 +41,6 @@ module timer_mem
     wire [15:0] cur_counter;
     reg [15:0] l_counter;
     reg state;
-    reg [7:0] i_data_latch;
 
     localparam
         ISSUE=0,
@@ -51,7 +52,7 @@ module timer_mem
     // error output is only valid out of reset
     assign bus_err = enable & error & rst_n;
 
-    timer tim(
+    timer #(.PRESCALER_BITS(PRESCALER_BITS), .TIMER_BITS(TIMER_BITS)) tim(
         .clk(clk), .rst_n(rst_n),
         .prescaler_cnt(l_prescaler),
         .top_cnt(l_top),
@@ -76,7 +77,6 @@ module timer_mem
             prev_cmp_match <= 0;
             prev_top_match <= 0;
             l_counter <= 16'b0;
-            i_data_latch <= 8'b0;
             state <= ISSUE;
             ready <= 0;
             o_data <= 0;
@@ -96,7 +96,7 @@ module timer_mem
                 ready <= 1;
                 error <= 1;
             end else begin
-                if (!error & enable & !ready) begin     // only process the command if we're not in an error state and not waiting for the master to acknowledge the previous command
+                if (enable & !error & !ready) begin     // only process the command if we're not in an error state and not waiting for the master to acknowledge the previous command
                     case(state)
                         ISSUE:
                             begin
@@ -224,16 +224,16 @@ module timer_mem
                             end
                         RETIRE:
                             begin
-                                l_relatch <= 0; // disable relatching after issuing new parameters
-                                ready <= 1;
+                                l_relatch	<= 0; // disable relatching after issuing new parameters
+                                ready		<= 1;
+                                state		<= ISSUE;
                             end
                     endcase
                 end else if (!enable) begin
                     // user is done with this block so de-assert various flags
-                    error <= 0;
-                    ready <= 0;
-                    l_relatch <= 0;
-                    state <= ISSUE;
+                    error		<= 0;
+                    ready		<= 0;
+                    l_relatch	<= 0;
                 end
             end
         end

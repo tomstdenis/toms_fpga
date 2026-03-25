@@ -9,7 +9,7 @@ top_match will be set for the last prescaler_cnt cycle before rolling counter ov
 
 `timescale 1ns/1ps
 
-module timer#(parameter PRESCALER_BITS=8, TIMER_BITS=16)
+module timer #(parameter PRESCALER_BITS=8, parameter TIMER_BITS=16)
 (
     input clk,
     input rst_n,

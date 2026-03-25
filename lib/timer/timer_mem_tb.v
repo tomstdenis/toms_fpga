@@ -2,6 +2,9 @@
 
 module timer_mem_tb();
 
+	localparam PRESCALER_BITS = 8;
+	localparam TIMER_BITS = 16;
+
 	reg clk;
 	reg rst_n;
 	reg bus_enable;
@@ -15,35 +18,15 @@ module timer_mem_tb();
 	wire bus_err;
 	wire pwm;
 	reg [7:0]test_phase;
-	reg [15:0] top_cnt;
-	reg [15:0] cmp_cnt;
-	reg [7:0] prescaler;
-	
-	timer_mem#(.ADDR_WIDTH(32), .DATA_WIDTH(32)) timer_mem_dut(
+	reg [TIMER_BITS-1:0] top_cnt;
+	reg [TIMER_BITS-1:0] cmp_cnt;
+	reg [PRESCALER_BITS-1:0] prescaler;
+
+	timer_mem#(.ADDR_WIDTH(32), .DATA_WIDTH(32), .PRESCALER_BITS(PRESCALER_BITS), .TIMER_BITS(TIMER_BITS)) timer_mem_dut(
 		.clk(clk), .rst_n(rst_n),
 		.enable(bus_enable), .wr_en(bus_wr_en),
 		.addr(bus_addr), .i_data(bus_i_data), .be(bus_be),
 		.ready(bus_ready), .o_data(bus_o_data), .irq(bus_irq), .bus_err(bus_err), .pwm(pwm));
-
-/*
-    // common bus in
-    input clk,
-    input rst_n,            // active low reset
-    input enable,           // active high overall enable (must go low between commands)
-    input wr_en,            // active high write enable (0==read, 1==write)
-    input [ADDR_WIDTH-1:0] addr,
-    input [DATA_WIDTH-1:0] i_data,
-    input [DATA_WIDTH/8-1:0] be,       // lane 0 must be asserted, other lanes can be asserted but they're ignored.
-
-    // common bus out
-    output reg ready,       // active high signal when o_data is ready (or write is done)
-    output reg [DATA_WIDTH-1:0] o_data,
-    output wire irq,        // active high IRQ pin
-    output wire bus_err,    // active high error signal
-
-    // peripheral specific
-    output pwm
-*/
 
     // Parameters
     localparam CLK_PERIOD = 20;    // 50MHz
