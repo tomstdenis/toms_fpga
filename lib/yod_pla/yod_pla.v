@@ -106,16 +106,16 @@ module pla #(
 			end
 
             // Next wires: Local Combinatorial Feedback
-            assign local_matrix[2*PINS+PINS * 2 +: 2] = {~and_comb[i], and_comb[i]};
+            assign local_matrix[4*PINS +: 2] = {and_comb[i], ~and_comb[i]};
             
             // Next wires: Local Registered Feedback
-            assign local_matrix[2*PINS+PINS * 2 + 2 +: 2] = {~and_reg[i], and_reg[i]};
+            assign local_matrix[4*PINS + 2 +: 2] = {and_reg[i], ~and_reg[i]};
 
             // Next wires: carry bit 
             if (i > 0)
-				assign local_matrix[2*PINS+PINS * 2 + 4 +: 2] = {~and_reg[i-1], and_reg[i-1]};
+				assign local_matrix[4*PINS + 4 +: 2] = {and_reg[i-1], ~and_reg[i-1]};
 			else if (i == 0)
-				assign local_matrix[2*PINS+PINS * 2 + 4 +: 2] = {~and_reg[TERMS-1], and_reg[TERMS-1]};
+				assign local_matrix[4*PINS + 4 +: 2] = {and_reg[TERMS-1], ~and_reg[TERMS-1]};
 			
             // The AND Gate
             assign and_comb[i] = &(local_matrix | and_fuses[i*W_WIDTH +: W_WIDTH]);
