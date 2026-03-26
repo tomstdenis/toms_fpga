@@ -95,12 +95,12 @@ module pla #(
         for (i = 0; i < TERMS; i = i + 1) begin : and_block
             wire [W_WIDTH-1:0] local_matrix;
             
-			for (j = 0; j < PINS; j = j + 1) begin
+			for (j = 0; j < PINS; j = j + 1) begin : and_in_signals
 				assign local_matrix[j+j+0] = in_sig[j];
 				assign local_matrix[j+j+1] = ~in_sig[j];
 			end
             
-			for (j = 0; j < PINS; j = j + 1) begin
+			for (j = 0; j < PINS; j = j + 1) begin : and_or_signals
 				assign local_matrix[2*PINS+j+j+0] = or_reg[j];
 				assign local_matrix[2*PINS+j+j+1] = ~or_reg[j];
 			end
