@@ -1,3 +1,8 @@
+
+// in USE_8GPIO mode we only use 8 total GPIO as inout pins with bit enables
+// when this is undefined we use 16 board pins, 8 for input, 8 for output, (in both cases an additional for pla_clk)
+`define USE_8GPIO
+
 module top(input clk, input rst_n, input uart_rx, inout [15:0] gpio, input pla_clk);
 
     localparam
@@ -13,16 +18,19 @@ module top(input clk, input rst_n, input uart_rx, inout [15:0] gpio, input pla_c
     wire [15:0] in_sig;
     wire [15:0] out_sig;
     reg [PGM_BITS+8-1:0] fuses; // fuses plus output_ens
-    assign gpio[0] = fuses[TOTAL_FUSES+0] ? out_sig[0] : 1'bz;
-    assign gpio[1] = fuses[TOTAL_FUSES+1] ? out_sig[1] : 1'bz;
-    assign gpio[2] = fuses[TOTAL_FUSES+2] ? out_sig[2] : 1'bz;
-    assign gpio[3] = fuses[TOTAL_FUSES+3] ? out_sig[3] : 1'bz;
-    assign gpio[4] = fuses[TOTAL_FUSES+4] ? out_sig[4] : 1'bz;
-    assign gpio[5] = fuses[TOTAL_FUSES+5] ? out_sig[5] : 1'bz;
-    assign gpio[6] = fuses[TOTAL_FUSES+6] ? out_sig[6] : 1'bz;
-    assign gpio[7] = fuses[TOTAL_FUSES+7] ? out_sig[7] : 1'bz;
-    assign in_sig = gpio;
 
+`ifdef USE_8GPIO
+    genvar i;
+    generate
+        for (i = 0; i < 8; i = i + 1) begin : gpio_mux
+            assign gpio[i] = fuses[TOTAL_FUSES+i] ? out_sig[i] : 1'bz;
+        end
+    endgenerate
+    assign in_sig = gpio;
+`else
+    assign gpio[15:8] = out_sig[7:0];
+    assign in_sig[7:0] = gpio[7:0];
+`endif
     pla #(.PINS(PINS), .TERMS(TERMS)) (
         .clk(pla_clk), .rst_n(rst_n),
         .in_sig(in_sig), .out_sig(out_sig),
