@@ -1,14 +1,14 @@
-module top(input clk, input rst_n, input uart_rx, inout [7:0] gpio, input pla_clk);
+module top(input clk, input rst_n, input uart_rx, inout [15:0] gpio, input pla_clk);
 
     localparam
-        PINS = 8,
-        TERMS = 24,
+        PINS = 10,
+        TERMS = 20,
         W_WIDTH = 2 * (PINS + 2), 							// width of the AND block input (determines how many fuses are needed per AND)
         TOTAL_FUSES	= 2 * PINS + PINS * TERMS + (1 + W_WIDTH) * TERMS;
 
-    wire [7:0] in_sig;
-    wire [7:0] out_sig;
-    reg [TOTAL_FUSES+8-1:0] fuses; // fuses plus output_ens
+    wire [15:0] in_sig;
+    wire [15:0] out_sig;
+    reg [TOTAL_FUSES+16-1:0] fuses; // fuses plus output_ens
     assign gpio[0] = fuses[TOTAL_FUSES+0] ? out_sig[0] : 1'bz;
     assign gpio[1] = fuses[TOTAL_FUSES+1] ? out_sig[1] : 1'bz;
     assign gpio[2] = fuses[TOTAL_FUSES+2] ? out_sig[2] : 1'bz;
@@ -17,6 +17,15 @@ module top(input clk, input rst_n, input uart_rx, inout [7:0] gpio, input pla_cl
     assign gpio[5] = fuses[TOTAL_FUSES+5] ? out_sig[5] : 1'bz;
     assign gpio[6] = fuses[TOTAL_FUSES+6] ? out_sig[6] : 1'bz;
     assign gpio[7] = fuses[TOTAL_FUSES+7] ? out_sig[7] : 1'bz;
+    assign gpio[8] = fuses[TOTAL_FUSES+8] ? out_sig[8] : 1'bz;
+    assign gpio[9] = fuses[TOTAL_FUSES+9] ? out_sig[9] : 1'bz;
+    assign gpio[10] = fuses[TOTAL_FUSES+10] ? out_sig[10] : 1'bz;
+    assign gpio[11] = fuses[TOTAL_FUSES+11] ? out_sig[11] : 1'bz;
+    assign gpio[12] = fuses[TOTAL_FUSES+12] ? out_sig[12] : 1'bz;
+    assign gpio[13] = fuses[TOTAL_FUSES+13] ? out_sig[13] : 1'bz;
+    assign gpio[14] = fuses[TOTAL_FUSES+14] ? out_sig[14] : 1'bz;
+    assign gpio[15] = fuses[TOTAL_FUSES+15] ? out_sig[15] : 1'bz;
+
     assign in_sig = gpio;
 
     pla #(.PINS(PINS), .TERMS(TERMS)) (
@@ -51,7 +60,7 @@ module top(input clk, input rst_n, input uart_rx, inout [7:0] gpio, input pla_cl
             case(state)
                 STATE_IDLE:
                 begin
-                    if (byte_idx == (TOTAL_FUSES+8)/8) begin
+                    if (byte_idx == (TOTAL_FUSES+16)/8) begin
                         byte_idx <= 0;
                     end
                     if (uart_rx_ready) begin
