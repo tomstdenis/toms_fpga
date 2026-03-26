@@ -1,14 +1,18 @@
 module top(input clk, input rst_n, input uart_rx, inout [15:0] gpio, input pla_clk);
 
     localparam
-        PINS = 10,
-        TERMS = 20,
-        W_WIDTH = 2 * (PINS + 2), 							// width of the AND block input (determines how many fuses are needed per AND)
+        PINS = 8,
+        TERMS = 15,
+        W_WIDTH = 2 * (PINS + PINS + 3), 							// width of the AND block input (determines how many fuses are needed per AND)
         TOTAL_FUSES	= 2 * PINS + PINS * TERMS + (1 + W_WIDTH) * TERMS;
+
+    localparam
+        PGM_BYTES = (TOTAL_FUSES+7)/8,
+        PGM_BITS = 8*(PGM_BYTES);
 
     wire [15:0] in_sig;
     wire [15:0] out_sig;
-    reg [TOTAL_FUSES+16-1:0] fuses; // fuses plus output_ens
+    reg [PGM_BITS+16-1:0] fuses; // fuses plus output_ens
     assign gpio[0] = fuses[TOTAL_FUSES+0] ? out_sig[0] : 1'bz;
     assign gpio[1] = fuses[TOTAL_FUSES+1] ? out_sig[1] : 1'bz;
     assign gpio[2] = fuses[TOTAL_FUSES+2] ? out_sig[2] : 1'bz;
@@ -29,7 +33,7 @@ module top(input clk, input rst_n, input uart_rx, inout [15:0] gpio, input pla_c
     assign in_sig = gpio;
 
     pla #(.PINS(PINS), .TERMS(TERMS)) (
-        .clk(clk), .rst_n(rst_n),
+        .clk(pla_clk), .rst_n(rst_n),
         .in_sig(in_sig), .out_sig(out_sig),
         .fuses(fuses));
 
@@ -60,7 +64,7 @@ module top(input clk, input rst_n, input uart_rx, inout [15:0] gpio, input pla_c
             case(state)
                 STATE_IDLE:
                 begin
-                    if (byte_idx == (TOTAL_FUSES+16)/8) begin
+                    if (byte_idx == (PGM_BYTES+2)) begin
                         byte_idx <= 0;
                     end
                     if (uart_rx_ready) begin

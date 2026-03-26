@@ -11,7 +11,7 @@ module pla_tb();
 
     localparam PINS = 8;								// how many in/out signals
     localparam TERMS = 16;							// the # of AND blocks
-    localparam W_WIDTH = 2 * (PINS + 2); 			// width of the AND block input (determines how many fuses are needed per AND)
+    localparam W_WIDTH = 2 * (PINS + PINS + 3); 			// width of the AND block input (determines how many fuses are needed per AND)
 	localparam TOTAL_FUSES = 2 * PINS + PINS * TERMS + (1 + W_WIDTH) * TERMS;
 
 	// TB Registers - matching the logic of your offsets

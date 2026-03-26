@@ -24,7 +24,7 @@ The output is then the selective OR of the AND outputs, inverted optionally
 by the invert fuse, and then registered.  The output is then selectable
 from the combinatorial or registered OR output.
 
-Total bits is 2 * PINS + PINS * TERMS + (1 + 2 * (PINS + 2)) * TERMS
+Total bits is 2 * PINS + PINS * TERMS + (1 + 2 * (PINS + 3)) * TERMS
 
 PINS	TERMS	Fuse bits	DFFs
 8	16	480	24
@@ -58,17 +58,21 @@ module pla #(
     output [PINS-1:0]			  out_sig,			// The output signals from this tile
 
 	// fuses
-	input [(2*PINS + PINS*TERMS + (1 + (2 * (PINS + 2))) * TERMS)-1:0]		  fuses				// the fuses controlling this PLA block
+	input [(2*PINS + PINS*TERMS + (1 + (2 * (PINS + PINS + 3))) * TERMS)-1:0]		  fuses				// the fuses controlling this PLA block
 );
 
 	// breakout of the fuses
-    localparam W_WIDTH 			   = 2 * (PINS + 2); 							// width of the AND block input (determines how many fuses are needed per AND)
+    localparam W_WIDTH 			   = 2 * (PINS + PINS + 3); 							// width of the AND block input (determines how many fuses are needed per AND)
 	localparam TOTAL_FUSES		   = 2 * PINS + PINS * TERMS + (1 + W_WIDTH) * TERMS;
     localparam OFFSET_AND_FUSES    = 0;											// there are TERMS * W_WIDTH [aka (2 * (PINS+2))] fuse bits for AND_FUSES
     localparam OFFSET_AND_OUTSEL   = OFFSET_AND_FUSES    + (TERMS * W_WIDTH);	// there are TERMS fuse bits for AND_OUTSEL
     localparam OFFSET_OR_FUSES     = OFFSET_AND_OUTSEL   + TERMS;				// there are PINS * TERMS fuse bits for OR_FUSES
     localparam OFFSET_OR_OUTSEL    = OFFSET_OR_FUSES     + (PINS * TERMS);		// there are PINS fuse bits for OR_OUTSEL
     localparam OFFSET_OR_INVERT    = OFFSET_OR_OUTSEL    + PINS;				// there are PINS fuse bits for OR_INVERT
+
+// BITS = TERMS * (4 * PINS + 2*3) + TERMS + PINS*TERMS + 2*PINS
+// BITS = TERMS * (4 * PINS + 6 + 1 + PINS) + 2*PINS
+// BITS = TERMS * (5 * PINS + 7) + 2*PINS
     
     // --- Internal Fuse Mapping ---
     wire [(TERMS * W_WIDTH)-1:0] and_fuses        = fuses[OFFSET_AND_FUSES  +: (TERMS * W_WIDTH)];
@@ -95,12 +99,23 @@ module pla #(
 				assign local_matrix[j+j+1] = ~in_sig[j];
 			end
             
+			for (j = 0; j < PINS; j = j + 1) begin
+				assign local_matrix[2*PINS+j+j+0] = or_reg[j];
+				assign local_matrix[2*PINS+j+j+1] = ~or_reg[j];
+			end
+
             // Next wires: Local Combinatorial Feedback
-            assign local_matrix[PINS * 2 +: 2] = {~and_comb[i], and_comb[i]};
+            assign local_matrix[2*PINS+PINS * 2 +: 2] = {~and_comb[i], and_comb[i]};
             
             // Next wires: Local Registered Feedback
-            assign local_matrix[PINS * 2 + 2 +: 2] = {~and_reg[i], and_reg[i]};
+            assign local_matrix[2*PINS+PINS * 2 + 2 +: 2] = {~and_reg[i], and_reg[i]};
 
+            // Next wires: carry bit 
+            if (i > 0)
+				assign local_matrix[2*PINS+PINS * 2 + 4 +: 2] = {~and_reg[i-1], and_reg[i-1]};
+			else
+				assign local_matrix[2*PINS+PINS * 2 + 4 +: 2] = {~and_reg[TERMS-1], and_reg[TERMS-1]};
+			
             // The AND Gate
             assign and_comb[i] = &(local_matrix | and_fuses[i*W_WIDTH +: W_WIDTH]);
             
