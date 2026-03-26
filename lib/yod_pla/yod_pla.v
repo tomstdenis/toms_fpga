@@ -86,6 +86,7 @@ module pla #(
     wire [TERMS-1:0] and_comb;
     reg  [TERMS-1:0] and_reg;
     wire [TERMS-1:0] and_output;
+    wire [PINS-1:0]  or_sum;
     reg  [PINS-1:0]  or_reg;
 
     // --- The Programmable AND Plane ---
@@ -113,7 +114,7 @@ module pla #(
             // Next wires: carry bit 
             if (i > 0)
 				assign local_matrix[2*PINS+PINS * 2 + 4 +: 2] = {~and_reg[i-1], and_reg[i-1]};
-			else
+			else if (i == 0)
 				assign local_matrix[2*PINS+PINS * 2 + 4 +: 2] = {~and_reg[TERMS-1], and_reg[TERMS-1]};
 			
             // The AND Gate
@@ -137,19 +138,19 @@ module pla #(
     generate
         for (i = 0; i < PINS; i = i + 1) begin : or_plane
             // Each pin can OR-sum any of the and_output[] outputs
-            wire or_sum = |(and_output & or_fuses[i*TERMS +: TERMS]) ^ or_invert_fuses[i];
+            assign or_sum[i] = |(and_output & or_fuses[i*TERMS +: TERMS]) ^ or_invert_fuses[i];
             
             // The DFF
             always @(posedge clk or negedge rst_n) begin
 				if (!rst_n) begin
 					or_reg[i] <= 1'b0;
 				end else begin
-					or_reg[i] <= or_sum;
+					or_reg[i] <= or_sum[i];
 				end
 			end
 
             // output selector between combinatorial and registered
-            assign out_sig[i] = or_outsel_fuses[i] ? or_reg[i] : or_sum;
+            assign out_sig[i] = or_outsel_fuses[i] ? or_reg[i] : or_sum[i];
         end
     endgenerate
 endmodule
