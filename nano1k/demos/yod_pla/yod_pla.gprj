@@ -10,5 +10,6 @@
         <File path="/home/tom/nas/toms_fpga/lib/uart/blocks/uart.v" type="file.verilog" enable="1"/>
         <File path="/home/tom/nas/toms_fpga/lib/yod_pla/yod_pla.v" type="file.verilog" enable="1"/>
         <File path="src/top.v" type="file.verilog" enable="1"/>
+        <File path="src/top.cst" type="file.cst" enable="1"/>
     </FileList>
 </Project>
