@@ -153,22 +153,34 @@ int main(int argc, char **argv)
  */
 
 	// out[0] = gpio[7] // pin28 breakout controls red
-	f->and_fuses[AND(0, 7, 0)] = 0; // (recall they come in a, ~a pairs, also 0 means to include
+	f->and_fuses[AND(0, 7, 0)] = 0; // AND[0]: (recall they come in a, ~a pairs, also 0 means to include
 	f->or_fuses[OR(0, 0)] = 1;		// use AND[0]
 	f->or_invert_fuses[0] = 1;		// (button defaults to high)
 	
+#if 1
 	// out[1] = ~gpio[7] ^ gpio[6] (~7 & ~6) | (7 & 6) // XOR of push button A and pin28 controls blue
 	// let's use AND[1..2] and OR[1] for this
-	f->and_fuses[AND(1, 7, 1)] = 0; // select gpio[7]
-	f->and_fuses[AND(1, 6, 1)] = 0; // select ~gpio[6]
-	f->and_fuses[AND(2, 7, 0)] = 0; // select ~gpio[7]
-	f->and_fuses[AND(2, 6, 0)] = 0; // select gpio[6]
+	f->and_fuses[AND(1, 7, 1)] = 0; // AND[1]: select ~gpio[7]
+	f->and_fuses[AND(1, 6, 1)] = 0; // AND[1]: select ~gpio[6]
+	f->and_fuses[AND(2, 7, 0)] = 0; // AND[2]: select gpio[7]
+	f->and_fuses[AND(2, 6, 0)] = 0; // AND[2]: select gpio[6]
 	f->or_fuses[OR(1, 1)] = 1;		// select AND[1]
 	f->or_fuses[OR(1, 2)] = 1;		// select AND[2]
 	f->or_invert_fuses[1] = 1;		// LED is reversed so 0 == on
-	
+#else
+	// this can work but it's tricky to breadboard...
+	// use OR[0] output for ~gpio[7]
+	f->and_fuses[AND(1, PINS+0, 0)] = 0; // AND[1]: select OR[0]
+	f->and_fuses[AND(1, 6, 1)] = 0; // AND[1]: select ~gpio[6]
+	f->and_fuses[AND(2, PINS+0, 1)] = 0; // AND[2]: select ~OR[0]
+	f->and_fuses[AND(2, 6, 0)] = 0; // AND[2]: select gpio[6]
+	f->or_fuses[OR(1, 1)] = 1;		// select AND[1]
+	f->or_fuses[OR(1, 2)] = 1;		// select AND[2]
+	f->or_invert_fuses[1] = 1;		// LED is reversed so 0 == on
+#endif
+
 	// out[2] = gpio[6] // push button A controls green
-	f->and_fuses[AND(3, 6, 0)] = 0;	// select only gpio[6]
+	f->and_fuses[AND(3, 6, 0)] = 0;	// AND[3]: select only gpio[6]
 	f->or_fuses[OR(2, 3)]      = 1; // select AND[3]
 	f->or_invert_fuses[2] = 1;		// LED is reversed so 0 == on
 
