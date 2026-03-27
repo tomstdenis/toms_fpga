@@ -62,18 +62,39 @@ module top(input clk, output uart_tx, input uart_rx, inout [7:0] gpio, input pla
     reg [15:0] bit_idx;
     reg [3:0] state;
     localparam
-        STATE_IDLE=0,
-        STATE_WAIT=1,
-        STATE_STORE=2,
-        STATE_SEND_SUM=3,
-        STATE_SEND_WAIT=4;
+        STATE_FLUSH       = 0,
+        STATE_FLUSH_WAIT  = 1,
+        STATE_FLUSH_DELAY = 2,
+        STATE_IDLE        = 3,
+        STATE_WAIT        = 4,
+        STATE_STORE       = 5,
+        STATE_SEND_SUM    = 6,
+        STATE_SEND_WAIT   = 7;
     always @(posedge clk) begin
         if (!rst_n) begin
             bit_idx   <= 0;
             fuses_sum <= 0;
-            state     <= STATE_IDLE;
+            state     <= STATE_FLUSH;
         end else begin
             case(state)
+                STATE_FLUSH:
+                begin
+                    if (uart_rx_ready) begin
+                        uart_rx_read <= 1;
+                        state <= STATE_FLUSH_DELAY;
+                    end else begin
+                        state <= STATE_IDLE;
+                    end
+                end
+                STATE_FLUSH_DELAY:
+                begin
+                    uart_rx_read <= 0;
+                    state <= STATE_FLUSH_WAIT;
+                end
+                STATE_FLUSH_WAIT:
+                begin
+                    state <= STATE_FLUSH;
+                end
                 STATE_IDLE:
                 begin
                     if (bit_idx == PGM_BITS) begin
@@ -108,7 +129,7 @@ module top(input clk, output uart_tx, input uart_rx, inout [7:0] gpio, input pla
                 begin
                     uart_tx_start   <= 0;
                     fuses_sum       <= 0;
-                    state           <= STATE_IDLE;
+                    state           <= STATE_FLUSH;
                 end
                 default: begin end
             endcase
