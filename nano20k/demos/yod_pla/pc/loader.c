@@ -9,8 +9,8 @@
 #include <inttypes.h>
 #include <time.h>
 
-#define PINS 	32
-#define TERMS 	64
+#define PINS 	16
+#define TERMS 	32
 
 #define W_WIDTH (2 * (PINS + PINS + 3))
 #define TOTAL_FUSES (2 * PINS + PINS * TERMS + (1 + W_WIDTH) * TERMS)
@@ -129,7 +129,7 @@ int main(int argc, char **argv)
     set_interface_attribs(fd, B115200);
 	tcflush(fd, TCIOFLUSH);
 	
-	printf("%d, %d\n", PGM_BITS, sizeof(struct fuses));
+	printf("%d, %ld\n", PGM_BITS, sizeof(struct fuses));
 	// in the demo config we use gpio[3:0] as outputs as they're on LEDs
 	// use gpio[7:4] as inputs, in particular gpio[7:6] are attached to the nano20k buttons
 	struct fuses *f = create_fuse();
