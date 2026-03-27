@@ -9,7 +9,7 @@
 #include <inttypes.h>
 #include <time.h>
 
-#define PINS 	16
+#define PINS 	32
 #define TERMS 	32
 
 #define W_WIDTH (2 * (PINS + PINS + 3))
@@ -103,11 +103,21 @@ void upload_program(int fd, struct fuses *f)
 	int x;
 	uint8_t *pgm, sum;
 	
-	printf("Sending %d bit program...\n", PGM_BITS);
+	// send one invalid byte to flush pipe
+	sum = 0xBB;
+	if (write(fd, &sum, 1) != 1) {
+		printf("Error writing flush signal\n");
+		exit(-1);
+	}
+	tcdrain(fd);
+	usleep(50000); // sleep for 50uS to let the FPGA flush the RX FIFO and reset the bit index
+
+	printf("Sending program...\n");
 	pgm = generate_bitmap(f);
 	sum = 0;
 	for (x = 0; x < PGM_BITS; x++) {
-		printf("bit...%d\n", x);
+		printf("bit...%5d (%d %%)\r", x, (x * 100) / PGM_BITS);
+		fflush(stdout);
 		sum = sum * 3 + pgm[x];
 		if (write(fd, &pgm[x], 1) != 1) {
 			printf("Error writing bit %d\n", x);
@@ -129,7 +139,6 @@ int main(int argc, char **argv)
     set_interface_attribs(fd, B115200);
 	tcflush(fd, TCIOFLUSH);
 	
-	printf("%d, %ld\n", PGM_BITS, sizeof(struct fuses));
 	// in the demo config we use gpio[3:0] as outputs as they're on LEDs
 	// use gpio[7:4] as inputs, in particular gpio[7:6] are attached to the nano20k buttons
 	struct fuses *f = create_fuse();

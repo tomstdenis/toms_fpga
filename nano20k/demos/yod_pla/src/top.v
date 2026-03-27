@@ -2,7 +2,7 @@
 module top(input clk, output uart_tx, input uart_rx, inout [7:0] gpio, input pla_clk);
 
     localparam
-        PINS = 16,
+        PINS = 32,
         TERMS = 32,
         W_WIDTH = 2 * (PINS + PINS + 3), 							    // width of the AND block input (determines how many fuses are needed per AND)
         TOTAL_FUSES	= 2 * PINS + PINS * TERMS + (1 + W_WIDTH) * TERMS;
@@ -37,7 +37,11 @@ module top(input clk, output uart_tx, input uart_rx, inout [7:0] gpio, input pla
     endgenerate
     // assign the input signals first to the gpio and then to the internal feedback outputs
     assign in_sig[7:0] = gpio[7:0];
-    assign in_sig[PINS-1:8] = out_sig[PINS-1:8];
+    generate
+        for (i = 8; i < PINS; i = i + 1) begin : internal_signals
+            assign in_sig[i] = out_sig[i];
+        end
+    endgenerate
 
     // our PLA module
     pla #(.PINS(PINS), .TERMS(TERMS)) demo_pla(
@@ -91,6 +95,8 @@ module top(input clk, output uart_tx, input uart_rx, inout [7:0] gpio, input pla
             case(state)
                 STATE_FLUSH:                        // flush any RX bytes handy on boot since there could be noise
                 begin
+                    bit_idx   <= 0;
+                    fuses_sum <= 0;
                     if (uart_rx_ready) begin
                         uart_rx_read <= 1;
                         state <= STATE_FLUSH_DELAY;
@@ -127,10 +133,14 @@ module top(input clk, output uart_tx, input uart_rx, inout [7:0] gpio, input pla
                 end
                 STATE_STORE:                        // store the bit we read
                 begin
-                    fuses          <= {fuses[PGM_BITS-2:0], uart_rx_byte == 8'hAA ? 1'b0 : 1'b1};
-                    fuses_sum      <= (fuses_sum + fuses_sum + fuses_sum + uart_rx_byte); // sum = sum * 3 + byte
-                    state          <= STATE_IDLE;
-                    bit_idx        <= bit_idx + 1'b1;
+                    if (uart_rx_byte != 8'hAA && uart_rx_byte != 8'h55) begin
+                        state <= STATE_FLUSH;
+                    end else begin
+                        fuses          <= {fuses[PGM_BITS-2:0], uart_rx_byte == 8'hAA ? 1'b0 : 1'b1};
+                        fuses_sum      <= (fuses_sum + fuses_sum + fuses_sum + uart_rx_byte); // sum = sum * 3 + byte
+                        state          <= STATE_IDLE;
+                        bit_idx        <= bit_idx + 1'b1;
+                    end
                 end
                 STATE_SEND_SUM:                     // send checksum back
                 begin
