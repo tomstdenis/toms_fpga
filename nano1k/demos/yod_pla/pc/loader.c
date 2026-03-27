@@ -156,13 +156,9 @@ int main(int argc, char **argv)
 	f->or_fuses[OR(1, 1)] = 1;		// select AND[1]
 	f->or_fuses[OR(1, 2)] = 1;		// select AND[2]
 	
-	// out[2] = !gpio[7]
-	f->or_fuses[OR(2, 0)] = 1;		// use AND[0]
-	f->or_invert_fuses[2] = 1;		// invert OR[2]
-	
-	// out[3] = !gpio[6]
-	f->and_fuses[AND(3, 6, 1)] = 0;	// select only ~gpio[6]
-	f->or_fuses[OR(3, 3)]      = 1; // select AND[3]
-	
+	// out[2] = gpio[6]
+	f->and_fuses[AND(2, 6, 0)] = 0;	// select only gpio[6]
+	f->or_fuses[OR(2, 2)]      = 1; // select AND[2]
+
 	upload_program(fd, f);
 }
