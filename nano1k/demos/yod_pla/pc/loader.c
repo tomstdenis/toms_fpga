@@ -17,7 +17,7 @@
 #define PGM_BITS (TOTAL_FUSES + PINS)
 
 struct fuses {
-	uint8_t and_fuses[TERMS * W_WIDTH]; // 0 == select input (in[PINS-1:0], ~in[PINS-1:0], out[PINS-1:0], ~out[PINS-1:0], and, ~and, and_reg, ~and_reg, or, ~or, and_reg[i-1], ~and_reg[i-1])
+	uint8_t and_fuses[TERMS * W_WIDTH]; // 0 == select input (in[PINS-1:0], ~in[PINS-1:0], or_reg[PINS-1:0], ~or_reg[PINS-1:0], and, ~and, and_reg, ~and_reg, and_reg[i-1], ~and_reg[i-1])
 	uint8_t and_outsel_fuses[TERMS]; // 1 == registered output
 	uint8_t or_fuses[PINS * TERMS]; // 1 == select AND[p]
 	uint8_t or_outsel_fuses[PINS]; // 1 == registered output
