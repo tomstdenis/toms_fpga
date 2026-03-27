@@ -2,8 +2,8 @@
 module top(input clk, output uart_tx, input uart_rx, inout [7:0] gpio, input pla_clk);
 
     localparam
-        PINS = 16,
-        TERMS = 32,
+        PINS = 32,
+        TERMS = 64,
         W_WIDTH = 2 * (PINS + PINS + 3), 							// width of the AND block input (determines how many fuses are needed per AND)
         TOTAL_FUSES	= 2 * PINS + PINS * TERMS + (1 + W_WIDTH) * TERMS;
 
@@ -19,7 +19,7 @@ module top(input clk, output uart_tx, input uart_rx, inout [7:0] gpio, input pla
 
     wire [PINS-1:0] in_sig;
     wire [PINS-1:0] out_sig;
-    reg [PINS-8-1:0] out_regs;
+    reg [PINS-1:0] out_regs;
     reg [PGM_BITS-1:0] fuses; // fuses plus output_ens
 
     genvar i;
@@ -28,8 +28,10 @@ module top(input clk, output uart_tx, input uart_rx, inout [7:0] gpio, input pla
             assign gpio[i] = fuses[TOTAL_FUSES+i] ? out_sig[i] : 1'bz;
         end
     endgenerate
-    assign in_sig = gpio;
-    assign out_sig[PINS-1:8] = out_regs;
+    always @(posedge clk) begin
+        out_regs <= out_sig[PINS-1:8];
+    end
+    assign in_sig[7:0] = gpio[7:0];
     assign in_sig[PINS-1:8] = out_regs;
 
     pla #(.PINS(PINS), .TERMS(TERMS)) demo_pla(

@@ -9,12 +9,12 @@
 #include <inttypes.h>
 #include <time.h>
 
-#define PINS 	16
-#define TERMS 	32
+#define PINS 	32
+#define TERMS 	64
 
 #define W_WIDTH (2 * (PINS + PINS + 3))
 #define TOTAL_FUSES (2 * PINS + PINS * TERMS + (1 + W_WIDTH) * TERMS)
-#define PGM_BITS (TOTAL_FUSES + 16)
+#define PGM_BITS (TOTAL_FUSES + PINS)
 
 struct fuses {
 	uint8_t and_fuses[TERMS * W_WIDTH]; // 0 == select input (in[PINS-1:0], ~in[PINS-1:0], out[PINS-1:0], ~out[PINS-1:0], and, ~and, and_reg, ~and_reg, or, ~or, and_reg[i-1], ~and_reg[i-1])
