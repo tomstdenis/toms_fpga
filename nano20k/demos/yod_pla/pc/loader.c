@@ -21,7 +21,7 @@ struct fuses {
 	uint8_t or_fuses[PINS * TERMS]; // 1 == select AND[p]
 	uint8_t or_outsel_fuses[PINS]; // 1 == registered output
 	uint8_t or_invert_fuses[PINS]; // 1 == invert output 
-	uint8_t gpio_oe_fuses[PINS]; // 
+	uint8_t gpio_oe_fuses[PINS]; // 1 == output, 0 == input
 };
 
 #define AND(x, y, z) ((x) * W_WIDTH + (y)*2 + z)
