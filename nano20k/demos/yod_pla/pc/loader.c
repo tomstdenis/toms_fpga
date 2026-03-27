@@ -24,7 +24,7 @@ struct fuses {
 	uint8_t gpio_oe_fuses[PINS]; // 
 };
 
-#define AND(x, y) ((x) * W_WIDTH + (y))
+#define AND(x, y, z) ((x) * W_WIDTH + (y)*2 + z)
 #define OR(x, y) ((x) * TERMS + (y))
 
 struct fuses *create_fuse(void)
@@ -109,7 +109,7 @@ void upload_program(int fd, struct fuses *f)
 		printf("bit...%d\n", x);
 		sum = sum * 3 + pgm[x];
 		if (write(fd, &pgm[x], 1) != 1) {
-			printf("Error writing bit %d\n");
+			printf("Error writing bit %d\n", x);
 			exit(-1);
 		}
 		tcdrain(fd);
@@ -133,15 +133,15 @@ int main(int argc, char **argv)
 	struct fuses *f = create_fuse();
 
 	// out[0] = gpio[7]
-	f->and_fuses[AND(0, 7*2+0)] = 0; // (recall they come in a, ~a pairs, also 0 means to include
+	f->and_fuses[AND(0, 7, 0)] = 0; // (recall they come in a, ~a pairs, also 0 means to include
 	f->or_fuses[OR(0, 0)] = 1;		// use AND[0]
 	
 	// out[1] = gpio[7] ^ gpio[6] (7 & !6) | (!7 & 6)
 	// let's use AND[1..2] and OR[1] for this
-	f->and_fuses[AND(1, 7*2+0)] = 0; // select gpio[7]
-	f->and_fuses[AND(1, 6*2+1)] = 0; // select ~gpio[6]
-	f->and_fuses[AND(2, 7*2+1)] = 0; // select ~gpio[7]
-	f->and_fuses[AND(2, 6*2+0)] = 0; // select gpio[6]
+	f->and_fuses[AND(1, 7, 0)] = 0; // select gpio[7]
+	f->and_fuses[AND(1, 6, 1)] = 0; // select ~gpio[6]
+	f->and_fuses[AND(2, 7, 1)] = 0; // select ~gpio[7]
+	f->and_fuses[AND(2, 6, 0)] = 0; // select gpio[6]
 	f->or_fuses[OR(1, 1)] = 1;		// select AND[1]
 	f->or_fuses[OR(1, 2)] = 1;		// select AND[2]
 	
