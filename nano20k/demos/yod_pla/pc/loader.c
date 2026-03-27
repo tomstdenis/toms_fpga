@@ -9,11 +9,12 @@
 #include <inttypes.h>
 #include <time.h>
 
-#define PINS 8
-#define TERMS 16
+#define PINS 	16
+#define TERMS 	32
+
 #define W_WIDTH (2 * (PINS + PINS + 3))
 #define TOTAL_FUSES (2 * PINS + PINS * TERMS + (1 + W_WIDTH) * TERMS)
-#define PGM_BITS (TOTAL_FUSES + 8)
+#define PGM_BITS (TOTAL_FUSES + 16)
 
 struct fuses {
 	uint8_t and_fuses[TERMS * W_WIDTH]; // 0 == select input (in[PINS-1:0], ~in[PINS-1:0], out[PINS-1:0], ~out[PINS-1:0], and, ~and, and_reg, ~and_reg, or, ~or, and_reg[i-1], ~and_reg[i-1])
@@ -33,7 +34,7 @@ struct fuses *create_fuse(void)
 	
 	f = calloc(1, sizeof *f);
 	memset(f->and_fuses, 1, sizeof(f->and_fuses));
-	memset(f->gpio_oe_fuses+(0*PINS/2), 1, PINS/2);
+	memset(f->gpio_oe_fuses, 1, 4); // gpio[3:0] = output, rest are inputs
 	return f;
 }
 
@@ -128,6 +129,7 @@ int main(int argc, char **argv)
     set_interface_attribs(fd, B115200);
 	tcflush(fd, TCIOFLUSH);
 	
+	printf("%d, %d\n", PGM_BITS, sizeof(struct fuses));
 	// in the demo config we use gpio[3:0] as outputs as they're on LEDs
 	// use gpio[7:4] as inputs, in particular gpio[7:6] are attached to the nano20k buttons
 	struct fuses *f = create_fuse();
