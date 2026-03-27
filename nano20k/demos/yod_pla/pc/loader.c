@@ -149,7 +149,7 @@ int main(int argc, char **argv)
 	
 	// out[2] = !gpio[7]
 	f->or_fuses[OR(2, 0)] = 1;		// use AND[0]
-	f->or_invert_fuses[2] = 1;
+	f->or_invert_fuses[2] = 1;		// invert OR[2]
 	
 	// out[3] = !gpio[6]
 	f->and_fuses[AND(3, 6, 1)] = 0;	// select only ~gpio[6]

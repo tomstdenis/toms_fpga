@@ -89,7 +89,7 @@ module top(input clk, output uart_tx, input uart_rx, inout [7:0] gpio, input pla
                 STATE_FLUSH_DELAY:
                 begin
                     uart_rx_read <= 0;
-                    state <= STATE_FLUSH_WAIT;
+                    state        <= STATE_FLUSH_WAIT;
                 end
                 STATE_FLUSH_WAIT:
                 begin
