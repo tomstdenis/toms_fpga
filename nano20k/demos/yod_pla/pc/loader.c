@@ -16,30 +16,30 @@
 #define PGM_BITS (TOTAL_FUSES + 8)
 
 struct fuses {
-	uint8_t and_fuses[TERMS * W_WIDTH];
-	uint8_t and_outsel_fuses[TERMS];
-	uint8_t or_fuses[PINS * TERMS];
-	uint8_t or_outsel_fuses[PINS];
-	uint8_t or_invert_fuses[PINS];
-	uint8_t gpio_oe_fuses[PINS];
+	uint8_t and_fuses[TERMS * W_WIDTH]; // 0 == select input (in[PINS-1:0], ~in[PINS-1:0], out[PINS-1:0], ~out[PINS-1:0], and, ~and, and_reg, ~and_reg, or, ~or, and_reg[i-1], ~and_reg[i-1])
+	uint8_t and_outsel_fuses[TERMS]; // 1 == registered output
+	uint8_t or_fuses[PINS * TERMS]; // 1 == select AND[p]
+	uint8_t or_outsel_fuses[PINS]; // 1 == registered output
+	uint8_t or_invert_fuses[PINS]; // 1 == invert output 
+	uint8_t gpio_oe_fuses[PINS]; // 
 };
 
 #define AND(x, y) ((x) * W_WIDTH + (y))
-#define OR(x, y) ((x) * TERMS + ((y))
+#define OR(x, y) ((x) * TERMS + (y))
 
-struct fuse *create_fuse(void)
+struct fuses *create_fuse(void)
 {
-	struct fuse *f;
+	struct fuses *f;
 	
 	f = calloc(1, sizeof *f);
 	memset(f->and_fuses, 1, sizeof(f->and_fuses));
-	memset(f->gpio_oe_fuses+(PINS/2), 1, PINS/2);
+	memset(f->gpio_oe_fuses+(0*PINS/2), 1, PINS/2);
 	return f;
 }
 
-uint8_t *generate_bitmap(struct fuse *f)
+uint8_t *generate_bitmap(struct fuses *f)
 {
-	uint32_t x, y, z;
+	uint32_t x, y;
 	uint8_t *s1, *s2;
 	
 	s1 = calloc(PGM_BITS, sizeof *s1);
@@ -55,6 +55,9 @@ uint8_t *generate_bitmap(struct fuse *f)
 	for (y = 0; y < sizeof (f->or_fuses); y++, x++) {
 		s1[x] = f->or_fuses[y];
 	}
+	for (y = 0; y < sizeof (f->or_outsel_fuses); y++, x++) {
+		s1[x] = f->or_outsel_fuses[y];
+	}
 	for (y = 0; y < sizeof (f->or_invert_fuses); y++, x++) {
 		s1[x] = f->or_invert_fuses[y];
 	}
@@ -64,7 +67,7 @@ uint8_t *generate_bitmap(struct fuse *f)
 	
 	// reverse
 	for (y = 0; y < PGM_BITS; ) {
-		s2[y++] = s1[--x];
+		s2[y++] = s1[--x] ? 0x55 : 0xAA;
 	}
 	free(s1);
 	return s2;
@@ -94,24 +97,28 @@ static int set_interface_attribs(int fd, int speed) {
     return 0;
 }
 
-// send a frame in, read one back
-void send_cmd(int fd, uint8_t *in, uint8_t *out)
+void upload_program(int fd, struct fuses *f)
 {
-	int x, n;
-	uint8_t tmp[1+FRAME];
-	tmp[0] = 0xAA; // header byte
-	memcpy(tmp+1, in, FRAME);
-	if (write(fd, tmp, FRAME+1) != FRAME+1) {
-		printf("Could not write packet to debugger\n");
-		exit(-1);
-	}
-	tcdrain(fd);
+	int x;
+	uint8_t *pgm, sum;
 	
-	n = FRAME;
-	while (n) {
-		x = read(fd, out + FRAME - n, n);
-		n -= x;
+	printf("Sending %d bit program...\n", PGM_BITS);
+	pgm = generate_bitmap(f);
+	sum = 0;
+	for (x = 0; x < PGM_BITS; x++) {
+		printf("bit...%d\n", x);
+		sum = sum * 3 + pgm[x];
+		if (write(fd, &pgm[x], 1) != 1) {
+			printf("Error writing bit %d\n");
+			exit(-1);
+		}
+		tcdrain(fd);
 	}
+	
+	printf("Reading checksum..."); fflush(stdout);
+	while (read(fd, &pgm[0], 1) != 1);
+	printf("%s\n", pgm[0] == sum ? "correct" : "incorrect");
+	free(pgm);
 }
 
 int main(int argc, char **argv)
@@ -119,11 +126,15 @@ int main(int argc, char **argv)
     int fd = open(argv[1], O_RDWR | O_NOCTTY);
     if (fd < 0) { perror("Open port"); return 1; }
     set_interface_attribs(fd, B115200);
-//    usleep(500000);
 	tcflush(fd, TCIOFLUSH);
 	
-	printf("Bus has %u devices on it...\n", enumerate_bus(fd));
-	list_identities(fd);
-	blink(fd);
+	// in the demo config we use gpio[3:0] as outputs as they're on LEDs
+	// use gpio[7:4] as inputs, in particular gpio[7:6] are attached to the nano20k buttons
+	struct fuses *f = create_fuse();
 
+	// out[0] = gpio[7]
+	f->and_fuses[AND(0, 7*2+0)] = 0; // (recall they come in a, ~a pairs, also 0 means to include
+	f->or_fuses[OR(0, 0)] = 1;		// use AND[0]
+	
+	upload_program(fd, f);
 }
