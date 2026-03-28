@@ -46,29 +46,29 @@ module fifo
 	
 	always @(posedge clk) begin
 		if (!rst_n) begin
-			FIFO_WPTR <= 0;
-			FIFO_RPTR <= 0;
-			FIFO_CNT <= 0;
-			data_out <= 0;
+			FIFO_WPTR	<= 0;
+			FIFO_RPTR	<= 0;
+			FIFO_CNT	<= 0;
+			data_out	<= 0;
 		end else begin
 			// priority is flush, then read&write, then write, then read
 			if (want_flush) begin
 				// read and writing and flushing?
 				if (want_write && want_read) begin
-					data_out <= data_in;
-					FIFO_WPTR <= 0;
-					FIFO_RPTR <= 0;
-					FIFO_CNT <= 0;
+					data_out	<= data_in;
+					FIFO_WPTR	<= 0;
+					FIFO_RPTR	<= 0;
+					FIFO_CNT	<= 0;
 				end else if (want_write) begin 	// only writing
 					// we want flush and write so jam the first entry in
-					FIFO[0] <= data_in;
-					FIFO_WPTR <= 'b1;
-					FIFO_RPTR <= 0;
-					FIFO_CNT <= 'b1;
+					FIFO[0]		<= data_in;
+					FIFO_WPTR	<= 'b1;
+					FIFO_RPTR	<= 0;
+					FIFO_CNT	<= 'b1;
 				end else begin
-					FIFO_WPTR <= 0;
-					FIFO_RPTR <= 0;
-					FIFO_CNT <= 0;
+					FIFO_WPTR	<= 0;
+					FIFO_RPTR	<= 0;
+					FIFO_CNT	<= 0;
 				end
 			end else if (want_write && want_read) begin
 				// we're doing both
@@ -77,20 +77,20 @@ module fifo
 					data_out <= data_in;
 				end else begin
 					// FIFO isn't empty so read and write from respective spots
-					data_out <= FIFO[FIFO_RPTR];
-					FIFO_RPTR <= FIFO_RPTR + 'b1;
+					data_out		<= FIFO[FIFO_RPTR];
+					FIFO_RPTR		<= FIFO_RPTR + 'b1;
 					FIFO[FIFO_WPTR] <= data_in;
-					FIFO_WPTR <= FIFO_WPTR + 'b1;
+					FIFO_WPTR		<= FIFO_WPTR + 'b1;
 				end
 				// no change to CNT
 			end else if (want_write && FIFO_CNT != FIFO_DEPTH) begin
 				FIFO[FIFO_WPTR] <= data_in;
-				FIFO_WPTR <= FIFO_WPTR + 'b1;
-				FIFO_CNT <= FIFO_CNT + 'b1;
+				FIFO_WPTR		<= FIFO_WPTR + 'b1;
+				FIFO_CNT		<= FIFO_CNT + 'b1;
 			end else if (want_read && FIFO_CNT > 0) begin
-				data_out <= FIFO[FIFO_RPTR];
-				FIFO_RPTR <= FIFO_RPTR + 'b1;
-				FIFO_CNT <= FIFO_CNT - 'b1;
+				data_out	<= FIFO[FIFO_RPTR];
+				FIFO_RPTR	<= FIFO_RPTR + 'b1;
+				FIFO_CNT	<= FIFO_CNT - 'b1;
 			end
 		end
 	end				
