@@ -1,5 +1,5 @@
 module top(input clk, inout [7:0]io, output led);
-    wire [7:0] i_port = io;                // input port, we only use one pin right now
+    wire [7:0] i_port = io;                         // input port, we only use one pin right now
     wire [7:0] o_port;                              // output port
     wire o_port_pulse;                              // this inverts when o_port is written to by the core
     wire [15:0] mem_data;                           // the 16-bits read from the BRAM from mem_addr_next, mem_addr
@@ -24,15 +24,12 @@ module top(input clk, inout [7:0]io, output led);
 // Bit-by-bit Quasi-Bidirectional Logic (PCF8574 style)
 // If o_port[n] is 1, io[n] is High-Z (allows input or pulls high via resistor)
 // If o_port[n] is 0, io[n] is driven Low (0)
-    assign io[0] = o_port[0] ? 1'bz : 1'b0;
-    assign io[1] = o_port[1] ? 1'bz : 1'b0;
-    assign io[2] = o_port[2] ? 1'bz : 1'b0;
-    assign io[3] = o_port[3] ? 1'bz : 1'b0;
-    assign io[4] = o_port[4] ? 1'bz : 1'b0;
-    assign io[5] = o_port[5] ? 1'bz : 1'b0;
-    assign io[6] = o_port[6] ? 1'bz : 1'b0;
-    assign io[7] = o_port[7] ? 1'bz : 1'b0;
-
+    genvar i;
+    generate
+        for (i = 0; i < 8; i = i + 1) begin : io_ports
+            assign io[i] = o_port[i] ? 1'bz : 1'b0;
+        end
+    endgenerate
     wire portBen = ~wren;           // only read if we're not writing
 
 /*

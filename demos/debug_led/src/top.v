@@ -6,7 +6,8 @@ module top(
 
     localparam
         BITS=64,
-        ENABLE=1;
+        ENABLE=1,
+        USE_MEM=0;
    
     wire pll_clk;
     wire pll2_clk;
@@ -86,7 +87,7 @@ module top(
     // there would be one of these (at least) per module that can be debugged with it
     // they wouldn't be placed all in the same module like this
     // node0 -- Runs at 27MHz
-    serial_debug #(.BITS(BITS), .ENABLE(ENABLE)) node0(
+    serial_debug #(.BITS(BITS), .ENABLE(ENABLE), .USE_MEM(USE_MEM)) node0(
         .clk(clk), .rst_n(rst_n),
         .prescaler(4'h2),
         .rx_data(node0_rx_data), .rx_clk(node0_rx_clk),
@@ -96,7 +97,7 @@ module top(
         .identity(node0_identity));
 
     // node1 -- runs at 81MHz 
-    serial_debug #(.BITS(BITS), .ENABLE(ENABLE)) node1(
+    serial_debug #(.BITS(BITS), .ENABLE(ENABLE), .USE_MEM(USE_MEM)) node1(
         .clk(pll_clk), .rst_n(rst_n_81),
         .prescaler(4'h6),                                   // node1 runs 3x faster than the other nodes so it needs a 3x prescaler
         .rx_data(node0_tx_data), .rx_clk(node0_tx_clk),
@@ -106,7 +107,7 @@ module top(
         .identity(node1_identity));
 
     // node2 -- runs at 27MHz
-    serial_debug #(.BITS(BITS), .ENABLE(ENABLE)) node2(
+    serial_debug #(.BITS(BITS), .ENABLE(ENABLE), .USE_MEM(USE_MEM)) node2(
         .clk(clk), .rst_n(rst_n),
         .prescaler(4'h2),
         .rx_data(node1_tx_data), .rx_clk(node1_tx_clk),
@@ -116,7 +117,7 @@ module top(
         .identity(node2_identity));
 
     // node3 -- runs at 75MHz
-    serial_debug #(.BITS(BITS), .ENABLE(ENABLE)) node3(
+    serial_debug #(.BITS(BITS), .ENABLE(ENABLE), .USE_MEM(USE_MEM)) node3(
         .clk(pll2_clk), .rst_n(rst_n_75),
         .prescaler(4'h6),                               // at 75MHz we need 3x the prescaler since 2.77 isn't an option
         .rx_data(node2_tx_data), .rx_clk(node2_tx_clk),
@@ -129,7 +130,7 @@ module top(
     // You'd put one of these per debug loop to grant access to the outside world to the 
     // debug loop.
     // uartdebug -- runs at 27MHz
-    serial_debug_uart #(.BITS(BITS), .ENABLE(ENABLE)) debug_uart(
+    serial_debug_uart #(.BITS(BITS), .ENABLE(ENABLE), .USE_MEM(USE_MEM)) debug_uart(
         .clk(clk), .rst_n(rst_n),
         .prescaler(4'h2),
         .debug_tx_data(node3_tx_data), .debug_tx_clk(node3_tx_clk),
