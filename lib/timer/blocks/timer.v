@@ -43,21 +43,22 @@ module timer #(parameter PRESCALER_BITS=8, parameter TIMER_BITS=16)
     
     always @(posedge clk) begin
         if (!rst_n) begin
-            prescaler <= 0;
+            prescaler	<= 0;
             prescaler_n <= 0;
-            top <= 0;
-            compare <= 0;
-            count <= 0;
-            go_l <= 0;
+            top			<= 0;
+            compare		<= 0;
+            count		<= 0;
+            go_l		<= 0;
         end else begin
+			// trigger on the posedge of go to latch the timer config
             if (!go_l && go) begin
                 // go was off now it's on so load up the latched values
-                prescaler <= prescaler_cnt;
-                top <= top_cnt;
-                compare <= cmp_cnt;
-                count <= 0;
+                prescaler	<= prescaler_cnt;
+                top			<= top_cnt;
+                compare		<= cmp_cnt;
+                count		<= 0;
                 prescaler_n <= 0;
-                go_l <= go;
+                go_l		<= go;
             end else if (go_l) begin
                 // did it get turned off?
                 if (!go) begin
@@ -65,9 +66,9 @@ module timer #(parameter PRESCALER_BITS=8, parameter TIMER_BITS=16)
                 end else begin
                     if (relatch) begin
                         // the user wants to store new timer parameters on the fly
-                        compare <= cmp_cnt;
-                        top <= top_cnt;
-                        prescaler <= prescaler_cnt;
+                        compare		<= cmp_cnt;
+                        top			<= top_cnt;
+                        prescaler	<= prescaler_cnt;
                     end else begin
                         // no updates or stops so advance the prescaler_n
                         if ((prescaler_n + 1'b1) == prescaler) begin

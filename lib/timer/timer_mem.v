@@ -66,20 +66,20 @@ module timer_mem
 
     always @(posedge clk) begin
         if (!rst_n) begin
-            l_top <= 16'b0;
-            l_cmp <= 16'b0;
-            l_prescaler <= 8'b0;
-            l_relatch <= 0;
-            l_go <= 0;
-            int_enables <= 2'b0;
-            int_pending <= 2'b0;
-            error <= 0;
-            prev_cmp_match <= 0;
-            prev_top_match <= 0;
-            l_counter <= 16'b0;
-            state <= ISSUE;
-            ready <= 0;
-            o_data <= 0;
+            l_top			<= 16'b0;
+            l_cmp			<= 16'b0;
+            l_prescaler		<= 8'b0;
+            l_relatch		<= 0;
+            l_go			<= 0;
+            int_enables		<= 2'b0;
+            int_pending		<= 2'b0;
+            error			<= 0;
+            prev_cmp_match	<= 0;
+            prev_top_match	<= 0;
+            l_counter		<= 16'b0;
+            state			<= ISSUE;
+            ready			<= 0;
+            o_data			<= 0;
         end else begin
             // latch matches to set pending int flags
             if (cur_top_match && !prev_top_match) begin
