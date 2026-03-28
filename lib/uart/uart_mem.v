@@ -69,20 +69,20 @@ module uart_mem
 
     always @(posedge clk) begin
         if (!rst_n) begin
-            bauddiv <= 0;
-            uart_tx_start <= 0;
-            uart_rx_read <= 0;
-            tx_fifo_empty_prev <= 0;
-            rx_ready_prev <= 0;
-            uart_rx_read <= 0;
-            state <= ISSUE;
-            i_data_latch <= 0;
-            int_enables <= 0;
-            int_pending <= 0;
-            ready <= 0;
-            error <= 0;
-            o_data <= 0;
-            delay <= 0;
+            bauddiv				<= 0;
+            uart_tx_start		<= 0;
+            uart_rx_read		<= 0;
+            tx_fifo_empty_prev	<= 0;
+            rx_ready_prev		<= 0;
+            uart_rx_read		<= 0;
+            state				<= ISSUE;
+            i_data_latch		<= 0;
+            int_enables			<= 0;
+            int_pending			<= 0;
+            ready				<= 0;
+            error				<= 0;
+            o_data				<= 0;
+            delay				<= 0;
         end else begin
             // step the IRQ system with edge detectors to ensure interrupts only trigger on transition.
             // detect edge of rx_ready and assert it in pending
