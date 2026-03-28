@@ -64,66 +64,66 @@ module top(
                 begin
                     if (ready) begin
                         o_data_latch <= o_data[31:0];
-                        enable <= 0;        // disable core
-                        wr_en <= 0;         // deassert write
-                        state <= tag;       // jump to tag state
+                        enable       <= 0;              // disable core
+                        wr_en        <= 0;              // deassert write
+                        state        <= tag;            // jump to tag state
                     end
                 end
             LOAD_TOP:
                 begin
-                    wr_en <= 1;                         // WRITE
-                    be <= 4'b1111;                      // 32-bit
-                    addr <= `TIMER_TOP_L_ADDR;          // Lower Timer TOP register (we can write 8 or the full 16 bits here
+                    wr_en  <= 1;                        // WRITE
+                    be     <= 4'b1111;                  // 32-bit
+                    addr   <= `TIMER_TOP_L_ADDR;        // Lower Timer TOP register (we can write 8 or the full 16 bits here
                     i_data <= 32'd256;                  // TOP=256
                     enable <= 1;                        // Enable the peripherals bus
 
-                    tag <= LOAD_PRESCALER;              // Next state is load CMP
-                    state <= WAIT_FOR_READY;            // Wait for bus transaction
+                    tag     <= LOAD_PRESCALER;          // Next state is load CMP
+                    state   <= WAIT_FOR_READY;          // Wait for bus transaction
                     compare <= 32'd64;                  // init default compare value here
                 end
             LOAD_PRESCALER:
                 begin
-                    wr_en <= 1;                         // WRITE
-                    be <= 4'b0001;                      // 8-bit
-                    addr <= `TIMER_PRESCALE_ADDR;       // Timer Prescaler is 8-bits
+                    wr_en  <= 1;                        // WRITE
+                    be     <= 4'b0001;                  // 8-bit
+                    addr   <= `TIMER_PRESCALE_ADDR;     // Timer Prescaler is 8-bits
                     i_data <= 32'd4;                    // Prescaler == 4
                     enable <= 1;                        // Enable the peripherals bus
 
-                    tag <= LOAD_CMP;                    //  Next state is load enable
-                    state <= WAIT_FOR_READY;            // Wait for bus transaction
+                    tag    <= LOAD_CMP;                 //  Next state is load enable
+                    state  <= WAIT_FOR_READY;           // Wait for bus transaction
                 end
             LOAD_CMP:
                 begin
-                    wr_en <= 1;                         // WRITE
-                    be <= 4'b1111;                      // 32-bit
-                    addr <= `TIMER_CMP_L_ADDR;
+                    wr_en  <= 1;                        // WRITE
+                    be     <= 4'b1111;                  // 32-bit
+                    addr   <= `TIMER_CMP_L_ADDR;
                     i_data <= compare;                  // CMP=64 (25% duty cycle)
                     enable <= 1;                        // Enable the peripherals bus
 
-                    tag <= LOAD_ENABLE;                 // Next state is load prescaler
-                    state <= WAIT_FOR_READY;            // Wait for bus transaction
+                    tag    <= LOAD_ENABLE;              // Next state is load prescaler
+                    state  <= WAIT_FOR_READY;           // Wait for bus transaction
                 end
             LOAD_ENABLE:
                 begin
-                    wr_en <= 1;                         // WRITE
-                    be <= 4'b0001;                      // 8-bit
-                    addr <= `TIMER_ENABLE_ADDR;
+                    wr_en  <= 1;                        // WRITE
+                    be     <= 4'b0001;                  // 8-bit
+                    addr   <= `TIMER_ENABLE_ADDR;
                     i_data <= 32'd1;                    // Enable == 1
                     enable <= 1;                        // Enable the peripherals bus
 
-                    tag <= READ_COUNTER;                // Next state is read counter
+                    tag   <= READ_COUNTER;              // Next state is read counter
                     state <= WAIT_FOR_READY;            // Wait for bus transaction
                     clock <= 0;
                 end
             READ_COUNTER:
                 begin
-                    wr_en <= 0;                         // READ
-                    be <= 4'b0011;                      // 16-bit
-                    addr <= `TIMER_COUNTER_L_ADDR;
+                    wr_en  <= 0;                        // READ
+                    be     <= 4'b0011;                  // 16-bit
+                    addr   <= `TIMER_COUNTER_L_ADDR;
                     enable <= 1;                        // Enable the peripherals bus
 
-                    tag <= LATCH_COUNTER;               // Next state is latch counter
-                    state <= WAIT_FOR_READY;            // Wait for bus transaction
+                    tag    <= LATCH_COUNTER;            // Next state is latch counter
+                    state  <= WAIT_FOR_READY;           // Wait for bus transaction
                 end
             LATCH_COUNTER:
                 begin
@@ -131,23 +131,23 @@ module top(
                     if (!clock) begin
                         // count down before updating the PWM duty cycle so we don't do it too often
                         compare[7:0] <= compare[7:0] + 1'b1;
-                        state <= UPDATE_CMP;            // Write the new compare value to the timer
-                        clock <= 27_000_000 / 16;
+                        state        <= UPDATE_CMP;            // Write the new compare value to the timer
+                        clock        <= 27_000_000 / 16;
                     end else begin
-                        clock <= clock - 1;             // keep looping reading the counter so we can have a clock on the timer pin
-                        state <= READ_COUNTER;
+                        clock        <= clock - 1;             // keep looping reading the counter so we can have a clock on the timer pin
+                        state        <= READ_COUNTER;
                     end
                 end
             UPDATE_CMP:
                 begin
-                    wr_en <= 1;                         // WRITE
-                    be <= 4'b1111;                      // 32-bit
-                    addr <= `TIMER_CMP_L_ADDR;          // Lower Timer TOP register
+                    wr_en  <= 1;                        // WRITE
+                    be     <= 4'b1111;                  // 32-bit
+                    addr   <= `TIMER_CMP_L_ADDR;        // Lower Timer TOP register
                     i_data <= {24'b0, compare[7:0]};    // new compare value
                     enable <= 1;                        // Enable the peripherals bus
 
-                    tag <= READ_COUNTER;                // Next state is read counter
-                    state <= WAIT_FOR_READY;            // Wait for bus transaction
+                    tag    <= READ_COUNTER;             // Next state is read counter
+                    state  <= WAIT_FOR_READY;           // Wait for bus transaction
                 end
         endcase
     end
