@@ -9,7 +9,7 @@
 #include <inttypes.h>
 #include <time.h>
 
-#define PINS 	32
+#define PINS 	16
 #define TERMS 	32
 
 #define W_WIDTH (2 * (PINS + PINS + 3))
@@ -126,7 +126,7 @@ void upload_program(int fd, struct fuses *f)
 		tcdrain(fd);
 	}
 	
-	printf("Reading checksum..."); fflush(stdout);
+	printf("\nReading checksum..."); fflush(stdout);
 	while (read(fd, &pgm[0], 1) != 1);
 	printf("%s\n", pgm[0] == sum ? "correct" : "incorrect");
 	free(pgm);

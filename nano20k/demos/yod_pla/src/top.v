@@ -2,7 +2,7 @@
 module top(input clk, output uart_tx, input uart_rx, inout [7:0] gpio, input pla_clk);
 
     localparam
-        PINS = 32,
+        PINS = 16,
         TERMS = 32,
         W_WIDTH = 2 * (PINS + PINS + 3), 							    // width of the AND block input (determines how many fuses are needed per AND)
         TOTAL_FUSES	= 2 * PINS + PINS * TERMS + (1 + W_WIDTH) * TERMS;
