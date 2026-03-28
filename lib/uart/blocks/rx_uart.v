@@ -23,11 +23,11 @@ module rx_uart
 
     always @(posedge clk) begin
         if (!rst_n) begin
-            state <= IDLE;
-            rx_done <= 1'b0;
-            rx_byte <= 0;
-            bit_timer <= 0;
-            bit_index <= 0;
+            state		<= IDLE;
+            rx_done		<= 1'b0;
+            rx_byte		<= 0;
+            bit_timer	<= 0;
+            bit_index	<= 0;
         end else begin
 			if (rx_read) begin
 				// clear done flag since we read the byte
@@ -36,21 +36,21 @@ module rx_uart
 				case (state)
 					// IDLE waiting or a low pulse.  
 					IDLE: begin
-						if (~rx_pin) begin              // going low is the start of a byte
-							state <= START_BIT;
-							bit_timer <= (baud_div >> 1);  // wait half for a LOW START pulse
-							bit_index <= 0;
-							rx_byte <= 0;
+						if (~rx_pin) begin              	// going low is the start of a byte
+							state		<= START_BIT;
+							bit_timer	<= (baud_div >> 1); 	// wait half for a LOW START pulse
+							bit_index	<= 0;
+							rx_byte		<= 0;
 						end
 					end
 
 					START_BIT: begin
 						if (bit_timer == 0) begin
-							if (~rx_pin) begin // Verify it's still low (avoid glitches)
-								state <= DATA_BITS;
-								bit_timer <= baud_div;
-								bit_index <= 0;
-								rx_byte <= 0;
+							if (~rx_pin) begin 				// Verify it's still low (avoid glitches)
+								state		<= DATA_BITS;
+								bit_timer	<= baud_div;
+								bit_index	<= 0;
+								rx_byte		<= 0;
 							end else state <= IDLE;
 						end else bit_timer <= bit_timer - 1'b1;
 					end
@@ -58,16 +58,13 @@ module rx_uart
 					// read the 8 data bits
 					DATA_BITS: begin
 						if (bit_timer == 0) begin
-							// store the next bit
-							rx_byte[bit_index] <= rx_pin;
-							// reset the timer
-							bit_timer <= baud_div;
+							rx_byte[bit_index]	<= rx_pin;						// store the next bit
+							bit_timer			<= baud_div;					// reset the timer
 							// if we have more bits increment the index and loop
 							if (bit_index < 7) begin
 								bit_index <= bit_index + 1'b1;
 							end else begin
-							// otherwise transition to waiting for the STOP bit
-								state <= STOP_BIT;
+								state <= STOP_BIT;								// otherwise transition to waiting for the STOP bit
 							end
 						end else begin
 							bit_timer <= bit_timer - 1'b1;

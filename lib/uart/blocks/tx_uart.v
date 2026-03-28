@@ -35,7 +35,7 @@ module tx_uart
         end else begin
             case (state)
                 IDLE: begin									// IDLE state waiting for start_tx to go high
-                    tx_pin <= 1'b1; // UART idle is HIGH
+                    tx_pin <= 1'b1; 						// UART idle is HIGH
                     if (start_tx) begin
                         data_latch <= data_in;				// latch the data being transmitted
                         bit_timer  <= baud_div;				// and the current baud_div
@@ -47,7 +47,7 @@ module tx_uart
                 end
 
                 START_BIT: begin							// transmit the START bit which is a pulse of LOW
-                    tx_pin <= 1'b0; // Pull low for START
+                    tx_pin <= 1'b0;							// Pull low for START
                     if (bit_timer == 0) begin
                         bit_timer <= baud_div;
                         state     <= DATA_BITS;
@@ -71,11 +71,11 @@ module tx_uart
                 end
 
                 STOP_BIT: begin								// Send STOP bit which is a pulse of HIGH
-                    tx_pin <= 1'b1; // Pull high for STOP
+                    tx_pin <= 1'b1;							// Pull high for STOP
                     if (bit_timer == 0) begin
-                        tx_done <= 1'b1;
-                        tx_started <= 1'b0;
-                        state <= IDLE;
+                        tx_done		<= 1'b1;
+                        tx_started	<= 1'b0;
+                        state		<= IDLE;
                     end else begin
                         bit_timer <= bit_timer - 1'b1;
                     end
