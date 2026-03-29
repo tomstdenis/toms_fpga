@@ -41,9 +41,9 @@ module ib16 (
 	wire read_incr_flag = reg_sreg[READ_INCR];
 	
 	// CPU state		
-	reg [3:0]	state;
-	reg [3:0]	tag;
-	reg [3:0]	fsm_cycle;
+	reg [2:0]	state;
+	reg [2:0]	tag;
+	reg [2:0]	fsm_cycle;
 	reg 		mask_irq;
 	reg [15:0]	cur_opcode;
 	reg [8:0]	result_dff;							// the value to be retired
@@ -389,14 +389,13 @@ module ib16 (
 								end
 							OPCODE_JMP: // jumps, modifier == 3imm, offset == opcode_9simm which is already expanded to signed 16-bit
 								begin
-									case (opcode_3imm)
-										0: reg_pc <= reg_pc + opcode_9simm;									// JMP
-										1: reg_pc <= reg_pc + (reg_sreg[CARRY_FLAG] ? opcode_9simm : 0);	// JC
-										2: reg_pc <= reg_pc + (reg_sreg[CARRY_FLAG] ? 0 : opcode_9simm);	// JNC
-										3: reg_pc <= reg_pc + (reg_sreg[ZERO_FLAG] ? opcode_9simm : 0);		// JZ
-										4: reg_pc <= reg_pc + (reg_sreg[ZERO_FLAG] ? 0 : opcode_9simm);		// JNZ
-										default: begin end
-									endcase
+                                    if ((opcode_3imm == 0) ||                           // JMP
+                                        (opcode_3imm == 1 && carry_flag) ||             // JC
+                                        (opcode_3imm == 2 && ~carry_flag) ||            // JNC
+                                        (opcode_3imm == 3 && zero_flag) ||              // JZ
+                                        (opcode_3imm == 4 && ~zero_flag)) begin         // JNZ
+                                        reg_pc <= reg_pc + opcode_9simm;
+                                    end
 									state <= FSM_FETCH;
 								end
 							OPCODE_SRS: // SREG Update / Index Reset
