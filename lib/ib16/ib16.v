@@ -1,3 +1,5 @@
+`timescale 1ns/1ps
+
 module ib16 (
 	input clk,
 	input rst_n,
@@ -44,7 +46,6 @@ module ib16 (
 	reg [4:0]	fsm_cycle;
 	reg 		mask_irq;
 	reg [15:0]	cur_opcode;
-	reg			update_flags;						// 1 means RETIRE should update the flags
 	reg [8:0]	result_dff;							// the value to be retired
 	
 	// various wires to look at the opcode
@@ -109,13 +110,14 @@ module ib16 (
 			tag				<= 0;
 			fsm_cycle		<= 0;
 			mask_irq		<= 0;
-			update_flags	<= 0;
 			result_dff		<= 0;
 			reg_ra			<= 0;
 			reg_rb			<= 0;
 			bus_enable		<= 0;
+			bus_address		<= 0;
 			bus_wr_en		<= 0;
 			bus_data_in		<= 0;
+			cur_opcode		<= 0;
 		end else begin
 			case(state)
 				FSM_RAM: // issue bus transaction
@@ -180,19 +182,68 @@ module ib16 (
 						case(opcode_isn)						// switch on the insn
 							OPCODE_MOV:
 								begin
-									result_dff	<= 0;
-									state		<= FSM_RETIRE;
 									case(opcode_opa)			// modifier == opa, reg is reg_rb
 										0: // MOV
-											result_dff <= {1'b0, reg_rb};
+											begin
+												result_dff		<= {1'b0, reg_rb};
+												state			<= FSM_RETIRE;
+											end
 										1: // MOVC
-											result_dff <= reg_sreg[CARRY_FLAG] ? {1'b0, reg_rb} : 0;
+											begin
+												if (reg_sreg[CARRY_FLAG]) begin
+													result_dff 	<= {1'b0, reg_rb};
+													state 		<= FSM_RETIRE;
+												end else begin
+													state		<= FSM_FETCH;
+												end
+											end
 										2: // MOVNC
-											result_dff <= reg_sreg[CARRY_FLAG] ? 0 : {1'b0, reg_rb};
+											begin
+												if (!reg_sreg[CARRY_FLAG]) begin
+													result_dff 	<= {1'b0, reg_rb};
+													state 		<= FSM_RETIRE;
+												end else begin
+													state		<= FSM_FETCH;
+												end
+											end
 										3: // MOVZ
-											result_dff <= reg_sreg[ZERO_FLAG] ? {1'b0, reg_rb} : 0;
+											begin
+												if (reg_sreg[ZERO_FLAG]) begin
+													result_dff 	<= {1'b0, reg_rb};
+													state 		<= FSM_RETIRE;
+												end else begin
+													state		<= FSM_FETCH;
+												end
+											end
 										4: // MOVNZ
-											result_dff <= reg_sreg[ZERO_FLAG] ? 0 : {1'b0, reg_rb};
+											begin
+												if (!reg_sreg[ZERO_FLAG]) begin
+													result_dff 	<= {1'b0, reg_rb};
+													state 		<= FSM_RETIRE;
+												end else begin
+													state		<= FSM_FETCH;
+												end
+											end
+										5: // MOVSP
+											begin
+												result_dff 		<= { 1'b0, reg_sp};
+												state			<= FSM_RETIRE;
+											end
+										6: // MOVRI
+											begin
+												result_dff 		<= { 1'b0, reg_ri};
+												state			<= FSM_RETIRE;
+											end
+										7: // MOVWI
+											begin
+												result_dff 		<= { 1'b0, reg_wi};
+												state			<= FSM_RETIRE;
+											end
+										8: // MOVSREG
+											begin
+												result_dff 		<= { 1'b0, reg_sreg};
+												state			<= FSM_RETIRE;
+											end
 										default: begin end
 									endcase
 								end
