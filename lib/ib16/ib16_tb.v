@@ -58,7 +58,7 @@ module ib16_tb();
         // Waveform setup
         $dumpfile("ib16.vcd");
         $dumpvars(0, ib16_tb);
-		$readmemh("tb_test.s.hex", tb_mem);
+		$readmemh("uart_demo.s.hex", tb_mem);
 		clk = 0;
 		rst_n = 0;
 

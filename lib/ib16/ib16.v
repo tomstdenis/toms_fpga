@@ -308,14 +308,15 @@ module ib16 (
 									state				<= FSM_RAM;
 									if (opcode_opa == opcode_opb && opcode_opa == 15) begin
 										// pop
-										bus_address		<= STACK_ADDRESS + opcode_sp - 1;
+										bus_address		<= STACK_ADDRESS + opcode_sp - 1'b1;
 										reg_sp			<= reg_sp - 8'b1;
 									end else begin
 										// load from memory
 										bus_address		<= {reg_ra, reg_rb} + (reg_sreg[READ_INCR] ? {8'b0, reg_ri} : 16'b0);
 										reg_ri			<= reg_ri + 8'b1;
 									end
-								end	
+								end
+`ifdef CLEAVE	
 							OPCODE_STM:	// store
 								begin
 									bus_enable			<= 1;
@@ -398,6 +399,7 @@ module ib16 (
 											end
 									endcase
 								end
+`endif
 							OPCODE_JMP: // jumps, modifier == 3imm, offset == opcode_9simm which is already expanded to signed 16-bit
 								begin
 									case (opcode_3imm)

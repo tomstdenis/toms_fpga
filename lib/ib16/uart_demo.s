@@ -1,0 +1,12 @@
+.EQU UART_ADDR 0xFFFF
+
+; load up R14:R15 pointing to UART
+LDI 14,>UART_ADDR
+LDI 15,<UART_ADDR
+
+; R0 = 'A'
+LDI 0,0x41
+
+:LOOP
+STM 0,15,14
+JMP LOOP
