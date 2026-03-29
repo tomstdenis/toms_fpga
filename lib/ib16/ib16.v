@@ -140,20 +140,20 @@ module ib16 (
 							fsm_cycle	<= 0;
 						end else begin
                             bus_enable		<= 1'b1;
-                            bus_address 	<= reg_pc + 1'b1;		// read from PC+1
+                            bus_address 	<= reg_pc;		        // read from PC
                             reg_pc			<= reg_pc + 1'd1;		// increment PC
                             state			<= FSM_RAM;
 							case(fsm_cycle)
 								0:
 									begin
 										tag				<= FSM_FETCH;			// jump back here when done
-										fsm_cycle		<= 1'b1;	// increment FSM cycle counter
+										fsm_cycle		<= 1;	// increment FSM cycle counter
 									end
 								1:
 									begin
 										cur_opcode[7:0] <= bus_data_out;		// store byte
 										tag				<= FSM_PREDECODE;		// jump to decode when done
-										fsm_cycle 		<= 1'b0;
+										fsm_cycle 		<= 0;
 									end
 								default: begin end
 							endcase
