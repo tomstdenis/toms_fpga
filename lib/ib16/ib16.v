@@ -77,16 +77,30 @@ module ib16 (
 		OPCODE_RTI = 15;
 	
 	localparam
-		FSM_RAM			= 0,
-		FSM_FETCH		= 1,
+		FSM_FETCH		= 0,				// FETCH next opcode (this should be 0 so we can use nice resets on the state DFFs)
+		FSM_RAM			= 1,
 		FSM_PREDECODE	= 2,
 		FSM_DECODE		= 3,
 		FSM_RETIRE		= 4,
 		FSM_LDM_PART2   = 5;
 
+
+	// reset GPRs (this should infer a DFF with reset, if not may have to do 32 cycle reset
+	genvar i;
+	generate
+		for (i = 0; i < 32; i = i + 1) begin : reset_reg_rr
+			always @(posedge clk or negedge rst_n) begin
+				if (!rst_n) begin
+					reg_rr[i] <= 0;
+				end
+			end
+		end
+	endgenerate
+
 	always @(posedge clk or negedge rst_n) begin
 		if (!rst_n) begin
 			reg_pc			<= 0;
+			reg_irq_pc		<= 0;
 			reg_sp			<= 0;
 			reg_sreg		<= 0;
 			reg_wi			<= 0;
@@ -97,6 +111,8 @@ module ib16 (
 			mask_irq		<= 0;
 			update_flags	<= 0;
 			result_dff		<= 0;
+			reg_ra			<= 0;
+			reg_rb			<= 0;
 		end else begin
 			case(state)
 				FSM_RAM: // issue bus transaction
