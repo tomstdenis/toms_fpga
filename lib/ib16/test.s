@@ -33,3 +33,5 @@ JNZ behind
 :ahead
 SRES 0x23
 RETI
+LDI 5,<onek
+LDI 6,>onek

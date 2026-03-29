@@ -406,6 +406,7 @@ module ib16 (
 										4: reg_pc <= reg_pc + (reg_sreg[ZERO_FLAG] ? 0 : opcode_9simm);		// JNZ
 										default: begin end
 									endcase
+									state <= FSM_FETCH;
 								end
 							OPCODE_SRS: // SREG Update / Index Reset
 								begin

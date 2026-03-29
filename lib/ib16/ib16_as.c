@@ -5,7 +5,7 @@
 #include <ctype.h>
 #include <inttypes.h>
 
-#define PROG_SIZE 2048
+#define PROG_SIZE 4096
 
 // the entire program can only be upto PROG_SIZE bytes so just make a simple map here
 struct {
@@ -213,7 +213,7 @@ void compile_exec1(char *line)
 						// it's a value
 						sscanf(line, "%"SCNx16, &r);
 						// need to compute offset from PC+2 as a halved signed 9-bit value
-						off = (((PC + 2) - r) >> 1) & 0x1FF;
+						off = -((x - r) << 1) & 0x1FF;
 						program[PC].opcode |= off & 0xFFF;
 					}
 					break;
@@ -369,8 +369,7 @@ void resolve_exec1(int x)
 				} else if (program[x].use_bottom_half) {
 					y &= 0xFF;
 				}
-				off = -((x - y) << 1) & 0x1FF;
-				printf("Jump: x=%x, y=%x, off=%d\n", x, y, off);
+				off = (y - x - 1)  & 0x1FF;
 				program[x].opcode |= off;
 			}
 			break;
@@ -439,7 +438,7 @@ int main(int argc, char **argv)
 	
 	sprintf(outname, "%s.hex", argv[1]);
 	f = fopen(outname, "w");
-	fprintf(f, "#File_format=Hex\n#Address_depth=%d\n#Data_width=8\n", PROG_SIZE);
+	//fprintf(f, "#File_format=Hex\n#Address_depth=%d\n#Data_width=8\n", PROG_SIZE);
 	for (x = 0; x < PROG_SIZE; x++) {
 		fprintf(f, "%02X\n", (program[x].opcode)&0xFF);
 		fprintf(f, "%02X\n", (program[x].opcode>>8)&0xFF);
