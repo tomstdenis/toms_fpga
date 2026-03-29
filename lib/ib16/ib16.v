@@ -15,8 +15,8 @@ module ib16 (
 );
 	// memory map
 	localparam
-		IRQ_VECTOR		= 16'h1F00,
-		STACK_ADDRESS   = 16'h2100;
+		IRQ_VECTOR		= 16'h1E00,
+		STACK_ADDRESS   = 16'h1F00;
 
 	// ISA registers
 	localparam
@@ -56,7 +56,7 @@ module ib16 (
 	wire [2:0] opcode_3imm = cur_opcode[11:9];		// 3IMM
 	wire [7:0] opcode_8imm = cur_opcode[7:0];		// 8IMM
 	wire [11:0] opcode_12imm = cur_opcode[11:0];		// 12IMM
-	wire [15:0] opcode_9simm = { {7{cur_opcode[8]}}, cur_opcode[8:0] };
+	wire [15:0] opcode_9simm = { {6{cur_opcode[8]}}, cur_opcode[8:0], 1'b0 };
 	wire [15:0] opcode_sp = {8'b0, reg_sp};
 
 	localparam

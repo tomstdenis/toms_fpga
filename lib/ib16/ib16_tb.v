@@ -23,8 +23,8 @@ module ib16_tb();
 		.bus_irq(bus_irq));
 
 	reg [7:0] tb_mem[65535:0];						// test bench memory
-	wire [15:0] ldi1 = {4'd1, 4'd0, 8'd1};
-	wire [15:0] addr0r0 = {4'd2, 12'b0};
+	wire [15:0] ldi1 = {4'd1, 4'd1, 8'd1};
+	wire [15:0] addr0r0 = {4'd2, 8'b0, 4'd1};
 
 	// simple enable/ready handshake on memory
 	always @(posedge clk or negedge rst_n) begin
@@ -42,7 +42,7 @@ module ib16_tb();
 				$display("bus transaction: wr_en(%d), bus_addr(%h), bus_data_in(%h), bus_data_out(%h)", bus_wr_en, bus_address, bus_data_in, bus_data_out);
 				bus_ready	<= 1;
 			end else if (!bus_enable & bus_ready) begin
-				bus_ready 		<= 0;
+				bus_ready 	<= 0;
 			end
 		end
 	end
