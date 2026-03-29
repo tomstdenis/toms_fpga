@@ -1,5 +1,6 @@
 module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
     localparam
+        GPIO_DATA_ADDR = 16'hFFFE,
         UART_DATA_ADDR = 16'hFFFF;
 
     reg [3:0] rst = 0;
@@ -8,6 +9,18 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
     always @(posedge clk) begin
         rst <= {rst[2:0], 1'b1};
     end
+
+    // GPIO
+    reg [7:0] gpio_out;
+    wire [7:0] gpio_in;
+
+    genvar i;
+    generate
+        for (i = 0; i < 8; i = i + 1) begin : gpio_en
+            assign gpio[i] = gpio_out[i] ? 1'bz : 1'b0;         // requires PULL up 
+        end
+    endgenerate
+    assign gpio_in = gpio;
 
     wire [15:0] baud_div = 27_000_000 / 115_200;
     reg uart_tx_start;
@@ -141,7 +154,14 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
                 // normal mode
                 if (ib16_bus_enable && !ib16_bus_ready) begin
                     // handle new command
-                    if (ib16_bus_address == UART_DATA_ADDR) begin
+                    if (ib16_bus_address == GPIO_DATA_ADDR) begin
+                        if (ib16_bus_wr_en) begin
+                            gpio_out <= ib16_bus_data_in;
+                        end else begin
+                            ib16_bus_data_out <= gpio_in;
+                        end
+                        ib16_bus_ready <= 1;
+                    end else if (ib16_bus_address == UART_DATA_ADDR) begin
                         if (ib16_bus_wr_en) begin
                             case(bus_cycle)
                                 0: // wait for a FIFO slot
