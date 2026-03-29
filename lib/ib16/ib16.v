@@ -41,9 +41,9 @@ module ib16 (
 	wire read_incr_flag = reg_sreg[READ_INCR];
 	
 	// CPU state		
-	reg [4:0]	state;
-	reg [4:0]	tag;
-	reg [4:0]	fsm_cycle;
+	reg [3:0]	state;
+	reg [3:0]	tag;
+	reg [3:0]	fsm_cycle;
 	reg 		mask_irq;
 	reg [15:0]	cur_opcode;
 	reg [8:0]	result_dff;							// the value to be retired
@@ -139,24 +139,21 @@ module ib16 (
 							reg_pc	 	<= IRQ_VECTOR;
 							fsm_cycle	<= 0;
 						end else begin
+                            bus_enable		<= 1'b1;
+                            bus_address 	<= reg_pc + 1'b1;		// read from PC+1
+                            reg_pc			<= reg_pc + 1'd1;		// increment PC
+                            state			<= FSM_RAM;
 							case(fsm_cycle)
 								0:
 									begin
-										bus_enable 		<= 1'b1;				// enable bus
-										bus_address 	<= reg_pc;				// read from PC
 										tag				<= FSM_FETCH;			// jump back here when done
-										state			<= FSM_RAM;
-										fsm_cycle		<= fsm_cycle + 1'b1;	// increment FSM cycle counter
+										fsm_cycle		<= 1'b1;	// increment FSM cycle counter
 									end
 								1:
 									begin
 										cur_opcode[7:0] <= bus_data_out;		// store byte
-										bus_enable		<= 1'b1;
-										bus_address 	<= reg_pc + 1'b1;		// read from PC+1
-										reg_pc			<= reg_pc + 16'd2;		// increment PC by 2
 										tag				<= FSM_PREDECODE;		// jump to decode when done
-										state			<= FSM_RAM;
-										fsm_cycle 		<= 0;
+										fsm_cycle 		<= 1'b0;
 									end
 								default: begin end
 							endcase
@@ -333,30 +330,24 @@ module ib16 (
 										reg_wi			<= reg_wi + 8'b1;
 									end
 								end
-`ifdef CLEAVE	
 							OPCODE_CAL: // Call
 								begin
+                                    bus_enable		<= 1;
+                                    bus_wr_en		<= 1;
+                                    bus_address		<= STACK_ADDRESS + opcode_sp;
+                                    reg_sp			<= reg_sp + 8'b1;
+                                    state			<= FSM_RAM;
 									case(fsm_cycle)
 										0:					// store reg_pc[7:0]
 											begin
-												bus_enable		<= 1;
-												bus_wr_en		<= 1;
 												bus_data_in		<= reg_pc[7:0];
-												bus_address		<= STACK_ADDRESS + opcode_sp;
-												reg_sp			<= reg_sp + 8'b1;
 												tag				<= FSM_DECODE;
-												state			<= FSM_RAM;
 												fsm_cycle		<= 1;
 											end
 										1:					// store reg_pc[15:8]
 											begin
-												bus_enable		<= 1;
-												bus_wr_en		<= 1;
 												bus_data_in		<= reg_pc[15:8];
-												bus_address		<= STACK_ADDRESS + opcode_sp;
-												reg_sp			<= reg_sp + 8'b1;
 												tag				<= FSM_FETCH;
-												state			<= FSM_RAM;
 												fsm_cycle		<= 0;
 												reg_pc			<= {3'b0, opcode_12imm, 1'b0};
 											end
@@ -371,23 +362,20 @@ module ib16 (
 								end
 							OPCODE_RET: // return
 								begin
+                                    if (fsm_cycle != 2) begin
+                                        bus_enable		<= 1;
+                                        bus_address		<= STACK_ADDRESS + opcode_sp - 16'b1;
+                                        reg_sp			<= reg_sp - 8'b1;
+                                        tag				<= FSM_DECODE;
+                                        state			<= FSM_RAM;
+                                    end
 									case(fsm_cycle)
 										0:					// load PC[15:8]
 											begin
-												bus_enable		<= 1;
-												bus_address		<= STACK_ADDRESS + opcode_sp - 16'b1;
-												reg_sp			<= reg_sp - 8'b1;
-												tag				<= FSM_DECODE;
-												state			<= FSM_RAM;
 												fsm_cycle		<= 1;
 											end
 										1:					// load PC[7:0]
 											begin
-												bus_enable		<= 1;
-												bus_address		<= STACK_ADDRESS + opcode_sp - 16'b1;
-												reg_sp			<= reg_sp - 8'b1;
-												tag				<= FSM_DECODE;
-												state			<= FSM_RAM;
 												fsm_cycle		<= 2;
 												reg_pc[15:8]	<= bus_data_out;
 											end
@@ -399,7 +387,6 @@ module ib16 (
 											end
 									endcase
 								end
-`endif
 							OPCODE_JMP: // jumps, modifier == 3imm, offset == opcode_9simm which is already expanded to signed 16-bit
 								begin
 									case (opcode_3imm)
