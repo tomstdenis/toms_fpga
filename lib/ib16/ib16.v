@@ -113,6 +113,9 @@ module ib16 (
 			result_dff		<= 0;
 			reg_ra			<= 0;
 			reg_rb			<= 0;
+			bus_enable		<= 0;
+			bus_wr_en		<= 0;
+			bus_data_in		<= 0;
 		end else begin
 			case(state)
 				FSM_RAM: // issue bus transaction
