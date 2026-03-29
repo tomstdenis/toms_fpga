@@ -283,6 +283,12 @@ module ib16 (
 											result_dff <= {reg_rb[7], reg_rb[6:0], reg_rb[7]};
 										4: // SWAP
 											result_dff <= {1'b0, reg_rb[3:0], reg_rb[7:4]};
+                                        5: // INC
+                                            result_dff <= {1'b0, reg_rb} + 1'b1;
+                                        6: // DEC
+                                            result_dff <= {1'b0, reg_rb} - 1'b1;
+                                        7: // NOT
+                                            result_dff <= {1'b0, ~reg_rb};
 										default: begin end
 									endcase
 								end

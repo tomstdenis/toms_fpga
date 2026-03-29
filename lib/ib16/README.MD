@@ -155,6 +155,9 @@ Instructions:
 		- ROR  2: R[d] = R[a] >>> 1
 		- ROL  3: R[d] = R[a] <<< 1
 		- SWAP 4: R[d] = {R[a][3:0], R[a][7:4]}		
+		- INC  5: R[d] = R[a] + 1
+		- DEC  6: R[d] = R[a] - 1
+		- NOT  7: R[d] = ~R[a]
 9 - LDM (3OP)  R[d] = memory[{R[a], R[b]}]						[Z]
 10 - STM (3OP)  memory[{R[a], R[b]}] = R[d]
 11 - CALL (12IMM) PC = (IMM) << 1 (push PC)

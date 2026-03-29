@@ -80,7 +80,6 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
     reg [3:0] bus_cycle;
     reg run_mode;
     reg [14:0] boot_addr;
-
     ib16 ittybitty(
         .clk(pllclk), .rst_n(rst_n & run_mode),
         .bus_enable(ib16_bus_enable),
