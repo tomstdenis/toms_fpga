@@ -25,7 +25,7 @@ static int set_interface_attribs(int fd, int speed) {
 
     // Setup timing: non-blocking read with 0.5s timeout
     tty.c_cc[VMIN]  = 0;
-    tty.c_cc[VTIME] = 10;
+    tty.c_cc[VTIME] = 1;
 
     if (tcsetattr(fd, TCSANOW, &tty) != 0) return -1;
     return 0;
@@ -40,7 +40,6 @@ int main(int argc, char **argv)
     int fd = open(argv[1], O_RDWR | O_NOCTTY);
     if (fd < 0) { perror("Open port"); return 1; }
     set_interface_attribs(fd, B115200);
-    usleep(1000000);
 	tcflush(fd, TCIOFLUSH);
 	
 	f = fopen(argv[2], "r");
@@ -70,6 +69,7 @@ int main(int argc, char **argv)
 			break;
 		}
 	}
+	printf("\nDone\n");
 	fclose(f);
 	close(fd);
 	return 0;

@@ -19,8 +19,8 @@ LDI 3,0x00
 
 ; R4 = 0
 LDI 4,0x00
-; R4 = 1
-LDI 5,0x01
+; R4 = 16
+LDI 5,0x10
 
 :LOOP
 CALL PRINT
