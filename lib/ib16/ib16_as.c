@@ -54,14 +54,14 @@ const struct {
 } e1_opcodes[] = {
 	{ "", 			0x0000, OP_FMT_LITERAL },
 	{ "MOV",		0x0000,	OP_FMT_2OP },
-	{ "MOVCC",		0x0100, OP_FMT_2OP },
-	{ "MOVNC",		0x0200, OP_FMT_2OP },
-	{ "MOVZ",		0x0300, OP_FMT_2OP },
-	{ "MOVNZ",		0x0400, OP_FMT_2OP },
-	{ "MOVSP",		0x0600, OP_FMT_2OP },
-	{ "MOVRI",		0x0700, OP_FMT_2OP },
-	{ "MOVWI",		0x0800, OP_FMT_2OP },
-	{ "MOVSREG",	0x0900, OP_FMT_2OP },
+	{ "MOVCC",		0x0010, OP_FMT_2OP },
+	{ "MOVNC",		0x0020, OP_FMT_2OP },
+	{ "MOVZ",		0x0030, OP_FMT_2OP },
+	{ "MOVNZ",		0x0040, OP_FMT_2OP },
+	{ "MOVSP",		0x0050, OP_FMT_2OP },
+	{ "MOVRI",		0x0060, OP_FMT_2OP },
+	{ "MOVWI",		0x0070, OP_FMT_2OP },
+	{ "MOVSREG",	0x0080, OP_FMT_2OP },
 	{ "LDI",		0x1000, OP_FMT_8IMM },
 	{ "ADD",		0x2000, OP_FMT_3OP },
 	{ "ADC",		0x3000, OP_FMT_3OP },
@@ -70,10 +70,10 @@ const struct {
 	{ "AND",		0x6000, OP_FMT_3OP },
 	{ "OR",			0x7000, OP_FMT_3OP },
 	{ "SHR",		0x8000, OP_FMT_2OP },
-	{ "SAR",		0x8100, OP_FMT_2OP },
-	{ "ROR",		0x8200, OP_FMT_2OP },
-	{ "ROL",		0x8300, OP_FMT_2OP },
-	{ "SWAP",		0x8400, OP_FMT_2OP },	
+	{ "SAR",		0x8010, OP_FMT_2OP },
+	{ "ROR",		0x8020, OP_FMT_2OP },
+	{ "ROL",		0x8030, OP_FMT_2OP },
+	{ "SWAP",		0x8040, OP_FMT_2OP },	
 	{ "LDM",		0x9000, OP_FMT_3OP },
 	{ "STM",		0xA000, OP_FMT_3OP },
 	{ "CALL",		0xB000, OP_FMT_12IMM },
@@ -146,7 +146,7 @@ void compile_exec1(char *line)
 					sscanf(line, "%u, %u", &r_d, &r_a);
 					r_d &= 0xF;
 					r_a &= 0xF;
-					program[PC].opcode |= (r_d << 4) | r_a;
+					program[PC].opcode |= (r_d << 8) | r_a;
 					break;
 				}
 				case OP_FMT_8IMM: // hex val
