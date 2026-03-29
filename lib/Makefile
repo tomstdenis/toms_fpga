@@ -1,4 +1,6 @@
 all:
+	make -C ib16
+	make -C yod_pla
 	make -C debug
 	make -C sram
 	make -C fifo
@@ -8,6 +10,8 @@ all:
 	make -C timer
 
 clean:
+	make -C ib16 clean
+	make -C yod_pla clean
 	make -C debug clean
 	make -C sram clean
 	make -C fifo clean

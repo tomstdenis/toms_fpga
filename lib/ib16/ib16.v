@@ -87,6 +87,7 @@ module ib16 (
 
 
 	// reset GPRs (this should infer a DFF with reset, if not may have to do 32 cycle reset
+`ifdef SIM
 	genvar i;
 	generate
 		for (i = 0; i < 32; i = i + 1) begin : reset_reg_rr
@@ -97,6 +98,7 @@ module ib16 (
 			end
 		end
 	endgenerate
+`endif
 
 	always @(posedge clk or negedge rst_n) begin
 		if (!rst_n) begin
