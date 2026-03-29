@@ -3,10 +3,17 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
         GPIO_DATA_ADDR = 16'hFFFE,
         UART_DATA_ADDR = 16'hFFFF;
 
+    wire pllclk;
+
+    Gowin_rPLL your_instance_name(
+        .clkout(pllclk), //output clkout
+        .clkin(clk) //input clkin
+    );
+
     reg [3:0] rst = 0;
     wire rst_n = rst[3];
 
-    always @(posedge clk) begin
+    always @(posedge pllclk) begin
         rst <= {rst[2:0], 1'b1};
     end
 
@@ -22,7 +29,7 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
     endgenerate
     assign gpio_in = gpio;
 
-    wire [15:0] baud_div = 27_000_000 / 115_200;
+    wire [15:0] baud_div = 54_000_000 / 115_200;
     reg uart_tx_start;
     reg [7:0] uart_tx_data_in;
     wire uart_tx_fifo_full;
@@ -32,7 +39,7 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
     wire [7:0] uart_rx_byte;
 
     uart #(.FIFO_DEPTH(4), .RX_ENABLE(1), .TX_ENABLE(1)) mrtalky (
-        .clk(clk), .rst_n(rst_n),
+        .clk(pllclk), .rst_n(rst_n),
         .baud_div(baud_div),
         .uart_tx_start(uart_tx_start),
         .uart_tx_data_in(uart_tx_data_in),
@@ -53,7 +60,7 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
     // an 8192x8 memory mapped to 0000.1FFF
     Gowin_SP memory(
         .dout(bram_dout), //output [7:0] dout
-        .clk(clk), //input clk
+        .clk(pllclk), //input clk
         .oce(1'b1), //input oce
         .ce(bram_ce), //input ce
         .reset(~rst_n), //input reset
@@ -75,7 +82,7 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
     reg [14:0] boot_addr;
 
     ib16 ittybitty(
-        .clk(clk), .rst_n(rst_n & run_mode),
+        .clk(pllclk), .rst_n(rst_n & run_mode),
         .bus_enable(ib16_bus_enable),
         .bus_wr_en(ib16_bus_wr_en),
         .bus_address(ib16_bus_address),
@@ -85,7 +92,7 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
         .bus_irq(ib16_bus_irq));
 
     // bus controller
-    always @(posedge clk) begin
+    always @(posedge pllclk) begin
         if (!rst_n) begin
             uart_tx_start       <= 0;
             uart_tx_data_in     <= 0;
