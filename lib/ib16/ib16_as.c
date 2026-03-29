@@ -356,7 +356,7 @@ void resolve_exec1(int x)
 				} else if (program[x].use_bottom_half) {
 					y &= 0xFF;
 				}
-				program[x].opcode |= (y >> 1) & 0xFFF;
+				program[x].opcode |= y & 0xFFF;
 			}
 			break;
 		case OP_FMT_9SIMM: // Jumps
