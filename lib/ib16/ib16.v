@@ -33,7 +33,7 @@ module ib16 (
 	reg [7:0]	reg_ri;								// RI (read index)
 	reg [7:0]	reg_rr [0:31];						// GPRs (16, + 16 for IRQ)
 	reg [7:0]	reg_ra;
-	reg [7:0]	reg_rb;
+	wire [7:0]	reg_rb = reg_rr[opcode_opb + (mask_irq ? 16 : 0)];
 	
 	wire carry_flag = reg_sreg[CARRY_FLAG];
 	wire zero_flag  = reg_sreg[ZERO_FLAG];
@@ -114,7 +114,6 @@ module ib16 (
 			mask_irq		<= 0;
 			result_dff		<= 0;
 			reg_ra			<= 0;
-			reg_rb			<= 0;
 			bus_enable		<= 0;
 			bus_address		<= 0;
 			bus_wr_en		<= 0;
@@ -161,20 +160,9 @@ module ib16 (
 					end
 				FSM_PREDECODE: // read registers
 					begin
-						case(fsm_cycle)
-							0:
-								begin
-									reg_ra				<= reg_rr[opcode_opa + (mask_irq ? 16 : 0)];
-									fsm_cycle			<= 1;
-									cur_opcode[15:8]	<= bus_data_out;				// store top 8 bits of opcode
-								end
-							1:
-								begin
-									reg_rb				<= reg_rr[opcode_opb + (mask_irq ? 16 : 0)];
-									fsm_cycle			<= 0;
-									state				<= FSM_DECODE;
-								end
-						endcase
+                        reg_ra				<= reg_rr[opcode_opa + (mask_irq ? 16 : 0)];
+                        cur_opcode[15:8]	<= bus_data_out;				// store top 8 bits of opcode
+                        state				<= FSM_DECODE;
 					end
 				FSM_DECODE:	// decode upcode
 					begin
