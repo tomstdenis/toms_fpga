@@ -316,7 +316,6 @@ module ib16 (
 										reg_ri			<= reg_ri + 8'b1;
 									end
 								end
-`ifdef CLEAVE	
 							OPCODE_STM:	// store
 								begin
 									bus_enable			<= 1;
@@ -334,6 +333,7 @@ module ib16 (
 										reg_wi			<= reg_wi + 8'b1;
 									end
 								end
+`ifdef CLEAVE	
 							OPCODE_CAL: // Call
 								begin
 									case(fsm_cycle)

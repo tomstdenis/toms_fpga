@@ -117,7 +117,7 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
                             bram_wre    <= 0;
                             bus_cycle   <= 4;
                         end
-                    4: 
+                    4: // delay for BRAM
                         begin
                             bus_cycle <= 5;
                         end
@@ -130,7 +130,7 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
                     6: // turn off TX and next byte
                         begin
                             uart_tx_start       <= 0;
-                            boot_addr           <= boot_addr + 1;
+                            boot_addr           <= boot_addr + 1'b1;
                             if (boot_addr == 16'h1FFF) begin
                                 run_mode        <= 1;
                             end
