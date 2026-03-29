@@ -5,5 +5,6 @@ LDI 2, 0x1				; R2 = 1, how much to increase how much to count by
 ADD 0, 0, 1				; R0 = R0 + R1
 JNZ LOOP
 ADD 1, 1, 2				; increment what we count by by 1
-JMP LOOP
+JNZ LOOP
+JMP 0
 
