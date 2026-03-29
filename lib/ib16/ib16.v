@@ -237,11 +237,13 @@ module ib16 (
 									case(opcode_opa)
 										0: // SHR
 											result_dff <= {2'b0, reg_rb[7:1]};
-										1: // ROR
+										1: // SAR
+											result_dff <= {1'b0, reg_rb[7], reg_rb[7:1]};
+										2: // ROR
 											result_dff <= {reg_rb[0], reg_rb[0], reg_rb[7:1]};
-										2: // ROL
+										3: // ROL
 											result_dff <= {reg_rb[7], reg_rb[6:0], reg_rb[7]};
-										3: // SWAP
+										4: // SWAP
 											result_dff <= {1'b0, reg_rb[3:0], reg_rb[7:4]};
 										default: begin end
 									endcase

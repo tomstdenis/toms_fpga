@@ -151,9 +151,10 @@ Instructions:
 8 - Shifts (2OP)												[ZC]
 	- 4 bit modifier
 		- SHR  0: R[d] = R[a] >> 1
-		- ROR  1: R[d] = R[a] >>> 1
-		- ROL  2: R[d] = R[a] <<< 1
-		- SWAP 3: R[d] = {R[a][3:0], R[a][7:4]}		
+		- SAR  1: R[d] = signed(R[a]) >> 1
+		- ROR  2: R[d] = R[a] >>> 1
+		- ROL  3: R[d] = R[a] <<< 1
+		- SWAP 4: R[d] = {R[a][3:0], R[a][7:4]}		
 9 - LDM (3OP)  R[d] = memory[{R[a], R[b]}]						[Z]
 10 - STM (3OP)  memory[{R[a], R[b]}] = R[d]
 11 - CALL (12IMM) PC = (IMM) << 1 (push PC)
