@@ -100,54 +100,71 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
             bus_cycle           <= 0;
             run_mode            <= 0;
             boot_addr           <= 0;
+            gpio_out            <= 8'hFF;
         end else 
             if (!run_mode) begin
                 // handle boot loader
                 case(bus_cycle)
-                    0: //wait for RX
+                    0: // flush
                         begin
                             if (uart_rx_ready) begin
                                 uart_rx_read    <= 1;
                                 bus_cycle       <= 1;
+                            end else begin
+                                bus_cycle       <= 2;
                             end
                         end
-                    1: // delay (waiting for uart to handle request)
+                    1: // flush delay
+                        begin
+                            uart_rx_read        <= 0;
+                            bus_cycle <= 0;
+                        end
+                    2: //wait for RX
+                        begin
+                            if (uart_rx_ready) begin
+                                uart_rx_read    <= 1;
+                                bus_cycle       <= 3;
+                            end
+                        end
+                    3: // delay (waiting for uart to handle request)
                         begin
                             uart_rx_read    <= 0;
-                            bus_cycle       <= 2;
+                            bus_cycle       <= 4;
                         end
-                    2: // store byte
+                    4: // store byte
                         begin
                             bram_wre    <= 1;
                             bram_ce     <= 1;
                             bram_addr   <= boot_addr[12:0];
                             bram_din    <= uart_rx_byte;
                             boot_addr   <= boot_addr;
-                            bus_cycle   <= 3;
+                            bus_cycle   <= 5;
                         end
-                    3: // read back?
+                    5: // read back?
                         begin
                             bram_wre    <= 0;
-                            bus_cycle   <= 4;
+                            bus_cycle   <= 6;
                         end
-                    4: // delay for BRAM
+                    6: // delay for BRAM
                         begin
-                            bus_cycle <= 5;
+                            bus_cycle <= 7;
                         end
-                    5: // transmit data read back
+                    7: // transmit data read back
                         begin
                             uart_tx_start       <= 1;
                             uart_tx_data_in     <= bram_dout;
-                            bus_cycle           <= 6;
+                            bus_cycle           <= 8;
                         end
-                    6: // turn off TX and next byte
+                    8: // turn off TX and next byte
                         begin
                             uart_tx_start       <= 0;
                             boot_addr           <= boot_addr + 1'b1;
                             if (boot_addr == 16'h1FFF) begin
                                 run_mode        <= 1;
+                                bus_cycle       <= 0;
+                            end else begin
+                                bus_cycle       <= 2;
                             end
-                            bus_cycle           <= 0;
                         end
                 endcase
             end else begin
@@ -161,7 +178,8 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
                             ib16_bus_data_out <= gpio_in;
                         end
                         ib16_bus_ready <= 1;
-                    end else if (ib16_bus_address == UART_DATA_ADDR) begin
+                    end 
+                    if (ib16_bus_address == UART_DATA_ADDR) begin
                         if (ib16_bus_wr_en) begin
                             case(bus_cycle)
                                 0: // wait for a FIFO slot
@@ -201,7 +219,8 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
                                     end
                             endcase
                         end
-                    end else if (ib16_bus_address < 16'h2000) begin
+                    end 
+                    if (ib16_bus_address < 16'h2000) begin
                         // BRAM block
                         case(bus_cycle)
                             0: // start transaction
