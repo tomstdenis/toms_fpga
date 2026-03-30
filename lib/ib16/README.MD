@@ -170,5 +170,8 @@ Instructions:
 		- 3 JZ (zero)
 		- 4 JNZ
 14 - SRES (8-bit IMM) SREG = {SREG[7:6] & ~imm8[7:6], imm8[5:0]} (W1C the carry and zero flags, store the rest)
+	- [0] - turn on read increment with LDM
+	- [1] - turn on write increment with STM
+	- [2] - set IRQ context (1 == in IRQ context, 0 == normal)
 15 - RETI - pop PC off stack, return from interrupt
 
