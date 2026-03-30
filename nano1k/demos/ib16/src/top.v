@@ -1,5 +1,5 @@
 // Enable a FASTMEM_SIZE-byte fast scratch memory for a smaller stack that is 1 cycle (speeds up push/pop/call/ret)
-`define USE_FASTMEM
+//`define USE_FASTMEM
 `define FASTMEM_SIZE 32
 
 // enable IRQs for UART supporting [0] = RX ready, [1] TX empty

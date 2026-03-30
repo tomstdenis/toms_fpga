@@ -37,7 +37,7 @@ STM 3,15,14			; store R1 to GPIO
 RET
 
 ; Recall to move this if you enable FASTMEM (to 0x0F80)
-.ORG 0x0F80			; IRQ vector (word 0x0F00 == address 0x1E00)
+.ORG 0x0F00			; IRQ vector (word 0x0F00 == address 0x1E00)
 :ISR
 LDM 0,15,14			; read from UART
 STM 0,15,14			; echo it back	

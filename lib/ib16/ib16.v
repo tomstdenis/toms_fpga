@@ -19,7 +19,7 @@ module ib16 #(
     // BUS
     reg [15:0] bus_address_terma;
     reg [7:0] bus_address_termb;
-    assign bus_address = bus_address_terma + bus_address_termb;
+    assign bus_address = bus_address_terma + {8'b0, bus_address_termb};
 
 	// ISA registers
 	localparam
@@ -245,7 +245,7 @@ module ib16 #(
                                        (opcode_isn == OPCODE_SUB ? 
                                             {1'b0, -reg_rb} :
                                             {1'b0, reg_rb}) +
-                                       ((opcode_isn == OPCODE_ADC ? 1'b1 : 1'b0) & carry_flag);
+                                       {8'b0, ((opcode_isn == OPCODE_ADC ? 1'b1 : 1'b0) & carry_flag)};
                         state		<= FSM_RETIRE;
                     end
 				FSM_DECODE + OPCODE_XOR:
@@ -301,7 +301,7 @@ module ib16 #(
                             // load from memory
 //                            bus_address		<= {reg_ra, reg_rb} + (reg_sreg[READ_INCR] ? {8'b0, reg_ri} : 16'b0);
                             bus_address_terma <= {reg_ra, reg_rb};
-                            bus_address_termb <= (reg_sreg[READ_INCR] ? {8'b0, reg_ri} : 16'b0);
+                            bus_address_termb <= (reg_sreg[READ_INCR] ? reg_ri : 8'b0);
                             reg_ri			<= reg_ri + 8'b1;
                         end
                     end
@@ -322,7 +322,7 @@ module ib16 #(
                             // store to memory
 //                            bus_address		<= {reg_ra, reg_rb} + (reg_sreg[WRITE_INCR] ? {8'b0, reg_wi} : 16'b0);
                             bus_address_terma <= {reg_ra, reg_rb};
-                            bus_address_termb <= (reg_sreg[WRITE_INCR] ? {8'b0, reg_wi} : 16'b0);
+                            bus_address_termb <= (reg_sreg[WRITE_INCR] ? reg_wi : 8'b0);
                             reg_wi			<= reg_wi + 8'b1;
                         end
                     end
