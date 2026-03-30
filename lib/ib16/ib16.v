@@ -10,12 +10,16 @@ module ib16 #(
 	// bus signals
 	output reg bus_enable,
 	output reg bus_wr_en,
-	output reg [15:0] bus_address,
+	output [15:0] bus_address, 
 	output reg [7:0] bus_data_in,
 	input bus_ready,
 	input [7:0] bus_data_out,
 	input bus_irq
 );
+    // BUS
+    reg [15:0] bus_address_terma;
+    reg [7:0] bus_address_termb;
+    assign bus_address = bus_address_terma + bus_address_termb;
 
 	// ISA registers
 	localparam
@@ -55,7 +59,6 @@ module ib16 #(
 	wire [7:0] opcode_8imm = cur_opcode[7:0];		// 8IMM
 	wire [11:0] opcode_12imm = cur_opcode[11:0];		// 12IMM
 	wire [15:0] opcode_9simm = { {6{cur_opcode[8]}}, cur_opcode[8:0], 1'b0 };
-	wire [15:0] opcode_sp = {8'b0, reg_sp};
 	wire [7:0]	reg_rb = reg_rr[opcode_opb + (mask_irq ? 16 : 0)];
 
 	localparam
@@ -113,10 +116,11 @@ module ib16 #(
 			result_dff		<= 0;
 			reg_ra			<= 0;
 			bus_enable		<= 0;
-			bus_address		<= 0;
 			bus_wr_en		<= 0;
 			bus_data_in		<= 0;
 			cur_opcode		<= 0;
+            bus_address_terma <= 0;
+            bus_address_termb <= 0;
 		end else begin
 			case(state)
 				FSM_RAM: // issue bus transaction
@@ -137,7 +141,8 @@ module ib16 #(
 							fsm_cycle	    <= 0;
 						end else begin
                             bus_enable		<= 1'b1;
-                            bus_address 	<= reg_pc;		        // read from PC
+                            bus_address_terma <= reg_pc;		        // read from PC
+                            bus_address_termb <= 0;
                             reg_pc			<= reg_pc + 1'd1;		// increment PC
                             state			<= FSM_RAM;
 							case(fsm_cycle)
@@ -236,11 +241,11 @@ module ib16 #(
                     end
                 FSM_DECODE + OPCODE_ADD, FSM_DECODE + OPCODE_ADC, FSM_DECODE + OPCODE_SUB: // all adders so better to merge these
                     begin
-                        result_dff	<= {1'b0, reg_ra} + 
+                        result_dff	<= {1'b0, reg_ra} +
                                        (opcode_isn == OPCODE_SUB ? 
-                                            {1'b0, -reg_rb} : 
-                                            {1'b0, reg_rb}) + 
-                                        {8'b0, (carry_flag & (opcode_isn == OPCODE_ADC ? 1'b1 : 1'b0))};
+                                            {1'b0, -reg_rb} :
+                                            {1'b0, reg_rb}) +
+                                       ((opcode_isn == OPCODE_ADC ? 1'b1 : 1'b0) & carry_flag);
                         state		<= FSM_RETIRE;
                     end
 				FSM_DECODE + OPCODE_XOR:
@@ -288,11 +293,15 @@ module ib16 #(
                         state				<= FSM_RAM;
                         if (opcode_opa == 15 && opcode_opb == 15) begin
                             // pop
-                            bus_address		<= STACK_ADDRESS + opcode_sp - 1'b1;
+//                            bus_address		<= STACK_ADDRESS + opcode_sp - 1'b1;
+                            bus_address_terma <= STACK_ADDRESS;
+                            bus_address_termb <= reg_sp - 1'b1;
                             reg_sp			<= reg_sp - 8'b1;
                         end else begin
                             // load from memory
-                            bus_address		<= {reg_ra, reg_rb} + (reg_sreg[READ_INCR] ? {8'b0, reg_ri} : 16'b0);
+//                            bus_address		<= {reg_ra, reg_rb} + (reg_sreg[READ_INCR] ? {8'b0, reg_ri} : 16'b0);
+                            bus_address_terma <= {reg_ra, reg_rb};
+                            bus_address_termb <= (reg_sreg[READ_INCR] ? {8'b0, reg_ri} : 16'b0);
                             reg_ri			<= reg_ri + 8'b1;
                         end
                     end
@@ -305,11 +314,15 @@ module ib16 #(
                         bus_data_in			<= reg_rr[(mask_irq ? 16 : 0) + opcode_opd];
                         if (opcode_opa == 15 && opcode_opb == 15) begin
                             // push
-                            bus_address		<= STACK_ADDRESS + opcode_sp;
+//                            bus_address		<= STACK_ADDRESS + opcode_sp;
+                            bus_address_terma <= STACK_ADDRESS;
+                            bus_address_termb <= reg_sp;
                             reg_sp			<= reg_sp + 8'b1;
                         end else begin
                             // store to memory
-                            bus_address		<= {reg_ra, reg_rb} + (reg_sreg[WRITE_INCR] ? {8'b0, reg_wi} : 16'b0);
+//                            bus_address		<= {reg_ra, reg_rb} + (reg_sreg[WRITE_INCR] ? {8'b0, reg_wi} : 16'b0);
+                            bus_address_terma <= {reg_ra, reg_rb};
+                            bus_address_termb <= (reg_sreg[WRITE_INCR] ? {8'b0, reg_wi} : 16'b0);
                             reg_wi			<= reg_wi + 8'b1;
                         end
                     end
@@ -317,7 +330,9 @@ module ib16 #(
                     begin
                         bus_enable		<= 1;
                         bus_wr_en		<= 1;
-                        bus_address		<= STACK_ADDRESS + opcode_sp;
+//                        bus_address		<= STACK_ADDRESS + opcode_sp;
+                        bus_address_terma <= STACK_ADDRESS;
+                        bus_address_termb <= reg_sp;
                         reg_sp			<= reg_sp + 8'b1;
                         state			<= FSM_RAM;
                         case(fsm_cycle)
@@ -347,7 +362,9 @@ module ib16 #(
                     begin
                         if (fsm_cycle != 2) begin
                             bus_enable		<= 1;
-                            bus_address		<= STACK_ADDRESS + opcode_sp - 16'b1;
+//                            bus_address		<= STACK_ADDRESS + opcode_sp - 16'b1;
+                            bus_address_terma <= STACK_ADDRESS;
+                            bus_address_termb <= reg_sp - 1'b1;
                             reg_sp			<= reg_sp - 8'b1;
                             tag				<= FSM_DECODE + OPCODE_RET;
                             state			<= FSM_RAM;
