@@ -1,5 +1,4 @@
-//`define USE_FASTMEM
-
+`define USE_FASTMEM
 `ifdef USE_FASTMEM
     `define STACK_ADDRESS 16'h2000
     `define IRQ_VECTOR    16'h1F00
@@ -7,6 +6,7 @@
     `define STACK_ADDRESS 16'h1F00
     `define IRQ_VECTOR    16'h1E00
 `endif
+
 module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
     localparam
         GPIO_DATA_ADDR = 16'hFFFD,

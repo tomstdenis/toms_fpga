@@ -39,8 +39,8 @@ module ib16 #(
 	wire read_incr_flag = reg_sreg[READ_INCR];
 	
 	// CPU state		
-	reg [2:0]	state;
-	reg [2:0]	tag;
+	reg [5:0]	state;
+	reg [5:0]	tag;
 	reg [2:0]	fsm_cycle;
 	reg 		mask_irq;
 	reg [15:0]	cur_opcode;
@@ -80,9 +80,9 @@ module ib16 #(
 		FSM_FETCH		= 0,				// FETCH next opcode (this should be 0 so we can use nice resets on the state DFFs)
 		FSM_RAM			= 1,
 		FSM_PREDECODE	= 2,
-		FSM_DECODE		= 3,
-		FSM_RETIRE		= 4,
-		FSM_LDM_PART2   = 5;
+		FSM_RETIRE		= 3,
+		FSM_LDM_PART2   = 4,
+		FSM_DECODE		= 5;
 
 
 	// reset GPRs (this should infer a DFF with reset, if not may have to do 32 cycle reset
@@ -161,255 +161,250 @@ module ib16 #(
 					begin
                         reg_ra				<= reg_rr[opcode_opa + (mask_irq ? 16 : 0)];
                         cur_opcode[15:8]	<= bus_data_out;				// store top 8 bits of opcode
-                        state				<= FSM_DECODE;
+                        state				<= FSM_DECODE + {2'b0, bus_data_out[7:4]};
 					end
-				FSM_DECODE:	// decode upcode
+				FSM_DECODE + OPCODE_MOV:	// decode upcode
 					begin
-						case(opcode_isn)						// switch on the insn
-							OPCODE_MOV:
-								begin
-									case(opcode_opa)			// modifier == opa, reg is reg_rb
-										0: // MOV
-											begin
-												result_dff		<= {1'b0, reg_rb};
-												state			<= FSM_RETIRE;
-											end
-										1: // MOVC
-											begin
-												if (carry_flag) begin
-													result_dff 	<= {1'b0, reg_rb};
-													state 		<= FSM_RETIRE;
-												end else begin
-													state		<= FSM_FETCH;
-												end
-											end
-										2: // MOVNC
-											begin
-												if (!carry_flag) begin
-													result_dff 	<= {1'b0, reg_rb};
-													state 		<= FSM_RETIRE;
-												end else begin
-													state		<= FSM_FETCH;
-												end
-											end
-										3: // MOVZ
-											begin
-												if (zero_flag) begin
-													result_dff 	<= {1'b0, reg_rb};
-													state 		<= FSM_RETIRE;
-												end else begin
-													state		<= FSM_FETCH;
-												end
-											end
-										4: // MOVNZ
-											begin
-												if (!zero_flag) begin
-													result_dff 	<= {1'b0, reg_rb};
-													state 		<= FSM_RETIRE;
-												end else begin
-													state		<= FSM_FETCH;
-												end
-											end
-										5: // MOVSP
-											begin
-												result_dff 		<= { 1'b0, reg_sp};
-												state			<= FSM_RETIRE;
-											end
-										6: // MOVRI
-											begin
-												result_dff 		<= { 1'b0, reg_ri};
-												state			<= FSM_RETIRE;
-											end
-										7: // MOVWI
-											begin
-												result_dff 		<= { 1'b0, reg_wi};
-												state			<= FSM_RETIRE;
-											end
-										8: // MOVSREG
-											begin
-												result_dff 		<= { 1'b0, reg_sreg};
-												state			<= FSM_RETIRE;
-											end
-										default: begin end
-									endcase
-								end
-							OPCODE_LDI:
-								begin
-									result_dff	<= {1'b0, opcode_8imm};
-									state		<= FSM_RETIRE;
-								end
-							OPCODE_ADD, OPCODE_ADC, OPCODE_SUB: // all adders so better to merge these
-								begin
-									result_dff	<= {1'b0, reg_ra} + 
-                                                   (opcode_isn == OPCODE_SUB ? {1'b0, -reg_rb} : {1'b0, reg_rb}) + 
-                                                    {8'b0, (carry_flag & (opcode_isn == OPCODE_ADC ? 1'b1 : 1'b0))};
-									state		<= FSM_RETIRE;
-								end
-							OPCODE_XOR:
-								begin
-									result_dff	<= {1'b0, reg_ra} ^ {1'b0, reg_rb};
-									state		<= FSM_RETIRE;
-								end
-							OPCODE_AND:
-								begin
-									result_dff	<= {1'b0, reg_ra} & {1'b0, reg_rb};
-									state		<= FSM_RETIRE;
-								end
-							OPCODE_OR:
-								begin
-									result_dff	<= {1'b0, reg_ra} | {1'b0, reg_rb};
-									state		<= FSM_RETIRE;
-								end
-							OPCODE_SHF: // shifts (modifier == opcode_opa, register is reg_rb)
-								begin
-									state		<= FSM_RETIRE;
-									case(opcode_opa)
-										0: // SHR
-											result_dff <= {2'b0, reg_rb[7:1]};
-										1: // SAR
-											result_dff <= {1'b0, reg_rb[7], reg_rb[7:1]};
-										2: // ROR
-											result_dff <= {reg_rb[0], reg_rb[0], reg_rb[7:1]};
-										3: // ROL
-											result_dff <= {reg_rb[7], reg_rb[6:0], reg_rb[7]};
-										4: // SWAP
-											result_dff <= {1'b0, reg_rb[3:0], reg_rb[7:4]};
-                                        5: // INC
-                                            result_dff <= {1'b0, reg_rb} + 1'b1;
-                                        6: // DEC
-                                            result_dff <= {1'b0, reg_rb} - 1'b1;
-                                        7: // NOT
-                                            result_dff <= {1'b0, ~reg_rb};
-										default: begin end
-									endcase
-								end
-							OPCODE_LDM: // load
-								begin
-									bus_enable			<= 1;
-									tag 				<= FSM_LDM_PART2;
-									state				<= FSM_RAM;
-									if (opcode_opa == 15 && opcode_opb == 15) begin
-										// pop
-										bus_address		<= STACK_ADDRESS + opcode_sp - 1'b1;
-										reg_sp			<= reg_sp - 8'b1;
-									end else begin
-										// load from memory
-										bus_address		<= {reg_ra, reg_rb} + (reg_sreg[READ_INCR] ? {8'b0, reg_ri} : 16'b0);
-										reg_ri			<= reg_ri + 8'b1;
-									end
-								end
-							OPCODE_STM:	// store
-								begin
-									bus_enable			<= 1;
-									bus_wr_en			<= 1;
-									tag					<= FSM_FETCH;
-									state				<= FSM_RAM;
-									bus_data_in			<= reg_rr[(mask_irq ? 16 : 0) + opcode_opd];
-									if (opcode_opa == 15 && opcode_opb == 15) begin
-										// push
-										bus_address		<= STACK_ADDRESS + opcode_sp;
-										reg_sp			<= reg_sp + 8'b1;
-									end else begin
-										// store to memory
-										bus_address		<= {reg_ra, reg_rb} + (reg_sreg[WRITE_INCR] ? {8'b0, reg_wi} : 16'b0);
-										reg_wi			<= reg_wi + 8'b1;
-									end
-								end
-							OPCODE_CAL: // Call
-								begin
-                                    bus_enable		<= 1;
-                                    bus_wr_en		<= 1;
-                                    bus_address		<= STACK_ADDRESS + opcode_sp;
-                                    reg_sp			<= reg_sp + 8'b1;
-                                    state			<= FSM_RAM;
-									case(fsm_cycle)
-										0:					// store reg_pc[7:0]
-											begin
-												bus_data_in		<= reg_pc[7:0];
-												tag				<= FSM_DECODE;
-												fsm_cycle		<= 1;
-											end
-										1:					// store reg_pc[15:8]
-											begin
-												bus_data_in		<= reg_pc[15:8];
-												tag				<= FSM_FETCH;
-												fsm_cycle		<= 0;
-												reg_pc			<= {3'b0, opcode_12imm, 1'b0};
-											end
-										default: begin end
-									endcase
-								end
-							OPCODE_RTI: // return from interrupt
-								begin
-									mask_irq 					<= 0;
-									reg_pc	 					<= reg_irq_pc;
-									state						<= FSM_FETCH;
-								end
-							OPCODE_RET: // return
-								begin
-                                    if (fsm_cycle != 2) begin
-                                        bus_enable		<= 1;
-                                        bus_address		<= STACK_ADDRESS + opcode_sp - 16'b1;
-                                        reg_sp			<= reg_sp - 8'b1;
-                                        tag				<= FSM_DECODE;
-                                        state			<= FSM_RAM;
+                        case(opcode_opa)			// modifier == opa, reg is reg_rb
+                            0: // MOV
+                                begin
+                                    result_dff		<= {1'b0, reg_rb};
+                                    state			<= FSM_RETIRE;
+                                end
+                            1: // MOVC
+                                begin
+                                    if (carry_flag) begin
+                                        result_dff 	<= {1'b0, reg_rb};
+                                        state 		<= FSM_RETIRE;
+                                    end else begin
+                                        state		<= FSM_FETCH;
                                     end
-									case(fsm_cycle)
-										0:					// load PC[15:8]
-											begin
-												fsm_cycle		<= 1;
-											end
-										1:					// load PC[7:0]
-											begin
-												fsm_cycle		<= 2;
-												reg_pc[15:8]	<= bus_data_out;
-											end
-										2:					// capture value
-											begin
-												reg_pc[7:0]		<= bus_data_out;
-												fsm_cycle		<= 0;
-												state			<= FSM_FETCH;
-											end
-									endcase
-								end
-							OPCODE_JMP: // jumps, modifier == 3imm, offset == opcode_9simm which is already expanded to signed 16-bit
-								begin
-                                    if ((opcode_3imm == 0) ||                           // JMP
-                                        (opcode_3imm == 1 && carry_flag) ||             // JC
-                                        (opcode_3imm == 2 && ~carry_flag) ||            // JNC
-                                        (opcode_3imm == 3 && zero_flag) ||              // JZ
-                                        (opcode_3imm == 4 && ~zero_flag)) begin         // JNZ
-                                        reg_pc <= reg_pc + opcode_9simm;
+                                end
+                            2: // MOVNC
+                                begin
+                                    if (!carry_flag) begin
+                                        result_dff 	<= {1'b0, reg_rb};
+                                        state 		<= FSM_RETIRE;
+                                    end else begin
+                                        state		<= FSM_FETCH;
                                     end
-									state <= FSM_FETCH;
-								end
-							OPCODE_SRS: // SREG Update / Index Reset
-								begin
-									// SREG = {SREG[7:6] & ~imm8[7:6], imm8[5:0]} 
-									// W1C for carry/zero, store for other bits
-									reg_sreg    <= {reg_sreg[7:6] & ~opcode_8imm[7:6], opcode_8imm[5:0]};
-									reg_ri      <= 8'h00; // Clear RI
-									reg_wi      <= 8'h00; // Clear WI
-									state       <= FSM_FETCH;
-								end
-							default: begin end
-						endcase
-					end
-				FSM_RETIRE:	// retire isn
-					begin
-						reg_rr[(mask_irq ? 16 : 0) + opcode_opd]	<= result_dff[7:0];
-						reg_sreg[ZERO_FLAG]							<= result_dff[7:0] == 0 ? 1'b1 : 1'b0;
-						reg_sreg[CARRY_FLAG]						<= result_dff[8];
-						state										<= FSM_FETCH;
-					end
-				FSM_LDM_PART2: // handle result from LDM
-					begin
-						result_dff									<= {1'b0, bus_data_out};
-						state										<= FSM_RETIRE;
-					end
-				default: begin end
-			endcase
+                                end
+                            3: // MOVZ
+                                begin
+                                    if (zero_flag) begin
+                                        result_dff 	<= {1'b0, reg_rb};
+                                        state 		<= FSM_RETIRE;
+                                    end else begin
+                                        state		<= FSM_FETCH;
+                                    end
+                                end
+                            4: // MOVNZ
+                                begin
+                                    if (!zero_flag) begin
+                                        result_dff 	<= {1'b0, reg_rb};
+                                        state 		<= FSM_RETIRE;
+                                    end else begin
+                                        state		<= FSM_FETCH;
+                                    end
+                                end
+                            5: // MOVSP
+                                begin
+                                    result_dff 		<= { 1'b0, reg_sp};
+                                    state			<= FSM_RETIRE;
+                                end
+                            6: // MOVRI
+                                begin
+                                    result_dff 		<= { 1'b0, reg_ri};
+                                    state			<= FSM_RETIRE;
+                                end
+                            7: // MOVWI
+                                begin
+                                    result_dff 		<= { 1'b0, reg_wi};
+                                    state			<= FSM_RETIRE;
+                                end
+                            8: // MOVSREG
+                                begin
+                                    result_dff 		<= { 1'b0, reg_sreg};
+                                    state			<= FSM_RETIRE;
+                                end
+                            default: begin end
+                        endcase
+                    end
+                FSM_DECODE + OPCODE_LDI:
+                    begin
+                        result_dff	<= {1'b0, opcode_8imm};
+                        state		<= FSM_RETIRE;
+                    end
+                FSM_DECODE + OPCODE_ADD, FSM_DECODE + OPCODE_ADC, FSM_DECODE + OPCODE_SUB: // all adders so better to merge these
+                    begin
+                        result_dff	<= {1'b0, reg_ra} + 
+                                       (opcode_isn == OPCODE_SUB ? 
+                                            {1'b0, -reg_rb} : 
+                                            {1'b0, reg_rb}) + 
+                                        {8'b0, (carry_flag & (opcode_isn == OPCODE_ADC ? 1'b1 : 1'b0))};
+                        state		<= FSM_RETIRE;
+                    end
+				FSM_DECODE + OPCODE_XOR:
+                    begin
+                        result_dff	<= {1'b0, reg_ra} ^ {1'b0, reg_rb};
+                        state		<= FSM_RETIRE;
+                    end
+				FSM_DECODE + OPCODE_AND:
+                    begin
+                        result_dff	<= {1'b0, reg_ra} & {1'b0, reg_rb};
+                        state		<= FSM_RETIRE;
+                    end
+                FSM_DECODE + OPCODE_OR:
+                    begin
+                        result_dff	<= {1'b0, reg_ra} | {1'b0, reg_rb};
+                        state		<= FSM_RETIRE;
+                    end
+                FSM_DECODE + OPCODE_SHF: // shifts (modifier == opcode_opa, register is reg_rb)
+                    begin
+                        state		<= FSM_RETIRE;
+                        case(opcode_opa)
+                            0: // SHR
+                                result_dff <= {2'b0, reg_rb[7:1]};
+                            1: // SAR
+                                result_dff <= {1'b0, reg_rb[7], reg_rb[7:1]};
+                            2: // ROR
+                                result_dff <= {reg_rb[0], reg_rb[0], reg_rb[7:1]};
+                            3: // ROL
+                                result_dff <= {reg_rb[7], reg_rb[6:0], reg_rb[7]};
+                            4: // SWAP
+                                result_dff <= {1'b0, reg_rb[3:0], reg_rb[7:4]};
+                            5: // INC
+                                result_dff <= {1'b0, reg_rb} + 1'b1;
+                            6: // DEC
+                                result_dff <= {1'b0, reg_rb} - 1'b1;
+                            7: // NOT
+                                result_dff <= {1'b0, ~reg_rb};
+                            default: begin end
+                        endcase
+                    end
+                FSM_DECODE + OPCODE_LDM: // load
+                    begin
+                        bus_enable			<= 1;
+                        tag 				<= FSM_LDM_PART2;
+                        state				<= FSM_RAM;
+                        if (opcode_opa == 15 && opcode_opb == 15) begin
+                            // pop
+                            bus_address		<= STACK_ADDRESS + opcode_sp - 1'b1;
+                            reg_sp			<= reg_sp - 8'b1;
+                        end else begin
+                            // load from memory
+                            bus_address		<= {reg_ra, reg_rb} + (reg_sreg[READ_INCR] ? {8'b0, reg_ri} : 16'b0);
+                            reg_ri			<= reg_ri + 8'b1;
+                        end
+                    end
+                FSM_DECODE + OPCODE_STM:	// store
+                    begin
+                        bus_enable			<= 1;
+                        bus_wr_en			<= 1;
+                        tag					<= FSM_FETCH;
+                        state				<= FSM_RAM;
+                        bus_data_in			<= reg_rr[(mask_irq ? 16 : 0) + opcode_opd];
+                        if (opcode_opa == 15 && opcode_opb == 15) begin
+                            // push
+                            bus_address		<= STACK_ADDRESS + opcode_sp;
+                            reg_sp			<= reg_sp + 8'b1;
+                        end else begin
+                            // store to memory
+                            bus_address		<= {reg_ra, reg_rb} + (reg_sreg[WRITE_INCR] ? {8'b0, reg_wi} : 16'b0);
+                            reg_wi			<= reg_wi + 8'b1;
+                        end
+                    end
+                FSM_DECODE + OPCODE_CAL: // Call
+                    begin
+                        bus_enable		<= 1;
+                        bus_wr_en		<= 1;
+                        bus_address		<= STACK_ADDRESS + opcode_sp;
+                        reg_sp			<= reg_sp + 8'b1;
+                        state			<= FSM_RAM;
+                        case(fsm_cycle)
+                            0:					// store reg_pc[7:0]
+                                begin
+                                    bus_data_in		<= reg_pc[7:0];
+                                    tag				<= FSM_DECODE + OPCODE_CAL;
+                                    fsm_cycle		<= 1;
+                                end
+                            1:					// store reg_pc[15:8]
+                                begin
+                                    bus_data_in		<= reg_pc[15:8];
+                                    tag				<= FSM_FETCH;
+                                    fsm_cycle		<= 0;
+                                    reg_pc			<= {3'b0, opcode_12imm, 1'b0};
+                                end
+                            default: begin end
+                        endcase
+                    end
+                FSM_DECODE + OPCODE_RTI: // return from interrupt
+                    begin
+                        mask_irq 					<= 0;
+                        reg_pc	 					<= reg_irq_pc;
+                        state						<= FSM_FETCH;
+                    end
+                FSM_DECODE + OPCODE_RET: // return
+                    begin
+                        if (fsm_cycle != 2) begin
+                            bus_enable		<= 1;
+                            bus_address		<= STACK_ADDRESS + opcode_sp - 16'b1;
+                            reg_sp			<= reg_sp - 8'b1;
+                            tag				<= FSM_DECODE + OPCODE_RET;
+                            state			<= FSM_RAM;
+                        end
+                        case(fsm_cycle)
+                            0:					// load PC[15:8]
+                                begin
+                                    fsm_cycle		<= 1;
+                                end
+                            1:					// load PC[7:0]
+                                begin
+                                    fsm_cycle		<= 2;
+                                    reg_pc[15:8]	<= bus_data_out;
+                                end
+                            2:					// capture value
+                                begin
+                                    reg_pc[7:0]		<= bus_data_out;
+                                    fsm_cycle		<= 0;
+                                    state			<= FSM_FETCH;
+                                end
+                        endcase
+                    end
+                FSM_DECODE + OPCODE_JMP: // jumps, modifier == 3imm, offset == opcode_9simm which is already expanded to signed 16-bit
+                    begin
+                        if ((opcode_3imm == 0) ||                           // JMP
+                            (opcode_3imm == 1 && carry_flag) ||             // JC
+                            (opcode_3imm == 2 && ~carry_flag) ||            // JNC
+                            (opcode_3imm == 3 && zero_flag) ||              // JZ
+                            (opcode_3imm == 4 && ~zero_flag)) begin         // JNZ
+                            reg_pc <= reg_pc + opcode_9simm;
+                        end
+                        state <= FSM_FETCH;
+                    end
+                FSM_DECODE + OPCODE_SRS: // SREG Update / Index Reset
+                    begin
+                        // SREG = {SREG[7:6] & ~imm8[7:6], imm8[5:0]} 
+                        // W1C for carry/zero, store for other bits
+                        reg_sreg    <= {reg_sreg[7:6] & ~opcode_8imm[7:6], opcode_8imm[5:0]};
+                        reg_ri      <= 8'h00; // Clear RI
+                        reg_wi      <= 8'h00; // Clear WI
+                        state       <= FSM_FETCH;
+                    end
+                FSM_RETIRE:	// retire isn
+                    begin
+                        reg_rr[(mask_irq ? 16 : 0) + opcode_opd]	<= result_dff[7:0];
+                        reg_sreg[ZERO_FLAG]							<= result_dff[7:0] == 0 ? 1'b1 : 1'b0;
+                        reg_sreg[CARRY_FLAG]						<= result_dff[8];
+                        state										<= FSM_FETCH;
+                    end
+                FSM_LDM_PART2: // handle result from LDM
+                    begin
+                        result_dff									<= {1'b0, bus_data_out};
+                        state										<= FSM_RETIRE;
+                    end
+                default: begin end
+            endcase
 		end
 	end
-
 endmodule
