@@ -33,7 +33,6 @@ module ib16 (
 	reg [7:0]	reg_ri;								// RI (read index)
 	reg [7:0]	reg_rr [0:31];						// GPRs (16, + 16 for IRQ)
 	reg [7:0]	reg_ra;
-	wire [7:0]	reg_rb = reg_rr[opcode_opb + (mask_irq ? 16 : 0)];
 	
 	wire carry_flag = reg_sreg[CARRY_FLAG];
 	wire zero_flag  = reg_sreg[ZERO_FLAG];
@@ -58,6 +57,7 @@ module ib16 (
 	wire [11:0] opcode_12imm = cur_opcode[11:0];		// 12IMM
 	wire [15:0] opcode_9simm = { {6{cur_opcode[8]}}, cur_opcode[8:0], 1'b0 };
 	wire [15:0] opcode_sp = {8'b0, reg_sp};
+	wire [7:0]	reg_rb = reg_rr[opcode_opb + (mask_irq ? 16 : 0)];
 
 	localparam
 		OPCODE_MOV = 0,
@@ -239,19 +239,11 @@ module ib16 (
 									result_dff	<= {1'b0, opcode_8imm};
 									state		<= FSM_RETIRE;
 								end
-							OPCODE_ADD:
+							OPCODE_ADD, OPCODE_ADC, OPCODE_SUB: // all adders so better to merge these
 								begin
-									result_dff	<= {1'b0, reg_ra} + {1'b0, reg_rb};
-									state		<= FSM_RETIRE;
-								end
-							OPCODE_ADC:
-								begin
-									result_dff	<= {1'b0, reg_ra} + {1'b0, reg_rb} + reg_sreg[CARRY_FLAG];
-									state		<= FSM_RETIRE;
-								end
-							OPCODE_SUB:
-								begin
-									result_dff	<= {1'b0, reg_ra} - {1'b0, reg_rb};
+									result_dff	<= {1'b0, reg_ra} + 
+                                                   (opcode_isn == OPCODE_SUB ? {1'b0, -reg_rb} : {1'b0, reg_rb}) + 
+                                                    {8'b0, (carry_flag & (opcode_isn == OPCODE_ADC ? 1'b1 : 1'b0))};
 									state		<= FSM_RETIRE;
 								end
 							OPCODE_XOR:
@@ -297,7 +289,7 @@ module ib16 (
 									bus_enable			<= 1;
 									tag 				<= FSM_LDM_PART2;
 									state				<= FSM_RAM;
-									if (opcode_opa == opcode_opb && opcode_opa == 15) begin
+									if (opcode_opa == 15 && opcode_opb == 15) begin
 										// pop
 										bus_address		<= STACK_ADDRESS + opcode_sp - 1'b1;
 										reg_sp			<= reg_sp - 8'b1;
@@ -314,7 +306,7 @@ module ib16 (
 									tag					<= FSM_FETCH;
 									state				<= FSM_RAM;
 									bus_data_in			<= reg_rr[(mask_irq ? 16 : 0) + opcode_opd];
-									if (opcode_opa == opcode_opb && opcode_opa == 15) begin
+									if (opcode_opa == 15 && opcode_opb == 15) begin
 										// push
 										bus_address		<= STACK_ADDRESS + opcode_sp;
 										reg_sp			<= reg_sp + 8'b1;

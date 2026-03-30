@@ -1,6 +1,7 @@
 module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
     localparam
-        GPIO_DATA_ADDR = 16'hFFFE,
+        GPIO_DATA_ADDR = 16'hFFFD,
+        UART_STS_ADDR  = 16'hFFFE,
         UART_DATA_ADDR = 16'hFFFF;
 
     wire pllclk;
@@ -182,6 +183,13 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
                             gpio_out <= ib16_bus_data_in;
                         end else begin
                             ib16_bus_data_out <= gpio_in;
+                        end
+                        ib16_bus_ready <= 1;
+                    end 
+                    if (ib16_bus_address == UART_STS_ADDR) begin
+                        if (ib16_bus_wr_en) begin
+                        end else begin
+                            ib16_bus_data_out <= {5'b0, uart_tx_fifo_empty, uart_tx_fifo_full, uart_rx_ready};
                         end
                         ib16_bus_ready <= 1;
                     end 
