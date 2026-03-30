@@ -131,7 +131,7 @@ module ib16 #(
 				FSM_FETCH: // fetch opcode
 					begin
 						if (bus_irq && !mask_irq) begin
-							reg_irq_pc	    <= reg_pc;
+							reg_irq_pc	    <= {reg_pc[15:1], 1'b0}; // force LSB to zero in case we IRQ in the middle of a fetch
 							mask_irq 	    <= 1;
 							reg_pc	 	    <= IRQ_VECTOR;
 							fsm_cycle	    <= 0;

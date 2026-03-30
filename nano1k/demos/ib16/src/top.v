@@ -1,6 +1,13 @@
-
-// Enable a 128-byte fast scratch memory for a smaller stack that is 1 cycle
+// Enable a FASTMEM_SIZE-byte fast scratch memory for a smaller stack that is 1 cycle (speeds up push/pop/call/ret)
 //`define USE_FASTMEM
+`define FASTMEM_SIZE 32
+
+// enable IRQs for UART supporting [0] = RX ready, [1] TX empty
+//`define USE_UARTIRQ
+
+// Simple IRQ, raises bus_irq if RX ready
+`define USE_SIMPLE_UART_IRQ
+
 `ifdef USE_FASTMEM
     `define STACK_ADDRESS 16'h2000
     `define IRQ_VECTOR    16'h1F00
@@ -8,9 +15,6 @@
     `define STACK_ADDRESS 16'h1F00
     `define IRQ_VECTOR    16'h1E00
 `endif
-
-// enable IRQs for UART supporting [0] = RX ready, [1] TX empty
-//`define USE_UARTIRQ
 
 module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
     localparam
@@ -57,8 +61,8 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
 `ifdef USE_UARTIRQ
     reg uart_prev_tx_fifo_empty;
     reg uart_prev_rx_ready;
-    reg [7:0] uart_int_enable;
-    reg [7:0] uart_int_pending;
+    reg [1:0] uart_int_enable;
+    reg [1:0] uart_int_pending;
 `endif
 
     uart #(.FIFO_DEPTH(2), .RX_ENABLE(1), .TX_ENABLE(1)) mrtalky (
@@ -116,7 +120,7 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
         .bus_irq(ib16_bus_irq));
 
 `ifdef USE_FASTMEM
-    reg [7:0] fastmem[0:127];
+    reg [7:0] fastmem[0:`FASTMEM_SIZE - 1];
 `endif
     // bus controller
     always @(posedge pllclk) begin
@@ -216,11 +220,15 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
                 uart_prev_tx_fifo_empty <= uart_tx_fifo_empty;
                 ib16_bus_irq <= |(uart_int_pending & uart_int_enable);
 `endif
+`ifdef USE_SIMPLE_UART_IRQ
+                ib16_bus_irq <= uart_rx_ready;
+`endif
+
                 // normal mode
                 if (ib16_bus_enable && !ib16_bus_ready) begin
                     // handle new command
 `ifdef USE_FASTMEM
-                    // Fast memory (2000..207F)
+                    // Fast memory (2000..203F)
                     if (ib16_bus_address[15:8] == 8'h20) begin
                         if (ib16_bus_wr_en) begin
                             fastmem[ib16_bus_address[7:0]] <= ib16_bus_data_in;
@@ -243,18 +251,18 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
                     // UART Interrupt enable
                     if (ib16_bus_address == UART_INT_ADDR) begin
                         if (ib16_bus_wr_en) begin
-                            uart_int_pending <= uart_int_pending & ~ib16_bus_data_in;
+                            uart_int_pending <= uart_int_pending[1:0] & ~ib16_bus_data_in[1:0];
                         end else begin
-                            ib16_bus_data_out <= uart_int_pending;
+                            ib16_bus_data_out <= {6'b0, uart_int_pending};
                         end
                         ib16_bus_ready <= 1;
                     end
                     // UART Interrupt enable
                     if (ib16_bus_address == UART_INTEN_ADDR) begin
                         if (ib16_bus_wr_en) begin
-                            uart_int_enable <= ib16_bus_data_in;
+                            uart_int_enable <= ib16_bus_data_in[1:0];
                         end else begin
-                            ib16_bus_data_out <= uart_int_enable;
+                            ib16_bus_data_out <= {6'b0, uart_int_enable};
                         end
                         ib16_bus_ready <= 1;
                     end
