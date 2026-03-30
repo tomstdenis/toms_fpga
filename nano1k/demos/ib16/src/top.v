@@ -1,4 +1,4 @@
-`define USE_FASTMEM
+//`define USE_FASTMEM
 `ifdef USE_FASTMEM
     `define STACK_ADDRESS 16'h2000
     `define IRQ_VECTOR    16'h1F00
@@ -138,7 +138,7 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
                     1: // flush delay
                         begin
                             uart_rx_read        <= 0;
-                            bus_cycle <= 0;
+                            bus_cycle           <= 0;
                         end
                     2: //wait for RX
                         begin

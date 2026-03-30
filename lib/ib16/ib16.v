@@ -84,7 +84,6 @@ module ib16 #(
 		FSM_LDM_PART2   = 4,
 		FSM_DECODE		= 5;
 
-
 	// reset GPRs (this should infer a DFF with reset, if not may have to do 32 cycle reset
 `ifdef SIM
 	genvar i;
