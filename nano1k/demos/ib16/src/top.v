@@ -1,3 +1,12 @@
+//`define USE_FASTMEM
+
+`ifdef USE_FASTMEM
+    `define STACK_ADDRESS 16'h2000
+    `define IRQ_VECTOR    16'h1F00
+`else
+    `define STACK_ADDRESS 16'h1F00
+    `define IRQ_VECTOR    16'h1E00
+`endif
 module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
     localparam
         GPIO_DATA_ADDR = 16'hFFFD,
@@ -39,7 +48,7 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
     wire uart_rx_ready;
     wire [7:0] uart_rx_byte;
 
-    uart #(.FIFO_DEPTH(4), .RX_ENABLE(1), .TX_ENABLE(1)) mrtalky (
+    uart #(.FIFO_DEPTH(2), .RX_ENABLE(1), .TX_ENABLE(1)) mrtalky (
         .clk(pllclk), .rst_n(rst_n),
         .baud_div(baud_div),
         .uart_tx_start(uart_tx_start),
@@ -81,7 +90,9 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
     reg [3:0] bus_cycle;
     reg run_mode;
     reg [14:0] boot_addr;
-    ib16 ittybitty(
+    ib16 #(
+        .STACK_ADDRESS(`STACK_ADDRESS),
+        .IRQ_VECTOR(`IRQ_VECTOR)) ittybitty(
         .clk(pllclk), .rst_n(rst_n & run_mode),
         .bus_enable(ib16_bus_enable),
         .bus_wr_en(ib16_bus_wr_en),
@@ -91,6 +102,9 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
         .bus_data_out(ib16_bus_data_out),
         .bus_irq(ib16_bus_irq));
 
+`ifdef USE_FASTMEM
+    reg [7:0] fastmem[0:127];
+`endif
     // bus controller
     always @(posedge pllclk) begin
         if (!rst_n) begin
@@ -135,26 +149,26 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
                         end
                     3: // delay (waiting for uart to handle request)
                         begin
-                            uart_rx_read    <= 0;
-                            bus_cycle       <= 4;
+                            uart_rx_read        <= 0;
+                            bus_cycle           <= 4;
                         end
                     4: // store byte
                         begin
-                            bram_wre    <= 1;
-                            bram_ce     <= 1;
-                            bram_addr   <= boot_addr[12:0];
-                            bram_din    <= uart_rx_byte;
-                            boot_addr   <= boot_addr;
-                            bus_cycle   <= 5;
+                            bram_wre            <= 1;
+                            bram_ce             <= 1;
+                            bram_addr           <= boot_addr[12:0];
+                            bram_din            <= uart_rx_byte;
+                            boot_addr           <= boot_addr;
+                            bus_cycle           <= 5;
                         end
                     5: // read back?
                         begin
-                            bram_wre    <= 0;
-                            bus_cycle   <= 6;
+                            bram_wre            <= 0;
+                            bus_cycle           <= 6;
                         end
                     6: // delay for BRAM
                         begin
-                            bus_cycle <= 7;
+                            bus_cycle           <= 7;
                         end
                     7: // transmit data read back
                         begin
@@ -178,6 +192,18 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
                 // normal mode
                 if (ib16_bus_enable && !ib16_bus_ready) begin
                     // handle new command
+`ifdef USE_FASTMEM
+                    // Fast memory (2000..20FF)
+                    if (ib16_bus_address[15:8] == 8'h20) begin
+                        if (ib16_bus_wr_en) begin
+                            fastmem[ib16_bus_address[7:0]] <= ib16_bus_data_in;
+                        end else begin
+                            ib16_bus_data_out <= fastmem[ib16_bus_address[7:0]];
+                        end
+                        ib16_bus_ready <= 1;
+                    end 
+`endif
+                    // GPIO port
                     if (ib16_bus_address == GPIO_DATA_ADDR) begin
                         if (ib16_bus_wr_en) begin
                             gpio_out <= ib16_bus_data_in;
@@ -185,7 +211,8 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
                             ib16_bus_data_out <= gpio_in;
                         end
                         ib16_bus_ready <= 1;
-                    end 
+                    end
+                    // UART Status register
                     if (ib16_bus_address == UART_STS_ADDR) begin
                         if (ib16_bus_wr_en) begin
                         end else begin
@@ -193,6 +220,7 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
                         end
                         ib16_bus_ready <= 1;
                     end 
+                    // UART data register
                     if (ib16_bus_address == UART_DATA_ADDR) begin
                         if (ib16_bus_wr_en) begin
                             case(bus_cycle)
@@ -222,8 +250,8 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
                                     end
                                 1: // deassert read and delay for byte
                                     begin
-                                        uart_rx_read <= 0;
-                                        bus_cycle    <= 2;
+                                        uart_rx_read        <= 0;
+                                        bus_cycle           <= 2;
                                     end
                                 2: // store byte and go back to idle
                                     begin

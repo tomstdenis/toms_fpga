@@ -1,6 +1,9 @@
 `timescale 1ns/1ps
 
-module ib16 (
+module ib16 #(
+    parameter STACK_ADDRESS = 16'h1F00,
+    parameter IRQ_VECTOR    = 16'h1E00
+) (
 	input clk,
 	input rst_n,
 	
@@ -13,10 +16,6 @@ module ib16 (
 	input [7:0] bus_data_out,
 	input bus_irq
 );
-	// memory map
-	localparam
-		IRQ_VECTOR		= 16'h1E00,
-		STACK_ADDRESS   = 16'h1F00;
 
 	// ISA registers
 	localparam
@@ -133,10 +132,10 @@ module ib16 (
 				FSM_FETCH: // fetch opcode
 					begin
 						if (bus_irq && !mask_irq) begin
-							reg_irq_pc	<= reg_pc;
-							mask_irq 	<= 1;
-							reg_pc	 	<= IRQ_VECTOR;
-							fsm_cycle	<= 0;
+							reg_irq_pc	    <= reg_pc;
+							mask_irq 	    <= 1;
+							reg_pc	 	    <= IRQ_VECTOR;
+							fsm_cycle	    <= 0;
 						end else begin
                             bus_enable		<= 1'b1;
                             bus_address 	<= reg_pc;		        // read from PC
@@ -177,7 +176,7 @@ module ib16 (
 											end
 										1: // MOVC
 											begin
-												if (reg_sreg[CARRY_FLAG]) begin
+												if (carry_flag) begin
 													result_dff 	<= {1'b0, reg_rb};
 													state 		<= FSM_RETIRE;
 												end else begin
@@ -186,7 +185,7 @@ module ib16 (
 											end
 										2: // MOVNC
 											begin
-												if (!reg_sreg[CARRY_FLAG]) begin
+												if (!carry_flag) begin
 													result_dff 	<= {1'b0, reg_rb};
 													state 		<= FSM_RETIRE;
 												end else begin
@@ -195,7 +194,7 @@ module ib16 (
 											end
 										3: // MOVZ
 											begin
-												if (reg_sreg[ZERO_FLAG]) begin
+												if (zero_flag) begin
 													result_dff 	<= {1'b0, reg_rb};
 													state 		<= FSM_RETIRE;
 												end else begin
@@ -204,7 +203,7 @@ module ib16 (
 											end
 										4: // MOVNZ
 											begin
-												if (!reg_sreg[ZERO_FLAG]) begin
+												if (!zero_flag) begin
 													result_dff 	<= {1'b0, reg_rb};
 													state 		<= FSM_RETIRE;
 												end else begin
@@ -388,10 +387,10 @@ module ib16 (
 								begin
 									// SREG = {SREG[7:6] & ~imm8[7:6], imm8[5:0]} 
 									// W1C for carry/zero, store for other bits
-									reg_sreg <= {reg_sreg[7:6] & ~opcode_8imm[7:6], opcode_8imm[5:0]};
-									if (opcode_8imm[0]) reg_ri <= 8'h00; // Clear RI
-									if (opcode_8imm[1]) reg_wi <= 8'h00; // Clear WI
-									state <= FSM_FETCH;
+									reg_sreg    <= {reg_sreg[7:6] & ~opcode_8imm[7:6], opcode_8imm[5:0]};
+									reg_ri      <= 8'h00; // Clear RI
+									reg_wi      <= 8'h00; // Clear WI
+									state       <= FSM_FETCH;
 								end
 							default: begin end
 						endcase

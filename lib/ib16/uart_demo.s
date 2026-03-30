@@ -28,7 +28,7 @@ JMP LOOP
 .ORG 100
 :PRINT
 STM 0,15,14			; store 'A' to UART
-STM 3,13,12			; store R1 to GPIO
+LDM 3,13,12			; store R1 to GPIO
 LDI 5,0x20
 :INCLOOP
 INC 1,1				; R1 = R1 + 1
@@ -36,4 +36,5 @@ ADC 2,2,4			; increment R2 if carry
 ADC 3,3,4			; increment R3 if carry
 DEC 5,5
 JNZ INCLOOP
+STM 3,13,12			; store R1 to GPIO
 RET
