@@ -1,3 +1,5 @@
+
+// Enable a 128-byte fast scratch memory for a smaller stack that is 1 cycle
 //`define USE_FASTMEM
 `ifdef USE_FASTMEM
     `define STACK_ADDRESS 16'h2000
@@ -7,11 +9,16 @@
     `define IRQ_VECTOR    16'h1E00
 `endif
 
+// enable IRQs for UART supporting [0] = RX ready, [1] TX empty
+//`define USE_UARTIRQ
+
 module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
     localparam
-        GPIO_DATA_ADDR = 16'hFFFD,
-        UART_STS_ADDR  = 16'hFFFE,
-        UART_DATA_ADDR = 16'hFFFF;
+        GPIO_DATA_ADDR   = 16'hFFFB,
+        UART_INT_ADDR    = 16'hFFFC,
+        UART_INTEN_ADDR  = 16'hFFFD,
+        UART_STS_ADDR    = 16'hFFFE,
+        UART_DATA_ADDR   = 16'hFFFF;
 
     wire pllclk;
 
@@ -47,6 +54,12 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
     reg uart_rx_read;
     wire uart_rx_ready;
     wire [7:0] uart_rx_byte;
+`ifdef USE_UARTIRQ
+    reg uart_prev_tx_fifo_empty;
+    reg uart_prev_rx_ready;
+    reg [7:0] uart_int_enable;
+    reg [7:0] uart_int_pending;
+`endif
 
     uart #(.FIFO_DEPTH(2), .RX_ENABLE(1), .TX_ENABLE(1)) mrtalky (
         .clk(pllclk), .rst_n(rst_n),
@@ -122,6 +135,12 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
             run_mode            <= 0;
             boot_addr           <= 0;
             gpio_out            <= 8'hFF;
+`ifdef USE_UARTIRQ
+            uart_prev_rx_ready  <= 0;
+            uart_prev_tx_fifo_empty <= 0;
+            uart_int_enable     <= 0;
+            uart_int_pending    <= 0;
+`endif
         end else 
             if (!run_mode) begin
                 // handle boot loader
@@ -189,11 +208,19 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
                         end
                 endcase
             end else begin
+`ifdef USE_UARTIRQ
+                // trap uart IRQ
+                uart_int_pending[0] <= (uart_prev_rx_ready != uart_rx_ready && uart_rx_ready) ? 1'b1 : 1'b0;
+                uart_int_pending[1] <= (uart_prev_tx_fifo_empty != uart_tx_fifo_empty && uart_tx_fifo_empty) ? 1'b1 : 1'b0;
+                uart_prev_rx_ready <= uart_rx_ready;
+                uart_prev_tx_fifo_empty <= uart_tx_fifo_empty;
+                ib16_bus_irq <= |(uart_int_pending & uart_int_enable);
+`endif
                 // normal mode
                 if (ib16_bus_enable && !ib16_bus_ready) begin
                     // handle new command
 `ifdef USE_FASTMEM
-                    // Fast memory (2000..20FF)
+                    // Fast memory (2000..207F)
                     if (ib16_bus_address[15:8] == 8'h20) begin
                         if (ib16_bus_wr_en) begin
                             fastmem[ib16_bus_address[7:0]] <= ib16_bus_data_in;
@@ -212,6 +239,26 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
                         end
                         ib16_bus_ready <= 1;
                     end
+`ifdef USE_UARTIRQ
+                    // UART Interrupt enable
+                    if (ib16_bus_address == UART_INT_ADDR) begin
+                        if (ib16_bus_wr_en) begin
+                            uart_int_pending <= uart_int_pending & ~ib16_bus_data_in;
+                        end else begin
+                            ib16_bus_data_out <= uart_int_pending;
+                        end
+                        ib16_bus_ready <= 1;
+                    end
+                    // UART Interrupt enable
+                    if (ib16_bus_address == UART_INTEN_ADDR) begin
+                        if (ib16_bus_wr_en) begin
+                            uart_int_enable <= ib16_bus_data_in;
+                        end else begin
+                            ib16_bus_data_out <= uart_int_enable;
+                        end
+                        ib16_bus_ready <= 1;
+                    end
+`endif
                     // UART Status register
                     if (ib16_bus_address == UART_STS_ADDR) begin
                         if (ib16_bus_wr_en) begin
@@ -276,12 +323,12 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
                             1: // memory 2nd cycle
                                 begin
                                     if (bram_wre) begin
-                                        bus_cycle           <= 0;
-                                        bram_wre            <= 0;
-                                        bram_ce             <= 0;
-                                        ib16_bus_ready      <= 1;
+                                        bus_cycle       <= 0;
+                                        bram_wre        <= 0;
+                                        bram_ce         <= 0;
+                                        ib16_bus_ready  <= 1;
                                     end else begin
-                                        bus_cycle           <= 2;
+                                        bus_cycle       <= 2;
                                     end
                                 end
                             2: // memory 3rd cycle
