@@ -160,7 +160,7 @@ module ib16 #(
                 state				<= FSM_DECODE + {2'b0, bus_data_out[7:4]};
             end
             if (state == FSM_DECODE + OPCODE_MOV) begin
-                case(opcode_opa)			// modifier == opa, reg is reg_rb
+                case(opcode_opa[2:0])			// modifier == opa, reg is reg_rb
                     0: // MOV
                         begin
                             result_dff		<= {1'b0, reg_rb};
@@ -202,22 +202,17 @@ module ib16 #(
                                 state		<= FSM_FETCH;
                             end
                         end
-                    5: // MOVSP
-                        begin
-                            result_dff 		<= { 1'b0, reg_sp};
-                            state			<= FSM_RETIRE;
-                        end
-                    6: // MOVRI
+                    5: // MOVRI
                         begin
                             result_dff 		<= { 1'b0, reg_ri};
                             state			<= FSM_RETIRE;
                         end
-                    7: // MOVWI
+                    6: // MOVWI
                         begin
                             result_dff 		<= { 1'b0, reg_wi};
                             state			<= FSM_RETIRE;
                         end
-                    8: // MOVSREG
+                    7: // MOVSREG
                         begin
                             result_dff 		<= { 1'b0, reg_sreg};
                             state			<= FSM_RETIRE;
@@ -251,7 +246,7 @@ module ib16 #(
             end
             if (state == FSM_DECODE + OPCODE_SHF) begin
                 state		<= FSM_RETIRE;
-                case(opcode_opa)
+                case(opcode_opa[2:0])
                     0: // SHR
                         result_dff <= {2'b0, reg_rb[7:1]};
                     1: // SAR
@@ -268,7 +263,6 @@ module ib16 #(
                         result_dff <= {1'b0, reg_rb} - 1'b1;
                     7: // NOT
                         result_dff <= {1'b0, ~reg_rb};
-                    default: begin end
                 endcase
             end
             if (state == FSM_DECODE + OPCODE_LDM) begin

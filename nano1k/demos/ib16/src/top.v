@@ -153,7 +153,7 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
                         begin
                             if (uart_rx_ready) begin
                                 uart_rx_read    <= 1;
-                                bus_cycle       <= 1;
+                                bus_cycle       <= bus_cycle + 1'b1;
                             end else begin
                                 bus_cycle       <= 2;
                             end
@@ -167,13 +167,13 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
                         begin
                             if (uart_rx_ready) begin
                                 uart_rx_read    <= 1;
-                                bus_cycle       <= 3;
+                                bus_cycle       <= bus_cycle + 1'b1;
                             end
                         end
                     3: // delay (waiting for uart to handle request)
                         begin
                             uart_rx_read        <= 0;
-                            bus_cycle           <= 4;
+                            bus_cycle           <= bus_cycle + 1'b1;
                         end
                     4: // store byte
                         begin
@@ -181,23 +181,22 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
                             bram_ce             <= 1;
                             bram_addr           <= boot_addr[12:0];
                             bram_din            <= uart_rx_byte;
-                            boot_addr           <= boot_addr;
-                            bus_cycle           <= 5;
+                            bus_cycle           <= bus_cycle + 1'b1;
                         end
                     5: // read back?
                         begin
                             bram_wre            <= 0;
-                            bus_cycle           <= 6;
+                            bus_cycle           <= bus_cycle + 1'b1;
                         end
                     6: // delay for BRAM
                         begin
-                            bus_cycle           <= 7;
+                            bus_cycle           <= bus_cycle + 1'b1;
                         end
                     7: // transmit data read back
                         begin
                             uart_tx_start       <= 1;
                             uart_tx_data_in     <= bram_dout;
-                            bus_cycle           <= 8;
+                            bus_cycle           <= bus_cycle + 1'b1;
                         end
                     8: // turn off TX and next byte
                         begin
