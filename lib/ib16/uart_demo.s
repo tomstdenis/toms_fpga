@@ -10,7 +10,8 @@ LDI 12,>GPIO_ADDR
 LDI 13,<GPIO_ADDR
 
 ; R0 = 'A'
-LDI 0,0x41
+LDI 0,0x42
+DEC 0,0				; test DEC
 
 ; R3:R2:R1 = 0
 LDI 1,0x00
@@ -19,8 +20,6 @@ LDI 3,0x00
 
 ; R4 = 0
 LDI 4,0x00
-; R4 = 16
-LDI 5,0x10
 
 :LOOP
 CALL PRINT
@@ -30,7 +29,11 @@ JMP LOOP
 :PRINT
 STM 0,15,14			; store 'A' to UART
 STM 3,13,12			; store R1 to GPIO
-ADD 1,1,5			; increment R1 by 1
+LDI 5,0x20
+:INCLOOP
+INC 1,1				; R1 = R1 + 1
 ADC 2,2,4			; increment R2 if carry
 ADC 3,3,4			; increment R3 if carry
+DEC 5,5
+JNZ INCLOOP
 RET
