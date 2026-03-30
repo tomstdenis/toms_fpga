@@ -58,7 +58,7 @@ module rx_uart
 					// read the 8 data bits
 					DATA_BITS: begin
 						if (bit_timer == 0) begin
-							rx_byte[bit_index]	<= rx_pin;						// store the next bit
+                            rx_byte <= {rx_pin, rx_byte[7:1]};
 							bit_timer			<= baud_div;					// reset the timer
 							// if we have more bits increment the index and loop
 							if (bit_index < 7) begin
