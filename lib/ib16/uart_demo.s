@@ -25,19 +25,14 @@ JMP LOOP
 
 .ORG 100
 :PRINT
-LDM 3,15,14			; store R1 to GPIO
-LDI 5,0x01
-:INCLOOP
 INC 1,1				; R1 = R1 + 1
-ADC 2,2,4			; increment R2 if carry
-ADC 3,3,4			; increment R3 if carry
-DEC 5,5
-JNZ INCLOOP
+ADC 2,2,4			; addc r2,0
+ADC 3,3,4			; addc r3,0
 STM 3,15,14			; store R1 to GPIO
 RET
 
 ; Recall to move this if you enable FASTMEM (to 0x0F80)
-.ORG 0x0F80			; IRQ vector (word 0x0F00 == address 0x1E00)
+.ORG 0x0F00			; IRQ vector (word 0x0F00 == address 0x1E00)
 :ISR
 LDM 0,15,14			; read from UART
 STM 0,15,14			; echo it back	
