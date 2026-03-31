@@ -2,7 +2,7 @@
 PROJ = ib16
 DEVICE = up5k
 FOOTPRINT = sg48
-PLLFREQ = 24
+PLLFREQ = 20
 
 all: $(PROJ).bin
 OBJS=$(PROJ).v pll.v \

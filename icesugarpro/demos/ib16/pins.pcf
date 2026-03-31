@@ -1,0 +1,14 @@
+# Clock (Internal 12MHz Crystal)
+set_io clk 35
+
+set_io uart_rx 4
+set_io uart_tx 6
+
+set_io gpio[0] 36
+set_io gpio[1] 37
+set_io gpio[2] 38
+set_io gpio[3] 42
+set_io gpio[4] 43
+set_io gpio[5] 44
+set_io gpio[6] 45
+set_io gpio[7] 46

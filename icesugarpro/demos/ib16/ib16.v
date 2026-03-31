@@ -22,12 +22,10 @@ module top(input clk, input uart_rx, output uart_tx, output [7:0] gpio);
     wire rst_n = rst[3];
 
     always @(posedge pll_clk) begin
-		if (pll_lock) begin
-			rst <= {rst[2:0], 1'b1};
-		end
+		rst <= {rst[2:0], 1'b1};
     end
 
-	pll echo_pll(.clock_in(clk), .clock_out(pll_clk), .locked(pll_lock));
+	pll mypll(.clkin(clk), .clkout0(pll_clk), .locked(pll_lock));
 
     // GPIO
     reg [7:0] gpio_out;
@@ -37,7 +35,7 @@ module top(input clk, input uart_rx, output uart_tx, output [7:0] gpio);
 	assign gpio = gpio_out;
     assign gpio_in = gpio_out;
 
-    wire [15:0] baud_div = 20_000_000 / 115_200;
+    wire [15:0] baud_div = 30_000_000 / 115_200;
     reg uart_tx_start;
     reg [7:0] uart_tx_data_in;
     wire uart_tx_fifo_full;
@@ -66,26 +64,7 @@ module top(input clk, input uart_rx, output uart_tx, output [7:0] gpio);
         .uart_rx_byte(uart_rx_byte));
 
 	// main memory
-	//access to spram
-	reg [13:0] ram_addr;
-	reg [15:0] ram_data_in;
-	wire [15:0] ram_data_out;
-	reg ram_wren;
-	reg [3:0] ram_mask;				// we read from address[12:1], and use address[0] to MUX
-
-	SB_SPRAM256KA spram
-	(
-	.ADDRESS(ram_addr),
-	.DATAIN(ram_data_in),
-	.MASKWREN(ram_mask),
-	.WREN(ram_wren),
-	.CHIPSELECT(1'b1),
-	.CLOCK(pll_clk),
-	.STANDBY(1'b0),
-	.SLEEP(1'b0),
-	.POWEROFF(1'b1),
-	.DATAOUT(ram_data_out)
-	);
+	reg [7:0] memory[0:511];
 
     wire ib16_bus_enable;
     wire ib16_bus_wr_en;
@@ -165,11 +144,8 @@ module top(input clk, input uart_rx, output uart_tx, output [7:0] gpio);
                         end
                     4: // store byte
                         begin
-							ram_data_in <= boot_addr[0] ? {8'b0, uart_rx_byte} : {uart_rx_byte, 8'b0};
-							ram_addr    <= boot_addr[12:1];
-							ram_wren	<= 1;
-							ram_mask	<= boot_addr[0] ? 4'b0011 : 4'b1100;
-                            bus_cycle           <= 5;
+							nenory[boot_addr[12:0]] <= uart_rx_byte;
+                            bus_cycle           <= bus_cycle + 1'b1;
                         end
                     5: // read back?
                         begin
@@ -184,7 +160,7 @@ module top(input clk, input uart_rx, output uart_tx, output [7:0] gpio);
                     7: // transmit data read back
                         begin
                             uart_tx_start       <= 1;
-                            uart_tx_data_in     <= boot_addr[0] ? ram_data_out[7:0] : ram_data_out[15:8];
+                            uart_tx_data_in     <= memory[boot_addr[12:0]];
                             bus_cycle           <= bus_cycle + 1'b1;
                         end
                     8: // turn off TX and next byte
@@ -294,41 +270,14 @@ module top(input clk, input uart_rx, output uart_tx, output [7:0] gpio);
                             endcase
                         end
                     end 
-                    if (ib16_bus_address < 16'h4000) begin
-						case (bus_cycle)
-							0:
-							begin
-								if (ib16_bus_wr_en) begin
-									// write
-									ram_data_in <= ib16_bus_address[0] ? {8'b0, ib16_bus_data_in} : {ib16_bus_data_in, 8'b0};
-									ram_addr    <= ib16_bus_address[13:1];
-									ram_wren	<= 1;
-									ram_mask	<= ib16_bus_address[0] ? 4'b0011 : 4'b1100;
-								end else begin
-									ram_addr	<= ib16_bus_address[13:1];
-								end
-								bus_cycle <= 1;
-							end
-							1:
-							begin
-								if (ib16_bus_wr_en) begin
-									// write
-									ram_wren	<= 0;
-									ram_mask	<= 0;
-									bus_cycle   <= 0;
-									ib16_bus_ready <= 1;
-								end else begin
-									bus_cycle 	<= 2;
-								end
-							end
-							2:
-							begin
-								ib16_bus_data_out <= ib16_bus_address[0] ? ram_data_out[7:0] : ram_data_out[15:8];
-								ib16_bus_ready <= 1;
-								bus_cycle <= 0;
-							end
-						endcase
-                    end
+                    if (ib16_bus_address < 16'h2000) begin
+						if (ib16_bus_wr_en) begin
+							memory[ib16_bus_address[12:0]] <= ib16_bus_data_in;
+						end else begin
+							ib16_bus_data_out <= memory[ib16_bus_address[12:0]];
+						end
+						ib16_bus_ready <= 1;
+					end
                 end if (ib16_bus_ready && !ib16_bus_enable) begin
                     ib16_bus_ready <= 0;
                 end
