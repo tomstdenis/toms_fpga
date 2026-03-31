@@ -25,7 +25,7 @@ static int set_interface_attribs(int fd, int speed) {
 
     // Setup timing: non-blocking read with 0.5s timeout
     tty.c_cc[VMIN]  = 0;
-    tty.c_cc[VTIME] = 1;
+    tty.c_cc[VTIME] = 10;
 
     if (tcsetattr(fd, TCSANOW, &tty) != 0) return -1;
     return 0;

@@ -130,7 +130,6 @@ module ib16 #(
                     state 		<= tag;
                 end
             end
-//				FSM_FETCH: // fetch opcode
             if (state == FSM_FETCH) begin
                 if (bus_irq && !mask_irq) begin
                     reg_irq_pc	    <= {reg_pc[15:1], 1'b0}; // force LSB to zero in case we IRQ in the middle of a fetch
@@ -217,7 +216,6 @@ module ib16 #(
                             result_dff 		<= { 1'b0, reg_sreg};
                             state			<= FSM_RETIRE;
                         end
-                    default: begin end
                 endcase
             end
             if (state == FSM_DECODE + OPCODE_LDI) begin
@@ -320,7 +318,6 @@ module ib16 #(
                             fsm_cycle		<= 0;
                             reg_pc			<= {3'b0, opcode_12imm, 1'b0};
                         end
-                    default: begin end
                 endcase
             end
             if (state == FSM_DECODE + OPCODE_RTI) begin
