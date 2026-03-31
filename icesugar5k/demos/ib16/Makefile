@@ -7,7 +7,7 @@ PLLFREQ = 20
 all: $(PROJ).bin
 OBJS=$(PROJ).v pll.v \
 ../../../lib/uart/blocks/rx_uart.v ../../../lib/uart/blocks/tx_uart.v ../../../lib/uart/blocks/uart.v \
-../../../lib/ib16/ib16.v
+../../../lib/ib16/ib16_v2.v
 
 # 1. Synthesis: Convert Verilog to JSON netlist
 $(PROJ).json: $(OBJS)
