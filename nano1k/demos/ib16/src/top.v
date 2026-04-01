@@ -1,7 +1,3 @@
-// Enable a FASTMEM_SIZE-byte fast scratch memory for a smaller stack that is 1 cycle (speeds up push/pop/call/ret)
-//`define USE_FASTMEM
-`define FASTMEM_SIZE 32
-
 // enable IRQs for UART supporting [0] = RX ready, [1] TX empty
 //`define USE_UARTIRQ
 
@@ -50,7 +46,7 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
     endgenerate
     assign gpio_in = gpio;
 
-    wire [15:0] baud_div = 45_000_000 / 115_200;
+    wire [15:0] baud_div = 45_000_000 / 230_400;
     reg uart_tx_start;
     reg [7:0] uart_tx_data_in;
     wire uart_tx_fifo_full;
@@ -227,17 +223,6 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
                 // normal mode
                 if (ib16_bus_enable && !ib16_bus_ready) begin
                     // handle new command
-`ifdef USE_FASTMEM
-                    // Fast memory (2000..203F)
-                    if (ib16_bus_address[15:8] == 8'h20) begin
-                        if (ib16_bus_wr_en) begin
-                            fastmem[ib16_bus_address[7:0]] <= ib16_bus_data_in;
-                        end else begin
-                            ib16_bus_data_out <= fastmem[ib16_bus_address[7:0]];
-                        end
-                        ib16_bus_ready <= 1;
-                    end 
-`endif
                     // GPIO port
                     if (ib16_bus_address == GPIO_DATA_ADDR) begin
                         if (ib16_bus_wr_en) begin
@@ -320,7 +305,7 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
                     if (ib16_bus_address < 16'h2000) begin
                         // BRAM block
                         case(bus_cycle)
-                            0: // start transaction
+                            0: // start transaction (this cycle delay handles the fact that bus_address is combinatorial)
                                 begin
                                     bram_ce     <= 1;
                                     bram_wre    <= ib16_bus_wr_en;

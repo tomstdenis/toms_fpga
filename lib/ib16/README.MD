@@ -134,13 +134,7 @@ So the formats would be
 9SIMM: 4-bit instruction, 3-bit modifier, 9-bit signed value (divided by 2 since PC addresses are all even)
 
 Instructions:
-0 - MOV (2OP)													
-	- 4 bit modifier
-	  - MOV   0: R[d] = R[a]
-	  - MOVCC 1: R[d] = R[a] if carry
-	  - MOVNC 2: R[d] = R[a] if not carry
-	  - MOVZ  3: R[d] = R[a] if zero
-	  - MOVNZ 4: R[d] = R[a] if not zero
+0 - Unused
 1 - LDI (8IMM) R[d] = imm
 2 - ADD (3OP)  R[d] = R[a] + R[b]								[ZC]
 3 - ADC (3OP)  R[d] = R[a] + R[b] + carry						[ZC]

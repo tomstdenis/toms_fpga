@@ -248,6 +248,7 @@ void compile(char *line)
 	if (!memcmp(line, ".ORG ", 5)) {
 		line += 5;
 		sscanf(line, "%"SCNx16, &PC);
+		PC >>= 1;
 	} else 	if (!memcmp(line, ".BIN_START ", 11)) {
 		line += 11;
 		sscanf(line, "%"SCNx16, &bin_start);

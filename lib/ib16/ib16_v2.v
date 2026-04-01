@@ -65,7 +65,7 @@ module ib16 #(
 	wire [15:0] opcode_9simm = { {6{cur_opcode[8]}}, cur_opcode[8:0], 1'b0 };
 
 	localparam
-		OPCODE_MOV = 0,
+		OPCODE_UNUSED1 = 0,
 		OPCODE_LDI = 1,
 		OPCODE_ADD = 2,
 		OPCODE_ADC = 3,
@@ -92,59 +92,6 @@ module ib16 #(
 	// ALU
 	always @(*) begin
 		result_dff = {10'b0}; // default no-op
-		
-		if (opcode_isn == OPCODE_MOV) begin
-			case(opcode_opa[2:0])			// modifier == opa, reg is reg_rb
-				0: // MOV
-					begin
-						result_dff		= {2'b10, reg_rb};
-					end
-				1: // MOVC
-					begin
-						if (carry_flag) begin
-							result_dff 	= {2'b10, reg_rb};
-						end else begin
-							result_dff 	= {2'b00, reg_rb}; // no store
-						end
-					end
-				2: // MOVNC
-					begin
-						if (!carry_flag) begin
-							result_dff 	= {2'b10, reg_rb};
-						end else begin
-							result_dff 	= {2'b00, reg_rb}; // no store
-						end
-					end
-				3: // MOVZ
-					begin
-						if (zero_flag) begin
-							result_dff 	= {2'b10, reg_rb};
-						end else begin
-							result_dff 	= {2'b00, reg_rb}; // no store
-						end
-					end
-				4: // MOVNZ
-					begin
-						if (!zero_flag) begin
-							result_dff 	= {2'b10, reg_rb};
-						end else begin
-							result_dff 	= {2'b00, reg_rb}; // no store
-						end
-					end
-				5: // MOVRI
-					begin
-						result_dff 		= { 2'b10, reg_ri};
-					end
-				6: // MOVWI
-					begin
-						result_dff 		= { 2'b10, reg_wi};
-					end
-				7: // MOVSREG
-					begin
-						result_dff 		= { 2'b10, reg_sreg};
-					end
-			endcase
-		end
 		if (opcode_isn == OPCODE_LDI) begin
 			result_dff	= {2'b10, opcode_8imm};
 		end
@@ -223,17 +170,14 @@ module ib16 #(
                         reg_pc			  <= reg_pc + 16'd2;		// increment PC
                     end
                     if (bus_enable && bus_ready) begin
-                        state       <= FSM_PREDECODE;
                         cur_opcode  <= bus_data_out;
                         bus_enable  <= 0;
                         bus_burst   <= 0;
-                    end
+                        reg_ra		<= reg_rr[bus_data_out[7:4]];
+                        reg_rb		<= reg_rr2[bus_data_out[3:0]];
+                        state		<= (bus_data_out[15:12] <= OPCODE_SHF) ? FSM_RETIRE : FSM_DECODE + {2'b0, bus_data_out[15:12]};
+                   end
                 end
-            end
-            if (state == FSM_PREDECODE)	begin
-                reg_ra				<= reg_rr[opcode_opa];
-                reg_rb				<= reg_rr2[opcode_opb];
-                state				<= (opcode_isn <= OPCODE_SHF) ? FSM_RETIRE : FSM_DECODE + {2'b0, opcode_isn};
             end
             if (state == FSM_DECODE + OPCODE_LDM) begin
                 if (!bus_enable) begin
@@ -251,12 +195,12 @@ module ib16 #(
                     end
                 end
                 if (bus_enable && bus_ready) begin
-                    bus_enable                                  <= 0;
-                    reg_rr[opcode_opd]	<= bus_data_out[7:0];
-                    reg_rr2[opcode_opd]	<= bus_data_out[7:0]; // save mirror copy
-                    reg_sreg[ZERO_FLAG]							<= bus_data_out[7:0] == 0 ? 1'b1 : 1'b0;
-                    reg_sreg[CARRY_FLAG]						<= 0;
-                    state										<= FSM_FETCH;
+                    bus_enable              <= 0;
+                    reg_rr[opcode_opd]	    <= bus_data_out[7:0];
+                    reg_rr2[opcode_opd]	    <= bus_data_out[7:0]; // save mirror copy
+                    reg_sreg[ZERO_FLAG]		<= bus_data_out[7:0] == 0 ? 1'b1 : 1'b0;
+                    reg_sreg[CARRY_FLAG]	<= 0;
+                    state					<= FSM_FETCH;
                 end
             end
             if (state == FSM_DECODE + OPCODE_STM) begin
@@ -268,12 +212,12 @@ module ib16 #(
                         // push
                         bus_address_terma <= STACK_ADDRESS;
                         bus_address_termb <= reg_sp;
-                        reg_sp			<= reg_sp + 8'b1;
+                        reg_sp			  <= reg_sp + 8'b1;
                     end else begin
                         // store to memory
                         bus_address_terma <= {reg_ra, reg_rb};
                         bus_address_termb <= (reg_sreg[WRITE_INCR] ? reg_wi : 8'b0);
-                        reg_wi			<= reg_wi + 8'b1;
+                        reg_wi			  <= reg_wi + 8'b1;
                     end
                 end
                 if (bus_enable && bus_ready) begin
@@ -342,12 +286,12 @@ module ib16 #(
             end
             if (state == FSM_RETIRE) begin
 				if (result_dff[9]) begin
-					reg_rr[opcode_opd]	<= result_dff[7:0];
-					reg_rr2[opcode_opd]	<= result_dff[7:0]; // save mirror copy
-					reg_sreg[ZERO_FLAG]							<= result_dff[7:0] == 0 ? 1'b1 : 1'b0;
-					reg_sreg[CARRY_FLAG]						<= result_dff[8];
+					reg_rr[opcode_opd]	    <= result_dff[7:0];
+					reg_rr2[opcode_opd]	    <= result_dff[7:0]; // save mirror copy
+					reg_sreg[ZERO_FLAG]		<= result_dff[7:0] == 0 ? 1'b1 : 1'b0;
+					reg_sreg[CARRY_FLAG]	<= result_dff[8];
 				end
-                state										<= FSM_FETCH;
+                state						<= FSM_FETCH;
             end
 		end
 	end
