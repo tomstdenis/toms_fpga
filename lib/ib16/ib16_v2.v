@@ -2,7 +2,8 @@
 
 module ib16 #(
     parameter STACK_ADDRESS = 16'h1F00,
-    parameter IRQ_VECTOR    = 16'h1E00
+    parameter IRQ_VECTOR    = 16'h1E00,
+    parameter TWO_CYCLE     = 1             // this adds an ALU cycle can be useful to help routing and/or timing
 ) (
 	input clk,
 	input rst_n,
@@ -52,7 +53,7 @@ module ib16 #(
 	reg [2:0]	fsm_cycle;
 	reg 		mask_irq;
 	reg [15:0]	cur_opcode;
-	reg [9:0]	result_dff;							// the value to be retired
+	reg [8:0]	result_dff;							// the value to be retired
 	
 	// various wires to look at the opcode
 	wire [3:0] opcode_isn  = cur_opcode[15:12];		// instruction
@@ -86,49 +87,49 @@ module ib16 #(
 		FSM_FETCH		= 0,				// FETCH next opcode (this should be 0 so we can use nice resets on the state DFFs)
 		FSM_PREDECODE	= 1,
 		FSM_RETIRE		= 2,
-		FSM_LDM_PART2   = 3,
-		FSM_DECODE		= 4;
+		FSM_BUFFER      = 3,
+		FSM_DECODE		= 4; // FSM_DECODE must be the last since we add the opcode_isn to it
 
 	// ALU
 	always @(*) begin
-		result_dff = {10'b0}; // default no-op
+		result_dff = {9'b0}; // default no-op
 		if (opcode_isn == OPCODE_LDI) begin
-			result_dff	= {2'b10, opcode_8imm};
+			result_dff	= {1'b0, opcode_8imm};
 		end
 		if (opcode_isn == OPCODE_ADD || opcode_isn == OPCODE_ADC || opcode_isn == OPCODE_SUB) begin
-			result_dff	= {1'b1, {1'b0, reg_ra} +
+			result_dff	= {{1'b0, reg_ra} +
 						   (opcode_isn == OPCODE_SUB ? 
 								{1'b0, -reg_rb} :
 								{1'b0, reg_rb}) +
 						   {8'b0, ((opcode_isn == OPCODE_ADC ? 1'b1 : 1'b0) & carry_flag)}};
 		end
 		if (opcode_isn == OPCODE_XOR) begin
-			result_dff	= {2'b10, reg_ra ^ reg_rb};
+			result_dff	= {1'b0, reg_ra ^ reg_rb};
 		end
 		if (opcode_isn == OPCODE_AND) begin
-			result_dff	= {2'b10, reg_ra & reg_rb};
+			result_dff	= {1'b0, reg_ra & reg_rb};
 		end
 		if (opcode_isn == OPCODE_OR) begin
-			result_dff	= {2'b10, reg_ra | reg_rb};
+			result_dff	= {1'b0, reg_ra | reg_rb};
 		end
 		if (opcode_isn == OPCODE_SHF) begin
 			case(opcode_opa[2:0])
 				0: // SHR
-					result_dff = {1'b1, 2'b0, reg_rb[7:1]};
+					result_dff = {2'b0, reg_rb[7:1]};
 				1: // SAR
-					result_dff = {1'b1, 1'b0, reg_rb[7], reg_rb[7:1]};
+					result_dff = {1'b0, reg_rb[7], reg_rb[7:1]};
 				2: // ROR
-					result_dff = {1'b1, reg_rb[0], reg_rb[0], reg_rb[7:1]};
+					result_dff = {reg_rb[0], reg_rb[0], reg_rb[7:1]};
 				3: // ROL
-					result_dff = {1'b1, reg_rb[7], reg_rb[6:0], reg_rb[7]};
+					result_dff = {reg_rb[7], reg_rb[6:0], reg_rb[7]};
 				4: // SWAP
-					result_dff = {1'b1, 1'b0, reg_rb[3:0], reg_rb[7:4]};
+					result_dff = {1'b0, reg_rb[3:0], reg_rb[7:4]};
 				5: // INC
-					result_dff = {1'b1, 1'b0, reg_rb} + 1'b1;
+					result_dff = {1'b0, reg_rb} + 1'b1;
 				6: // DEC
-					result_dff = {1'b1, 1'b0, reg_rb} - 1'b1;
+					result_dff = {1'b0, reg_rb} - 1'b1;
 				7: // NOT
-					result_dff = {1'b1, 1'b0, ~reg_rb};
+					result_dff = {1'b0, ~reg_rb};
 			endcase
 		end
 	end
@@ -154,6 +155,9 @@ module ib16 #(
             bus_address_termb <= 0;
             bus_burst       <= 0;
 		end else begin
+            if (TWO_CYCLE == 1 && state == FSM_BUFFER) begin   // buffer stage to help with ALU critical path timing
+                state <= FSM_RETIRE;
+            end
             if (state == FSM_FETCH) begin
                 if (bus_irq && !mask_irq && !bus_enable) begin
                     reg_irq_pc	    <= {reg_pc[15:1], 1'b0}; // force LSB to zero in case we IRQ in the middle of a fetch
@@ -175,7 +179,7 @@ module ib16 #(
                         bus_burst   <= 0;
                         reg_ra		<= reg_rr[bus_data_out[7:4]];
                         reg_rb		<= reg_rr2[bus_data_out[3:0]];
-                        state		<= (bus_data_out[15:12] <= OPCODE_SHF) ? FSM_RETIRE : FSM_DECODE + {2'b0, bus_data_out[15:12]};
+                        state		<= (bus_data_out[15:12] <= OPCODE_SHF) ? (TWO_CYCLE == 1 ? FSM_BUFFER : FSM_RETIRE): FSM_DECODE + {2'b0, bus_data_out[15:12]};
                    end
                 end
             end
@@ -245,10 +249,10 @@ module ib16 #(
                 end
             end
             if (state == FSM_DECODE + OPCODE_RTI) begin
-                mask_irq 					<= 0;
-                reg_pc	 					<= reg_irq_pc;
-                reg_sreg                    <= reg_irq_sreg;
-                state						<= FSM_FETCH;
+                mask_irq 			<= 0;
+                reg_pc	 			<= reg_irq_pc;
+                reg_sreg            <= reg_irq_sreg;
+                state				<= FSM_FETCH;
             end
             if (state == FSM_DECODE + OPCODE_RET) begin
                 if (!bus_enable) begin 
@@ -285,13 +289,11 @@ module ib16 #(
                 state       <= FSM_FETCH;
             end
             if (state == FSM_RETIRE) begin
-				if (result_dff[9]) begin
-					reg_rr[opcode_opd]	    <= result_dff[7:0];
-					reg_rr2[opcode_opd]	    <= result_dff[7:0]; // save mirror copy
-					reg_sreg[ZERO_FLAG]		<= result_dff[7:0] == 0 ? 1'b1 : 1'b0;
-					reg_sreg[CARRY_FLAG]	<= result_dff[8];
-				end
-                state						<= FSM_FETCH;
+                reg_rr[opcode_opd]	    <= result_dff[7:0];
+                reg_rr2[opcode_opd]	    <= result_dff[7:0]; // save mirror copy
+                reg_sreg[ZERO_FLAG]		<= result_dff[7:0] == 0 ? 1'b1 : 1'b0;
+                reg_sreg[CARRY_FLAG]	<= result_dff[8];
+                state					<= FSM_FETCH;
             end
 		end
 	end

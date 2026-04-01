@@ -46,7 +46,7 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
     endgenerate
     assign gpio_in = gpio;
 
-    wire [15:0] baud_div = 45_000_000 / 230_400;
+    wire [15:0] baud_div = 54_000_000 / 230_400;
     reg uart_tx_start;
     reg [7:0] uart_tx_data_in;
     wire uart_tx_fifo_full;
