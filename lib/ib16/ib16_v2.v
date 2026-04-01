@@ -35,8 +35,8 @@ module ib16 #(
 	reg [7:0]	reg_sreg;							// SREG (status register)
 	reg [7:0]	reg_wi;								// WI (write index)
 	reg [7:0]	reg_ri;								// RI (read index)
-	reg [7:0]	reg_rr [0:31];						// GPRs (16, + 16 for IRQ)
-	reg [7:0]	reg_rr2 [0:31];						// GPRs (16, + 16 for IRQ) (mirror)
+	reg [7:0]	reg_rr [0:15];						// GPRs 
+	reg [7:0]	reg_rr2 [0:15];						// GPRs  (mirror)
 	reg [7:0]	reg_ra;
 	reg [7:0]	reg_rb;
 	
@@ -217,41 +217,54 @@ module ib16 #(
                 end
             end
             if (state == FSM_FETCH) begin
-                if (bus_irq && !mask_irq) begin
+                if (bus_irq && !mask_irq && !bus_enable) begin
                     reg_irq_pc	    <= {reg_pc[15:1], 1'b0}; // force LSB to zero in case we IRQ in the middle of a fetch
                     mask_irq 	    <= 1;
                     reg_pc	 	    <= IRQ_VECTOR;
                     fsm_cycle	    <= 0;
                 end else begin
-                    bus_enable		  <= 1'b1;
-                    bus_address_terma <= reg_pc;		        // read from PC
-                    bus_address_termb <= 0;
-                    bus_burst         <= 1'b1;              // read 16-bits
-                    reg_pc			<= reg_pc + 16'd2;		// increment PC
-                    state			<= FSM_RAM;
-                    tag				<= FSM_PREDECODE;			// jump back here when done
+                    if (!bus_enable) begin
+                        bus_enable		  <= 1'b1;
+                        bus_address_terma <= reg_pc;		        // read from PC
+                        bus_address_termb <= 0;
+                        bus_burst         <= 1'b1;              // read 16-bits
+                        reg_pc			  <= reg_pc + 16'd2;		// increment PC
+                    end
+                    if (bus_enable && bus_ready) begin
+                        state       <= FSM_PREDECODE;
+                        cur_opcode  <= bus_data_out;
+                        bus_enable  <= 0;
+                        bus_burst   <= 0;
+                    end
                 end
             end
             if (state == FSM_PREDECODE)	begin
-                cur_opcode          <= bus_data_out;
-                reg_ra				<= reg_rr[bus_data_out[7:4] + (mask_irq ? 16 : 0)];
-                reg_rb				<= reg_rr2[bus_data_out[3:0] + (mask_irq ? 16 : 0)];
-                state				<= (bus_data_out[15:12] <= OPCODE_SHF) ? FSM_RETIRE : FSM_DECODE + {2'b0, bus_data_out[15:12]};
+                reg_ra				<= reg_rr[opcode_opa];
+                reg_rb				<= reg_rr2[opcode_opb];
+                state				<= (opcode_isn <= OPCODE_SHF) ? FSM_RETIRE : FSM_DECODE + {2'b0, opcode_isn};
             end
             if (state == FSM_DECODE + OPCODE_LDM) begin
-                bus_enable			<= 1;
-                tag 				<= FSM_LDM_PART2;
-                state				<= FSM_RAM;
-                if (opcode_opa == 15 && opcode_opb == 15) begin
-                    // pop
-                    bus_address_terma <= STACK_ADDRESS;
-                    bus_address_termb <= reg_sp - 1'b1;
-                    reg_sp			<= reg_sp - 8'b1;
-                end else begin
-                    // load from memory
-                    bus_address_terma <= {reg_ra, reg_rb};
-                    bus_address_termb <= (reg_sreg[READ_INCR] ? reg_ri : 8'b0);
-                    reg_ri			<= reg_ri + 8'b1;
+                if (!bus_enable) begin
+                    bus_enable			  <= 1;
+                    if (opcode_opa == 15 && opcode_opb == 15) begin
+                        // pop
+                        bus_address_terma <= STACK_ADDRESS;
+                        bus_address_termb <= reg_sp - 1'b1;
+                        reg_sp			  <= reg_sp - 8'b1;
+                    end else begin
+                        // load from memory
+                        bus_address_terma <= {reg_ra, reg_rb};
+                        bus_address_termb <= (reg_sreg[READ_INCR] ? reg_ri : 8'b0);
+                        reg_ri			  <= reg_ri + 8'b1;
+                    end
+                end
+                if (bus_enable && bus_ready) begin
+                    bus_enable                                  <= 0;
+                    reg_rr[opcode_opd]	<= bus_data_out[7:0];
+                    reg_rr2[opcode_opd]	<= bus_data_out[7:0]; // save mirror copy
+                    reg_sreg[ZERO_FLAG]							<= bus_data_out[7:0] == 0 ? 1'b1 : 1'b0;
+                    reg_sreg[CARRY_FLAG]						<= 0;
+                    state										<= FSM_FETCH;
                 end
             end
             if (state == FSM_DECODE + OPCODE_STM) begin
@@ -259,7 +272,7 @@ module ib16 #(
                 bus_wr_en			<= 1;
                 tag					<= FSM_FETCH;
                 state				<= FSM_RAM;
-                bus_data_in			<= reg_rr[(mask_irq ? 16 : 0) + opcode_opd];
+                bus_data_in			<= reg_rr[opcode_opd];
                 if (opcode_opa == 15 && opcode_opb == 15) begin
                     // push
                     bus_address_terma <= STACK_ADDRESS;
@@ -301,31 +314,19 @@ module ib16 #(
                 state						<= FSM_FETCH;
             end
             if (state == FSM_DECODE + OPCODE_RET) begin
-                if (fsm_cycle != 2) begin
-                    bus_enable		<= 1;
+                if (!bus_enable) begin 
+                    bus_enable		  <= 1;
+                    bus_burst         <= 1;
                     bus_address_terma <= STACK_ADDRESS;
-                    bus_address_termb <= reg_sp - 1'b1;
-                    reg_sp			<= reg_sp - 8'b1;
-                    tag				<= FSM_DECODE + OPCODE_RET;
-                    state			<= FSM_RAM;
+                    bus_address_termb <= reg_sp - 8'd2;
+                    reg_sp		      <= reg_sp - 8'd2;
                 end
-                case(fsm_cycle)
-                    0:					// load PC[15:8]
-                        begin
-                            fsm_cycle		<= 1;
-                        end
-                    1:					// load PC[7:0]
-                        begin
-                            fsm_cycle		<= 2;
-                            reg_pc[15:8]	<= bus_data_out[7:0];
-                        end
-                    2:					// capture value
-                        begin
-                            reg_pc[7:0]		<= bus_data_out[7:0];
-                            fsm_cycle		<= 0;
-                            state			<= FSM_FETCH;
-                        end
-                endcase
+                if (bus_enable && bus_ready) begin
+                    bus_enable      <= 0;
+                    bus_burst       <= 0;
+                    state           <= FSM_FETCH;
+                    reg_pc          <= bus_data_out;
+                end
             end
             if (state == FSM_DECODE + OPCODE_JMP) begin
                 if ((opcode_3imm == 0) ||                           // JMP
@@ -348,18 +349,11 @@ module ib16 #(
             end
             if (state == FSM_RETIRE) begin
 				if (result_dff[9]) begin
-					reg_rr[(mask_irq ? 16 : 0) + opcode_opd]	<= result_dff[7:0];
-					reg_rr2[(mask_irq ? 16 : 0) + opcode_opd]	<= result_dff[7:0]; // save mirror copy
+					reg_rr[opcode_opd]	<= result_dff[7:0];
+					reg_rr2[opcode_opd]	<= result_dff[7:0]; // save mirror copy
 					reg_sreg[ZERO_FLAG]							<= result_dff[7:0] == 0 ? 1'b1 : 1'b0;
 					reg_sreg[CARRY_FLAG]						<= result_dff[8];
 				end
-                state										<= FSM_FETCH;
-            end
-            if (state == FSM_LDM_PART2) begin
-				reg_rr[(mask_irq ? 16 : 0) + opcode_opd]	<= bus_data_out[7:0];
-				reg_rr2[(mask_irq ? 16 : 0) + opcode_opd]	<= bus_data_out[7:0]; // save mirror copy
-				reg_sreg[ZERO_FLAG]							<= bus_data_out[7:0] == 0 ? 1'b1 : 1'b0;
-				reg_sreg[CARRY_FLAG]						<= 0;
                 state										<= FSM_FETCH;
             end
 		end

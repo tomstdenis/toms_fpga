@@ -1,5 +1,5 @@
 // Enable a FASTMEM_SIZE-byte fast scratch memory for a smaller stack that is 1 cycle (speeds up push/pop/call/ret)
-`define USE_FASTMEM
+//`define USE_FASTMEM
 `define FASTMEM_SIZE 32
 
 // enable IRQs for UART supporting [0] = RX ready, [1] TX empty
@@ -65,7 +65,7 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
     reg [1:0] uart_int_pending;
 `endif
 
-    uart #(.FIFO_DEPTH(2), .RX_ENABLE(1), .TX_ENABLE(1)) mrtalky (
+    uart #(.FIFO_DEPTH(4), .RX_ENABLE(1), .TX_ENABLE(1)) mrtalky (
         .clk(pllclk), .rst_n(rst_n),
         .baud_div(baud_div),
         .uart_tx_start(uart_tx_start),
@@ -107,7 +107,7 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
 
     reg [3:0] bus_cycle;
     reg run_mode;
-    reg [14:0] boot_addr;
+    reg [12:0] boot_addr;
     ib16 #(
         .STACK_ADDRESS(`STACK_ADDRESS),
         .IRQ_VECTOR(`IRQ_VECTOR)) ittybitty(
@@ -151,19 +151,19 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
             if (!run_mode) begin
                 // handle boot loader
                 case(bus_cycle)
-                    0: // flush
+                    0: //flush
                         begin
                             if (uart_rx_ready) begin
-                                uart_rx_read    <= 1;
-                                bus_cycle       <= bus_cycle + 1'b1;
-                            end else begin
-                                bus_cycle       <= 2;
+                                uart_rx_read <= 1;
+                                bus_cycle    <= 1;
+                            end else if (uart_rx_byte == 8'h5A) begin
+                                bus_cycle    <= 2;
                             end
                         end
-                    1: // flush delay
+                    1: //delay
                         begin
-                            uart_rx_read        <= 0;
-                            bus_cycle           <= 0;
+                            uart_rx_read <= 0;
+                            bus_cycle    <= 0;
                         end
                     2: //wait for RX
                         begin
@@ -203,12 +203,11 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
                     8: // turn off TX and next byte
                         begin
                             uart_tx_start       <= 0;
+                            bus_cycle           <= 2;
                             boot_addr           <= boot_addr + 1'b1;
                             if (boot_addr == 16'h1FFF) begin
                                 run_mode        <= 1;
                                 bus_cycle       <= 0;
-                            end else begin
-                                bus_cycle       <= 2;
                             end
                         end
                 endcase
@@ -326,7 +325,7 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
                                     bram_ce     <= 1;
                                     bram_wre    <= ib16_bus_wr_en;
                                     bram_addr   <= ib16_bus_address[12:0];
-                                    bram_din    <= ib16_bus_data_in;
+                                    bram_din    <= ib16_bus_data_in[7:0];
                                     bus_cycle   <= 1;
                                 end
                             1: // memory 2nd cycle

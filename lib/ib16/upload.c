@@ -24,8 +24,8 @@ static int set_interface_attribs(int fd, int speed) {
     tty.c_cflag |= CS8 | CREAD | CLOCAL;
 
     // Setup timing: non-blocking read with 0.5s timeout
-    tty.c_cc[VMIN]  = 0;
-    tty.c_cc[VTIME] = 10;
+    tty.c_cc[VMIN]  = 100;
+    tty.c_cc[VTIME] = 100;
 
     if (tcsetattr(fd, TCSANOW, &tty) != 0) return -1;
     return 0;
@@ -36,11 +36,19 @@ int main(int argc, char **argv)
 	FILE *f;
 	int ch;
 	int bytes = 0;
+	uint8_t buf;
 	
     int fd = open(argv[1], O_RDWR | O_NOCTTY);
     if (fd < 0) { perror("Open port"); return 1; }
     set_interface_attribs(fd, B115200);
 	tcflush(fd, TCIOFLUSH);
+	
+	buf = 0x5A;
+	if (write(fd, &buf, 1) != 1) {
+		printf("Error writing to UART\n");
+		exit(-1);
+	}
+	tcdrain(fd);
 	
 	f = fopen(argv[2], "r");
 	for (;;) {

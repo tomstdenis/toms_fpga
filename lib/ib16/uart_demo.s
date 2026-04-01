@@ -2,14 +2,12 @@
 .EQU GPIO_ADDR 0xFFFB
 
 ; Setup ISR context
-SRES 0x04				; enable ISR context
 LDI 14,>UART_ADDR
 LDI 15,<UART_ADDR
-SRES 0x00				; default context
 
-; load R15:R14 pointing to GPIO (note this clashes with ISR but ISR uses bank switching)
-LDI 14,>GPIO_ADDR
-LDI 15,<GPIO_ADDR
+; load R12:R13 pointing to GPIO
+LDI 12,>GPIO_ADDR
+LDI 13,<GPIO_ADDR
 
 ; R3:R2:R1 = 0
 LDI 1,0x00
@@ -28,11 +26,11 @@ JMP LOOP
 INC 1,1				; R1 = R1 + 1
 ADC 2,2,4			; addc r2,0
 ADC 3,3,4			; addc r3,0
-STM 3,15,14			; store R1 to GPIO
+STM 3,13,12			; store R1 to GPIO
 RET
 
 ; Recall to move this if you enable FASTMEM (to 0x0F80)
-.ORG 0x0F80			; IRQ vector (word 0x0F00 == address 0x1E00)
+.ORG 0x0F00			; IRQ vector (word 0x0F00 == address 0x1E00)
 :ISR
 LDM 0,15,14			; read from UART
 STM 0,15,14			; echo it back	
