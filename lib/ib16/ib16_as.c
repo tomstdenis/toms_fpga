@@ -53,7 +53,7 @@ const struct {
 	int fmt;
 } e1_opcodes[] = {
 	{ "", 			0x0000, OP_FMT_LITERAL },
-// ISN==0 is unused...
+	{ "MUL",		0x0000, OP_FMT_3OP },
 	{ "LDI",		0x1000, OP_FMT_8IMM },
 	{ "ADD",		0x2000, OP_FMT_3OP },
 	{ "ADC",		0x3000, OP_FMT_3OP },

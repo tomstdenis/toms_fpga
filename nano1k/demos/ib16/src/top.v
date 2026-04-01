@@ -20,13 +20,14 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
         UART_STS_ADDR    = 16'hFFFE,
         UART_DATA_ADDR   = 16'hFFFF;
 
-    wire pllclk;
+    wire pllclk = clk;
 
+/*
     Gowin_rPLL ticktock (
         .clkout(pllclk), //output clkout
         .clkin(clk) //input clkin
     );
-
+*/
     reg [3:0] rst = 0;
     wire rst_n = rst[3];
 
@@ -46,7 +47,7 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
     endgenerate
     assign gpio_in = gpio;
 
-    wire [15:0] baud_div = 54_000_000 / 230_400;
+    wire [15:0] baud_div = 27_000_000 / 230_400;
     reg uart_tx_start;
     reg [7:0] uart_tx_data_in;
     wire uart_tx_fifo_full;
