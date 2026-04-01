@@ -8,26 +8,25 @@ IOBUF       PORT "uart_rx"       IO_TYPE=LVCMOS33;
 LOCATE      COMP "uart_tx"       SITE "J17";
 IOBUF       PORT "uart_tx"       IO_TYPE=LVCMOS33;
 
-// using the corner of P3 (corner of P3 and P4)
-LOCATE		COMP "sio[0]"		SITE "E3";
+// FROM GND (near the middle of P3) to the edge of the board (corner of P3/P4)
+// TOP: 3V3 GND E3 C2 C1 D1
+// BOT: 3V3 GND A3 B1 D2 E2
+
+// SIO[3:0] is on the bottom with SIO[0] next to GND
+LOCATE		COMP "sio[0]"		SITE "A3";
 IOBUF		PORT "sio[0]"		PULLMODE=UP IO_TYPE=LVCMOS33 DRIVE=4 SLEWRATE=FAST;
-LOCATE		COMP "sio[1]"		SITE "C2";
+LOCATE		COMP "sio[1]"		SITE "B1";
 IOBUF		PORT "sio[1]"		PULLMODE=UP IO_TYPE=LVCMOS33 DRIVE=4 SLEWRATE=FAST;
-LOCATE		COMP "sio[2]"		SITE "C1";
+LOCATE		COMP "sio[2]"		SITE "D2";
 IOBUF		PORT "sio[2]"		PULLMODE=UP IO_TYPE=LVCMOS33 DRIVE=4 SLEWRATE=FAST;
-LOCATE		COMP "sio[3]"		SITE "D1";
+LOCATE		COMP "sio[3]"		SITE "E2";
 IOBUF		PORT "sio[3]"		PULLMODE=UP IO_TYPE=LVCMOS33 DRIVE=4 SLEWRATE=FAST;
-LOCATE		COMP "sck"		 	SITE "A3";
+
+// SCK is on top next to GND
+LOCATE		COMP "sck"		 	SITE "E3";
 IOBUF		PORT "sck"			PULLMODE=DOWN IO_TYPE=LVCMOS33 DRIVE=8 SLEWRATE=FAST;
 
-// SRAM1 CS
-LOCATE		COMP "cs"			SITE "B1";
+// CS is on top next to SCK
+LOCATE		COMP "cs"			SITE "C2";
 IOBUF		PORT "cs"		 	PULLMODE=UP IO_TYPE=LVCMOS33;
 
-// SRAM2 CS
-LOCATE		COMP "cs2"			SITE "D2";
-IOBUF		PORT "cs2"		 	PULLMODE=UP IO_TYPE=LVCMOS33;
-
-// FLASH CS
-LOCATE		COMP "cs3"			SITE "E2";
-IOBUF		PORT "cs3"		 	PULLMODE=UP IO_TYPE=LVCMOS33;
