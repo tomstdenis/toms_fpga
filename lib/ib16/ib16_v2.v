@@ -84,11 +84,10 @@ module ib16 #(
 	
 	localparam
 		FSM_FETCH		= 0,				// FETCH next opcode (this should be 0 so we can use nice resets on the state DFFs)
-		FSM_RAM			= 1,
-		FSM_PREDECODE	= 2,
-		FSM_RETIRE		= 3,
-		FSM_LDM_PART2   = 4,
-		FSM_DECODE		= 5;
+		FSM_PREDECODE	= 1,
+		FSM_RETIRE		= 2,
+		FSM_LDM_PART2   = 3,
+		FSM_DECODE		= 4;
 
 	// ALU
 	always @(*) begin
@@ -208,15 +207,6 @@ module ib16 #(
             bus_address_termb <= 0;
             bus_burst       <= 0;
 		end else begin
-            if (state == FSM_RAM) begin
-                // previous cycle drove the bus_* nets, at this point we're just waiting
-                if (bus_ready) begin
-                    bus_wr_en	<= 1'b0;
-                    bus_enable	<= 1'b0;
-                    bus_burst   <= 1'b0;
-                    state 		<= tag;
-                end
-            end
             if (state == FSM_FETCH) begin
                 if (bus_irq && !mask_irq && !bus_enable) begin
                     reg_irq_pc	    <= {reg_pc[15:1], 1'b0}; // force LSB to zero in case we IRQ in the middle of a fetch
@@ -270,45 +260,45 @@ module ib16 #(
                 end
             end
             if (state == FSM_DECODE + OPCODE_STM) begin
-                bus_enable			<= 1;
-                bus_wr_en			<= 1;
-                tag					<= FSM_FETCH;
-                state				<= FSM_RAM;
-                bus_data_in			<= reg_rr[opcode_opd];
-                if (opcode_opa == 15 && opcode_opb == 15) begin
-                    // push
-                    bus_address_terma <= STACK_ADDRESS;
-                    bus_address_termb <= reg_sp;
-                    reg_sp			<= reg_sp + 8'b1;
-                end else begin
-                    // store to memory
-                    bus_address_terma <= {reg_ra, reg_rb};
-                    bus_address_termb <= (reg_sreg[WRITE_INCR] ? reg_wi : 8'b0);
-                    reg_wi			<= reg_wi + 8'b1;
+                if (!bus_enable) begin
+                    bus_enable			<= 1;
+                    bus_wr_en			<= 1;
+                    bus_data_in			<= reg_rr[opcode_opd];
+                    if (opcode_opa == 15 && opcode_opb == 15) begin
+                        // push
+                        bus_address_terma <= STACK_ADDRESS;
+                        bus_address_termb <= reg_sp;
+                        reg_sp			<= reg_sp + 8'b1;
+                    end else begin
+                        // store to memory
+                        bus_address_terma <= {reg_ra, reg_rb};
+                        bus_address_termb <= (reg_sreg[WRITE_INCR] ? reg_wi : 8'b0);
+                        reg_wi			<= reg_wi + 8'b1;
+                    end
+                end
+                if (bus_enable && bus_ready) begin
+                    bus_enable  <= 0;
+                    bus_wr_en   <= 0;
+                    state       <= FSM_FETCH;
                 end
             end
             if (state == FSM_DECODE + OPCODE_CAL) begin
-                bus_enable		<= 1;
-                bus_wr_en		<= 1;
-                bus_address_terma <= STACK_ADDRESS;
-                bus_address_termb <= reg_sp;
-                reg_sp			<= reg_sp + 8'b1;
-                state			<= FSM_RAM;
-                case(fsm_cycle)
-                    0:					// store reg_pc[7:0]
-                        begin
-                            bus_data_in		<= reg_pc[7:0];
-                            tag				<= FSM_DECODE + OPCODE_CAL;
-                            fsm_cycle		<= 1;
-                        end
-                    1:					// store reg_pc[15:8]
-                        begin
-                            bus_data_in		<= reg_pc[15:8];
-                            tag				<= FSM_FETCH;
-                            fsm_cycle		<= 0;
-                            reg_pc			<= {3'b0, opcode_12imm, 1'b0};
-                        end
-                endcase
+                if (!bus_enable) begin
+                    bus_enable		<= 1;
+                    bus_burst       <= 1;
+                    bus_wr_en		<= 1;
+                    bus_address_terma <= STACK_ADDRESS;
+                    bus_address_termb <= reg_sp;
+                    bus_data_in     <= reg_pc;
+                    reg_sp			<= reg_sp + 8'd2;
+                end
+                if (bus_enable && bus_ready) begin
+                    state			<= FSM_FETCH;
+                    reg_pc			<= {3'b0, opcode_12imm, 1'b0};
+                    bus_enable      <= 0;
+                    bus_burst       <= 0;
+                    bus_wr_en       <= 0;
+                end
             end
             if (state == FSM_DECODE + OPCODE_RTI) begin
                 mask_irq 					<= 0;

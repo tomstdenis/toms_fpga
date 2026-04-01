@@ -32,7 +32,9 @@ RET
 ; Recall to move this if you enable FASTMEM (to 0x0F80)
 .ORG 0x0F00			; IRQ vector (word 0x0F00 == address 0x1E00)
 :ISR
+STM 0,15,15			; push r0
 LDM 0,15,14			; read from UART
-STM 0,15,14			; echo it back	
+STM 0,15,14			; echo it back
+LDM 0,15,15			; pop r0
 RETI
 
