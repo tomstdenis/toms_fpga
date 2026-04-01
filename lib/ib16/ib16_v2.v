@@ -3,7 +3,7 @@
 module ib16 #(
     parameter STACK_ADDRESS = 16'h1F00,
     parameter IRQ_VECTOR    = 16'h1E00,
-    parameter TWO_CYCLE     = 1             // this adds an ALU cycle can be useful to help routing and/or timing
+    parameter TWO_CYCLE     = 0             // this adds an ALU cycle can be useful to help routing and/or timing
 ) (
 	input clk,
 	input rst_n,
