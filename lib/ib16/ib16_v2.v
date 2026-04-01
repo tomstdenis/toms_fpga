@@ -12,7 +12,7 @@ module ib16 #(
 	output reg bus_enable,
 	output reg bus_wr_en,
 	output [15:0] bus_address, 
-	output reg [7:0] bus_data_in,
+	output reg [15:0] bus_data_in,
 	input bus_ready,
 	input [15:0] bus_data_out,
 	input bus_irq
@@ -33,6 +33,7 @@ module ib16 #(
 	reg [15:0]  reg_irq_pc;							// when an IRQ happens save the PC
 	reg [7:0]	reg_sp;								// SP (stack) register
 	reg [7:0]	reg_sreg;							// SREG (status register)
+    reg [7:0]   reg_irq_sreg;
 	reg [7:0]	reg_wi;								// WI (write index)
 	reg [7:0]	reg_ri;								// RI (read index)
 	reg [7:0]	reg_rr [0:15];						// GPRs 
@@ -219,6 +220,7 @@ module ib16 #(
             if (state == FSM_FETCH) begin
                 if (bus_irq && !mask_irq && !bus_enable) begin
                     reg_irq_pc	    <= {reg_pc[15:1], 1'b0}; // force LSB to zero in case we IRQ in the middle of a fetch
+                    reg_irq_sreg    <= reg_sreg;
                     mask_irq 	    <= 1;
                     reg_pc	 	    <= IRQ_VECTOR;
                     fsm_cycle	    <= 0;
@@ -311,6 +313,7 @@ module ib16 #(
             if (state == FSM_DECODE + OPCODE_RTI) begin
                 mask_irq 					<= 0;
                 reg_pc	 					<= reg_irq_pc;
+                reg_sreg                    <= reg_irq_sreg;
                 state						<= FSM_FETCH;
             end
             if (state == FSM_DECODE + OPCODE_RET) begin

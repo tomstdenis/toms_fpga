@@ -50,7 +50,7 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
     endgenerate
     assign gpio_in = gpio;
 
-    wire [15:0] baud_div = 54_000_000 / 115_200;
+    wire [15:0] baud_div = 45_000_000 / 115_200;
     reg uart_tx_start;
     reg [7:0] uart_tx_data_in;
     wire uart_tx_fifo_full;
@@ -99,7 +99,7 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
     wire ib16_bus_enable;
     wire ib16_bus_wr_en;
     wire [15:0] ib16_bus_address;
-    wire [7:0] ib16_bus_data_in;
+    wire [15:0] ib16_bus_data_in;
     reg ib16_bus_ready;
     reg [15:0] ib16_bus_data_out;
     reg ib16_bus_irq;
@@ -241,7 +241,7 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
                     // GPIO port
                     if (ib16_bus_address == GPIO_DATA_ADDR) begin
                         if (ib16_bus_wr_en) begin
-                            gpio_out <= ib16_bus_data_in;
+                            gpio_out <= ib16_bus_data_in[7:0];
                         end else begin
                             ib16_bus_data_out <= gpio_in;
                         end
@@ -282,7 +282,7 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
                                 0: // wait for a FIFO slot
                                     begin
                                         if (!uart_tx_fifo_full) begin
-                                            uart_tx_data_in <= ib16_bus_data_in;
+                                            uart_tx_data_in <= ib16_bus_data_in[7:0];
                                             uart_tx_start   <= 1;
                                             bus_cycle       <= 1;
                                         end
@@ -330,28 +330,36 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
                                 end
                             1: // memory 2nd cycle
                                 begin
-                                    if (bram_wre) begin
+                                    if (bram_wre && !ib16_bus_burst) begin // 8-bit writes are done here
                                         bus_cycle       <= 0;
                                         bram_wre        <= 0;
                                         bram_ce         <= 0;
                                         ib16_bus_ready  <= 1;
-                                    end else begin
+                                    end else begin                     // all reads take 3 cycles, burst writes take 3  
                                         bus_cycle       <= 2;
                                         bram_addr       <= bram_addr + 1'b1;
+                                        bram_din        <= ib16_bus_data_in[15:8];
                                     end
                                 end
                             2: // memory 3rd cycle
                                 begin
-                                    ib16_bus_data_out[7:0] <= bram_dout;
-                                    if (!ib16_bus_burst) begin
-                                        bus_cycle           <= 0;
+                                    if (bram_wre) begin // writes are done here
                                         bram_ce             <= 0;
+                                        bram_wre            <= 0;
+                                        bus_cycle           <= 0;
                                         ib16_bus_ready      <= 1;
                                     end else begin
-                                        bus_cycle           <= 3;
+                                        ib16_bus_data_out[7:0] <= bram_dout;
+                                        if (!ib16_bus_burst) begin          // 8-bit reads are done here
+                                            bus_cycle           <= 0;
+                                            bram_ce             <= 0;
+                                            ib16_bus_ready      <= 1;
+                                        end else begin
+                                            bus_cycle           <= 3;
+                                        end
                                     end
                                 end
-                            3: // memory 4th cycle
+                            3: // memory 4th cycle (16-bit reads)
                                 begin
                                     ib16_bus_data_out[15:8] <= bram_dout;
                                     bus_cycle               <= 0;
