@@ -101,8 +101,9 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
     wire [15:0] ib16_bus_address;
     wire [7:0] ib16_bus_data_in;
     reg ib16_bus_ready;
-    reg [7:0] ib16_bus_data_out;
+    reg [15:0] ib16_bus_data_out;
     reg ib16_bus_irq;
+    wire ib16_bus_burst;
 
     reg [3:0] bus_cycle;
     reg run_mode;
@@ -117,6 +118,7 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
         .bus_data_in(ib16_bus_data_in),
         .bus_ready(ib16_bus_ready),
         .bus_data_out(ib16_bus_data_out),
+        .bus_burst(ib16_bus_burst),
         .bus_irq(ib16_bus_irq));
 
 `ifdef USE_FASTMEM
@@ -336,14 +338,26 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
                                         ib16_bus_ready  <= 1;
                                     end else begin
                                         bus_cycle       <= 2;
+                                        bram_addr       <= bram_addr + 1'b1;
                                     end
                                 end
                             2: // memory 3rd cycle
                                 begin
-                                    bus_cycle           <= 0;
-                                    bram_ce             <= 0;
-                                    ib16_bus_ready      <= 1;
-                                    ib16_bus_data_out   <= bram_dout;
+                                    ib16_bus_data_out[7:0] <= bram_dout;
+                                    if (!ib16_bus_burst) begin
+                                        bus_cycle           <= 0;
+                                        bram_ce             <= 0;
+                                        ib16_bus_ready      <= 1;
+                                    end else begin
+                                        bus_cycle           <= 3;
+                                    end
+                                end
+                            3: // memory 4th cycle
+                                begin
+                                    ib16_bus_data_out[15:8] <= bram_dout;
+                                    bus_cycle               <= 0;
+                                    bram_ce                 <= 0;
+                                    ib16_bus_ready          <= 1;
                                 end
                         endcase
                     end

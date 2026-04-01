@@ -8,12 +8,13 @@ module ib16 #(
 	input rst_n,
 	
 	// bus signals
+    output reg bus_burst,
 	output reg bus_enable,
 	output reg bus_wr_en,
 	output [15:0] bus_address, 
 	output reg [7:0] bus_data_in,
 	input bus_ready,
-	input [7:0] bus_data_out,
+	input [15:0] bus_data_out,
 	input bus_irq
 );
     // BUS
@@ -204,12 +205,14 @@ module ib16 #(
 			cur_opcode		<= 0;
             bus_address_terma <= 0;
             bus_address_termb <= 0;
+            bus_burst       <= 0;
 		end else begin
             if (state == FSM_RAM) begin
                 // previous cycle drove the bus_* nets, at this point we're just waiting
                 if (bus_ready) begin
                     bus_wr_en	<= 1'b0;
                     bus_enable	<= 1'b0;
+                    bus_burst   <= 1'b0;
                     state 		<= tag;
                 end
             end
@@ -220,27 +223,20 @@ module ib16 #(
                     reg_pc	 	    <= IRQ_VECTOR;
                     fsm_cycle	    <= 0;
                 end else begin
-                    bus_enable		<= 1'b1;
+                    bus_enable		  <= 1'b1;
                     bus_address_terma <= reg_pc;		        // read from PC
                     bus_address_termb <= 0;
-                    reg_pc			<= reg_pc + 1'd1;		// increment PC
+                    bus_burst         <= 1'b1;              // read 16-bits
+                    reg_pc			<= reg_pc + 16'd2;		// increment PC
                     state			<= FSM_RAM;
-                    if (fsm_cycle == 0) begin
-                        tag				<= FSM_FETCH;			// jump back here when done
-                        fsm_cycle		<= 1;	// increment FSM cycle counter
-                    end
-                    if (fsm_cycle == 1) begin
-                        cur_opcode[7:0] <= bus_data_out;		// store byte
-                        tag				<= FSM_PREDECODE;		// jump to decode when done
-                        fsm_cycle 		<= 0;
-                    end
+                    tag				<= FSM_PREDECODE;			// jump back here when done
                 end
             end
             if (state == FSM_PREDECODE)	begin
-                reg_ra				<= reg_rr[opcode_opa + (mask_irq ? 16 : 0)];
-                reg_rb				<= reg_rr2[opcode_opb + (mask_irq ? 16 : 0)];
-                cur_opcode[15:8]	<= bus_data_out;				// store top 8 bits of opcode
-                state				<= (bus_data_out[7:4] <= OPCODE_SHF) ? FSM_RETIRE : FSM_DECODE + {2'b0, bus_data_out[7:4]};
+                cur_opcode          <= bus_data_out;
+                reg_ra				<= reg_rr[bus_data_out[7:4] + (mask_irq ? 16 : 0)];
+                reg_rb				<= reg_rr2[bus_data_out[3:0] + (mask_irq ? 16 : 0)];
+                state				<= (bus_data_out[15:12] <= OPCODE_SHF) ? FSM_RETIRE : FSM_DECODE + {2'b0, bus_data_out[15:12]};
             end
             if (state == FSM_DECODE + OPCODE_LDM) begin
                 bus_enable			<= 1;
@@ -321,11 +317,11 @@ module ib16 #(
                     1:					// load PC[7:0]
                         begin
                             fsm_cycle		<= 2;
-                            reg_pc[15:8]	<= bus_data_out;
+                            reg_pc[15:8]	<= bus_data_out[7:0];
                         end
                     2:					// capture value
                         begin
-                            reg_pc[7:0]		<= bus_data_out;
+                            reg_pc[7:0]		<= bus_data_out[7:0];
                             fsm_cycle		<= 0;
                             state			<= FSM_FETCH;
                         end
