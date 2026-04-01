@@ -53,14 +53,7 @@ const struct {
 	int fmt;
 } e1_opcodes[] = {
 	{ "", 			0x0000, OP_FMT_LITERAL },
-	{ "MOV",		0x0000,	OP_FMT_2OP },
-	{ "MOVCC",		0x0010, OP_FMT_2OP },
-	{ "MOVNC",		0x0020, OP_FMT_2OP },
-	{ "MOVZ",		0x0030, OP_FMT_2OP },
-	{ "MOVNZ",		0x0040, OP_FMT_2OP },
-	{ "MOVRI",		0x0050, OP_FMT_2OP },
-	{ "MOVWI",		0x0060, OP_FMT_2OP },
-	{ "MOVSREG",	0x0070, OP_FMT_2OP },
+// ISN==0 is unused...
 	{ "LDI",		0x1000, OP_FMT_8IMM },
 	{ "ADD",		0x2000, OP_FMT_3OP },
 	{ "ADC",		0x3000, OP_FMT_3OP },

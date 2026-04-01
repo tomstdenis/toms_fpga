@@ -38,7 +38,6 @@ module ib16 #(
 	reg [7:0]	reg_wi;								// WI (write index)
 	reg [7:0]	reg_ri;								// RI (read index)
 	reg [7:0]	reg_rr [0:15];						// GPRs 
-	reg [7:0]	reg_rr2 [0:15];						// GPRs  (mirror)
 	reg [7:0]	reg_ra;
 	reg [7:0]	reg_rb;
 	
@@ -178,7 +177,7 @@ module ib16 #(
                         bus_enable  <= 0;
                         bus_burst   <= 0;
                         reg_ra		<= reg_rr[bus_data_out[7:4]];
-                        reg_rb		<= reg_rr2[bus_data_out[3:0]];
+                        reg_rb		<= reg_rr[bus_data_out[3:0]];
                         state		<= (bus_data_out[15:12] <= OPCODE_SHF) ? (TWO_CYCLE == 1 ? FSM_BUFFER : FSM_RETIRE): FSM_DECODE + {2'b0, bus_data_out[15:12]};
                    end
                 end
@@ -201,7 +200,6 @@ module ib16 #(
                 if (bus_enable && bus_ready) begin
                     bus_enable              <= 0;
                     reg_rr[opcode_opd]	    <= bus_data_out[7:0];
-                    reg_rr2[opcode_opd]	    <= bus_data_out[7:0]; // save mirror copy
                     reg_sreg[ZERO_FLAG]		<= bus_data_out[7:0] == 0 ? 1'b1 : 1'b0;
                     reg_sreg[CARRY_FLAG]	<= 0;
                     state					<= FSM_FETCH;
@@ -290,7 +288,6 @@ module ib16 #(
             end
             if (state == FSM_RETIRE) begin
                 reg_rr[opcode_opd]	    <= result_dff[7:0];
-                reg_rr2[opcode_opd]	    <= result_dff[7:0]; // save mirror copy
                 reg_sreg[ZERO_FLAG]		<= result_dff[7:0] == 0 ? 1'b1 : 1'b0;
                 reg_sreg[CARRY_FLAG]	<= result_dff[8];
                 state					<= FSM_FETCH;

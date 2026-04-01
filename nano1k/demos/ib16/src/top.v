@@ -22,7 +22,7 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
 
     wire pllclk;
 
-    Gowin_rPLL your_instance_name(
+    Gowin_rPLL ticktock (
         .clkout(pllclk), //output clkout
         .clkin(clk) //input clkin
     );
