@@ -1,4 +1,9 @@
-all: test_ib16.pass uart_demo.s.bin upload
+all: test_ib16_v2.pass uart_demo.s.bin upload
+
+test_ib16_v2.pass: ib16_v2.v ib16_v2_tb.v tb_test.s.bin uart_demo.s.bin
+	verilator -DSIM --lint-only ib16_v2.v ib16_v2_tb.v
+	iverilog -DSIM -Wall -o sim.vvp ib16_v2.v ib16_v2_tb.v
+	(vvp sim.vvp -fst > $@.log && touch $@) || cat $@.log
 
 test_ib16.pass: ib16.v ib16_tb.v tb_test.s.bin uart_demo.s.bin
 	verilator --lint-only ib16.v ib16_tb.v

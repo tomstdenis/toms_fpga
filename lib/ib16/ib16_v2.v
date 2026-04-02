@@ -4,7 +4,7 @@ module ib16 #(
     parameter STACK_ADDRESS = 16'h1F00,
     parameter IRQ_VECTOR    = 16'h1E00,
     parameter TWO_CYCLE     = 0,             // this adds an ALU cycle can be useful to help routing and/or timing
-    parameter MULTIPLIER    = 1              // turn on/off multiplier support
+    parameter MULTIPLIER    = 0              // turn on/off multiplier support
 ) (
 	input clk,
 	input rst_n,
@@ -19,6 +19,12 @@ module ib16 #(
 	input [15:0] bus_data_out,
 	input bus_irq
 );
+
+`ifdef SIM
+	reg [31:0] stats_cycles;
+	reg [31:0] stats_fetches;
+`endif
+
     // BUS
     reg [15:0] bus_address_terma;
     reg [7:0] bus_address_termb;
@@ -159,7 +165,14 @@ module ib16 #(
             bus_address_terma <= 0;
             bus_address_termb <= 0;
             bus_burst       <= 0;
+`ifdef SIM
+			stats_cycles	<= 0;
+			stats_fetches	<= 0;
+`endif
 		end else begin
+`ifdef SIM
+			stats_cycles 	<= stats_cycles + 1'b1;
+`endif
             if (state == FSM_BUFFER) begin   // buffer stage to help with ALU critical path timing
                 if (buffer_cnt == 0) begin
                     state <= FSM_RETIRE;
@@ -183,6 +196,9 @@ module ib16 #(
                         reg_pc			  <= reg_pc + 16'd2;		// increment PC
                     end
                     if (bus_enable && bus_ready) begin
+`ifdef SIM
+						stats_fetches 	<= stats_fetches + 1'b1;
+`endif
                         cur_opcode  <= bus_data_out;
                         bus_enable  <= 0;
                         bus_burst   <= 0;
@@ -220,7 +236,7 @@ module ib16 #(
                 if (!bus_enable) begin
                     bus_enable			<= 1;
                     bus_wr_en			<= 1;
-                    bus_data_in			<= reg_rr[opcode_opd];
+                    bus_data_in[7:0]	<= reg_rr[opcode_opd];
                     if (opcode_opa == 15 && opcode_opb == 15) begin
                         // push
                         bus_address_terma <= STACK_ADDRESS;
@@ -285,7 +301,18 @@ module ib16 #(
                     (opcode_3imm == 3 && zero_flag) ||              // JZ
                     (opcode_3imm == 4 && ~zero_flag)) begin         // JNZ
                     reg_pc <= reg_pc + opcode_9simm;
+
+                    // kick start next fetch in this cycle
+                    bus_address_terma <= reg_pc + opcode_9simm;		        // read from PC
+                    reg_pc			  <= reg_pc + opcode_9simm + 16'd2;		// increment PC				
+                end else begin
+                    // kick start next fetch in this cycle
+                    bus_address_terma <= reg_pc;		        // read from PC
+                    reg_pc			  <= reg_pc + 16'd2;		// increment PC				
                 end
+				bus_enable		  <= 1'b1;
+				bus_address_termb <= 0;
+				bus_burst         <= 1'b1;              // read 16-bits
                 state <= FSM_FETCH;
             end
             if (state == FSM_DECODE + OPCODE_SRS) begin
@@ -302,6 +329,13 @@ module ib16 #(
                 reg_sreg[ZERO_FLAG]		<= result_dff[7:0] == 0 ? 1'b1 : 1'b0;
                 reg_sreg[CARRY_FLAG]	<= result_dff[8];
                 state					<= FSM_FETCH;
+
+				// kick start next fetch in this cycle
+				bus_enable		  <= 1'b1;
+				bus_address_terma <= reg_pc;		        // read from PC
+				bus_address_termb <= 0;
+				bus_burst         <= 1'b1;              // read 16-bits
+				reg_pc			  <= reg_pc + 16'd2;		// increment PC				
             end
 		end
 	end
