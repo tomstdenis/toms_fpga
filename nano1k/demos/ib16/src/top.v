@@ -102,12 +102,10 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
     wire ib16_bus_burst;
 
     reg [3:0] bus_cycle;
-    reg run_mode;
-    reg [12:0] boot_addr;
     ib16 #(
         .STACK_ADDRESS(`STACK_ADDRESS),
         .IRQ_VECTOR(`IRQ_VECTOR)) ittybitty(
-        .clk(pllclk), .rst_n(rst_n & run_mode),
+        .clk(pllclk), .rst_n(rst_n),
         .bus_enable(ib16_bus_enable),
         .bus_wr_en(ib16_bus_wr_en),
         .bus_address(ib16_bus_address),
@@ -134,8 +132,6 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
             ib16_bus_data_out   <= 0;
             ib16_bus_irq        <= 0;
             bus_cycle           <= 0;
-            run_mode            <= 0;
-            boot_addr           <= 0;
             gpio_out            <= 8'hFF;
 `ifdef USE_UARTIRQ
             uart_prev_rx_ready  <= 0;
@@ -143,219 +139,180 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
             uart_int_enable     <= 0;
             uart_int_pending    <= 0;
 `endif
-        end else 
-            if (!run_mode) begin
-                // handle boot loader
-                case(bus_cycle)
-                    0: //flush
-                        begin
-                            if (uart_rx_ready) begin
-                                uart_rx_read <= 1;
-                                bus_cycle    <= 1;
-                            end else if (uart_rx_byte == 8'h5A) begin
-                                bus_cycle    <= 2;
-                            end
-                        end
-                    1: //delay
-                        begin
-                            uart_rx_read <= 0;
-                            bus_cycle    <= 0;
-                        end
-                    2: //wait for RX
-                        begin
-                            if (uart_rx_ready) begin
-                                uart_rx_read    <= 1;
-                                bus_cycle       <= bus_cycle + 1'b1;
-                            end
-                        end
-                    3: // delay (waiting for uart to handle request)
-                        begin
-                            uart_rx_read        <= 0;
-                            bus_cycle           <= bus_cycle + 1'b1;
-                        end
-                    4: // store byte
-                        begin
-                            bram_wre            <= 1;
-                            bram_ce             <= 1;
-                            bram_addr           <= boot_addr[12:0];
-                            bram_din            <= uart_rx_byte;
-                            bus_cycle           <= bus_cycle + 1'b1;
-                        end
-                    5: // read back?
-                        begin
-                            bram_wre            <= 0;
-                            bus_cycle           <= bus_cycle + 1'b1;
-                        end
-                    6: // delay for BRAM
-                        begin
-                            bus_cycle           <= bus_cycle + 1'b1;
-                        end
-                    7: // transmit data read back
-                        begin
-                            uart_tx_start       <= 1;
-                            uart_tx_data_in     <= bram_dout;
-                            bus_cycle           <= bus_cycle + 1'b1;
-                        end
-                    8: // turn off TX and next byte
-                        begin
-                            uart_tx_start       <= 0;
-                            bus_cycle           <= 2;
-                            boot_addr           <= boot_addr + 1'b1;
-                            if (boot_addr == 16'h1FFF) begin
-                                run_mode        <= 1;
-                                bus_cycle       <= 0;
-                            end
-                        end
-                endcase
-            end else begin
+        end else begin
 `ifdef USE_UARTIRQ
-                // trap uart IRQ
-                uart_int_pending[0] <= (uart_prev_rx_ready != uart_rx_ready && uart_rx_ready) ? 1'b1 : 1'b0;
-                uart_int_pending[1] <= (uart_prev_tx_fifo_empty != uart_tx_fifo_empty && uart_tx_fifo_empty) ? 1'b1 : 1'b0;
-                uart_prev_rx_ready <= uart_rx_ready;
-                uart_prev_tx_fifo_empty <= uart_tx_fifo_empty;
-                ib16_bus_irq <= |(uart_int_pending & uart_int_enable);
+            // trap uart IRQ
+            uart_int_pending[0] <= (uart_prev_rx_ready != uart_rx_ready && uart_rx_ready) ? 1'b1 : 1'b0;
+            uart_int_pending[1] <= (uart_prev_tx_fifo_empty != uart_tx_fifo_empty && uart_tx_fifo_empty) ? 1'b1 : 1'b0;
+            uart_prev_rx_ready <= uart_rx_ready;
+            uart_prev_tx_fifo_empty <= uart_tx_fifo_empty;
+            ib16_bus_irq <= |(uart_int_pending & uart_int_enable);
 `endif
 `ifdef USE_SIMPLE_UART_IRQ
-                ib16_bus_irq <= uart_rx_ready;
+            ib16_bus_irq <= uart_rx_ready;
 `endif
-
-                // normal mode
-                if (ib16_bus_enable && !ib16_bus_ready) begin
-                    // handle new command
-                    // GPIO port
-                    if (ib16_bus_address == GPIO_DATA_ADDR) begin
-                        if (ib16_bus_wr_en) begin
-                            gpio_out <= ib16_bus_data_in[7:0];
-                        end else begin
-                            ib16_bus_data_out <= gpio_in;
-                        end
-                        ib16_bus_ready <= 1;
+            // normal mode
+            if (ib16_bus_enable && !ib16_bus_ready) begin
+                // handle new command
+                // GPIO port
+                if (ib16_bus_address == GPIO_DATA_ADDR) begin
+                    if (ib16_bus_wr_en) begin
+                        gpio_out <= ib16_bus_data_in[7:0];
+                    end else begin
+                        ib16_bus_data_out <= gpio_in;
                     end
+                    ib16_bus_ready <= 1;
+                end
 `ifdef USE_UARTIRQ
-                    // UART Interrupt enable
-                    if (ib16_bus_address == UART_INT_ADDR) begin
-                        if (ib16_bus_wr_en) begin
-                            uart_int_pending <= uart_int_pending[1:0] & ~ib16_bus_data_in[1:0];
-                        end else begin
-                            ib16_bus_data_out <= {6'b0, uart_int_pending};
-                        end
-                        ib16_bus_ready <= 1;
+                // UART Interrupt enable
+                if (ib16_bus_address == UART_INT_ADDR) begin
+                    if (ib16_bus_wr_en) begin
+                        uart_int_pending <= uart_int_pending[1:0] & ~ib16_bus_data_in[1:0];
+                    end else begin
+                        ib16_bus_data_out <= {6'b0, uart_int_pending};
                     end
-                    // UART Interrupt enable
-                    if (ib16_bus_address == UART_INTEN_ADDR) begin
-                        if (ib16_bus_wr_en) begin
-                            uart_int_enable <= ib16_bus_data_in[1:0];
-                        end else begin
-                            ib16_bus_data_out <= {6'b0, uart_int_enable};
-                        end
-                        ib16_bus_ready <= 1;
+                    ib16_bus_ready <= 1;
+                end
+                // UART Interrupt enable
+                if (ib16_bus_address == UART_INTEN_ADDR) begin
+                    if (ib16_bus_wr_en) begin
+                        uart_int_enable <= ib16_bus_data_in[1:0];
+                    end else begin
+                        ib16_bus_data_out <= {6'b0, uart_int_enable};
                     end
+                    ib16_bus_ready <= 1;
+                end
 `endif
-                    // UART Status register
-                    if (ib16_bus_address == UART_STS_ADDR) begin
-                        if (ib16_bus_wr_en) begin
-                        end else begin
-                            ib16_bus_data_out <= {13'b0, uart_tx_fifo_empty, uart_tx_fifo_full, uart_rx_ready};
-                        end
-                        ib16_bus_ready <= 1;
-                    end 
-                    // UART data register
-                    if (ib16_bus_address == UART_DATA_ADDR) begin
-                        if (ib16_bus_wr_en) begin
-                            case(bus_cycle)
-                                0: // wait for a FIFO slot
-                                    begin
-                                        if (!uart_tx_fifo_full) begin
-                                            uart_tx_data_in <= ib16_bus_data_in[7:0];
-                                            uart_tx_start   <= 1;
-                                            bus_cycle       <= 1;
-                                        end
-                                    end
-                                1: // deassert and go to ready
-                                    begin
-                                        uart_tx_start   <= 0;
-                                        bus_cycle       <= 0;
-                                        ib16_bus_ready  <= 1;
-                                    end
-                            endcase
-                        end else begin
-                            case(bus_cycle)
-                                0: // wait for incoming byte
-                                    begin
-                                        if (uart_rx_ready) begin
-                                            uart_rx_read    <= 1;
-                                            bus_cycle       <= 1;
-                                        end
-                                    end
-                                1: // deassert read and delay for byte
-                                    begin
-                                        uart_rx_read        <= 0;
-                                        bus_cycle           <= 2;
-                                    end
-                                2: // store byte and go back to idle
-                                    begin
-                                        ib16_bus_data_out   <= uart_rx_byte;
-                                        bus_cycle           <= 0;
-                                        ib16_bus_ready      <= 1;
-                                    end
-                            endcase
-                        end
-                    end 
-                    if (ib16_bus_address < 16'h2000) begin
-                        // BRAM block
+                // UART Status register
+                if (ib16_bus_address == UART_STS_ADDR) begin
+                    if (ib16_bus_wr_en) begin
+                    end else begin
+                        ib16_bus_data_out <= {13'b0, uart_tx_fifo_empty, uart_tx_fifo_full, uart_rx_ready};
+                    end
+                    ib16_bus_ready <= 1;
+                end 
+                // UART data register
+                if (ib16_bus_address == UART_DATA_ADDR) begin
+                    if (ib16_bus_wr_en) begin
                         case(bus_cycle)
-                            0: // start transaction (this cycle delay handles the fact that bus_address is combinatorial)
+                            0: // wait for a FIFO slot
                                 begin
-                                    bram_ce     <= 1;
-                                    bram_wre    <= ib16_bus_wr_en;
-                                    bram_addr   <= ib16_bus_address[12:0];
-                                    bram_din    <= ib16_bus_data_in[7:0];
-                                    bus_cycle   <= bus_cycle + 1'b1;
-                                end
-                            1: // memory 2nd cycle
-                                begin
-                                    if (bram_wre && !ib16_bus_burst) begin // 8-bit writes are done here
-                                        bus_cycle       <= 0;
-                                        bram_wre        <= 0;
-                                        bram_ce         <= 0;
-                                        ib16_bus_ready  <= 1;
-                                    end else begin                     // all reads take 3 cycles, burst writes take 3  
-                                        bus_cycle       <= bus_cycle + 1'b1;
-                                        bram_addr       <= bram_addr + 1'b1;
-                                        bram_din        <= ib16_bus_data_in[15:8];
+                                    if (!uart_tx_fifo_full) begin
+                                        uart_tx_data_in <= ib16_bus_data_in[7:0];
+                                        uart_tx_start   <= 1;
+                                        bus_cycle       <= 1;
                                     end
                                 end
-                            2: // memory 3rd cycle
+                            1: // deassert and go to ready
                                 begin
-                                    if (bram_wre) begin // writes are done here
-                                        bram_ce             <= 0;
-                                        bram_wre            <= 0;
-                                        bus_cycle           <= 0;
-                                        ib16_bus_ready      <= 1;
-                                    end else begin
-                                        ib16_bus_data_out[7:0] <= bram_dout;
-                                        if (!ib16_bus_burst) begin          // 8-bit reads are done here
-                                            bus_cycle       <= 0;
-                                            bram_ce         <= 0;
-                                            ib16_bus_ready  <= 1;
-                                        end else begin
-                                            bus_cycle       <= bus_cycle + 1'b1;
-                                        end
+                                    uart_tx_start   <= 0;
+                                    bus_cycle       <= 0;
+                                    ib16_bus_ready  <= 1;
+                                end
+                        endcase
+                    end else begin
+                        case(bus_cycle)
+                            0: // wait for incoming byte
+                                begin
+                                    if (uart_rx_ready) begin
+                                        uart_rx_read    <= 1;
+                                        bus_cycle       <= 1;
                                     end
                                 end
-                            3: // memory 4th cycle (16-bit reads)
+                            1: // deassert read and delay for byte
                                 begin
-                                    ib16_bus_data_out[15:8] <= bram_dout;
-                                    bus_cycle               <= 0;
-                                    bram_ce                 <= 0;
-                                    ib16_bus_ready          <= 1;
+                                    uart_rx_read        <= 0;
+                                    bus_cycle           <= 2;
+                                end
+                            2: // store byte and go back to idle
+                                begin
+                                    ib16_bus_data_out   <= uart_rx_byte;
+                                    bus_cycle           <= 0;
+                                    ib16_bus_ready      <= 1;
                                 end
                         endcase
                     end
-                end if (ib16_bus_ready && !ib16_bus_enable) begin
-                    ib16_bus_ready <= 0;
+                end 
+                if (ib16_bus_address < 16'h2000) begin
+                    // BRAM block
+                    case(bus_cycle)
+                        0: // start transaction (this cycle delay handles the fact that bus_address is combinatorial)
+                            begin
+                                bram_ce     <= 1;
+                                bram_wre    <= ib16_bus_wr_en;
+                                bram_addr   <= ib16_bus_address[12:0];
+                                bram_din    <= ib16_bus_data_in[7:0];
+                                bus_cycle   <= bus_cycle + 1'b1;
+                            end
+                        1: // memory 2nd cycle
+                            begin
+                                if (bram_wre && !ib16_bus_burst) begin // 8-bit writes are done here
+                                    bus_cycle       <= 0;
+                                    bram_wre        <= 0;
+                                    bram_ce         <= 0;
+                                    ib16_bus_ready  <= 1;
+                                end else begin                     // all reads take 3 cycles, burst writes take 3  
+                                    bus_cycle       <= bus_cycle + 1'b1;
+                                    bram_addr       <= bram_addr + 1'b1;
+                                    bram_din        <= ib16_bus_data_in[15:8];
+                                end
+                            end
+                        2: // memory 3rd cycle
+                            begin
+                                if (bram_wre) begin // writes are done here
+                                    bram_ce             <= 0;
+                                    bram_wre            <= 0;
+                                    bus_cycle           <= 0;
+                                    ib16_bus_ready      <= 1;
+                                end else begin
+                                    ib16_bus_data_out[7:0] <= bram_dout;
+                                    if (!ib16_bus_burst) begin          // 8-bit reads are done here
+                                        bus_cycle       <= 0;
+                                        bram_ce         <= 0;
+                                        ib16_bus_ready  <= 1;
+                                    end else begin
+                                        bus_cycle       <= bus_cycle + 1'b1;
+                                    end
+                                end
+                            end
+                        3: // memory 4th cycle (16-bit reads)
+                            begin
+                                ib16_bus_data_out[15:8] <= bram_dout;
+                                bus_cycle               <= 0;
+                                bram_ce                 <= 0;
+                                ib16_bus_ready          <= 1;
+                            end
+                    endcase
                 end
+                if (ib16_bus_address >= 16'h2000 && ib16_bus_address <= 16'h2100) begin
+                    if (!ib16_bus_wr_en) begin
+                        case(ib16_bus_address[7:0])
+                            8'h00: ib16_bus_data_out <= 16'h0EFF;
+                            8'h02: ib16_bus_data_out <= 16'h0FFF;
+                            8'h04: ib16_bus_data_out <= 16'h0000;
+                            8'h06: ib16_bus_data_out <= 16'h0100;
+                            8'h08: ib16_bus_data_out <= 16'h021F;
+                            8'h0A: ib16_bus_data_out <= 16'h045A;
+                            8'h0C: ib16_bus_data_out <= 16'h83FE;
+                            8'h0E: ib16_bus_data_out <= 16'h4334;
+                            8'h10: ib16_bus_data_out <= 16'hD9FD;
+                            8'h12: ib16_bus_data_out <= 16'h83FE;
+                            8'h14: ib16_bus_data_out <= 16'h9310;
+                            8'h16: ib16_bus_data_out <= 16'h7050;
+                            8'h18: ib16_bus_data_out <= 16'hD5FC;
+                            8'h1A: ib16_bus_data_out <= 16'h7151;
+                            8'h1C: ib16_bus_data_out <= 16'h7262;
+                            8'h1E: ib16_bus_data_out <= 16'hD9F9;
+                            8'h20: ib16_bus_data_out <= 16'hB000;
+                            8'h22: ib16_bus_data_out <= 16'hD1EE;
+                            default: begin end
+                        endcase
+                    end
+                    ib16_bus_ready <= 1;
+                end
+            end if (ib16_bus_ready && !ib16_bus_enable) begin
+                ib16_bus_ready <= 0;
             end
         end
+    end
 endmodule 

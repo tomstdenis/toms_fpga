@@ -131,9 +131,9 @@ module ib16 #(
 				4: // SWAP
 					result_dff = {1'b0, reg_rb[3:0], reg_rb[7:4]};
 				5: // INC
-					result_dff = {1'b0, reg_rb} + 1'b1;
+					result_dff = {1'b0, reg_rb} + 9'b1;
 				6: // DEC
-					result_dff = {1'b0, reg_rb} - 1'b1;
+					result_dff = {1'b0, reg_rb} - 9'b1;
 				7: // NOT
 					result_dff = {1'b0, ~reg_rb};
 			endcase
@@ -142,7 +142,7 @@ module ib16 #(
 	
 	always @(posedge clk or negedge rst_n) begin
 		if (!rst_n) begin
-			reg_pc			<= 0;
+			reg_pc			<= 16'h2000;
 			reg_irq_pc		<= 0;
 			reg_sp			<= 0;
 			reg_sreg		<= 0;
@@ -151,7 +151,7 @@ module ib16 #(
 			state			<= FSM_FETCH;
 			tag				<= 0;
 			fsm_cycle		<= 0;
-			mask_irq		<= 0;
+			mask_irq		<= 1;
 			reg_ra			<= 0;
 			bus_enable		<= 0;
 			bus_wr_en		<= 0;
