@@ -42,9 +42,10 @@ uint16_t bin_start = 0;
 #define OP_FMT_2OP 1
 #define OP_FMT_8IMM 2
 #define OP_FMT_12IMM 3
-#define OP_FMT_9SIMM 4
-#define OP_FMT_LITERAL 5
-#define OP_FMT_NONE 6
+#define OP_FMT_12IMMT 4
+#define OP_FMT_9SIMM 5
+#define OP_FMT_LITERAL 6
+#define OP_FMT_NONE 7
 
 // instruction table
 const struct {
@@ -53,25 +54,25 @@ const struct {
 	int fmt;
 } e1_opcodes[] = {
 	{ "", 			0x0000, OP_FMT_LITERAL },
-	{ "MUL",		0x0000, OP_FMT_3OP },
-	{ "LDI",		0x1000, OP_FMT_8IMM },
-	{ "ADD",		0x2000, OP_FMT_3OP },
-	{ "ADC",		0x3000, OP_FMT_3OP },
-	{ "SUB",		0x4000, OP_FMT_3OP },
-	{ "XOR",		0x5000, OP_FMT_3OP },
-	{ "AND",		0x6000, OP_FMT_3OP },
-	{ "OR",			0x7000, OP_FMT_3OP },
-	{ "SHR",		0x8000, OP_FMT_2OP },
-	{ "SAR",		0x8010, OP_FMT_2OP },
-	{ "ROR",		0x8020, OP_FMT_2OP },
-	{ "ROL",		0x8030, OP_FMT_2OP },
-	{ "SWAP",		0x8040, OP_FMT_2OP },	
-	{ "INC",		0x8050, OP_FMT_2OP },	
-	{ "DEC",		0x8060, OP_FMT_2OP },	
-	{ "NOT",		0x8070, OP_FMT_2OP },	
-	{ "LDM",		0x9000, OP_FMT_3OP },
-	{ "STM",		0xA000, OP_FMT_3OP },
-	{ "CALL",		0xB000, OP_FMT_12IMM },
+	{ "LDI",		0x0000, OP_FMT_8IMM },
+	{ "ADD",		0x1000, OP_FMT_3OP },
+	{ "ADC",		0x2000, OP_FMT_3OP },
+	{ "SUB",		0x3000, OP_FMT_3OP },
+	{ "XOR",		0x4000, OP_FMT_3OP },
+	{ "AND",		0x5000, OP_FMT_3OP },
+	{ "OR",			0x6000, OP_FMT_3OP },
+	{ "SHR",		0x7000, OP_FMT_2OP },
+	{ "SAR",		0x7010, OP_FMT_2OP },
+	{ "ROR",		0x7020, OP_FMT_2OP },
+	{ "ROL",		0x7030, OP_FMT_2OP },
+	{ "SWAP",		0x7040, OP_FMT_2OP },	
+	{ "INC",		0x7050, OP_FMT_2OP },	
+	{ "DEC",		0x7060, OP_FMT_2OP },	
+	{ "NOT",		0x7070, OP_FMT_2OP },	
+	{ "LDM",		0x8000, OP_FMT_3OP },
+	{ "STM",		0x9000, OP_FMT_3OP },
+	{ "CALL",		0xA000, OP_FMT_12IMM },
+	{ "LCALL",		0xB000, OP_FMT_12IMMT },
 	{ "RET",		0xC000, OP_FMT_NONE },
 	{ "JMP",		0xD000, OP_FMT_9SIMM },
 	{ "JC",			0xD200, OP_FMT_9SIMM },
@@ -170,6 +171,7 @@ void compile_exec1(char *line)
 					}
 					break;
 				}
+				case OP_FMT_12IMMT:
 				case OP_FMT_12IMM: // hex val
 				{
 					if (islabel(line)) {
@@ -186,7 +188,7 @@ void compile_exec1(char *line)
 						uint16_t r;
 						// it's a value
 						sscanf(line, "%"SCNx16, &r);
-						program[PC].opcode |= r & 0xFFF;
+						program[PC].opcode |= e1_opcodes[x].fmt ==  OP_FMT_12IMM ? (r & 0xFFF) : ((r >> 4) & 0xFFF);
 					}
 					break;
 				}
@@ -353,6 +355,18 @@ void resolve_exec1(int x)
 					y &= 0xFF;
 				}
 				program[x].opcode |= y & 0xFFF;
+			}
+			break;
+		case OP_FMT_12IMMT: //CALL
+			if (program[x].tgt[0]) {
+				// jumping to a target 
+				y = find_target(x);
+				if (program[x].use_top_half) {
+					y >>= 8;
+				} else if (program[x].use_bottom_half) {
+					y &= 0xFF;
+				}
+				program[x].opcode |= (y >> 4) & 0xFFF;
 			}
 			break;
 		case OP_FMT_9SIMM: // Jumps

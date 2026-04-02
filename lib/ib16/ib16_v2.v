@@ -3,8 +3,7 @@
 module ib16 #(
     parameter STACK_ADDRESS = 16'h1F00,
     parameter IRQ_VECTOR    = 16'h1E00,
-    parameter TWO_CYCLE     = 0,             // this adds an ALU cycle can be useful to help routing and/or timing
-    parameter MULTIPLIER    = 0              // turn on/off multiplier support
+    parameter TWO_CYCLE     = 0              // this adds an ALU cycle can be useful to help routing and/or timing
 ) (
 	input clk,
 	input rst_n,
@@ -71,21 +70,20 @@ module ib16 #(
 	wire [7:0] opcode_8imm = cur_opcode[7:0];		// 8IMM
 	wire [11:0] opcode_12imm = cur_opcode[11:0];		// 12IMM
 	wire [15:0] opcode_9simm = { {6{cur_opcode[8]}}, cur_opcode[8:0], 1'b0 };
-    wire [15:0] result_product = reg_ra * reg_rb;
 
 	localparam
-		OPCODE_MUL = 0,
-		OPCODE_LDI = 1,
-		OPCODE_ADD = 2,
-		OPCODE_ADC = 3,
-		OPCODE_SUB = 4,
-		OPCODE_XOR = 5,
-		OPCODE_AND = 6,
-		OPCODE_OR  = 7,
-		OPCODE_SHF = 8,
-		OPCODE_LDM = 9,
-		OPCODE_STM = 10,
-		OPCODE_CAL = 11,
+		OPCODE_LDI = 0,
+		OPCODE_ADD = 1,
+		OPCODE_ADC = 2,
+		OPCODE_SUB = 3,
+		OPCODE_XOR = 4,
+		OPCODE_AND = 5,
+		OPCODE_OR  = 6,
+		OPCODE_SHF = 7,
+		OPCODE_LDM = 8,
+		OPCODE_STM = 9,
+		OPCODE_CAL = 10,
+		OPCODE_LCAL = 11,
 		OPCODE_RET = 12,
 		OPCODE_JMP = 13,
 		OPCODE_SRS = 14,
@@ -101,9 +99,6 @@ module ib16 #(
 	// ALU
 	always @(*) begin
 		result_dff = {9'b0}; // default no-op
-        if (MULTIPLIER == 1 && opcode_isn == OPCODE_MUL) begin
-            result_dff  = {1'b0, (opcode_opa < opcode_opb) ? result_product[7:0] : result_product[15:8]};
-        end
 		if (opcode_isn == OPCODE_LDI) begin
 			result_dff	= {1'b0, opcode_8imm};
 		end
@@ -255,7 +250,7 @@ module ib16 #(
                     state       <= FSM_FETCH;
                 end
             end
-            if (state == FSM_DECODE + OPCODE_CAL) begin
+            if (state == FSM_DECODE + OPCODE_CAL || state == FSM_DECODE + OPCODE_LCAL) begin
                 if (!bus_enable) begin
                     bus_enable		<= 1;
                     bus_burst       <= 1;
@@ -267,7 +262,11 @@ module ib16 #(
                 end
                 if (bus_enable && bus_ready) begin
                     state			<= FSM_FETCH;
-                    reg_pc			<= {3'b0, opcode_12imm, 1'b0};
+                    if (opcode_isn == OPCODE_CAL) begin
+                        reg_pc		<= {3'b0, opcode_12imm, 1'b0};
+                    end else begin
+                        reg_pc		<= {opcode_12imm, 4'b0};
+                    end
                     bus_enable      <= 0;
                     bus_burst       <= 0;
                     bus_wr_en       <= 0;
@@ -275,8 +274,12 @@ module ib16 #(
             end
             if (state == FSM_DECODE + OPCODE_RTI) begin
                 mask_irq 			<= 0;
-                reg_pc	 			<= reg_irq_pc;
+                reg_pc	 			<= reg_irq_pc + 16'd2;
                 reg_sreg            <= reg_irq_sreg;
+				bus_enable		    <= 1'b1;
+                bus_address_terma   <= reg_irq_pc;
+				bus_address_termb   <= 0;
+				bus_burst           <= 1'b1;              // read 16-bits
                 state				<= FSM_FETCH;
             end
             if (state == FSM_DECODE + OPCODE_RET) begin
