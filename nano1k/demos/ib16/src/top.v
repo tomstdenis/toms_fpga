@@ -20,14 +20,13 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
         UART_STS_ADDR    = 16'hFFFE,
         UART_DATA_ADDR   = 16'hFFFF;
 
-    wire pllclk = clk;
+    wire pllclk;
 
-/*
     Gowin_rPLL ticktock (
         .clkout(pllclk), //output clkout
         .clkin(clk) //input clkin
     );
-*/
+
     reg [3:0] rst = 0;
     wire rst_n = rst[3];
 
@@ -47,7 +46,7 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
     endgenerate
     assign gpio_in = gpio;
 
-    wire [15:0] baud_div = 27_000_000 / 230_400;
+    wire [15:0] baud_div = 54_000_000 / 230_400;
     reg uart_tx_start;
     reg [7:0] uart_tx_data_in;
     wire uart_tx_fifo_full;
@@ -257,7 +256,7 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
                     if (ib16_bus_address == UART_STS_ADDR) begin
                         if (ib16_bus_wr_en) begin
                         end else begin
-                            ib16_bus_data_out <= {5'b0, uart_tx_fifo_empty, uart_tx_fifo_full, uart_rx_ready};
+                            ib16_bus_data_out <= {13'b0, uart_tx_fifo_empty, uart_tx_fifo_full, uart_rx_ready};
                         end
                         ib16_bus_ready <= 1;
                     end 
@@ -312,7 +311,7 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
                                     bram_wre    <= ib16_bus_wr_en;
                                     bram_addr   <= ib16_bus_address[12:0];
                                     bram_din    <= ib16_bus_data_in[7:0];
-                                    bus_cycle   <= 1;
+                                    bus_cycle   <= bus_cycle + 1'b1;
                                 end
                             1: // memory 2nd cycle
                                 begin
@@ -322,7 +321,7 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
                                         bram_ce         <= 0;
                                         ib16_bus_ready  <= 1;
                                     end else begin                     // all reads take 3 cycles, burst writes take 3  
-                                        bus_cycle       <= 2;
+                                        bus_cycle       <= bus_cycle + 1'b1;
                                         bram_addr       <= bram_addr + 1'b1;
                                         bram_din        <= ib16_bus_data_in[15:8];
                                     end
@@ -337,11 +336,11 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
                                     end else begin
                                         ib16_bus_data_out[7:0] <= bram_dout;
                                         if (!ib16_bus_burst) begin          // 8-bit reads are done here
-                                            bus_cycle           <= 0;
-                                            bram_ce             <= 0;
-                                            ib16_bus_ready      <= 1;
+                                            bus_cycle       <= 0;
+                                            bram_ce         <= 0;
+                                            ib16_bus_ready  <= 1;
                                         end else begin
-                                            bus_cycle           <= 3;
+                                            bus_cycle       <= bus_cycle + 1'b1;
                                         end
                                     end
                                 end
