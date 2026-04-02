@@ -22,13 +22,16 @@ CALL PRINT
 JMP LOOP
 
 .ORG 100
+:ONE
+RET
+LDI 3,0x00			; this should never execute
 :PRINT
 INC 1,1				; R1 = R1 + 1
 ADC 2,2,4			; addc r2,0
 ADC 3,3,4			; addc r3,0
 STM 3,13,12			; store R1 to GPIO
-RET
-
+LDI 4,0x00
+JZ 100
 ; Recall to move this if you enable FASTMEM (to 0x0F80)
 .ORG 0x1E00			; IRQ vector (word 0x0F00 == address 0x1E00)
 :ISR

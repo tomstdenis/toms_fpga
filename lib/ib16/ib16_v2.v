@@ -333,7 +333,7 @@ module ib16 #(
 				// kick start next fetch in this cycle
                 if (bus_irq && !mask_irq && !bus_enable) begin
                     reg_irq_pc	    <= {reg_pc[15:1], 1'b0}; // force LSB to zero in case we IRQ in the middle of a fetch
-                    reg_irq_sreg    <= reg_sreg;
+                    reg_irq_sreg    <= {result_dff[8], result_dff[7:0] == 0 ? 1'b1 : 1'b0, reg_sreg[5:0]};
                     mask_irq 	    <= 1;
                     reg_pc	 	    <= IRQ_VECTOR + 16'd2;
                     bus_address_terma <= IRQ_VECTOR;		        // read from PC

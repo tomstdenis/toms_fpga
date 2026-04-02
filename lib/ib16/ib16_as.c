@@ -208,7 +208,7 @@ void compile_exec1(char *line)
 						// it's a value
 						sscanf(line, "%"SCNx16, &r);
 						// need to compute offset from PC+2 as a halved signed 9-bit value
-						off = (r - PC - 1)  & 0x1FF;
+						off = ((r / 2) - PC - 1)  & 0x1FF;
 						program[PC].opcode |= off & 0xFFF;
 					}
 					break;

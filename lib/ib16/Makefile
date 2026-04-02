@@ -1,6 +1,6 @@
 all: test_ib16_v2.pass uart_demo.s.bin upload
 
-test_ib16_v2.pass: ib16_v2.v ib16_v2_tb.v tb_test.s.bin uart_demo.s.bin
+test_ib16_v2.pass: ib16_v2.v ib16_v2_tb.v tb_test.s.bin uart_demo.s.bin aluloop.s.bin
 	verilator -DSIM --lint-only ib16_v2.v ib16_v2_tb.v
 	iverilog -DSIM -Wall -o sim.vvp ib16_v2.v ib16_v2_tb.v
 	(vvp sim.vvp -fst > $@.log && touch $@) || cat $@.log
