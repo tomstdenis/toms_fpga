@@ -186,6 +186,15 @@ void test_node(int fd, uint16_t node)
 				break;
 		}
 		read(rng, frame+(BITS/8), 3); // randomize the address;
+
+/*
+		frame[BITS/8] &= 0x00; // force MSB to zero
+		frame[1 + BITS/8] &= 0x00; // force MSB to zero
+		
+		frame[0+BITS/8] = 0x0A;
+		frame[1+BITS/8] = 0xAA;
+		frame[2+BITS/8] = 0xAA;
+*/		
 		frame[PAYLOAD] = (node << 1) >> 8;			// assign the node address, we're reading (so LSB is 0), and we're reading identity so PAYLOAD-1 must be zero
 		frame[PAYLOAD+1] = 1 | ((node << 1) & 0xFF);// write command plus bottom seven bits of address
 		send_cmd(fd, frame, loss);
