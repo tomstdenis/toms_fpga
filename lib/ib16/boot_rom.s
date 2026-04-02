@@ -7,7 +7,7 @@ LDI 15,<UART_ADDR
 LDI 0,0
 LDI 1,0					; start writing to 0
 LDI 2,0x1F				; number of 256 byte pages...
-LDI 4,0x5A
+LDI 4,0x5A				; magic constant
 :FLUSH
 LDM 3,15,14
 XOR 3,3,4				; compare to 5A

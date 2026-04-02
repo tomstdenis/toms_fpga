@@ -13,7 +13,6 @@ module ib16_v2_tb();
 	reg [15:0] bus_data_out;
 	reg bus_irq;
 	reg [31:0] additional_cycles;
-	reg [7:0] ucode;
 	ib16 ib16dut(
 		.clk(clk), .rst_n(rst_n),
 		.bus_enable(bus_enable),
@@ -27,6 +26,8 @@ module ib16_v2_tb();
 
 	reg [7:0] tb_mem[0:65535];						// test bench memory
 	reg [7:0] boot_rom[0:255];
+	reg [7:0] demo_rom[0:8191];
+	reg [12:0] demo_idx;
 	wire [15:0] rom_address = bus_address - 16'h2000;
 	
 	// simple enable/ready handshake on memory
@@ -35,7 +36,7 @@ module ib16_v2_tb();
 			bus_ready 		<= 0;
 			bus_data_out 	<= 0;
 			bus_irq 		<= 0;
-			ucode			<= 8'h5A;
+			demo_idx 		<= 13'h1FFF; // invalid address in STACK space tells us to send 0x5A
 			additional_cycles <= 0; // on the real device we take multiple cycles per memory access so we add them back here
 		end else begin
 			if (bus_enable & !bus_ready) begin
@@ -75,9 +76,13 @@ module ib16_v2_tb();
 					if (bus_wr_en) begin
 					end else begin
 						// reads
-						bus_data_out[7:0] <= ucode;
+						if (demo_idx == 13'h1FFF) begin
+							bus_data_out[7:0] <= 8'h5A;
+						end else begin
+							bus_data_out[7:0] <= demo_rom[demo_idx];
+						end
+						demo_idx <= demo_idx + 1'b1;
 						bus_data_out[15:8] <= 0;
-						ucode			  <= 0;
 						additional_cycles <= additional_cycles + 0; // 3 cycles for a 8-bit read
 					end
 				end
@@ -99,7 +104,7 @@ module ib16_v2_tb();
         // Waveform setup
         $dumpfile("ib16_v2.vcd");
         $dumpvars(0, ib16_v2_tb);
-		$readmemh("uart_demo.s.hex", tb_mem);
+		$readmemh("uart_demo.s.hex", demo_rom);
 		$readmemh("boot_rom.s.hex", boot_rom);
 		clk = 0;
 		rst_n = 0;
