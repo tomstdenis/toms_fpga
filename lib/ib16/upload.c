@@ -43,13 +43,14 @@ int main(int argc, char **argv)
     set_interface_attribs(fd, B230400);
 	tcflush(fd, TCIOFLUSH);
 	
+#if 1
 	buf = 0x5A;
 	if (write(fd, &buf, 1) != 1) {
 		printf("Error writing to UART\n");
 		exit(-1);
 	}
 	tcdrain(fd);
-	
+#endif	
 	f = fopen(argv[2], "r");
 	for (;;) {
 		ch = fgetc(f);

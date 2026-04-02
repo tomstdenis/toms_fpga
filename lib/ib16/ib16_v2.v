@@ -313,7 +313,7 @@ module ib16 #(
 				bus_enable		  <= 1'b1;
 				bus_address_termb <= 0;
 				bus_burst         <= 1'b1;              // read 16-bits
-                state <= FSM_FETCH;
+                state             <= FSM_FETCH;
             end
             if (state == FSM_DECODE + OPCODE_SRS) begin
                 // SREG = {SREG[7:6] & ~imm8[7:6], imm8[5:0]} 
@@ -331,11 +331,19 @@ module ib16 #(
                 state					<= FSM_FETCH;
 
 				// kick start next fetch in this cycle
+                if (bus_irq && !mask_irq && !bus_enable) begin
+                    reg_irq_pc	    <= {reg_pc[15:1], 1'b0}; // force LSB to zero in case we IRQ in the middle of a fetch
+                    reg_irq_sreg    <= reg_sreg;
+                    mask_irq 	    <= 1;
+                    reg_pc	 	    <= IRQ_VECTOR + 16'd2;
+                    bus_address_terma <= IRQ_VECTOR;		        // read from PC
+                end else begin
+                    bus_address_terma <= reg_pc;		        // read from PC
+                    reg_pc			  <= reg_pc + 16'd2;		// increment PC				
+                end
 				bus_enable		  <= 1'b1;
-				bus_address_terma <= reg_pc;		        // read from PC
 				bus_address_termb <= 0;
 				bus_burst         <= 1'b1;              // read 16-bits
-				reg_pc			  <= reg_pc + 16'd2;		// increment PC				
             end
 		end
 	end

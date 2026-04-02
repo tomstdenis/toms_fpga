@@ -79,9 +79,9 @@ module ib16_v2_tb();
 
 		repeat(3) @(posedge clk);
 		rst_n = 1;
-		repeat(65536) @(posedge clk);
+		repeat(131072) @(posedge clk);
 		
-		$display("Fetched %d instructions in %d cycles", ib16dut.stats_fetches, ib16dut.stats_cycles + additional_cycles);
+		$display("Fetched %d instructions in %d cycles (%d cyclesx100 per instruction)", ib16dut.stats_fetches, ib16dut.stats_cycles + additional_cycles, ((ib16dut.stats_cycles + additional_cycles) * 100) / (ib16dut.stats_fetches - 1));
 		$finish;
 	end
 endmodule
