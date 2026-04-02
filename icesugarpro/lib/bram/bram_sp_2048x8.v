@@ -1,4 +1,10 @@
-module bram_sp_2048x8 (
+module bram_sp_2048x8 
+#(
+	parameter WRITEMODE_A="NORMAL",
+	parameter WRITEMODE_B="NORMAL",
+	parameter REGMODE_A="NOREG"
+)
+(
     input clk,
     input [10:0] w_addr,
     input [7:0] w_data,
@@ -12,12 +18,12 @@ module bram_sp_2048x8 (
     // based on the width. In 9-bit mode, AD[2:0] are ignored 
     // or used for sub-byte masking. We map our 11 bits to AD[13:3].
 
-    DP16K #(
+    DP16KD #(
         .DATA_WIDTH_A(9), 
         .DATA_WIDTH_B(9),
-        .WRITEMODE_A("NORMAL"),
-        .WRITEMODE_B("NORMAL"),
-        .SELECT_REG_A("NOREG"), // Use "REG" for a registered output (better timing)
+        .WRITEMODE_A(WRITEMODE_A),
+        .WRITEMODE_B(WRITEMODE_B),
+        .REGMODE_A(REGMODE_A), // Use "REG" for a registered output (better timing)
         .GSR("DISABLED")
     ) mem_inst (
         // Port A: Read

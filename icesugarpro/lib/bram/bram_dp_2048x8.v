@@ -1,4 +1,11 @@
-module bram_dp_2048x8 (
+module bram_dp_2048x8
+#(
+	parameter WRITEMODE_A="NORMAL",
+	parameter WRITEMODE_B="NORMAL",
+	parameter REGMODE_A="NOREG",
+	parameter REGMODE_B="NOREG"
+)
+(
     // Port A
     input         clk_a,
     input  [10:0] addr_a,
@@ -14,13 +21,13 @@ module bram_dp_2048x8 (
     output [7:0]  dout_b
 );
 
-    DP16K #(
+    DP16KD #(
         .DATA_WIDTH_A(9),
         .DATA_WIDTH_B(9),
-        .WRITEMODE_A("NORMAL"),
-        .WRITEMODE_B("NORMAL"),
-        .SELECT_REG_A("NOREG"), // Set to "REG" for +1 cycle latency but better timing
-        .SELECT_REG_B("NOREG"),
+        .WRITEMODE_A(WRITEMODE_A),
+        .WRITEMODE_B(WRITEMODE_B),
+        .REGMODE_A(REGMODE_A), // Set to "REG" for +1 cycle latency but better timing
+        .REGMODE_B(REGMODE_B),
         .GSR("DISABLED")
     ) mem_inst (
         // Port A Connections
