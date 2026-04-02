@@ -1,7 +1,7 @@
 /*
 	Realllly simple SPI SRAM demo, does a write then read.  Uses debug node to receive commands and report status.
 */
-module top(input clk, inout [3:0] sio, output cs, output cs2, output sck, input uart_rx, output uart_tx);
+module top(input clk, inout [3:0] sio, output cs, output sck, input uart_rx, output uart_tx);
 
 	localparam
 		DATA_WIDTH = `BITS,
@@ -86,7 +86,7 @@ module top(input clk, inout [3:0] sio, output cs, output cs2, output sck, input 
 	// sio input is always just the sio pins
 	assign sio_din = sio;
 	assign sck = sram_sck;
-	assign cs2 = sram_cs;
+	assign cs = sram_cs;
 
     spi_sram
     #(
