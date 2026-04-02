@@ -82,7 +82,7 @@ module ib16 #(
 		OPCODE_SHF = 7,
 		OPCODE_LDM = 8,
 		OPCODE_STM = 9,
-		OPCODE_CAL = 10,
+		OPCODE_UNK = 10,
 		OPCODE_LCAL = 11,
 		OPCODE_RET = 12,
 		OPCODE_JMP = 13,
@@ -250,7 +250,7 @@ module ib16 #(
                     state       <= FSM_FETCH;
                 end
             end
-            if (state == FSM_DECODE + OPCODE_CAL || state == FSM_DECODE + OPCODE_LCAL) begin
+            if (state == FSM_DECODE + OPCODE_LCAL) begin
                 if (!bus_enable) begin
                     bus_enable		<= 1;
                     bus_burst       <= 1;
@@ -262,11 +262,7 @@ module ib16 #(
                 end
                 if (bus_enable && bus_ready) begin
                     state			<= FSM_FETCH;
-                    if (opcode_isn == OPCODE_CAL) begin
-                        reg_pc		<= {3'b0, opcode_12imm, 1'b0};
-                    end else begin
-                        reg_pc		<= {opcode_12imm, 4'b0};
-                    end
+                    reg_pc		    <= {opcode_12imm, 4'b0};
                     bus_enable      <= 0;
                     bus_burst       <= 0;
                     bus_wr_en       <= 0;

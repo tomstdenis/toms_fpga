@@ -18,7 +18,7 @@ LDI 3,0x00
 LDI 4,0x00
 
 :LOOP
-CALL PRINT
+LCALL PRINT
 JMP LOOP
 
 .ALIGN 10
@@ -31,6 +31,7 @@ LCALL 100
 LCALL LONGCALL
 RET
 LDI 3,0x00			; this should never execute
+.ALIGN 10
 :PRINT
 INC 1,1				; R1 = R1 + 1
 ADC 2,2,4			; addc r2,0
