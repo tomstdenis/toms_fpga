@@ -15,12 +15,13 @@ JNZ FLUSH				; dump any non 5A bytes
 
 :LOOP
 LDM 3,15,14				; read from UART
+STM 3,15,14				; echo char back
 STM 3,1,0				; store 
 INC 0,0					; increment base
 JNC LOOP
 INC 1,1
 DEC 2,2					; decrement page counter
 JNZ LOOP
-;SRES 0					; reset flags
+SRES 0					; reset flags
 LCALL 0					; jump to 0x0000
 JMP REBOOT

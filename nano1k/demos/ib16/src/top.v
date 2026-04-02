@@ -297,14 +297,16 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
                             8'h0E: ib16_bus_data_out <= 16'h4334;
                             8'h10: ib16_bus_data_out <= 16'hD9FD;
                             8'h12: ib16_bus_data_out <= 16'h83FE;
-                            8'h14: ib16_bus_data_out <= 16'h9310;
-                            8'h16: ib16_bus_data_out <= 16'h7050;
-                            8'h18: ib16_bus_data_out <= 16'hD5FC;
-                            8'h1A: ib16_bus_data_out <= 16'h7151;
-                            8'h1C: ib16_bus_data_out <= 16'h7262;
-                            8'h1E: ib16_bus_data_out <= 16'hD9F9;
-                            8'h20: ib16_bus_data_out <= 16'hB000;
-                            8'h22: ib16_bus_data_out <= 16'hD1EE;
+                            8'h14: ib16_bus_data_out <= 16'h93FE;
+                            8'h16: ib16_bus_data_out <= 16'h9310;
+                            8'h18: ib16_bus_data_out <= 16'h7050;
+                            8'h1A: ib16_bus_data_out <= 16'hD5FB;
+                            8'h1C: ib16_bus_data_out <= 16'h7151;
+                            8'h1E: ib16_bus_data_out <= 16'h7262;
+                            8'h20: ib16_bus_data_out <= 16'hD9F8;
+                            8'h22: ib16_bus_data_out <= 16'hE000;
+                            8'h24: ib16_bus_data_out <= 16'hB000;
+                            8'h26: ib16_bus_data_out <= 16'hD1EC;
                             default: begin end
                         endcase
                     end

@@ -52,7 +52,7 @@ int main(int argc, char **argv)
 	tcdrain(fd);
 #endif	
 	f = fopen(argv[2], "r");
-	for (;;) {
+	while (bytes < (8192 - 256)) {
 		ch = fgetc(f);
 		if (ch != EOF) {
 			uint8_t b = ch;
@@ -64,7 +64,7 @@ int main(int argc, char **argv)
 			if (read(fd, &b, 1) == 1) {
 				if (b == ch) {
 					++bytes;
-					printf("Wrote %4d (%d%% done)\r", bytes, (bytes * 100) / 8192);
+					printf("Wrote %4d (%d%% done)\r", bytes, (bytes * 100) / (8192 - 256));
 					fflush(stdout);
 				} else {
 					printf("\nRead timed out\n");
