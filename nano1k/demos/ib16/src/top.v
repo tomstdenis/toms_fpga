@@ -14,6 +14,7 @@
 
 module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
     localparam
+        TIMER_ADDR       = 16'hFFFA,
         GPIO_DATA_ADDR   = 16'hFFFB,
         UART_INT_ADDR    = 16'hFFFC,
         UART_INTEN_ADDR  = 16'hFFFD,
@@ -100,6 +101,7 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
     reg [15:0] ib16_bus_data_out;
     reg ib16_bus_irq;
     wire ib16_bus_burst;
+    reg [23:0] cycle_counter;
 
     reg [3:0] bus_cycle;
     ib16 #(
@@ -115,9 +117,6 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
         .bus_burst(ib16_bus_burst),
         .bus_irq(ib16_bus_irq));
 
-`ifdef USE_FASTMEM
-    reg [7:0] fastmem[0:`FASTMEM_SIZE - 1];
-`endif
     // bus controller
     always @(posedge pllclk) begin
         if (!rst_n) begin
@@ -133,6 +132,7 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
             ib16_bus_irq        <= 0;
             bus_cycle           <= 0;
             gpio_out            <= 8'hFF;
+            cycle_counter       <= 0;
 `ifdef USE_UARTIRQ
             uart_prev_rx_ready  <= 0;
             uart_prev_tx_fifo_empty <= 0;
@@ -140,6 +140,7 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
             uart_int_pending    <= 0;
 `endif
         end else begin
+            cycle_counter <= cycle_counter + 1'b1;
 `ifdef USE_UARTIRQ
             // trap uart IRQ
             uart_int_pending[0] <= (uart_prev_rx_ready != uart_rx_ready && uart_rx_ready) ? 1'b1 : 1'b0;
@@ -183,6 +184,15 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
                     ib16_bus_ready <= 1;
                 end
 `endif
+                // Timer
+                if (ib16_bus_address == TIMER_ADDR) begin
+                    if (ib16_bus_wr_en) begin
+                    end else begin
+                        ib16_bus_data_out <= cycle_counter[23:16];
+                    end
+                    ib16_bus_ready <= 1;
+                end 
+
                 // UART Status register
                 if (ib16_bus_address == UART_STS_ADDR) begin
                     if (ib16_bus_wr_en) begin
@@ -285,29 +295,27 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
                     endcase
                 end
                 if (ib16_bus_address >= 16'h2000 && ib16_bus_address <= 16'h2100) begin
-                    if (!ib16_bus_wr_en) begin
-                        case(ib16_bus_address[5:0])
-                            8'h00: ib16_bus_data_out <= 16'h0eff;
-                            8'h02: ib16_bus_data_out <= 16'h0fff;
-                            8'h04: ib16_bus_data_out <= 16'h0000;
-                            8'h06: ib16_bus_data_out <= 16'h0100;
-                            8'h08: ib16_bus_data_out <= 16'h021f;
-                            8'h0a: ib16_bus_data_out <= 16'h045a;
-                            8'h0c: ib16_bus_data_out <= 16'h83fe;
-                            8'h0e: ib16_bus_data_out <= 16'h4334;
-                            8'h10: ib16_bus_data_out <= 16'hd9fd;
-                            8'h12: ib16_bus_data_out <= 16'h83fe;
-                            8'h14: ib16_bus_data_out <= 16'h93fe;
-                            8'h16: ib16_bus_data_out <= 16'h9310;
-                            8'h18: ib16_bus_data_out <= 16'h7050;
-                            8'h1a: ib16_bus_data_out <= 16'hd5fb;
-                            8'h1c: ib16_bus_data_out <= 16'h7151;
-                            8'h1e: ib16_bus_data_out <= 16'h7262;
-                            8'h20: ib16_bus_data_out <= 16'hd9f8;
-                            8'h22: ib16_bus_data_out <= 16'he008;
-                            default: begin end
-                        endcase
-                    end
+                    case(ib16_bus_address[5:0])
+                        8'h00: ib16_bus_data_out <= 16'h0eff;
+                        8'h02: ib16_bus_data_out <= 16'h0fff;
+                        8'h04: ib16_bus_data_out <= 16'h0000;
+                        8'h06: ib16_bus_data_out <= 16'h0100;
+                        8'h08: ib16_bus_data_out <= 16'h021f;
+                        8'h0a: ib16_bus_data_out <= 16'h045a;
+                        8'h0c: ib16_bus_data_out <= 16'h83fe;
+                        8'h0e: ib16_bus_data_out <= 16'h4334;
+                        8'h10: ib16_bus_data_out <= 16'hd9fd;
+                        8'h12: ib16_bus_data_out <= 16'h83fe;
+                        8'h14: ib16_bus_data_out <= 16'h93fe;
+                        8'h16: ib16_bus_data_out <= 16'h9310;
+                        8'h18: ib16_bus_data_out <= 16'h7050;
+                        8'h1a: ib16_bus_data_out <= 16'hd5fb;
+                        8'h1c: ib16_bus_data_out <= 16'h7151;
+                        8'h1e: ib16_bus_data_out <= 16'h7262;
+                        8'h20: ib16_bus_data_out <= 16'hd9f8;
+                        8'h22: ib16_bus_data_out <= 16'he008;
+                        default: ib16_bus_data_out <= 16'h0000;
+                    endcase
                     ib16_bus_ready <= 1;
                 end
             end if (ib16_bus_ready && !ib16_bus_enable) begin

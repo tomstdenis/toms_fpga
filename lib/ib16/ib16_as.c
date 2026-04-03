@@ -72,7 +72,6 @@ const struct {
 	{ "LDM",		0x8000, OP_FMT_3OP },
 	{ "STM",		0x9000, OP_FMT_3OP },
 	// isn 0x0A is free...
-//	{ "CALL",		0xA000, OP_FMT_12IMM },
 	{ "LCALL",		0xB000, OP_FMT_12IMMT },
 	{ "RET",		0xC000, OP_FMT_NONE },
 	{ "JMP",		0xD000, OP_FMT_9SIMM },

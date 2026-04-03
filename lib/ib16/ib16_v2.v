@@ -206,12 +206,12 @@ module ib16 #(
                         // pop
                         bus_address_terma <= STACK_ADDRESS;
                         bus_address_termb <= reg_sp - 1'b1;
-                        reg_sp			  <= reg_sp - 8'b1;
+                        reg_sp			  <= reg_sp - 1'b1;
                     end else begin
                         // load from memory
                         bus_address_terma <= {reg_ra, reg_rb};
                         bus_address_termb <= (reg_sreg[READ_INCR] ? reg_ri : 8'b0);
-                        reg_ri			  <= reg_ri + 8'b1;
+                        reg_ri			  <= reg_ri + 1'b1;
                     end
                 end
                 if (bus_enable && bus_ready) begin

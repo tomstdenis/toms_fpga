@@ -22,6 +22,7 @@ Demo configuration:
    - Blocking UART: 0xFFFF
    - UART Status  : 0xFFFE (fifo empty, fifo full, rx ready) in the lower bits
    - GPIO		  : 0xFFFB (8574 style tri-state 8-pin GPIO)
+   - TIMER		  : 0xFFFA, the upper 8 bits of a 24-bit timer, in the default config is 1.213629ms per tick
 
 - Registers
    - PC - 16 bits (counts 16-bit words so you fetch from memory[PC*2])
@@ -29,6 +30,14 @@ Demo configuration:
    - WI - 8 bits write index (used by STM if SREG[1] is set)
    - RI - 8 bits read index (used by LDM if SREG[0] is set) 
    - SREG - 8 bits (Carry, Zero, unused, unused, Boot to APP, Mask IRQ, Write Increment, Read Increment)
+
+- Source code:
+	- boot_rom.s can load upto 8192 - 256 bytes starting at 0000
+		- waits for 5A (discards anything else)
+		- then reads 1 byte, echos it back, stores it in memory
+	- uart_demo.s
+		- On Tang Nano 1K: this increments the GPIO pins periodically making the RGB leds blink, 
+		- Has IRQ for uart, echos back what it receives from ISR
 
 Opcode map:
 
