@@ -45,8 +45,6 @@ module ib16 #(
 	reg [7:0]	reg_wi;								// WI (write index)
 	reg [7:0]	reg_ri;								// RI (read index)
 	reg [7:0]	reg_rr [0:15];						// GPRs 
-    wire [7:0]  reg_ra = reg_rr[opcode_opa];
-    wire [7:0]  reg_rb = reg_rr[opcode_opb];
 	wire carry_flag = reg_sreg[CARRY_FLAG];
 	wire zero_flag  = reg_sreg[ZERO_FLAG];
 	wire write_incr_flag = reg_sreg[WRITE_INCR];
@@ -69,6 +67,8 @@ module ib16 #(
 	wire [7:0] opcode_8imm = cur_opcode[7:0];		// 8IMM
 	wire [11:0] opcode_12imm = cur_opcode[11:0];		// 12IMM
 	wire [15:0] opcode_9simm = { {6{cur_opcode[8]}}, cur_opcode[8:0], 1'b0 };
+    wire [7:0]  reg_ra = reg_rr[opcode_opa];
+    wire [7:0]  reg_rb = reg_rr[opcode_opb];
 
 	localparam
 		OPCODE_LDI = 0,
