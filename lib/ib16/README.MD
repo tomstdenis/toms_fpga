@@ -53,7 +53,7 @@ So the formats would be
 9SIMM: 4-bit instruction, 3-bit modifier, 9-bit signed value (divided by 2 since PC addresses are all even)
 
 Instructions:
-0 - LDI (8IMM) R[d] = imm
+0 - LDI (8IMM) R[d] = imm										[ZC]
 1 - ADD (3OP)  R[d] = R[a] + R[b]								[ZC]
 2 - ADC (3OP)  R[d] = R[a] + R[b] + carry						[ZC]
 3 - SUB (3OP)  R[d] = R[a] - R[b]								[ZC]
@@ -65,6 +65,7 @@ Instructions:
 		- 00: R[a] < R[b]
 		- 01: R[a] == R[b]
 		- 10: R[a] > R[b]
+		- 11: Unused (C=0)
 8 - Shifts (2OP)												[ZC]
 	- 4 bit modifier
 		- SHR  0: R[d] = R[a] >> 1								[ZC]
@@ -75,7 +76,7 @@ Instructions:
 		- INC  5: R[d] = R[a] + 1								[ZC]
 		- DEC  6: R[d] = R[a] - 1								[ZC]
 		- NOT  7: R[d] = ~R[a]									[ZC]
-9 - LDM (3OP)  R[d] = memory[{R[a], R[b]}]						[Z]  (if a == b == 15 then it's a pop or push off the stack)
+9 - LDM (3OP)  R[d] = memory[{R[a], R[b]}]						[ZC]  (if a == b == 15 then it's a pop or push off the stack)
 10 - STM (3OP)  memory[{R[a], R[b]}] = R[d]
 11 - LCAL (12IMM) PC = (12IMM) << 4 (push PC)
 12 - RET pop PC off stack

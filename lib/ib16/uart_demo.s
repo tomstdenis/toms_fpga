@@ -34,7 +34,7 @@ INC 1,1				; R1 = R1 + 1
 ADC 2,2,4			; addc r2,0
 ADC 3,3,4			; addc r3,0
 LDM 5,11,10			; read timer
-SHR 5,5				; timer >> 5 (because the timer is too fast to really see otherwise)
+SHR 5,5				; timer >> 5 (@48Mhz each tick is 1.3653ms)
 SHR 5,5
 SHR 5,5
 SHR 5,5
