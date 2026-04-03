@@ -20,6 +20,7 @@ module top(
 	wire uart_rx_ready;
 	wire [7:0] uart_rx_byte;
 	wire uart_tx_fifo_full;
+	wire uart_tx_fifo_empty;
 	wire pll_clk;
 	wire plllock;
 	
@@ -37,7 +38,7 @@ module top(
 	uart #(.FIFO_DEPTH(4), .RX_ENABLE(1), .TX_ENABLE(1)) myuart(
 		.clk(pll_clk), .rst_n(rst_n),
 		.baud_div(bauddiv), 
-		.uart_tx_start(uart_tx_start), .uart_tx_data_in(uart_tx_data_in), .uart_tx_pin(tx), .uart_tx_fifo_full(uart_tx_fifo_full),
+		.uart_tx_start(uart_tx_start), .uart_tx_data_in(uart_tx_data_in), .uart_tx_pin(tx), .uart_tx_fifo_full(uart_tx_fifo_full), .uart_tx_fifo_empty(uart_tx_fifo_empty),
 		.uart_rx_pin(rx), .uart_rx_read(uart_rx_read), .uart_rx_ready(uart_rx_ready), .uart_rx_byte(uart_rx_byte));
 
 	localparam
@@ -61,14 +62,13 @@ module top(
 		.din_a(bram_din_a),
 		.we_a(bram_we_a),
 		.dout_a(bram_dout_a),
-		
 		.clk_b(pll_clk),
 		.clk_en_b(1'b1),
 		.rst_b(~rst_n),
 		.addr_b(bram_addr_b),
 		.din_b(bram_din_b),
 		.we_b(bram_we_b),
-		.dout_b(bram_dout_b),
+		.dout_b(bram_dout_b)
 	);
 	
 	reg [3:0] state;

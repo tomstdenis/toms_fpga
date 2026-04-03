@@ -1,13 +1,16 @@
 TARGET=echo
 TOP=top
 FREQ=25
-BLOCKS=4
+BLOCKS=32
 
 OBJS+=${TARGET}.v pll.v \
 ../../../lib/uart/blocks/tx_uart.v ../../../lib/uart/blocks/rx_uart.v ../../../lib/uart/blocks/uart.v \
 ../../lib/bram/bram_dp_2048x8.v ../../lib/bram/bram_dp_nx2048x8.v
 
 all: ${TARGET}.bit
+
+lint: ${OBJS}
+	verilator -DFREQ=${FREQ} -DBLOCKS=${BLOCKS} --lint-only ${OBJS}
 
 $(TARGET).json: $(OBJS)
 		yosys -DBLOCKS=${BLOCKS} -DFREQ=${FREQ} -p "synth_ecp5 -json $@" $(OBJS)

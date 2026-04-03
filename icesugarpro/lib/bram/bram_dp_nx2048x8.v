@@ -60,7 +60,7 @@ module bram_dp_nx2048x8
 				.addr_b(addr_b[10:0]),
 				.din_b(din_b),
 				.we_b(we_b & ((addr_b[10+$clog2(N):11] == i) ? 1'b1 : 1'b0)),
-				.dout_b(mem_out_b[i]),
+				.dout_b(mem_out_b[i])
 			);
 		end
 	endgenerate
