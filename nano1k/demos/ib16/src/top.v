@@ -286,25 +286,25 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
                 end
                 if (ib16_bus_address >= 16'h2000 && ib16_bus_address <= 16'h2100) begin
                     if (!ib16_bus_wr_en) begin
-                        case(ib16_bus_address[7:0])
-                            8'h00: ib16_bus_data_out <= 16'h0EFF;
-                            8'h02: ib16_bus_data_out <= 16'h0FFF;
+                        case(ib16_bus_address[5:0])
+                            8'h00: ib16_bus_data_out <= 16'h0eff;
+                            8'h02: ib16_bus_data_out <= 16'h0fff;
                             8'h04: ib16_bus_data_out <= 16'h0000;
                             8'h06: ib16_bus_data_out <= 16'h0100;
-                            8'h08: ib16_bus_data_out <= 16'h021F;
-                            8'h0A: ib16_bus_data_out <= 16'h045A;
-                            8'h0C: ib16_bus_data_out <= 16'h83FE;
-                            8'h0E: ib16_bus_data_out <= 16'h4334;
-                            8'h10: ib16_bus_data_out <= 16'hD9FD;
-                            8'h12: ib16_bus_data_out <= 16'h83FE;
-                            8'h14: ib16_bus_data_out <= 16'h93FE;
+                            8'h08: ib16_bus_data_out <= 16'h021f;
+                            8'h0a: ib16_bus_data_out <= 16'h045a;
+                            8'h0c: ib16_bus_data_out <= 16'h83fe;
+                            8'h0e: ib16_bus_data_out <= 16'h4334;
+                            8'h10: ib16_bus_data_out <= 16'hd9fd;
+                            8'h12: ib16_bus_data_out <= 16'h83fe;
+                            8'h14: ib16_bus_data_out <= 16'h93fe;
                             8'h16: ib16_bus_data_out <= 16'h9310;
                             8'h18: ib16_bus_data_out <= 16'h7050;
-                            8'h1A: ib16_bus_data_out <= 16'hD5FB;
-                            8'h1C: ib16_bus_data_out <= 16'h7151;
-                            8'h1E: ib16_bus_data_out <= 16'h7262;
-                            8'h20: ib16_bus_data_out <= 16'hD9F8;
-                            8'h22: ib16_bus_data_out <= 16'hE008;
+                            8'h1a: ib16_bus_data_out <= 16'hd5fb;
+                            8'h1c: ib16_bus_data_out <= 16'h7151;
+                            8'h1e: ib16_bus_data_out <= 16'h7262;
+                            8'h20: ib16_bus_data_out <= 16'hd9f8;
+                            8'h22: ib16_bus_data_out <= 16'he008;
                             default: begin end
                         endcase
                     end

@@ -471,6 +471,13 @@ int main(int argc, char **argv)
 			}
 		}
 	}
+	printf("Verilog:\n");
+	for (x = 0; x < PROG_SIZE; x++) {
+		if (program[x].line_number != -1) {
+			printf("8'h%02x: ib16_bus_data_out <= 16'h%02x%02x;\n", x*2, program[x].opcode>>8, program[x].opcode&0xFF);
+		}
+	}
+	
 	printf("Symbols: \n");
 	for (x = 0; x < PROG_SIZE; x++) {
 		if (symbols[x].label[0]) {
