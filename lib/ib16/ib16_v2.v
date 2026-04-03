@@ -45,9 +45,8 @@ module ib16 #(
 	reg [7:0]	reg_wi;								// WI (write index)
 	reg [7:0]	reg_ri;								// RI (read index)
 	reg [7:0]	reg_rr [0:15];						// GPRs 
-	reg [7:0]	reg_ra;
-	reg [7:0]	reg_rb;
-	
+    wire [7:0]  reg_ra = reg_rr[opcode_opa];
+    wire [7:0]  reg_rb = reg_rr[opcode_opb];
 	wire carry_flag = reg_sreg[CARRY_FLAG];
 	wire zero_flag  = reg_sreg[ZERO_FLAG];
 	wire write_incr_flag = reg_sreg[WRITE_INCR];
@@ -160,7 +159,6 @@ module ib16 #(
 			tag				<= 0;
 			fsm_cycle		<= 0;
 			mask_irq		<= 1;
-			reg_ra			<= 0;
 			bus_enable		<= 0;
 			bus_wr_en		<= 0;
 			bus_data_in		<= 0;
@@ -213,8 +211,8 @@ module ib16 #(
                         cur_opcode  <= bus_data_out;
                         bus_enable  <= 0;
                         bus_burst   <= 0;
-                        reg_ra		<= reg_rr[bus_data_out[7:4]];
-                        reg_rb		<= reg_rr[bus_data_out[3:0]];
+//                        reg_ra		<= reg_rr[bus_data_out[7:4]];
+//                        reg_rb		<= reg_rr[bus_data_out[3:0]];
                         state		<= (bus_data_out[15:12] <= OPCODE_SHF) ? (TWO_CYCLE == 1 ? FSM_BUFFER : FSM_RETIRE): FSM_DECODE + {2'b0, bus_data_out[15:12]};
                    end
                 end

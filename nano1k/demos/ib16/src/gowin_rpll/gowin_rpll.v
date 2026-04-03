@@ -4,7 +4,7 @@
 //Tool Version: V1.9.11.03 Education
 //Part Number: GW1NZ-LV1QN48C6/I5
 //Device: GW1NZ-1
-//Created Time: Thu Apr  2 23:09:30 2026
+//Created Time: Fri Apr  3 00:11:08 2026
 
 module Gowin_rPLL (clkout, clkin);
 
@@ -41,9 +41,9 @@ defparam rpll_inst.FCLKIN = "27";
 defparam rpll_inst.DYN_IDIV_SEL = "false";
 defparam rpll_inst.IDIV_SEL = 8;
 defparam rpll_inst.DYN_FBDIV_SEL = "false";
-defparam rpll_inst.FBDIV_SEL = 15;
+defparam rpll_inst.FBDIV_SEL = 18;
 defparam rpll_inst.DYN_ODIV_SEL = "false";
-defparam rpll_inst.ODIV_SEL = 16;
+defparam rpll_inst.ODIV_SEL = 8;
 defparam rpll_inst.PSDA_SEL = "0000";
 defparam rpll_inst.DYN_DA_EN = "true";
 defparam rpll_inst.DUTYDA_SEL = "1000";
