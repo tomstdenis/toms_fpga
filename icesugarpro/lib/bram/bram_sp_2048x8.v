@@ -1,3 +1,13 @@
+`timescale 1ns/1ps
+/*
+	Semi-dual port 2048 deep 8-bit memory
+	
+This module uses an 18kbit memory block DP16KD to create a
+2048 entry deep 8-bit memory with distinct read and write ports that
+(because it's based on a DP memory) can be clocked independently.
+
+*/
+
 module bram_sp_2048x8 
 #(
 	parameter WRITEMODE_A="NORMAL",
@@ -5,12 +15,18 @@ module bram_sp_2048x8
 	parameter REGMODE_A="NOREG"
 )
 (
-    input clk,
-    input [10:0] w_addr,
-    input [7:0] w_data,
-    input w_en,
-    input [10:0] r_addr,
-    output [7:0] r_data
+    input w_clk,				// write clock
+    input w_clk_en,				// write clock enable
+    input w_rst,				// active high write reset
+    input [10:0] w_addr,		// write address 12-bits
+    input [7:0] w_data,			// write data 8-bits
+    input w_en,					// write enable
+
+    input r_clk,				// read clock
+    input r_clk_en,				// read clock enable
+    input r_rst,				// active high read reset
+    input [10:0] r_addr,		// read address 12-bits
+    output [7:0] r_data			// read data 8-bits
 );
 
     // The DP16K has 14-bit address buses (AD). 
@@ -27,10 +43,11 @@ module bram_sp_2048x8
         .GSR("DISABLED")
     ) mem_inst (
         // Port A: Read
-        .CLKA(clk),
-        .CEA(1'b1),
+        .CLKA(r_clk),
+        .CEA(r_clk_en),
         .OCEA(1'b1),
-        .RSTA(1'b0),
+        .WEA(1'b0),
+        .RSTA(r_rst),
         .ADA13(r_addr[10]), .ADA12(r_addr[9]), .ADA11(r_addr[8]), 
         .ADA10(r_addr[7]),  .ADA9(r_addr[6]),   .ADA8(r_addr[5]), 
         .ADA7(r_addr[4]),   .ADA6(r_addr[3]),   .ADA5(r_addr[2]), 
@@ -41,9 +58,11 @@ module bram_sp_2048x8
         .DOA3(r_data[3]), .DOA2(r_data[2]), .DOA1(r_data[1]), .DOA0(r_data[0]),
 
         // Port B: Write
-        .CLKB(clk),
-        .CEB(1'b1),
+        .CLKB(w_clk),
+        .CEB(w_clk_en),
+        .OCEB(1'b1),
         .WEB(w_en),
+        .RSTB(w_rst),
         .ADB13(w_addr[10]), .ADB12(w_addr[9]), .ADB11(w_addr[8]), 
         .ADB10(w_addr[7]),  .ADB9(w_addr[6]),   .ADB8(w_addr[5]), 
         .ADB7(w_addr[4]),   .ADB6(w_addr[3]),   .ADB5(w_addr[2]), 
