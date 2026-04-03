@@ -48,6 +48,7 @@ int main(int argc, char **argv)
 	
 	x = y = 0;
 	for (;;) {
+		fail = 0;
 		// sync byte
 		buf[0] = 0x5A;
 		if (write(fd, &buf[0], 1) != 1) {
@@ -66,7 +67,6 @@ int main(int argc, char **argv)
 		printf("\nDone writing...\n");
 		for (x = 0; x < STRIDE; ) {
 			uint8_t ch;
-			fail = 0;
 			printf("Reading byte: %04d\r", x);
 			fflush(stdout);
 			if (read(fd, &ch, 1) == 1) {

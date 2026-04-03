@@ -1,0 +1,9 @@
+LOCATE      COMP "clk"    SITE "P3";
+IOBUF       PORT "clk"    IO_TYPE=LVCMOS33;
+FREQUENCY   PORT "clk"    25 MHZ;
+
+LOCATE      COMP "rx"       SITE "H18";   // iCELink-UART3-RX
+IOBUF       PORT "rx"       IO_TYPE=LVCMOS33;
+
+LOCATE      COMP "tx"       SITE "J17";
+IOBUF       PORT "tx"       IO_TYPE=LVCMOS33;
