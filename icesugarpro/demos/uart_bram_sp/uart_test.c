@@ -24,8 +24,8 @@ static int set_interface_attribs(int fd, int speed) {
     tty.c_cflag |= CS8 | CREAD | CLOCAL;
 
     // Setup timing: non-blocking read with 0.5s timeout
-    tty.c_cc[VMIN]  = 100;
-    tty.c_cc[VTIME] = 100;
+    tty.c_cc[VMIN]  = 1;
+    tty.c_cc[VTIME] = 1;
 
     if (tcsetattr(fd, TCSANOW, &tty) != 0) return -1;
     return 0;
@@ -37,7 +37,7 @@ int main(int argc, char **argv)
 {
 	uint8_t buf[2048];
 	int rng;
-	int x, y, fail;
+	int x, y, z, fail;
 	
     int fd = open(argv[1], O_RDWR | O_NOCTTY);
     if (fd < 0) { perror("Open port"); return 1; }
@@ -46,16 +46,19 @@ int main(int argc, char **argv)
 	
 	rng = open("/dev/urandom", O_RDONLY);
 	
-	x = y = 0;
+
+	x = y = z = 0;
 	for (;;) {
 		fail = 0;
-		// sync byte
-		buf[0] = 0x5A;
-		if (write(fd, &buf[0], 1) != 1) {
-			printf("Could not write to serial port...\n");
-			exit(-1);
+		for (z = 0; z < 4; z++) {
+			// sync byte
+			buf[0] = 0x5A + z;
+			if (write(fd, &buf[0], 1) != 1) {
+				printf("Could not write to serial port...\n");
+				exit(-1);
+			}
+			tcdrain(fd);
 		}
-		tcdrain(fd);
 
 		read(rng, buf, 2048);
 		for (x = 0; x < STRIDE; x++) {
@@ -75,6 +78,9 @@ int main(int argc, char **argv)
 					fail = 1;
 				}
 				++x;
+			} else {
+				printf("Could not read byte %d from the serial port...\n", x);
+				exit(-1);
 			}
 		}
 		if (fail) {

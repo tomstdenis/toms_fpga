@@ -13,11 +13,6 @@ module top(
 	input rx,
 	output tx);
 	
-//`define LOOPBACK
-`ifdef LOOPBACK
-	assign tx = rx;
-`else
-	reg rst_n;
 	wire [15:0] bauddiv = (`FREQ * 1_000_000) / 115_200;
 	reg uart_tx_start;
 	reg uart_rx_read;
@@ -27,12 +22,16 @@ module top(
 	wire uart_tx_fifo_full;
 	wire pll_clk;
 	wire plllock;
-	
-	initial begin
-		rst_n = 0;
-	end
+	reg [3:0] rst = 0;
+	wire rst_n = rst[3];
 	
 	pll mypll(.clkin(clk), .clkout0(pll_clk), .locked(plllock));
+
+	always @(posedge pll_clk) begin
+		if (plllock) begin
+			rst <= {rst[2:0], 1'b1};
+		end
+	end
 		
 	uart #(.FIFO_DEPTH(4), .RX_ENABLE(1), .TX_ENABLE(1)) myuart(
 		.clk(pll_clk), .rst_n(rst_n),
@@ -62,18 +61,17 @@ module top(
 
 
 	reg [3:0] state;
-	reg init;
+	reg [3:0] init;
 
 	always @(posedge pll_clk) begin
 		if (!rst_n) begin
-			if (plllock) begin				// wait for PLL lock
-				rst_n 		<= 1;
-			end
 			state 		<= 0;
 			bram_w_addr <= 0;
 			bram_r_addr <= 0;
 			bram_w_en   <= 0;
 			init  		<= 0;
+			uart_tx_start <= 0;
+			uart_rx_read <= 0;
 		end else begin
 			case(state)
 				0:													// wait for byte on uart
@@ -93,9 +91,11 @@ module top(
 					end
 				2:													// write uart byte to bram
 					begin
-						if (!init) begin							// flush RX bytes until we get 5A
-							if (uart_rx_byte == 8'h5A) begin
-								init <= 1;							// we're in the init state
+						if (init != 4) begin							// flush RX bytes until we get 5A
+							if (uart_rx_byte == (8'h5A + init)) begin
+								init <= init + 1;					// we're in the init state
+							end else begin
+								init <= 0;
 							end
 							bram_w_addr	<= 0;						// ensure we're at byte 0
 							state		<= 0;						// wait for next byte
@@ -136,8 +136,8 @@ module top(
 							end
 						end
 					end
+				default: state <= 0;
 			endcase
 		end
 	end
-`endif
 endmodule
