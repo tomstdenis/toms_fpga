@@ -5,7 +5,7 @@ BLOCKS=4
 
 OBJS+=${TARGET}.v pll.v \
 ../../../lib/uart/blocks/tx_uart.v ../../../lib/uart/blocks/rx_uart.v ../../../lib/uart/blocks/uart.v \
-../../lib/bram/bram_sp_2048x8.v ../../lib/bram/bram_sp_nx2048x8.v
+../../lib/bram/bram_dp_2048x8.v ../../lib/bram/bram_dp_nx2048x8.v
 
 all: ${TARGET}.bit
 
@@ -31,7 +31,7 @@ pll.v:
 	ecppll -i 25 -o ${FREQ} -f pll.v
 
 uart_test: ../uart_test/uart_test.c
-	gcc -DBLOCKS=${BLOCKS} ../uart_test/uart_test.c -o uart_test
+	gcc -O0 -Wall -DBLOCKS=${BLOCKS} ../uart_test/uart_test.c -o uart_test
 
 clean:
 		rm -f *.svf *.bit *.config *.ys pll.v *.asc *.json uart_test

@@ -1,6 +1,7 @@
 TARGET=echo
 TOP=top
 FREQ=50
+BLOCKS=1
 
 OBJS+=${TARGET}.v pll.v \
 ../../../lib/uart/blocks/tx_uart.v ../../../lib/uart/blocks/rx_uart.v ../../../lib/uart/blocks/uart.v \
@@ -21,16 +22,16 @@ ${TARGET}.svf : ${TARGET}.bit
 
 sram: ${TARGET}.svf
 	openFPGALoader -b colorlight-i9 ${TARGET}.svf
-	
+
 flash: ${TARGET}.bit
 	openFPGALoader -b colorlight-i9 --unprotect-flash --bulk-erase
 	openFPGALoader -b colorlight-i9 -f ${TARGET}.bit --verify
-	
+
 pll.v:
 	ecppll -i 25 -o ${FREQ} -f pll.v
-	
-uart_test: uart_test.c
-	gcc -O0 -Wall uart_test.c -o uart_test
+
+uart_test: ../uart_test/uart_test.c
+	gcc -DBLOCKS=${BLOCKS} ../uart_test/uart_test.c -o uart_test
 
 clean:
 		rm -f *.svf *.bit *.config *.ys pll.v *.asc *.json uart_test

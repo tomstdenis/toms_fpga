@@ -21,7 +21,7 @@ module bram_dp_nx2048x8
     input         clk_a,			// clock
     input		  clk_en_a,			// clock enable
     input		  rst_a,			// active high reset
-    input  [10+$clog2(N):0] addr_a,			// 11-bit address
+    input  [10+$clog2(N):0] addr_a,	// 11-bit address
     input  [7:0]  din_a,			// 8-bit write input
     input         we_a,				// write enable
     output [7:0]  dout_a,			// 8-bit read output
@@ -49,7 +49,7 @@ module bram_dp_nx2048x8
 				.clk_a(clk_a),
 				.clk_en_a(clk_en_a),
 				.rst_a(rst_a),
-				.addr_a(addr_a),
+				.addr_a(addr_a[10:0]),
 				.din_a(din_a),
 				.we_a(we_a & ((addr_a[10+$clog2(N):11] == i) ? 1'b1 : 1'b0)),
 				.dout_a(mem_out_a[i]),
@@ -57,7 +57,7 @@ module bram_dp_nx2048x8
 				.clk_b(clk_b),
 				.clk_en_b(clk_en_b),
 				.rst_b(rst_b),
-				.addr_b(addr_b),
+				.addr_b(addr_b[10:0]),
 				.din_b(din_b),
 				.we_b(we_b & ((addr_b[10+$clog2(N):11] == i) ? 1'b1 : 1'b0)),
 				.dout_b(mem_out_b[i]),
@@ -69,4 +69,4 @@ module bram_dp_nx2048x8
 		dout_a = mem_out_a[addr_a[10+$clog2(N):11]];
 		dout_b = mem_out_b[addr_b[10+$clog2(N):11]];
 	end		
-
+endmodule
