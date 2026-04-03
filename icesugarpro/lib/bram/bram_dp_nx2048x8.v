@@ -4,11 +4,11 @@
 	
 This module uses 18kbit memory blocks DP16KD to create a
 dual ported N by 2048 entry deep 8-bit memory with distinct ports that can be
-clocked independantly and can be used for read or writes each.
+clocked independently and can be used for read or writes each.
 
 */
 
-module bram_dp_2048x8
+module bram_dp_nx2048x8
 #(
 	parameter WRITEMODE_A="NORMAL", 		// "NORMAL", "WRITETHROUGH", "READBEFOREWRITE"
 	parameter WRITEMODE_B="NORMAL",
