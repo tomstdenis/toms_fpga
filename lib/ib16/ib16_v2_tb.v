@@ -66,13 +66,13 @@ module ib16_v2_tb();
 						// reads
 						bus_data_out[7:0] <= boot_rom[rom_address[7:0]];
 						if (bus_burst) begin
-							additional_cycles <= additional_cycles + 1; // 4 cycles for a 16-bit read
+							additional_cycles <= additional_cycles + 0; // 1 cycles for a 16-bit read
 							bus_data_out[15:8] <= boot_rom[rom_address[7:0]+1];
 						end else begin
-							additional_cycles <= additional_cycles + 0; // 3 cycles for a 8-bit read
+							additional_cycles <= additional_cycles + 0; // 1 cycles for a 8-bit read
 						end
 					end
-				end  if (bus_address == 16'hFFFF) begin
+				end if (bus_address == 16'hFFFF) begin
 					if (bus_wr_en) begin
 					end else begin
 						// reads
@@ -83,7 +83,7 @@ module ib16_v2_tb();
 						end
 						demo_idx <= demo_idx + 1'b1;
 						bus_data_out[15:8] <= 0;
-						additional_cycles <= additional_cycles + 0; // 3 cycles for a 8-bit read
+						additional_cycles <= additional_cycles + 0;
 					end
 				end
 				bus_ready	<= 1;

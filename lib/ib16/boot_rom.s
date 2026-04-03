@@ -20,6 +20,6 @@ STM 3,1,0				; store
 INC 0,0					; increment base
 JNC LOOP
 INC 1,1
-DEC 2,2					; decrement page counter
-JNZ LOOP
+CMPEQ 1,2
+JNC LOOP
 SRES 8					; boot user app

@@ -79,10 +79,10 @@ module ib16 #(
 		OPCODE_XOR = 4,
 		OPCODE_AND = 5,
 		OPCODE_OR  = 6,
-		OPCODE_SHF = 7,
-		OPCODE_LDM = 8,
-		OPCODE_STM = 9,
-		OPCODE_UNK = 10,
+		OPCODE_CMP = 7,
+		OPCODE_SHF = 8,
+		OPCODE_LDM = 9,
+		OPCODE_STM = 10,
 		OPCODE_LCAL = 11,
 		OPCODE_RET = 12,
 		OPCODE_JMP = 13,
@@ -109,6 +109,14 @@ module ib16 #(
 								{1'b0, reg_rb}) +
 						   {8'b0, ((opcode_isn == OPCODE_ADC ? 1'b1 : 1'b0) & carry_flag)}};
 		end
+        if (opcode_isn == OPCODE_CMP) begin
+            case(opcode_opd[1:0])
+                2'b00: result_dff[8] = (reg_ra < reg_rb) ? 1'b1 : 1'b0;
+                2'b01: result_dff[8] = (reg_ra == reg_rb) ? 1'b1 : 1'b0;
+                2'b10: result_dff[8] = (reg_ra > reg_rb) ? 1'b1 : 1'b0;
+                default: begin end
+            endcase
+        end
 		if (opcode_isn == OPCODE_XOR) begin
 			result_dff	= {1'b0, reg_ra ^ reg_rb};
 		end
@@ -171,7 +179,17 @@ module ib16 #(
             if (state == FSM_BUFFER) begin   // buffer stage to help with ALU critical path timing
                 state <= FSM_RETIRE;
             end
-            if (state == FSM_FETCH) begin
+            if (state == FSM_FETCH || state == FSM_RETIRE) begin
+                // fetch/retire share a lot of code so just place it here
+                if (!bus_enable && state == FSM_RETIRE) begin
+                    // retire the previous op if any that requires a retirement
+                    if (opcode_isn != OPCODE_CMP) begin
+                        reg_rr[opcode_opd]	    <= result_dff[7:0];
+                        reg_sreg[ZERO_FLAG]		<= result_dff[7:0] == 0 ? 1'b1 : 1'b0;
+                    end
+                    reg_sreg[CARRY_FLAG]	<= result_dff[8];
+                end
+                // check for IRQs only if the bus is idle
                 if (bus_irq && !mask_irq && !bus_enable) begin
                     reg_irq_pc	    <= {reg_pc[15:1], 1'b0}; // force LSB to zero in case we IRQ in the middle of a fetch
                     reg_irq_sreg    <= reg_sreg;
@@ -179,6 +197,7 @@ module ib16 #(
                     reg_pc	 	    <= IRQ_VECTOR;
                     fsm_cycle	    <= 0;
                 end else begin
+                    // fetch the next 16-bit opcode
                     if (!bus_enable) begin
                         bus_enable		  <= 1'b1;
                         bus_address_terma <= reg_pc;		        // read from PC
@@ -186,6 +205,7 @@ module ib16 #(
                         bus_burst         <= 1'b1;              // read 16-bits
                         reg_pc			  <= reg_pc + 16'd2;		// increment PC
                     end
+                    // opcode is available now
                     if (bus_enable && bus_ready) begin
 `ifdef SIM
 						stats_fetches 	<= stats_fetches + 1'b1;
@@ -325,27 +345,6 @@ module ib16 #(
                     mask_irq    <= opcode_8imm[2];
                 end
                 state       <= FSM_FETCH;
-            end
-            if (state == FSM_RETIRE) begin
-                reg_rr[opcode_opd]	    <= result_dff[7:0];
-                reg_sreg[ZERO_FLAG]		<= result_dff[7:0] == 0 ? 1'b1 : 1'b0;
-                reg_sreg[CARRY_FLAG]	<= result_dff[8];
-                state					<= FSM_FETCH;
-
-				// kick start next fetch in this cycle
-                if (bus_irq && !mask_irq && !bus_enable) begin
-                    reg_irq_pc	    <= {reg_pc[15:1], 1'b0}; // force LSB to zero in case we IRQ in the middle of a fetch
-                    reg_irq_sreg    <= {result_dff[8], result_dff[7:0] == 0 ? 1'b1 : 1'b0, reg_sreg[5:0]};
-                    mask_irq 	    <= 1;
-                    reg_pc	 	    <= IRQ_VECTOR + 16'd2;
-                    bus_address_terma <= IRQ_VECTOR;		        // read from PC
-                end else begin
-                    bus_address_terma <= reg_pc;		        // read from PC
-                    reg_pc			  <= reg_pc + 16'd2;		// increment PC				
-                end
-				bus_enable		  <= 1'b1;
-				bus_address_termb <= 0;
-				bus_burst         <= 1'b1;              // read 16-bits
             end
 		end
 	end

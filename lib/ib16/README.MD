@@ -60,7 +60,12 @@ Instructions:
 4 - XOR (3OP)  R[d] = R[a] ^ R[b]								[ZC]
 5 - AND (3OP)  R[d] = R[a] & R[b]								[ZC]
 6 - OR (3OP)   R[d] = R[a] | R[b]								[ZC]
-7 - Shifts (2OP)												[ZC]
+7 - CMP (2OPALU) Carry = R[a] comparison R[b]					[C]    ; set's carry flag if comparison is true
+	- R[d] values
+		- 00: R[a] < R[b]
+		- 01: R[a] == R[b]
+		- 10: R[a] > R[b]
+8 - Shifts (2OP)												[ZC]
 	- 4 bit modifier
 		- SHR  0: R[d] = R[a] >> 1								[ZC]
 		- SAR  1: R[d] = signed(R[a]) >> 1						[ZC]
@@ -70,9 +75,8 @@ Instructions:
 		- INC  5: R[d] = R[a] + 1								[ZC]
 		- DEC  6: R[d] = R[a] - 1								[ZC]
 		- NOT  7: R[d] = ~R[a]									[ZC]
-8 - LDM (3OP)  R[d] = memory[{R[a], R[b]}]						[Z]  (if a == b == 15 then it's a pop or push off the stack)
-9 - STM (3OP)  memory[{R[a], R[b]}] = R[d]
-10 - Unused
+9 - LDM (3OP)  R[d] = memory[{R[a], R[b]}]						[Z]  (if a == b == 15 then it's a pop or push off the stack)
+10 - STM (3OP)  memory[{R[a], R[b]}] = R[d]
 11 - LCAL (12IMM) PC = (12IMM) << 4 (push PC)
 12 - RET pop PC off stack
 13 - Jumps (9SIMM) PC = PC + signed(SIMM) * 2 if condition met
@@ -83,7 +87,7 @@ Instructions:
 		- 3 JZ (zero)
 		- 4 JNZ
 14 - SRES (8-bit IMM) SREG = {SREG[7:6] & ~imm8[7:6], imm8[5:0]} (W1C the carry and zero flags, store the rest)
-	- [0] - turn on read increment with LDM
+	- [0] - turn on read increment with LDM (SRES opcode resets RI/WI to zero)
 	- [1] - turn on write increment with STM
 	- [2] - set IRQ context (1 == in IRQ context, 0 == normal)
 	- [3] - Write 1 to boot APP (at PC=0000)
