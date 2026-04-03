@@ -22,6 +22,4 @@ JNC LOOP
 INC 1,1
 DEC 2,2					; decrement page counter
 JNZ LOOP
-SRES 0					; reset flags
-LCALL 0					; jump to 0x0000
-JMP REBOOT
+SRES 8					; boot user app

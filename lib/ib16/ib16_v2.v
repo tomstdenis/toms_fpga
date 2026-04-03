@@ -315,12 +315,20 @@ module ib16 #(
                 state             <= FSM_FETCH;
             end
             if (state == FSM_DECODE + OPCODE_SRS) begin
-                // SREG = {SREG[7:6] & ~imm8[7:6], imm8[5:0]} 
-                // W1C for carry/zero, store for other bits
-                reg_sreg    <= {reg_sreg[7:6] & ~opcode_8imm[7:6], opcode_8imm[5:0]};
-                reg_ri      <= 8'h00; // Clear RI
-                reg_wi      <= 8'h00; // Clear WI
-                mask_irq    <= opcode_8imm[2];
+                if (opcode_8imm[3] == 1) begin
+                    // boot user app mode
+                    reg_sreg <= 0;
+                    reg_pc   <= 0;
+                    reg_sp   <= 0;
+                    mask_irq <= 0;
+                end else begin
+                    // SREG = {SREG[7:6] & ~imm8[7:6], imm8[5:0]} 
+                    // W1C for carry/zero, store for other bits
+                    reg_sreg    <= {reg_sreg[7:6] & ~opcode_8imm[7:6], opcode_8imm[5:0]};
+                    reg_ri      <= 8'h00; // Clear RI
+                    reg_wi      <= 8'h00; // Clear WI
+                    mask_irq    <= opcode_8imm[2];
+                end
                 state       <= FSM_FETCH;
             end
             if (state == FSM_RETIRE) begin
