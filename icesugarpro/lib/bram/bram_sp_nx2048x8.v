@@ -29,7 +29,6 @@ module bram_sp_nx2048x8
     input [10+$clog2(N):0] r_addr,		// read address 11+N-bits
     output [7:0] r_data					// read data 8-bits
 );
-
 	genvar i;
 	
 	wire [7:0] mem_out[0:N-1];
