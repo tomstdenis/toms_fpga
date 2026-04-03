@@ -46,7 +46,6 @@ int main(int argc, char **argv)
 	
 	rng = open("/dev/urandom", O_RDONLY);
 	
-
 	x = y = z = 0;
 	for (;;) {
 		fail = 0;

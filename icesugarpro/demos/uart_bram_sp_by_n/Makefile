@@ -1,7 +1,7 @@
 TARGET=echo
 TOP=top
 FREQ=50
-BLOCKS=2
+BLOCKS=64
 
 OBJS+=${TARGET}.v pll.v \
 ../../../lib/uart/blocks/tx_uart.v ../../../lib/uart/blocks/rx_uart.v ../../../lib/uart/blocks/uart.v \
@@ -13,7 +13,7 @@ $(TARGET).json: $(OBJS)
 		yosys -DBLOCKS=${BLOCKS} -DFREQ=${FREQ} -p "synth_ecp5 -json $@" $(OBJS)
 
 $(TARGET)_out.config: $(TARGET).json
-		nextpnr-ecp5 --tmg-ripup -r --45k --package CABGA381 --speed 6 --json $< --textcfg $@ --lpf $(TARGET).lpf
+		nextpnr-ecp5 -r --45k --package CABGA381 --speed 6 --json $< --textcfg $@ --lpf $(TARGET).lpf
 
 $(TARGET).bit: $(TARGET)_out.config
 		ecppack --compress --svf ${TARGET}.svf $< $@

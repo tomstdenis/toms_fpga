@@ -41,9 +41,11 @@ module bram_sp_nx2048x8
 			bram_sp_nx2048x8_mem[i](
 				.w_clk(w_clk),
 				.w_clk_en(w_clk_en),
+				.w_rst(w_rst),
 				.w_addr(w_addr[10:0]),
 				.w_data(w_data),
-				.w_en((w_en && (w_addr[10+$clog2(N):11] == i)) ? 1'b1 : 1'b0),
+				.w_en(w_en & ((w_addr[10+$clog2(N):11] == i) ? 1'b1 : 1'b0)),
+
 				.r_clk(r_clk),
 				.r_clk_en(r_clk_en),
 				.r_rst(r_rst),
