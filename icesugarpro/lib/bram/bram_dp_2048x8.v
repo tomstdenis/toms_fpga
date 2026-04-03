@@ -1,20 +1,34 @@
+`timescale 1ns/1ps
+/*
+	True-dual port 2048 deep 8-bit memory
+	
+This module uses an 18kbit memory block DP16KD to create a
+dual ported 2048 entry deep 8-bit memory with distinct ports that can be
+clocked independantly and can be used for read or writes each.
+
+*/
+
 module bram_dp_2048x8
 #(
-	parameter WRITEMODE_A="NORMAL",
+	parameter WRITEMODE_A="NORMAL", 		// "NORMAL", "WRITETHROUGH", "READBEFOREWRITE"
 	parameter WRITEMODE_B="NORMAL",
-	parameter REGMODE_A="NOREG",
+	parameter REGMODE_A="NOREG",			// "NOREG", "REG"
 	parameter REGMODE_B="NOREG"
 )
 (
     // Port A
-    input         clk_a,
-    input  [10:0] addr_a,
-    input  [7:0]  din_a,
-    input         we_a,
-    output [7:0]  dout_a,
+    input         clk_a,			// clock
+    input		  clk_en_a,			// clock enable
+    input		  rst_a,			// active high reset
+    input  [10:0] addr_a,			// 11-bit address
+    input  [7:0]  din_a,			// 8-bit write input
+    input         we_a,				// write enable
+    output [7:0]  dout_a,			// 8-bit read output
 
     // Port B
     input         clk_b,
+    input		  clk_en_b,
+    input		  rst_b,
     input  [10:0] addr_b,
     input  [7:0]  din_b,
     input         we_b,
@@ -32,10 +46,10 @@ module bram_dp_2048x8
     ) mem_inst (
         // Port A Connections
         .CLKA(clk_a),
-        .CEA(1'b1),
+        .CEA(clk_en_a),
         .OCEA(1'b1),
         .WEA(we_a),
-        .RSTA(1'b0),
+        .RSTA(rst_a),
         // Address: For 9-bit mode, bits [10:0] map to ADA[13:3]
         .ADA13(addr_a[10]), .ADA12(addr_a[9]), .ADA11(addr_a[8]),
         .ADA10(addr_a[7]),  .ADA9(addr_a[6]),   .ADA8(addr_a[5]),
@@ -52,10 +66,10 @@ module bram_dp_2048x8
 
         // Port B Connections
         .CLKB(clk_b),
-        .CEB(1'b1),
+        .CEB(clk_en_b),
         .OCEB(1'b1),
         .WEB(we_b),
-        .RSTB(1'b0),
+        .RSTB(rst_b),
         // Address
         .ADB13(addr_b[10]), .ADB12(addr_b[9]), .ADB11(addr_b[8]),
         .ADB10(addr_b[7]),  .ADB9(addr_b[6]),   .ADB8(addr_b[5]),

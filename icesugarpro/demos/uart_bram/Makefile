@@ -28,8 +28,11 @@ flash: ${TARGET}.bit
 	
 pll.v:
 	ecppll -i 25 -o ${FREQ} -f pll.v
+	
+uart_test: uart_test.c
+	gcc -O0 -Wall uart_test.c -o uart_test
 
 clean:
-		rm -f *.svf *.bit *.config *.ys pll.v *.asc *.json
+		rm -f *.svf *.bit *.config *.ys pll.v *.asc *.json uart_test
 
 .PHONY: prog clean
