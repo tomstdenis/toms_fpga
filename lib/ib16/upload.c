@@ -36,6 +36,7 @@ int main(int argc, char **argv)
 	FILE *f;
 	int ch;
 	int bytes = 0;
+	int size;
 	uint8_t buf;
 	
     int fd = open(argv[1], O_RDWR | O_NOCTTY);
@@ -52,7 +53,10 @@ int main(int argc, char **argv)
 	tcdrain(fd);
 #endif	
 	f = fopen(argv[2], "r");
-	while (bytes < (8192 - 256)) {
+	fseek(f, 0, SEEK_END);
+	size = ftell(f);
+	fseek(f, 0, SEEK_SET);
+	while (bytes < size) {
 		ch = fgetc(f);
 		if (ch != EOF) {
 			uint8_t b = ch;
@@ -64,7 +68,7 @@ int main(int argc, char **argv)
 			if (read(fd, &b, 1) == 1) {
 				if (b == ch) {
 					++bytes;
-					printf("Wrote %4d (%d%% done)\r", bytes, (bytes * 100) / (8192 - 256));
+					printf("Wrote %4d (%d%% done)\r", bytes, (bytes * 100) / (size));
 					fflush(stdout);
 				} else {
 					printf("\nRead timed out\n");
