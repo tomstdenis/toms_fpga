@@ -1,3 +1,4 @@
+/* Simple assembler for the ittybitty */
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdint.h>
@@ -5,8 +6,10 @@
 #include <ctype.h>
 #include <inttypes.h>
 
+// max program size is the full 64KB though in practice smaller than that since you want stack/ISR/mmio
 #define MAX_PROG_SIZE 32768
 
+// a compiler state
 struct compiler_state {
 	int prog_size;
 	char *cur_filename;
@@ -34,25 +37,15 @@ struct compiler_state {
 	uint16_t bin_start;
 };
 
-/* bare bones assembler, allows whitespace and comments with ';'
- * 
- * a line starts with either ".ORG %x" to reset the orgiin or
- * ":%s" to denote a label or anything else to denote an instruction
- * 
- * There's three types of opcodes Xr where r is a 4-bit imm, 
- * or Xsb where s is a 3-bit imm and b is a 1-bit imm,
- * or XX where it's just a full byte with no operands
- */
-
-#define OP_FMT_3OP 0
-#define OP_FMT_2OP 1
-#define OP_FMT_2OPALU 2
-#define OP_FMT_8IMM 3
-#define OP_FMT_12IMM 4
-#define OP_FMT_12IMMT 5
-#define OP_FMT_9SIMM 6
-#define OP_FMT_LITERAL 7
-#define OP_FMT_NONE 8
+// operand formats for various opcodes
+#define OP_FMT_3OP 0					// ALU 3 operand format R[d] = R[a] op R[b]
+#define OP_FMT_2OP 1					// ALU 2 operand format R[d] = op R[b]
+#define OP_FMT_2OPALU 2					// ALU 2 operand carry format carry = R[a] op R[b]
+#define OP_FMT_8IMM 3					// 8IMM format r[d] = IMM
+#define OP_FMT_12IMMT 4					// 12IMMT format PC = 12IMMT << 4
+#define OP_FMT_9SIMM 5					// 9SIMM format PC += signed(9SIMM) << 1
+#define OP_FMT_LITERAL 6				// 16 bit of raw data
+#define OP_FMT_NONE 7
 
 // instruction table
 const struct {
@@ -126,7 +119,7 @@ void consume_fname(char *dest, char **s)
 	*dest++ = 0;
 }
 
-void compile_exec1(struct compiler_state *state, char *line)
+void compile_opcodes(struct compiler_state *state, char *line)
 {
 	int x;
 	for (x = 0; e1_opcodes[x].opname; x++) {
@@ -199,7 +192,6 @@ void compile_exec1(struct compiler_state *state, char *line)
 					break;
 				}
 				case OP_FMT_12IMMT:
-				case OP_FMT_12IMM: // hex val
 				{
 					if (islabel(line)) {
 						// it's a label
@@ -215,7 +207,7 @@ void compile_exec1(struct compiler_state *state, char *line)
 						uint16_t r;
 						// it's a value
 						sscanf(line, "%"SCNx16, &r);
-						state->program[state->PC].opcode |= e1_opcodes[x].fmt ==  OP_FMT_12IMM ? (r & 0xFFF) : ((r >> 4) & 0xFFF);
+						state->program[state->PC].opcode |= ((r >> 4) & 0xFFF);
 					}
 					break;
 				}
@@ -366,7 +358,7 @@ void compile(struct compiler_state *state, char *line)
 		++line;
 		consume_label(state->program[state->PC].label, &line);
 	} else {
-		compile_exec1(state, line);
+		compile_opcodes(state, line);
 	}
 }
 
@@ -392,83 +384,65 @@ int find_target(struct compiler_state *state, int x)
 	exit(-1);
 }
 
-void resolve_exec1(struct compiler_state *state, int x)
-{
-	int16_t y;
-
-	switch (e1_opcodes[state->program[x].opidx].fmt) {
-		case OP_FMT_8IMM:
-			if (state->program[x].tgt[0]) {
-				y = find_target(state, x);
-				if (state->program[x].use_top_half) {
-					y >>= 8;
-				} else if (state->program[x].use_bottom_half) {
-					y &= 0xFF;
-				}
-				state->program[x].opcode |= y & 0xFF;
-			}
-			break;
-		case OP_FMT_12IMM: //CALL
-			if (state->program[x].tgt[0]) {
-				// jumping to a target 
-				y = find_target(state, x);
-				if (state->program[x].use_top_half) {
-					y >>= 8;
-				} else if (state->program[x].use_bottom_half) {
-					y &= 0xFF;
-				}
-				state->program[x].opcode |= y & 0xFFF;
-			}
-			break;
-		case OP_FMT_12IMMT: //CALL
-			if (state->program[x].tgt[0]) {
-				// jumping to a target 
-				y = find_target(state, x);
-				if (state->program[x].use_top_half) {
-					y >>= 8;
-				} else if (state->program[x].use_bottom_half) {
-					y &= 0xFF;
-				}
-				state->program[x].opcode |= (y >> 3) & 0xFFF;
-			}
-			break;
-		case OP_FMT_9SIMM: // Jumps
-			if (state->program[x].tgt[0]) {
-				int16_t off;
-				// jumping to a target 
-				y = find_target(state, x);
-				if (state->program[x].use_top_half) {
-					y >>= 8;
-				} else if (state->program[x].use_bottom_half) {
-					y &= 0xFF;
-				}
-				off = (y - x - 1)  & 0x1FF;
-				state->program[x].opcode |= off;
-			}
-			break;
-		case OP_FMT_LITERAL:
-			if (state->program[x].tgt[0]) {
-				// jumping to a target 
-				y = find_target(state, x);
-				if (state->program[x].use_top_half) {
-					y >>= 8;
-				} else if (state->program[x].use_bottom_half) {
-					y &= 0xFF;
-				}
-				state->program[x].opcode = y;
-			}
-			break;
-		default:
-			break;
-	}
-}
-
 void resolve_labels(struct compiler_state *state)
 {
+	int16_t y;
 	int x;
 	
 	for (x = 0; x < MAX_PROG_SIZE; x++) {
-		resolve_exec1(state, x);
+		switch (e1_opcodes[state->program[x].opidx].fmt) {
+			case OP_FMT_8IMM:
+				if (state->program[x].tgt[0]) {
+					y = find_target(state, x);
+					if (state->program[x].use_top_half) {
+						y >>= 8;
+					} else if (state->program[x].use_bottom_half) {
+						y &= 0xFF;
+					}
+					state->program[x].opcode |= y & 0xFF;
+				}
+				break;
+			case OP_FMT_12IMMT: //CALL
+				if (state->program[x].tgt[0]) {
+					// jumping to a target 
+					y = find_target(state, x);
+					if (state->program[x].use_top_half) {
+						y >>= 8;
+					} else if (state->program[x].use_bottom_half) {
+						y &= 0xFF;
+					}
+					state->program[x].opcode |= (y >> 3) & 0xFFF;
+				}
+				break;
+			case OP_FMT_9SIMM: // Jumps
+				if (state->program[x].tgt[0]) {
+					int16_t off;
+					// jumping to a target 
+					y = find_target(state, x);
+					if (state->program[x].use_top_half) {
+						y >>= 8;
+					} else if (state->program[x].use_bottom_half) {
+						y &= 0xFF;
+					}
+					off = (y - x - 1)  & 0x1FF;
+					state->program[x].opcode |= off;
+				}
+				break;
+			case OP_FMT_LITERAL:
+				if (state->program[x].tgt[0]) {
+					// jumping to a target 
+					y = find_target(state, x);
+					if (state->program[x].use_top_half) {
+						y >>= 8;
+					} else if (state->program[x].use_bottom_half) {
+						y &= 0xFF;
+					}
+					state->program[x].opcode = y;
+				}
+				break;
+			default:
+				break;
+		}
 	}
 }
 
