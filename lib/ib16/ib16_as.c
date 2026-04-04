@@ -267,7 +267,7 @@ void compile(char *line)
 		int x;
 		line += 5;
 		consume_whitespace(&line);
-		for (x = 0; x < PROG_SIZE; x++) {
+		for (x = 0; x < MAX_PROG_SIZE; x++) {
 			if (symbols[x].label[0] == 0) {
 				consume_label(symbols[x].label, &line);
 				consume_whitespace(&line);
@@ -328,12 +328,12 @@ int find_target(int x)
 	int y;
 	uint16_t d;
 
-	for (y = 0; y < PROG_SIZE; y++) {
+	for (y = 0; y < MAX_PROG_SIZE; y++) {
 		if (!strcmp(program[y].label, program[x].tgt)) {
 			return y;
 		}
 	}
-	for (y = 0; y < PROG_SIZE; y++) {
+	for (y = 0; y < MAX_PROG_SIZE; y++) {
 		if (!strcmp(symbols[y].label, program[x].tgt)) {
 			return symbols[y].value;
 		}
@@ -420,7 +420,7 @@ void resolve_labels(void)
 {
 	int x;
 	
-	for (x = 0; x < PROG_SIZE; x++) {
+	for (x = 0; x < MAX_PROG_SIZE; x++) {
 		resolve_exec1(x);
 	}
 }
@@ -471,7 +471,7 @@ int main(int argc, char **argv)
 	}
 	fclose(f);
 
-	for (x = y = 0; x < PROG_SIZE; x++) {
+	for (x = y = 0; x < MAX_PROG_SIZE; x++) {
 		if (program[x].line_number != -1) {
 			++y;
 		}
