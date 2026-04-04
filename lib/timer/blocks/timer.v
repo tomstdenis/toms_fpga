@@ -6,8 +6,8 @@
 top_match will be set for the last prescaler_cnt cycle before rolling counter over to zero.
 
 */
-
 `timescale 1ns/1ps
+`default_nettype none
 
 module timer #(parameter PRESCALER_BITS=8, parameter TIMER_BITS=16)
 (

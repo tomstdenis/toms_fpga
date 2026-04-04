@@ -1,4 +1,5 @@
 `timescale 1ns/1ps
+`default_nettype none
 
 // This implements a UART block which is full or half duplex (RX or TX or both)
 // with a variable sized FIFO and programmable baud rate

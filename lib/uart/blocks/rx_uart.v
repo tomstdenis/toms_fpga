@@ -1,4 +1,5 @@
 `timescale 1ns/1ps
+`default_nettype none
 
 // Serial 8N1 receive with variable baudrate
 module rx_uart
