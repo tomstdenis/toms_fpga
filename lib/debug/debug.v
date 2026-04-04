@@ -55,22 +55,22 @@ module serial_debug #(
 		ENABLE=1,
 		USE_MEM=0										// (0) use shift register, (1) use memory (faster but bigger)
 )(
-	input clk,
-	input rst_n,
+	input wire clk,
+	input wire rst_n,
 	
 	// baud rate
-	input [3:0] prescaler,								// prescaler against clk to control tx_clk (ideally >= 2) (meant to be a constant wire not subject to reset)
+	input wire [3:0] prescaler,								// prescaler against clk to control tx_clk (ideally >= 2) (meant to be a constant wire not subject to reset)
 	
 	// serial input
-	input rx_data,										// incoming serial data from previous node (or serial_debug_uart's debug_rx_*)
-	input rx_clk,										// incoming serial clock
+	input wire rx_data,										// incoming serial data from previous node (or serial_debug_uart's debug_rx_*)
+	input wire rx_clk,										// incoming serial clock
 	
 	// serial output
 	output reg tx_data,									// outgoing serial data to next node (or serial_debug_uart's debug_tx_*)
 	output reg tx_clk,									// outgoing serial clock
 	
 	// controller input
-	input [BITS-1:0] debug_outgoing_data,				// default data we want to provide the host when given a READ (cmd != IDENT)
+	input wire [BITS-1:0] debug_outgoing_data,				// default data we want to provide the host when given a READ (cmd != IDENT)
 	output reg debug_outgoing_tgl,						// toggled when the node reads from the data reg
 	
 	// control output
@@ -78,7 +78,7 @@ module serial_debug #(
 	output reg [BITS-1:0] debug_incoming_data,			// data the host is writing to us
 	
 	// identity
-	input [BITS-1:0] identity							// identity provided with a read and CMD == IDENT used to tell the host what module this address is
+	input wire [BITS-1:0] identity							// identity provided with a read and CMD == IDENT used to tell the host what module this address is
 );
 	localparam
 		SF_BITS = BITS + 16,							// bits per store-forward frame, BITS data bits + 15 address bits + 1 direction bit

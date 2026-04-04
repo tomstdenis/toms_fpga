@@ -11,18 +11,18 @@ top_match will be set for the last prescaler_cnt cycle before rolling counter ov
 
 module timer #(parameter PRESCALER_BITS=8, parameter TIMER_BITS=16)
 (
-    input clk,
-    input rst_n,
-    input [PRESCALER_BITS-1:0] prescaler_cnt,   // what to divide clock by (prescaler_cnt + 1)
-    input [TIMER_BITS-1:0] top_cnt,             // top count before resetting counter (divides clk further by top_cnt + 1)
-    input [TIMER_BITS-1:0] cmp_cnt,             // compare count for PWM
-    input go,                                   // run the timer (needs to be asserted to get timer outputs)
-    input relatch,                              // relatch new parameters, deassert the next cycle
+    input wire clk,
+    input wire rst_n,
+    input wire [PRESCALER_BITS-1:0] prescaler_cnt,   // what to divide clock by (prescaler_cnt + 1)
+    input wire [TIMER_BITS-1:0] top_cnt,             // top count before resetting counter (divides clk further by top_cnt + 1)
+    input wire [TIMER_BITS-1:0] cmp_cnt,             // compare count for PWM
+    input wire go,                                   // run the timer (needs to be asserted to get timer outputs)
+    input wire relatch,                              // relatch new parameters, deassert the next cycle
 
-    output cmp_match,                           // (out) 1 if counter == cmp_cnt
-    output top_match,                           // (out) 1 if counter == top_cnt
-    output pwm,                                 // (out) 1 if counter <= cmp_cnt
-    output [TIMER_BITS-1:0] counter             // (out) the raw counter value
+    output wire cmp_match,                           // (out) 1 if counter == cmp_cnt
+    output wire top_match,                           // (out) 1 if counter == top_cnt
+    output wire pwm,                                 // (out) 1 if counter <= cmp_cnt
+    output wire [TIMER_BITS-1:0] counter             // (out) the raw counter value
 );
 
     reg [PRESCALER_BITS-1:0] prescaler;

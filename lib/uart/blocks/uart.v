@@ -6,17 +6,17 @@
 // uses 8N1 signalling
 module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1)
 (
-    input clk,                      // main clock
-    input rst_n,                    // active low reset
-    input [15:0] baud_div,          // counter value for baud calculation (e.g. F_CLK/BAUD == baud_div)
-    input uart_tx_start,            // signal we want to load uart_tx_data_in into the TX FIFO
-    input [7:0] uart_tx_data_in,    // TX data
-    output uart_tx_pin,             // (out) pin for transmitting on
-    output uart_tx_fifo_full,       // (out) true if the FIFO is currently full
-    output uart_tx_fifo_empty,      // (out) true if the FIFO is empty
+    input wire clk,                      // main clock
+    input wire rst_n,                    // active low reset
+    input wire [15:0] baud_div,          // counter value for baud calculation (e.g. F_CLK/BAUD == baud_div)
+    input wire uart_tx_start,            // signal we want to load uart_tx_data_in into the TX FIFO
+    input wire [7:0] uart_tx_data_in,    // TX data
+    output wire uart_tx_pin,             // (out) pin for transmitting on
+    output wire uart_tx_fifo_full,       // (out) true if the FIFO is currently full
+    output wire uart_tx_fifo_empty,      // (out) true if the FIFO is empty
 
-    input uart_rx_pin,              // pin to RX from
-    input uart_rx_read,             // signal that we read a byte
+    input wire uart_rx_pin,              // pin to RX from
+    input wire uart_rx_read,             // signal that we read a byte
     output reg uart_rx_ready,       // (out) signal that an output byte is available
     output reg [7:0] uart_rx_byte   // (out) the RX byte
 );

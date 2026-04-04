@@ -17,19 +17,19 @@ module fifo
 	FIFO_DEPTH=4,
 	DATA_WIDTH=8
 )(
-	input clk,
-	input rst_n,
+	input wire clk,
+	input wire rst_n,
 	
-	input write,							// latch data_in on posedge of write
-	input [DATA_WIDTH-1:0] data_in,
+	input wire write,							// latch data_in on posedge of write
+	input wire [DATA_WIDTH-1:0] data_in,
 
-	input read,
+	input wire read,
 	output reg [DATA_WIDTH-1:0] data_out,	// register data_out on posedge of read
 	
-	output empty,
-	output full,
+	output wire empty,
+	output wire full,
 	
-	input flush								// zero out the fifo on posedge of flush
+	input wire flush								// zero out the fifo on posedge of flush
 );
 
 	reg [DATA_WIDTH-1:0] FIFO[FIFO_DEPTH-1:0];

@@ -7,18 +7,18 @@ module ib16 #(
     parameter BOOT_ROM_ADDR = 16'h2000,
     parameter TWO_CYCLE     = 0              // this adds an ALU cycle can be useful to help routing and/or timing
 ) (
-	input clk,
-	input rst_n,
+	input wire clk,
+	input wire rst_n,
 	
 	// bus signals
     output reg bus_burst,
 	output reg bus_enable,
 	output reg bus_wr_en,
-	output [15:0] bus_address, 
+	output wire [15:0] bus_address, 
 	output reg [15:0] bus_data_in,
-	input bus_ready,
-	input [15:0] bus_data_out,
-	input bus_irq
+	input wire bus_ready,
+	input wire [15:0] bus_data_out,
+	input wire bus_irq
 );
 
 `ifdef SIM

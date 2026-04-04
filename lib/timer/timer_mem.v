@@ -10,13 +10,13 @@ module timer_mem
 	parameter TIMER_BITS=16
 )(
     // common bus in
-    input clk,
-    input rst_n,            // active low reset
-    input enable,           // active high overall enable (must go low between commands)
-    input wr_en,            // active high write enable (0==read, 1==write)
-    input [ADDR_WIDTH-1:0] addr,
-    input [DATA_WIDTH-1:0] i_data,
-    input [DATA_WIDTH/8-1:0] be,       // lane 0 must be asserted, other lanes can be asserted but they're ignored.
+    input wire clk,
+    input wire rst_n,            // active low reset
+    input wire enable,           // active high overall enable (must go low between commands)
+    input wire wr_en,            // active high write enable (0==read, 1==write)
+    input wire [ADDR_WIDTH-1:0] addr,
+    input wire [DATA_WIDTH-1:0] i_data,
+    input wire [DATA_WIDTH/8-1:0] be,       // lane 0 must be asserted, other lanes can be asserted but they're ignored.
 
     // common bus out
     output reg ready,       // active high signal when o_data is ready (or write is done)
@@ -25,7 +25,7 @@ module timer_mem
     output wire bus_err,    // active high error signal
 
     // peripheral specific
-    output pwm
+    output wire pwm
 );
     reg [15:0] l_top;
     reg [15:0] l_cmp;

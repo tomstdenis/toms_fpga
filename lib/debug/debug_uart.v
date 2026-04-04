@@ -38,24 +38,24 @@ module serial_debug_uart #(
 		ENABLE=1,
 		USE_MEM=0										// use a memory like interface instead of a shift register (faster but bigger)
 )(
-	input clk,
-	input rst_n,
+	input wire clk,
+	input wire rst_n,
 	
 	// baud rate
-	input [3:0] prescaler,								// prescaler against clk to control tx_clk (ideally >= 2) (meant to be a constant wire not subject to reset)
+	input wire [3:0] prescaler,								// prescaler against clk to control tx_clk (ideally >= 2) (meant to be a constant wire not subject to reset)
 	
 	// serial input
-	input debug_tx_data,								// incoming debug serial data (from the last debug node)
-	input debug_tx_clk,									// incoming debug serial clock
+	input wire debug_tx_data,								// incoming debug serial data (from the last debug node)
+	input wire debug_tx_clk,									// incoming debug serial clock
 	
 	// serial output
 	output reg debug_rx_data,							// outgoing debug serial data (to the first debug node)
 	output reg debug_rx_clk,							// outgoing debug serial clock
 	
 	// uart
-	input [15:0] uart_bauddiv,							// baudrate prescaler
-	input uart_rx_pin,									// UART RX pin
-	output uart_tx_pin									// UART TX pin
+	input wire [15:0] uart_bauddiv,							// baudrate prescaler
+	input wire uart_rx_pin,									// UART RX pin
+	output wire uart_tx_pin									// UART TX pin
 );
 
 	reg uart_tx_start;

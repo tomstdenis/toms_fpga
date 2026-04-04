@@ -8,8 +8,8 @@
 
 module Gowin_rPLL (clkout, clkin);
 
-output clkout;
-input clkin;
+output wire clkout;
+input wire clkin;
 
 wire lock_o;
 wire clkoutp_o;

@@ -8,14 +8,14 @@
 
 module Gowin_SP (dout, clk, oce, ce, reset, wre, ad, din);
 
-output [7:0] dout;
-input clk;
-input oce;
-input ce;
-input reset;
-input wre;
-input [12:0] ad;
-input [7:0] din;
+output wire [7:0]  dout;
+input wire clk;
+input wire oce;
+input wire ce;
+input wire reset;
+input wire wre;
+input wire [12:0]  ad;
+input wire [7:0] din;
 
 wire [29:0] sp_inst_0_dout_w;
 wire [29:0] sp_inst_1_dout_w;

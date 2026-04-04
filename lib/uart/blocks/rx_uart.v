@@ -4,11 +4,11 @@
 // Serial 8N1 receive with variable baudrate
 module rx_uart
 (
-    input clk,                          
-    input rst_n,                          // active low reset
-    input [15:0] baud_div,              // counter value for baud calculation (e.g. F_CLK/BAUD == baud_div)
-    input rx_pin,                       // UART assigned pin
-    input rx_read,                      // active high indicates when you read the byte to clear the rx_done pin
+    input wire clk,                          
+    input wire rst_n,                          // active low reset
+    input wire [15:0] baud_div,              // counter value for baud calculation (e.g. F_CLK/BAUD == baud_div)
+    input wire rx_pin,                       // UART assigned pin
+    input wire rx_read,                      // active high indicates when you read the byte to clear the rx_done pin
     output reg rx_done,                 // (out) indicates a character is ready
     output reg [7:0] rx_byte            // (out) the character that was read
 );

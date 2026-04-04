@@ -12,7 +12,7 @@
     `define IRQ_VECTOR    16'h1E00
 `endif
 
-module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
+module top(input wire clk, input wire uart_rx, output wire uart_tx, inout wire [7:0] gpio);
     localparam
         TIMER_ADDR       = 16'hFFFA,
         GPIO_DATA_ADDR   = 16'hFFFB,
