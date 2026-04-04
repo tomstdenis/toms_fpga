@@ -40,13 +40,14 @@ struct compiler_state {
 // operand formats for various opcodes
 #define OP_FMT_3OP 0					// ALU 3 operand format R[d] = R[a] op R[b]
 #define OP_FMT_2OP 1					// ALU 2 operand format R[d] = op R[b]
-#define OP_FMT_1OP 2					// ALU 1 operand format op R[d] 
-#define OP_FMT_2OPALU 3					// ALU 2 operand carry format carry = R[a] op R[b]
-#define OP_FMT_8IMM 4					// 8IMM format r[d] = IMM
-#define OP_FMT_12IMMT 5					// 12IMMT format PC = 12IMMT << 4
-#define OP_FMT_9SIMM 6					// 9SIMM format PC += signed(9SIMM) << 1
-#define OP_FMT_LITERAL 7				// 16 bit of raw data
-#define OP_FMT_NONE 8
+#define OP_FMT_2OPALU 2					// ALU 2 operand carry format carry = R[a] op R[b]
+#define OP_FMT_2OPMOV 3					// ALU 2 R[d] = R[a]
+#define OP_FMT_1OP 4					// ALU 1 operand format op R[d] 
+#define OP_FMT_8IMM 5					// 8IMM format r[d] = IMM
+#define OP_FMT_12IMMT 6					// 12IMMT format PC = 12IMMT << 4
+#define OP_FMT_9SIMM 7					// 9SIMM format PC += signed(9SIMM) << 1
+#define OP_FMT_LITERAL 8				// 16 bit of raw data
+#define OP_FMT_NONE 9
 
 // instruction table
 const struct {
@@ -58,6 +59,7 @@ const struct {
 	{ "", 			0x0000, OP_FMT_LITERAL },
 	{ "PUSH",		0xA0FF, OP_FMT_1OP },	// STM d,F,F
 	{ "POP",		0x90FF, OP_FMT_1OP },   // LDM d,F,F
+	{ "MOV",		0x5000, OP_FMT_2OPMOV }, // AND d,a,a (moves a to d)
 // real opcodes
 	{ "LDI",		0x0000, OP_FMT_8IMM },
 	{ "ADD",		0x1000, OP_FMT_3OP },
@@ -168,6 +170,15 @@ void compile_opcodes(struct compiler_state *state, char *line)
 					r_a &= 0xF;
 					r_b &= 0xF;
 					state->program[state->PC].opcode |= (r_a << 4) | r_b;
+					break;
+				}
+				case OP_FMT_2OPMOV: // "a, b"
+				{
+					unsigned r_a, r_b;
+					sscanf(line, "%u, %u", &r_a, &r_b);
+					r_a &= 0xF;
+					r_b &= 0xF;
+					state->program[state->PC].opcode |= (r_a << 8) | (r_b << 4) | r_b;
 					break;
 				}
 				case OP_FMT_1OP: // "d"

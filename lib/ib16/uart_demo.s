@@ -33,7 +33,7 @@ ADD 1,1,1			; get msb into carry
 ADC 1,0,0			; set r1 == carry + r0(0) + r0
 CMPEQ 1,2			; compare to stored value (we only move on if the MSB changed)
 JC LOOP
-AND 2,1,1			; r2 = r1
+MOV 2,1				; r2 = r1
 INC 7,7				; increment tick (this changes every 2^23 cycles (about every 131.072ms at 64MHz)
 NOT 7,7				; invert it since the LEDs are inverted
 STM 7,11,10			; output to GPIO1
