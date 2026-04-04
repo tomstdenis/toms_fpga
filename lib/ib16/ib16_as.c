@@ -5,7 +5,8 @@
 #include <ctype.h>
 #include <inttypes.h>
 
-#define PROG_SIZE 4096
+#define MAX_PROG_SIZE 30720
+int PROG_SIZE = 4096;
 
 // the entire program can only be upto PROG_SIZE bytes so just make a simple map here
 struct {
@@ -17,12 +18,12 @@ struct {
 	int line_number;
 	int opidx;
 	char line[512];
-} program[PROG_SIZE];
+} program[MAX_PROG_SIZE];
 
 struct {
 	char label[64];
 	uint16_t value;
-} symbols[PROG_SIZE];
+} symbols[MAX_PROG_SIZE];
 
 int line_number = 1;
 uint16_t PC = 0;
@@ -256,7 +257,10 @@ void compile(char *line)
 		line += 5;
 		sscanf(line, "%"SCNx16, &PC);
 		PC >>= 1;
-	} else 	if (!memcmp(line, ".BIN_START ", 11)) {
+	} else if (!memcmp(line, ".PROG_SIZE ", 11)) {
+		line += 11;
+		sscanf(line, "%d", &PROG_SIZE); 
+	} else if (!memcmp(line, ".BIN_START ", 11)) {
 		line += 11;
 		sscanf(line, "%"SCNx16, &bin_start);
 	} else if (!memcmp(line, ".EQU ", 5)) {
