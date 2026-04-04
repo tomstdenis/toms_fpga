@@ -7,10 +7,11 @@
 `define STACK_ADDRESS 16'h1F00
 `define IRQ_VECTOR    16'h1E00
 
-module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
+module top(input clk, input uart_rx, output uart_tx, inout [15:0] gpio);
     localparam
-        TIMER_ADDR       = 16'hFFFA,
-        GPIO_DATA_ADDR   = 16'hFFFB,
+        TIMER_ADDR       = 16'hFFF9,
+        GPIO1_DATA_ADDR  = 16'hFFFA,
+        GPIO0_DATA_ADDR  = 16'hFFFB,
         UART_INT_ADDR    = 16'hFFFC,
         UART_INTEN_ADDR  = 16'hFFFD,
         UART_STS_ADDR    = 16'hFFFE,
@@ -32,12 +33,12 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
 
 // TODO use primitive for this ...
     // GPIO
-    reg [7:0] gpio_out;
-    wire [7:0] gpio_in;
+    reg [15:0] gpio_out;
+    wire [15:0] gpio_in;
 
     genvar i;
     generate
-        for (i = 0; i < 8; i = i + 1) begin : gpio_en
+        for (i = 0; i < 16; i = i + 1) begin : gpio_en
             assign gpio[i] = gpio_out[i] ? 1'bz : 1'b0;         // requires PULL up 
         end
     endgenerate
@@ -154,11 +155,20 @@ module top(input clk, input uart_rx, output uart_tx, inout [7:0] gpio);
             if (ib16_bus_enable && !ib16_bus_ready) begin
                 // handle new command
                 // GPIO port
-                if (ib16_bus_address == GPIO_DATA_ADDR) begin
+                if (ib16_bus_address == GPIO0_DATA_ADDR) begin
                     if (ib16_bus_wr_en) begin
-                        gpio_out <= ib16_bus_data_in[7:0];
+                        gpio_out[7:0] <= ib16_bus_data_in[7:0];
                     end else begin
-                        ib16_bus_data_out <= gpio_in;
+                        ib16_bus_data_out <= gpio_in[7:0];
+                    end
+                    ib16_bus_ready <= 1;
+                end
+                // GPIO port
+                if (ib16_bus_address == GPIO1_DATA_ADDR) begin
+                    if (ib16_bus_wr_en) begin
+                        gpio_out[15:8] <= ib16_bus_data_in[7:0];
+                    end else begin
+                        ib16_bus_data_out <= gpio_in[15:8];
                     end
                     ib16_bus_ready <= 1;
                 end
