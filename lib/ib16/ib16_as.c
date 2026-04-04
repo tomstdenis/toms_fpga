@@ -5,7 +5,7 @@
 #include <ctype.h>
 #include <inttypes.h>
 
-#define MAX_PROG_SIZE 30720
+#define MAX_PROG_SIZE 32768
 int PROG_SIZE = 4096;
 
 // the entire program can only be upto PROG_SIZE bytes so just make a simple map here
@@ -430,7 +430,7 @@ int main(int argc, char **argv)
 	char outname[128];
 	char linebuf[256];
 	FILE *f;
-	int x, y;
+	int x, y, z;
 	
 	if (argc != 2) {
 		printf("Usage: %s input.s\n", argv[0]);
@@ -440,8 +440,8 @@ int main(int argc, char **argv)
 	memset(&program, 0, sizeof program);
 	memset(&symbols, 0, sizeof symbols);
 	
-	for (x = 0; x < PROG_SIZE; x++) {
-		program[x].opcode = 0x0000; // MOV 0,0
+	for (x = 0; x < MAX_PROG_SIZE; x++) {
+		program[x].opcode = 0x0000;
 		program[x].line_number = -1;
 	}
 	
@@ -487,8 +487,9 @@ int main(int argc, char **argv)
 		}
 	}
 	printf("Verilog:\n");
-	for (x = 0; x < PROG_SIZE; x++) {
+	for (z = x = 0; z < PROG_SIZE && x < MAX_PROG_SIZE; x++) {
 		if (program[x].line_number != -1) {
+			++z;
 			printf("8'h%02x: ib16_bus_data_out <= 16'h%02x%02x;\n", x*2, program[x].opcode>>8, program[x].opcode&0xFF);
 		}
 	}
@@ -500,8 +501,9 @@ int main(int argc, char **argv)
 		}
 	}
 	printf("Listing: \n");
-	for (x = 0; x < PROG_SIZE; x++) {
+	for (z = x = 0; z < PROG_SIZE && x < MAX_PROG_SIZE; x++) {
 		if (program[x].line_number != -1) {
+			++z;
 			if (program[x].label[0]) {
 				printf("[%-15s ", program[x].label);
 			} else {
