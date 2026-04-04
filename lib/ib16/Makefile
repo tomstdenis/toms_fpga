@@ -7,9 +7,9 @@ test_ib16_v2.pass: ib16_v2.v ib16_v2_tb.v uart_demo.s.bin aluloop.s.bin boot_rom
 
 uart_demo.s.bin: uart_demo.s ib16_as
 # 8KB version
-	cpp -DIRQ_VECTOR=0x1E00 -DDEMO_PROG_SIZE=3968 uart_demo.s | grep -v \^# > /tmp/uart_demo.s 
+#	cpp -DIRQ_VECTOR=0x1E00 -DDEMO_PROG_SIZE=3968 uart_demo.s | grep -v \^# > /tmp/uart_demo.s 
 # 32KB version
-#	cpp -DIRQ_VECTOR=0x7E00 -DDEMO_PROG_SIZE=16256 uart_demo.s | grep -v \^# > /tmp/uart_demo.s 
+	cpp -DIRQ_VECTOR=0x7E00 -DDEMO_PROG_SIZE=16256 uart_demo.s | grep -v \^# > /tmp/uart_demo.s 
 # Generate uart_demo binary
 	./ib16_as /tmp/uart_demo.s
 	mv -vf /tmp/uart_demo.s.* .
