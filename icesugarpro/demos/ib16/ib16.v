@@ -107,7 +107,8 @@ module top(input clk, input uart_rx, output uart_tx, inout [15:0] gpio);
     ib16 #(
         .STACK_ADDRESS(`STACK_ADDRESS),
         .IRQ_VECTOR(`IRQ_VECTOR),
-        .BOOT_ROM_ADDR(`BOOT_ROM_ADDR)) ittybitty(
+        .BOOT_ROM_ADDR(`BOOT_ROM_ADDR),
+        .TWO_CYCLE(0)) ittybitty(
         .clk(pllclk), .rst_n(rst_n),
         .bus_enable(ib16_bus_enable),
         .bus_wr_en(ib16_bus_wr_en),

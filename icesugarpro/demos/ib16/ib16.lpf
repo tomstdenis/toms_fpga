@@ -3,7 +3,7 @@ IOBUF       PORT "clk"    IO_TYPE=LVCMOS33;
 FREQUENCY   PORT "clk"    25 MHZ;
 
 LOCATE      COMP "uart_rx"       SITE "H18";   // iCELink-UART3-RX
-IOBUF       PORT "uart_rx"       IO_TYPE=LVCMOS33;
+IOBUF       PORT "uart_rx"       IO_TYPE=LVCMOS33 PULLMODE=UP;
 
 LOCATE      COMP "uart_tx"       SITE "J17";
 IOBUF       PORT "uart_tx"       IO_TYPE=LVCMOS33;
