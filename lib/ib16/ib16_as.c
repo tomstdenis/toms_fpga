@@ -263,6 +263,7 @@ void compile(char *line)
 	} else if (!memcmp(line, ".BIN_START ", 11)) {
 		line += 11;
 		sscanf(line, "%"SCNx16, &bin_start);
+		bin_start >>= 1;
 	} else if (!memcmp(line, ".EQU ", 5)) {
 		int x;
 		line += 5;
@@ -456,7 +457,7 @@ int main(int argc, char **argv)
 	resolve_labels();
 	sprintf(outname, "%s.bin", argv[1]);
 	f = fopen(outname, "w");
-	for (x = bin_start; x < PROG_SIZE; x++) {
+	for (x = bin_start; x < bin_start + PROG_SIZE; x++) {
 		fputc(program[x].opcode&0xFF, f);
 		fputc((program[x].opcode>>8)&0xFF, f);
 	}
@@ -465,7 +466,7 @@ int main(int argc, char **argv)
 	sprintf(outname, "%s.hex", argv[1]);
 	f = fopen(outname, "w");
 	//fprintf(f, "#File_format=Hex\n#Address_depth=%d\n#Data_width=8\n", PROG_SIZE);
-	for (x = 0; x < PROG_SIZE; x++) {
+	for (x = bin_start; x < bin_start + PROG_SIZE; x++) {
 		fprintf(f, "%02X\n", (program[x].opcode)&0xFF);
 		fprintf(f, "%02X\n", (program[x].opcode>>8)&0xFF);
 	}
