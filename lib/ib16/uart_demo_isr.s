@@ -1,3 +1,4 @@
+;ISR for our uart_demo split into a file to test the .INC directive
 :ISR
 STM 1,15,15			; push r1
 LDM 1,15,14			; read from UART

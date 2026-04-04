@@ -116,6 +116,7 @@ module ib16 #(
                 2'b10: result_dff[8] = (reg_ra > reg_rb) ? 1'b1 : 1'b0;
                 default: begin end
             endcase
+            result_dff[0] = ~zero_flag; // enforce no changes to zero_flag
         end
 		if (opcode_isn == OPCODE_XOR) begin
 			result_dff	= {1'b0, reg_ra ^ reg_rb};
@@ -184,14 +185,19 @@ module ib16 #(
                     // retire the previous op if any that requires a retirement
                     if (opcode_isn != OPCODE_CMP) begin
                         reg_rr[opcode_opd]	    <= result_dff[7:0];
-                        reg_sreg[ZERO_FLAG]		<= result_dff[7:0] == 0 ? 1'b1 : 1'b0;
                     end
+					reg_sreg[ZERO_FLAG]		<= result_dff[7:0] == 0 ? 1'b1 : 1'b0;
                     reg_sreg[CARRY_FLAG]	<= result_dff[8];
                 end
                 // check for IRQs only if the bus is idle
                 if (bus_irq && !mask_irq && !bus_enable) begin
                     reg_irq_pc	    <= {reg_pc[15:1], 1'b0}; // force LSB to zero in case we IRQ in the middle of a fetch
-                    reg_irq_sreg    <= reg_sreg;
+                    // save SREG depending on how we ended up here the carry/zero flags might be from result_dff or reg_sreg
+                    if (state == FSM_RETIRE) begin
+						reg_irq_sreg	<= { result_dff[8], result_dff[7:0] == 0 ? 1'b1 : 1'b0, reg_sreg[5:0] };
+                    end else begin
+						reg_irq_sreg    <= reg_sreg;
+					end
                     mask_irq 	    <= 1;
                     reg_pc	 	    <= IRQ_VECTOR;
                     fsm_cycle	    <= 0;
