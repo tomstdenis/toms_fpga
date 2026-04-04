@@ -1,4 +1,5 @@
 `timescale 1ns/1ps
+`default_nettype none
 /*
 	Semi-dual port 2048 deep 8-bit memory
 	

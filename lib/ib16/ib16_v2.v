@@ -1,4 +1,5 @@
 `timescale 1ns/1ps
+`default_nettype none
 
 module ib16 #(
     parameter STACK_ADDRESS = 16'h1F00,

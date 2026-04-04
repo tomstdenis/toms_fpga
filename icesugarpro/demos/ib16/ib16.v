@@ -1,5 +1,6 @@
 // enable IRQs for UART supporting [0] = RX ready, [1] TX empty
 //`define USE_UARTIRQ
+`default_nettype none
 
 // Simple IRQ, raises bus_irq if RX ready
 `define USE_SIMPLE_UART_IRQ
@@ -133,7 +134,7 @@ module top(input clk, input uart_rx, output uart_tx, inout [15:0] gpio);
             ib16_bus_data_out   <= 0;
             ib16_bus_irq        <= 0;
             bus_cycle           <= 0;
-            gpio_out            <= 8'hFF;
+            gpio_out            <= 16'hFFFF;
             cycle_counter       <= 0;
 `ifdef USE_UARTIRQ
             uart_prev_rx_ready  <= 0;

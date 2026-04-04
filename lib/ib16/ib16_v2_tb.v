@@ -13,7 +13,11 @@ module ib16_v2_tb();
 	reg [15:0] bus_data_out;
 	reg bus_irq;
 	reg [31:0] additional_cycles;
-	ib16 ib16dut(
+	ib16 #(
+		.STACK_ADDRESS(16'h7F00),
+		.IRQ_VECTOR(16'h7E00),
+		.BOOT_ROM_ADDR(16'hF000))
+	ib16dut(
 		.clk(clk), .rst_n(rst_n),
 		.bus_enable(bus_enable),
 		.bus_wr_en(bus_wr_en),
@@ -26,9 +30,9 @@ module ib16_v2_tb();
 
 	reg [7:0] tb_mem[0:65535];						// test bench memory
 	reg [7:0] boot_rom[0:255];
-	reg [7:0] demo_rom[0:8191];
-	reg [12:0] demo_idx;
-	wire [15:0] rom_address = bus_address - 16'h2000;
+	reg [7:0] demo_rom[0:32767];
+	reg [14:0] demo_idx;
+	wire [15:0] rom_address = bus_address - 16'hF000;
 	
 	// simple enable/ready handshake on memory
 	always @(posedge clk or negedge rst_n) begin
@@ -36,11 +40,11 @@ module ib16_v2_tb();
 			bus_ready 		<= 0;
 			bus_data_out 	<= 0;
 			bus_irq 		<= 0;
-			demo_idx 		<= 13'h1FFF; // invalid address in STACK space tells us to send 0x5A
+			demo_idx 		<= 15'h7FFF; // invalid address in STACK space tells us to send 0x5A
 			additional_cycles <= 0; // on the real device we take multiple cycles per memory access so we add them back here
 		end else begin
 			if (bus_enable & !bus_ready) begin
-				if (bus_address < 16'h2000) begin
+				if (bus_address < 16'h8000) begin
 					if (bus_wr_en) begin
 						// writes
 						tb_mem[bus_address] <= bus_data_in[7:0];
@@ -60,7 +64,7 @@ module ib16_v2_tb();
 							additional_cycles <= additional_cycles + 2; // 3 cycles for a 8-bit read
 						end
 					end
-				end  if (bus_address >= 16'h2000 && bus_address < 16'h2100) begin
+				end  if (bus_address >= 16'hF000 && bus_address < 16'hF100) begin
 					if (bus_wr_en) begin
 					end else begin
 						// reads
@@ -76,7 +80,7 @@ module ib16_v2_tb();
 					if (bus_wr_en) begin
 					end else begin
 						// reads
-						if (demo_idx == 13'h1FFF) begin
+						if (demo_idx == 15'h7FFF) begin
 							bus_data_out[7:0] <= 8'h5A;
 						end else begin
 							bus_data_out[7:0] <= demo_rom[demo_idx];
@@ -111,7 +115,7 @@ module ib16_v2_tb();
 
 		repeat(3) @(posedge clk);
 		rst_n = 1;
-		repeat(16384) begin
+		repeat(8192) begin
 			bus_irq = 1;
 			@(posedge clk); #1;
 			bus_irq = 0;

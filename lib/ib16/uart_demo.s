@@ -12,30 +12,40 @@ LDI 15,<UART_ADDR
 LDI 12,>GPIO0_ADDR
 LDI 13,<GPIO0_ADDR
 
-; R11:R11 pointing to the timer
-LDI 10,>TIMER_ADDR
-LDI 11,<TIMER_ADDR
+; load R10:R11 pointing to GPIO1
+LDI 10,>GPIO1_ADDR
+LDI 11,<GPIO1_ADDR
 
-; output counter
+; R11:R11 pointing to the timer
+LDI 8,>TIMER_ADDR
+LDI 9,<TIMER_ADDR
+
+; output counters
 LDI 6,0x00
+LDI 7,0x00
 LDI 2,0x00
+LDI 0,0x00			; r0 == 0, let's keep that
 
 :LOOP
-LDI 0,0
-LDM 1,11,10
-ADD 1,1,1
-ADC 6,6,2
-STM 6,13,12
+LDM 1,9,8			; read timer
+ADD 1,1,1			; get msb into carry
+ADC 1,0,0			; set r1 == carry + r0(0) + r0
+CMPEQ 1,2			; compare to stored value (we only move on if the MSB changed)
+JC LOOP
+AND 2,1,1			; r2 = r1
+INC 7,7				; increment tick (this changes every 2^23 cycles (about every 131.072ms at 64MHz)
+STM 7,11,10			; output to GPIO1
 JMP LOOP
 
-.ORG IRQ_VECTOR			; IRQ vector
+.ORG IRQ_VECTOR		; IRQ vector
 :ISR
-STM 0,15,15			; push r0
-LDM 0,15,14			; read from UART
-STM 0,15,14			; echo it back
+STM 1,15,15			; push r1
+LDM 1,15,14			; read from UART
+STM 1,15,14			; echo it back
 INC 6,6
-NOT 7,6
-STM 7,13,12			; echo it back
-LDM 0,15,15			; pop r0
+NOT 6,6
+STM 6,13,12			; echo it back
+NOT 6,6				; revert r6 back to normal form
+LDM 1,15,15			; pop r1
 RETI
 

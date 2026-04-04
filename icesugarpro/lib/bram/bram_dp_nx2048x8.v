@@ -1,4 +1,5 @@
 `timescale 1ns/1ps
+`default_nettype none
 /*
 	True-dual port N by 2048 deep 8-bit memory
 	
