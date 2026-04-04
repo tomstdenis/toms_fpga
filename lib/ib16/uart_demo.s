@@ -4,6 +4,8 @@
 .EQU TIMER_ADDR 0xFFF9
 .PROG_SIZE DEMO_PROG_SIZE
 
+; we boot with r0==0 guaranteed so keep it that way for this app
+
 ; Setup ISR context
 LDI 14,>UART_ADDR
 LDI 15,<UART_ADDR
@@ -24,7 +26,6 @@ LDI 9,<TIMER_ADDR
 LDI 6,0x00
 LDI 7,0x00
 LDI 2,0x00
-LDI 0,0x00			; r0 == 0, let's keep that
 
 :LOOP
 LDM 1,9,8			; read timer at r9:r8

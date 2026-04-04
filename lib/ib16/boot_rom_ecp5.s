@@ -31,4 +31,5 @@ NOT 11,1
 STM 11,13,12
 CMPEQ 1,2
 JNC LOOP
+XOR 0,0,0				; ensure r0 is zero before boot using app
 SRES 8					; boot user app

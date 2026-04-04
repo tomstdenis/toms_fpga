@@ -26,4 +26,5 @@ JNC LOOP
 INC 1,1
 CMPEQ 1,2
 JNC LOOP
+XOR 0,0,0				; ensure r0 is zero before boot user app
 SRES 8					; boot user app

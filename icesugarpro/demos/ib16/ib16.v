@@ -329,7 +329,8 @@ module top(input clk, input uart_rx, output uart_tx, inout [15:0] gpio);
 						8'h24: ib16_bus_data_out <= 16'habdc;
 						8'h26: ib16_bus_data_out <= 16'h7112;
 						8'h28: ib16_bus_data_out <= 16'hd5f6;
-						8'h2a: ib16_bus_data_out <= 16'he008;
+						8'h2a: ib16_bus_data_out <= 16'h4000;
+						8'h2c: ib16_bus_data_out <= 16'he008;
                         default: ib16_bus_data_out <= 16'h0000;
                     endcase
                     ib16_bus_ready <= 1;
