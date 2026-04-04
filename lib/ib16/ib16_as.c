@@ -6,30 +6,33 @@
 #include <inttypes.h>
 
 #define MAX_PROG_SIZE 32768
-int PROG_SIZE = 4096;
-char *cur_filename = NULL;
 
-// the entire program can only be upto PROG_SIZE bytes so just make a simple map here
-struct {
-	uint16_t opcode;
-	char label[64];
-	char tgt[64];
-	int use_top_half;
-	int use_bottom_half;
+struct compiler_state {
+	int prog_size;
+	char *cur_filename;
+
+	// the entire program can only be upto PROG_SIZE bytes so just make a simple map here
+	struct {
+		uint16_t opcode;
+		char label[64];
+		char tgt[64];
+		int use_top_half;
+		int use_bottom_half;
+		int line_number;
+		char *fname;
+		int opidx;
+		char line[512];
+	} program[MAX_PROG_SIZE];
+
+	struct {
+		char label[64];
+		uint16_t value;
+	} symbols[MAX_PROG_SIZE];
+
 	int line_number;
-	char *fname;
-	int opidx;
-	char line[512];
-} program[MAX_PROG_SIZE];
-
-struct {
-	char label[64];
-	uint16_t value;
-} symbols[MAX_PROG_SIZE];
-
-int line_number = 1;
-uint16_t PC = 0;
-uint16_t bin_start = 0;
+	uint16_t PC;
+	uint16_t bin_start;
+};
 
 /* bare bones assembler, allows whitespace and comments with ';'
  * 
@@ -123,7 +126,7 @@ void consume_fname(char *dest, char **s)
 	*dest++ = 0;
 }
 
-void compile_exec1(char *line)
+void compile_exec1(struct compiler_state *state, char *line)
 {
 	int x;
 	for (x = 0; e1_opcodes[x].opname; x++) {
@@ -131,13 +134,13 @@ void compile_exec1(char *line)
 			// matched an opcode
 			line += strlen(e1_opcodes[x].opname);
 			consume_whitespace(&line);
-			program[PC].opcode = e1_opcodes[x].opcode;
-			program[PC].opidx = x;
-			if (program[PC].line_number == -1) {
-				program[PC].line_number = line_number;
-				program[PC].fname = cur_filename;
+			state->program[state->PC].opcode = e1_opcodes[x].opcode;
+			state->program[state->PC].opidx = x;
+			if (state->program[state->PC].line_number == -1) {
+				state->program[state->PC].line_number = state->line_number;
+				state->program[state->PC].fname = state->cur_filename;
 			} else {
-				printf("line %d: byte location %x already was programmed on line %d\n", line_number, PC, program[PC].line_number);
+				printf("line %d: byte location %x already was programmed on line %d\n", state->line_number, state->PC, state->program[state->PC].line_number);
 				exit(-1);
 			}
 			switch (e1_opcodes[x].fmt) {
@@ -148,7 +151,7 @@ void compile_exec1(char *line)
 					r_d &= 0xF;
 					r_a &= 0xF;
 					r_b &= 0xF;
-					program[PC].opcode |= (r_d << 8) | (r_a << 4) | r_b;
+					state->program[state->PC].opcode |= (r_d << 8) | (r_a << 4) | r_b;
 					break;
 				}
 				case OP_FMT_2OP: // "d, a"
@@ -157,7 +160,7 @@ void compile_exec1(char *line)
 					sscanf(line, "%u, %u", &r_d, &r_a);
 					r_d &= 0xF;
 					r_a &= 0xF;
-					program[PC].opcode |= (r_d << 8) | r_a;
+					state->program[state->PC].opcode |= (r_d << 8) | r_a;
 					break;
 				}
 				case OP_FMT_2OPALU: // "a, b"
@@ -166,32 +169,32 @@ void compile_exec1(char *line)
 					sscanf(line, "%u, %u", &r_a, &r_b);
 					r_a &= 0xF;
 					r_b &= 0xF;
-					program[PC].opcode |= (r_a << 4) | r_b;
+					state->program[state->PC].opcode |= (r_a << 4) | r_b;
 					break;
 				}
 				case OP_FMT_8IMM: // hex val
 				{
 					int r_a;
 					if (strstr(line, ",") != NULL && sscanf(line, "%d, ", &r_a) == 1) {
-						program[PC].opcode |= (r_a&0xF) << 8;
+						state->program[state->PC].opcode |= (r_a&0xF) << 8;
 						while (line && *line != ',') ++line;
 						++line;
 					}
 					if (islabel(line)) {
 						// it's a label
 						if (*line == '<') {
-							program[PC].use_top_half = 1;
+							state->program[state->PC].use_top_half = 1;
 							++line;
 						} else if (*line == '>') {
-							program[PC].use_bottom_half = 1;
+							state->program[state->PC].use_bottom_half = 1;
 							++line;
 						}
-						consume_label(program[PC].tgt, &line);
+						consume_label(state->program[state->PC].tgt, &line);
 					} else {
 						uint8_t r;
 						// it's a value
 						sscanf(line, "%"SCNx8, &r);
-						program[PC].opcode |= r & 0xFF;
+						state->program[state->PC].opcode |= r & 0xFF;
 					}
 					break;
 				}
@@ -201,18 +204,18 @@ void compile_exec1(char *line)
 					if (islabel(line)) {
 						// it's a label
 						if (*line == '<') {
-							program[PC].use_top_half = 1;
+							state->program[state->PC].use_top_half = 1;
 							++line;
 						} else if (*line == '>') {
-							program[PC].use_bottom_half = 1;
+							state->program[state->PC].use_bottom_half = 1;
 							++line;
 						}
-						consume_label(program[PC].tgt, &line);
+						consume_label(state->program[state->PC].tgt, &line);
 					} else {
 						uint16_t r;
 						// it's a value
 						sscanf(line, "%"SCNx16, &r);
-						program[PC].opcode |= e1_opcodes[x].fmt ==  OP_FMT_12IMM ? (r & 0xFFF) : ((r >> 4) & 0xFFF);
+						state->program[state->PC].opcode |= e1_opcodes[x].fmt ==  OP_FMT_12IMM ? (r & 0xFFF) : ((r >> 4) & 0xFFF);
 					}
 					break;
 				}
@@ -221,21 +224,21 @@ void compile_exec1(char *line)
 					if (islabel(line)) {
 						// it's a label
 						if (*line == '<') {
-							program[PC].use_top_half = 1;
+							state->program[state->PC].use_top_half = 1;
 							++line;
 						} else if (*line == '>') {
-							program[PC].use_bottom_half = 1;
+							state->program[state->PC].use_bottom_half = 1;
 							++line;
 						}
-						consume_label(program[PC].tgt, &line);
+						consume_label(state->program[state->PC].tgt, &line);
 					} else {
 						int16_t r;
 						int16_t off;
 						// it's a value
 						sscanf(line, "%"SCNx16, &r);
 						// need to compute offset from PC+2 as a halved signed 9-bit value
-						off = ((r / 2) - PC - 1)  & 0x1FF;
-						program[PC].opcode |= off & 0xFFF;
+						off = ((r / 2) - state->PC - 1)  & 0x1FF;
+						state->program[state->PC].opcode |= off & 0xFFF;
 					}
 					break;
 				}
@@ -244,19 +247,19 @@ void compile_exec1(char *line)
 		}
 	}
 	
-	++PC;
-	if (!PC) {
-		printf("Warning line %d: We've wrapped PC around back to 0\n", program[PC].line_number);
+	++(state->PC);
+	if (!state->PC) {
+		printf("Warning line %d: We've wrapped PC around back to 0\n", state->program[state->PC].line_number);
 	}
 	if (!e1_opcodes[x].opname) {
-		printf("Line %d: Malformed line: '%s'\n", line_number, line);
+		printf("Line %d: Malformed line: '%s'\n", state->line_number, line);
 		exit(-1);
 	}
 }	
 
-void compile(char *line)
+void compile(struct compiler_state *state, char *line)
 {
-	strcpy(program[PC].line, line);
+	strcpy(state->program[state->PC].line, line);
 	// skip leading white space
 	consume_whitespace(&line);
 	if (!*line || *line == ';') {
@@ -266,24 +269,24 @@ void compile(char *line)
 	// is it .ORG ?
 	if (!memcmp(line, ".ORG ", 5)) {
 		line += 5;
-		sscanf(line, "%"SCNx16, &PC);
-		PC >>= 1;
+		sscanf(line, "%"SCNx16, &state->PC);
+		state->PC >>= 1;
 	} else if (!memcmp(line, ".PROG_SIZE ", 11)) {
 		line += 11;
-		sscanf(line, "%d", &PROG_SIZE); 
+		sscanf(line, "%d", &state->prog_size); 
 	} else if (!memcmp(line, ".BIN_START ", 11)) {
 		line += 11;
-		sscanf(line, "%"SCNx16, &bin_start);
-		bin_start >>= 1;
+		sscanf(line, "%"SCNx16, &state->bin_start);
+		state->bin_start >>= 1;
 	} else if (!memcmp(line, ".EQU ", 5)) {
 		int x;
 		line += 5;
 		consume_whitespace(&line);
 		for (x = 0; x < MAX_PROG_SIZE; x++) {
-			if (symbols[x].label[0] == 0) {
-				consume_label(symbols[x].label, &line);
+			if (state->symbols[x].label[0] == 0) {
+				consume_label(state->symbols[x].label, &line);
 				consume_whitespace(&line);
-				sscanf(line, "%"SCNx16, &symbols[x].value);
+				sscanf(line, "%"SCNx16, &state->symbols[x].value);
 				break;
 			}
 		}
@@ -293,158 +296,166 @@ void compile(char *line)
 		consume_whitespace(&line);
 		sscanf(line, "%"SCNx8, &x);
 		if (!x) {
-			printf("Line %d: Invalid alignment %x specified\n", line_number, x);
+			printf("Line %d: Invalid alignment %x specified\n", state->line_number, x);
 			exit(-1);
 		}
-		while (PC % x) {
-			++PC;
+		while (state->PC % x) {
+			++state->PC;
 		}
 	} else if (!memcmp(line, ".DW ", 4)) {
-		if (program[PC].line_number == -1) {
+		if (state->program[state->PC].line_number == -1) {
 			line += 4;
 			consume_whitespace(&line);
 			if (islabel(line)) {
 				// it's a label
 				if (*line == '<') {
-					program[PC].use_top_half = 1;
+					state->program[state->PC].use_top_half = 1;
 					++line;
 				} else if (*line == '>') {
-					program[PC].use_bottom_half = 1;
+					state->program[state->PC].use_bottom_half = 1;
 					++line;
 				}
-				consume_label(program[PC].tgt, &line);
+				consume_label(state->program[state->PC].tgt, &line);
 			} else {
 				uint16_t r;
 				// it's a value
 				sscanf(line, "%"SCNx16, &r);
-				program[PC].opcode = r;
+				state->program[state->PC].opcode = r;
 			}
-			program[PC].line_number = line_number;
-			program[PC].fname = cur_filename;
-			program[PC].opidx = 0;
-			++PC;
+			state->program[state->PC].line_number = state->line_number;
+			state->program[state->PC].fname = state->cur_filename;
+			state->program[state->PC].opidx = 0;
+			++(state->PC);
 		} else {
-			printf("Line %d: .DW directive on address that was already programmed on line %d\n", line_number, program[PC].line_number);
+			printf("Line %d: .DW directive on address that was already programmed on line %d\n", state->line_number, state->program[state->PC].line_number);
 			exit(-1);
 		}
 	} else if (!memcmp(line, ".INC ", 5)) {
-		char *tmpfname = cur_filename;
-		int tmpln = line_number;
+		char *tmpfname = state->cur_filename;
+		int tmpln = state->line_number;
 		char tmpline[512];
 		char newfname[512];
 		FILE *f;
+		
+		// skip to filename
 		line += 5;
 		consume_whitespace(&line);
+		
+		// consume filename
 		consume_fname(newfname, &line);
-		cur_filename = newfname;
-		f = fopen(cur_filename, "r");
+		state->cur_filename = newfname;
+		state->line_number  = 1;
+		f = fopen(state->cur_filename, "r");
 		if (!f) {
-			printf("Could not open include file '%s' from %s:%d\n", cur_filename, tmpfname, tmpln);
+			printf("Could not open include file '%s' from %s:%d\n", state->cur_filename, tmpfname, tmpln);
 			exit(-1);
 		}
-		line_number = 0;
+		
+		// compile included file
 		while (fgets(tmpline, sizeof(tmpline) - 1, f)) {
-			compile(tmpline);
-			++line_number;
+			compile(state, tmpline);
+			++(state->line_number);
 		}
 		fclose(f);
-		cur_filename = tmpfname;
-		line_number = tmpln;
+		
+		// resume parent file
+		state->cur_filename = tmpfname;
+		state->line_number = tmpln;
 	} else if (line[0] == ':') {
 		// it's a label
 		++line;
-		consume_label(program[PC].label, &line);
+		consume_label(state->program[state->PC].label, &line);
 	} else {
-		compile_exec1(line);
+		compile_exec1(state, line);
 	}
 }
 
-int find_target(int x)
+int find_target(struct compiler_state *state, int x)
 {
 	int y;
 	uint16_t d;
 
 	for (y = 0; y < MAX_PROG_SIZE; y++) {
-		if (!strcmp(program[y].label, program[x].tgt)) {
+		if (!strcmp(state->program[y].label, state->program[x].tgt)) {
 			return y;
 		}
 	}
 	for (y = 0; y < MAX_PROG_SIZE; y++) {
-		if (!strcmp(symbols[y].label, program[x].tgt)) {
-			return symbols[y].value;
+		if (!strcmp(state->symbols[y].label, state->program[x].tgt)) {
+			return state->symbols[y].value;
 		}
 	}
-	if (sscanf(program[x].tgt, "%"SCNx16, &d) == 1) {
+	if (sscanf(state->program[x].tgt, "%"SCNx16, &d) == 1) {
 		return d;
 	}
-	printf("Line %d: Target '%s' not found!\n", program[x].line_number, program[x].tgt);
+	printf("Line %d: Target '%s' not found!\n", state->program[x].line_number, state->program[x].tgt);
 	exit(-1);
 }
 
-void resolve_exec1(int x)
+void resolve_exec1(struct compiler_state *state, int x)
 {
 	int16_t y;
 
-	switch (e1_opcodes[program[x].opidx].fmt) {
+	switch (e1_opcodes[state->program[x].opidx].fmt) {
 		case OP_FMT_8IMM:
-			if (program[x].tgt[0]) {
-				y = find_target(x);
-				if (program[x].use_top_half) {
+			if (state->program[x].tgt[0]) {
+				y = find_target(state, x);
+				if (state->program[x].use_top_half) {
 					y >>= 8;
-				} else if (program[x].use_bottom_half) {
+				} else if (state->program[x].use_bottom_half) {
 					y &= 0xFF;
 				}
-				program[x].opcode |= y & 0xFF;
+				state->program[x].opcode |= y & 0xFF;
 			}
 			break;
 		case OP_FMT_12IMM: //CALL
-			if (program[x].tgt[0]) {
+			if (state->program[x].tgt[0]) {
 				// jumping to a target 
-				y = find_target(x);
-				if (program[x].use_top_half) {
+				y = find_target(state, x);
+				if (state->program[x].use_top_half) {
 					y >>= 8;
-				} else if (program[x].use_bottom_half) {
+				} else if (state->program[x].use_bottom_half) {
 					y &= 0xFF;
 				}
-				program[x].opcode |= y & 0xFFF;
+				state->program[x].opcode |= y & 0xFFF;
 			}
 			break;
 		case OP_FMT_12IMMT: //CALL
-			if (program[x].tgt[0]) {
+			if (state->program[x].tgt[0]) {
 				// jumping to a target 
-				y = find_target(x);
-				if (program[x].use_top_half) {
+				y = find_target(state, x);
+				if (state->program[x].use_top_half) {
 					y >>= 8;
-				} else if (program[x].use_bottom_half) {
+				} else if (state->program[x].use_bottom_half) {
 					y &= 0xFF;
 				}
-				program[x].opcode |= (y >> 3) & 0xFFF;
+				state->program[x].opcode |= (y >> 3) & 0xFFF;
 			}
 			break;
 		case OP_FMT_9SIMM: // Jumps
-			if (program[x].tgt[0]) {
+			if (state->program[x].tgt[0]) {
 				int16_t off;
 				// jumping to a target 
-				y = find_target(x);
-				if (program[x].use_top_half) {
+				y = find_target(state, x);
+				if (state->program[x].use_top_half) {
 					y >>= 8;
-				} else if (program[x].use_bottom_half) {
+				} else if (state->program[x].use_bottom_half) {
 					y &= 0xFF;
 				}
 				off = (y - x - 1)  & 0x1FF;
-				program[x].opcode |= off;
+				state->program[x].opcode |= off;
 			}
 			break;
 		case OP_FMT_LITERAL:
-			if (program[x].tgt[0]) {
+			if (state->program[x].tgt[0]) {
 				// jumping to a target 
-				y = find_target(x);
-				if (program[x].use_top_half) {
+				y = find_target(state, x);
+				if (state->program[x].use_top_half) {
 					y >>= 8;
-				} else if (program[x].use_bottom_half) {
+				} else if (state->program[x].use_bottom_half) {
 					y &= 0xFF;
 				}
-				program[x].opcode = y;
+				state->program[x].opcode = y;
 			}
 			break;
 		default:
@@ -452,12 +463,12 @@ void resolve_exec1(int x)
 	}
 }
 
-void resolve_labels(void)
+void resolve_labels(struct compiler_state *state)
 {
 	int x;
 	
 	for (x = 0; x < MAX_PROG_SIZE; x++) {
-		resolve_exec1(x);
+		resolve_exec1(state, x);
 	}
 }
 
@@ -467,87 +478,93 @@ int main(int argc, char **argv)
 	char linebuf[256];
 	FILE *f;
 	int x, y, z;
+	struct compiler_state *state;
 	
+	state = calloc(1, sizeof *state);
+
 	if (argc != 2) {
 		printf("Usage: %s input.s\n", argv[0]);
 		return 0;
 	}
 	sprintf(outname, "%s.hex", argv[1]);
-	memset(&program, 0, sizeof program);
-	memset(&symbols, 0, sizeof symbols);
-	cur_filename = argv[1];
+	state->cur_filename = argv[1];		 	// initial fname	
+	state->prog_size    = 4096;				// default to 8KB programs
+	state->line_number  = 1;
 	
 	for (x = 0; x < MAX_PROG_SIZE; x++) {
-		program[x].opcode = 0x0000;
-		program[x].line_number = -1;
+		state->program[x].opcode = 0x0000;
+		state->program[x].line_number = -1;
 	}
 	
+	// compile code
 	f = fopen(argv[1], "r");
 	if (f) {
 		while (fgets(linebuf, sizeof(linebuf) - 2, f)) {
-			compile(linebuf);
-			++line_number;
+			compile(state, linebuf);
+			++(state->line_number);
 		}
 		fclose(f);
 	}
-	resolve_labels();
+	resolve_labels(state);
+
+	// output in various formats
 	sprintf(outname, "%s.bin", argv[1]);
 	f = fopen(outname, "wb");
-	printf("Outputting binary: %d, %d\n", bin_start, PROG_SIZE);
-	for (x = bin_start; x < bin_start + PROG_SIZE; x++) {
-		fputc(program[x].opcode&0xFF, f);
-		fputc((program[x].opcode>>8)&0xFF, f);
+	printf("Outputting binary: %d, %d\n", state->bin_start, state->prog_size);
+	for (x = state->bin_start; x < state->bin_start + state->prog_size; x++) {
+		fputc(state->program[x].opcode&0xFF, f);
+		fputc((state->program[x].opcode>>8)&0xFF, f);
 	}
 	fclose(f);
 	
 	sprintf(outname, "%s.hex", argv[1]);
 	f = fopen(outname, "w");
-	//fprintf(f, "#File_format=Hex\n#Address_depth=%d\n#Data_width=8\n", PROG_SIZE);
-	for (x = bin_start; x < bin_start + PROG_SIZE; x++) {
-		fprintf(f, "%02X\n", (program[x].opcode)&0xFF);
-		fprintf(f, "%02X\n", (program[x].opcode>>8)&0xFF);
+	//fprintf(f, "#File_format=Hex\n#Address_depth=%d\n#Data_width=8\n", prog_size);
+	for (x = state->bin_start; x < state->bin_start + state->prog_size; x++) {
+		fprintf(f, "%02X\n", (state->program[x].opcode)&0xFF);
+		fprintf(f, "%02X\n", (state->program[x].opcode>>8)&0xFF);
 	}
 	fclose(f);
 
 	for (x = y = 0; x < MAX_PROG_SIZE; x++) {
-		if (program[x].line_number != -1) {
+		if (state->program[x].line_number != -1) {
 			++y;
 		}
 	}
-	printf("%s created, used %d (%d%%) out of %d words.\n", outname, y, (y * 100) / (PROG_SIZE - bin_start), PROG_SIZE - bin_start);
-	if (y > (PROG_SIZE-(PROG_SIZE/10)) && y != PROG_SIZE) {
+	printf("%s created, used %d (%d%%) out of %d words.\n", outname, y, (y * 100) / (state->prog_size - state->bin_start), state->prog_size - state->bin_start);
+	if (y > (state->prog_size-(state->prog_size/10)) && y != state->prog_size) {
 		// find the user some space
 		printf("Limited free space here's a map of free space:\n");
-		for (x = 0; x < PROG_SIZE; x++) {
-			if (program[x].line_number == -1) {
+		for (x = 0; x < state->prog_size; x++) {
+			if (state->program[x].line_number == -1) {
 				printf("ROM[%x] is free\n", x);
 			}
 		}
 	}
 	printf("Verilog:\n");
-	for (z = x = 0; z < PROG_SIZE && x < MAX_PROG_SIZE; x++) {
-		if (program[x].line_number != -1) {
+	for (z = x = 0; z < state->prog_size && x < MAX_PROG_SIZE; x++) {
+		if (state->program[x].line_number != -1) {
 			++z;
-			printf("8'h%02x: ib16_bus_data_out <= 16'h%02x%02x;\n", (x*2)&0xFF, program[x].opcode>>8, program[x].opcode&0xFF);
+			printf("8'h%02x: ib16_bus_data_out <= 16'h%02x%02x;\n", (x*2)&0xFF, state->program[x].opcode>>8, state->program[x].opcode&0xFF);
 		}
 	}
 	
 	printf("Symbols: \n");
-	for (x = 0; x < PROG_SIZE; x++) {
-		if (symbols[x].label[0]) {
-			printf("Symbol %s == %x\n", symbols[x].label, symbols[x].value);
+	for (x = 0; x < state->prog_size; x++) {
+		if (state->symbols[x].label[0]) {
+			printf("Symbol %s == %x\n", state->symbols[x].label, state->symbols[x].value);
 		}
 	}
 	printf("Listing: \n");
-	for (z = x = 0; z < PROG_SIZE && x < MAX_PROG_SIZE; x++) {
-		if (program[x].line_number != -1) {
+	for (z = x = 0; z < state->prog_size && x < MAX_PROG_SIZE; x++) {
+		if (state->program[x].line_number != -1) {
 			++z;
-			if (program[x].label[0]) {
-				printf("[%-15s ", program[x].label);
+			if (state->program[x].label[0]) {
+				printf("[%-15s ", state->program[x].label);
 			} else {
 				printf("[%16s", "");
 			}
-			strcpy(linebuf, program[x].line);
+			strcpy(linebuf, state->program[x].line);
 			linebuf[20] = 0;
 			for (y = 0; linebuf[y]; y++) {
 				if (linebuf[y] == '\r' || linebuf[y] == '\n') {
@@ -558,7 +575,7 @@ int main(int argc, char **argv)
 					linebuf[y] = ' ';
 				}
 			}
-			printf("0x%04X]: 0x%04X ; %-20s (%s:%d)\n", x*2, program[x].opcode, linebuf, program[x].fname, program[x].line_number);
+			printf("0x%04X]: 0x%04X ; %-20s (%s:%d)\n", x*2, state->program[x].opcode, linebuf, state->program[x].fname, state->program[x].line_number);
 		}
 	}
 	return 0;
