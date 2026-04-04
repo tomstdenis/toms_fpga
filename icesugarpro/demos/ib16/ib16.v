@@ -5,8 +5,11 @@
 // Simple IRQ, raises bus_irq if RX ready
 `define USE_SIMPLE_UART_IRQ
 
+// place stack at top of memory - 256 bytes, and the ISR 256 bytes before that
 `define STACK_ADDRESS (16'h0800 * `BLOCKS - 16'h0100)
 `define IRQ_VECTOR    (16'h0800 * `BLOCKS - 16'h0200)
+
+// ROM is fixed into the first 256 bytes of the reserved F000..FFFF space
 `define BOOT_ROM_ADDR 16'hF000
 
 module top(input clk, input uart_rx, output uart_tx, inout [15:0] gpio);
