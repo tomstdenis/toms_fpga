@@ -44,18 +44,27 @@ int main(int argc, char **argv)
     set_interface_attribs(fd, B230400);
 	tcflush(fd, TCIOFLUSH);
 	
-#if 1
+	// send magic byte
 	buf = 0x5A;
 	if (write(fd, &buf, 1) != 1) {
 		printf("Error writing to UART\n");
 		exit(-1);
 	}
 	tcdrain(fd);
-#endif	
+
 	f = fopen(argv[2], "r");
 	fseek(f, 0, SEEK_END);
 	size = ftell(f);
 	fseek(f, 0, SEEK_SET);
+
+	// send # of pages to program
+	buf = size/256;
+	if (write(fd, &buf, 1) != 1) {
+		printf("Error writing to UART\n");
+		exit(-1);
+	}
+	tcdrain(fd);
+
 	while (bytes < size) {
 		ch = fgetc(f);
 		if (ch != EOF) {

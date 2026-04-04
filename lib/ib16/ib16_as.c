@@ -456,7 +456,8 @@ int main(int argc, char **argv)
 	}
 	resolve_labels();
 	sprintf(outname, "%s.bin", argv[1]);
-	f = fopen(outname, "w");
+	f = fopen(outname, "wb");
+	printf("Outputting binary: %d, %d\n", bin_start, PROG_SIZE);
 	for (x = bin_start; x < bin_start + PROG_SIZE; x++) {
 		fputc(program[x].opcode&0xFF, f);
 		fputc((program[x].opcode>>8)&0xFF, f);

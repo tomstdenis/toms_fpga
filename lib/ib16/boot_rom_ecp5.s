@@ -12,13 +12,13 @@ LDI 15,<UART_ADDR
 LDI 12,>GPIO0_ADDR
 LDI 13,<GPIO0_ADDR
 LDI 0,0
-LDI 1,0					; start writing to 0
-LDI 2,APP_PAGES			; number of 256 byte pages...
+LDI 1,0					; start writing to 0LDI 2,AP			; number of 256 byte pages...
 LDI 4,0x5A				; magic constant we wait for before reading data bytes
 :FLUSH
 LDM 3,15,14
 CMPEQ 3,4				; compare R3 to R4 (uart byte to 0x5A)
 JNC FLUSH				; dump 
+LDM 2,15,14				; load number of pages from UART
 
 :LOOP
 LDM 3,15,14				; read from UART
