@@ -34,7 +34,8 @@ STM 0,15,15			; push r0
 LDM 0,15,14			; read from UART
 STM 0,15,14			; echo it back
 INC 6,6
-STM 6,13,12			; echo it back
+NOT 7,6
+STM 7,13,12			; echo it back
 LDM 0,15,15			; pop r0
 RETI
 
