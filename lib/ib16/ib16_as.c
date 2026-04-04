@@ -38,16 +38,16 @@ struct compiler_state {
 };
 
 // operand formats for various opcodes
-#define OP_FMT_3OP 0					// ALU 3 operand format R[d] = R[a] op R[b]
-#define OP_FMT_2OP 1					// ALU 2 operand format R[d] = op R[b]
-#define OP_FMT_2OPALU 2					// ALU 2 operand carry format carry = R[a] op R[b]
-#define OP_FMT_2OPMOV 3					// ALU 2 R[d] = R[a]
-#define OP_FMT_1OP 4					// ALU 1 operand format op R[d] 
-#define OP_FMT_8IMM 5					// 8IMM format r[d] = IMM
-#define OP_FMT_12IMMT 6					// 12IMMT format PC = 12IMMT << 4
-#define OP_FMT_9SIMM 7					// 9SIMM format PC += signed(9SIMM) << 1
-#define OP_FMT_LITERAL 8				// 16 bit of raw data
-#define OP_FMT_NONE 9
+#define OP_FMT_3OP 		0		// ALU 3 operand format R[d] = R[a] op R[b]
+#define OP_FMT_2OP 		1		// ALU 2 operand format R[d] = op R[b]
+#define OP_FMT_2OPALU 	2		// ALU 2 operand carry format carry = R[a] op R[b]
+#define OP_FMT_2OPMOV 	3		// ALU 2 R[d] = R[a]
+#define OP_FMT_1OP 		4		// ALU 1 operand format op R[d] 
+#define OP_FMT_8IMM 	5		// 8IMM format r[d] = IMM
+#define OP_FMT_12IMMT 	6		// 12IMMT format PC = 12IMMT << 4
+#define OP_FMT_9SIMM 	7		// 9SIMM format PC += signed(9SIMM) << 1
+#define OP_FMT_LITERAL 	8		// 16 bit of raw data
+#define OP_FMT_NONE 	9
 
 // instruction table
 const struct {

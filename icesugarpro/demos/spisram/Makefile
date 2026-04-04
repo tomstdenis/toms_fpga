@@ -1,9 +1,9 @@
 # Makefile for the SPI FLAT SRAM demo for a ECP5-LF45 on the Colorlight-i9 board
 TARGET=spisram
 TOP=top
-FREQ=80
+FREQ=100
 SRAM_ADDR_WIDTH=24
-BITS=128
+BITS=256
 
 OBJS+=${TARGET}.v pll1.v \
 ../../../lib/sram/blocks/sram.v \
@@ -38,7 +38,7 @@ flash: ${TARGET}.bit
 
 # Generate the four PLLs we need for this design
 pll1.v:
-	ecppll -i 25 -o ${FREQ} -f pll1.v --module pll1
+	ecppll --highres -i 25 -o ${FREQ} -f pll1.v --module pll1
 
 debug_cli: debug_cli.c
 	${CC} -O2 -Wall -DSRAM_ADDR_WIDTH=${SRAM_ADDR_WIDTH} -DBITS=${BITS} debug_cli.c -o debug_cli

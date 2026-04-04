@@ -264,9 +264,9 @@ module spi_sram #(
 										nibble_idx <= nibble_idx - 4;
 										if (nibble_idx == nibble_stop) begin
 											state			<= STATE_SPI_READ_2;					// jump to reading
-											dummy_nibbles   <= (DUMMY_BYTES * 2);
+											dummy_nibbles   <= (DUMMY_BYTES * 2) + 1;
 											sio_en 			<= 4'b0000;
-											sio_dout		<= 4'b0000;
+											sio_dout		<= 4'b1111;
 											if (DATA_WIDTH == 32) begin
 												case(read_data_be)
 													4'b1111: // 32-bit operation
@@ -295,10 +295,11 @@ module spi_sram #(
 						case(qpi_pulse)
 							1'd0:
 								begin
+									send_data[nibble_idx[$clog2(DATA_WIDTH)-1:0] +: 4] <= sio_din; // store nibble
 								end
 							1'd1:							// we sample during the 2nd half of the cycle
 								begin
-									if (timer[QPI_TIMER_BITS-1:0] == 0) begin // ((1 << QPI_TIMER_BITS) - 1)) begin
+									if (timer[QPI_TIMER_BITS-1:0] == ((1 << QPI_TIMER_BITS) - 1)) begin
 `ifdef SIM_MODEL
 										if (nibble_idx < DATA_WIDTH) begin
 											if (nibble_idx[2]) begin
@@ -311,8 +312,6 @@ module spi_sram #(
 												end
 											end
 										end
-`else
-										send_data[nibble_idx[$clog2(DATA_WIDTH)-1:0] +: 4] <= sio_din; // store nibble
 `endif
 									end
 									if (timer[QPI_TIMER_BITS-1:0] == ((1 << QPI_TIMER_BITS) - 1)) begin
@@ -382,8 +381,9 @@ module spi_sram #(
 								end
 							end else begin
 								// read commands are just the cmd + address
-								nibble_idx <= READ_SIZE - 4;
+								nibble_idx 	<= READ_SIZE - 4;
 								nibble_stop <= 0;
+								send_data 	<= 0;
 							end
                         `ifdef SIM_MODEL
                             sim_dummy <= DUMMY_BYTES[7:0] * 2;
