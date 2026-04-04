@@ -7,6 +7,7 @@
 
 #define MAX_PROG_SIZE 32768
 int PROG_SIZE = 4096;
+char *cur_filename = NULL;
 
 // the entire program can only be upto PROG_SIZE bytes so just make a simple map here
 struct {
@@ -16,6 +17,7 @@ struct {
 	int use_top_half;
 	int use_bottom_half;
 	int line_number;
+	char *fname;
 	int opidx;
 	char line[512];
 } program[MAX_PROG_SIZE];
@@ -113,6 +115,14 @@ void consume_label(char *dest, char **s)
 	*dest++ = 0;
 }
 
+void consume_fname(char *dest, char **s)
+{
+	while (isalnum(**s) || **s == '/' || **s == '.' || **s == '_') {
+		*dest++ = *((*s)++);
+	}
+	*dest++ = 0;
+}
+
 void compile_exec1(char *line)
 {
 	int x;
@@ -125,6 +135,7 @@ void compile_exec1(char *line)
 			program[PC].opidx = x;
 			if (program[PC].line_number == -1) {
 				program[PC].line_number = line_number;
+				program[PC].fname = cur_filename;
 			} else {
 				printf("line %d: byte location %x already was programmed on line %d\n", line_number, PC, program[PC].line_number);
 				exit(-1);
@@ -309,12 +320,36 @@ void compile(char *line)
 				program[PC].opcode = r;
 			}
 			program[PC].line_number = line_number;
+			program[PC].fname = cur_filename;
 			program[PC].opidx = 0;
 			++PC;
 		} else {
 			printf("Line %d: .DW directive on address that was already programmed on line %d\n", line_number, program[PC].line_number);
 			exit(-1);
 		}
+	} else if (!memcmp(line, ".INC ", 5)) {
+		char *tmpfname = cur_filename;
+		int tmpln = line_number;
+		char tmpline[512];
+		char newfname[512];
+		FILE *f;
+		line += 5;
+		consume_whitespace(&line);
+		consume_fname(newfname, &line);
+		cur_filename = newfname;
+		f = fopen(cur_filename, "r");
+		if (!f) {
+			printf("Could not open include file '%s' from %s:%d\n", cur_filename, tmpfname, tmpln);
+			exit(-1);
+		}
+		line_number = 0;
+		while (fgets(tmpline, sizeof(tmpline) - 1, f)) {
+			compile(tmpline);
+			++line_number;
+		}
+		fclose(f);
+		cur_filename = tmpfname;
+		line_number = tmpln;
 	} else if (line[0] == ':') {
 		// it's a label
 		++line;
@@ -440,6 +475,7 @@ int main(int argc, char **argv)
 	sprintf(outname, "%s.hex", argv[1]);
 	memset(&program, 0, sizeof program);
 	memset(&symbols, 0, sizeof symbols);
+	cur_filename = argv[1];
 	
 	for (x = 0; x < MAX_PROG_SIZE; x++) {
 		program[x].opcode = 0x0000;
@@ -522,7 +558,7 @@ int main(int argc, char **argv)
 					linebuf[y] = ' ';
 				}
 			}
-			printf("0x%04X]: 0x%04X ; %-20s (%s:%d)\n", x*2, program[x].opcode, linebuf, argv[1], program[x].line_number);
+			printf("0x%04X]: 0x%04X ; %-20s (%s:%d)\n", x*2, program[x].opcode, linebuf, program[x].fname, program[x].line_number);
 		}
 	}
 	return 0;
