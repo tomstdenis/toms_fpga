@@ -1,3 +1,4 @@
+; 32KB boot loader
 .PROG_SIZE 128
 .BIN_START F000
 
@@ -12,7 +13,7 @@ LDI 12,>GPIO0_ADDR
 LDI 13,<GPIO0_ADDR
 LDI 0,0
 LDI 1,0					; start writing to 0
-LDI 2,0x1F				; number of 256 byte pages...
+LDI 2,APP_PAGES			; number of 256 byte pages...
 LDI 4,0x5A				; magic constant we wait for before reading data bytes
 :FLUSH
 LDM 3,15,14

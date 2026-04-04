@@ -491,7 +491,7 @@ int main(int argc, char **argv)
 	for (z = x = 0; z < PROG_SIZE && x < MAX_PROG_SIZE; x++) {
 		if (program[x].line_number != -1) {
 			++z;
-			printf("8'h%02x: ib16_bus_data_out <= 16'h%02x%02x;\n", x*2, program[x].opcode>>8, program[x].opcode&0xFF);
+			printf("8'h%02x: ib16_bus_data_out <= 16'h%02x%02x;\n", (x*2)&0xFF, program[x].opcode>>8, program[x].opcode&0xFF);
 		}
 	}
 	

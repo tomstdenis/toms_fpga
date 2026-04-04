@@ -6,9 +6,22 @@ test_ib16_v2.pass: ib16_v2.v ib16_v2_tb.v uart_demo.s.bin aluloop.s.bin boot_rom
 	(vvp sim.vvp -fst > $@.log && touch $@) || cat $@.log
 
 uart_demo.s.bin: uart_demo.s ib16_as
-	cpp -DIRQ_VECTOR=0x1E00 uart_demo.s | grep -v \^# > /tmp/uart_demo.s 
+# 8KB version
+#	cpp -DIRQ_VECTOR=0x1E00 -DDEMO_PROG_SIZE=3968 uart_demo.s | grep -v \^# > /tmp/uart_demo.s 
+# 32KB version
+	cpp -DIRQ_VECTOR=0x7E00 -DDEMO_PROG_SIZE=19289 uart_demo.s | grep -v \^# > /tmp/uart_demo.s 
+# Generate uart_demo binary
 	./ib16_as /tmp/uart_demo.s
 	mv -vf /tmp/uart_demo.s.* .
+
+boot_rom_ecp5.s.bin: boot_rom_ecp5.s ib16_as
+# 8KB version
+#	cpp -DAPP_PAGES=0x1F boot_rom_ecp5.s | grep -v \^# > /tmp/boot_rom_ecp5.s 
+# 32KB version
+	cpp -DAPP_PAGES=0x7F boot_rom_ecp5.s | grep -v \^# > /tmp/boot_rom_ecp5.s 
+# Generate uart_demo binary
+	./ib16_as /tmp/boot_rom_ecp5.s
+	mv -vf /tmp/boot_rom_ecp5.s.* .
 
 aluloop.s.bin: aluloop.s ib16_as
 	./ib16_as aluloop.s
