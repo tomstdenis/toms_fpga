@@ -1,7 +1,10 @@
 ; BOOT ROM for ittybitty using the nano1k demo design
 .EQU UART_ADDR 0xFFFF   ; Blocking 8N1 230.4K baud UART
 
-; ROM starts at 2000
+; ROM starts at F000
+.ORG F000
+.BIN_START F000
+.PROG_SIZE 128
 :REBOOT
 LDI 14,>UART_ADDR		; R15:R14 points to UART
 LDI 15,<UART_ADDR

@@ -6,7 +6,9 @@ test_ib16_v2.pass: ib16_v2.v ib16_v2_tb.v uart_demo.s.bin aluloop.s.bin boot_rom
 	(vvp sim.vvp -fst > $@.log && touch $@) || cat $@.log
 
 uart_demo.s.bin: uart_demo.s ib16_as
-	./ib16_as uart_demo.s
+	cpp -DIRQ_VECTOR=0x1E00 uart_demo.s | grep -v \^# > /tmp/uart_demo.s 
+	./ib16_as /tmp/uart_demo.s
+	mv -vf /tmp/uart_demo.s.* .
 
 aluloop.s.bin: aluloop.s ib16_as
 	./ib16_as aluloop.s

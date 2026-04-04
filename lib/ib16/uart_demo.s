@@ -28,7 +28,7 @@ LDI 0,0
 ;STM 6,13,12
 JMP LOOP
 
-.ORG 0x1E00			; IRQ vector
+.ORG IRQ_VECTOR			; IRQ vector
 :ISR
 STM 0,15,15			; push r0
 LDM 0,15,14			; read from UART
