@@ -5,7 +5,7 @@
 `define USE_SIMPLE_UART_IRQ
 
 `define STACK_ADDRESS (16'h0800 * `BLOCKS - 16'h0100)
-`define IRQ_VECTOR    16'h1E00
+`define IRQ_VECTOR    (16'h0800 * `BLOCKS - 16'h0200)
 `define BOOT_ROM_ADDR 16'hF000
 
 module top(input clk, input uart_rx, output uart_tx, inout [15:0] gpio);
@@ -256,7 +256,7 @@ module top(input clk, input uart_rx, output uart_tx, inout [15:0] gpio);
                             begin
                                 bram_ce     <= 1;
                                 bram_wre    <= ib16_bus_wr_en;
-                                bram_addr   <= ib16_bus_address[12:0];
+                                bram_addr   <= ib16_bus_address[10+$clog2(`BLOCKS):0];
                                 bram_din    <= ib16_bus_data_in[7:0];
                                 bus_cycle   <= bus_cycle + 1'b1;
                             end
@@ -310,7 +310,7 @@ module top(input clk, input uart_rx, output uart_tx, inout [15:0] gpio);
 						8'h06: ib16_bus_data_out <= 16'h0dff;
 						8'h08: ib16_bus_data_out <= 16'h0000;
 						8'h0a: ib16_bus_data_out <= 16'h0100;
-						8'h0c: ib16_bus_data_out <= 16'h021f;
+						8'h0c: ib16_bus_data_out <= 16'h027f;
 						8'h0e: ib16_bus_data_out <= 16'h045a;
 						8'h10: ib16_bus_data_out <= 16'h93fe;
 						8'h12: ib16_bus_data_out <= 16'h7134;
