@@ -1,6 +1,7 @@
 TARGET=ib16
 TOP=top
 FREQ=64
+BLOCKS=16
 
 OBJS+=${TARGET}.v pll.v \
 ../../../lib/uart/blocks/tx_uart.v ../../../lib/uart/blocks/rx_uart.v ../../../lib/uart/blocks/uart.v \
@@ -9,7 +10,7 @@ OBJS+=${TARGET}.v pll.v \
 all: ${TARGET}.bit
 
 $(TARGET).json: $(OBJS)
-		yosys -DFREQ=${FREQ} -p "synth_ecp5 -json $@" $(OBJS)
+		yosys -DBLOCKS=${BLOCKS} -DFREQ=${FREQ} -p "synth_ecp5 -json $@" $(OBJS)
 
 $(TARGET)_out.config: $(TARGET).json
 		nextpnr-ecp5 -r --45k --package CABGA381 --speed 6 --json $< --textcfg $@ --lpf $(TARGET).lpf

@@ -4,8 +4,9 @@
 // Simple IRQ, raises bus_irq if RX ready
 `define USE_SIMPLE_UART_IRQ
 
-`define STACK_ADDRESS 16'h1F00
+`define STACK_ADDRESS (16'h0800 * `BLOCKS - 16'h0100)
 `define IRQ_VECTOR    16'h1E00
+`define BOOT_ROM_ADDR 16'hF000
 
 module top(input clk, input uart_rx, output uart_tx, inout [15:0] gpio);
     localparam
@@ -75,11 +76,11 @@ module top(input clk, input uart_rx, output uart_tx, inout [15:0] gpio);
     wire [7:0] bram_dout;
     reg bram_ce;
     reg bram_wre;
-    reg [12:0] bram_addr;
+    reg [10+$clog2(`BLOCKS):0] bram_addr;
     reg [7:0] bram_din;
 
-	// 8192x8 memory
-	bram_sp_nx2048x8 #(.N(4)) memory(
+	// N*2048x8 memory
+	bram_sp_nx2048x8 #(.N(`BLOCKS)) memory(
 		.w_clk(pllclk),
 		.w_clk_en(1'b1),
 		.w_rst(~rst_n),
@@ -105,7 +106,8 @@ module top(input clk, input uart_rx, output uart_tx, inout [15:0] gpio);
     reg [3:0] bus_cycle;
     ib16 #(
         .STACK_ADDRESS(`STACK_ADDRESS),
-        .IRQ_VECTOR(`IRQ_VECTOR)) ittybitty(
+        .IRQ_VECTOR(`IRQ_VECTOR),
+        .BOOT_ROM_ADDR(`BOOT_ROM_ADDR)) ittybitty(
         .clk(pllclk), .rst_n(rst_n),
         .bus_enable(ib16_bus_enable),
         .bus_wr_en(ib16_bus_wr_en),
@@ -245,8 +247,8 @@ module top(input clk, input uart_rx, output uart_tx, inout [15:0] gpio);
                         endcase
                     end
                 end 
-                // 0000..1FFF is RAM
-                if (ib16_bus_address[15:12] < 4'h2) begin
+                // upto 2048 * BLOCKS is RAM
+                if (ib16_bus_address < (16'h0800 * `BLOCKS)) begin
                     // BRAM block
                     case(bus_cycle[1:0])
                         0: // start transaction (this cycle delay handles the fact that bus_address is combinatorial)
@@ -298,8 +300,8 @@ module top(input clk, input uart_rx, output uart_tx, inout [15:0] gpio);
                     endcase
                 end
 
-                // 2000..20FF is the boot ROM
-                if (ib16_bus_address[15:8] == 8'h20) begin
+                // F000..F0FF is the boot ROM
+                if (ib16_bus_address[15:8] == (`BOOT_ROM_ADDR >> 8)) begin
                     case(ib16_bus_address[5:0])
 						8'h00: ib16_bus_data_out <= 16'h0eff;
 						8'h02: ib16_bus_data_out <= 16'h0fff;
