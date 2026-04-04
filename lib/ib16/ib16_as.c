@@ -40,12 +40,13 @@ struct compiler_state {
 // operand formats for various opcodes
 #define OP_FMT_3OP 0					// ALU 3 operand format R[d] = R[a] op R[b]
 #define OP_FMT_2OP 1					// ALU 2 operand format R[d] = op R[b]
-#define OP_FMT_2OPALU 2					// ALU 2 operand carry format carry = R[a] op R[b]
-#define OP_FMT_8IMM 3					// 8IMM format r[d] = IMM
-#define OP_FMT_12IMMT 4					// 12IMMT format PC = 12IMMT << 4
-#define OP_FMT_9SIMM 5					// 9SIMM format PC += signed(9SIMM) << 1
-#define OP_FMT_LITERAL 6				// 16 bit of raw data
-#define OP_FMT_NONE 7
+#define OP_FMT_1OP 2					// ALU 1 operand format op R[d] 
+#define OP_FMT_2OPALU 3					// ALU 2 operand carry format carry = R[a] op R[b]
+#define OP_FMT_8IMM 4					// 8IMM format r[d] = IMM
+#define OP_FMT_12IMMT 5					// 12IMMT format PC = 12IMMT << 4
+#define OP_FMT_9SIMM 6					// 9SIMM format PC += signed(9SIMM) << 1
+#define OP_FMT_LITERAL 7				// 16 bit of raw data
+#define OP_FMT_NONE 8
 
 // instruction table
 const struct {
@@ -53,7 +54,11 @@ const struct {
 	uint16_t opcode;
 	int fmt;
 } e1_opcodes[] = {
+// pseudo opcodes
 	{ "", 			0x0000, OP_FMT_LITERAL },
+	{ "PUSH",		0xA0FF, OP_FMT_1OP },	// STM d,F,F
+	{ "POP",		0x90FF, OP_FMT_1OP },   // LDM d,F,F
+// real opcodes
 	{ "LDI",		0x0000, OP_FMT_8IMM },
 	{ "ADD",		0x1000, OP_FMT_3OP },
 	{ "ADC",		0x2000, OP_FMT_3OP },
@@ -163,6 +168,14 @@ void compile_opcodes(struct compiler_state *state, char *line)
 					r_a &= 0xF;
 					r_b &= 0xF;
 					state->program[state->PC].opcode |= (r_a << 4) | r_b;
+					break;
+				}
+				case OP_FMT_1OP: // "d"
+				{
+					unsigned r_d;
+					sscanf(line, "%u", &r_d);
+					r_d &= 0xF;
+					state->program[state->PC].opcode |= (r_d << 8);
 					break;
 				}
 				case OP_FMT_8IMM: // hex val
@@ -335,7 +348,7 @@ void compile(struct compiler_state *state, char *line)
 		
 		// consume filename
 		consume_fname(newfname, &line);
-		state->cur_filename = newfname;
+		state->cur_filename = strdup(newfname);
 		state->line_number  = 1;
 		f = fopen(state->cur_filename, "r");
 		if (!f) {
@@ -461,7 +474,7 @@ int main(int argc, char **argv)
 		return 0;
 	}
 	sprintf(outname, "%s.hex", argv[1]);
-	state->cur_filename = argv[1];		 	// initial fname	
+	state->cur_filename = strdup(argv[1]);		 	// initial fname	
 	state->prog_size    = 4096;				// default to 8KB programs
 	state->line_number  = 1;
 	
