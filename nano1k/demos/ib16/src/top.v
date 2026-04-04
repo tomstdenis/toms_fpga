@@ -4,18 +4,14 @@
 // Simple IRQ, raises bus_irq if RX ready
 `define USE_SIMPLE_UART_IRQ
 
-`ifdef USE_FASTMEM
-    `define STACK_ADDRESS 16'h2000
-    `define IRQ_VECTOR    16'h1F00
-`else
     `define STACK_ADDRESS 16'h1F00
     `define IRQ_VECTOR    16'h1E00
-`endif
 
 module top(input wire clk, input wire uart_rx, output wire uart_tx, inout wire [7:0] gpio);
     localparam
-        TIMER_ADDR       = 16'hFFFA,
-        GPIO_DATA_ADDR   = 16'hFFFB,
+        TIMER_ADDR       = 16'hFFF9,
+        GPIO1_DATA_ADDR   = 16'hFFFA, // unused here but let's keep the memory map the same as ecp5
+        GPIO0_DATA_ADDR   = 16'hFFFB,
         UART_INT_ADDR    = 16'hFFFC,
         UART_INTEN_ADDR  = 16'hFFFD,
         UART_STS_ADDR    = 16'hFFFE,
@@ -159,12 +155,15 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, inout wire [
             if (ib16_bus_enable && !ib16_bus_ready) begin
                 // handle new command
                 // GPIO port
-                if (ib16_bus_address == GPIO_DATA_ADDR) begin
+                if (ib16_bus_address == GPIO0_DATA_ADDR) begin
                     if (ib16_bus_wr_en) begin
                         gpio_out <= ib16_bus_data_in[7:0];
                     end else begin
                         ib16_bus_data_out <= gpio_in;
                     end
+                    ib16_bus_ready <= 1;
+                end
+                if (ib16_bus_address == GPIO1_DATA_ADDR) begin
                     ib16_bus_ready <= 1;
                 end
 `ifdef USE_UARTIRQ
