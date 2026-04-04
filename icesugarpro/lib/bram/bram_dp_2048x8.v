@@ -18,22 +18,22 @@ module bram_dp_2048x8
 )
 (
     // Port A
-    input         clk_a,			// clock
-    input		  clk_en_a,			// clock enable
-    input		  rst_a,			// active high reset
-    input  [10:0] addr_a,			// 11-bit address
-    input  [7:0]  din_a,			// 8-bit write input
-    input         we_a,				// write enable
-    output [7:0]  dout_a,			// 8-bit read output
+    input wire         clk_a,			// clock
+    input wire         clk_en_a,		// clock enable
+    input wire         rst_a,			// active high reset
+    input wire [10:0]  addr_a,			// 11-bit address
+    input wire [7:0]   din_a,			// 8-bit write input
+    input wire         we_a,			// write enable
+    output wire [7:0]  dout_a,			// 8-bit read output
 
     // Port B
-    input         clk_b,
-    input		  clk_en_b,
-    input		  rst_b,
-    input  [10:0] addr_b,
-    input  [7:0]  din_b,
-    input         we_b,
-    output [7:0]  dout_b
+    input wire         clk_b,
+    input wire         clk_en_b,
+    input wire         rst_b,
+    input wire  [10:0] addr_b,
+    input wire  [7:0]  din_b,
+    input wire         we_b,
+    output wire [7:0]  dout_b
 );
 
     DP16KD #(

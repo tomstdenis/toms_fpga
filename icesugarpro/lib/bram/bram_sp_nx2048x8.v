@@ -17,18 +17,18 @@ module bram_sp_nx2048x8
 	parameter N=2						// how many 2048x8 blocks to cascade into deeper 8-bit memory
 )
 (
-    input w_clk,						// write clock
-    input w_clk_en,						// write clock enable
-    input w_rst,						// active high write reset
-    input [10+$clog2(N):0] w_addr,		// write address 11+N-bits
-    input [7:0] w_data,					// write data 8-bits
-    input w_en,							// write enable
+    input wire w_clk,						// write clock
+    input wire w_clk_en,						// write clock enable
+    input wire w_rst,						// active high write reset
+    input wire [10+$clog2(N):0] w_addr,		// write address 11+N-bits
+    input wire [7:0] w_data,					// write data 8-bits
+    input wire w_en,							// write enable
 
-    input r_clk,						// read clock
-    input r_clk_en,						// read clock enable
-    input r_rst,						// active high read reset
-    input [10+$clog2(N):0] r_addr,		// read address 11+N-bits
-    output [7:0] r_data					// read data 8-bits
+    input wire r_clk,						// read clock
+    input wire r_clk_en,						// read clock enable
+    input wire r_rst,						// active high read reset
+    input wire [10+$clog2(N):0] r_addr,		// read address 11+N-bits
+    output wire [7:0] r_data					// read data 8-bits
 );
 	genvar i;
 	
