@@ -71,6 +71,7 @@ module bram_dp_2048x32_tb();
     integer testphase;
     reg writeport;
     reg readport;
+    reg [12:0] testoff;
 
 	initial begin
         // Waveform setup
@@ -94,36 +95,42 @@ module bram_dp_2048x32_tb();
         #1; rst = 0;
         @(posedge clk); #1
         
-        
-        // simple 32-bit write/read
-        testphase = 0;
-        write_mem(32'h12345678, 13'h1234, 4'b1111, writeport);
-        write_mem(32'h11223344, 13'h1238, 4'b1111, writeport);
-        read_mem(32'h12345678, 13'h1234, 4'b1111, readport);
-        read_mem(32'h11223344, 13'h1238, 4'b1111, readport);
-        
-        // simple 16 bit reads and then writes
-        testphase = 1;
-        read_mem(32'h00005678, 13'h1234, 4'b0011, readport);
-        read_mem(32'h00001234, 13'h1236, 4'b0011, readport);
-        write_mem(32'h0000AABB, 13'h123A, 4'b0011, writeport);
-        write_mem(32'h0000CCDD, 13'h123C, 4'b0011, writeport);
-		read_mem(32'h0000AABB, 13'h123A, 4'b0011, readport);
-        read_mem(32'h0000CCDD, 13'h123C, 4'b0011, readport);
-        
-        
-        // simple 8-bit reads and then writes
-        testphase = 2;
-        read_mem(32'h00000078, 13'h1234, 4'b0001, readport);
-        read_mem(32'h00000056, 13'h1235, 4'b0001, readport);
-        read_mem(32'h00000034, 13'h1236, 4'b0001, readport);
-        read_mem(32'h00000012, 13'h1237, 4'b0001, readport);
-        write_mem(32'h000000AB, 13'h1240, 4'b0001, writeport);
-        write_mem(32'h000000CD, 13'h1241, 4'b0001, writeport);
-        write_mem(32'h000000EF, 13'h1242, 4'b0001, writeport);
-        write_mem(32'h00000098, 13'h1243, 4'b0001, writeport);
-        read_mem(32'h98EFCDAB, 13'h1240, 4'b1111, readport);
-        
+        for (i = 0; i < 4; i = i + 1) begin
+			writeport = i[0];
+			readport = i[1];
+			testoff = i[12:0];
+			testoff = 13'h100 * testoff;
+				
+			// simple 32-bit write/read
+			testphase = 0;
+			write_mem(32'h12345678, 13'h1234 + testoff, 4'b1111, writeport);
+			write_mem(32'h11223344, 13'h1238 + testoff, 4'b1111, writeport);
+			read_mem(32'h12345678, 13'h1234 + testoff, 4'b1111, readport);
+			read_mem(32'h11223344, 13'h1238 + testoff, 4'b1111, readport);
+			
+			// simple 16 bit reads and then writes
+			testphase = 1;
+			read_mem(32'h00005678, 13'h1234 + testoff, 4'b0011, readport);
+			read_mem(32'h00001234, 13'h1236 + testoff, 4'b0011, readport);
+			write_mem(32'h0000AABB, 13'h123A + testoff, 4'b0011, writeport);
+			write_mem(32'h0000CCDD, 13'h123C + testoff, 4'b0011, writeport);
+			read_mem(32'h0000AABB, 13'h123A + testoff, 4'b0011, readport);
+			read_mem(32'h0000CCDD, 13'h123C + testoff, 4'b0011, readport);
+			
+			
+			// simple 8-bit reads and then writes
+			testphase = 2;
+			read_mem(32'h00000078, 13'h1234 + testoff, 4'b0001, readport);
+			read_mem(32'h00000056, 13'h1235 + testoff, 4'b0001, readport);
+			read_mem(32'h00000034, 13'h1236 + testoff, 4'b0001, readport);
+			read_mem(32'h00000012, 13'h1237 + testoff, 4'b0001, readport);
+			write_mem(32'h000000AB, 13'h1240 + testoff, 4'b0001, writeport);
+			write_mem(32'h000000CD, 13'h1241 + testoff, 4'b0001, writeport);
+			write_mem(32'h000000EF, 13'h1242 + testoff, 4'b0001, writeport);
+			write_mem(32'h00000098, 13'h1243 + testoff, 4'b0001, writeport);
+			read_mem(32'h98EFCDAB, 13'h1240 + testoff, 4'b1111, readport);
+		end
+		
 		repeat(16) @(posedge clk);
 		$finish;
 	end
