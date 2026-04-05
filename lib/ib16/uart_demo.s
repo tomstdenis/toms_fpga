@@ -27,9 +27,47 @@ LDI 6,0x00
 LDI 7,0x00			; our tick counter
 LDI 2,0x00
 
+; wait for a key
 SRES 4				; mask the IRQ so we can read the UART here
 LDM 1,15,14			; wait for a key to start the demo
 SRES 0				; turn IRQs back on
+
+; print welcome message
+PUSH 13
+PUSH 12
+LDI	12,>StrName
+LDI 13,<StrName
+LCALL PrintStr
+POP 12
+POP 13
+
+; read name into namestr buffer
+PUSH 13
+PUSH 12
+LDI	12,>NameStr
+LDI 13,<NameStr
+LCALL ReadStr
+POP 12
+POP 13
+
+; print Hello
+LCALL PrintNewline
+PUSH 13
+PUSH 12
+LDI	12,>StrNameHello
+LDI 13,<StrNameHello
+LCALL PrintStr
+POP 12
+POP 13
+
+; print string we read
+PUSH 13
+PUSH 12
+LDI	12,>NameStr
+LDI 13,<NameStr
+LCALL PrintStr
+POP 12
+POP 13
 
 PUSH 13
 PUSH 12
@@ -79,10 +117,18 @@ SRES 0				; unask IRQs
 	JMP LOOP
 
 ; Strings
+:StrName
+.DS 'Please enter your name: '
+:StrNameHello
+.DS 'Hello '
 :StrHello
-.DS 'Please enter a starting hex byte: '
+.DS ', please enter a starting hex byte: '
 :StrCounter
 .DS 'Current counter value == '
+
+; Buffers
+:NameStr
+.DUP 0x100
 
 .INC library.s		; include our library functions
 

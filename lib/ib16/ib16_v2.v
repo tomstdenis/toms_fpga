@@ -45,6 +45,8 @@ module ib16 #(
     reg [7:0]   reg_irq_sreg;
 	reg [7:0]	reg_wi;								// WI (write index)
 	reg [7:0]	reg_ri;								// RI (read index)
+	reg [7:0]	reg_irq_wi;							// IRQ copies of WI/RI
+	reg [7:0]	reg_irq_ri;
 	reg [7:0]	reg_rr [0:15];						// GPRs 
 	wire carry_flag = reg_sreg[CARRY_FLAG];
 	wire zero_flag  = reg_sreg[ZERO_FLAG];
@@ -198,6 +200,8 @@ module ib16 #(
                     end else begin
 						reg_irq_sreg    <= reg_sreg;
 					end
+					reg_irq_ri 		<= reg_ri;
+					reg_irq_wi		<= reg_wi;
                     mask_irq 	    <= 1;
                     reg_pc	 	    <= IRQ_VECTOR;
                     fsm_cycle	    <= 0;
@@ -290,6 +294,8 @@ module ib16 #(
                 mask_irq 			<= 0;
                 reg_pc	 			<= reg_irq_pc + 16'd2;
                 reg_sreg            <= reg_irq_sreg;
+                reg_ri				<= reg_irq_ri;
+                reg_wi				<= reg_irq_wi;
 				bus_enable		    <= 1'b1;
                 bus_address_terma   <= reg_irq_pc;
 				bus_address_termb   <= 0;

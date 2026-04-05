@@ -370,7 +370,25 @@ void compile(struct compiler_state *state, char *line)
 				state->program[state->PC].opidx = 0;
 				++(state->PC);
 			} else {
-				printf("Line %d: .DW directive on address that was already programmed on line %d\n", state->line_number, state->program[state->PC].line_number);
+				printf("Line %d: .DS directive on address that was already programmed on line %d\n", state->line_number, state->program[state->PC].line_number);
+				exit(-1);
+			}
+		}
+	} else if (!memcmp(line, ".DUP ", 4)) {
+		int x, slen = 0;
+		line += 4;
+		consume_whitespace(&line);
+		sscanf(line, "%x", &slen); // # of bytes
+		if (slen & 1) ++slen; // force even
+		for (x = 0; x < slen; x += 2) {
+			if (state->program[state->PC].line_number == -1) {
+				state->program[state->PC].opcode = 0;
+				state->program[state->PC].line_number = state->line_number;
+				state->program[state->PC].fname = state->cur_filename;
+				state->program[state->PC].opidx = 0;
+				++(state->PC);
+			} else {
+				printf("Line %d: .DUP directive on address that was already programmed on line %d\n", state->line_number, state->program[state->PC].line_number);
 				exit(-1);
 			}
 		}
