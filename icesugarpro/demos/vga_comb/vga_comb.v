@@ -26,6 +26,10 @@ module top(input clk, output [3:0] vga_r, output [3:0] vga_g, output [3:0] vga_b
 	assign vga_h_pulse = vga_h_sync;
 	assign vga_v_pulse = vga_v_sync;
 	
+	assign vga_r = 4'b0;
+	assign vga_g = 4'b0;
+	assign vga_b = 4'b0;
+
 	vga_640x480_timing vga(
 		.clk(pll_clk),
 		.rst(rst_n),
