@@ -2,7 +2,8 @@
 
 `timescale 1ns/1ps
 `default_nettype none
-
+/* verilator lint_off WIDTHEXPAND */
+/* verilator lint_off MULTIDRIVEN */
 module DP16KD #(
     parameter DATA_WIDTH_A = 9,
     parameter DATA_WIDTH_B = 9,
@@ -77,5 +78,6 @@ module DP16KD #(
         // Port B Output
         {DOB8, DOB7, DOB6, DOB5, DOB4, DOB3, DOB2, DOB1, DOB0} = (REGMODE_B == "REG") ? reg_b : pipe_b;
     end
-
 endmodule
+/* verilator lint_on WIDTHEXPAND */
+/* verilator lint_on MULTIDRIVEN */

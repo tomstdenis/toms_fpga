@@ -52,7 +52,7 @@ module bram_dp_2048x32
     // Using a more compact shift-based approach
     wire [31:0] i_mem_a = (be_a == 4'b1111) ? din_a : 
 							(be_a == 4'b0011) ? (byte_offset_a[1] ? {din_a[15:0], 16'b0} : {16'b0, din_a[15:0]}) :
-								(din_a[7:0] << (8 * byte_offset_a));
+								({24'b0, din_a[7:0]} << (8 * byte_offset_a));
 
     // --- Write Enable Mapping ---
     wire [3:0] be_shifted_a = (be_a == 4'b1111) ? 4'b1111 :
@@ -64,8 +64,8 @@ module bram_dp_2048x32
     // --- Output Steering (Read Data) ---
     // Note: pipe_byte_offset aligns this mux with the 1-cycle BRAM latency
     assign dout_a  = (be_a == 4'b1111) ? o_mem_a :
-							(be_a == 4'b0011) ? (byte_offset_a[1] ? o_mem_a[31:16] : o_mem_a[15:0]) :
-                                       ((o_mem_a >> (8 * byte_offset_a)) & 8'hFF);
+							(be_a == 4'b0011) ? (byte_offset_a[1] ? {16'b0, o_mem_a[31:16]} : {16'b0, o_mem_a[15:0]}) :
+                                       ((o_mem_a >> (8 * byte_offset_a)) & 32'hFF);
 
 
 	// PORT B
@@ -76,7 +76,7 @@ module bram_dp_2048x32
     // Using a more compact shift-based approach
     wire [31:0] i_mem_b = (be_b == 4'b1111) ? din_b : 
 							(be_b == 4'b0011) ? (byte_offset_b[1] ? {din_b[15:0], 16'b0} : {16'b0, din_b[15:0]}) :
-								(din_b[7:0] << (8 * byte_offset_b));
+								({24'b0, din_b[7:0]} << (8 * byte_offset_b));
 
     // --- Write Enable Mapping ---
     wire [3:0] be_shifted_b = (be_b == 4'b1111) ? 4'b1111 :
@@ -88,8 +88,8 @@ module bram_dp_2048x32
     // --- Output Steering (Read Data) ---
     // Note: pipe_byte_offset aligns this mux with the 1-cycle BRAM latency
     assign dout_b  = (be_b == 4'b1111) ? o_mem_b :
-							(be_b == 4'b0011) ? (byte_offset_b[1] ? o_mem_b[31:16] : o_mem_b[15:0]) :
-                                       ((o_mem_b >> (8 * byte_offset_b)) & 8'hFF);
+							(be_b == 4'b0011) ? (byte_offset_b[1] ? {16'b0, o_mem_b[31:16]} : {16'b0, o_mem_b[15:0]}) :
+                                       ((o_mem_b >> (8 * byte_offset_b)) & 32'hFF);
 
     genvar k;
     generate
@@ -99,7 +99,7 @@ module bram_dp_2048x32
 				.WRITEMODE_B(WRITEMODE_B),
 				.REGMODE_A(REGMODE_A),
 				.REGMODE_B(REGMODE_B)
-			) bram_dp_2048_x32_bram[k] (
+			) bram_dp_2048_x32_bram (
 				.clk_a(clk_a),
 				.clk_en_a(clk_en_a),
 				.rst_a(rst_a),
