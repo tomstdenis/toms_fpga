@@ -25,7 +25,7 @@ module bram_dp_nx2048x8
     input wire [10+$clog2(N):0] addr_a,	// 11-bit address
     input wire [7:0]  din_a,			// 8-bit write input wire
     input wire    we_a,				// write enable
-    output [7:0]  dout_a,			// 8-bit read output
+    output wire [7:0]  dout_a,			// 8-bit read output
 
     // Port B
     input wire    clk_b,
@@ -34,7 +34,7 @@ module bram_dp_nx2048x8
     input wire [10+$clog2(N):0] addr_b,
     input wire [7:0]  din_b,
     input wire    we_b,
-    output [7:0]  dout_b
+    output wire [7:0]  dout_b
 );
 
 	genvar i;
