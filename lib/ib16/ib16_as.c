@@ -342,9 +342,32 @@ void compile(struct compiler_state *state, char *line)
 			state->program[state->PC].fname = state->cur_filename;
 			state->program[state->PC].opidx = 0;
 			++(state->PC);
-		} else {
-			printf("Line %d: .DW directive on address that was already programmed on line %d\n", state->line_number, state->program[state->PC].line_number);
-			exit(-1);
+		}
+	} else if (!memcmp(line, ".DS ", 4)) {
+		uint8_t buf[256];
+		int dsi, slen = 0;
+		memset(buf, 0, sizeof buf);
+		line += 4;
+		consume_whitespace(&line);
+		while (*line != '\n' && *line != '\r' && *line) {
+			buf[slen++] = *line++;
+		}
+		++slen;				  // include NUL byte
+		if (slen & 1) ++slen; // force even
+		for (dsi = 0; dsi < slen; dsi += 2) {
+			if (state->program[state->PC].line_number == -1) {
+				uint16_t r;
+				// it's a value
+				r = ((uint16_t)buf[dsi+1] << 8) | buf[dsi];
+				state->program[state->PC].opcode = r;
+				state->program[state->PC].line_number = state->line_number;
+				state->program[state->PC].fname = state->cur_filename;
+				state->program[state->PC].opidx = 0;
+				++(state->PC);
+			} else {
+				printf("Line %d: .DW directive on address that was already programmed on line %d\n", state->line_number, state->program[state->PC].line_number);
+				exit(-1);
+			}
 		}
 	} else if (!memcmp(line, ".INC ", 5)) {
 		char *tmpfname = state->cur_filename;
@@ -393,7 +416,7 @@ int find_target(struct compiler_state *state, int x)
 
 	for (y = 0; y < MAX_PROG_SIZE; y++) {
 		if (!strcmp(state->program[y].label, state->program[x].tgt)) {
-			return y;
+			return y << 1; // labels 
 		}
 	}
 	for (y = 0; y < MAX_PROG_SIZE; y++) {
@@ -435,14 +458,14 @@ void resolve_labels(struct compiler_state *state)
 					} else if (state->program[x].use_bottom_half) {
 						y &= 0xFF;
 					}
-					state->program[x].opcode |= (y >> 3) & 0xFFF;
+					state->program[x].opcode |= (y >> 4) & 0xFFF;
 				}
 				break;
 			case OP_FMT_9SIMM: // Jumps
 				if (state->program[x].tgt[0]) {
 					int16_t off;
 					// jumping to a target 
-					y = find_target(state, x);
+					y = find_target(state, x) >> 1;
 					if (state->program[x].use_top_half) {
 						y >>= 8;
 					} else if (state->program[x].use_bottom_half) {
