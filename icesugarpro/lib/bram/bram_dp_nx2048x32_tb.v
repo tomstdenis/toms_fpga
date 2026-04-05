@@ -69,6 +69,8 @@ module bram_dp_nx2048x32_tb();
     always #(CLK_PERIOD/2) clk = ~clk;
     
     integer i;
+    integer j;
+    integer k;
     integer testphase;
     reg writeport;
     reg readport;
@@ -130,6 +132,24 @@ module bram_dp_nx2048x32_tb();
 			write_mem(32'h000000EF, 15'h1242 + testoff, 4'b0001, writeport);
 			write_mem(32'h00000098, 15'h1243 + testoff, 4'b0001, writeport);
 			read_mem(32'h98EFCDAB, 15'h1240 + testoff, 4'b1111, readport);
+
+			// write full blocks
+			testphase = 3;
+			for (j = 0; j < 4; j = j + 1) begin
+				testphase = 3 + j;
+				for (k = 0; k < 2048; k = k + 1) begin
+					testoff = k[14:0] + 15'h2000 * j[14:0];
+					write_mem(32'h00000011 * (j[31:0] + 32'd1), testoff, 4'b0001, writeport);
+				end
+			end
+
+			// read full blocks
+			for (j = 0; j < 4; j = j + 1) begin
+				for (k = 0; k < 2048; k = k + 1) begin
+					testoff = k[14:0] + 15'h2000 * j[14:0];
+					read_mem(32'h00000011 * (j[31:0] + 32'd1), testoff, 4'b0001, readport);
+				end
+			end
 		end
 		
 		repeat(16) @(posedge clk);
