@@ -24,11 +24,13 @@ LDI 9,<TIMER_ADDR
 
 ; output counters
 LDI 6,0x00
-LDI 7,0x00
+LDI 7,0x00			; our tick counter
 LDI 2,0x00
 
 SRES 4				; mask the IRQ so we can read the UART here
-LDM 1,15,14
+LDM 1,15,14			; wait for a key to start the demo
+SRES 0				; turn IRQs back on
+
 PUSH 13
 PUSH 12
 LDI	12,>StrHello
@@ -46,28 +48,41 @@ SRES 0				; unask IRQs
 
 ; main loop body
 :LOOP
-LDM 1,9,8			; read timer at r9:r8
-ADD 1,1,1			; get msb into carry
-ADC 1,0,0			; set r1 == carry + r0(0) + r0
-CMPEQ 1,2			; compare to stored value (we only move on if the MSB changed)
-JC LOOP
-MOV 2,1				; r2 = r1
-INC 7,7				; increment tick (this changes every 2^23 cycles (about every 131.072ms at 64MHz)
-NOT 7,7				; invert it since the LEDs are inverted
-STM 7,11,10			; output to GPIO1
-NOT 7,7				; revert counter for next loop
+	; read timer to get the MSB and compare against the stored bit, we increment our tick only when it changes
+	LDM 1,9,8			; read timer at r9:r8
+	ADD 1,1,1			; get msb into carry
+	ADC 1,0,0			; set r1 == carry + r0(0) + r0
+	CMPEQ 1,2			; compare to stored value (we only move on if the MSB changed)
+	JC LOOP				; loop if they're equal
+	MOV 2,1				; r2 = r1
+	INC 7,7				; increment tick (this changes every 2^23 cycles (about every 131.072ms at 64MHz)
+	NOT 7,7				; invert it since the LEDs are inverted
+	STM 7,11,10			; output to GPIO1
+	NOT 7,7				; revert counter for next loop
 
-PUSH 1				; save r1
-MOV 1,7				; r1 = r7
-LCALL PrintHexByte  ; print it in hex to the terminal
-LCALL PrintNewline
-POP 1				; restore r1
+	; print Counter message
+	PUSH 13
+	PUSH 12
+	LDI	12,>StrCounter	; lower pointer
+	LDI 13,<StrCounter  ; upper pointer
+	LCALL PrintStr
+	POP 12
+	POP 13
 
-JMP LOOP
+	; print counter and newline
+	PUSH 1				; save r1
+	MOV 1,7				; r1 = r7
+	LCALL PrintHexByte  ; print it in hex to the terminal
+	LCALL PrintNewline
+	POP 1				; restore r1
+
+	JMP LOOP
 
 ; Strings
 :StrHello
-.DS Please enter a starting hex byte: 
+.DS 'Please enter a starting hex byte: '
+:StrCounter
+.DS 'Current counter value == '
 
 .INC library.s		; include our library functions
 

@@ -1,5 +1,16 @@
 ; library functions
 
+; Quickguide
+; Typically things expect the UART in r15:r14 and user pointers in r13:r12
+; Single values are passed in/returned via r1
+
+; PrintHexByte: Prints 'r1' in hex to r15:r14
+; PrintNewLine: Prints a \n\r to r15:r14
+; PrintStr:     Prints a NUL terminated string pointed to by r13:r12 to r15:r14
+
+; ReadHexByte:  Reads a hex byte (upper or lower case) from R15:R14 into r1
+
+
 
 ; *** PrintHexByte ***
 ; Prints byte in r1 in hex
@@ -7,7 +18,6 @@
 ;	- r1 byte to print
 ;	- r15:r14: uart data 
 ; Output: None
-
 .ALIGN 0x10
 :PrintHexByte
 	PUSH 2					; save r2
@@ -77,11 +87,13 @@
 	PUSH 4
 	PUSH 5
 	PUSH 6
+	PUSH 7
 	LDI 1,0x00				; clear r1
 	LDI 2,2					; read two nibbles
 	LDI 3,0x30				; '0'
 	LDI 4,0x09				; for comparison to to 9
 	LDI 5,0x07
+	LDI 7,0x0F				; for masking
 :READHEXBYTELOOP
 	LDM 6,15,14				; read from uart
 	STM 6,15,14				; echo back
@@ -92,6 +104,7 @@
 	JMP READHEXBYTEEND
 :READHEXBYTEBIG
 	SUB 6,6,5				; it was bigger than 9 so subtract 7 to go to next
+	AND 6,6,7
 	OR 1,1,6				; store nibble
 :READHEXBYTEEND
 	DEC 2,2					; decrement nibble counter
@@ -99,6 +112,7 @@
 	SWAP 1,1				; flip it to the top of r1
 	JMP READHEXBYTELOOP
 :READHEXBYTEDONE
+	POP 7
 	POP 6
 	POP 5
 	POP 4

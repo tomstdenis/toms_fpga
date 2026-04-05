@@ -349,7 +349,12 @@ void compile(struct compiler_state *state, char *line)
 		memset(buf, 0, sizeof buf);
 		line += 4;
 		consume_whitespace(&line);
-		while (*line != '\n' && *line != '\r' && *line) {
+		// scan to first '
+		while (*line && *line != '\'') {
+			++line;
+		}
+		++line;
+		while (slen < (sizeof(buf) - 1) && *line != '\'' && *line) {
 			buf[slen++] = *line++;
 		}
 		++slen;				  // include NUL byte
@@ -416,12 +421,12 @@ int find_target(struct compiler_state *state, int x)
 
 	for (y = 0; y < MAX_PROG_SIZE; y++) {
 		if (!strcmp(state->program[y].label, state->program[x].tgt)) {
-			return y << 1; // labels 
+			return y << 1; // labels are placed in the stream at word offsets so return the byte offset
 		}
 	}
 	for (y = 0; y < MAX_PROG_SIZE; y++) {
 		if (!strcmp(state->symbols[y].label, state->program[x].tgt)) {
-			return state->symbols[y].value;
+			return state->symbols[y].value; // symbols are literal constants and should be returned verbatim
 		}
 	}
 	if (sscanf(state->program[x].tgt, "%"SCNx16, &d) == 1) {
