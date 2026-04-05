@@ -3,6 +3,7 @@
 PUSH 1				; push r1
 LDM 1,15,14			; read from UART
 STM 1,15,14			; echo it back
+STM 1,13,12			; and write to GPIO0
 POP 1				; pop r1
 RETI
 
