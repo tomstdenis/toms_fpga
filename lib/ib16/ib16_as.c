@@ -140,14 +140,17 @@ void compile_opcodes(struct compiler_state *state, char *line)
 				state->program[state->PC].line_number = state->line_number;
 				state->program[state->PC].fname = state->cur_filename;
 			} else {
-				printf("line %d: byte location %x already was programmed on line %d\n", state->line_number, state->PC, state->program[state->PC].line_number);
+				printf("line %s:%d: byte location %x already was programmed on line %d\n", state->cur_filename, state->line_number, state->PC, state->program[state->PC].line_number);
 				exit(-1);
 			}
 			switch (e1_opcodes[x].fmt) {
 				case OP_FMT_3OP: // "d, a, b"
 				{
 					unsigned r_d, r_a, r_b;
-					sscanf(line, "%u, %u, %u", &r_d, &r_a, &r_b);
+					if (sscanf(line, "%u, %u, %u", &r_d, &r_a, &r_b) != 3) {
+						printf("line %s:%d: Invalid number of arguments on line [%s]", state->cur_filename, state->line_number, line);
+						exit(-1);
+					}
 					r_d &= 0xF;
 					r_a &= 0xF;
 					r_b &= 0xF;
@@ -157,7 +160,10 @@ void compile_opcodes(struct compiler_state *state, char *line)
 				case OP_FMT_2OP: // "d, a"
 				{
 					unsigned r_d, r_a;
-					sscanf(line, "%u, %u", &r_d, &r_a);
+					if (sscanf(line, "%u, %u", &r_d, &r_a) != 2) {
+						printf("line %s:%d: Invalid number of arguments on line [%s]", state->cur_filename, state->line_number, line);
+						exit(-1);
+					}
 					r_d &= 0xF;
 					r_a &= 0xF;
 					state->program[state->PC].opcode |= (r_d << 8) | r_a;
@@ -166,7 +172,10 @@ void compile_opcodes(struct compiler_state *state, char *line)
 				case OP_FMT_2OPALU: // "a, b"
 				{
 					unsigned r_a, r_b;
-					sscanf(line, "%u, %u", &r_a, &r_b);
+					if (sscanf(line, "%u, %u", &r_a, &r_b) != 2) {
+						printf("line %s:%d: Invalid number of arguments on line [%s]", state->cur_filename, state->line_number, line);
+						exit(-1);
+					}
 					r_a &= 0xF;
 					r_b &= 0xF;
 					state->program[state->PC].opcode |= (r_a << 4) | r_b;
@@ -175,7 +184,10 @@ void compile_opcodes(struct compiler_state *state, char *line)
 				case OP_FMT_2OPMOV: // "a, b"
 				{
 					unsigned r_a, r_b;
-					sscanf(line, "%u, %u", &r_a, &r_b);
+					if (sscanf(line, "%u, %u", &r_a, &r_b) != 2) {
+						printf("line %s:%d: Invalid number of arguments on line [%s]", state->cur_filename, state->line_number, line);
+						exit(-1);
+					}
 					r_a &= 0xF;
 					r_b &= 0xF;
 					state->program[state->PC].opcode |= (r_a << 8) | (r_b << 4) | r_b;
@@ -184,7 +196,10 @@ void compile_opcodes(struct compiler_state *state, char *line)
 				case OP_FMT_1OP: // "d"
 				{
 					unsigned r_d;
-					sscanf(line, "%u", &r_d);
+					if (sscanf(line, "%u", &r_d) != 1) {
+						printf("line %s:%d: Invalid number of arguments on line [%s]", state->cur_filename, state->line_number, line);
+						exit(-1);
+					}
 					r_d &= 0xF;
 					state->program[state->PC].opcode |= (r_d << 8);
 					break;
