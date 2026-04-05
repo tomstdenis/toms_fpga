@@ -7,82 +7,83 @@
 ; we boot with r0==0 guaranteed so keep it that way for this app
 
 ; Setup ISR context
-LDI 14,>UART_ADDR
-LDI 15,<UART_ADDR
+	LDI 14,>UART_ADDR
+	LDI 15,<UART_ADDR
 
 ; load R12:R13 pointing to GPIO
-LDI 12,>GPIO0_ADDR
-LDI 13,<GPIO0_ADDR
+	LDI 12,>GPIO0_ADDR
+	LDI 13,<GPIO0_ADDR
 
 ; load R10:R11 pointing to GPIO1
-LDI 10,>GPIO1_ADDR
-LDI 11,<GPIO1_ADDR
+	LDI 10,>GPIO1_ADDR
+	LDI 11,<GPIO1_ADDR
 
 ; R11:R11 pointing to the timer
-LDI 8,>TIMER_ADDR
-LDI 9,<TIMER_ADDR
+	LDI 8,>TIMER_ADDR
+	LDI 9,<TIMER_ADDR
 
 ; output counters
-LDI 6,0x00
-LDI 7,0x00			; our tick counter
-LDI 2,0x00
+	LDI 6,0x00
+	LDI 7,0x00			; our tick counter
+	LDI 2,0x00
 
 ; wait for a key
-SRES 4				; mask the IRQ so we can read the UART here
-LDM 1,15,14			; wait for a key to start the demo
-SRES 0				; turn IRQs back on
+	SRES 4				; mask the IRQ so we can read the UART here
+	LDM 1,15,14			; wait for a key to start the demo
+	SRES 0				; turn IRQs back on
 
 ; print welcome message
-PUSH 13
-PUSH 12
-LDI	12,>StrName
-LDI 13,<StrName
-LCALL PrintStr
-POP 12
-POP 13
+	PUSH 13
+	PUSH 12
+	LDI	12,>StrName
+	LDI 13,<StrName
+	LCALL PrintStr			; print string
+	POP 12
+	POP 13
 
 ; read name into namestr buffer
-PUSH 13
-PUSH 12
-LDI	12,>NameStr
-LDI 13,<NameStr
-LCALL ReadStr
-POP 12
-POP 13
+	PUSH 13
+	PUSH 12
+	LDI	12,>NameStr
+	LDI 13,<NameStr
+	LCALL ReadStr			; Read a string into NameStr
+	POP 12
+	POP 13
 
 ; print Hello
-LCALL PrintNewline
-PUSH 13
-PUSH 12
-LDI	12,>StrNameHello
-LDI 13,<StrNameHello
-LCALL PrintStr
-POP 12
-POP 13
+	LCALL PrintNewline		; print a newline first
+	PUSH 13
+	PUSH 12
+	LDI	12,>StrNameHello
+	LDI 13,<StrNameHello
+	LCALL PrintStr			; print string
+	POP 12
+	POP 13
 
 ; print string we read
-PUSH 13
-PUSH 12
-LDI	12,>NameStr
-LDI 13,<NameStr
-LCALL PrintStr
-POP 12
-POP 13
+	PUSH 13
+	PUSH 12
+	LDI	12,>NameStr
+	LDI 13,<NameStr
+	LCALL PrintStr
+	POP 12
+	POP 13
 
-PUSH 13
-PUSH 12
-LDI	12,>StrHello
-LDI 13,<StrHello
-LCALL PrintStr
-POP 12
-POP 13
+; print rest of prompt
+	PUSH 13
+	PUSH 12
+	LDI	12,>StrHello
+	LDI 13,<StrHello
+	LCALL PrintStr
+	POP 12
+	POP 13
 
 ; let's read r7 from the UART
-SRES 4				; mask IRQ
-LCALL ReadHexByte
-LCALL PrintNewline
-MOV 7,1				; store byte in r7
-SRES 0				; unask IRQs
+	SRES 4				; mask IRQ
+	LCALL ReadHexByte
+	LCALL PrintNewline
+	MOV 7,1				; store byte in r7
+	SRES 0				; unask IRQs
 
 ; main loop body
 :LOOP
