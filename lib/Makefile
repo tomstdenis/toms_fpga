@@ -1,4 +1,5 @@
 all:
+	make -C vga
 	make -C ib16
 	make -C yod_pla
 	make -C debug
@@ -10,6 +11,7 @@ all:
 	make -C timer
 
 clean:
+	make -C vga clean
 	make -C ib16 clean
 	make -C yod_pla clean
 	make -C debug clean
