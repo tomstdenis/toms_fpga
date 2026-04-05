@@ -218,8 +218,6 @@ module ib16 #(
                         cur_opcode  <= bus_data_out;
                         bus_enable  <= 0;
                         bus_burst   <= 0;
-//                        reg_ra		<= reg_rr[bus_data_out[7:4]];
-//                        reg_rb		<= reg_rr[bus_data_out[3:0]];
                         state		<= (bus_data_out[15:12] <= OPCODE_SHF) ? (TWO_CYCLE == 1 ? FSM_BUFFER : FSM_RETIRE): FSM_DECODE + {2'b0, bus_data_out[15:12]};
                    end
                 end
