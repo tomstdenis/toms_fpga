@@ -137,7 +137,7 @@ module bram_dp_nx2048x32_tb();
 			testphase = 3;
 			for (j = 0; j < 4; j = j + 1) begin
 				testphase = 3 + j;
-				for (k = 0; k < 2048; k = k + 1) begin
+				for (k = 0; k < 8192; k = k + 1) begin
 					testoff = k[14:0] + 15'h2000 * j[14:0];
 					write_mem(32'h00000011 * (j[31:0] + 32'd1), testoff, 4'b0001, writeport);
 				end
@@ -145,7 +145,7 @@ module bram_dp_nx2048x32_tb();
 
 			// read full blocks
 			for (j = 0; j < 4; j = j + 1) begin
-				for (k = 0; k < 2048; k = k + 1) begin
+				for (k = 0; k < 8192; k = k + 1) begin
 					testoff = k[14:0] + 15'h2000 * j[14:0];
 					read_mem(32'h00000011 * (j[31:0] + 32'd1), testoff, 4'b0001, readport);
 				end
