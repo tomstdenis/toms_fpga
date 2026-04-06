@@ -1,31 +1,33 @@
-/* Simple timing generator for VGA @ 640x480x60fps */
+/* Simple timing generator for VGA (default:640x480x60fps) */
 
 `timescale 1ns/1ps
 `default_nettype none
 
-module vga_640x480_timing (
-    input  wire        clk,   // 25.175 MHz
+module vga_timing #(
+    // Horizontal constants
+    parameter H_VISIBLE    = 640,
+    parameter H_FRONT      = 16,
+    parameter H_SYNC       = 96,
+    parameter H_BACK       = 48,
+    parameter H_TOTAL      = 800,
+
+    // Vertical constants
+    parameter V_VISIBLE    = 480,
+    parameter V_FRONT      = 10,
+    parameter V_SYNC       = 2,
+    parameter V_BACK       = 33,
+    parameter V_TOTAL      = 525
+)
+
+(
+    input  wire        clk,   // e.g., 640x480@60 == 25.175 MHz
     input  wire        rst,
-    output reg  [9:0]  x,
-    output reg  [9:0]  y,
+    output reg  [$clog2(H_TOTAL):0]  x,
+    output reg  [$clog2(V_TOTAL):0]  y,
     output reg         h_sync,
     output reg         v_sync,
     output wire        active_video
 );
-
-    // Horizontal constants
-    localparam H_VISIBLE    = 640;
-    localparam H_FRONT      = 16;
-    localparam H_SYNC       = 96;
-    localparam H_BACK       = 48;
-    localparam H_TOTAL      = 800;
-
-    // Vertical constants
-    localparam V_VISIBLE    = 480;
-    localparam V_FRONT      = 10;
-    localparam V_SYNC       = 2;
-    localparam V_BACK       = 33;
-    localparam V_TOTAL      = 525;
 
     // Active video flag (high when inside the 640x480 area)
     assign active_video = (x < H_VISIBLE) && (y < V_VISIBLE);

@@ -17,6 +17,8 @@ module top(input clk, output [3:0] vga_r, output [3:0] vga_g, output [3:0] vga_b
 		end
     end
 
+
+	// bit widths are for 640x480 VGA
 	wire [9:0] vga_x;
 	wire [9:0] vga_y;
 	wire vga_h_sync;
@@ -30,7 +32,7 @@ module top(input clk, output [3:0] vga_r, output [3:0] vga_g, output [3:0] vga_b
 	assign vga_g = 4'b0;
 	assign vga_b = 4'b0;
 
-	vga_640x480_timing vga(
+	vga_timing vga(
 		.clk(pll_clk),
 		.rst(rst_n),
 		.x(vga_x),
