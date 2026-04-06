@@ -25,10 +25,10 @@ int main(void)
 	int x, y, z, i;
 	
 	i = 0;
-	for(x = 0; x < 128; x++) {
+	for(x = 0; x < 256; x++) {
 		for (y = 0; y < 8; y++) {
 			for (z = 0; z < 8; z++) {
-				if (console_font_8x8[i] & (1 << z)) {
+				if (console_font_8x8[i] & (1 << (7-z))) {
 					printf("{8'd%d, 3'd%d, 3'd%d}: out = 1;\n", x, y, z);
 				}
 			}

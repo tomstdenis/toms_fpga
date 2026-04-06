@@ -3,7 +3,7 @@ TOP=top
 FREQ=25.175
 
 OBJS+=${TARGET}.v pll1.v \
-../../../lib/vga/blocks/vga_timing.v
+../../../lib/vga/blocks/vga_timing.v ../../../lib/vga/blocks/8x8_font_256.v
 
 all: ${TARGET}.bit
 
