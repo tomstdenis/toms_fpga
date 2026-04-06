@@ -1,3 +1,8 @@
+; Weird uart demo, note we kinda merge app/isr contexts because
+; we want to read from the uart in app space.  In a "real" application
+; you would either ignore the ISR completely or you'd only access the uart
+; in ISR context and buffer it for the app context
+
 .EQU UART_ADDR 0xFFFF
 .EQU GPIO0_ADDR 0xFFFB
 .EQU GPIO1_ADDR 0xFFFA
@@ -7,9 +12,21 @@
 ; we boot with r0==0 guaranteed so keep it that way for this app
 
 ; Setup ISR context
+	SRES 4						; switch to IRQ context
+; Load R15:R14 with UART address
 	LDI 14,>UART_ADDR
 	LDI 15,<UART_ADDR
+; load R12:R13 pointing to GPIO
+	LDI 12,>GPIO0_ADDR
+	LDI 13,<GPIO0_ADDR
+	LDI 2,0x1B					; ESC key
 
+
+; Setup App context
+	SRES 0						; switch back to APP context
+	LDI 14,>UART_ADDR			; we want to use the UART in app context too
+	LDI 15,<UART_ADDR
+	
 ; load R12:R13 pointing to GPIO
 	LDI 12,>GPIO0_ADDR
 	LDI 13,<GPIO0_ADDR
@@ -42,6 +59,7 @@
 	POP 13
 
 ; read name into namestr buffer
+	SRES 4				; mask the IRQ so we can read the UART here
 	PUSH 13
 	PUSH 12
 	LDI	12,>NameStr
@@ -49,7 +67,8 @@
 	LCALL ReadStr			; Read a string into NameStr
 	POP 12
 	POP 13
-
+	SRES 0
+	
 ; print Hello
 	LCALL PrintNewline		; print a newline first
 	PUSH 13
@@ -82,8 +101,9 @@
 	SRES 4				; mask IRQ
 	LCALL ReadHexByte
 	LCALL PrintNewline
-	MOV 7,1				; store byte in r7
+	PUSH 1				; save the read byte 
 	SRES 0				; unask IRQs
+	POP  7				; transfer r1 from IRQ context into app context r7
 
 ; main loop body
 :LOOP

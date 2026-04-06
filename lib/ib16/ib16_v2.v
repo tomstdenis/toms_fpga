@@ -47,7 +47,7 @@ module ib16 #(
 	reg [7:0]	reg_ri;								// RI (read index)
 	reg [7:0]	reg_irq_wi;							// IRQ copies of WI/RI
 	reg [7:0]	reg_irq_ri;
-	reg [7:0]	reg_rr [0:15];						// GPRs 
+	reg [7:0]	reg_rr [0:31];						// GPRs 
 	wire carry_flag = reg_sreg[CARRY_FLAG];
 	wire zero_flag  = reg_sreg[ZERO_FLAG];
 	wire write_incr_flag = reg_sreg[WRITE_INCR];
@@ -69,8 +69,8 @@ module ib16 #(
 	wire [7:0] opcode_8imm = cur_opcode[7:0];		// 8IMM
 	wire [11:0] opcode_12imm = cur_opcode[11:0];		// 12IMM
 	wire [15:0] opcode_9simm = { {6{cur_opcode[8]}}, cur_opcode[8:0], 1'b0 };
-    wire [7:0]  reg_ra = reg_rr[opcode_opa];
-    wire [7:0]  reg_rb = reg_rr[opcode_opb];
+    wire [7:0]  reg_ra = reg_rr[{mask_irq,opcode_opa}];
+    wire [7:0]  reg_rb = reg_rr[{mask_irq,opcode_opb}];
 
 	localparam
 		OPCODE_LDI = 0,
@@ -185,7 +185,7 @@ module ib16 #(
                 if (!bus_enable && state == FSM_RETIRE) begin
                     // retire the previous op if any that requires a retirement
                     if (opcode_isn != OPCODE_CMP) begin
-                        reg_rr[opcode_opd]	    <= result_dff[7:0];
+                        reg_rr[{mask_irq,opcode_opd}]	    <= result_dff[7:0];
                     end
 					reg_sreg[ZERO_FLAG]		<= result_dff[7:0] == 0 ? 1'b1 : 1'b0;
                     reg_sreg[CARRY_FLAG]	<= result_dff[8];
@@ -247,7 +247,7 @@ module ib16 #(
                 end
                 if (bus_enable && bus_ready) begin
                     bus_enable              <= 0;
-                    reg_rr[opcode_opd]	    <= bus_data_out[7:0];
+                    reg_rr[{mask_irq,opcode_opd}]	    <= bus_data_out[7:0];
                     reg_sreg[ZERO_FLAG]		<= bus_data_out[7:0] == 0 ? 1'b1 : 1'b0;
                     reg_sreg[CARRY_FLAG]	<= 0;
                     state					<= FSM_FETCH;
@@ -258,7 +258,7 @@ module ib16 #(
                     bus_enable			<= 1;
                     bus_wr_en			<= 1;
                     bus_burst			<= 0;
-                    bus_data_in			<= {8'b0, reg_rr[opcode_opd]};
+                    bus_data_in			<= {8'b0, reg_rr[{mask_irq,opcode_opd}]};
                     if (opcode_opa == 15 && opcode_opb == 15) begin
                         // push
                         bus_address_terma <= STACK_ADDRESS;
