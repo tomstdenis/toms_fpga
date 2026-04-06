@@ -56,7 +56,6 @@ module ib16 #(
 	// CPU state		
 	reg [5:0]	state;
 	reg [5:0]	tag;
-	reg [2:0]	fsm_cycle;
 	reg 		mask_irq;
 	reg [15:0]	cur_opcode;
 	reg [8:0]	result_dff;							// the value to be retired
@@ -161,7 +160,6 @@ module ib16 #(
 			reg_ri			<= 0;
 			state			<= FSM_FETCH;
 			tag				<= 0;
-			fsm_cycle		<= 0;
 			mask_irq		<= 1;
 			bus_enable		<= 0;
 			bus_wr_en		<= 0;
@@ -182,6 +180,7 @@ module ib16 #(
                 state <= FSM_RETIRE;
             end
             if (state == FSM_FETCH || state == FSM_RETIRE) begin
+				state <= FSM_FETCH;					// turn into a FETCH if we're from RETIRE
                 // fetch/retire share a lot of code so just place it here
                 if (!bus_enable && state == FSM_RETIRE) begin
                     // retire the previous op if any that requires a retirement
@@ -193,25 +192,28 @@ module ib16 #(
                 end
                 // check for IRQs only if the bus is idle
                 if (bus_irq && !mask_irq && !bus_enable) begin
-                    reg_irq_pc	    <= {reg_pc[15:1], 1'b0}; // force LSB to zero in case we IRQ in the middle of a fetch
+                    reg_irq_pc	      <= reg_pc;
                     // save SREG depending on how we ended up here the carry/zero flags might be from result_dff or reg_sreg
                     if (state == FSM_RETIRE) begin
 						reg_irq_sreg	<= { result_dff[8], result_dff[7:0] == 0 ? 1'b1 : 1'b0, reg_sreg[5:0] };
                     end else begin
 						reg_irq_sreg    <= reg_sreg;
 					end
-					reg_irq_ri 		<= reg_ri;
-					reg_irq_wi		<= reg_wi;
-                    mask_irq 	    <= 1;
-                    reg_pc	 	    <= IRQ_VECTOR;
-                    fsm_cycle	    <= 0;
+					reg_irq_ri 		  <= reg_ri;
+					reg_irq_wi		  <= reg_wi;
+                    mask_irq 	      <= 1;
+                    bus_enable		  <= 1'b1;
+                    bus_burst         <= 1'b1;                      // read 16-bits
+                    bus_address_terma <= IRQ_VECTOR;		        // read from PC
+                    bus_address_termb <= 0;
+                    reg_pc			  <= IRQ_VECTOR + 16'd2;		// increment PC
                 end else begin
                     // fetch the next 16-bit opcode
                     if (!bus_enable) begin
                         bus_enable		  <= 1'b1;
+                        bus_burst         <= 1'b1;            		// read 16-bits
                         bus_address_terma <= reg_pc;		        // read from PC
                         bus_address_termb <= 0;
-                        bus_burst         <= 1'b1;              // read 16-bits
                         reg_pc			  <= reg_pc + 16'd2;		// increment PC
                     end
                     // opcode is available now
@@ -229,6 +231,8 @@ module ib16 #(
             if (state == FSM_DECODE + OPCODE_LDM) begin
                 if (!bus_enable) begin
                     bus_enable			  <= 1;
+                    bus_wr_en             <= 0;
+                    bus_burst			  <= 0;
                     if (opcode_opa == 15 && opcode_opb == 15) begin
                         // pop
                         bus_address_terma <= STACK_ADDRESS;
@@ -253,7 +257,8 @@ module ib16 #(
                 if (!bus_enable) begin
                     bus_enable			<= 1;
                     bus_wr_en			<= 1;
-                    bus_data_in[7:0]	<= reg_rr[opcode_opd];
+                    bus_burst			<= 0;
+                    bus_data_in			<= {8'b0, reg_rr[opcode_opd]};
                     if (opcode_opa == 15 && opcode_opb == 15) begin
                         // push
                         bus_address_terma <= STACK_ADDRESS;
@@ -339,12 +344,12 @@ module ib16 #(
                 state             <= FSM_FETCH;
             end
             if (state == FSM_DECODE + OPCODE_SRS) begin
-                if (opcode_8imm[3] == 1) begin
-                    // boot user app mode
+                if (opcode_8imm[3] == 1 || opcode_8imm[4] == 1) begin
+                    // boot user(3) or loader(!3,4) app mode
                     reg_sreg <= 0;
-                    reg_pc   <= 0;
+                    reg_pc   <= opcode_8imm[3] ? 0 : BOOT_ROM_ADDR;
                     reg_sp   <= 0;
-                    mask_irq <= 0;
+                    mask_irq <= ~opcode_8imm[3];
                 end else begin
                     // SREG = {SREG[7:6] & ~imm8[7:6], imm8[5:0]} 
                     // W1C for carry/zero, store for other bits

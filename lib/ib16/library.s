@@ -134,14 +134,20 @@
 .ALIGN 0x10
 :PrintStr
 	PUSH 1
-	SRES 1					; set read increment flag
+	PUSH 12
+	PUSH 13
 :PRINTSTRLOOP
 	LDM 1,13,12				; load char
 	JZ PRINTSTRDONE			; exit if NUL
+	INC 12,12
+	JNC PRINTSTRNC
+	INC 13,13				; carry
+:PRINTSTRNC
 	STM 1,15,14				; print it
 	JMP PRINTSTRLOOP
 :PRINTSTRDONE
-	SRES 0					; disable read increment flag
+	POP 13
+	POP 12
 	POP 1
 	RET
 
