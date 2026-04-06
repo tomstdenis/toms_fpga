@@ -21,7 +21,7 @@ module vga_timing #(
 
 (
     input  wire        clk,   // e.g., 640x480@60 == 25.175 MHz
-    input  wire        rst,
+    input  wire        rst_n,
     output reg  [$clog2(H_TOTAL):0]  x,
     output reg  [$clog2(V_TOTAL):0]  y,
     output reg         h_sync,
@@ -32,8 +32,8 @@ module vga_timing #(
     // Active video flag (high when inside the 640x480 area)
     assign active_video = (x < H_VISIBLE) && (y < V_VISIBLE);
 
-    always @(posedge clk or posedge rst) begin
-        if (rst) begin
+    always @(posedge clk) begin
+        if (!rst_n) begin
             x <= 0;
             y <= 0;
             h_sync <= 1;
