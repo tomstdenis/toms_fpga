@@ -12,8 +12,13 @@
 // ROM is fixed into the first 256 bytes of the reserved F000..FFFF space
 `define BOOT_ROM_ADDR 16'hF000
 
-module top(input clk, input uart_rx, output uart_tx, inout [15:0] gpio);
+module top(input clk, 
+	input uart_rx, output uart_tx, 
+	inout [15:0] gpio,
+	output reg [3:0] vga_r, output reg [3:0] vga_g, output reg [3:0] vga_b, output vga_h_pulse, output vga_v_pulse);
+
     localparam
+		TEXTMEM			 = 16'hE800,
         TIMER_ADDR       = 16'hFFF9,
         GPIO1_DATA_ADDR  = 16'hFFFA,
         GPIO0_DATA_ADDR  = 16'hFFFB,
@@ -22,6 +27,7 @@ module top(input clk, input uart_rx, output uart_tx, inout [15:0] gpio);
         UART_STS_ADDR    = 16'hFFFE,
         UART_DATA_ADDR   = 16'hFFFF;
 
+	// Domain #1: IttyBitty @`FREQ
     wire pllclk;
 	wire plllock;
 	
@@ -36,6 +42,21 @@ module top(input clk, input uart_rx, output uart_tx, inout [15:0] gpio);
 		end
 	end
 
+	// Domain #2: VGA @ 25.175
+    wire pll2clk;
+	wire pll2lock;
+	
+	pll2 mypll2(.clkin(clk), .clkout0(pll2clk), .locked(pll2lock));
+
+	reg [3:0] rst2 = 0;
+	wire rst2_n = rst2[3];
+	
+	always @(posedge pll2clk) begin
+		if (pll2lock) begin
+			rst2 <= {rst2[2:0], 1'b1};
+		end
+	end
+	
 // TODO use primitive for this ...
     // GPIO
     reg [15:0] gpio_out;
@@ -83,7 +104,7 @@ module top(input clk, input uart_rx, output uart_tx, inout [15:0] gpio);
     reg [10+$clog2(`BLOCKS):0] bram_addr;
     reg [7:0] bram_din;
 
-	// N*2048x8 memory
+	// Main Itty Bitty `BLOCKS*2048x8 memory
 	bram_sp_nx2048x8 #(.N(`BLOCKS)) memory(
 		.w_clk(pllclk),
 		.w_clk_en(1'b1),
@@ -97,6 +118,70 @@ module top(input clk, input uart_rx, output uart_tx, inout [15:0] gpio);
 		.r_addr(bram_addr),
 		.r_data(bram_dout));
 
+	// bit widths are for 640x480 VGA
+	wire [9:0] vga_x;
+	wire [9:0] vga_y;
+	wire vga_h_sync;
+	wire vga_v_sync;
+	wire vga_active;
+	
+	assign vga_h_pulse = vga_h_sync;
+	assign vga_v_pulse = vga_v_sync;
+
+	// this module produces the VGA timing signals other modules depend on
+	vga_timing vga(
+		.clk(pll2clk),
+		.rst_n(rst2_n),
+		.x(vga_x),
+		.y(vga_y),
+		.h_sync(vga_h_sync),
+		.v_sync(vga_v_sync),
+		.active_video(vga_active));
+
+	wire [7:0] text_symbol;
+	wire text_out;
+	
+	// font rom (note we scale y by 2 to fit the 80x25 chars onto 640x480 a bit nicer)
+	// this module takes in the symbol value and x/y pixel position relative to the top left corner of the symbol
+	vga_8x8_font_256 font(.symbol(text_symbol), .x(vga_x[2:0]), .y(vga_y[3:1]), .out(text_out));	
+
+	reg [10:0] text_addr_a;
+	reg [7:0] text_din_a;
+	reg text_we_a;
+	wire [7:0] text_dout_a;
+
+	wire [10:0] text_addr_b;
+	wire [7:0] text_dout_b;
+
+	bram_dp_2048x8 text_mem(
+		// IttyBitty Side
+		.clk_a(pllclk), .clk_en_a(1'b1), .rst_a(~rst_n), 
+		.addr_a(text_addr_a), .din_a(text_din_a), .we_a(text_we_a), .dout_a(text_dout_a),
+		// Text Driver Side
+		.clk_b(pll2clk), .clk_en_b(1'b1), .rst_b(~rst2_n), 
+		.addr_b(text_addr_b), .din_b(), .we_b(1'b0), .dout_b(text_dout_b));
+
+	// VGA text mode driver, defaults to 80x25 using an 8x8 font
+	// notice we're scaling the font by 2 so we change the height to 16 here
+	vga_text_driver #(.FONTHEIGHT(16)) textdrv(
+		.clk(pll2clk), .rst_n(rst2_n),
+		.x(vga_x), .y(vga_y), .active_video(vga_active),
+		.rd_addr(text_addr_b), .rd_data(text_dout_b),
+		.symbol(text_symbol));
+
+	// drive the RGB outputs
+	always @(*) begin
+		vga_r = 0;
+		vga_g = 0;
+		vga_b = 0;
+		
+		if (vga_active) begin
+			{vga_r, vga_g, vga_b} = text_out ? 12'b1111_1111_1111 : 12'b0;
+		end
+	end
+
+
+	// IttyBitty Device
     wire ib16_bus_enable;
     wire ib16_bus_wr_en;
     wire [15:0] ib16_bus_address;
@@ -300,6 +385,54 @@ module top(input clk, input uart_rx, output uart_tx, inout [15:0] gpio);
                                 ib16_bus_data_out[15:8] <= bram_dout;
                                 bus_cycle               <= 0;
                                 bram_ce                 <= 0;
+                                ib16_bus_ready          <= 1;
+                            end
+                    endcase
+                end
+
+                // TEXT VIDEO memory from E800..EFFF
+                if (ib16_bus_address >= 16'hE800 && ib16_bus_address <= 16'hEFFF) begin
+                    // TEXT MEM  block
+                    case(bus_cycle[1:0])
+                        0: // start transaction (this cycle delay handles the fact that bus_address is combinatorial)
+                            begin
+                                text_we_a     <= ib16_bus_wr_en;
+                                text_addr_a   <= ib16_bus_address[10+$clog2(`BLOCKS):0];
+                                text_din_a    <= ib16_bus_data_in[7:0];
+                                bus_cycle     <= bus_cycle + 1'b1;
+                            end
+                        1: // memory 2nd cycle
+                            begin
+                                if (text_we_a && !ib16_bus_burst) begin // 8-bit writes are done here
+                                    bus_cycle       <= 0;
+                                    text_we_a       <= 0;
+                                    ib16_bus_ready  <= 1;
+                                end else begin                     // all reads take 3 cycles, burst writes take 3  
+                                    bus_cycle       <= bus_cycle + 1'b1;
+                                    text_addr_a     <= text_addr_a + 1'b1;
+                                    text_din_a      <= ib16_bus_data_in[15:8];
+                                end
+                            end
+                        2: // memory 3rd cycle
+                            begin
+                                if (text_we_a) begin // writes are done here
+                                    text_we_a           <= 0;
+                                    bus_cycle           <= 0;
+                                    ib16_bus_ready      <= 1;
+                                end else begin
+                                    ib16_bus_data_out[7:0] <= text_dout_a;
+                                    if (!ib16_bus_burst) begin          // 8-bit reads are done here
+                                        bus_cycle       <= 0;
+                                        ib16_bus_ready  <= 1;
+                                    end else begin
+                                        bus_cycle       <= bus_cycle + 1'b1;
+                                    end
+                                end
+                            end
+                        3: // memory 4th cycle (16-bit reads)
+                            begin
+                                ib16_bus_data_out[15:8] <= text_dout_a;
+                                bus_cycle               <= 0;
                                 ib16_bus_ready          <= 1;
                             end
                     endcase

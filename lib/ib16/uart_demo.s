@@ -11,6 +11,22 @@
 
 ; we boot with r0==0 guaranteed so keep it that way for this app
 
+; write a cool string to video memory
+	LDI 15,0xE8
+	LDI 14,0x00  ; 0xE800 is video memory
+	LDI 13,<TOMSTR
+	LDI 12,>TOMSTR
+	SRES 3		 ; set both WI/RI bits
+:TOMSTRLOOP
+	LDM 1,13,12
+	JZ APP
+	STM 1,15,14
+	JMP TOMSTRLOOP
+
+:TOMSTR
+.DS 'Tom was here but like cooler...'
+
+:APP
 ; Setup ISR context
 	SRES 4						; switch to IRQ context
 ; Load R15:R14 with UART address

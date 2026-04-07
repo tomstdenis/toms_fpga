@@ -104,6 +104,24 @@ module top(input clk, output reg [3:0] vga_r, output reg [3:0] vga_g, output reg
 				80*5 + 14: wr_data <= 8'h65; // e
 				80*5 + 15: wr_data <= 8'h72; // r
 				80*5 + 16: wr_data <= 8'h65; // e
+				// space 
+				80*5 + 18: wr_data <= 8'h61; // a
+				80*5 + 19: wr_data <= 8'h6e; // n
+				80*5 + 20: wr_data <= 8'h64; // d
+				// space
+				80*5 + 22: wr_data <= 8'h6d; // m
+				80*5 + 23: wr_data <= 8'h6f; // o
+				// space
+				80*5 + 25: wr_data <= 8'h69; // i
+				80*5 + 26: wr_data <= 8'h73; // s
+				//space				
+				80*5 + 28: wr_data <= 8'h63; // c
+				80*5 + 29: wr_data <= 8'h6f; // o
+				80*5 + 30: wr_data <= 8'h6f; // o
+				80*5 + 31: wr_data <= 8'h6c; // l
+				
+				
+			
 			endcase
 
 			// put random data on lines 7 down
