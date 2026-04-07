@@ -37,37 +37,72 @@ module top(input clk, output reg [3:0] vga_r, output reg [3:0] vga_g, output reg
 		.v_sync(vga_v_sync),
 		.active_video(vga_active));
 
-	wire [9:0] x = vga_x + 1;
-	wire [9:0] y = vga_y + 1;
-	reg [7:0] symbol;
+	wire [7:0] symbol;
 	wire text_out;
 	reg [23:0] counter = 0;
 	
-	vga_8x8_font_256 font(.symbol(symbol), .x(vga_x[2:0]), .y(vga_y[2:0]), .out(text_out));	
+	// font rom (note we scale y by 2 to fit the 80x25 chars onto 640x480 a bit nicer)
+	vga_8x8_font_256 font(.symbol(symbol), .x(vga_x[2:0]), .y(vga_y[3:1]), .out(text_out));	
+
+	reg [11:0] wr_addr;
+	reg [7:0] wr_data;
+	reg wr_en;
+	
+	wire [11:0] rd_addr;
+	wire [7:0] rd_data;
+	
+	// frame buffer memory
+	bram_sp_2048x8 mem(
+		.w_clk(pll_clk), .w_clk_en(1'b1), .w_rst(~rst_n),
+		.w_addr(wr_addr), .w_data(wr_data), .w_en(wr_en),
+		
+		.r_clk(pll_clk), .r_clk_en(1'b1), .r_rst(~rst_n),
+		.r_addr(rd_addr), .r_data(rd_data));
+
+	// notice we're scaling the font by 2 so we change the height to 16 here
+	vga_text_driver #(.FONTHEIGHT(16)) textdrv(
+		.clk(pll_clk), .rst_n(rst_n),
+		
+		.x(vga_x), .y(vga_y), .active_video(vga_active),
+		.rd_addr(rd_addr), .rd_data(rd_data),
+		.symbol(symbol));
 	
 	always @(posedge pll_clk) begin
-		counter <= counter + 1;
-		if (vga_active) begin
-			case({x[9:3], y[9:3]}) // case of x and y text coordinates
-				default: symbol <= 8'h20; // space
-				
+		if (!rst_n) begin
+			wr_addr <= -1;
+			wr_data <= 0;
+			wr_en <= 1;
+		end else begin
+			counter <= counter + 1;
+			// advance to next address
+			wr_addr <= wr_addr + 1;
+			wr_data <= 8'h20; // default space
+			if (wr_addr == 2000) begin
+				// we hit the end of the text buffer turn writes off
+				wr_en <= 0;
+			end
+			
+			// what value to write in the next cycle
+			case (wr_addr + 1)				
 				// first row (start on row 6/col 6)
-				{7'd5, 7'd5}: symbol <= 8'h54; // T
-				{7'd6, 7'd5}: symbol <= 8'h6F; // o
-				{7'd7, 7'd5}: symbol <= 8'h6d; // m
+				80*5 + 5: wr_data <= 8'h54; // T
+				80*5 + 6: wr_data <= 8'h6F; // o
+				80*5 + 7: wr_data <= 8'h6d; // m
 				// space
-				{7'd9, 7'd5}: symbol <= 8'h77; // w
-				{7'd10, 7'd5}: symbol <= 8'h61; // a
-				{7'd11, 7'd5}: symbol <= 8'h73; // s
+				80*5 + 9: wr_data <= 8'h77; // w
+				80*5 + 10: wr_data <= 8'h61; // a
+				80*5 + 11: wr_data <= 8'h73; // s
 				// space
-				{7'd13, 7'd5}: symbol <= 8'h68; // h
-				{7'd14, 7'd5}: symbol <= 8'h65; // e
-				{7'd15, 7'd5}: symbol <= 8'h72; // r
-				{7'd16, 7'd5}: symbol <= 8'h65; // e
-				// space
-				{7'd17, 7'd5}: symbol <= counter[23:16]; // counter 
-				
+				80*5 + 13: wr_data <= 8'h68; // h
+				80*5 + 14: wr_data <= 8'h65; // e
+				80*5 + 15: wr_data <= 8'h72; // r
+				80*5 + 16: wr_data <= 8'h65; // e
 			endcase
+
+			// put random data on lines 7 down
+			if (wr_addr + 1 > 7*80) begin
+				wr_data <= counter[7:0];
+			end
 		end
 	end
 	
