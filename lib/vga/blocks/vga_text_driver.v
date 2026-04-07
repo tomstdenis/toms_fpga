@@ -8,6 +8,7 @@ rom can produce the signal to output
 `timescale 1ns/1ps
 `default_nettype none
 
+// TODO: Currently only powers of two are supported for the Font dimensions
 module vga_text_driver #(
 	parameter H_TOTAL=640,									 		// visible width		
 	parameter V_TOTAL=480,											// visible height
@@ -23,7 +24,7 @@ module vga_text_driver #(
 // VGA signalling
     input wire  [$clog2(H_TOTAL):0]  x,								// Pixel X coordinate
     input wire  [$clog2(V_TOTAL):0]  y,								// Pixel Y coordinate
-    input wire        active_video,									// is the video active
+    input wire        active_video,									// is the video active (not in blanking region)
 
 // Memory
 	output reg [$clog2(TEXTCOLS*TEXTROWS):0] rd_addr,				// read address, assumes data is available with 1 wait state

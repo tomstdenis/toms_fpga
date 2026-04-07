@@ -28,6 +28,7 @@ module top(input clk, output reg [3:0] vga_r, output reg [3:0] vga_g, output reg
 	assign vga_h_pulse = vga_h_sync;
 	assign vga_v_pulse = vga_v_sync;
 
+	// this module produces the VGA timing signals other modules depend on
 	vga_timing vga(
 		.clk(pll_clk),
 		.rst_n(rst_n),
@@ -39,19 +40,20 @@ module top(input clk, output reg [3:0] vga_r, output reg [3:0] vga_g, output reg
 
 	wire [7:0] symbol;
 	wire text_out;
-	reg [23:0] counter = 0;
 	
 	// font rom (note we scale y by 2 to fit the 80x25 chars onto 640x480 a bit nicer)
+	// this module takes in the symbol value and x/y pixel position relative to the top left corner of the symbol
 	vga_8x8_font_256 font(.symbol(symbol), .x(vga_x[2:0]), .y(vga_y[3:1]), .out(text_out));	
 
-	reg [11:0] wr_addr;
+	reg [11:0] wr_addr;			// our write port to fill it
 	reg [7:0] wr_data;
 	reg wr_en;
 	
-	wire [11:0] rd_addr;
+	wire [11:0] rd_addr;		// the read port the vga_text_driver reads from
 	wire [7:0] rd_data;
 	
-	// frame buffer memory
+	// frame buffer memory, this is a semi-dual port 2KiB memory we're using where we write to it here
+	// and the driver reads from it
 	bram_sp_2048x8 mem(
 		.w_clk(pll_clk), .w_clk_en(1'b1), .w_rst(~rst_n),
 		.w_addr(wr_addr), .w_data(wr_data), .w_en(wr_en),
@@ -59,14 +61,19 @@ module top(input clk, output reg [3:0] vga_r, output reg [3:0] vga_g, output reg
 		.r_clk(pll_clk), .r_clk_en(1'b1), .r_rst(~rst_n),
 		.r_addr(rd_addr), .r_data(rd_data));
 
+	// VGA text mode driver, defaults to 80x25 using an 8x8 font
 	// notice we're scaling the font by 2 so we change the height to 16 here
 	vga_text_driver #(.FONTHEIGHT(16)) textdrv(
 		.clk(pll_clk), .rst_n(rst_n),
-		
 		.x(vga_x), .y(vga_y), .active_video(vga_active),
 		.rd_addr(rd_addr), .rd_data(rd_data),
 		.symbol(symbol));
+
+	// So the pipe is vga() produces the timing that
+	// textdrv() uses produces the next 'symbol' that
+	// font() uses to produce the next black/white signal fed to the VGA RGB output
 	
+	reg [23:0] counter = 0;
 	always @(posedge pll_clk) begin
 		if (!rst_n) begin
 			wr_addr <= -1;
@@ -85,7 +92,7 @@ module top(input clk, output reg [3:0] vga_r, output reg [3:0] vga_g, output reg
 			// what value to write in the next cycle
 			case (wr_addr + 1)				
 				// first row (start on row 6/col 6)
-				80*5 + 5: wr_data <= 8'h54; // T
+				80*5 + 5: wr_data <= 8'h54; // T			//80 * 5 + 5 is TEXTCOLS * vga_y/FONTHEIGHT + vga_x/FONTWIDTH
 				80*5 + 6: wr_data <= 8'h6F; // o
 				80*5 + 7: wr_data <= 8'h6d; // m
 				// space
