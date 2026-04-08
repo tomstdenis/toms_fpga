@@ -5,7 +5,7 @@ test_ib16_v2.pass: ib16_v2.v ib16_v2_tb.v uart_demo.s.bin aluloop.s.bin boot_rom
 	iverilog -DSIM -Wall -o sim.vvp ib16_v2.v ib16_v2_tb.v
 	(vvp sim.vvp -fst > $@.log && touch $@) || cat $@.log
 
-uart_demo.s.bin: uart_demo.s uart_demo_isr.s library.s tty.s ib16_as
+uart_demo.s.bin: uart_demo.s uart_demo_isr.s lib/uart.s lib/tty.s ib16_as
 # 8KB version
 	cpp -DIRQ_VECTOR=0x1E00 -DDEMO_PROG_SIZE=3968 uart_demo.s | grep -v \^# > /tmp/uart_demo.s 
 # 32KB version

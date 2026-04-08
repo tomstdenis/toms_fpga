@@ -58,6 +58,8 @@ JMP APP
 	LDI 6,0x00
 	LDI 7,0x00			; our tick counter
 	LDI 2,0x00
+	
+	LCALL ttyClear		; clear screen
 
 ; wait for a key
 	SRES 4				; mask the IRQ so we can read the UART here
@@ -166,8 +168,8 @@ JMP APP
 :NameStr
 .DUP 0x100
 
-.INC library.s		; include our library functions
-.INC tty.s			; include tty library
+.INC lib/uart.s			; include our library functions
+.INC lib/tty.s			; include tty library
 
 .ORG IRQ_VECTOR		; IRQ vector
 .INC uart_demo_isr.s
