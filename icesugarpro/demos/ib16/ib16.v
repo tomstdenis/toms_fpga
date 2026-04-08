@@ -69,6 +69,8 @@ module top(input clk,
     endgenerate
     assign gpio_in = gpio;
 
+	// ### UART ###
+
     wire [15:0] baud_div = (`FREQ * 1_000_000) / 230_400;
     reg uart_tx_start;
     reg [7:0] uart_tx_data_in;
@@ -84,8 +86,6 @@ module top(input clk,
     reg [1:0] uart_int_pending;
 `endif
 
-
-	// ### UART ###
     uart #(.FIFO_DEPTH(4), .RX_ENABLE(1), .TX_ENABLE(1)) mrtalky (
         .clk(pllclk), .rst_n(rst_n),
         .baud_div(baud_div),
@@ -443,9 +443,14 @@ module top(input clk,
 						8'h22: ib16_bus_data_out <= 16'h8b71;
 						8'h24: ib16_bus_data_out <= 16'habdc;
 						8'h26: ib16_bus_data_out <= 16'h7112;
-						8'h28: ib16_bus_data_out <= 16'hd5f6;
+						8'h28: ib16_bus_data_out <= 16'hd402;
 						8'h2a: ib16_bus_data_out <= 16'h4000;
 						8'h2c: ib16_bus_data_out <= 16'he008;
+						8'h2e: ib16_bus_data_out <= 16'h93fe;
+						8'h30: ib16_bus_data_out <= 16'ha310;
+						8'h32: ib16_bus_data_out <= 16'h8050;
+						8'h34: ib16_bus_data_out <= 16'hd5fc;
+						8'h36: ib16_bus_data_out <= 16'hd1f4;
                         default: ib16_bus_data_out <= 16'h0000;
                     endcase
                     ib16_bus_ready <= 1;

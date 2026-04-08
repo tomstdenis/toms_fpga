@@ -111,7 +111,7 @@ module ib16_v2_tb();
         // Waveform setup
         $dumpfile("ib16_v2.vcd");
         $dumpvars(0, ib16_v2_tb);
-		$readmemh("uart_demo.s.hex", demo_rom);
+		$readmemh("ecp5_demo.s.hex", demo_rom);
 		$readmemh("boot_rom.s.hex", boot_rom);
 		clk = 0;
 		rst_n = 0;

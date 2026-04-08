@@ -65,7 +65,12 @@ int main(int argc, char **argv)
 	}
 	tcdrain(fd);
 
+	bytes = 0;
 	while (bytes < size) {
+		if (!(bytes & 255)) {
+			printf(".");
+			fflush(stdout);
+		}
 		ch = fgetc(f);
 		if (ch != EOF) {
 			uint8_t b = ch;
@@ -74,18 +79,17 @@ int main(int argc, char **argv)
 				exit(-1);
 			}
 			tcdrain(fd);
-			if (read(fd, &b, 1) == 1) {
-				if (b == ch) {
-					++bytes;
-					printf("Wrote %4d (%d%% done)\r", bytes, (bytes * 100) / (size));
-					fflush(stdout);
+			if (bytes++ < 256) {
+				if (read(fd, &b, 1) == 1) {
+					if (b == ch) {
+					} else {
+						printf("\nRead timed out\n");
+						exit(-1);
+					}
 				} else {
-					printf("\nRead timed out\n");
+					printf("\nReadback mismatch: %02x\n", b);
 					exit(-1);
 				}
-			} else {
-				printf("\nReadback mismatch: %02x\n", b);
-				exit(-1);
 			}
 		} else {
 			break;
