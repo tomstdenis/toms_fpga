@@ -3,6 +3,7 @@
 ; ttyClear(void) -- Clear Screen
 ; ttyScroll(void) -- Scroll the screen
 ; ttyMoveXY(r1 = x, r2 = y) -- move cursor (no bounds checking)
+; ttyGetXY(r1 <= x, r2 <= y) -- retrieve cursor position
 
 ; ttyPutc(r1 = char to print)
 ; ttyPrintXY(r1 = x, r2 = y, r3 = char to print)
@@ -15,6 +16,7 @@
 .EQU TXTMEM2 0xE850				; start of 2nd line
 .EQU TXTSCROLLSIZE 0x0780		; how many bytes to scroll
 
+;
 ; clear screen
 .ALIGN 0x10
 :ttyClear
@@ -40,7 +42,7 @@
 	JNC TTYCLEARNC
 	DEC 13,13
 :TTYCLEARNC
-	OR 10,12,13
+	OR 10,12,13					; are the remaining byte counter bytes zero?
 	JNZ TTYCLEARLOOP
 	; set cursor to 0,0
 	LDI 1,0x00
@@ -81,6 +83,22 @@
 	POP 14
 	POP 15
 	RET
+
+; get cursor
+.ALIGN 0x10
+:ttyGetXY
+	PUSH 15
+	PUSH 14
+	LDI 14,>TTY_XY
+	LDI 15,<TTY_XY
+	LDM 1,15,14
+	INC 14,14
+	ADC 15,15,0
+	LDM 2,15,14
+	POP 14
+	POP 15
+	RET
+
 
 ; print a HEX char in r1
 .ALIGN 0x10

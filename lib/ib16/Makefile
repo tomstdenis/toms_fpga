@@ -1,6 +1,6 @@
-all: test_ib16_v2.pass uart_demo.s.bin upload
+all: test_ib16_v2.pass
 
-test_ib16_v2.pass: ib16_v2.v ib16_v2_tb.v uart_demo.s.bin aluloop.s.bin boot_rom.s.bin
+test_ib16_v2.pass: ib16_v2.v ib16_v2_tb.v uart_demo.s.bin boot_rom.s.bin
 	verilator -DSIM --lint-only ib16_v2.v ib16_v2_tb.v
 	iverilog -DSIM -Wall -o sim.vvp ib16_v2.v ib16_v2_tb.v
 	(vvp sim.vvp -fst > $@.log && touch $@) || cat $@.log
@@ -16,9 +16,6 @@ uart_demo.s.bin: uart_demo.s uart_demo_isr.s lib/uart.s lib/tty.s ib16_as
 
 boot_rom_ecp5.s.bin: boot_rom_ecp5.s ib16_as
 	./ib16_as boot_rom_ecp5.s
-
-aluloop.s.bin: aluloop.s ib16_as
-	./ib16_as aluloop.s
 
 boot_rom.s.bin: boot_rom.s ib16_as
 	./ib16_as boot_rom.s
