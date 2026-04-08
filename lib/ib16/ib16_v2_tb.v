@@ -14,9 +14,10 @@ module ib16_v2_tb();
 	reg bus_irq;
 	reg [31:0] additional_cycles;
 	ib16 #(
-		.STACK_ADDRESS(16'h7F00),
-		.IRQ_VECTOR(16'h7E00),
-		.BOOT_ROM_ADDR(16'hF000))
+		.STACK_ADDRESS(16'h1F00),		// configure for 8K model (add 6000 to both in 32K model)
+		.IRQ_VECTOR(16'h1E00),
+		.BOOT_ROM_ADDR(16'hF000),
+		.TWO_CYCLE(1))
 	ib16dut(
 		.clk(clk), .rst_n(rst_n),
 		.bus_enable(bus_enable),
@@ -40,7 +41,7 @@ module ib16_v2_tb();
 			bus_ready 		<= 0;
 			bus_data_out 	<= 0;
 			bus_irq 		<= 0;
-			demo_idx 		<= 15'h7FFF; // invalid address in STACK space tells us to send 0x5A
+			demo_idx 		<= 15'h7FFE; // invalid address in STACK space tells us to send 0x5A
 			additional_cycles <= 0; // on the real device we take multiple cycles per memory access so we add them back here
 		end else begin
 			if (bus_enable & !bus_ready) begin
@@ -80,8 +81,10 @@ module ib16_v2_tb();
 					if (bus_wr_en) begin
 					end else begin
 						// reads
-						if (demo_idx == 15'h7FFF) begin
-							bus_data_out[7:0] <= 8'h5A;
+						if (demo_idx == 15'h7FFE) begin
+							bus_data_out[7:0] <= 8'h5A;					// magic byte
+						end else if (demo_idx == 15'h7FFF) begin
+							bus_data_out[7:0] <= 8'h1F;					// number of 256 byte blocks 
 						end else begin
 							bus_data_out[7:0] <= demo_rom[demo_idx];
 						end

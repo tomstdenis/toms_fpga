@@ -197,7 +197,7 @@ module top(input clk,
         .STACK_ADDRESS(`STACK_ADDRESS),
         .IRQ_VECTOR(`IRQ_VECTOR),
         .BOOT_ROM_ADDR(`BOOT_ROM_ADDR),
-        .TWO_CYCLE(0)) ittybitty(
+        .TWO_CYCLE(1)) ittybitty(
         .clk(pllclk), .rst_n(rst_n),
         .bus_enable(ib16_bus_enable),
         .bus_wr_en(ib16_bus_wr_en),

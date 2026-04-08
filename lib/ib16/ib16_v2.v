@@ -59,6 +59,8 @@ module ib16 #(
 	reg 		mask_irq;
 	reg [15:0]	cur_opcode;
 	reg [8:0]	result_dff;							// the value to be retired
+	reg [8:0]	result_dff_l;						// latch version used if two cycle
+	wire [8:0]  result_dff_r = (TWO_CYCLE == 1) ? result_dff_l : result_dff;
 	
 	// various wires to look at the opcode
 	wire [3:0] opcode_isn  = cur_opcode[15:12];		// instruction
@@ -176,7 +178,8 @@ module ib16 #(
 `ifdef SIM
 			stats_cycles 	<= stats_cycles + 1'b1;
 `endif
-            if (state == FSM_BUFFER) begin   // buffer stage to help with ALU critical path timing
+            if (TWO_CYCLE == 1 && state == FSM_BUFFER) begin   // buffer stage to help with ALU critical path timing
+				result_dff_l <= result_dff;
                 state <= FSM_RETIRE;
             end
             if (state == FSM_FETCH || state == FSM_RETIRE) begin
@@ -185,17 +188,17 @@ module ib16 #(
                 if (!bus_enable && state == FSM_RETIRE) begin
                     // retire the previous op if any that requires a retirement
                     if (opcode_isn != OPCODE_CMP) begin
-                        reg_rr[{mask_irq,opcode_opd}]	    <= result_dff[7:0];
+							reg_rr[{mask_irq,opcode_opd}]	    <= result_dff_r[7:0];
                     end
-					reg_sreg[ZERO_FLAG]		<= result_dff[7:0] == 0 ? 1'b1 : 1'b0;
-                    reg_sreg[CARRY_FLAG]	<= result_dff[8];
+					reg_sreg[ZERO_FLAG]		<= result_dff_r[7:0] == 0 ? 1'b1 : 1'b0;
+                    reg_sreg[CARRY_FLAG]	<= result_dff_r[8];
                 end
                 // check for IRQs only if the bus is idle
                 if (bus_irq && !mask_irq && !bus_enable) begin
                     reg_irq_pc	      <= reg_pc;
                     // save SREG depending on how we ended up here the carry/zero flags might be from result_dff or reg_sreg
                     if (state == FSM_RETIRE) begin
-						reg_irq_sreg	<= { result_dff[8], result_dff[7:0] == 0 ? 1'b1 : 1'b0, reg_sreg[5:0] };
+						reg_irq_sreg	<= { result_dff_r[8], result_dff_r[7:0] == 0 ? 1'b1 : 1'b0, reg_sreg[5:0] };
                     end else begin
 						reg_irq_sreg    <= reg_sreg;
 					end
