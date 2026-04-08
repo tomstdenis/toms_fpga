@@ -294,7 +294,7 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, inout wire [
 
                 // 2000..20FF is the boot ROM
                 if (ib16_bus_address[15:8] == 8'h20) begin
-                    case(ib16_bus_address[7:0])
+                    case(ib16_bus_address[5:0])
                         8'h00: ib16_bus_data_out <= 16'h0eff;
                         8'h02: ib16_bus_data_out <= 16'h0fff;
                         8'h04: ib16_bus_data_out <= 16'h0000;
