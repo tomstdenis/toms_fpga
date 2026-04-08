@@ -65,7 +65,7 @@
 	PUSH 12
 	LDI	12,>NameStr
 	LDI 13,<NameStr
-	LCALL ReadStr			; Read a string into NameStr
+	LCALL ttyGets			; Read a string into NameStr
 	POP 12
 	POP 13
 	SRES 0
