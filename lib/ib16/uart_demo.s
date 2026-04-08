@@ -9,25 +9,25 @@
 .EQU TIMER_ADDR 0xFFF9
 .PROG_SIZE DEMO_PROG_SIZE
 
+JMP APP
+
+	LDI 0,0x00					; ensure r0 == 0
+	LDI 1,0x00
+:WWW
+	LDI 15,<TOM
+	LDI 14,>TOM
+	LCALL ttyPuts
+	LCALL ttyPrintHex
+	LCALL ttyPrintCRNL
+	INC 1,1
+	JNZ WWW
+	SRES 10 ; boot loader
+:TOM
+.DS "TOM WAS HERE == "
 ; we boot with r0==0 guaranteed so keep it that way for this app
 
-; write a cool string to video memory
-	LDI 15,0xE8
-	LDI 14,0x00  ; 0xE800 is video memory
-	LDI 13,<TOMSTR
-	LDI 12,>TOMSTR
-	SRES 3		 ; set both WI/RI bits
-:TOMSTRLOOP
-	LDM 1,13,12
-	JZ APP
-	STM 1,15,14
-	JMP TOMSTRLOOP
-
-:TOMSTR
-.DS 'Tom was here but like cooler...'
-
-:APP
 ; Setup ISR context
+:APP
 	SRES 4						; switch to IRQ context
 ; Load R15:R14 with UART address
 	LDI 14,>UART_ADDR
@@ -36,7 +36,6 @@
 	LDI 12,>GPIO0_ADDR
 	LDI 13,<GPIO0_ADDR
 	LDI 2,0x1B					; ESC key
-
 
 ; Setup App context
 	SRES 0						; switch back to APP context
@@ -66,13 +65,13 @@
 	SRES 0				; turn IRQs back on
 
 ; print welcome message
-	PUSH 13
-	PUSH 12
-	LDI	12,>StrName
-	LDI 13,<StrName
-	LCALL PrintStr			; print string
-	POP 12
-	POP 13
+	PUSH 15
+	PUSH 14
+	LDI	14,>StrName
+	LDI 15,<StrName
+	LCALL ttyPuts			; print string
+	POP 14
+	POP 15
 
 ; read name into namestr buffer
 	SRES 4				; mask the IRQ so we can read the UART here
@@ -86,32 +85,32 @@
 	SRES 0
 	
 ; print Hello
-	LCALL PrintNewline		; print a newline first
-	PUSH 13
-	PUSH 12
-	LDI	12,>StrNameHello
-	LDI 13,<StrNameHello
-	LCALL PrintStr			; print string
-	POP 12
-	POP 13
+	LCALL ttyPrintCRNL		; print a newline first
+	PUSH 15
+	PUSH 14
+	LDI	14,>StrNameHello
+	LDI 15,<StrNameHello
+	LCALL ttyPuts			; print string
+	POP 14
+	POP 15
 
 ; print string we read
-	PUSH 13
-	PUSH 12
-	LDI	12,>NameStr
-	LDI 13,<NameStr
-	LCALL PrintStr
-	POP 12
-	POP 13
+	PUSH 15
+	PUSH 14
+	LDI	14,>NameStr
+	LDI 15,<NameStr
+	LCALL ttyPuts
+	POP 14
+	POP 15
 
 ; print rest of prompt
-	PUSH 13
-	PUSH 12
-	LDI	12,>StrHello
-	LDI 13,<StrHello
-	LCALL PrintStr
-	POP 12
-	POP 13
+	PUSH 15
+	PUSH 14
+	LDI	14,>StrHello
+	LDI 15,<StrHello
+	LCALL ttyPuts
+	POP 14
+	POP 15
 
 ; let's read r7 from the UART
 	SRES 4				; mask IRQ
@@ -136,19 +135,19 @@
 	NOT 7,7				; revert counter for next loop
 
 	; print Counter message
-	PUSH 13
-	PUSH 12
-	LDI	12,>StrCounter	; lower pointer
-	LDI 13,<StrCounter  ; upper pointer
-	LCALL PrintStr
-	POP 12
-	POP 13
+	PUSH 15
+	PUSH 14
+	LDI	14,>StrCounter	; lower pointer
+	LDI 15,<StrCounter  ; upper pointer
+	LCALL ttyPuts
+	POP 14
+	POP 15
 
 	; print counter and newline
 	PUSH 1				; save r1
 	MOV 1,7				; r1 = r7
-	LCALL PrintHexByte  ; print it in hex to the terminal
-	LCALL PrintNewline
+	LCALL ttyPrintHex  ; print it in hex to the terminal
+	LCALL ttyPrintCRNL
 	POP 1				; restore r1
 
 	JMP LOOP
@@ -168,6 +167,8 @@
 .DUP 0x100
 
 .INC library.s		; include our library functions
+.INC tty.s			; include tty library
 
 .ORG IRQ_VECTOR		; IRQ vector
 .INC uart_demo_isr.s
+
