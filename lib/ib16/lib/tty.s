@@ -99,7 +99,6 @@
 	POP 15
 	RET
 
-
 ; print a HEX char in r1
 .ALIGN 0x10
 :ttyPrintHex

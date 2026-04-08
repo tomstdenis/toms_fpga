@@ -230,7 +230,7 @@ module ib16 #(
                         state		<= (bus_data_out[15:12] <= OPCODE_SHF) ? (TWO_CYCLE == 1 ? FSM_BUFFER : FSM_RETIRE): FSM_DECODE + {2'b0, bus_data_out[15:12]};
                    end
                 end
-            end
+            end /* FSM_RETIRE/FSM_FETCH */
             if (state == FSM_DECODE + OPCODE_LDM) begin
                 if (!bus_enable) begin
                     bus_enable			  <= 1;
@@ -255,7 +255,7 @@ module ib16 #(
                     reg_sreg[CARRY_FLAG]	<= 0;
                     state					<= FSM_FETCH;
                 end
-            end
+            end /* FSM_DECODE/OPCODE_LDM */
             if (state == FSM_DECODE + OPCODE_STM) begin
                 if (!bus_enable) begin
                     bus_enable			<= 1;
@@ -279,7 +279,7 @@ module ib16 #(
                     bus_wr_en   <= 0;
                     state       <= FSM_FETCH;
                 end
-            end
+            end /* FSM_DECODE/OPCODE_STM */
             if (state == FSM_DECODE + OPCODE_LCAL) begin
                 if (!bus_enable) begin
                     bus_enable		<= 1;
@@ -297,7 +297,7 @@ module ib16 #(
                     bus_burst       <= 0;
                     bus_wr_en       <= 0;
                 end
-            end
+            end /* FSM_DECODE/OPCODE_LCALL */
             if (state == FSM_DECODE + OPCODE_RTI) begin
                 mask_irq 			<= 0;
                 reg_pc	 			<= reg_irq_pc + 16'd2;
@@ -309,7 +309,7 @@ module ib16 #(
 				bus_address_termb   <= 0;
 				bus_burst           <= 1'b1;              // read 16-bits
                 state				<= FSM_FETCH;
-            end
+            end /* FSM_DECODE/OPCODE_RTI */
             if (state == FSM_DECODE + OPCODE_RET) begin
                 if (!bus_enable) begin 
                     bus_enable		  <= 1;
@@ -324,7 +324,7 @@ module ib16 #(
                     state           <= FSM_FETCH;
                     reg_pc          <= bus_data_out;
                 end
-            end
+            end /* FSM_DECODE/OPCODE_RET */
             if (state == FSM_DECODE + OPCODE_JMP) begin
                 if ((opcode_3imm == 0) ||                           // JMP
                     (opcode_3imm == 1 && carry_flag) ||             // JC
@@ -345,7 +345,7 @@ module ib16 #(
 				bus_address_termb <= 0;
 				bus_burst         <= 1'b1;              // read 16-bits
                 state             <= FSM_FETCH;
-            end
+            end /* FSM_DECODE/OPCODE_JMPs */
             if (state == FSM_DECODE + OPCODE_SRS) begin
                 if (opcode_8imm[3] == 1 || opcode_8imm[4] == 1) begin
                     // boot user(3) or loader(!3,4) app mode
@@ -362,7 +362,7 @@ module ib16 #(
                     mask_irq    <= opcode_8imm[2];
                 end
                 state       <= FSM_FETCH;
-            end
+            end /* FSM_DECODE/OPCODE_SRS */
 		end
 	end
 endmodule

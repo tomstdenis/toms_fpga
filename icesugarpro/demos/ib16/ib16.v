@@ -57,8 +57,7 @@ module top(input clk,
 		end
 	end
 	
-// TODO use primitive for this ...
-    // GPIO
+    // ### GPIO ###
     reg [15:0] gpio_out;
     wire [15:0] gpio_in;
 
@@ -85,6 +84,8 @@ module top(input clk,
     reg [1:0] uart_int_pending;
 `endif
 
+
+	// ### UART ###
     uart #(.FIFO_DEPTH(4), .RX_ENABLE(1), .TX_ENABLE(1)) mrtalky (
         .clk(pllclk), .rst_n(rst_n),
         .baud_div(baud_div),
@@ -98,26 +99,24 @@ module top(input clk,
         .uart_rx_ready(uart_rx_ready),
         .uart_rx_byte(uart_rx_byte));
 
-    wire [7:0] bram_dout;
-    reg bram_ce;
-    reg bram_wre;
-    reg [10+$clog2(`BLOCKS):0] bram_addr;
-    reg [7:0] bram_din;
+	// ### main memory ###  we use a dual port 8-bit memory so we can do
+	// 8 or 16 bit operations in the same amount of time
+	reg [10+$clog2(`BLOCKS):0] main_mem_addr_a;
+	reg [7:0] main_mem_din_a;
+	reg main_mem_we_a;
+	wire [7:0] main_mem_dout_a;
+	
+	reg [10+$clog2(`BLOCKS):0] main_mem_addr_b;
+	reg [7:0] main_mem_din_b;
+	reg main_mem_we_b;
+	wire [7:0] main_mem_dout_b;
 
-	// Main Itty Bitty `BLOCKS*2048x8 memory
-	bram_sp_nx2048x8 #(.N(`BLOCKS)) memory(
-		.w_clk(pllclk),
-		.w_clk_en(1'b1),
-		.w_rst(~rst_n),
-		.w_addr(bram_addr),
-		.w_data(bram_din),
-		.w_en(bram_wre),
-		.r_clk(pllclk),
-		.r_clk_en(1'b1),
-		.r_rst(~rst_n),
-		.r_addr(bram_addr),
-		.r_data(bram_dout));
-
+	bram_dp_nx2048x8 #(.N(`BLOCKS)) main_mem (
+		.clk_a(pllclk), .clk_en_a(1'b1), .rst_a(~rst_n),
+		.addr_a(main_mem_addr_a), .din_a(main_mem_din_a), .we_a(main_mem_we_a), .dout_a(main_mem_dout_a),
+		
+		.clk_b(pllclk), .clk_en_b(1'b1), .rst_b(~rst_n),
+		.addr_b(main_mem_addr_b), .din_b(main_mem_din_b), .we_b(main_mem_we_b), .dout_b(main_mem_dout_b));
 	// bit widths are for 640x480 VGA
 	wire [9:0] vga_x;
 	wire [9:0] vga_y;
@@ -128,7 +127,7 @@ module top(input clk,
 	assign vga_h_pulse = vga_h_sync;
 	assign vga_v_pulse = vga_v_sync;
 
-	// this module produces the VGA timing signals other modules depend on
+	// ### VGA ### this module produces the VGA timing signals other modules depend on
 	vga_timing vga(
 		.clk(pll2clk),
 		.rst_n(rst2_n),
@@ -141,7 +140,7 @@ module top(input clk,
 	wire [7:0] text_symbol;
 	wire text_out;
 	
-	// font rom (note we scale y by 2 to fit the 80x25 chars onto 640x480 a bit nicer)
+	// ### font rom ### (note we scale y by 2 to fit the 80x25 chars onto 640x480 a bit nicer)
 	// this module takes in the symbol value and x/y pixel position relative to the top left corner of the symbol
 	vga_8x8_font_256 font(.symbol(text_symbol), .x(vga_x[2:0]), .y(vga_y[3:1]), .out(text_out));	
 
@@ -161,7 +160,7 @@ module top(input clk,
 		.clk_b(pll2clk), .clk_en_b(1'b1), .rst_b(~rst2_n), 
 		.addr_b(text_addr_b), .din_b(), .we_b(1'b0), .dout_b(text_dout_b));
 
-	// VGA text mode driver, defaults to 80x25 using an 8x8 font
+	// ### VGA text mode driver ###, defaults to 80x25 using an 8x8 font
 	// notice we're scaling the font by 2 so we change the height to 16 here
 	vga_text_driver #(.FONTHEIGHT(16)) textdrv(
 		.clk(pll2clk), .rst_n(rst2_n),
@@ -180,8 +179,7 @@ module top(input clk,
 		end
 	end
 
-
-	// IttyBitty Device
+	// ### IttyBitty Device ###
     wire ib16_bus_enable;
     wire ib16_bus_wr_en;
     wire [15:0] ib16_bus_address;
@@ -214,10 +212,12 @@ module top(input clk,
             uart_tx_start       <= 0;
             uart_tx_data_in     <= 0;
             uart_rx_read        <= 0;
-            bram_ce             <= 0;
-            bram_wre            <= 0;
-            bram_addr           <= 0;
-            bram_din            <= 0;
+            main_mem_we_a 		<= 0;
+            main_mem_addr_a		<= 0;
+            main_mem_din_a		<= 0;
+            main_mem_we_b 		<= 0;
+            main_mem_addr_b		<= 0;
+            main_mem_din_b		<= 0;
             ib16_bus_ready      <= 0;
             ib16_bus_data_out   <= 0;
             ib16_bus_irq        <= 0;
@@ -343,50 +343,32 @@ module top(input clk,
                     case(bus_cycle[1:0])
                         0: // start transaction (this cycle delay handles the fact that bus_address is combinatorial)
                             begin
-                                bram_ce     <= 1;
-                                bram_wre    <= ib16_bus_wr_en;
-                                bram_addr   <= ib16_bus_address[10+$clog2(`BLOCKS):0];
-                                bram_din    <= ib16_bus_data_in[7:0];
-                                bus_cycle   <= bus_cycle + 1'b1;
+								main_mem_we_a   <= ib16_bus_wr_en;
+								main_mem_we_b   <= ib16_bus_burst ? ib16_bus_wr_en : 1'b0;
+								main_mem_addr_a <= ib16_bus_address[10+$clog2(`BLOCKS):0];
+								main_mem_addr_b <= ib16_bus_address[10+$clog2(`BLOCKS):0] + 1'b1;
+                                main_mem_din_a  <= ib16_bus_data_in[7:0];
+                                main_mem_din_b  <= ib16_bus_data_in[15:8];
+                                bus_cycle       <= bus_cycle + 1'b1;
                             end
                         1: // memory 2nd cycle
                             begin
-                                if (bram_wre && !ib16_bus_burst) begin // 8-bit writes are done here
+                                if (ib16_bus_wr_en) begin // writes are done here
                                     bus_cycle       <= 0;
-                                    bram_wre        <= 0;
-                                    bram_ce         <= 0;
+                                    main_mem_we_a	<= 0;
+                                    main_mem_we_b 	<= 0;
                                     ib16_bus_ready  <= 1;
                                 end else begin                     // all reads take 3 cycles, burst writes take 3  
                                     bus_cycle       <= bus_cycle + 1'b1;
-                                    bram_addr       <= bram_addr + 1'b1;
-                                    bram_din        <= ib16_bus_data_in[15:8];
                                 end
                             end
                         2: // memory 3rd cycle
                             begin
-                                if (bram_wre) begin // writes are done here
-                                    bram_ce             <= 0;
-                                    bram_wre            <= 0;
-                                    bus_cycle           <= 0;
-                                    ib16_bus_ready      <= 1;
-                                end else begin
-                                    ib16_bus_data_out[7:0] <= bram_dout;
-                                    if (!ib16_bus_burst) begin          // 8-bit reads are done here
-                                        bus_cycle       <= 0;
-                                        bram_ce         <= 0;
-                                        ib16_bus_ready  <= 1;
-                                    end else begin
-                                        bus_cycle       <= bus_cycle + 1'b1;
-                                    end
-                                end
-                            end
-                        3: // memory 4th cycle (16-bit reads)
-                            begin
-                                ib16_bus_data_out[15:8] <= bram_dout;
-                                bus_cycle               <= 0;
-                                bram_ce                 <= 0;
-                                ib16_bus_ready          <= 1;
-                            end
+								ib16_bus_data_out[7:0]  <= main_mem_dout_a;
+								ib16_bus_data_out[15:8] <= ib16_bus_burst ? main_mem_dout_b : 8'b0;
+								bus_cycle               <= 0;
+								ib16_bus_ready          <= 1;
+							end
                     endcase
                 end
 
