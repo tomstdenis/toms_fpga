@@ -5,6 +5,7 @@
 #include <string.h>
 #include <ctype.h>
 #include <inttypes.h>
+#include <dirent.h>
 
 // max program size is the full 64KB though in practice smaller than that since you want stack/ISR/mmio
 #define MAX_PROG_SIZE 32768
@@ -36,6 +37,8 @@ struct compiler_state {
 	uint16_t PC;
 	uint16_t bin_start;
 };
+
+void compile_file(struct compiler_state *state, char *fname);
 
 // operand formats for various opcodes
 #define OP_FMT_3OP 		0		// ALU 3 operand format R[d] = R[a] op R[b]
@@ -130,7 +133,7 @@ void compile_opcodes(struct compiler_state *state, char *line)
 {
 	int x;
 	for (x = 0; e1_opcodes[x].opname; x++) {
-		if (!memcmp(line, e1_opcodes[x].opname, strlen(e1_opcodes[x].opname)) && iswhitespace(&line[strlen(e1_opcodes[x].opname)])) {
+		if (!memcmp(line, e1_opcodes[x].opname, strlen(e1_opcodes[x].opname)) && (!line[strlen(e1_opcodes[x].opname)] || iswhitespace(&line[strlen(e1_opcodes[x].opname)]))) {
 			// matched an opcode
 			line += strlen(e1_opcodes[x].opname);
 			consume_whitespace(&line);
@@ -288,6 +291,31 @@ void compile_opcodes(struct compiler_state *state, char *line)
 	}
 }	
 
+void insert_symbol(struct compiler_state *state, char *line)
+{
+	int x;
+	for (x = 0; x < MAX_PROG_SIZE; x++) {
+		if (state->symbols[x].label[0] == 0) {
+			consume_label(state->symbols[x].label, &line);
+			consume_whitespace(&line);
+			sscanf(line, "%"SCNx16, &state->symbols[x].value);
+			break;
+		}
+	}
+}
+
+int find_symbol(struct compiler_state *state, char *line)
+{
+	int y;
+	for (y = 0; y < MAX_PROG_SIZE; y++) {
+		if (!memcmp(state->symbols[y].label, line, strlen(state->symbols[y].label))) {
+			// todo: ensure next line char is NUL or whitespace
+			return state->symbols[y].value; // symbols are literal constants and should be returned verbatim
+		}
+	}
+	return -1;
+}
+
 void compile(struct compiler_state *state, char *line)
 {
 	strcpy(state->program[state->PC].line, line);
@@ -299,28 +327,33 @@ void compile(struct compiler_state *state, char *line)
 	}
 	// is it .ORG ?
 	if (!memcmp(line, ".ORG ", 5)) {
+		int y;
 		line += 5;
-		sscanf(line, "%"SCNx16, &state->PC);
-		state->PC >>= 1;
+		y = find_symbol(state, line);
+		if (y >= 0) {
+			state->PC = y >> 1;
+		} else {
+			fprintf(stderr, "Undefined symbol for ORG '%s'\n", line);
+			exit(-1);
+		}
 	} else if (!memcmp(line, ".PROG_SIZE ", 11)) {
+		int y;
 		line += 11;
-		sscanf(line, "%d", &state->prog_size); 
+		y = find_symbol(state, line);
+		if (y >= 0) {
+			state->prog_size = y;
+		} else {
+			fprintf(stderr, "Undefined symbol for PROG_SIZE '%s'\n", line);
+			exit(-1);
+		}
 	} else if (!memcmp(line, ".BIN_START ", 11)) {
 		line += 11;
 		sscanf(line, "%"SCNx16, &state->bin_start);
 		state->bin_start >>= 1;
 	} else if (!memcmp(line, ".EQU ", 5)) {
-		int x;
 		line += 5;
 		consume_whitespace(&line);
-		for (x = 0; x < MAX_PROG_SIZE; x++) {
-			if (state->symbols[x].label[0] == 0) {
-				consume_label(state->symbols[x].label, &line);
-				consume_whitespace(&line);
-				sscanf(line, "%"SCNx16, &state->symbols[x].value);
-				break;
-			}
-		}
+		insert_symbol(state, line);
 	} else if (!memcmp(line, ".ALIGN ", 7)) {
 		uint8_t x;
 		line += 7;
@@ -410,9 +443,7 @@ void compile(struct compiler_state *state, char *line)
 	} else if (!memcmp(line, ".INC ", 5)) {
 		char *tmpfname = state->cur_filename;
 		int tmpln = state->line_number;
-		char tmpline[512];
 		char newfname[512];
-		FILE *f;
 		
 		// skip to filename
 		line += 5;
@@ -420,20 +451,7 @@ void compile(struct compiler_state *state, char *line)
 		
 		// consume filename
 		consume_fname(newfname, &line);
-		state->cur_filename = strdup(newfname);
-		state->line_number  = 1;
-		f = fopen(state->cur_filename, "r");
-		if (!f) {
-			printf("Could not open include file '%s' from %s:%d\n", state->cur_filename, tmpfname, tmpln);
-			exit(-1);
-		}
-		
-		// compile included file
-		while (fgets(tmpline, sizeof(tmpline) - 1, f)) {
-			compile(state, tmpline);
-			++(state->line_number);
-		}
-		fclose(f);
+		compile_file(state, newfname);
 		
 		// resume parent file
 		state->cur_filename = tmpfname;
@@ -447,11 +465,12 @@ void compile(struct compiler_state *state, char *line)
 	}
 }
 
-int find_target(struct compiler_state *state, int x)
+int find_target(struct compiler_state *state, int x, char **missing_symbol)
 {
 	int y;
 	uint16_t d;
 
+	*missing_symbol = NULL;
 	for (y = 0; y < MAX_PROG_SIZE; y++) {
 		if (!strcmp(state->program[y].label, state->program[x].tgt)) {
 			return y << 1; // labels are placed in the stream at word offsets so return the byte offset
@@ -465,20 +484,24 @@ int find_target(struct compiler_state *state, int x)
 	if (sscanf(state->program[x].tgt, "%"SCNx16, &d) == 1) {
 		return d;
 	}
-	printf("Line %d: Target '%s' not found!\n", state->program[x].line_number, state->program[x].tgt);
-	exit(-1);
+	*missing_symbol = state->program[x].tgt;
+	return -1;
 }
 
-void resolve_labels(struct compiler_state *state)
+int resolve_labels(struct compiler_state *state, char **missing_symbol)
 {
 	int16_t y;
-	int x;
+	int x, z;
 	
 	for (x = 0; x < MAX_PROG_SIZE; x++) {
 		switch (e1_opcodes[state->program[x].opidx].fmt) {
 			case OP_FMT_8IMM:
 				if (state->program[x].tgt[0]) {
-					y = find_target(state, x);
+					y = z = find_target(state, x, missing_symbol);
+					if (z < 0) {
+						// symbol not found
+						return -1;
+					}
 					if (state->program[x].use_top_half) {
 						y >>= 8;
 					} else if (state->program[x].use_bottom_half) {
@@ -490,7 +513,11 @@ void resolve_labels(struct compiler_state *state)
 			case OP_FMT_12IMMT: //CALL
 				if (state->program[x].tgt[0]) {
 					// jumping to a target 
-					y = find_target(state, x);
+					y = z = find_target(state, x, missing_symbol);
+					if (z < 0) {
+						// symbol not found
+						return -1;
+					}
 					if (state->program[x].use_top_half) {
 						y >>= 8;
 					} else if (state->program[x].use_bottom_half) {
@@ -503,7 +530,12 @@ void resolve_labels(struct compiler_state *state)
 				if (state->program[x].tgt[0]) {
 					int16_t off;
 					// jumping to a target 
-					y = find_target(state, x) >> 1;
+					y = z = find_target(state, x, missing_symbol);
+					if (z < 0) {
+						// symbol not found
+						return -1;
+					}
+					y >>= 1; // convert to word offset from byte offset
 					if (state->program[x].use_top_half) {
 						y >>= 8;
 					} else if (state->program[x].use_bottom_half) {
@@ -516,7 +548,11 @@ void resolve_labels(struct compiler_state *state)
 			case OP_FMT_LITERAL:
 				if (state->program[x].tgt[0]) {
 					// jumping to a target 
-					y = find_target(state, x);
+					y = z = find_target(state, x, missing_symbol);
+					if (z < 0) {
+						// symbol not found
+						return -1;
+					}					
 					if (state->program[x].use_top_half) {
 						y >>= 8;
 					} else if (state->program[x].use_bottom_half) {
@@ -529,99 +565,163 @@ void resolve_labels(struct compiler_state *state)
 				break;
 		}
 	}
+	return 0;
 }
 
-int main(int argc, char **argv)
+void compile_file(struct compiler_state *state, char *fname)
 {
-	char outname[128];
-	char linebuf[256];
 	FILE *f;
-	int x, y, z;
-	struct compiler_state *state;
-	
-	state = calloc(1, sizeof *state);
-
-	if (argc != 2) {
-		printf("Usage: %s input.s\n", argv[0]);
-		return 0;
+	char linebuf[256];
+	f = fopen(fname, "r");
+	if (!f) {
+		fprintf(stderr, "File '%s' not found!\n", fname);
+		exit(-1);
 	}
-	sprintf(outname, "%s.hex", argv[1]);
-	state->cur_filename = strdup(argv[1]);		 	// initial fname	
-	state->prog_size    = 4096;				// default to 8KB programs
-	state->line_number  = 1;
-	
-	for (x = 0; x < MAX_PROG_SIZE; x++) {
-		state->program[x].opcode = 0x0000;
-		state->program[x].line_number = -1;
-	}
-	
-	// compile code
-	f = fopen(argv[1], "r");
-	if (f) {
-		while (fgets(linebuf, sizeof(linebuf) - 2, f)) {
-			compile(state, linebuf);
-			++(state->line_number);
+	memset(linebuf, 0, sizeof linebuf);
+	printf("Compiling %s...\n", fname);
+	state->line_number = 1;
+	state->cur_filename = strdup(fname);
+	while (fgets(linebuf, sizeof(linebuf) - 1, f)) {
+		int n = strlen(linebuf) - 1;
+		while (linebuf[n] == '\r' || linebuf[n] == '\n') {
+			linebuf[n--] = 0;
 		}
-		fclose(f);
-	}
-	resolve_labels(state);
-
-	// output in various formats
-	sprintf(outname, "%s.bin", argv[1]);
-	f = fopen(outname, "wb");
-	printf("Outputting binary: %d, %d\n", state->bin_start, state->prog_size);
-	for (x = state->bin_start; x < state->bin_start + state->prog_size; x++) {
-		fputc(state->program[x].opcode&0xFF, f);
-		fputc((state->program[x].opcode>>8)&0xFF, f);
+		compile(state, linebuf);
+		++(state->line_number);
 	}
 	fclose(f);
+}
+
+int scan_file(char *fname, char *missing_symbol)
+{
+	FILE *f;
+	char linebuf[512], *line;
 	
-	sprintf(outname, "%s.hex", argv[1]);
-	f = fopen(outname, "w");
+	f = fopen(fname, "r");
+	if (!f) {
+		fprintf(stderr, "Cannot open linker file %s\n", fname);
+		exit(-1);
+	}
+	memset(linebuf, 0, sizeof linebuf);
+	while (fgets(linebuf, sizeof(linebuf)-1, f)) {
+		line = &linebuf[0];
+		consume_whitespace(&line);
+		if (line[0] == ':' && !memcmp(line+1, missing_symbol, strlen(missing_symbol))) {
+			return 1;
+		}
+	}
+	return 0;
+}
+
+int link(struct compiler_state *state, char *libdir, char *missing_symbol)
+{
+	DIR *d;
+	struct dirent *de;
+	
+	// we scan libdir for any file that has a line starting with ":%s" (missing_symbol)
+	d = opendir(libdir);
+	if (!d) { 
+		fprintf(stderr, "Could not open directory '%s'\n", libdir);
+		exit(-1);
+	}
+	
+	while ((de = readdir(d))) {
+		if (de->d_type == DT_DIR) {
+			// directories
+			if (strcmp(de->d_name, ".") && strcmp(de->d_name, "..")) {
+				char newdir[512];
+				sprintf(newdir, "%s%s/", libdir, de->d_name);
+				if (!link(state, newdir, missing_symbol)) {
+					return 0;
+				}
+			}
+		} else if (de->d_type == DT_REG) {
+			// regular file
+			char fname[512];
+			sprintf(fname, "%s%s", libdir, de->d_name);
+			if (scan_file(fname, missing_symbol)) {
+				compile_file(state, fname);
+				return 0;
+			}
+		}
+	}
+	return -1;
+}
+
+void emit_hexfile(struct compiler_state *state, char *fname)
+{
+	FILE *f;
+	int x;
+	f = fopen(fname, "w");
+	if (!f) {
+		fprintf(stderr, "Could not open the hex output file '%s'\n", fname);
+		exit(-1);
+	}
+	
 	//fprintf(f, "#File_format=Hex\n#Address_depth=%d\n#Data_width=8\n", prog_size);
 	for (x = state->bin_start; x < state->bin_start + state->prog_size; x++) {
 		fprintf(f, "%02X\n", (state->program[x].opcode)&0xFF);
 		fprintf(f, "%02X\n", (state->program[x].opcode>>8)&0xFF);
 	}
 	fclose(f);
+}
 
-	for (x = y = 0; x < MAX_PROG_SIZE; x++) {
-		if (state->program[x].line_number != -1) {
-			++y;
-		}
+void emit_binfile(struct compiler_state *state, char *fname)
+{
+	FILE *f;
+	int x;
+
+	f = fopen(fname, "wb");
+	if (!f) {
+		fprintf(stderr, "Could not open the bin output file '%s'\n", fname);
+		exit(-1);
 	}
-	printf("%s created, used %d (%d%%) out of %d words.\n", outname, y, (y * 100) / (state->prog_size - state->bin_start), state->prog_size - state->bin_start);
-	if (y > (state->prog_size-(state->prog_size/10)) && y != state->prog_size) {
-		// find the user some space
-		printf("Limited free space here's a map of free space:\n");
-		for (x = 0; x < state->prog_size; x++) {
-			if (state->program[x].line_number == -1) {
-				printf("ROM[%x] is free\n", x);
-			}
-		}
+
+	for (x = state->bin_start; x < state->bin_start + state->prog_size; x++) {
+		fputc(state->program[x].opcode&0xFF, f);
+		fputc((state->program[x].opcode>>8)&0xFF, f);
 	}
-	printf("Verilog:\n");
+	fclose(f);
+}
+
+void emit_romfile(struct compiler_state *state, char *fname)
+{
+	FILE *f;
+	int x, z;
+	f = fopen(fname, "w");
+	if (!f) {
+		fprintf(stderr, "Could not open the rom output file '%s'\n", fname);
+		exit(-1);
+	}
+
 	for (z = x = 0; z < state->prog_size && x < MAX_PROG_SIZE; x++) {
 		if (state->program[x].line_number != -1) {
 			++z;
-			printf("8'h%02x: ib16_bus_data_out <= 16'h%02x%02x;\n", (x*2)&0xFF, state->program[x].opcode>>8, state->program[x].opcode&0xFF);
+			fprintf(f, "8'h%02x: ib16_bus_data_out_l <= 16'h%02x%02x;\n", (x*2)&0xFF, state->program[x].opcode>>8, state->program[x].opcode&0xFF);
 		}
 	}
+	fclose(f);
+}
+
+void emit_lstfile(struct compiler_state *state, char *fname)
+{
+	FILE *f;
+	int x, y, z;
+	char linebuf[512];
 	
-	printf("Symbols: \n");
-	for (x = 0; x < state->prog_size; x++) {
-		if (state->symbols[x].label[0]) {
-			printf("Symbol %s == %x\n", state->symbols[x].label, state->symbols[x].value);
-		}
+	f = fopen(fname, "w");
+	if (!f) {
+		fprintf(stderr, "Could not open the listing output file '%s'\n", fname);
+		exit(-1);
 	}
-	printf("Listing: \n");
+
 	for (z = x = 0; z < state->prog_size && x < MAX_PROG_SIZE; x++) {
 		if (state->program[x].line_number != -1) {
 			++z;
 			if (state->program[x].label[0]) {
-				printf("[%-15s ", state->program[x].label);
+				fprintf(f, "[%-15s ", state->program[x].label);
 			} else {
-				printf("[%16s", "");
+				fprintf(f, "[%16s", "");
 			}
 			strcpy(linebuf, state->program[x].line);
 			linebuf[20] = 0;
@@ -634,7 +734,102 @@ int main(int argc, char **argv)
 					linebuf[y] = ' ';
 				}
 			}
-			printf("0x%04X]: 0x%04X ; %-20s (%s:%d)\n", x*2, state->program[x].opcode, linebuf, state->program[x].fname, state->program[x].line_number);
+			fprintf(f, "0x%04X]: 0x%04X ; %-20s (%s:%d)\n", x*2, state->program[x].opcode, linebuf, state->program[x].fname, state->program[x].line_number);
+		}
+	}
+	fclose(f);
+}
+
+int main(int argc, char **argv)
+{
+	int i;
+	struct compiler_state *state;
+	char *libdir = "lib/";
+	char *missing_symbol = NULL;
+	
+	state = calloc(1, sizeof *state);
+	state->prog_size    = 4096;				// default to 8KB programs
+	state->line_number  = 1;
+	
+	for (i = 0; i < MAX_PROG_SIZE; i++) {
+		state->program[i].opcode = 0x0000;
+		state->program[i].line_number = -1;
+	}
+	
+	// options pass
+	for (i = 0; i < argc; i++) {
+		if (!strcmp(argv[i], "--lib")) {
+			if (i + 1 < argc) {
+				libdir = argv[i+1];
+				++i;
+			} else {
+				fprintf(stderr, "--lib requires a parameter\n");
+				exit(-1);
+			}
+		} else if (!strcmp(argv[i], "--define")) {
+			if (i + 2 < argc) {
+				char line[512];
+				sprintf(line, "%s %s", argv[i+1], argv[i+2]);
+				insert_symbol(state, line);
+				i += 2;
+			} else {
+				fprintf(stderr, "--define requires two parameters\n");
+				exit(-1);
+			}
+		}
+	}
+	
+	// assemble files pass
+	for (i = 0; i < argc; i++) {
+		char *s = strstr(argv[i], ".s");
+		if (s && s[2] == 0) { 
+			// .s file so compile it
+			compile_file(state, argv[i]);
+		}
+	}
+	
+	// linking pass
+	missing_symbol = NULL;
+	while (resolve_labels(state, &missing_symbol) != 0) {
+		if (link(state, libdir, missing_symbol) < 0) {
+			fprintf(stderr, "Could not link in symbol '%s'\n", missing_symbol);
+			exit(-1);
+		}
+	}
+
+	for (i = 0; i < argc; i++) {
+		if (!strcmp(argv[i], "--hex")) {
+			if (i + 1 < argc) {
+				emit_hexfile(state, argv[i+1]);
+				++i;
+			} else {
+				fprintf(stderr, "--hex requires a parameter\n");
+				exit(-1);
+			}
+		} else if (!strcmp(argv[i], "--bin")) {
+			if (i + 1 < argc) {
+				emit_binfile(state, argv[i+1]);
+				++i;
+			} else {
+				fprintf(stderr, "--bin requires a parameter\n");
+				exit(-1);
+			}
+		} else if (!strcmp(argv[i], "--rom")) {
+			if (i + 1 < argc) {
+				emit_romfile(state, argv[i+1]);
+				++i;
+			} else {
+				fprintf(stderr, "--rom requires a parameter\n");
+				exit(-1);
+			}
+		} else if (!strcmp(argv[i], "--list")) {
+			if (i + 1 < argc) {
+				emit_lstfile(state, argv[i+1]);
+				++i;
+			} else {
+				fprintf(stderr, "--list requires a parameter\n");
+				exit(-1);
+			}
 		}
 	}
 	return 0;

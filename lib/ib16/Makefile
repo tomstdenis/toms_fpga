@@ -5,14 +5,12 @@ test_ib16_v2.pass: ib16_v2.v ib16_v2_tb.v ecp5_demo.s.bin boot_rom.s.bin boot_ro
 	iverilog -DSIM -Wall -o sim.vvp ib16_v2.v ib16_v2_tb.v
 	(vvp sim.vvp -fst > $@.log && touch $@) || cat $@.log
 
-ecp5_demo.s.bin: ecp5_demo.s ecp5_demo.s lib/uart.s lib/tty.s ib16_as
+ecp5_demo.s.bin: ecp5_demo.s ecp5_demo.s ib16_as
 # 8KB version
 #	cpp -DIRQ_VECTOR=0x1E00 -DDEMO_PROG_SIZE=3968 ecp5_demo.s | grep -v \^# > /tmp/ecp5_demo.s 
+#	./ib16_as --define IRQ_VECTOR 0x1E00 --define DEMO_PROG_SIZE F80 ecp5_demo.s --bin ecp5_demo.s.bin --list ecp5_demo.s.lst
 # 32KB version
-	cpp -DIRQ_VECTOR=0x7E00 -DDEMO_PROG_SIZE=16256 ecp5_demo.s | grep -v \^# > /tmp/ecp5_demo.s 
-# Generate binary
-	./ib16_as /tmp/ecp5_demo.s
-	mv -vf /tmp/ecp5_demo.s.* .
+	./ib16_as --define IRQ_VECTOR 0x7E00 --define DEMO_PROG_SIZE 3F80 ecp5_demo.s --bin ecp5_demo.s.bin --list ecp5_demo.s.lst
 
 boot_rom_ecp5.s.bin: boot_rom_ecp5.s ib16_as
 	./ib16_as boot_rom_ecp5.s
@@ -30,4 +28,4 @@ upload: upload.c
 	gcc -O0 -Wall upload.c -o upload
 
 clean:
-	rm -f *.vvp *.vcd *.pass *.log ib16_as *.hex *.bin upload
+	rm -f *.vvp *.vcd *.pass *.log ib16_as *.hex *.bin upload *.lst

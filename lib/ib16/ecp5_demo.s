@@ -8,6 +8,13 @@
 .EQU GPIO1_ADDR 0xFFFA
 .EQU TIMER_ADDR 0xFFF9
 .PROG_SIZE DEMO_PROG_SIZE
+.INC lib/tty/tty.s
+.INC lib/uart/uart.s
+
+.ORG IRQ_VECTOR		; IRQ vector
+.INC ecp5_demo_isr.s
+
+.ORG 0
 
 ; we boot with r0==0 guaranteed so keep it that way for this app
 
@@ -147,9 +154,4 @@
 :NameStr
 .DUP 0x100
 
-.INC lib/uart.s			; include our library functions
-.INC lib/tty.s			; include tty library
-
-.ORG IRQ_VECTOR		; IRQ vector
-.INC ecp5_demo_isr.s
 

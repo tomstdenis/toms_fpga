@@ -1,0 +1,14 @@
+; move cursor
+.ALIGN 0x10
+:ttyMoveXY
+	PUSH 15
+	PUSH 14
+	LDI 14,>TTY_XY
+	LDI 15,<TTY_XY
+	STM 1,15,14
+	INC 14,14
+	ADC 15,15,0
+	STM 2,15,14
+	POP 14
+	POP 15
+	RET
