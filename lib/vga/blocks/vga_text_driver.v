@@ -38,7 +38,7 @@ module vga_text_driver #(
 	wire [$clog2(V_TOTAL):0] row = y / FONTHEIGHT;
 
 	// Combinatorial address calculation is much safer
-	wire [$clog2(TEXTCOLS*TEXTROWS):0] current_addr = (row * TEXTCOLS) + col;
+	wire [$clog2(TEXTCOLS*TEXTROWS):0] current_addr = (TEXTCOLS == 80 ? ((row << 6) + (row << 4)) : (row * TEXTCOLS)) + col;
 
 	always @(posedge clk) begin
 		// Latch symbol at the last column of font
