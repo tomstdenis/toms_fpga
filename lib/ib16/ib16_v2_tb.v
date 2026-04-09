@@ -81,7 +81,9 @@ module ib16_v2_tb();
 					if (bus_wr_en) begin
 					end else begin
 						// reads
-						if (demo_idx == 15'h7FFE) begin
+						if (demo_idx == 15'h7FFD) begin
+							bus_data_out[7:0] <= 8'h0A;
+						end else if (demo_idx == 15'h7FFE) begin
 							bus_data_out[7:0] <= 8'h5A;					// magic byte
 						end else if (demo_idx == 15'h7FFF) begin
 							bus_data_out[7:0] <= 8'h1F;					// number of 256 byte blocks 
@@ -112,20 +114,14 @@ module ib16_v2_tb();
         $dumpfile("ib16_v2.vcd");
         $dumpvars(0, ib16_v2_tb);
 		$readmemh("ecp5_demo.s.hex", demo_rom);
-		$readmemh("boot_rom.s.hex", boot_rom);
+		$readmemh("boot_rom_ecp5.s.hex", boot_rom);
 		clk = 0;
 		rst_n = 0;
 
 		repeat(3) @(posedge clk);
 		rst_n = 1;
-		repeat(8192) begin
-			bus_irq = 1;
-			@(posedge clk); #1;
-			bus_irq = 0;
-			@(posedge clk); #1;
-			repeat(29) @(posedge clk);
-		end
-		
+		repeat(131072) @(posedge clk);
+
 		$display("Fetched %d instructions in %d cycles (%d cyclesx100 per instruction)", ib16dut.stats_fetches, ib16dut.stats_cycles + additional_cycles, ((ib16dut.stats_cycles + additional_cycles) * 100) / (ib16dut.stats_fetches - 1));
 		$finish;
 	end
