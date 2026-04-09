@@ -92,11 +92,7 @@ Modules
 
 - **sram**: SPI PSRAM/SRAM controllers
 
-  - **sram_flat**: A flat but wide configurable (P)SRAM controller meant for simple linear access to memory
-     - Has a slew of configuration options to support both SRAM and PSRAM devices with various timings for wakeup/hangup
-     - Supports byte enables when configured for 32-bit bus allowing for easier drop in as a memory bus
-  - **sram_flat_nc**: A flat but wide configurable (P)SRAM that uses module clock for QPI clock
-     - Otherwise similar features as the **sram_flat** module
+  - Works with PSRAM and SRAM devices in Quad-IO mode
 
 - **bsram**: On GW2AR parts the Block SRAM doesn't support a byte enable so this wrapper provides it.  Also allows **burst** mode traffic on the bus protocol.
   
@@ -106,10 +102,30 @@ Modules
   
   - Implements byte lanes supporting naturally aligned byte, word, dword reads and writes (bus_err on unaligned access).
 
+- **ib16**: An IttyBitty DIY **8-bit RISC** like processor with a 16-bit bus
+
+  - Can be implemented fully on a Gowin GW1NZ-1 device (1152 LUT4, 850 DFF)
+  
+  - Uses simple bus controller logic that allows flexibility in how to service memory requests
+
+  - 16 general purpose registers with shadow bank for interrupt handling (no need to push/pop in your ISR)
+  
+  - Has 2 and 3-operand ALU opcodes (reduces the need for manually moving register contents)
+  
+  - Any pair of registers can be used to access memory by combining to form a 16-bit address (other than r15+r15 which is used for stack operations)
+
+  - RAM based stack (256 bytes)
+
+  - Supports **64KB address space**
+
+  - Assembler provided with initial library code to write apps in
+  
+  - boot roms and demo programs for both a **nano1k** and **ECP5** demo designs
+
 - **useq**: A DIY 8-bit processor using 4KB of block ram as the main memory
   
   - Uses about 1400 logic cells (7% of GW2AR-18), 5 SRAM blocks, 2 DPB blocks, 1 MULT9x9 in the demo configuration.
-  
+ 
   - Core provides bit-twiddling efficient opcodes
   
   - Supports a HW accelerated FIFO that the parent module can also steer data into and out of for the core to work with

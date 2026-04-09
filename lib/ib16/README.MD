@@ -1,58 +1,82 @@
-The IttyBitty RISC 8-bit'er.
+# The IttyBitty RISC 8-bit'er.
 
-High level design
+## High level design
 
-- upto 64Kbyte RAM for code/data
-- multi cycle single issue non-pipelined (averages about 6-8 clocks per instruction)
-- Meant for 1K LUT4 FPGAs :-) (mostly tested on a Tang Nano 1K)
-- Carry and Zero flags (only updated by ALU opcodes)
-	- use a 9-bit "result DFF" so ALU opcodes can spill into bit 9 for carry flag
-- Uses bus handshaking allowing arbitrary cycles per access memory devices
+  - Simple 8-bit RISC CPU
+  
+  - 16-bit address space
+  
+  - Has 2 and 3-operand ALU opcodes removing the need to shuffle registers around
+  
+  - Any pair of registers can be used to form a 16-bit address for load/store
+  
+  - Designed for small size, tested on a Tang Nano 1K (GW1NZ-1) and a Lattice ECP5
+  
+  - Uses simple bus protocol allowing easy extension of the SoC by adding memory mapped peripherals.
 
-Demo configuration:
-- BRAM is organized as follows
-   - 0000..1FFF: General data/code
-		- if using interrupts then the ISR begins at 1F00
-   
-- BOOT ROM:
-	- at 2000...20FF
-	- built into top.v demo
+## Demo configuration:
 
-- MMIO:
-   - Blocking UART: 0xFFFF
-   - UART Status  : 0xFFFE (fifo empty, fifo full, rx ready) in the lower bits
-   - GPIO		  : 0xFFFB (8574 style tri-state 8-pin GPIO)
-   - TIMER		  : 0xFFFA, the upper 8 bits of a 24-bit timer, in the default config is 1.213629ms per tick
+The ECP5 and Nano1K demos are similar but have a few differences
 
-- Registers
-   - PC - 16 bits (counts 16-bit words so you fetch from memory[PC*2])
-   - SP - 8 bits starts at 100 in SRAM (overall address 2100) and counts up
-   - WI - 8 bits write index (used by STM if SREG[1] is set)
-   - RI - 8 bits read index (used by LDM if SREG[0] is set) 
-   - SREG - 8 bits (Carry, Zero, unused, unused, Boot to APP, Mask IRQ, Write Increment, Read Increment)
+  - **Main Memory** maps from address 0000 upto XXXX (1FFF for Nano1K, `BLOCKS * 16'h800 for ECP5)
+     - Stack is set to the last 256 bytes of RAM
+     - ISR is set to the last 256 bytes before the stack
 
-- Source code:
-	- boot_rom.s can load upto 8192 - 256 bytes starting at 0000
-		- waits for 5A (discards anything else)
-		- then reads 1 byte, echos it back, stores it in memory
-	- uart_demo.s
-		- On Tang Nano 1K: this increments the GPIO pins periodically making the RGB leds blink, 
-		- Has IRQ for uart, echos back what it receives from ISR
+  - **Boot ROM** mapped to XXXX (2000 for Nano1K, F000 for ECP5)
+     - Limited to 256 bytes
+     - built into their respective top.v from the boot_rom*.v here
+     
+  - **MMIO**: (the map is the same for both demos but the Nano1K doesn't have GPIO1 mapped)
+     - **Blocking UART**
+         - Address: **0xFFFF**
+     - **UART Status**
+         - Address: **0xFFFE** (fifo empty, fifo full, rx ready) in the lower bits
+     - **GPIO0**
+         - Address: **0xFFFB** (8574 style tri-state 8-pin GPIO)
+     - **GPIO1**
+	     - Address: **0xFFFA** (8574 style tri-state 8-pin GPIO) (only on ECP5)
+     - **TIMER**
+         - Address: **0xFFF9**, the upper 8 bits of a 24-bit timer, in the default config is 1.213629ms per tick
 
-Opcode map:
+  - **Video**
+     - Text Buffer: 80x25 (2000 bytes) mapped to E800..EFFF on ECP5 only, uses IBM CP437 font supports all 256 symbols, rendered in 640x480 with y-stretching	
 
-- Opcodes are 16-bits long using the top 4 bits to specify an instruction 
-- Opcodes can either use 1 to 3 operands, 8-bit IMM or 12-bit IMM
 
-So the formats would be
+## Source code
 
-3OP  : 4-bit instruction, 4 bit regD, 4 bit regA, 4-bit regB
-2OP: : 4-bit instruction, 4-bit regD, 4-bit modifier, 4-bit regA
-8IMM : 4-bit instruction, 4 bit regD, 8-bit imm
-12IMM: 4-bit instruction, 12-bit IMM
-9SIMM: 4-bit instruction, 3-bit modifier, 9-bit signed value (divided by 2 since PC addresses are all even)
+   - **boot_rom.s**: can load upto 8192 - 256 bytes starting at 0000
+      - waits for 5A (discards anything else)
+      - then reads 1 byte, echos it back (only first 256 bytes), stores it in memory
+   - **boot_rom_ecp5.s**: Boot loader for ECP5 uses GPIO0 to indicate progress 
+      - waits for 5A (discards anything else)
+      - then reads 1 byte, echos it back (only first 256 bytes), stores it in memory
+   - **nano1k_demo.s**:
+      - Simple demo that just prints a string repeatedly.
+   - **ecp5_demo.s**:
+      - Growing demo that uses console (vga) output as well as timer and uart and gpio
 
-Instructions:
+## Opcode map
+
+  - **Registers**
+     - **PC** - 16 bits (counts 16-bit words so you fetch from memory[PC*2])
+     - **SP** - 8 bits starts at 100 in SRAM (overall address 2100) and counts up
+     - **WI** - 8 bits write index (used by STM if SREG[1] is set)
+     - **RI** - 8 bits read index (used by LDM if SREG[0] is set) 
+     - **SREG** - 8 bits (Carry, Zero, unused, reboot to ROM, Boot to APP, Mask IRQ, Write Increment, Read Increment)
+     - **0, 1, 2, 3, ... ,15** - GPRs, r0 is writable, the ROM guarantees your app boots with r0 == 0 so you can use it for ADC/comparisons, etc.
+
+   - Opcodes are 16-bits long using the top 4 bits to specify an instruction 
+   - Opcodes can either use 1 to 3 operands, 8-bit IMM or 12-bit IMM
+   - Opcode format:
+      - 3OP  : 4-bit instruction, 4 bit regD, 4 bit regA, 4-bit regB
+      - 2OP: : 4-bit instruction, 4-bit regD, 4-bit modifier, 4-bit regA
+      - 8IMM : 4-bit instruction, 4 bit regD, 8-bit imm
+      - 12IMM: 4-bit instruction, 12-bit IMM
+      - 9SIMM: 4-bit instruction, 3-bit modifier, 9-bit signed value (divided by 2 since PC addresses are all even)
+
+### Instructions
+
+```
 0 - LDI (8IMM) R[d] = imm										[ZC]
 1 - ADD (3OP)  R[d] = R[a] + R[b]								[ZC]
 2 - ADC (3OP)  R[d] = R[a] + R[b] + carry						[ZC]
@@ -93,4 +117,4 @@ Instructions:
 	- [2] - set IRQ context (1 == in IRQ context, 0 == normal)
 	- [3] - Write 1 to boot APP (at PC=0000)
 15 - RETI - pop PC off stack, return from interrupt
-
+```
