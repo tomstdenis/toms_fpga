@@ -350,7 +350,7 @@ module top(input clk,
                 // upto 2048 * BLOCKS is RAM
                 if (ib16_bus_address < (16'h0800 * `BLOCKS)) begin
                     // BRAM block
-                    case(bus_cycle[1:0])
+                    case(bus_cycle[0])
                         0: // start transaction (this cycle delay handles the fact that bus_address is combinatorial)
                             begin
 								main_mem_we_a   <= ib16_bus_wr_en;
