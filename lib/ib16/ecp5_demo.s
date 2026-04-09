@@ -45,11 +45,6 @@
 	
 	LCALL ttyClear		; clear screen
 
-; wait for a key
-	SRES 4				; mask the IRQ so we can read the UART here
-	LDM 1,15,14			; wait for a key to start the demo
-	SRES 0				; turn IRQs back on
-
 ; print welcome message
 	PUSH 15
 	PUSH 14

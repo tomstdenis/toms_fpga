@@ -284,6 +284,7 @@
 	CMPEQ 2,4
 	JNC PUTC_END	; not at end of line
 	LDI 2,0x00		; zero X, now we're basically at PUTC_NL
+	JMP PUTC_NL
 :PUTC_BS
 	OR 2,2,2		; X == 0?
 	JZ PUTC_END		; jump to end
