@@ -7,9 +7,9 @@ test_ib16_v2.pass: ib16_v2.v ib16_v2_tb.v ecp5_demo.s.bin boot_rom.s.bin boot_ro
 
 ecp5_demo.s.bin: ecp5_demo.s ecp5_demo.s lib/uart.s lib/tty.s ib16_as
 # 8KB version
-	cpp -DIRQ_VECTOR=0x1E00 -DDEMO_PROG_SIZE=3968 ecp5_demo.s | grep -v \^# > /tmp/ecp5_demo.s 
+#	cpp -DIRQ_VECTOR=0x1E00 -DDEMO_PROG_SIZE=3968 ecp5_demo.s | grep -v \^# > /tmp/ecp5_demo.s 
 # 32KB version
-#	cpp -DIRQ_VECTOR=0x7E00 -DDEMO_PROG_SIZE=16256 ecp5_demo.s | grep -v \^# > /tmp/ecp5_demo.s 
+	cpp -DIRQ_VECTOR=0x7E00 -DDEMO_PROG_SIZE=16256 ecp5_demo.s | grep -v \^# > /tmp/ecp5_demo.s 
 # Generate binary
 	./ib16_as /tmp/ecp5_demo.s
 	mv -vf /tmp/ecp5_demo.s.* .

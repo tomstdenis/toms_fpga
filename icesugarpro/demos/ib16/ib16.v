@@ -86,7 +86,7 @@ module top(input clk,
     reg [1:0] uart_int_pending;
 `endif
 
-    uart #(.FIFO_DEPTH(4), .RX_ENABLE(1), .TX_ENABLE(1)) mrtalky (
+    uart #(.FIFO_DEPTH(64), .RX_ENABLE(1), .TX_ENABLE(1)) mrtalky (
         .clk(pllclk), .rst_n(rst_n),
         .baud_div(baud_div),
         .uart_tx_start(uart_tx_start),

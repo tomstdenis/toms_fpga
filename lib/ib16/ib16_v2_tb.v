@@ -50,7 +50,7 @@ module ib16_v2_tb();
 						// writes
 						tb_mem[bus_address] <= bus_data_in[7:0];
 						if (bus_burst) begin
-							additional_cycles <= additional_cycles + 2; // 3 cycles for a 16-bit write
+							additional_cycles <= additional_cycles + 1; // 2 cycles for a 16-bit write
 							tb_mem[bus_address + 1] <= bus_data_in[15:8];
 						end else begin
 							additional_cycles <= additional_cycles + 1; // 2 cycles for a 8-bit write
@@ -59,10 +59,10 @@ module ib16_v2_tb();
 						// reads
 						bus_data_out[7:0] <= tb_mem[bus_address];
 						if (bus_burst) begin
-							additional_cycles <= additional_cycles + 3; // 4 cycles for a 16-bit read
+							additional_cycles <= additional_cycles + 1; // 2 cycles for a 16-bit read
 							bus_data_out[15:8] <= tb_mem[bus_address+1];
 						end else begin
-							additional_cycles <= additional_cycles + 2; // 3 cycles for a 8-bit read
+							additional_cycles <= additional_cycles + 1; // 2 cycles for a 8-bit read
 						end
 					end
 				end  if (bus_address >= 16'hF000 && bus_address < 16'hF100) begin
