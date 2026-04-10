@@ -1,8 +1,5 @@
 /* hacking for tonight plans
 
-- re-write ibus output to be @(*) block
-- optimize 8-bit reads from video memory (note you'll have to handle 16-bit reads wonky since dout will be [15:8] by then, so you need to latch [7:0] in the last cycle
-	- 16-bit reads MUST be supported
 - Make timer fixed to increment the byte the IB can read every 1ms regardless of clock rate
 - re-write IRQ pending system (rename things don't make it solely tied to UART)
   - add timer, vsync, uart rx_ready ints
@@ -12,6 +9,7 @@
 
 // enable IRQs for UART supporting [0] = RX ready, [1] TX empty
 //`define USE_UARTIRQ
+`timescale 1ns/1ps
 `default_nettype none
 
 // Simple IRQ, raises bus_irq if RX ready
@@ -200,9 +198,29 @@ module top(input clk,
     wire [15:0] ib16_bus_data_in;
     reg ib16_bus_ready;
     reg [15:0] ib16_bus_data_out_reg;
-    wire [15:0] ib16_bus_data_out = (ib16_bus_address_l < `BLOCKS * 16'h800) ? 
-		{(ib16_bus_burst ? main_mem_dout_b : 8'b0), main_mem_dout_a} :
-		ib16_bus_data_out_reg;
+    wire [15:0] ib16_bus_data_out;
+
+	// we use a combinatorial bus output to allow cutting 1 cycle on the return path
+    always @(*) begin
+		ib16_bus_data_out = 16'b0; // default
+		if (!ib16_bus_wr_en) begin // only assign on reads
+			if (ib16_bus_address_l < `BLOCKS * 16'h0800) begin
+				// main memory
+				ib16_bus_data_out = {ib16_bus_burst ? main_mem_dout_b : 8'b0, main_mem_dout_a};
+			end else if ((ib16_bus_address[15:8] & 8'hF8) == 8'hE8) begin
+				// for text video memory we handle 8 and 16 bit differently
+				if (!ib16_bus_burst) begin
+					ib16_bus_data_out = {8'b0, text_dout_a};
+				end else begin
+					ib16_bus_data_out = {text_dout_a, ib16_bus_data_out_reg[7:0]};
+				end
+			end else begin
+				// default reads (mmio) are registered
+				ib16_bus_data_out = ib16_bus_data_out_reg;
+			end
+		end
+	end
+
     reg ib16_bus_irq;
     wire ib16_bus_burst;
     reg [23:0] cycle_counter;
@@ -384,7 +402,7 @@ module top(input clk,
                 end
 
                 // TEXT VIDEO memory from E800..EFFF
-                if (ib16_bus_address >= 16'hE800 && ib16_bus_address <= 16'hEFFF) begin
+                if ((ib16_bus_address[15:8] & 8'hF8) == 8'hE8) begin
                     // TEXT MEM  block
                     case(bus_cycle[1:0])
                         0: // start transaction (this cycle delay handles the fact that bus_address is combinatorial)
@@ -394,39 +412,27 @@ module top(input clk,
                                 text_din_a    <= ib16_bus_data_in[7:0];
                                 bus_cycle     <= bus_cycle + 1'b1;
                             end
-                        1: // memory 2nd cycle
+                        1: // memory 2nd cycle (we're done here if it's a 8-bit)
                             begin
-                                if (text_we_a && !ib16_bus_burst) begin // 8-bit writes are done here
-                                    bus_cycle       <= 0;
-                                    text_we_a       <= 0;
-                                    ib16_bus_ready  <= 1;
-                                end else begin                     // all reads take 3 cycles, burst writes take 3  
-                                    bus_cycle       <= bus_cycle + 1'b1;
-                                    text_addr_a     <= text_addr_a + 1'b1;
-                                    text_din_a      <= ib16_bus_data_in[15:8];
-                                end
+								if (!ib16_bus_burst) begin
+									text_we_a 		<= 0;
+									bus_cycle 		<= 0;
+									ib16_bus_ready	<= 1;
+								end else begin
+									bus_cycle		<= bus_cycle + 1'b1;
+									text_addr_a		<= text_addr_a + 1'b1;
+									text_din_a		<= ib16_bus_data_in[15:8];
+								end
                             end
-                        2: // memory 3rd cycle
+                        2: // memory 3rd cycle (done if writing, store first 8 bits if reading)
                             begin
+								bus_cycle           <= 0;
+								ib16_bus_ready      <= 1;
                                 if (text_we_a) begin // writes are done here
                                     text_we_a           <= 0;
-                                    bus_cycle           <= 0;
-                                    ib16_bus_ready      <= 1;
                                 end else begin
                                     ib16_bus_data_out_reg[7:0] <= text_dout_a;
-                                    if (!ib16_bus_burst) begin          // 8-bit reads are done here
-                                        bus_cycle       <= 0;
-                                        ib16_bus_ready  <= 1;
-                                    end else begin
-                                        bus_cycle       <= bus_cycle + 1'b1;
-                                    end
                                 end
-                            end
-                        3: // memory 4th cycle (16-bit reads)
-                            begin
-                                ib16_bus_data_out_reg[15:8] <= text_dout_a;
-                                bus_cycle               <= 0;
-                                ib16_bus_ready          <= 1;
                             end
                     endcase
                 end
