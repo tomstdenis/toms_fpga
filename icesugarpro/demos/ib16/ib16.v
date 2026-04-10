@@ -199,6 +199,8 @@ module top(input clk,
     reg ib16_bus_ready;
     reg [15:0] ib16_bus_data_out_reg;
     wire [15:0] ib16_bus_data_out;
+    reg ib16_bus_irq;
+    wire ib16_bus_burst;
 
 	// we use a combinatorial bus output to allow cutting 1 cycle on the return path
     always @(*) begin
@@ -207,7 +209,7 @@ module top(input clk,
 			if (ib16_bus_address_l < `BLOCKS * 16'h0800) begin
 				// main memory
 				ib16_bus_data_out = {ib16_bus_burst ? main_mem_dout_b : 8'b0, main_mem_dout_a};
-			end else if ((ib16_bus_address[15:8] & 8'hF8) == 8'hE8) begin
+			end else if ((ib16_bus_address_l[15:8] & 8'hF8) == 8'hE8) begin
 				// for text video memory we handle 8 and 16 bit differently
 				if (!ib16_bus_burst) begin
 					ib16_bus_data_out = {8'b0, text_dout_a};
@@ -221,11 +223,9 @@ module top(input clk,
 		end
 	end
 
-    reg ib16_bus_irq;
-    wire ib16_bus_burst;
-    reg [7:0] tick_counter;
     localparam
-		CYCLES_PER_TICK = ((`FREQ * 1_000_000) / 1000) * 10;					// tick every 10ms
+		CYCLES_PER_TICK = ((`FREQ * 1_000_000) / 1000) * 1;					// tick every 1ms
+    reg [7:0] tick_counter;
     reg [$clog2(CYCLES_PER_TICK):0] cycle_counter;
 
     reg [3:0] bus_cycle;
@@ -263,6 +263,7 @@ module top(input clk,
             ib16_bus_enable_prev <= 0;
             gpio_out            <= 16'hFFFF;
             cycle_counter       <= 0;
+            tick_counter		<= 0;
 `ifdef USE_UARTIRQ
             uart_prev_rx_ready  <= 0;
             uart_prev_tx_fifo_empty <= 0;
@@ -271,16 +272,20 @@ module top(input clk,
 `endif
         end else begin
 			// tick counter logic
-            cycle_counter <= cycle_counter + 1'b1;
-            if (cycle_counter == CYCLES_PER_TICK-1) begin
+            if (cycle_counter == (CYCLES_PER_TICK-1)) begin
 				cycle_counter <= 0;
-				tick_counter <= tick_counter + 1'b1;
+				tick_counter  <= tick_counter + 1'b1;
+			end else begin
+				cycle_counter <= cycle_counter + 1'b1;
 			end
-            
+
+            // latch bus address on posedge of enable
             if (ib16_bus_enable_prev != ib16_bus_enable && ib16_bus_enable) begin
 				ib16_bus_address_l <= ib16_bus_address;
 			end
 			ib16_bus_enable_prev <= ib16_bus_enable;
+			
+			
 `ifdef USE_UARTIRQ
             // trap uart IRQ
             uart_int_pending[0] <= (uart_prev_rx_ready != uart_rx_ready && uart_rx_ready) ? 1'b1 : 1'b0;
@@ -300,7 +305,7 @@ module top(input clk,
                     if (ib16_bus_wr_en) begin
                         gpio_out[7:0] <= ib16_bus_data_in[7:0];
                     end else begin
-                        ib16_bus_data_out_reg <= gpio_in[7:0];
+                        ib16_bus_data_out_reg <= {8'b0, gpio_in[7:0]};
                     end
                     ib16_bus_ready <= 1;
                 end
@@ -309,7 +314,7 @@ module top(input clk,
                     if (ib16_bus_wr_en) begin
                         gpio_out[15:8] <= ib16_bus_data_in[7:0];
                     end else begin
-                        ib16_bus_data_out_reg <= gpio_in[15:8];
+                        ib16_bus_data_out_reg <= {8'b0, gpio_in[15:8]};
                     end
                     ib16_bus_ready <= 1;
                 end
@@ -335,13 +340,20 @@ module top(input clk,
 `endif
                 // Timer
                 if (ib16_bus_address == TIMER_ADDR) begin
-                    ib16_bus_data_out_reg <= {8'b0, tick_counter};
+					if (ib16_bus_wr_en) begin
+						tick_counter  <= 0;
+						cycle_counter <= 0;
+					end else begin					
+						ib16_bus_data_out_reg <= {8'b0, tick_counter};
+					end
                     ib16_bus_ready    <= 1;
                 end 
 
                 // UART Status register
                 if (ib16_bus_address == UART_STS_ADDR) begin
-                    ib16_bus_data_out_reg <= {13'b0, uart_tx_fifo_empty, uart_tx_fifo_full, uart_rx_ready};
+					if (!ib16_bus_wr_en) begin
+						ib16_bus_data_out_reg <= {13'b0, uart_tx_fifo_empty, uart_tx_fifo_full, uart_rx_ready};
+					end
                     ib16_bus_ready    <= 1;
                 end 
                 // UART data register

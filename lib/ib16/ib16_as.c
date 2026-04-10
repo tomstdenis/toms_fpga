@@ -538,6 +538,10 @@ int resolve_labels(struct compiler_state *state, char **missing_symbol)
 					} else if (state->program[x].use_bottom_half) {
 						y &= 0xFF;
 					}
+					if (y & 0xF) { 
+						fprintf(stderr, "Error, LCALL target must be 16-byte aligned at %s:%d\n", state->cur_filename, state->line_number);
+						exit(-1);
+					}
 					state->program[x].opcode |= (y >> 4) & 0xFFF;
 				}
 				break;
