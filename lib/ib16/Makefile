@@ -13,7 +13,7 @@ ecp5_demo.s.bin: ecp5_demo.s ecp5_demo.s ib16_as
 	./ib16_as --define IRQ_VECTOR 0x7E00 --define DEMO_PROG_SIZE 3F80 ecp5_demo.s --bin ecp5_demo.s.bin --list ecp5_demo.s.lst
 
 boot_rom_ecp5.s.bin: boot_rom_ecp5.s ib16_as
-	./ib16_as boot_rom_ecp5.s --bin boot_rom_ecp5.s.bin --rom boot_rom_ecp5.s.rom --lst boot_rom_ecp5.s.lst
+	./ib16_as boot_rom_ecp5.s --bin boot_rom_ecp5.s.bin --rom boot_rom_ecp5.s.rom --list boot_rom_ecp5.s.lst
 
 nano1k_demo.s.bin: nano1k_demo.s ib16_as
 	./ib16_as nano1k_demo.s --bin nano1k_demo.s.bin --list nano1k_demo.s.lst

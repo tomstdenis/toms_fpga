@@ -307,16 +307,23 @@ void insert_symbol(struct compiler_state *state, char *line)
 int find_symbol(struct compiler_state *state, char *line)
 {
 	int y;
+	char sym[512], *s;
+
+	s = sym;
+	memset(sym, 0, sizeof sym);
+	while (!iswhitespace(line) && *line) {
+		*s++ = *line++;
+	}
 	for (y = 0; y < MAX_PROG_SIZE; y++) {
-		if (!memcmp(state->symbols[y].label, line, strlen(state->symbols[y].label))) {
+		if (!memcmp(state->symbols[y].label, sym, strlen(state->symbols[y].label))) {
 			int n = strlen(state->symbols[y].label);
-			char *l = line + n;
-			if (*l == 0 || iswhitespace(line)) {
+			char *l = sym + n;
+			if (*l == 0 || iswhitespace(l)) {
 				return state->symbols[y].value; // symbols are literal constants and should be returned verbatim
 			}
 		}
 	}
-	if (sscanf(line, "%x", &y) == 1) {
+	if (sscanf(sym, "%x", &y) == 1) {
 		return y;
 	}
 	return -1;
@@ -335,6 +342,7 @@ void compile(struct compiler_state *state, char *line)
 	if (!memcmp(line, ".ORG ", 5)) {
 		int y;
 		line += 5;
+		consume_whitespace(&line);
 		y = find_symbol(state, line);
 		if (y >= 0) {
 			state->PC = y >> 1;
