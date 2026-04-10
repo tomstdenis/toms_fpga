@@ -647,6 +647,7 @@ int link(struct compiler_state *state, char *libdir, char *missing_symbol)
 				char newdir[512];
 				sprintf(newdir, "%s%s/", libdir, de->d_name);
 				if (!link(state, newdir, missing_symbol)) {
+					closedir(d);
 					return 0;
 				}
 			}
@@ -656,10 +657,12 @@ int link(struct compiler_state *state, char *libdir, char *missing_symbol)
 			sprintf(fname, "%s%s", libdir, de->d_name);
 			if (scan_file(fname, missing_symbol)) {
 				compile_file(state, fname);
+				closedir(d);
 				return 0;
 			}
 		}
 	}
+	closedir(d);
 	return -1;
 }
 
