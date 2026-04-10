@@ -13,13 +13,13 @@ ecp5_demo.s.bin: ecp5_demo.s ecp5_demo.s ib16_as
 	./ib16_as --define IRQ_VECTOR 0x7E00 --define DEMO_PROG_SIZE 3F80 ecp5_demo.s --bin ecp5_demo.s.bin --list ecp5_demo.s.lst
 
 boot_rom_ecp5.s.bin: boot_rom_ecp5.s ib16_as
-	./ib16_as boot_rom_ecp5.s
+	./ib16_as boot_rom_ecp5.s --bin boot_rom_ecp5.s.bin --rom boot_rom_ecp5.s.rom --lst boot_rom_ecp5.s.lst
 
 nano1k_demo.s.bin: nano1k_demo.s ib16_as
-	./ib16_as nano1k_demo.s
+	./ib16_as nano1k_demo.s --bin nano1k_demo.s.bin --list nano1k_demo.s.lst
 
 boot_rom.s.bin: boot_rom.s ib16_as
-	./ib16_as boot_rom.s
+	./ib16_as boot_rom.s --bin boot_rom.s.bin --list boot_rom.s.lst --rom boot_rom.s.rom
 
 ib16_as: ib16_as.c
 	gcc -O0 -Wall -g3 ib16_as.c -o ib16_as
@@ -28,4 +28,4 @@ upload: upload.c
 	gcc -O0 -Wall upload.c -o upload
 
 clean:
-	rm -f *.vvp *.vcd *.pass *.log ib16_as *.hex *.bin upload *.lst
+	rm -f *.vvp *.vcd *.pass *.log ib16_as *.hex *.bin upload *.s.lst *.s.rom 

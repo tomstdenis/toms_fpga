@@ -1,4 +1,13 @@
-.EQU UART_ADDR 0xFFFF
+; simple ISR
+.ORG 0x1F00
+:ISR
+	LDM 1,15,14
+	STM 1,15,14
+	RETI
+
+.ORG 0
+
+.INC lib/uart/uart.s
 
 	; setup ISR
 	SRES 4
@@ -18,13 +27,4 @@
 :MSG
 .DS 'Hello world!'
 
-.INC lib/uart.s
-
-; simple ISR
-.ORG 0x1F00
-:ISR
-	LDM 1,15,14
-	STM 1,15,14
-	
-	RETI
 	

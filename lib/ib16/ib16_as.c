@@ -309,9 +309,15 @@ int find_symbol(struct compiler_state *state, char *line)
 	int y;
 	for (y = 0; y < MAX_PROG_SIZE; y++) {
 		if (!memcmp(state->symbols[y].label, line, strlen(state->symbols[y].label))) {
-			// todo: ensure next line char is NUL or whitespace
-			return state->symbols[y].value; // symbols are literal constants and should be returned verbatim
+			int n = strlen(state->symbols[y].label);
+			char *l = line + n;
+			if (*l == 0 || iswhitespace(line)) {
+				return state->symbols[y].value; // symbols are literal constants and should be returned verbatim
+			}
 		}
+	}
+	if (sscanf(line, "%x", &y) == 1) {
+		return y;
 	}
 	return -1;
 }

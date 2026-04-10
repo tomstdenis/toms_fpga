@@ -1,4 +1,5 @@
 ; library functions
+.EQU UART_ADDR 0xFFFF
 
 ; Quickguide
 ; Typically things expect the UART in r15:r14 and user pointers in r13:r12

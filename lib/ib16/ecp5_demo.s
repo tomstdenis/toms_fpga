@@ -3,7 +3,6 @@
 ; you would either ignore the ISR completely or you'd only access the uart
 ; in ISR context and buffer it for the app context
 
-.EQU UART_ADDR 0xFFFF
 .EQU GPIO0_ADDR 0xFFFB
 .EQU GPIO1_ADDR 0xFFFA
 .EQU TIMER_ADDR 0xFFF9
