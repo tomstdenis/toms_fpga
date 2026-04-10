@@ -43,7 +43,7 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, inout wire [
     endgenerate
     assign gpio_in = gpio;
 
-    wire [15:0] baud_div = 54_000_000 / 230_400;
+    wire [15:0] baud_div = 48_000_000 / 230_400;
     reg uart_tx_start;
     reg [7:0] uart_tx_data_in;
     wire uart_tx_fifo_full;
@@ -104,7 +104,7 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, inout wire [
         .STACK_ADDRESS(`STACK_ADDRESS),
         .IRQ_VECTOR(`IRQ_VECTOR),
         .BOOT_ROM_ADDR(16'h2000),
-        .TWO_CYCLE(1)) 
+        .TWO_CYCLE(0)) 
     ittybitty(
         .clk(pllclk), .rst_n(rst_n),
         .bus_enable(ib16_bus_enable),

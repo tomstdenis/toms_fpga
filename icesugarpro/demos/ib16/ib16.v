@@ -1,3 +1,15 @@
+/* hacking for tonight plans
+
+- re-write ibus output to be @(*) block
+- optimize 8-bit reads from video memory (note you'll have to handle 16-bit reads wonky since dout will be [15:8] by then, so you need to latch [7:0] in the last cycle
+	- 16-bit reads MUST be supported
+- Make timer fixed to increment the byte the IB can read every 1ms regardless of clock rate
+- re-write IRQ pending system (rename things don't make it solely tied to UART)
+  - add timer, vsync, uart rx_ready ints
+  - add int pending port to IB module
+  - assign r1 in ib16_v2.v to int pending value so ISR can quickly tell what IRQ fired
+*/  
+
 // enable IRQs for UART supporting [0] = RX ready, [1] TX empty
 //`define USE_UARTIRQ
 `default_nettype none
