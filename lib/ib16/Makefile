@@ -8,12 +8,12 @@ test_ib16_v2.pass: ib16_v2.v ib16_v2_tb.v ecp5_demo.s.bin boot_rom.s.bin boot_ro
 ecp5_demo.s.bin: ecp5_demo.s ecp5_demo.s ib16_as
 # 8KB version
 #	cpp -DIRQ_VECTOR=0x1E00 -DDEMO_PROG_SIZE=3968 ecp5_demo.s | grep -v \^# > /tmp/ecp5_demo.s 
-#	./ib16_as --define IRQ_VECTOR 0x1E00 --define DEMO_PROG_SIZE F80 ecp5_demo.s --bin ecp5_demo.s.bin --list ecp5_demo.s.lst
+#	./ib16_as --define IRQ_VECTOR 0x1E00 --define DEMO_PROG_SIZE 0x0F80 ecp5_demo.s --bin ecp5_demo.s.bin --list ecp5_demo.s.lst
 # 32KB version
-	./ib16_as --define IRQ_VECTOR 0x7E00 --define DEMO_PROG_SIZE 3F80 ecp5_demo.s --bin ecp5_demo.s.bin --list ecp5_demo.s.lst
+	./ib16_as --define IRQ_VECTOR 0x7E00 --define DEMO_PROG_SIZE 0x3F80 ecp5_demo.s --bin ecp5_demo.s.bin --list ecp5_demo.s.lst --hex ecp5_demo.s.hex
 
 boot_rom_ecp5.s.bin: boot_rom_ecp5.s ib16_as
-	./ib16_as boot_rom_ecp5.s --bin boot_rom_ecp5.s.bin --rom boot_rom_ecp5.s.rom --list boot_rom_ecp5.s.lst
+	./ib16_as boot_rom_ecp5.s --bin boot_rom_ecp5.s.bin --rom boot_rom_ecp5.s.rom --list boot_rom_ecp5.s.lst --hex boot_rom_ecp5.s.hex
 
 nano1k_demo.s.bin: nano1k_demo.s ib16_as
 	./ib16_as nano1k_demo.s --bin nano1k_demo.s.bin --list nano1k_demo.s.lst
