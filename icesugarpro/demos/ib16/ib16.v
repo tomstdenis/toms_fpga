@@ -223,7 +223,10 @@ module top(input clk,
 
     reg ib16_bus_irq;
     wire ib16_bus_burst;
-    reg [23:0] cycle_counter;
+    reg [7:0] tick_counter;
+    localparam
+		CYCLES_PER_TICK = ((`FREQ * 1_000_000) / 1000) * 10;					// tick every 10ms
+    reg [$clog2(CYCLES_PER_TICK):0] cycle_counter;
 
     reg [3:0] bus_cycle;
     ib16 #(
@@ -267,7 +270,13 @@ module top(input clk,
             uart_int_pending    <= 0;
 `endif
         end else begin
+			// tick counter logic
             cycle_counter <= cycle_counter + 1'b1;
+            if (cycle_counter == CYCLES_PER_TICK-1) begin
+				cycle_counter <= 0;
+				tick_counter <= tick_counter + 1'b1;
+			end
+            
             if (ib16_bus_enable_prev != ib16_bus_enable && ib16_bus_enable) begin
 				ib16_bus_address_l <= ib16_bus_address;
 			end
@@ -326,7 +335,7 @@ module top(input clk,
 `endif
                 // Timer
                 if (ib16_bus_address == TIMER_ADDR) begin
-                    ib16_bus_data_out_reg <= cycle_counter[23:16];
+                    ib16_bus_data_out_reg <= {8'b0, tick_counter};
                     ib16_bus_ready    <= 1;
                 end 
 
