@@ -131,7 +131,7 @@ module ib16 #(
 			result_dff	= {1'b0, reg_ra | reg_rb};
 		end
 		if (opcode_isn == OPCODE_SHF) begin
-			case(opcode_opa[2:0])
+			case(opcode_opa[3:0])
 				0: // SHR
 					result_dff = {2'b0, reg_rb[7:1]};
 				1: // SAR
@@ -148,6 +148,8 @@ module ib16 #(
 					result_dff = {1'b0, reg_rb} - 9'b1;
 				7: // NOT
 					result_dff = {1'b0, ~reg_rb};
+				8: // NEG
+					result_dff = {1'b0, -reg_rb};
 			endcase
 		end
 	end
