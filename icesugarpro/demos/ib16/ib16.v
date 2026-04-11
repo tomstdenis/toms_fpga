@@ -1,10 +1,5 @@
-/* hacking for tonight plans
+/* IttyBitty SoC for ECP5 */
 
-- re-write IRQ pending system (rename things don't make it solely tied to UART)
-  - add timer, vsync, uart rx_ready ints
-  - add int pending port to IB module
-  - assign r1 in ib16_v2.v to int pending value so ISR can quickly tell what IRQ fired
-*/  
 
 // enable IRQs for UART supporting [0] = RX ready, [1] TX empty
 `timescale 1ns/1ps

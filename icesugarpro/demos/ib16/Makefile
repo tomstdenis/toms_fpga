@@ -5,7 +5,7 @@ BLOCKS=16
 
 OBJS+=${TARGET}.v pll.v pll2.v \
 ../../../lib/uart/blocks/tx_uart.v ../../../lib/uart/blocks/rx_uart.v ../../../lib/uart/blocks/uart.v \
-../../../lib/ib16/ib16_v2.v ../../lib/bram/bram_sp_nx2048x8.v ../../lib/bram/bram_sp_2048x8.v ../../lib/bram/bram_dp_2048x8.v ../../lib/bram/bram_dp_nx2048x8.v \
+../../../lib/ib16/ib16_v2.v ../../lib/bram/bram_dp_2048x8.v ../../lib/bram/bram_dp_nx2048x8.v \
 ../../../lib/vga/blocks/vga_timing.v ../../../lib/vga/blocks/8x8_font_256.v ../../../lib/vga/blocks/vga_text_driver.v \
 
 all: ${TARGET}.bit
