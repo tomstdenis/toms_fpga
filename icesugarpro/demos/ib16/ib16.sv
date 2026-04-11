@@ -25,16 +25,21 @@ module top(input clk,
         UART_INT_ADDR    = 16'hFFFC,
         UART_INTEN_ADDR  = 16'hFFFD,
         UART_STS_ADDR    = 16'hFFFE,
-        UART_DATA_ADDR   = 16'hFFFF;
+        UART_DATA_ADDR   = 16'hFFFF,
+        bus_address_main_mem_top = `BLOCKS * 16'h0800,
+		bus_address_text_mem_bot = 16'hE800,
+		bus_address_text_mem_top = 16'hEFFF,
+		bus_address_rom_mem_bot  = 16'hF000,
+		bus_address_rom_mem_top  = 16'hF0FF;
 
 	// Domain #1: IttyBitty @`FREQ
-    wire pllclk;
-	wire plllock;
+    logic pllclk;
+	logic plllock;
 	
 	pll mypll(.clkin(clk), .clkout0(pllclk), .locked(plllock));
 
-	reg [3:0] rst = 0;
-	wire rst_n = rst[3];
+	logic [3:0] rst = 0;
+	logic rst_n = rst[3];
 	
 	always @(posedge pllclk) begin
 		if (plllock) begin
@@ -43,13 +48,13 @@ module top(input clk,
 	end
 
 	// Domain #2: VGA @ 25.175
-    wire pll2clk;
-	wire pll2lock;
+    logic pll2clk;
+	logic pll2lock;
 	
 	pll2 mypll2(.clkin(clk), .clkout0(pll2clk), .locked(pll2lock));
 
-	reg [3:0] rst2 = 0;
-	wire rst2_n = rst2[3];
+	logic [3:0] rst2 = 0;
+	logic rst2_n = rst2[3];
 	
 	always @(posedge pll2clk) begin
 		if (pll2lock) begin
@@ -58,8 +63,8 @@ module top(input clk,
 	end
 	
     // ### GPIO ###
-    reg [15:0] gpio_out;
-    wire [15:0] gpio_in;
+    logic [15:0] gpio_out;
+    logic [15:0] gpio_in;
 
     genvar i;
     generate
@@ -71,26 +76,26 @@ module top(input clk,
 
 	// ### UART ###
 
-    wire [15:0] baud_div = (`FREQ * 1_000_000) / 230_400;
-    reg uart_tx_start;
-    reg [7:0] uart_tx_data_in;
-    wire uart_tx_fifo_full;
-    wire uart_tx_fifo_empty;
-    reg uart_rx_read;
-    wire uart_rx_ready;
-    wire [7:0] uart_rx_byte;
+    logic [15:0] baud_div = (`FREQ * 1_000_000) / 230_400;
+    logic uart_tx_start;
+    logic [7:0] uart_tx_data_in;
+    logic uart_tx_fifo_full;
+    logic uart_tx_fifo_empty;
+    logic uart_rx_read;
+    logic uart_rx_ready;
+    logic [7:0] uart_rx_byte;
 
 	// trap IRQs
 	localparam
-		IRQ_UART_RX_READY = 0,
+		IRQ_UART_RX_READY      = 0,
 		IRQ_UART_TX_FIFO_EMPTY = 1,
-		IRQ_TIMER = 2,
-		IRQ_VSYNC = 3;
+		IRQ_TIMER              = 2,
+		IRQ_VSYNC              = 3;
 
-    reg uart_prev_tx_fifo_empty;
-    reg uart_prev_rx_ready;
-    reg [7:0] int_enable;
-    reg [7:0] int_pending;
+    logic uart_prev_tx_fifo_empty;
+    logic uart_prev_rx_ready;
+    logic [7:0] int_enable;
+    logic [7:0] int_pending;
 
     uart #(.FIFO_DEPTH(64), .RX_ENABLE(1), .TX_ENABLE(1)) mrtalky (
         .clk(pllclk), .rst_n(rst_n),
@@ -107,15 +112,15 @@ module top(input clk,
 
 	// ### main memory ###  we use a dual port 8-bit memory so we can do
 	// 8 or 16 bit operations in the same amount of time
-	reg [10+$clog2(`BLOCKS):0] main_mem_addr_a;
-	reg [7:0] main_mem_din_a;
-	reg main_mem_we_a;
-	wire [7:0] main_mem_dout_a;
+	logic [10+$clog2(`BLOCKS):0] main_mem_addr_a;
+	logic [7:0] main_mem_din_a;
+	logic main_mem_we_a;
+	logic [7:0] main_mem_dout_a;
 	
-	reg [10+$clog2(`BLOCKS):0] main_mem_addr_b;
-	reg [7:0] main_mem_din_b;
-	reg main_mem_we_b;
-	wire [7:0] main_mem_dout_b;
+	logic [10+$clog2(`BLOCKS):0] main_mem_addr_b;
+	logic [7:0] main_mem_din_b;
+	logic main_mem_we_b;
+	logic [7:0] main_mem_dout_b;
 
 	bram_dp_nx2048x8 #(.N(`BLOCKS)) main_mem (
 		.clk_a(pllclk), .clk_en_a(1'b1), .rst_a(~rst_n),
@@ -124,14 +129,14 @@ module top(input clk,
 		.clk_b(pllclk), .clk_en_b(1'b1), .rst_b(~rst_n),
 		.addr_b(main_mem_addr_b), .din_b(main_mem_din_b), .we_b(main_mem_we_b), .dout_b(main_mem_dout_b));
 	// bit widths are for 640x480 VGA
-	wire [9:0] vga_x;
-	wire [9:0] vga_y;
-	wire vga_h_sync;
-	wire vga_v_sync;
-	reg vga_v_sync_prev;
-	wire vga_active;
+	logic [9:0] vga_x;
+	logic [9:0] vga_y;
+	logic vga_h_sync;
+	logic vga_v_sync;
+	logic vga_v_sync_prev;
+	logic vga_active;
 	
-	always @(posedge pll2clk) begin
+	always_ff @(posedge pll2clk) begin
 		vga_v_sync_prev <= vga_v_sync;
 	end
 	
@@ -148,20 +153,20 @@ module top(input clk,
 		.v_sync(vga_v_sync),
 		.active_video(vga_active));
 
-	wire [7:0] text_symbol;
-	wire text_out;
+	logic [7:0] text_symbol;
+	logic text_out;
 	
 	// ### font rom ### (note we scale y by 2 to fit the 80x25 chars onto 640x480 a bit nicer)
 	// this module takes in the symbol value and x/y pixel position relative to the top left corner of the symbol
 	vga_8x8_font_256 font(.symbol(text_symbol), .x(vga_x[2:0]), .y(vga_y[3:1]), .out(text_out));	
 
-	reg [10:0] text_addr_a;
-	reg [7:0] text_din_a;
-	reg text_we_a;
-	wire [7:0] text_dout_a;
+	logic [10:0] text_addr_a;
+	logic [7:0] text_din_a;
+	logic text_we_a;
+	logic [7:0] text_dout_a;
 
-	wire [10:0] text_addr_b;
-	wire [7:0] text_dout_b;
+	logic [10:0] text_addr_b;
+	logic [7:0] text_dout_b;
 
 	bram_dp_2048x8 text_mem(
 		// IttyBitty Side
@@ -181,7 +186,7 @@ module top(input clk,
 		.symbol(text_symbol));
 
 	// drive the RGB outputs
-	always @(*) begin
+	always_comb begin
 		vga_r = 0;
 		vga_g = 0;
 		vga_b = 0;
@@ -192,26 +197,26 @@ module top(input clk,
 	end
 
 	// ### IttyBitty Device ###
-    wire ib16_bus_enable;
-    reg ib16_bus_enable_prev;
-    wire ib16_bus_wr_en;
-    wire [15:0] ib16_bus_address;
-    reg [15:0] ib16_bus_address_l;
-    wire [15:0] ib16_bus_data_in;
-    reg ib16_bus_ready;
-    reg [15:0] ib16_bus_data_out_reg;
-    wire [15:0] ib16_bus_data_out;
-    reg [7:0] ib16_bus_irq;
-    wire ib16_bus_burst;
+    logic ib16_bus_enable;
+    logic ib16_bus_enable_prev;
+    logic ib16_bus_wr_en;
+    logic [15:0] ib16_bus_address;
+    logic [15:0] ib16_bus_address_l;
+    logic [15:0] ib16_bus_data_in;
+    logic ib16_bus_ready;
+    logic [15:0] ib16_bus_data_out_reg;
+    logic [15:0] ib16_bus_data_out;
+    logic [7:0] ib16_bus_irq;
+    logic ib16_bus_burst;
 
 	// we use a combinatorial bus output to allow cutting 1 cycle on the return path
-    always @(*) begin
+    always_comb begin
 		ib16_bus_data_out = 16'b0; // default
 		if (!ib16_bus_wr_en) begin // only assign on reads
-			if (ib16_bus_address_l < `BLOCKS * 16'h0800) begin
+			if (ib16_bus_address_l < bus_address_main_mem_top) begin
 				// main memory
 				ib16_bus_data_out = {ib16_bus_burst ? main_mem_dout_b : 8'b0, main_mem_dout_a};
-			end else if ((ib16_bus_address_l[15:8] & 8'hF8) == 8'hE8) begin
+			end else if ((ib16_bus_address_l >= bus_address_text_mem_bot) && (ib16_bus_address_l <= bus_address_text_mem_top)) begin
 				// for text video memory we handle 8 and 16 bit differently
 				if (!ib16_bus_burst) begin
 					ib16_bus_data_out = {8'b0, text_dout_a};
@@ -227,10 +232,10 @@ module top(input clk,
 
     localparam
 		CYCLES_PER_TICK = ((`FREQ * 1_000_000) / 1000) * 1;					// tick every 1ms
-    reg [7:0] tick_counter;
-    reg [$clog2(CYCLES_PER_TICK):0] cycle_counter;
-
-    reg [3:0] bus_cycle;
+    logic [7:0] tick_counter;
+    logic [$clog2(CYCLES_PER_TICK):0] cycle_counter;
+    logic [3:0] bus_cycle;
+    
     ib16 #(
         .STACK_ADDRESS(`STACK_ADDRESS),
         .IRQ_VECTOR(`IRQ_VECTOR),
@@ -247,7 +252,7 @@ module top(input clk,
         .bus_irq(ib16_bus_irq));
 
     // bus controller
-    always @(posedge pllclk) begin
+    always_ff @(posedge pllclk) begin
         if (!rst_n) begin
             uart_tx_start       <= 0;
             uart_tx_data_in     <= 0;
@@ -398,7 +403,7 @@ module top(input clk,
                     end
                 end 
                 // upto 2048 * BLOCKS is RAM
-                if (ib16_bus_address < (16'h0800 * `BLOCKS)) begin
+                if (ib16_bus_address < bus_address_main_mem_top) begin
                     // BRAM block
 					if (bus_cycle[0] == 0) // start transaction (this cycle delay handles the fact that bus_address is combinatorial)
 						begin
@@ -420,7 +425,7 @@ module top(input clk,
                 end
 
                 // TEXT VIDEO memory from E800..EFFF
-                if ((ib16_bus_address[15:8] & 8'hF8) == 8'hE8) begin
+                if ((ib16_bus_address_l >= bus_address_text_mem_bot) && (ib16_bus_address_l <= bus_address_text_mem_top)) begin
                     // TEXT MEM  block
 					if (bus_cycle[1:0] == 0) // start transaction (this cycle delay handles the fact that bus_address is combinatorial)
 						begin
@@ -453,7 +458,7 @@ module top(input clk,
                 end
 
                 // F000..F0FF is the boot ROM
-                if (ib16_bus_address[15:8] == (`BOOT_ROM_ADDR >> 8)) begin
+                if ((ib16_bus_address >= bus_address_rom_mem_bot) && (ib16_bus_address <= bus_address_rom_mem_top)) begin
                     case(ib16_bus_address[5:0])
 						8'h00: ib16_bus_data_out_reg <= 16'h0eff;
 						8'h02: ib16_bus_data_out_reg <= 16'h0fff;

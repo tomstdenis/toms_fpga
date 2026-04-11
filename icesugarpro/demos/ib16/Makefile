@@ -3,8 +3,8 @@ TOP=top
 FREQ=64
 BLOCKS=16
 
-OBJS+=${TARGET}.v pll.v pll2.v \
-../../../lib/uart/blocks/tx_uart.v ../../../lib/uart/blocks/rx_uart.v ../../../lib/uart/blocks/uart.v \
+OBJS+=${TARGET}.sv pll.v pll2.v \
+../../../lib/uart/blocks/tx_uart.sv ../../../lib/uart/blocks/rx_uart.sv ../../../lib/uart/blocks/uart.sv \
 ../../../lib/ib16/ib16_v2.v ../../lib/bram/bram_dp_2048x8.v ../../lib/bram/bram_dp_nx2048x8.v \
 ../../../lib/vga/blocks/vga_timing.v ../../../lib/vga/blocks/8x8_font_256.v ../../../lib/vga/blocks/vga_text_driver.v \
 
@@ -14,7 +14,7 @@ $(TARGET).json: $(OBJS)
 		yosys -DBLOCKS=${BLOCKS} -DFREQ=${FREQ} -p "synth_ecp5 -json $@" $(OBJS)
 
 $(TARGET)_out.config: $(TARGET).json
-		nextpnr-ecp5 --parallel-refine --tmg-ripup -r --45k --package CABGA381 --speed 6 --json $< --textcfg $@ --lpf $(TARGET).lpf
+		nextpnr-ecp5 --placer-heap-cell-placement-timeout 0 --parallel-refine --tmg-ripup -r --45k --package CABGA381 --speed 6 --json $< --textcfg $@ --lpf $(TARGET).lpf
 
 $(TARGET).bit: $(TARGET)_out.config
 		ecppack --compress --svf ${TARGET}.svf $< $@
