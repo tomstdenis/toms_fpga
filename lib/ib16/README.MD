@@ -100,6 +100,7 @@ The ECP5 and Nano1K demos are similar but have a few differences
 		- INC  5: R[d] = R[a] + 1								[ZC]
 		- DEC  6: R[d] = R[a] - 1								[ZC]
 		- NOT  7: R[d] = ~R[a]									[ZC]
+		- NEG  8: R[d] = -R[a]									[ZC]
 9 - LDM (3OP)  R[d] = memory[{R[a], R[b]}]						[ZC]  (if a == b == 15 then it's a pop or push off the stack)
 10 - STM (3OP)  memory[{R[a], R[b]}] = R[d]
 11 - LCAL (12IMM) PC = (12IMM) << 4 (push PC)

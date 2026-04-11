@@ -291,16 +291,16 @@ module top(input clk,
 			
 			int_pending <= int_pending;
 			if (uart_prev_rx_ready != uart_rx_ready && uart_rx_ready) begin
-				int_pending[IRQ_UART_RX_READY] <= 1;
+				int_pending[IRQ_UART_RX_READY] <= int_enable[IRQ_UART_RX_READY];
 			end
 			if (uart_prev_tx_fifo_empty != uart_tx_fifo_empty && uart_tx_fifo_empty) begin
-				int_pending[IRQ_UART_TX_FIFO_EMPTY] <= 1;
+				int_pending[IRQ_UART_TX_FIFO_EMPTY] <= int_enable[IRQ_UART_TX_FIFO_EMPTY];
 			end
 			if (cycle_counter == (CYCLES_PER_TICK-1)) begin
-				int_pending[IRQ_TIMER] <= 1;
+				int_pending[IRQ_TIMER] <= int_enable[IRQ_TIMER];
 			end
 			if (vga_v_sync != vga_v_sync_prev) begin
-				int_pending[IRQ_VSYNC] <= 1;
+				int_pending[IRQ_VSYNC] <= int_enable[IRQ_VSYNC];
 			end
             uart_prev_rx_ready 		<= uart_rx_ready;
             uart_prev_tx_fifo_empty <= uart_tx_fifo_empty;
@@ -456,9 +456,8 @@ module top(input clk,
                             begin
 								bus_cycle           <= 0;
 								ib16_bus_ready      <= 1;
-                                if (text_we_a) begin // writes are done here
-                                    text_we_a           <= 0;
-                                end else begin
+								text_we_a           <= 0;
+                                if (~text_we_a) begin // writes are done here
                                     ib16_bus_data_out_reg[7:0] <= text_dout_a;
                                 end
                             end
