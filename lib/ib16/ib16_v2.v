@@ -113,12 +113,12 @@ module ib16 #(
 						   {8'b0, ((opcode_isn == OPCODE_ADC ? 1'b1 : 1'b0) & carry_flag)}};
 		end
         if (opcode_isn == OPCODE_CMP) begin
-            case(opcode_opd[1:0])
-                2'b00: result_dff[8] = (reg_ra < reg_rb) ? 1'b1 : 1'b0;
-                2'b01: result_dff[8] = (reg_ra == reg_rb) ? 1'b1 : 1'b0;
-                2'b10: result_dff[8] = (reg_ra > reg_rb) ? 1'b1 : 1'b0;
-                default: begin end
-            endcase
+			if (opcode_opd == 0)
+				result_dff[8] = (reg_ra < reg_rb) ? 1'b1 : 1'b0;
+			if (opcode_opd == 1)
+				result_dff[8] = (reg_ra == reg_rb) ? 1'b1 : 1'b0;
+			if (opcode_opd == 2)
+				result_dff[8] = (reg_ra > reg_rb) ? 1'b1 : 1'b0;
             result_dff[0] = ~zero_flag; // enforce no changes to zero_flag
         end
 		if (opcode_isn == OPCODE_XOR) begin
@@ -131,30 +131,28 @@ module ib16 #(
 			result_dff	= {1'b0, reg_ra | reg_rb};
 		end
 		if (opcode_isn == OPCODE_SHF) begin
-			case(opcode_opa[3:0])
-				0: // SHR
-					result_dff = {2'b0, reg_rb[7:1]};
-				1: // SAR
-					result_dff = {1'b0, reg_rb[7], reg_rb[7:1]};
-				2: // ROR
-					result_dff = {reg_rb[0], carry_flag, reg_rb[7:1]};
-				3: // ROL	
-					result_dff = {reg_rb[7], reg_rb[6:0], carry_flag};
-				4: // SWAP
-					result_dff = {1'b0, reg_rb[3:0], reg_rb[7:4]};
-				5: // INC
-					result_dff = {1'b0, reg_rb} + 9'b1;
-				6: // DEC
-					result_dff = {1'b0, reg_rb} - 9'b1;
-				7: // NOT
-					result_dff = {1'b0, ~reg_rb};
-				8: // NEG
-					result_dff = {1'b0, -reg_rb};
-				9: // Carry
-					result_dff = {1'b0, 7'b0, carry_flag };
-				10: // Zero
-					result_dff = {1'b0, 7'b0, zero_flag };
-			endcase
+			if (opcode_opa == 0) // SHR
+				result_dff = {2'b0, reg_rb[7:1]};
+			if (opcode_opa == 1) // SAR
+				result_dff = {1'b0, reg_rb[7], reg_rb[7:1]};
+			if (opcode_opa == 2) // ROR
+				result_dff = {reg_rb[0], carry_flag, reg_rb[7:1]};
+			if (opcode_opa == 3) // ROL	
+				result_dff = {reg_rb[7], reg_rb[6:0], carry_flag};
+			if (opcode_opa == 4) // SWAP
+				result_dff = {1'b0, reg_rb[3:0], reg_rb[7:4]};
+			if (opcode_opa == 5) // INC
+				result_dff = {1'b0, reg_rb} + 9'b1;
+			if (opcode_opa == 6) // DEC
+				result_dff = {1'b0, reg_rb} - 9'b1;
+			if (opcode_opa == 7) // NOT
+				result_dff = {1'b0, ~reg_rb};
+			if (opcode_opa == 8) // NEG
+				result_dff = {1'b0, -reg_rb};
+			if (opcode_opa == 9) // Carry
+				result_dff = {1'b0, 7'b0, carry_flag };
+			if (opcode_opa == 10) // Zero
+				result_dff = {1'b0, 7'b0, zero_flag };
 		end
 	end
 	

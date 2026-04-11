@@ -362,102 +362,94 @@ module top(input clk,
                 // UART data register
                 if (ib16_bus_address == UART_DATA_ADDR) begin
                     if (ib16_bus_wr_en) begin
-                        case(bus_cycle[0])
-                            0: // wait for a FIFO slot
-                                begin
-                                    if (!uart_tx_fifo_full) begin
-                                        uart_tx_data_in <= ib16_bus_data_in[7:0];
-                                        uart_tx_start   <= 1;
-                                        bus_cycle       <= 1;
-                                    end
-                                end
-                            1: // deassert and go to ready
-                                begin
-                                    uart_tx_start   <= 0;
-                                    bus_cycle       <= 0;
-                                    ib16_bus_ready  <= 1;
-                                end
-                        endcase
+						if (bus_cycle[0] == 0) // wait for a FIFO slot
+							begin
+								if (!uart_tx_fifo_full) begin
+									uart_tx_data_in <= ib16_bus_data_in[7:0];
+									uart_tx_start   <= 1;
+									bus_cycle       <= 1;
+								end
+							end
+						if (bus_cycle[0] == 1) // deassert and go to ready
+							begin
+								uart_tx_start   <= 0;
+								bus_cycle       <= 0;
+								ib16_bus_ready  <= 1;
+							end
                     end else begin
-                        case(bus_cycle[1:0])
-                            0: // wait for incoming byte
-                                begin
-                                    if (uart_rx_ready) begin
-                                        uart_rx_read    <= 1;
-                                        bus_cycle       <= 1;
-                                    end
-                                end
-                            1: // deassert read and delay for byte
-                                begin
-                                    uart_rx_read        <= 0;
-                                    bus_cycle           <= 2;
-                                end
-                            2: // store byte and go back to idle
-                                begin
-                                    ib16_bus_data_out_reg   <= uart_rx_byte;
-                                    bus_cycle           <= 0;
-                                    ib16_bus_ready      <= 1;
-                                end
-                        endcase
+						if (bus_cycle[1:0] == 0) // wait for incoming byte
+							begin
+								if (uart_rx_ready) begin
+									uart_rx_read    <= 1;
+									bus_cycle       <= 1;
+								end
+							end
+						if (bus_cycle[1:0] == 1) // deassert read and delay for byte
+							begin
+								uart_rx_read        <= 0;
+								bus_cycle           <= 2;
+							end
+						if (bus_cycle[1:0] == 2) // store byte and go back to idle
+							begin
+								ib16_bus_data_out_reg   <= uart_rx_byte;
+								bus_cycle           <= 0;
+								ib16_bus_ready      <= 1;
+							end
                     end
                 end 
                 // upto 2048 * BLOCKS is RAM
                 if (ib16_bus_address < (16'h0800 * `BLOCKS)) begin
                     // BRAM block
-                    case(bus_cycle[0])
-                        0: // start transaction (this cycle delay handles the fact that bus_address is combinatorial)
-                            begin
-								main_mem_we_a   <= ib16_bus_wr_en;
-								main_mem_we_b   <= ib16_bus_burst ? ib16_bus_wr_en : 1'b0;
-								main_mem_addr_a <= ib16_bus_address[10+$clog2(`BLOCKS):0];
-								main_mem_addr_b <= ib16_bus_address[10+$clog2(`BLOCKS):0] + 1'b1;
-                                main_mem_din_a  <= ib16_bus_data_in[7:0];
-                                main_mem_din_b  <= ib16_bus_data_in[15:8];
-                                bus_cycle       <= bus_cycle + 1'b1;
-                            end
-                        1: // memory 2nd cycle
-                            begin
-								bus_cycle       <= 0;
-								main_mem_we_a	<= 0;
-								main_mem_we_b 	<= 0;
-								ib16_bus_ready  <= 1;
-                            end
-                    endcase
+					if (bus_cycle[0] == 0) // start transaction (this cycle delay handles the fact that bus_address is combinatorial)
+						begin
+							main_mem_we_a   <= ib16_bus_wr_en;
+							main_mem_we_b   <= ib16_bus_burst ? ib16_bus_wr_en : 1'b0;
+							main_mem_addr_a <= ib16_bus_address[10+$clog2(`BLOCKS):0];
+							main_mem_addr_b <= ib16_bus_address[10+$clog2(`BLOCKS):0] + 1'b1;
+							main_mem_din_a  <= ib16_bus_data_in[7:0];
+							main_mem_din_b  <= ib16_bus_data_in[15:8];
+							bus_cycle       <= bus_cycle + 1'b1;
+						end
+					if (bus_cycle[0] == 1) // memory 2nd cycle
+						begin
+							bus_cycle       <= 0;
+							main_mem_we_a	<= 0;
+							main_mem_we_b 	<= 0;
+							ib16_bus_ready  <= 1;
+						end
                 end
 
                 // TEXT VIDEO memory from E800..EFFF
                 if ((ib16_bus_address[15:8] & 8'hF8) == 8'hE8) begin
                     // TEXT MEM  block
-                    case(bus_cycle[1:0])
-                        0: // start transaction (this cycle delay handles the fact that bus_address is combinatorial)
-                            begin
-                                text_we_a     <= ib16_bus_wr_en;
-                                text_addr_a   <= ib16_bus_address[10+$clog2(`BLOCKS):0];
-                                text_din_a    <= ib16_bus_data_in[7:0];
-                                bus_cycle     <= bus_cycle + 1'b1;
-                            end
-                        1: // memory 2nd cycle (we're done here if it's a 8-bit)
-                            begin
-								if (!ib16_bus_burst) begin
-									text_we_a 		<= 0;
-									bus_cycle 		<= 0;
-									ib16_bus_ready	<= 1;
-								end else begin
-									bus_cycle		<= bus_cycle + 1'b1;
-									text_addr_a		<= text_addr_a + 1'b1;
-									text_din_a		<= ib16_bus_data_in[15:8];
-								end
-                            end
-                        2: // memory 3rd cycle (done if writing, store first 8 bits if reading)
-                            begin
-								bus_cycle           <= 0;
-								ib16_bus_ready      <= 1;
-								text_we_a           <= 0;
-                                if (~text_we_a) begin // writes are done here
-                                    ib16_bus_data_out_reg[7:0] <= text_dout_a;
-                                end
-                            end
-                    endcase
+					if (bus_cycle[1:0] == 0) // start transaction (this cycle delay handles the fact that bus_address is combinatorial)
+						begin
+							text_we_a     <= ib16_bus_wr_en;
+							text_addr_a   <= ib16_bus_address[10+$clog2(`BLOCKS):0];
+							text_din_a    <= ib16_bus_data_in[7:0];
+							bus_cycle     <= bus_cycle + 1'b1;
+						end
+					if (bus_cycle[1:0] == 1) // memory 2nd cycle (we're done here if it's a 8-bit)
+						begin
+							if (!ib16_bus_burst) begin
+								text_we_a 		<= 0;
+								bus_cycle 		<= 0;
+								ib16_bus_ready	<= 1;
+							end else begin
+								bus_cycle		<= bus_cycle + 1'b1;
+								text_addr_a		<= text_addr_a + 1'b1;
+								text_din_a		<= ib16_bus_data_in[15:8];
+							end
+						end
+					if (bus_cycle[1:0] == 2) // memory 3rd cycle (done if writing, store first 8 bits if reading)
+						begin
+							bus_cycle           <= 0;
+							ib16_bus_ready      <= 1;
+							text_we_a           <= 0;
+							if (~text_we_a) begin // writes are done here
+								ib16_bus_data_out_reg[7:0] <= text_dout_a;
+							end
+						end
                 end
 
                 // F000..F0FF is the boot ROM
