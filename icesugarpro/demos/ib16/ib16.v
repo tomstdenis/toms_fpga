@@ -178,9 +178,10 @@ module top(input clk,
 
 	// ### VGA text mode driver ###, defaults to 80x25 using an 8x8 font
 	// notice we're scaling the font by 2 so we change the height to 16 here
+	// also since we don't use the full y resolution anyways we shift things down so the overscan doesn't eat the first line
 	vga_text_driver #(.FONTHEIGHT(16)) textdrv(
 		.clk(pll2clk), .rst_n(rst2_n),
-		.x(vga_x), .y(vga_y), .active_video(vga_active),
+		.x(vga_x), .y(vga_y - 10'd16), .active_video(vga_active),
 		.rd_addr(text_addr_b), .rd_data(text_dout_b),
 		.symbol(text_symbol));
 
