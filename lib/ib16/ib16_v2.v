@@ -197,7 +197,7 @@ module ib16 #(
                 end
                 // check for IRQs only if the bus is idle
                 if (|bus_irq && !mask_irq && !bus_enable) begin
-					reg_rr[{1'b1, 4'd1}] <= bus_irq;
+					reg_rr[{1'b1, 4'd1}] <= bus_irq;				// set r1 to the interrupt pending
                     reg_irq_pc	      <= reg_pc;
                     // save SREG depending on how we ended up here the carry/zero flags might be from result_dff or reg_sreg
                     if (state == FSM_RETIRE) begin

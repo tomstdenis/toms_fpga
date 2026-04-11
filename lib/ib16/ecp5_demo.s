@@ -44,8 +44,8 @@
 ; Enable UART RX READY IRQ
 	LDI 8,>INTEN_ADDR
 	LDI 9,<INTEN_ADDR
-	LDI 1,1
-	STM 1,9,8
+	LDI 1,1				; bit 0 - RX READY
+	STM 1,9,8			; store int enable flags
 
 	LCALL ttyClear		; clear screen
 

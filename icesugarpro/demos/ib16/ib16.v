@@ -133,7 +133,12 @@ module top(input clk,
 	wire [9:0] vga_y;
 	wire vga_h_sync;
 	wire vga_v_sync;
+	reg vga_v_sync_prev;
 	wire vga_active;
+	
+	always @(posedge pll2clk) begin
+		vga_v_sync_prev <= vga_v_sync;
+	end
 	
 	assign vga_h_pulse = vga_h_sync;
 	assign vga_v_pulse = vga_v_sync;
@@ -294,9 +299,12 @@ module top(input clk,
 			if (cycle_counter == (CYCLES_PER_TICK-1)) begin
 				int_pending[IRQ_TIMER] <= 1;
 			end
-            uart_prev_rx_ready <= uart_rx_ready;
+			if (vga_v_sync != vga_v_sync_prev) begin
+				int_pending[IRQ_VSYNC] <= 1;
+			end
+            uart_prev_rx_ready 		<= uart_rx_ready;
             uart_prev_tx_fifo_empty <= uart_tx_fifo_empty;
-            ib16_bus_irq <= (int_pending & int_enable);
+            ib16_bus_irq 			<= (int_pending & int_enable);
 
             // normal mode
             if (ib16_bus_enable && !ib16_bus_ready) begin
