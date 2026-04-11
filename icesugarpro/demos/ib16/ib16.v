@@ -299,12 +299,12 @@ module top(input clk,
 			if (cycle_counter == (CYCLES_PER_TICK-1)) begin
 				int_pending[IRQ_TIMER] <= int_enable[IRQ_TIMER];
 			end
-			if (vga_v_sync != vga_v_sync_prev) begin
+			if (vga_v_sync != vga_v_sync_prev && ~vga_v_sync) begin			// v_sync is inverted (active low)
 				int_pending[IRQ_VSYNC] <= int_enable[IRQ_VSYNC];
 			end
             uart_prev_rx_ready 		<= uart_rx_ready;
             uart_prev_tx_fifo_empty <= uart_tx_fifo_empty;
-            ib16_bus_irq 			<= (int_pending & int_enable);
+            ib16_bus_irq 			<= int_pending;
 
             // normal mode
             if (ib16_bus_enable && !ib16_bus_ready) begin
