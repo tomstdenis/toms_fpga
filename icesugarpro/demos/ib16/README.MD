@@ -59,7 +59,7 @@ to the left and right of the DVI header.
    - **E800..EFFF**: Video memory in row major order, 80 columns x 25 rows of 1 byte per character CP437 text
    - **F000..F0FF**: Boot ROM (**boot_rom_ecp5.s**)
    - **FFF9**: Reading returns the current 1ms tick counter, writing anything will reset the timer/counter
-   - **FFFA**: GPIO1, uses 8574 style interface where writing a 1 bit turns it into a pull up high impededance input.
+   - **FFFA**: GPIO1, uses 8574 style interface where writing a 1 bit turns it into a pull up high impedance input.
    - **FFFB**: GPIO0, like GPIO1
    - **FFFC**: Interrupt Pending 
       - layout: [0, 0, 0, 0, VSYNC, TIMER, UART TX EMPTY, UART RX READY]

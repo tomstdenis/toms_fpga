@@ -52,7 +52,7 @@ module bram_dp_nx2048x8
 				.rst_a(rst_a),
 				.addr_a(addr_a[10:0]),
 				.din_a(din_a),
-				.we_a(we_a & ((addr_a[10+$clog2(N):11] == i) ? 1'b1 : 1'b0)),
+				.we_a(we_a & ((addr_a[10+$clog2(N):11] == i[$clog2(N):0]) ? 1'b1 : 1'b0)),
 				.dout_a(mem_out_a[i]),
 
 				.clk_b(clk_b),
@@ -60,7 +60,7 @@ module bram_dp_nx2048x8
 				.rst_b(rst_b),
 				.addr_b(addr_b[10:0]),
 				.din_b(din_b),
-				.we_b(we_b & ((addr_b[10+$clog2(N):11] == i) ? 1'b1 : 1'b0)),
+				.we_b(we_b & ((addr_b[10+$clog2(N):11] == i[$clog2(N):0]) ? 1'b1 : 1'b0)),
 				.dout_b(mem_out_b[i])
 			);
 		end

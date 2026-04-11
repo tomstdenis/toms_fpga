@@ -184,7 +184,7 @@ module ib16 #(
 `endif
             if (TWO_CYCLE == 1 && state == FSM_BUFFER) begin   // buffer stage to help with ALU critical path timing
 				result_dff_l <= result_dff;
-                state <= FSM_RETIRE;
+                state        <= FSM_RETIRE;
             end
             if (state == FSM_FETCH || state == FSM_RETIRE) begin
 				state <= FSM_FETCH;					// turn into a FETCH if we're from RETIRE
