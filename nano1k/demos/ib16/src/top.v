@@ -10,8 +10,8 @@
 module top(input wire clk, input wire uart_rx, output wire uart_tx, inout wire [7:0] gpio);
     localparam
         TIMER_ADDR       = 16'hFFF9,
-        GPIO1_DATA_ADDR   = 16'hFFFA, // unused here but let's keep the memory map the same as ecp5
-        GPIO0_DATA_ADDR   = 16'hFFFB,
+        GPIO1_DATA_ADDR  = 16'hFFFA, // unused here but let's keep the memory map the same as ecp5
+        GPIO0_DATA_ADDR  = 16'hFFFB,
         UART_INT_ADDR    = 16'hFFFC,
         UART_INTEN_ADDR  = 16'hFFFD,
         UART_STS_ADDR    = 16'hFFFE,
@@ -95,16 +95,15 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, inout wire [
     wire [15:0] ib16_bus_data_in;
     reg ib16_bus_ready;
     reg [15:0] ib16_bus_data_out;
-    reg ib16_bus_irq;
+    reg [7:0] ib16_bus_irq;
     wire ib16_bus_burst;
-    reg [23:0] cycle_counter;
 
     reg [3:0] bus_cycle;
     ib16 #(
         .STACK_ADDRESS(`STACK_ADDRESS),
         .IRQ_VECTOR(`IRQ_VECTOR),
         .BOOT_ROM_ADDR(16'h2000),
-        .TWO_CYCLE(0)) 
+        .TWO_CYCLE(1)) 
     ittybitty(
         .clk(pllclk), .rst_n(rst_n),
         .bus_enable(ib16_bus_enable),
@@ -131,7 +130,6 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, inout wire [
             ib16_bus_irq        <= 0;
             bus_cycle           <= 0;
             gpio_out            <= 8'hFF;
-            cycle_counter       <= 0;
 `ifdef USE_UARTIRQ
             uart_prev_rx_ready  <= 0;
             uart_prev_tx_fifo_empty <= 0;
@@ -139,17 +137,8 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, inout wire [
             uart_int_pending    <= 0;
 `endif
         end else begin
-            cycle_counter <= cycle_counter + 1'b1;
-`ifdef USE_UARTIRQ
-            // trap uart IRQ
-            uart_int_pending[0] <= (uart_prev_rx_ready != uart_rx_ready && uart_rx_ready) ? 1'b1 : 1'b0;
-            uart_int_pending[1] <= (uart_prev_tx_fifo_empty != uart_tx_fifo_empty && uart_tx_fifo_empty) ? 1'b1 : 1'b0;
-            uart_prev_rx_ready <= uart_rx_ready;
-            uart_prev_tx_fifo_empty <= uart_tx_fifo_empty;
-            ib16_bus_irq <= |(uart_int_pending & uart_int_enable);
-`endif
 `ifdef USE_SIMPLE_UART_IRQ
-            ib16_bus_irq <= uart_rx_ready;
+            ib16_bus_irq <= {7'b0, uart_rx_ready};
 `endif
             // normal mode
             if (ib16_bus_enable && !ib16_bus_ready) begin
@@ -166,31 +155,6 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, inout wire [
                 if (ib16_bus_address == GPIO1_DATA_ADDR) begin
                     ib16_bus_ready <= 1;
                 end
-`ifdef USE_UARTIRQ
-                // UART Interrupt enable
-                if (ib16_bus_address == UART_INT_ADDR) begin
-                    if (ib16_bus_wr_en) begin
-                        uart_int_pending <= uart_int_pending[1:0] & ~ib16_bus_data_in[1:0];
-                    end else begin
-                        ib16_bus_data_out <= {6'b0, uart_int_pending};
-                    end
-                    ib16_bus_ready <= 1;
-                end
-                // UART Interrupt enable
-                if (ib16_bus_address == UART_INTEN_ADDR) begin
-                    if (ib16_bus_wr_en) begin
-                        uart_int_enable <= ib16_bus_data_in[1:0];
-                    end else begin
-                        ib16_bus_data_out <= {6'b0, uart_int_enable};
-                    end
-                    ib16_bus_ready <= 1;
-                end
-`endif
-                // Timer
-                if (ib16_bus_address == TIMER_ADDR) begin
-                    ib16_bus_data_out <= cycle_counter[23:16];
-                    ib16_bus_ready    <= 1;
-                end 
 
                 // UART Status register
                 if (ib16_bus_address == UART_STS_ADDR) begin
