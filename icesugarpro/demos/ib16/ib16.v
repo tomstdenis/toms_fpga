@@ -335,9 +335,9 @@ module top(input clk,
                 // Interrupt enable
                 if (ib16_bus_address == UART_INTEN_ADDR) begin
                     if (ib16_bus_wr_en) begin
-                        int_enable <= ib16_bus_data_in[1:0];
+                        int_enable <= ib16_bus_data_in[7:0];
                     end else begin
-                        ib16_bus_data_out_reg <= {6'b0, int_enable};
+                        ib16_bus_data_out_reg <= {8'b0, int_enable};
                     end
                     ib16_bus_ready <= 1;
                 end
