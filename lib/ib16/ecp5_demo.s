@@ -4,6 +4,8 @@
 ; in ISR context and buffer it for the app context
 .EQU GPIO0_ADDR 0xFFFB
 .EQU GPIO1_ADDR 0xFFFA
+.EQU INT_ADDR 0xFFFC
+.EQU INTEN_ADDR 0xFFFD
 .PROG_SIZE DEMO_PROG_SIZE
 .INC lib/tty/tty.s
 .INC lib/uart/uart.s
@@ -20,13 +22,14 @@
 ; Load R15:R14 with UART address
 	LDI 14,>UART_ADDR
 	LDI 15,<UART_ADDR
-; load R12:R13 pointing to GPIO
-	LDI 12,>GPIO0_ADDR
-	LDI 13,<GPIO0_ADDR
+; 	
+; load R12:R13 pointing to INT PENDING
+	LDI 12,>INT_ADDR
+	LDI 13,<INT_ADDR
 	LDI 2,0x1B					; ESC key
+	SRES 0						; switch back to APP context
 
 ; Setup App context
-	SRES 0						; switch back to APP context
 	LDI 14,>UART_ADDR			; we want to use the UART in app context too
 	LDI 15,<UART_ADDR
 	
@@ -37,6 +40,13 @@
 ; load R10:R11 pointing to GPIO1
 	LDI 10,>GPIO1_ADDR
 	LDI 11,<GPIO1_ADDR
+
+; Enable UART RX READY IRQ
+	LDI 8,>INTEN_ADDR
+	LDI 9,<INTEN_ADDR
+	LDI 1,1
+	STM 1,9,8
+
 	LCALL ttyClear		; clear screen
 
 ; print welcome message

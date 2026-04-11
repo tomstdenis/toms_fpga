@@ -1,6 +1,7 @@
 ;ISR for our uart_demo split into a file to test the .INC directive
 :ISR
 ; Note that r2,r12..r15 are already setup during the init of the app
+	STM 1,13,12			; write int pending back to clear it
 ; read character and compare to ESC
 	LDM 1,15,14			; read from UART
 	CMPEQ 1,2			; is it the ESC key?

@@ -18,7 +18,7 @@ module ib16 #(
 	output reg [15:0] bus_data_in,
 	input wire bus_ready,
 	input wire [15:0] bus_data_out,
-	input wire bus_irq
+	input wire [7:0] bus_irq
 );
 
 `ifdef SIM
@@ -196,7 +196,8 @@ module ib16 #(
                     reg_sreg[CARRY_FLAG]	<= result_dff_r[8];
                 end
                 // check for IRQs only if the bus is idle
-                if (bus_irq && !mask_irq && !bus_enable) begin
+                if (|bus_irq && !mask_irq && !bus_enable) begin
+					reg_rr[{1'b1, 4'd1}] <= bus_irq;
                     reg_irq_pc	      <= reg_pc;
                     // save SREG depending on how we ended up here the carry/zero flags might be from result_dff or reg_sreg
                     if (state == FSM_RETIRE) begin

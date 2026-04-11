@@ -1,6 +1,5 @@
 /* hacking for tonight plans
 
-- Make timer fixed to increment the byte the IB can read every 1ms regardless of clock rate
 - re-write IRQ pending system (rename things don't make it solely tied to UART)
   - add timer, vsync, uart rx_ready ints
   - add int pending port to IB module
@@ -8,12 +7,8 @@
 */  
 
 // enable IRQs for UART supporting [0] = RX ready, [1] TX empty
-//`define USE_UARTIRQ
 `timescale 1ns/1ps
 `default_nettype none
-
-// Simple IRQ, raises bus_irq if RX ready
-`define USE_SIMPLE_UART_IRQ
 
 // place stack at top of memory - 256 bytes, and the ISR 256 bytes before that
 `define STACK_ADDRESS (16'h0800 * `BLOCKS - 16'h0100)
@@ -89,12 +84,18 @@ module top(input clk,
     reg uart_rx_read;
     wire uart_rx_ready;
     wire [7:0] uart_rx_byte;
-`ifdef USE_UARTIRQ
+
+	// trap IRQs
+	localparam
+		IRQ_UART_RX_READY = 0,
+		IRQ_UART_TX_FIFO_EMPTY = 1,
+		IRQ_TIMER = 2,
+		IRQ_VSYNC = 3;
+
     reg uart_prev_tx_fifo_empty;
     reg uart_prev_rx_ready;
-    reg [1:0] uart_int_enable;
-    reg [1:0] uart_int_pending;
-`endif
+    reg [7:0] int_enable;
+    reg [7:0] int_pending;
 
     uart #(.FIFO_DEPTH(64), .RX_ENABLE(1), .TX_ENABLE(1)) mrtalky (
         .clk(pllclk), .rst_n(rst_n),
@@ -199,7 +200,7 @@ module top(input clk,
     reg ib16_bus_ready;
     reg [15:0] ib16_bus_data_out_reg;
     wire [15:0] ib16_bus_data_out;
-    reg ib16_bus_irq;
+    reg [7:0] ib16_bus_irq;
     wire ib16_bus_burst;
 
 	// we use a combinatorial bus output to allow cutting 1 cycle on the return path
@@ -264,12 +265,10 @@ module top(input clk,
             gpio_out            <= 16'hFFFF;
             cycle_counter       <= 0;
             tick_counter		<= 0;
-`ifdef USE_UARTIRQ
             uart_prev_rx_ready  <= 0;
             uart_prev_tx_fifo_empty <= 0;
-            uart_int_enable     <= 0;
-            uart_int_pending    <= 0;
-`endif
+            int_enable     		<= 0;
+            int_pending    		<= 0;
         end else begin
 			// tick counter logic
             if (cycle_counter == (CYCLES_PER_TICK-1)) begin
@@ -285,18 +284,20 @@ module top(input clk,
 			end
 			ib16_bus_enable_prev <= ib16_bus_enable;
 			
-			
-`ifdef USE_UARTIRQ
-            // trap uart IRQ
-            uart_int_pending[0] <= (uart_prev_rx_ready != uart_rx_ready && uart_rx_ready) ? 1'b1 : 1'b0;
-            uart_int_pending[1] <= (uart_prev_tx_fifo_empty != uart_tx_fifo_empty && uart_tx_fifo_empty) ? 1'b1 : 1'b0;
+			int_pending <= int_pending;
+			if (uart_prev_rx_ready != uart_rx_ready && uart_rx_ready) begin
+				int_pending[IRQ_UART_RX_READY] <= 1;
+			end
+			if (uart_prev_tx_fifo_empty != uart_tx_fifo_empty && uart_tx_fifo_empty) begin
+				int_pending[IRQ_UART_TX_FIFO_EMPTY] <= 1;
+			end
+			if (cycle_counter == (CYCLES_PER_TICK-1)) begin
+				int_pending[IRQ_TIMER] <= 1;
+			end
             uart_prev_rx_ready <= uart_rx_ready;
             uart_prev_tx_fifo_empty <= uart_tx_fifo_empty;
-            ib16_bus_irq <= |(uart_int_pending & uart_int_enable);
-`endif
-`ifdef USE_SIMPLE_UART_IRQ
-            ib16_bus_irq <= uart_rx_ready;
-`endif
+            ib16_bus_irq <= (int_pending & int_enable);
+
             // normal mode
             if (ib16_bus_enable && !ib16_bus_ready) begin
                 // handle new command
@@ -318,26 +319,24 @@ module top(input clk,
                     end
                     ib16_bus_ready <= 1;
                 end
-`ifdef USE_UARTIRQ
-                // UART Interrupt enable
+                // Interrupt pending
                 if (ib16_bus_address == UART_INT_ADDR) begin
                     if (ib16_bus_wr_en) begin
-                        uart_int_pending <= uart_int_pending[1:0] & ~ib16_bus_data_in[1:0];
+                        int_pending <= int_pending[1:0] & ~ib16_bus_data_in[1:0];
                     end else begin
-                        ib16_bus_data_out_reg <= {6'b0, uart_int_pending};
+                        ib16_bus_data_out_reg <= {6'b0, int_pending};
                     end
                     ib16_bus_ready <= 1;
                 end
-                // UART Interrupt enable
+                // Interrupt enable
                 if (ib16_bus_address == UART_INTEN_ADDR) begin
                     if (ib16_bus_wr_en) begin
-                        uart_int_enable <= ib16_bus_data_in[1:0];
+                        int_enable <= ib16_bus_data_in[1:0];
                     end else begin
-                        ib16_bus_data_out_reg <= {6'b0, uart_int_enable};
+                        ib16_bus_data_out_reg <= {6'b0, int_enable};
                     end
                     ib16_bus_ready <= 1;
                 end
-`endif
                 // Timer
                 if (ib16_bus_address == TIMER_ADDR) begin
 					if (ib16_bus_wr_en) begin
