@@ -6,9 +6,9 @@
     <Device name="GW1NZ-1" pn="GW1NZ-LV1QN48C6/I5">gw1nz1-015</Device>
     <FileList>
         <File path="/home/tom/nas/toms_fpga/lib/ib16/ib16_v2.v" type="file.verilog" enable="1"/>
-        <File path="/home/tom/nas/toms_fpga/lib/uart/blocks/rx_uart.v" type="file.verilog" enable="1"/>
-        <File path="/home/tom/nas/toms_fpga/lib/uart/blocks/tx_uart.v" type="file.verilog" enable="1"/>
-        <File path="/home/tom/nas/toms_fpga/lib/uart/blocks/uart.v" type="file.verilog" enable="1"/>
+        <File path="/home/tom/nas/toms_fpga/lib/uart/blocks/rx_uart.sv" type="file.verilog" enable="1"/>
+        <File path="/home/tom/nas/toms_fpga/lib/uart/blocks/tx_uart.sv" type="file.verilog" enable="1"/>
+        <File path="/home/tom/nas/toms_fpga/lib/uart/blocks/uart.sv" type="file.verilog" enable="1"/>
         <File path="src/gowin_rpll/gowin_rpll.v" type="file.verilog" enable="1"/>
         <File path="src/gowin_sp/gowin_sp.v" type="file.verilog" enable="1"/>
         <File path="src/top.v" type="file.verilog" enable="1"/>

@@ -4,14 +4,14 @@
 // Serial 8N1 transmitter with variable baudrate
 module tx_uart
 (
-    input logic clk,                          
-    input logic rst_n,                        // active low reset
-    input logic [15:0] baud_div,              // counter value for baud calculation (e.g. F_CLK/BAUD == baud_div)
-    input logic start_tx,                     // active high start transmitting whatever is in data_in (which is latched after the first cycle)
-    input logic [7:0] data_in,
-    output logic tx_pin,                  // (out) the TX pin
-    output logic tx_started,              // (out) Indicates transmission started
-    output logic tx_done                  // (out) indicates TX done
+    input wire clk,                          
+    input wire rst_n,                        // active low reset
+    input wire [15:0] baud_div,              // counter value for baud calculation (e.g. F_CLK/BAUD == baud_div)
+    input wire start_tx,                     // active high start transmitting whatever is in data_in (which is latched after the first cycle)
+    input wire [7:0] data_in,
+    output reg tx_pin,                  // (out) the TX pin
+    output reg tx_started,              // (out) Indicates transmission started
+    output reg tx_done                  // (out) indicates TX done
 );
     localparam
         IDLE      = 0, // waiting for a byte
