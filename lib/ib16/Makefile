@@ -22,7 +22,7 @@ boot_rom.s.bin: boot_rom.s ib16_as
 	./ib16_as boot_rom.s --bin boot_rom.s.bin --list boot_rom.s.lst --rom boot_rom.s.rom
 
 ib16_as: ib16_as.c
-	gcc -O0 -Wall -g3 ib16_as.c -o ib16_as
+	gcc -O3 -Wall ib16_as.c -o ib16_as
 
 upload: upload.c
 	gcc -O0 -Wall upload.c -o upload

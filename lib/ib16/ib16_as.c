@@ -348,7 +348,7 @@ void compile(struct compiler_state *state, char *line)
 		if (y >= 0) {
 			state->PC = y >> 1;
 		} else {
-			fprintf(stderr, "Undefined symbol for ORG '%s'\n", line);
+			fprintf(stderr, "Line %s:%d: Undefined symbol for ORG '%s'\n", state->cur_filename, state->line_number, line);
 			exit(-1);
 		}
 	} else if (!memcmp(line, ".PROG_SIZE ", 11)) {
@@ -358,7 +358,7 @@ void compile(struct compiler_state *state, char *line)
 		if (y >= 0) {
 			state->prog_size = y;
 		} else {
-			fprintf(stderr, "Undefined symbol for PROG_SIZE '%s'\n", line);
+			fprintf(stderr, "Line %s:%d: Undefined symbol for PROG_SIZE '%s'\n", state->cur_filename, state->line_number, line);
 			exit(-1);
 		}
 	} else if (!memcmp(line, ".BIN_START ", 11)) {
@@ -375,7 +375,7 @@ void compile(struct compiler_state *state, char *line)
 		consume_whitespace(&line);
 		sscanf(line, "%"SCNx8, &x);
 		if (!x) {
-			printf("Line %d: Invalid alignment %x specified\n", state->line_number, x);
+			fprintf(stderr, "Line %s:%d: Invalid alignment %x specified\n", state->cur_filename, state->line_number, x);
 			exit(-1);
 		}
 		while (state->PC % x) {
@@ -433,7 +433,7 @@ void compile(struct compiler_state *state, char *line)
 				state->program[state->PC].opidx = 0;
 				++(state->PC);
 			} else {
-				printf("Line %d: .DS directive on address that was already programmed on line %d\n", state->line_number, state->program[state->PC].line_number);
+				fprintf(stderr, "Line %s:%d: .DS directive on address that was already programmed on line %d\n", state->cur_filename, state->line_number, state->program[state->PC].line_number);
 				exit(-1);
 			}
 		}
@@ -451,7 +451,7 @@ void compile(struct compiler_state *state, char *line)
 				state->program[state->PC].opidx = 0;
 				++(state->PC);
 			} else {
-				printf("Line %d: .DUP directive on address that was already programmed on line %d\n", state->line_number, state->program[state->PC].line_number);
+				fprintf(stderr, "Line %s:%d: .DUP directive on address that was already programmed on line %d\n", state->cur_filename, state->line_number, state->program[state->PC].line_number);
 				exit(-1);
 			}
 		}
@@ -539,7 +539,7 @@ int resolve_labels(struct compiler_state *state, char **missing_symbol)
 						y &= 0xFF;
 					}
 					if (y & 0xF) { 
-						fprintf(stderr, "Error, LCALL target must be 16-byte aligned at %s:%d\n", state->cur_filename, state->line_number);
+						fprintf(stderr, "Line %s:%d: Error, LCALL target must be 16-byte aligned\n", state->cur_filename, state->line_number);
 						exit(-1);
 					}
 					state->program[x].opcode |= (y >> 4) & 0xFFF;
