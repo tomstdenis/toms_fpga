@@ -330,9 +330,9 @@ module top(input clk,
                 // Interrupt pending
                 if (ib16_bus_address == UART_INT_ADDR) begin
                     if (ib16_bus_wr_en) begin
-                        int_pending <= int_pending[1:0] & ~ib16_bus_data_in[1:0];
+                        int_pending <= int_pending & ~ib16_bus_data_in[7:0];
                     end else begin
-                        ib16_bus_data_out_reg <= {6'b0, int_pending};
+                        ib16_bus_data_out_reg <= {8'b0, int_pending};
                     end
                     ib16_bus_ready <= 1;
                 end
