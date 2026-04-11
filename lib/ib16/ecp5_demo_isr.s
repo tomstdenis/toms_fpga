@@ -2,6 +2,7 @@
 :ISR
 ; Note that r2,r12..r15 are already setup during the init of the app
 ; read character and compare to ESC
+	LDM 1,13,12			; read int pending
 	LDM 3,15,14			; read from UART
 	STM 1,13,12			; write int pending back to clear it
 	CMPEQ 3,2			; is it the ESC key?

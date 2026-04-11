@@ -137,9 +137,9 @@ module ib16 #(
 				1: // SAR
 					result_dff = {1'b0, reg_rb[7], reg_rb[7:1]};
 				2: // ROR
-					result_dff = {reg_rb[0], reg_rb[0], reg_rb[7:1]};
-				3: // ROL
-					result_dff = {reg_rb[7], reg_rb[6:0], reg_rb[7]};
+					result_dff = {reg_rb[0], carry_flag, reg_rb[7:1]};
+				3: // ROL	
+					result_dff = {reg_rb[7], reg_rb[6:0], carry_flag};
 				4: // SWAP
 					result_dff = {1'b0, reg_rb[3:0], reg_rb[7:4]};
 				5: // INC
@@ -150,6 +150,10 @@ module ib16 #(
 					result_dff = {1'b0, ~reg_rb};
 				8: // NEG
 					result_dff = {1'b0, -reg_rb};
+				9: // Carry
+					result_dff = {1'b0, 7'b0, carry_flag };
+				10: // Zero
+					result_dff = {1'b0, 7'b0, zero_flag };
 			endcase
 		end
 	end
@@ -197,7 +201,6 @@ module ib16 #(
                 end
                 // check for IRQs only if the bus is idle
                 if (|bus_irq && !mask_irq && !bus_enable) begin
-					reg_rr[{1'b1, 4'd1}] <= bus_irq;				// set r1 to the interrupt pending
                     reg_irq_pc	      <= reg_pc;
                     // save SREG depending on how we ended up here the carry/zero flags might be from result_dff or reg_sreg
                     if (state == FSM_RETIRE) begin
@@ -253,7 +256,7 @@ module ib16 #(
                 end
                 if (bus_enable && bus_ready) begin
                     bus_enable              <= 0;
-                    reg_rr[{mask_irq,opcode_opd}]	    <= bus_data_out[7:0];
+                    reg_rr[{mask_irq,opcode_opd}] <= bus_data_out[7:0];
                     reg_sreg[ZERO_FLAG]		<= bus_data_out[7:0] == 0 ? 1'b1 : 1'b0;
                     reg_sreg[CARRY_FLAG]	<= 0;
                     state					<= FSM_FETCH;
