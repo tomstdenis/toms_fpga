@@ -18,7 +18,8 @@ module top(input clk,
 	output reg [3:0] vga_r, output reg [3:0] vga_g, output reg [3:0] vga_b, output vga_h_pulse, output vga_v_pulse);
 
     localparam
-		TEXTMEM			 = 16'hE800,
+		TEXTMEM			 	  = 16'hE800,
+		VIDEO_MODE_FLAG_ADDR  = 16'hFFF8,
         TIMER_ADDR       = 16'hFFF9,
         GPIO1_DATA_ADDR  = 16'hFFFA,
         GPIO0_DATA_ADDR  = 16'hFFFB,
@@ -167,6 +168,8 @@ module top(input clk,
 
 	logic [10:0] text_addr_b;
 	logic [7:0] text_dout_b;
+	
+	logic lrg_mode;
 
 	bram_dp_2048x8 text_mem(
 		// IttyBitty Side
@@ -181,7 +184,7 @@ module top(input clk,
 	// also since we don't use the full y resolution anyways we shift things down so the overscan doesn't eat the first line
 	vga_text_driver #(.FONTHEIGHT(16)) textdrv(
 		.clk(pll2clk), .rst_n(rst2_n),
-		.x(vga_x), .y(vga_y - 10'd16), .active_video(vga_active),
+		.x(vga_x), .y(vga_y), .active_video(vga_active), .lrg_mode(lrg_mode),
 		.rd_addr(text_addr_b), .rd_data(text_dout_b),
 		.symbol(text_symbol));
 
@@ -192,7 +195,15 @@ module top(input clk,
 		vga_b = 0;
 		
 		if (vga_active) begin
-			{vga_r, vga_g, vga_b} = text_out ? 12'b1111_1111_1111 : 12'b0;
+			if (!lrg_mode) begin
+				{vga_r, vga_g, vga_b} = text_out ? 12'b1111_1111_1111 : 12'b1_0001_0001;
+			end else begin
+				{vga_r, vga_g, vga_b} = {
+					{ text_symbol[2:0], &text_symbol[2:0] }, 
+					{ text_symbol[5:3], &text_symbol[5:3] }, 
+					{ text_symbol[7:6], text_symbol[7:6] }
+				};
+			end
 		end
 	end
 
@@ -275,6 +286,7 @@ module top(input clk,
             uart_prev_tx_fifo_empty <= 0;
             int_enable     		<= 0;
             int_pending    		<= 0;
+            lrg_mode			<= 1'b0;
         end else begin
 			// tick counter logic
             if (cycle_counter == (CYCLES_PER_TICK-1)) begin
@@ -310,6 +322,15 @@ module top(input clk,
             // normal mode
             if (ib16_bus_enable && !ib16_bus_ready) begin
                 // handle new command
+                // VIDEO flags
+                if (ib16_bus_address == VIDEO_MODE_FLAG_ADDR) begin
+					if (ib16_bus_wr_en) begin
+						lrg_mode <= ib16_bus_data_in[0];
+					end else begin
+						ib16_bus_data_out_reg <= {15'b0, lrg_mode};
+					end
+					ib16_bus_ready <= 1;
+				end
                 // GPIO port
                 if (ib16_bus_address == GPIO0_DATA_ADDR) begin
                     if (ib16_bus_wr_en) begin

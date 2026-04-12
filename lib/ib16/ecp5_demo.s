@@ -15,6 +15,9 @@
 
 .ORG 0
 
+SRES 4
+JMP TOP
+
 ; we boot with r0==0 guaranteed so keep it that way for this app
 
 ; Setup ISR context
@@ -48,6 +51,34 @@
 	STM 1,9,8			; store int enable flags
 
 	LCALL ttyClear		; clear screen
+	
+; switch to LRG mode and fill screen with colour
+.EQU VIDEO_FLAG_ADDR 0xFFF8
+.EQU VMEM 0xE800
+.EQU VSZ 0x800
+
+:TOP
+	LDI 2,0
+	LDI 15,<VIDEO_FLAG_ADDR
+	LDI 14,>VIDEO_FLAG_ADDR
+	LDI 1,1
+	STM 1,15,14
+	LDI 15,<VMEM
+	LDI 14,>VMEM
+	LDI 13,<VSZ
+	LDI 12,>VSZ
+:TL
+	STM 2,15,14
+    INC 2,2
+	INC 14,14
+	ADC 15,15,0
+	DEC 12,12
+	JNZ TL
+	DEC 13,13
+	JNZ TL
+	
+	; trigger boot loader
+	SRES 10
 
 ; print welcome message
 	PUSH 15
