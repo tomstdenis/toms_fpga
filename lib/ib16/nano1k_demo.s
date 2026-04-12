@@ -8,11 +8,11 @@
 :ISR
 	LDM 1,13,12					; read interrupt
 	AND 2,1,11					; test for RX ready
-	;JZ ISRNOUART
-	LDM 1,15,14
-	STM 1,15,14
+	JZ ISRNOUART
+	LDM 2,15,14
+	STM 2,15,14
 :ISRNOUART
-	STM 10,13,12				; clear interrupts
+	STM 1,13,12					; clear (any) interrupts
 	RETI
 
 .ORG 0
@@ -25,7 +25,6 @@
 	LDI 12,>INT_ADDR
 	LDI 11,0x01
 	STM 11,13,12				; enable uart IRQ
-	LDI 10,0x01
 	SRES 0
 	
 	; setup app

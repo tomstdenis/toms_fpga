@@ -1,5 +1,6 @@
 `define STACK_ADDRESS 16'h1F00
 `define IRQ_VECTOR    16'h1E00
+`define FREQ          54
 
 module top(input wire clk, input wire uart_rx, output wire uart_tx, inout wire [7:0] gpio);
     localparam
@@ -36,7 +37,7 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, inout wire [
     endgenerate
     assign gpio_in = gpio;
 
-    wire [15:0] baud_div = 48_000_000 / 230_400;
+    wire [15:0] baud_div = (`FREQ * 1_000_000) / 230_400;
     reg uart_tx_start;
     reg [7:0] uart_tx_data_in;
     wire uart_tx_fifo_full;
@@ -103,7 +104,7 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, inout wire [
         .bus_irq(ib16_bus_irq));
 
     localparam
-		CYCLES_PER_TICK = ((48 * 1_000_000) / 1000) * 1;					// tick every 1ms
+		CYCLES_PER_TICK = ((`FREQ * 1_000_000) / 1000) * 1;					// tick every 1ms
     reg [7:0] tick_counter;
     reg [$clog2(CYCLES_PER_TICK):0] cycle_counter;
     reg uart_tx_fifo_empty_prev;
