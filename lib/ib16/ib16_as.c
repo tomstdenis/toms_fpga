@@ -721,7 +721,7 @@ void emit_romfile(struct compiler_state *state, char *fname)
 	for (z = x = 0; z < state->prog_size && x < MAX_PROG_SIZE; x++) {
 		if (state->program[x].line_number != -1) {
 			++z;
-			fprintf(f, "8'h%02x: ib16_bus_data_out_l <= 16'h%02x%02x;\n", (x*2)&0xFF, state->program[x].opcode>>8, state->program[x].opcode&0xFF);
+			fprintf(f, "8'h%02x: ib16_bus_data_out_reg <= 16'h%02x%02x;\n", (x*2)&0xFF, state->program[x].opcode>>8, state->program[x].opcode&0xFF);
 		}
 	}
 	fclose(f);

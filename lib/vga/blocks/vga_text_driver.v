@@ -10,14 +10,16 @@ rom can produce the signal to output
 
 // TODO: Currently only powers of two are supported for the Font dimensions
 module vga_text_driver #(
-	parameter H_VISIBLE  = 640,									 		// visible width		
-	parameter V_VISIBLE  = 480,											// visible height
+	parameter H_VISIBLE  = 640,										// visible width		
+	parameter V_VISIBLE  = 480,										// visible height
     parameter V_TOTAL    = 525,
     parameter H_TOTAL    = 800,
-	parameter TEXTCOLS   = 80,											// number of text columns
-	parameter TEXTROWS   = 25,											// number of text rows
-	parameter FONTWIDTH  = 8,											// font width in pixels
-	parameter FONTHEIGHT = 8											// font height in pixels
+	parameter TEXTCOLS   = 80,										// number of text columns
+	parameter TEXTROWS   = 25,										// number of text rows
+	parameter FONTWIDTH  = 8,										// font width in pixels
+	parameter FONTHEIGHT = 8,										// font height in pixels
+	parameter LRG_PWIDTH = 13,										// width of "pixels" in LRG mode
+	parameter LRG_PHEIGHT = 12										// height of "pixels" in LRG mode
 )
 (
 	input wire		   clk,											// Pixel clock
@@ -47,21 +49,24 @@ module vga_text_driver #(
 	
 	// variables for lrg mode
 	reg [$clog2(H_VISIBLE):0] lrg_col;
-	wire [$clog2(V_VISIBLE):0] lrg_row = y >> 4;
+	reg [$clog2(V_VISIBLE):0] lrg_row;
 	
 	localparam
-		LRG_COLS = H_VISIBLE / 13,
-		LRG_ROWS = V_VISIBLE >> 4;
+		LRG_COLS = H_VISIBLE / LRG_PWIDTH,
+		LRG_ROWS = V_VISIBLE / LRG_PHEIGHT;
 
 	// Combinatorial address calculation is much safer
-	wire [$clog2(LRG_COLS*LRG_ROWS):0] lrg_current_addr = (lrg_row * 48) + lrg_col;
+	wire [$clog2(LRG_COLS*LRG_ROWS):0] lrg_current_addr = (lrg_row * LRG_COLS) + lrg_col;
 	reg [3:0] x_cnt;
+	reg [3:0] y_cnt;
 
 	always @(posedge clk) begin
 		if (!rst_n) begin
 			rd_addr <= 0;
 			x_cnt   <= 0;
+			y_cnt   <= 0;
 			lrg_col <= 0;
+			lrg_row <= 0;
 		end else if (lrg_mode == 0) begin
 			// text 80x25 mode
 			if (text_row < TEXTROWS && text_col < TEXTCOLS) begin
@@ -94,16 +99,16 @@ module vga_text_driver #(
 				symbol <= 8'h20;
 			end
 		end else begin
-			if (x_cnt >= 12) begin
+			if (x_cnt >= (LRG_PWIDTH-1)) begin
 				x_cnt   <= 0;
 				lrg_col <= lrg_col + 1;
 			end else begin
 				x_cnt   <= x_cnt + 1;
 			end
 			// lowres graphics mode
-			if (x < ((LRG_COLS * 13) - 1) && y < (LRG_ROWS * 16)) begin
+			if (x < ((LRG_COLS * LRG_PWIDTH) - 1) && y < (LRG_ROWS * LRG_PHEIGHT)) begin
 				rd_addr <= lrg_current_addr;
-				if (x_cnt == 12) begin
+				if (x_cnt == (LRG_PWIDTH-1)) begin
 					symbol  <= rd_data;
 				end
 			end else begin
@@ -115,7 +120,7 @@ module vga_text_driver #(
 					if (y >= (V_TOTAL-1)) begin
 						rd_addr <= 0;
 					end else begin
-						if (y[3:0] == 4'hf) begin
+						if (y_cnt == (LRG_PHEIGHT-1)) begin
 							rd_addr <= (lrg_row * LRG_COLS) + LRG_COLS;
 						end else begin
 							rd_addr <= (lrg_row * LRG_COLS);
@@ -124,6 +129,15 @@ module vga_text_driver #(
 				end else if (x == (H_TOTAL-1)) begin
 					if (y == (V_TOTAL-1)) begin
 						symbol <= rd_data;
+						lrg_row <= 0;
+						y_cnt   <= 0;
+					end else begin
+						if (y_cnt >= (LRG_PHEIGHT-1)) begin
+							y_cnt <= 0;
+							lrg_row <= lrg_row + 1;
+						end else begin
+							y_cnt <= y_cnt + 1;
+						end
 					end
 				end
 			end
