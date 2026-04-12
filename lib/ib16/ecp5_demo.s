@@ -75,11 +75,9 @@
 	LDI 11,<GPIO1_ADDR
 
 ; Enable UART RX READY IRQ
-	LDI 8,>INTEN_ADDR
-	LDI 9,<INTEN_ADDR
-	LDI 1,1				; bit 0 - RX READY
-	STM 1,9,8			; store int enable flags
-
+	LDI 1,1				; enable RX ready int
+	LCALL intEnable
+	
 	LCALL ttyClear		; clear screen
 	
 ; print welcome message
