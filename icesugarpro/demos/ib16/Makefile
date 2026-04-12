@@ -1,6 +1,6 @@
 TARGET=ib16
 TOP=top
-FREQ=48
+FREQ=64
 BLOCKS=16
 
 OBJS+=${TARGET}.sv pll.v pll2.v \

@@ -22,7 +22,7 @@
 	SRES 4
 
 :TOP
-	LDI 1,1
+	LDI 1,1					; set LRG mode
 	LCALL lrgSetMode
 	
 	LDI 2,0
@@ -30,6 +30,7 @@
 	LDI 14,>VMEM
 	LDI 13,<VSZ
 	LDI 12,>VSZ
+	LDI 11,0x30
 :TL
 	STM 2,15,14
     INC 2,2
@@ -39,6 +40,21 @@
 	JNZ TL
 	DEC 13,13
 	JNZ TL
+		
+	; now draw a white diagonal line
+	LDI 1,>VMEM
+	LDI 2,<VMEM
+	LDI 3,0xFF
+	LDI 4,0x28
+	LDI 5,0x31
+:DL
+	STM 3,2,1
+	ADD 1,1,5
+	ADC 2,2,0
+	DEC 4,4
+	JNZ DL
+	
+	SRES 10 ; jump to boot loader
 	
 	; wait 5 seconds, switch to text mode, wait 5 seconds
 	LDI 1,5
