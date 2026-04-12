@@ -1,18 +1,31 @@
+.PROG_SIZE 0xF80
+
+; INT address
+.EQU INT_ADDR 0xFFFC
+
 ; simple ISR
-.ORG 0x1F00
+.ORG 0x1E00
 :ISR
+	LDM 1,13,12					; read interrupt
+	AND 2,1,11					; test for RX ready
+	;JZ ISRNOUART
 	LDM 1,15,14
 	STM 1,15,14
+:ISRNOUART
+	STM 10,13,12				; clear interrupts
 	RETI
 
 .ORG 0
 
-.INC lib/uart/uart.s
-
 	; setup ISR
 	SRES 4
-	LDI 14,>UART_ADDR			; we want to use the UART in app context too
 	LDI 15,<UART_ADDR
+	LDI 14,>UART_ADDR			; we want to use the UART in app context too
+	LDI 13,<INT_ADDR
+	LDI 12,>INT_ADDR
+	LDI 11,0x01
+	STM 11,13,12				; enable uart IRQ
+	LDI 10,0x01
 	SRES 0
 	
 	; setup app
@@ -20,11 +33,13 @@
 	LDI 15,<UART_ADDR	
 	LDI 13,<MSG
 	LDI 12,>MSG
+	LDI 1,1						; 1 second
 :LOOP
 	LCALL PrintStr
 	LCALL PrintNewline
+	LCALL timerWait
 	JMP LOOP
 :MSG
 .DS 'Hello world!'
 
-	
+	.INC lib/uart/uart.s

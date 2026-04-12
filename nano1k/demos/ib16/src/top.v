@@ -1,19 +1,12 @@
-// enable IRQs for UART supporting [0] = RX ready, [1] TX empty
-//`define USE_UARTIRQ
-
-// Simple IRQ, raises bus_irq if RX ready
-`define USE_SIMPLE_UART_IRQ
-
-    `define STACK_ADDRESS 16'h1F00
-    `define IRQ_VECTOR    16'h1E00
+`define STACK_ADDRESS 16'h1F00
+`define IRQ_VECTOR    16'h1E00
 
 module top(input wire clk, input wire uart_rx, output wire uart_tx, inout wire [7:0] gpio);
     localparam
         TIMER_ADDR       = 16'hFFF9,
         GPIO1_DATA_ADDR  = 16'hFFFA, // unused here but let's keep the memory map the same as ecp5
         GPIO0_DATA_ADDR  = 16'hFFFB,
-        UART_INT_ADDR    = 16'hFFFC,
-        UART_INTEN_ADDR  = 16'hFFFD,
+        INT_ADDR         = 16'hFFFC,
         UART_STS_ADDR    = 16'hFFFE,
         UART_DATA_ADDR   = 16'hFFFF;
 
@@ -51,12 +44,6 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, inout wire [
     reg uart_rx_read;
     wire uart_rx_ready;
     wire [7:0] uart_rx_byte;
-`ifdef USE_UARTIRQ
-    reg uart_prev_tx_fifo_empty;
-    reg uart_prev_rx_ready;
-    reg [1:0] uart_int_enable;
-    reg [1:0] uart_int_pending;
-`endif
 
     uart #(.FIFO_DEPTH(4), .RX_ENABLE(1), .TX_ENABLE(1)) mrtalky (
         .clk(pllclk), .rst_n(rst_n),
@@ -115,6 +102,13 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, inout wire [
         .bus_burst(ib16_bus_burst),
         .bus_irq(ib16_bus_irq));
 
+    localparam
+		CYCLES_PER_TICK = ((48 * 1_000_000) / 1000) * 1;					// tick every 1ms
+    reg [7:0] tick_counter;
+    reg [$clog2(CYCLES_PER_TICK):0] cycle_counter;
+    reg uart_tx_fifo_empty_prev;
+    reg uart_rx_ready_prev;
+    reg [7:0] int_enable;
     // bus controller
     always @(posedge pllclk) begin
         if (!rst_n) begin
@@ -130,17 +124,32 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, inout wire [
             ib16_bus_irq        <= 0;
             bus_cycle           <= 0;
             gpio_out            <= 8'hFF;
-`ifdef USE_UARTIRQ
-            uart_prev_rx_ready  <= 0;
-            uart_prev_tx_fifo_empty <= 0;
-            uart_int_enable     <= 0;
-            uart_int_pending    <= 0;
-`endif
+            cycle_counter       <= 0;
+            tick_counter		<= 0;
+            int_enable          <= 0;
+            uart_tx_fifo_empty_prev <= 0;
+            uart_rx_ready_prev  <= 0;
         end else begin
-`ifdef USE_SIMPLE_UART_IRQ
-            ib16_bus_irq <= {7'b0, uart_rx_ready};
-`endif
-            // normal mode
+			// tick counter logic
+            if (cycle_counter == (CYCLES_PER_TICK-1)) begin
+				cycle_counter <= 0;
+				tick_counter  <= tick_counter + 1'b1;
+			end else begin
+				cycle_counter <= cycle_counter + 1'b1;
+			end
+            if (uart_rx_ready != uart_rx_ready_prev && uart_rx_ready) begin
+                ib16_bus_irq[0] <= int_enable[0];
+            end
+            if (uart_tx_fifo_empty != uart_tx_fifo_empty_prev && uart_tx_fifo_empty) begin
+                ib16_bus_irq[1] <= int_enable[1];
+            end
+            if (cycle_counter == (CYCLES_PER_TICK-1)) begin
+                ib16_bus_irq[2] <= int_enable[2];
+            end
+            uart_rx_ready_prev      <= uart_rx_ready;
+            uart_tx_fifo_empty_prev <= uart_tx_fifo_empty;
+
+            // normal modes
             if (ib16_bus_enable && !ib16_bus_ready) begin
                 // handle new command
                 // GPIO port
@@ -150,9 +159,6 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, inout wire [
                     end else begin
                         ib16_bus_data_out <= gpio_in;
                     end
-                    ib16_bus_ready <= 1;
-                end
-                if (ib16_bus_address == GPIO1_DATA_ADDR) begin
                     ib16_bus_ready <= 1;
                 end
 
@@ -202,6 +208,26 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, inout wire [
                                 end
                         endcase
                     end
+                end 
+                // Timer
+                if (ib16_bus_address == TIMER_ADDR) begin
+					if (ib16_bus_wr_en) begin
+						tick_counter  <= 0;
+						cycle_counter <= 0;
+					end else begin					
+						ib16_bus_data_out <= {8'b0, tick_counter};
+					end
+                    ib16_bus_ready    <= 1;
+                end 
+                // INT
+                if (ib16_bus_address == INT_ADDR) begin
+					if (ib16_bus_wr_en) begin
+                        ib16_bus_irq <= 0;
+                        int_enable   <= ib16_bus_data_in[7:0];
+					end else begin					
+						ib16_bus_data_out <= {8'b0, ib16_bus_irq};
+					end
+                    ib16_bus_ready    <= 1;
                 end 
                 // 0000..1FFF is RAM
                 if (ib16_bus_address[15:12] < 4'h2) begin
