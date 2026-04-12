@@ -46,19 +46,22 @@ module vga_text_driver #(
 	wire [$clog2(TEXTCOLS*TEXTROWS):0] text_current_addr = (text_row * TEXTCOLS) + text_col;
 	
 	// variables for lrg mode
-	wire [$clog2(H_VISIBLE):0] lrg_col = x >> 4;
+	reg [$clog2(H_VISIBLE):0] lrg_col;
 	wire [$clog2(V_VISIBLE):0] lrg_row = y >> 4;
 	
 	localparam
-		LRG_COLS = H_VISIBLE >> 4,
+		LRG_COLS = H_VISIBLE / 13,
 		LRG_ROWS = V_VISIBLE >> 4;
 
 	// Combinatorial address calculation is much safer
-	wire [$clog2(LRG_COLS*LRG_ROWS):0] lrg_current_addr = (lrg_row * LRG_COLS) + lrg_col;
+	wire [$clog2(LRG_COLS*LRG_ROWS):0] lrg_current_addr = (lrg_row * 48) + lrg_col;
+	reg [3:0] x_cnt;
 
 	always @(posedge clk) begin
 		if (!rst_n) begin
 			rd_addr <= 0;
+			x_cnt   <= 0;
+			lrg_col <= 0;
 		end else if (lrg_mode == 0) begin
 			// text 80x25 mode
 			if (text_row < TEXTROWS && text_col < TEXTCOLS) begin
@@ -91,13 +94,22 @@ module vga_text_driver #(
 				symbol <= 8'h20;
 			end
 		end else begin
+			if (x_cnt >= 12) begin
+				x_cnt   <= 0;
+				lrg_col <= lrg_col + 1;
+			end else begin
+				x_cnt   <= x_cnt + 1;
+			end
 			// lowres graphics mode
-			if (lrg_row < LRG_ROWS && lrg_col < LRG_COLS) begin
-				rd_addr <= lrg_current_addr + 1;
-				if (x[3:0] == 4'hf) begin
-					symbol <= rd_data;
+			if (x < ((LRG_COLS * 13) - 1) && y < (LRG_ROWS * 16)) begin
+				rd_addr <= lrg_current_addr;
+				if (x_cnt == 12) begin
+					symbol  <= rd_data;
 				end
 			end else begin
+				symbol  <= 8'h00;
+				lrg_col <= 0;
+				x_cnt   <= 0;
 				if (x == (H_TOTAL-3)) begin
 					// set the next address 
 					if (y >= (V_TOTAL-1)) begin
@@ -110,9 +122,7 @@ module vga_text_driver #(
 						end
 					end
 				end else if (x == (H_TOTAL-1)) begin
-					if (lrg_row >= LRG_ROWS) begin
-						symbol <= 8'h00;
-					end else begin
+					if (y == (V_TOTAL-1)) begin
 						symbol <= rd_data;
 					end
 				end
