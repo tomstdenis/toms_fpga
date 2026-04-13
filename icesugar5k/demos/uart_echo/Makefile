@@ -2,7 +2,7 @@
 PROJ = echo
 DEVICE = up5k
 FOOTPRINT = sg48
-PLLFREQ = 48
+PLLFREQ = 44
 
 all: $(PROJ).bin
 OBJS=$(PROJ).v pll.v \
@@ -14,7 +14,7 @@ $(PROJ).json: $(OBJS)
 
 # 2. Place & Route: Map netlist to FPGA hardware
 $(PROJ).asc: $(PROJ).json pins.pcf
-	nextpnr-ice40 --freq ${PLLFREQ} --$(DEVICE) --package $(FOOTPRINT) --pcf pins.pcf --json $< --asc $@
+	nextpnr-ice40 -r --opt-timing --tmg-ripup --freq ${PLLFREQ} --$(DEVICE) --package $(FOOTPRINT) --pcf pins.pcf --json $< --asc $@
 
 # 3. Pack: Create the final bitstream
 $(PROJ).bin: $(PROJ).asc
