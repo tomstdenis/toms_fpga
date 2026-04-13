@@ -19,8 +19,19 @@
 .EQU VMEM 0xE800
 .EQU VSZ 0x800
 
-	SRES 4
+; Setup ISR context
+	SRES 4						; switch to IRQ context
+; Load R15:R14 with UART address
+	LDI 14,>UART_ADDR
+	LDI 15,<UART_ADDR
+; load R12:R13 pointing to INT PENDING
+	LDI 12,>INT_ADDR
+	LDI 13,<INT_ADDR
+	LDI 2,0x1B					; ESC key
+	SRES 0						; switch back to APP context
 
+	LDI 1,1
+	LCALL intEnable
 :TOP
 	LDI 1,1					; set LRG mode
 	LCALL lrgSetMode
@@ -42,20 +53,17 @@
 	JNZ TL
 		
 	; now draw a white diagonal line
-	LDI 1,>VMEM
-	LDI 2,<VMEM
+	LDI 1,0
+	LDI 2,0
 	LDI 3,0xFF
 	LDI 4,0x28
-	LDI 5,0x31
 :DL
-	STM 3,2,1
-	ADD 1,1,5
-	ADC 2,2,0
+	LCALL lrgPlotXY
+	INC 1,1
+	INC 2,2
 	DEC 4,4
 	JNZ DL
-	
-	SRES 10 ; jump to boot loader
-	
+		
 	; wait 5 seconds, switch to text mode, wait 5 seconds
 	LDI 1,5
 	LCALL timerWait
@@ -63,20 +71,10 @@
 	LCALL lrgSetMode
 	LDI 1,5
 	LCALL timerWait
+	
+	JMP TOP
 
 ; we boot with r0==0 guaranteed so keep it that way for this app
-
-; Setup ISR context
-	SRES 4						; switch to IRQ context
-; Load R15:R14 with UART address
-	LDI 14,>UART_ADDR
-	LDI 15,<UART_ADDR
-; 	
-; load R12:R13 pointing to INT PENDING
-	LDI 12,>INT_ADDR
-	LDI 13,<INT_ADDR
-	LDI 2,0x1B					; ESC key
-	SRES 0						; switch back to APP context
 
 ; Setup App context
 	LDI 14,>UART_ADDR			; we want to use the UART in app context too
