@@ -1,0 +1,13 @@
+set_io clk D1
+set_io uart_rx  A3
+set_io uart_tx  B3
+set_io led B6
+
+set_io gpio[0] B1
+set_io gpio[1] A1
+set_io gpio[2] E1
+set_io gpio[3] C2
+set_io gpio[4] B5
+set_io gpio[5] E3
+set_io gpio[6] B4
+set_io gpio[7] C6

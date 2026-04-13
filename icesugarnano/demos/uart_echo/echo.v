@@ -17,6 +17,9 @@ module top(
 	assign led = ledv;
 	
 	reg [23:0] counter;
+	reg [7:0] memory[0:4095]; // messing around inferring RAM4K blocks
+	reg [11:0] wptr;
+	reg [11:0] rptr;
 	
 	initial begin
 		rst_n = 0;
@@ -28,7 +31,7 @@ module top(
 		.uart_tx_start(uart_tx_start), .uart_tx_data_in(uart_tx_data_in), .uart_tx_pin(tx),
 		.uart_rx_pin(rx), .uart_rx_read(uart_rx_read), .uart_rx_ready(uart_rx_ready), .uart_rx_byte(uart_rx_byte));
 	
-	reg [1:0] state;
+	reg [2:0] state;
 	
 	localparam
 		STATE_IDLE=0,
@@ -41,6 +44,8 @@ module top(
 			rst_n <= 1;
 			state <= STATE_IDLE;
 			counter <= 0;
+			wptr <= 1;
+			rptr <= 0;
 		end else begin
 			counter <= counter + 1;
 			ledv <= counter[23];
@@ -61,7 +66,11 @@ module top(
 					end
 				STATE_WRITE_BYTE:
 					begin
-						uart_tx_data_in <= uart_rx_byte;	// copy RX byte to TX 
+						memory[wptr] <= uart_rx_byte;
+						wptr <= wptr + 1;
+						uart_tx_data_in <= memory[rptr];
+						rptr <= rptr + 1;
+//						uart_tx_data_in <= uart_rx_byte;	// copy RX byte to TX
 						uart_tx_start <= 1'b1;				// issue write
 						state <= STATE_WAIT_WRITE;			// next cycle is waiting for the write to finish
 					end
