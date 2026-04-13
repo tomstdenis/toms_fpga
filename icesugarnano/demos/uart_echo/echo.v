@@ -3,15 +3,20 @@
 module top(
 	input clk,
 	input rx,
-	output tx);
+	output tx,
+	output led);
 	
 	reg rst_n;
-	wire [15:0] bauddiv = 48_000_000 / 115_200;
+	wire [15:0] bauddiv = 12_000_000 / 115_200;
 	reg uart_tx_start;
 	reg uart_rx_read;
 	reg [7:0] uart_tx_data_in;
 	wire uart_rx_ready;
 	wire [7:0] uart_rx_byte;
+	reg ledv;
+	assign led = ledv;
+	
+	reg [23:0] counter;
 	
 	initial begin
 		rst_n = 0;
@@ -35,7 +40,10 @@ module top(
 		if (!rst_n) begin
 			rst_n <= 1;
 			state <= STATE_IDLE;
+			counter <= 0;
 		end else begin
+			counter <= counter + 1;
+			ledv <= counter[23];
 			case(state)
 				STATE_IDLE:
 					begin

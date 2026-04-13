@@ -1,5 +1,4 @@
 set_io clk D1
 set_io rx  A3
 set_io tx  B3
-
-
+set_io led B6
