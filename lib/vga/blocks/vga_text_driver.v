@@ -34,7 +34,7 @@ module vga_text_driver #(
     input wire        lrg_mode,										// 0 == text CP437 mode, 1 == low res graphics mode
 
 // Memory
-	output reg [$clog2(TEXTCOLS*TEXTROWS):0] rd_addr,				// read address, assumes data is available with 1 wait state
+	output reg [$clog2(TEXTCOLS*TEXTROWS)-1:0] rd_addr,				// read address, assumes data is available with 1 wait state
 	input wire [7:0] rd_data,										// read data
 	
 // symbol for font driver

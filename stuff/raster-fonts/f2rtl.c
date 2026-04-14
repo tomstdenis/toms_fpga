@@ -24,6 +24,13 @@ int main(void)
 {
 	int x, y, z, i;
 	
+	printf("#File_format=Hex\n#Address_depth=2048\n#Data_width=8\n");
+	for (x = 0; x < 2048; x++) {
+		printf("%02X\n", console_font_8x8[x]);
+	}
+	return 0;
+	
+	
 	i = 0;
 	for(x = 0; x < 256; x++) {
 		for (y = 0; y < 8; y++) {

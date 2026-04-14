@@ -1,0 +1,20 @@
+<?xml version="1" encoding="UTF-8"?>
+<!DOCTYPE gowin-fpga-project>
+<Project>
+    <Template>FPGA</Template>
+    <Version>5</Version>
+    <Device name="GW5A-25A" pn="GW5A-LV25MG121NC1/I0">gw5a25a-002</Device>
+    <FileList>
+        <File path="/home/tom/nas/toms_fpga/lib/vga/blocks/8x8_font_256.v" type="file.verilog" enable="1"/>
+        <File path="/home/tom/nas/toms_fpga/lib/vga/blocks/vga_text_driver.v" type="file.verilog" enable="1"/>
+        <File path="/home/tom/nas/toms_fpga/lib/vga/blocks/vga_timing.v" type="file.verilog" enable="1"/>
+        <File path="src/gowin_pll/gowin_pll.v" type="file.verilog" enable="1"/>
+        <File path="src/gowin_pll/gowin_pll_mod.v" type="file.verilog" enable="1"/>
+        <File path="src/gowin_rom16/gowin_rom16.v" type="file.verilog" enable="1"/>
+        <File path="src/gowin_sdpb/gowin_sdpb.v" type="file.verilog" enable="1"/>
+        <File path="src/pll_init.v" type="file.verilog" enable="1"/>
+        <File path="src/vga_comb.v" type="file.verilog" enable="1"/>
+        <File path="src/vga_comb.cst" type="file.cst" enable="1"/>
+        <File path="src/vga_comb.sdc" type="file.sdc" enable="1"/>
+    </FileList>
+</Project>
