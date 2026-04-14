@@ -45,7 +45,7 @@ module bram_dp_nx2048x8
 	generate
 		for (i = 0; i < N; i = i + 1) begin : bram_dp_n2048x8_memories
 			bram_dp_2048x8 
-				#(.WRITEMODE_A(WRITEMODE_A), .WRITEMODE_B(WRITEMODE_B), .REGMODE_A(REGMODE_A))
+				#(.WRITEMODE_A(WRITEMODE_A), .WRITEMODE_B(WRITEMODE_B), .REGMODE_A(REGMODE_A), .REGMODE_B(REGMODE_B))
 			bram_dp_nx2048x8_mem[i](
 				.clk_a(clk_a),
 				.clk_en_a(clk_en_a),

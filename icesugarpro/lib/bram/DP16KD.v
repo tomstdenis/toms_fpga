@@ -74,9 +74,9 @@ module DP16KD #(
     // --- Output Assignments (Handling REGMODE and Reset) ---
     always @(*) begin
         // Port A Output
-        {DOA8, DOA7, DOA6, DOA5, DOA4, DOA3, DOA2, DOA1, DOA0} = (REGMODE_A == "REG") ? reg_a : pipe_a;
+        {DOA8, DOA7, DOA6, DOA5, DOA4, DOA3, DOA2, DOA1, DOA0} = (REGMODE_A == "OUTREG") ? reg_a : pipe_a;
         // Port B Output
-        {DOB8, DOB7, DOB6, DOB5, DOB4, DOB3, DOB2, DOB1, DOB0} = (REGMODE_B == "REG") ? reg_b : pipe_b;
+        {DOB8, DOB7, DOB6, DOB5, DOB4, DOB3, DOB2, DOB1, DOB0} = (REGMODE_B == "OUTREG") ? reg_b : pipe_b;
     end
 endmodule
 /* verilator lint_on WIDTHEXPAND */
