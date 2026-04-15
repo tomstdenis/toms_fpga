@@ -143,5 +143,5 @@ LPFSELStatic=true
 PLLPowerDown=false
 PLLReset=false
 clkfbExternal=false
-clkfbExternalValue=
+clkfbExternalValue=CLKOUT0
 mDRP_Clock_Frequency=50

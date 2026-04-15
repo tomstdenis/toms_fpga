@@ -51,10 +51,12 @@ module top(input wire clk, output reg [3:0] vga_r, output reg [3:0] vga_g, outpu
 	vga_8x8_font_256 font(.symbol(symbol), .x(vga_x[2:0]), .y(vga_y[3:1]), .out(text_out));	
 */
 
-    wire [7:0] font_dout;
-    wire [10:0] font_ad = {symbol, vga_y[3:1]};
-    assign text_out = font_dout[7 - vga_x[2:0]];
+    // on Gowin a Shadow ROM is better as it's both faster and smaller (and faster to compile)
+    wire [7:0] font_dout;                           // output of rom
+    wire [10:0] font_ad = {symbol, vga_y[3:1]};     // address into the rom, it's 11 bits of which the top 8 are the symbol and bottom 3 are the row
+    assign text_out = font_dout[7 - vga_x[2:0]];    // bit of output indexed from the ROM output
 
+    // our 256 symbol 8x8 CP437 font
     Gowin_ROM16 madamme_font(
         .dout(font_dout), //output [7:0] dout
         .ad(font_ad) //input [10:0] ad
@@ -67,13 +69,14 @@ module top(input wire clk, output reg [3:0] vga_r, output reg [3:0] vga_g, outpu
 	wire [10:0] rd_addr;		// the read port the vga_text_driver reads from
 	wire [7:0] rd_data;
 	
+    // A semi dual ported memory which we can write(portA) and the VGA can read(portB)
     Gowin_SDPB mr_memory(
         .dout(rd_data), //output [7:0] dout
         .clka(pll_clk), //input clka
-        .cea(wr_en), //input cea
+        .cea(wr_en), //input cea                    // write enable is clock enable A (cea)
         .clkb(pll_clk), //input clkb
         .ceb(1'b1), //input ceb
-        .oce(1'b1), //input oce
+        .oce(1'b1), //input oce // (leave this as 1 if not pipelining)
         .reset(~rst_n), //input reset
         .ada(wr_addr), //input [10:0] ada
         .din(wr_data), //input [7:0] din
