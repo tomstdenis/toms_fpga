@@ -43,6 +43,7 @@ int main(int argc, char **argv)
     if (fd < 0) { perror("Open port"); return 1; }
     set_interface_attribs(fd, B230400);
 	tcflush(fd, TCIOFLUSH);
+	usleep(50000);
 	
 	// send magic byte
 	buf = 0x5A;
@@ -83,11 +84,11 @@ int main(int argc, char **argv)
 				if (read(fd, &b, 1) == 1) {
 					if (b == ch) {
 					} else {
-						printf("\nRead timed out\n");
+						printf("\nReadback mismatch: %02x\n", b);
 						exit(-1);
 					}
 				} else {
-					printf("\nReadback mismatch: %02x\n", b);
+						printf("\nRead timed out\n");
 					exit(-1);
 				}
 			}

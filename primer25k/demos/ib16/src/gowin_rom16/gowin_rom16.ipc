@@ -1,0 +1,13 @@
+[General]
+file=gowin_rom16
+ipc_version=4
+module=font_rom
+target_device=gw5a25a-002
+type=ssram_rom16
+version=1.0
+
+[Config]
+DEPTH=2048
+LANG=0
+MEM_FILE=/home/tom/nas/toms_fpga/lib/vga/blocks/8x8_font_256.hex
+WIDTH=8
