@@ -86,9 +86,9 @@ The ECP5 and Nano1K demos are similar but have a few differences
 6 - OR (3OP)   R[d] = R[a] | R[b]								[ZC]
 7 - CMP (2OPALU) Carry = R[a] comparison R[b]					[C]    ; set's carry flag if comparison is true
 	- R[d] values
-		- 00: R[a] < R[b]
-		- 01: R[a] == R[b]
-		- 10: R[a] > R[b]
+		- 00: CMPLT R[a] < R[b]
+		- 01: CMPEQ R[a] == R[b]
+		- 10: CMPGT R[a] > R[b]
 		- 11: Unused (C=0)
 8 - Shifts (2OP)												[ZC]
 	- 4 bit modifier
@@ -119,3 +119,146 @@ The ECP5 and Nano1K demos are similar but have a few differences
 	- [3] - Write 1 to boot APP (at PC=0000)
 15 - RETI - pop PC off stack, return from interrupt
 ```
+
+### IRQ Support
+The core supports an 8-bit IRQ pending port where when non-zero tells the core that it should jump to the IRQ
+context.  In the IRQ context (same as using "SRES 4") a 2nd bank of registers is used that (so you don't have to worry about
+clobbering application registers).  A return from interrupt opcode (RETI) switches the CPU back to app context.
+
+It's up to the bus/soc fabric to decide how/what IRQs are triggered.  In my demos I use an int enable/pending system similar
+to Atmel AVR microcontrollers. 
+
+## Assembler
+
+The assembler is uh, best described as very basic.  It uses all upper case mnemonics, handles some white space and comments but that's about it.
+
+Essentially the assembler has a buffer of the entire 64KB space and it starts at PC==0 inserting whatever opcodes or directives it sees.  When you
+use .ORG to move the PC around you're just moving around in the buffer.
+
+### Directives
+
+   - .ORG <hex>
+      - Change the current origin point in hex
+   - .PROG_SIZE <hex>
+      - The desired binary size by number of 16-bit words.
+   - .BIN_START
+   - .EQU <name> <value>
+      - Define a constant with a given 'name' to a given hex value
+   - .ALIGN <hex>
+      - Make sure the current place in memory is aligned on the desired boundary
+   - .DW <hex>
+      - Place a constant value in memory
+   - .DS '<string>'
+      - Place a NUL terminated string contained between single quotes '' in memory at the current location
+   - .DUP <hex>
+      - Reserve the next amount of bytes (used for creating space for buffers)
+   - .INC filename
+      - Start compiling a new file right now before the next line of the current file
+
+Lines starting with a ':' are a label.
+
+Registers are specified just by number.  So r7 would be just '7'.  By convention the boot roms MUST set r0 to
+0 when booting the user app.  While r0 is writable by the program it should be kept to 0 since it's handy for
+a variety of uses.
+
+### Opcodes
+
+#### Three Operand ALU Opcodes
+
+The three operand opcodes are **ADD**, **ADC**, **SUB**, **XOR**, **AND**, and **OR**.  They take three operands 'r', 'a', 'b' and
+compute reg[d] = reg[a] OP reg[b].  For example
+
+```
+	ADD 2,3,4 ; r2 = r3 + r4
+	SUB 2,2,4 ; r2 = r2 - r4
+	AND 1,2,2 ; handy way of doing r1 = r2
+```
+
+#### Two Operand Opcodes
+
+The two operand opcodes are **CMPLT**, **CMPEQ**, **CMPGT**, **SHR**, **SAR**, **ROR**, , **ROL**, , **SWAP**, , **INC**,
+**DEC**, **NOT**, , **NEG**.  They take two operands 'a' and 'b'.
+
+The comparisons compare reg[a] on the left of reg[b] and store the comparison in the carry flag.
+
+```
+   CMPLT 2,3  ; Sets carry if r2 < r3
+   CMPEQ 7,6  ; Sets carry if r7 == r6
+```
+
+The shifts all work with reg[b] and store into reg[a].
+
+   - **SHR**: R[a] = R[b] >> 1
+   - **SAR**: R[a] = R[b] >>> 1 (the MSB carries downwards)
+   - **ROR**: R[a] = (R[b] >> 1) | (carry_flag ? 0x80 : 0x00), carry_flag <= R[b][0]
+   - **ROL**: R[a] = (R[b] << 1) | (carry_flag ? 1 : 0), carry_flag <= R[b][7]
+   - **SWAP**: R[a] = nibble swap of R[b]
+   - **INC**: R[a] = R[b] + 1
+   - **DEC**: R[a] = R[b] + 1
+   - **NOT**: R[a] = ~R[b]
+   - **NEG**: R[a] = -R[b]
+
+The instructions ROR and ROL are really meant for multibyte shifts.  You can emulate a ROL with something like 
+
+```
+   ADD 2,2,2 ; r2 = 2 * r2, carry = msb of r2
+   ADC 2,2,0 ; r2 = 2 + carry completing the ROL
+```
+
+#### Other Opcodes
+
+   - **LDI**: Takes a register and an 8-bit hex immediate, e.g. to put 0x5A into reg[3]: 'LDI 3,0x5A'
+   - **LDM** and **STM**: Memory load and store
+      - Take three operands 'd', 'a', and 'b'
+      - Loads from the 16-bit address space using {reg[a],reg{b}} as the address
+      - If a == b == 15 then it's a stack pop/push
+      - Otherwise it's a memory operation
+      - Loads or stores reg[d]
+   -  **LCALL**: Call to 16 byte aligned address in hex
+   - **RET**: Return from subroutine
+   - **RETI**: Return from interrupt
+   - **JMP**, **JC**, **JNC**, **JZ**, **JNZ**: Jumps to 9 bit signed target
+      - Jumps to 9-bit aligned word address relative to PC+2
+   - **SRES**: Store 8 bit immediate in status register
+      - bit 7 and 6 control the carry and zero flags (resp.) with a write-one-to-clear logic
+      - bit 4 is written to jump to the boot rom
+      - bit 3 is written to jump to the user app
+      - bit 2 controls whether the CPU is in or out of the IRQ context (also disables IRQs from triggering if true)
+      - bit 1 turns on the write increment
+      - bit 0 turns on the read increment
+      - Any write resets the read and write increment counters to 0. 
+
+For pushing and popping the assembler has special pseudo opcodes:
+
+```
+PUSH 1    ; push r1 onto the stack
+POP 1     ; pop r1 off the stack
+
+STM 1,15,15 ; This is the actual opcode top push r1 onto the stack
+LDM 1,15,15 ; and this is the actual opcode to pop r1
+```
+
+#### Use of EQU and Labels
+
+Any instruction that has a immediate (not register name) can use a label (line starting with :) or an .EQU constant
+
+e.g.
+
+```
+.ORG 1000
+:FUNC
+.DW FUNC	 ; store 0x1000 at 0x1000
+.EQU FOO 0x1234
+.ORG FOO     ; move our current position to 0x1234, you can use symbols/labels here too
+.DW FOO      ; store 0x1234 at 0x1234
+```
+
+There are special symbols for accessing byte halves of 16-bit value.  The '<' points to the top half, and '>' to the bottom, e.g.
+
+```
+.EQU FOO 0x1234
+
+LDI 1,<FOO     ; store 0x12 in r1
+LDI 2,>FOO     ; store 0x34 in r2
+```
+
