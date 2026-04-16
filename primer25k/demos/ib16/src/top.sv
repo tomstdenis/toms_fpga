@@ -3,7 +3,7 @@
 `timescale 1ns/1ps
 `default_nettype none
 `define BLOCKS 16
-`define FREQ 80
+`define FREQ 92
 
 // place stack at top of memory - 256 bytes, and the ISR 256 bytes before that
 `define STACK_ADDRESS (16'h0800 * `BLOCKS - 16'h0100)
