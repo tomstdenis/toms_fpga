@@ -45,9 +45,9 @@ module vga_timing #(
                 if (y == (V_TOTAL - 1))
                     y <= 0;
                 else
-                    y <= y + 1;
+                    y <= y + 1'b1;
             end else begin
-                x <= x + 1;
+                x <= x + 1'b1;
             end
 
             // Horizontal Sync (Active Low for 640x480)

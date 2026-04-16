@@ -68,7 +68,7 @@ module vga_text_driver #(
 		end else if (lrg_mode == 0) begin
 			// text 80x25 mode
 			if (text_row < TEXTROWS && text_col < TEXTCOLS) begin
-				rd_addr <= text_current_addr + 1;
+				rd_addr <= text_current_addr + 1'b1;
 				// Latch symbol at the last column of font
 				if (x[$clog2(FONTWIDTH)-1:0] == (FONTWIDTH-1)) begin
 					symbol <= rd_data;
@@ -99,13 +99,13 @@ module vga_text_driver #(
 		end else begin
 			if (x_cnt >= (LRG_PWIDTH-1)) begin
 				x_cnt   <= 0;
-				lrg_col <= lrg_col + 1;
+				lrg_col <= lrg_col + 1'b1;
 			end else begin
-				x_cnt   <= x_cnt + 1;
+				x_cnt   <= x_cnt + 1'b1;
 			end
 			// lowres graphics mode
 			if (x < (((LRG_COLS - 1) * LRG_PWIDTH) - 1) && y < (LRG_ROWS * LRG_PHEIGHT)) begin
-				rd_addr <= lrg_current_addr + 1;
+				rd_addr <= lrg_current_addr + 1'b1;
 				if (x_cnt == (LRG_PWIDTH-1)) begin
 					symbol  <= rd_data;
 				end
@@ -135,9 +135,9 @@ module vga_text_driver #(
 					end else begin
 						if (y_cnt >= (LRG_PHEIGHT-1)) begin
 							y_cnt <= 0;
-							lrg_row <= lrg_row + 1;
+							lrg_row <= lrg_row + 1'b1;
 						end else begin
-							y_cnt <= y_cnt + 1;
+							y_cnt <= y_cnt + 1'b1;
 						end
 					end
 				end
