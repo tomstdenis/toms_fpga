@@ -60,7 +60,6 @@ module top(input wire clk,
         .clkout1(pll2clk), //output  clkout1
         .mdclk()); //input  mdclk
 
-
     // ### GPIO ###
     reg [7:0] gpio_out;
     wire [7:0] gpio_in;
@@ -510,52 +509,52 @@ module top(input wire clk,
                 // F000..F0FF is the boot ROM
                 if ((ib16_bus_address >= bus_address_rom_mem_bot) && (ib16_bus_address <= bus_address_rom_mem_top)) begin
                     case(ib16_bus_address[7:0])
-8'h00: ib16_bus_data_out_reg <= 16'h0000;
-8'h02: ib16_bus_data_out_reg <= 16'h0fff;
-8'h04: ib16_bus_data_out_reg <= 16'h0efc;
-8'h06: ib16_bus_data_out_reg <= 16'h01ff;
-8'h08: ib16_bus_data_out_reg <= 16'ha1fe;
-8'h0a: ib16_bus_data_out_reg <= 16'h0fff;
-8'h0c: ib16_bus_data_out_reg <= 16'h0efd;
-8'h0e: ib16_bus_data_out_reg <= 16'ha0fe;
-8'h10: ib16_bus_data_out_reg <= 16'h0eff;
-8'h12: ib16_bus_data_out_reg <= 16'h0fff;
-8'h14: ib16_bus_data_out_reg <= 16'h0cfb;
-8'h16: ib16_bus_data_out_reg <= 16'h0dff;
-8'h18: ib16_bus_data_out_reg <= 16'h0100;
-8'h1a: ib16_bus_data_out_reg <= 16'h045a;
-8'h1c: ib16_bus_data_out_reg <= 16'h93fe;
-8'h1e: ib16_bus_data_out_reg <= 16'h7134;
-8'h20: ib16_bus_data_out_reg <= 16'hd5fd;
-8'h22: ib16_bus_data_out_reg <= 16'h92fe;
-8'h24: ib16_bus_data_out_reg <= 16'h93fe;
-8'h26: ib16_bus_data_out_reg <= 16'ha3fe;
-8'h28: ib16_bus_data_out_reg <= 16'h3534;
-8'h2a: ib16_bus_data_out_reg <= 16'h8545;
-8'h2c: ib16_bus_data_out_reg <= 16'h93fe;
-8'h2e: ib16_bus_data_out_reg <= 16'ha3fe;
-8'h30: ib16_bus_data_out_reg <= 16'h3334;
-8'h32: ib16_bus_data_out_reg <= 16'h6335;
-8'h34: ib16_bus_data_out_reg <= 16'ha310;
-8'h36: ib16_bus_data_out_reg <= 16'h8050;
-8'h38: ib16_bus_data_out_reg <= 16'hd5f5;
-8'h3a: ib16_bus_data_out_reg <= 16'h8151;
-8'h3c: ib16_bus_data_out_reg <= 16'h8b71;
-8'h3e: ib16_bus_data_out_reg <= 16'habdc;
-8'h40: ib16_bus_data_out_reg <= 16'h7112;
-8'h42: ib16_bus_data_out_reg <= 16'hd402;
-8'h44: ib16_bus_data_out_reg <= 16'h4000;
-8'h46: ib16_bus_data_out_reg <= 16'he008;
-8'h48: ib16_bus_data_out_reg <= 16'h93fe;
-8'h4a: ib16_bus_data_out_reg <= 16'h3534;
-8'h4c: ib16_bus_data_out_reg <= 16'h8545;
-8'h4e: ib16_bus_data_out_reg <= 16'h93fe;
-8'h50: ib16_bus_data_out_reg <= 16'h3334;
-8'h52: ib16_bus_data_out_reg <= 16'h6335;
-8'h54: ib16_bus_data_out_reg <= 16'ha310;
-8'h56: ib16_bus_data_out_reg <= 16'h8050;
-8'h58: ib16_bus_data_out_reg <= 16'hd5f7;
-8'h5a: ib16_bus_data_out_reg <= 16'hd1ef;
+                        8'h00: ib16_bus_data_out_reg <= 16'h0000;
+                        8'h02: ib16_bus_data_out_reg <= 16'h0fff;
+                        8'h04: ib16_bus_data_out_reg <= 16'h0efc;
+                        8'h06: ib16_bus_data_out_reg <= 16'h01ff;
+                        8'h08: ib16_bus_data_out_reg <= 16'ha1fe;
+                        8'h0a: ib16_bus_data_out_reg <= 16'h0fff;
+                        8'h0c: ib16_bus_data_out_reg <= 16'h0efd;
+                        8'h0e: ib16_bus_data_out_reg <= 16'ha0fe;
+                        8'h10: ib16_bus_data_out_reg <= 16'h0eff;
+                        8'h12: ib16_bus_data_out_reg <= 16'h0fff;
+                        8'h14: ib16_bus_data_out_reg <= 16'h0cfb;
+                        8'h16: ib16_bus_data_out_reg <= 16'h0dff;
+                        8'h18: ib16_bus_data_out_reg <= 16'h0100;
+                        8'h1a: ib16_bus_data_out_reg <= 16'h045a;
+                        8'h1c: ib16_bus_data_out_reg <= 16'h93fe;
+                        8'h1e: ib16_bus_data_out_reg <= 16'h7134;
+                        8'h20: ib16_bus_data_out_reg <= 16'hd5fd;
+                        8'h22: ib16_bus_data_out_reg <= 16'h92fe;
+                        8'h24: ib16_bus_data_out_reg <= 16'h93fe;
+                        8'h26: ib16_bus_data_out_reg <= 16'ha3fe;
+                        8'h28: ib16_bus_data_out_reg <= 16'h3534;
+                        8'h2a: ib16_bus_data_out_reg <= 16'h8545;
+                        8'h2c: ib16_bus_data_out_reg <= 16'h93fe;
+                        8'h2e: ib16_bus_data_out_reg <= 16'ha3fe;
+                        8'h30: ib16_bus_data_out_reg <= 16'h3334;
+                        8'h32: ib16_bus_data_out_reg <= 16'h6335;
+                        8'h34: ib16_bus_data_out_reg <= 16'ha310;
+                        8'h36: ib16_bus_data_out_reg <= 16'h8050;
+                        8'h38: ib16_bus_data_out_reg <= 16'hd5f5;
+                        8'h3a: ib16_bus_data_out_reg <= 16'h8151;
+                        8'h3c: ib16_bus_data_out_reg <= 16'h8b71;
+                        8'h3e: ib16_bus_data_out_reg <= 16'habdc;
+                        8'h40: ib16_bus_data_out_reg <= 16'h7112;
+                        8'h42: ib16_bus_data_out_reg <= 16'hd402;
+                        8'h44: ib16_bus_data_out_reg <= 16'h4000;
+                        8'h46: ib16_bus_data_out_reg <= 16'he008;
+                        8'h48: ib16_bus_data_out_reg <= 16'h93fe;
+                        8'h4a: ib16_bus_data_out_reg <= 16'h3534;
+                        8'h4c: ib16_bus_data_out_reg <= 16'h8545;
+                        8'h4e: ib16_bus_data_out_reg <= 16'h93fe;
+                        8'h50: ib16_bus_data_out_reg <= 16'h3334;
+                        8'h52: ib16_bus_data_out_reg <= 16'h6335;
+                        8'h54: ib16_bus_data_out_reg <= 16'ha310;
+                        8'h56: ib16_bus_data_out_reg <= 16'h8050;
+                        8'h58: ib16_bus_data_out_reg <= 16'hd5f7;
+                        8'h5a: ib16_bus_data_out_reg <= 16'hd1ef;
                         default: ib16_bus_data_out_reg <= 16'h0000;
                     endcase
                     ib16_bus_ready <= 1;
