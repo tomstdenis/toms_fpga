@@ -15,4 +15,5 @@
 	SRES 0x10			; boot into boot rom
 :ISR_END
 	STM 3,15,14			; echo it back
+	STM 3,11,10			; also store in GPIO0
 	RETI

@@ -27,6 +27,9 @@
 ; load R12:R13 pointing to INT PENDING
 	LDI 12,>INT_ADDR
 	LDI 13,<INT_ADDR
+; R11:R10 point to GPIO 0
+	LDI 11,<GPIO0_ADDR
+	LDI 10,>GPIO0_ADDR
 	LDI 2,0x1B					; ESC key
 	SRES 0						; switch back to APP context
 
