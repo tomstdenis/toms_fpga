@@ -12,6 +12,9 @@ ecp5_demo.s.bin: ecp5_demo.s ecp5_demo.s ib16_as
 # 32KB version
 	./ib16_as --define IRQ_VECTOR 0x7E00 --define DEMO_PROG_SIZE 0x3F80 ecp5_demo.s --bin ecp5_demo.s.bin --list ecp5_demo.s.lst --hex ecp5_demo.s.hex
 
+boot_rom_p25k.s.bin: boot_rom_p25k.s ib16_as
+	./ib16_as boot_rom_p25k.s --bin boot_rom_p25k.s.bin --rom boot_rom_p25k.s.rom --list boot_rom_p25k.s.lst --hex boot_rom_p25k.s.hex
+
 boot_rom_ecp5.s.bin: boot_rom_ecp5.s ib16_as
 	./ib16_as boot_rom_ecp5.s --bin boot_rom_ecp5.s.bin --rom boot_rom_ecp5.s.rom --list boot_rom_ecp5.s.lst --hex boot_rom_ecp5.s.hex
 
@@ -27,5 +30,8 @@ ib16_as: ib16_as.c
 upload: upload.c
 	gcc -O0 -Wall upload.c -o upload
 
+upload_p25k: upload_p25k.c
+	gcc -O0 -Wall upload_p25k.c -o upload_p25k
+
 clean:
-	rm -f *.vvp *.vcd *.pass *.log ib16_as *.hex *.bin upload *.s.lst *.s.rom 
+	rm -f *.vvp *.vcd *.pass *.log ib16_as *.hex *.bin upload upload_p25k *.s.lst *.s.rom 

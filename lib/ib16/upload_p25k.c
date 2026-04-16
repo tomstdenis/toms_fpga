@@ -41,7 +41,7 @@ int main(int argc, char **argv)
 	
     int fd = open(argv[1], O_RDWR | O_NOCTTY);
     if (fd < 0) { perror("Open port"); return 1; }
-    set_interface_attribs(fd, B115200);
+    set_interface_attribs(fd, B230400);
 	tcflush(fd, TCIOFLUSH);
 	usleep(50000);
 	
@@ -74,15 +74,16 @@ int main(int argc, char **argv)
 		}
 		ch = fgetc(f);
 		if (ch != EOF) {
-			uint8_t b = ch;
-			if (write(fd, &b, 1) != 1) {
+			uint8_t bb, tb, b = ch;
+			bb = (b >> 4) + 0x5A;
+			if (write(fd, &bb, 1) != 1) {
 				printf("\nError writing to UART\n");
 				exit(-1);
 			}
 			tcdrain(fd);
-			if (bytes++ < 256) {
-				if (read(fd, &b, 1) == 1) {
-					if (b == ch) {
+			if (bytes < 256) {
+				if (read(fd, &tb, 1) == 1) {
+					if (tb == bb) {
 					} else {
 						printf("\nReadback mismatch: %02x\n", b);
 						exit(-1);
@@ -92,6 +93,27 @@ int main(int argc, char **argv)
 					exit(-1);
 				}
 			}
+
+			bb = (b & 0xF) + 0x5A;
+			if (write(fd, &bb, 1) != 1) {
+				printf("\nError writing to UART\n");
+				exit(-1);
+			}
+			tcdrain(fd);
+			if (bytes++ < 256) {
+				if (read(fd, &tb, 1) == 1) {
+					if (tb == bb) {
+					} else {
+						printf("\nReadback mismatch: %02x\n", b);
+						exit(-1);
+					}
+				} else {
+						printf("\nRead timed out\n");
+					exit(-1);
+				}
+			}
+
+
 		} else {
 			break;
 		}
