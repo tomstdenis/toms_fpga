@@ -479,7 +479,7 @@ module top(input wire clk,
 					if (bus_cycle[1:0] == 0) // start transaction (this cycle delay handles the fact that bus_address is combinatorial)
 						begin
 							text_we_a     <= ib16_bus_wr_en;
-                                text_addr_a   <= ib16_bus_address[10+$clog2(`BLOCKS):0];
+                            text_addr_a   <= ib16_bus_address[10+$clog2(`BLOCKS):0];
 							text_din_a    <= ib16_bus_data_in[7:0];
 							bus_cycle     <= bus_cycle + 1'b1;
 						end

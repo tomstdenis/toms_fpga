@@ -28,8 +28,8 @@ module vga_text_driver #(
 	input wire		   rst_n,										// active low reset
 
 // VGA signalling
-    input wire  [$clog2(H_VISIBLE):0]  x,								// Pixel X coordinate
-    input wire  [$clog2(V_VISIBLE):0]  y,								// Pixel Y coordinate
+    input wire  [$clog2(V_TOTAL):0]  x,								// Pixel X coordinate
+    input wire  [$clog2(H_TOTAL):0]  y,								// Pixel Y coordinate
     input wire        active_video,									// is the video active (not in blanking region)
     input wire        lrg_mode,										// 0 == text CP437 mode, 1 == low res graphics mode
 
