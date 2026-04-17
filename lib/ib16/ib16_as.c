@@ -85,6 +85,8 @@ const struct {
 	{ "NEG",		0x8080, OP_FMT_2OP },
 	{ "SCC",		0x8090, OP_FMT_1OP },
 	{ "SNZ",		0x80A0, OP_FMT_1OP },
+	{ "ROLB",		0x80B0, OP_FMT_2OP },
+	{ "RORB",		0x80C0, OP_FMT_2OP },
 	{ "LDM",		0x9000, OP_FMT_3OP },
 	{ "STM",		0xA000, OP_FMT_3OP },
 	{ "LCALL",		0xB000, OP_FMT_12IMMT },

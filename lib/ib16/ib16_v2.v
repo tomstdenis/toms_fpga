@@ -153,6 +153,10 @@ module ib16 #(
 				result_dff = {1'b0, 7'b0, carry_flag };
 			if (opcode_opa == 10) // Zero
 				result_dff = {1'b0, 7'b0, zero_flag };
+            if (opcode_opa == 11) // byte ROL
+                result_dff = {reg_rb[7], reg_rb[6:0], reg_rb[7]};
+            if (opcode_opa == 12) // byte ROR
+                result_dff = {reg_rb[0], reg_rb[0], reg_rb[7:1]};
 		end
 	end
 	
