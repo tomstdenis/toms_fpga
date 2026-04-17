@@ -65,11 +65,12 @@ The ECP5 and Nano1K demos are similar but have a few differences
      - **SREG** - 8 bits (Carry, Zero, unused, reboot to ROM, Boot to APP, Mask IRQ, Write Increment, Read Increment)
      - **0, 1, 2, 3, ... ,15** - GPRs, r0 is writable, the ROM guarantees your app boots with r0 == 0 so you can use it for ADC/comparisons, etc.
 
-   - Opcodes are 16-bits long using the top 4 bits to specify an instruction 
+   - Opcodes are 16-bits long using the top 4 bits to specify an instruction, "regD" is bits 11:8, regA is bits 7:4, regB is bits 3:0
    - Opcodes can either use 1 to 3 operands, 8-bit IMM or 12-bit IMM
    - Opcode format:
       - 3OP  : 4-bit instruction, 4 bit regD, 4 bit regA, 4-bit regB
       - 2OP: : 4-bit instruction, 4-bit regD, 4-bit modifier, 4-bit regA
+      - 2OPALU: uses 4-bit regD as modifier, registers picked with 4-bit regA and 4-bit regB
       - 8IMM : 4-bit instruction, 4 bit regD, 8-bit imm
       - 12IMM: 4-bit instruction, 12-bit IMM
       - 9SIMM: 4-bit instruction, 3-bit modifier, 9-bit signed value (divided by 2 since PC addresses are all even)
@@ -94,13 +95,17 @@ The ECP5 and Nano1K demos are similar but have a few differences
 	- 4 bit modifier
 		- SHR  0: R[d] = R[a] >> 1								[ZC]
 		- SAR  1: R[d] = signed(R[a]) >> 1						[ZC]
-		- ROR  2: R[d] = R[a] >>> 1								[ZC]
-		- ROL  3: R[d] = R[a] <<< 1								[ZC]
+		- ROR  2: R[d] = {carry_flag, R[a] >> 1}, carry_flag = R[a][0]	[ZC]
+		- ROL  3: R[d] = {R[a] << 1, carry_flag}, carry_flag = R[a][7] 	[ZC]
 		- SWAP 4: R[d] = {R[a][3:0], R[a][7:4]}					[ZC]
 		- INC  5: R[d] = R[a] + 1								[ZC]
 		- DEC  6: R[d] = R[a] - 1								[ZC]
 		- NOT  7: R[d] = ~R[a]									[ZC]
 		- NEG  8: R[d] = -R[a]									[ZC]
+		- SCC  9: R[d] = carry_flag								[Z]
+		- SNZ 10: R[d] = zero_flag								[Z]
+		- ROLB 11: R[d] = R[a] <<< 1							[ZC]
+		- RORB 12: R[d] = R[a] >>> 1							[ZC]
 9 - LDM (3OP)  R[d] = memory[{R[a], R[b]}]						[ZC]  (if a == b == 15 then it's a pop or push off the stack)
 10 - STM (3OP)  memory[{R[a], R[b]}] = R[d]
 11 - LCAL (12IMM) PC = (12IMM) << 4 (push PC)
