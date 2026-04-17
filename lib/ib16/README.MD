@@ -125,8 +125,15 @@ The core supports an 8-bit IRQ pending port where when non-zero tells the core t
 context.  In the IRQ context (same as using "SRES 4") a 2nd bank of registers is used that (so you don't have to worry about
 clobbering application registers).  A return from interrupt opcode (RETI) switches the CPU back to app context.
 
+The CPU will only jump to the ISR when performing a retire or fetch operation.  If it is mid instruction (including load/stores from
+slow bus devices) IRQs will not be serviced.
+
+Upon responding to an IRQ the following registers are saved: PC, SREG, Write Increment, Read Increment.  They are restored
+once a RETI opcode is executed.  The stack pointer is not saved/restored and is also shared between the two contexts.  Any modificaton
+to the stack pointer should be undone before issuing a RETI instruction.
+
 It's up to the bus/soc fabric to decide how/what IRQs are triggered.  In my demos I use an int enable/pending system similar
-to Atmel AVR microcontrollers. 
+to Atmel AVR microcontrollers.
 
 ## Assembler
 
@@ -236,6 +243,24 @@ POP 1     ; pop r1 off the stack
 
 STM 1,15,15 ; This is the actual opcode top push r1 onto the stack
 LDM 1,15,15 ; and this is the actual opcode to pop r1
+```
+
+Loads and Stores can optionally use an 8-bit offset increments.  For LDM loads that
+aren't pop operations bit 0 of SRES's operand controls whether the read increment is on.
+When it is on successive LDM's will read from an increased address.  The counter is 8 bits but the additon is 16-bits.
+When bit 1 of SRES is set the write increment is enabled.
+
+```
+SRES 3 ; enable both increments, resets them to ZERO
+LDI 10,0x12
+LDI 11,0x00  ; load r11:r10 to point to 0x1200
+LDI 12,0x13
+LDI 13,0x00  ; load r13:r12 to point to 0x1300
+LDM 1,11,10  ; load from 0x1200
+STM 1,13,12  ; store to 0x1300
+LDM 1,11,10  ; load from 0x1201
+STM 1,13,12  ; store to 0x1301
+SRES 0 ; disable both increments
 ```
 
 #### Use of EQU and Labels
