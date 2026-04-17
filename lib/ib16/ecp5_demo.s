@@ -70,19 +70,17 @@
 	DEC 4,4
 	JNZ DL
 		
-	; wait 2 seconds, switch to text mode, wait 5 seconds
-	LDI 1,2
+	; wait 5 seconds, switch to text mode, wait 5 seconds
+	LDI 1,5
 	LCALL timerWait
 	LDI 1,0
 	LCALL lrgSetMode
-	LDI 1,2
+	LDI 1,5
 	LCALL timerWait
 	
 	LDM 8,10,9
 	INC 8,8
 	STM 8,10,9
-	
-	JMP TOP
 
 ; we boot with r0==0 guaranteed so keep it that way for this app
 
@@ -168,7 +166,8 @@
 
 	INC 7,7				; increment tick (every 10ms)
 	NOT 7,7				; invert it since the LEDs are inverted
-	STM 7,11,10			; output to GPIO1
+;	STM 7,11,10			; output to GPIO1
+	STM 7,13,12			; output to GPIO0
 	NOT 7,7				; revert counter for next loop
 
 	; print Counter message
