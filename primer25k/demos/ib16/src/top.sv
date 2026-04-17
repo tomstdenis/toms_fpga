@@ -121,19 +121,20 @@ module top(input wire clk,
 
     main_memory so_many_ib16_memories(
         .douta(main_mem_dout_a), //output [7:0] douta
-        .doutb(main_mem_dout_b), //output [7:0] doutb
         .clka(pllclk), //input clka
         .ocea(1'b1), //input ocea
         .cea(1'b1), //input cea
         .reseta(~rst_n), //input reseta
         .wrea(main_mem_we_a), //input wrea
+        .ada(main_mem_addr_a), //input [14:0] ada
+        .dina(main_mem_din_a), //input [7:0] dina
+
+        .doutb(main_mem_dout_b), //output [7:0] doutb
         .clkb(pllclk), //input clkb
         .oceb(1'b1), //input oceb
         .ceb(1'b1), //input ceb
         .resetb(~rst_n), //input resetb
         .wreb(main_mem_we_b), //input wreb
-        .ada(main_mem_addr_a), //input [14:0] ada
-        .dina(main_mem_din_a), //input [7:0] dina
         .adb(main_mem_addr_b), //input [14:0] adb
         .dinb(main_mem_din_b) //input [7:0] dinb
     );
@@ -204,7 +205,7 @@ module top(input wire clk,
         .adb(text_addr_b), //input [10:0] adb
         .ceb(1'b1), //input ceb
         .clkb(pll2clk), //input clkb
-        .dinb(text_dout_b), //input [7:0] dinb
+        .dinb(8'b0), //input [7:0] dinb
         .doutb(text_dout_b), //output [7:0] doutb
         .oceb(1'b1), //input oceb
         .resetb(~rst2_n), //input resetb
