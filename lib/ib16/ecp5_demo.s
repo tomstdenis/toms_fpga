@@ -33,6 +33,9 @@
 	LDI 2,0x1B					; ESC key
 	SRES 0						; switch back to APP context
 
+	LDI 10,<GPIO0_ADDR			; r10:r9 points to GPIO0
+	LDI 9,>GPIO0_ADDR
+	
 	LDI 1,1
 	LCALL intEnable
 :TOP
@@ -67,13 +70,17 @@
 	DEC 4,4
 	JNZ DL
 		
-	; wait 5 seconds, switch to text mode, wait 5 seconds
-	LDI 1,5
+	; wait 2 seconds, switch to text mode, wait 5 seconds
+	LDI 1,2
 	LCALL timerWait
 	LDI 1,0
 	LCALL lrgSetMode
-	LDI 1,5
+	LDI 1,2
 	LCALL timerWait
+	
+	LDM 8,10,9
+	INC 8,8
+	STM 8,10,9
 	
 	JMP TOP
 
