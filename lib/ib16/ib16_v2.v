@@ -5,7 +5,8 @@ module ib16 #(
     parameter STACK_ADDRESS = 16'h1F00,
     parameter IRQ_VECTOR    = 16'h1E00,
     parameter BOOT_ROM_ADDR = 16'h2000,
-    parameter TWO_CYCLE     = 0              // this adds an ALU cycle can be useful to help routing and/or timing
+    parameter TWO_CYCLE     = 0,              // this adds an ALU cycle can be useful to help routing and/or timing
+    parameter STACK_PWIDTH  = 8               // width of stack pointer reg
 ) (
 	input wire clk,
 	input wire rst_n,
@@ -28,8 +29,8 @@ module ib16 #(
 
     // BUS
     reg [15:0] bus_address_terma;
-    reg [7:0] bus_address_termb;
-    assign bus_address = bus_address_terma + {8'b0, bus_address_termb};
+    reg [STACK_PWIDTH-1:0] bus_address_termb;
+    assign bus_address = bus_address_terma + bus_address_termb;
 
 	// ISA registers
 	localparam
@@ -40,7 +41,7 @@ module ib16 #(
 
 	reg [15:0]	reg_pc;								// PC register
 	reg [15:0]  reg_irq_pc;							// when an IRQ happens save the PC
-	reg [7:0]	reg_sp;								// SP (stack) register
+	reg [STACK_PWIDTH-1:0]	reg_sp;					// SP (stack) register
 	reg [7:0]	reg_sreg;							// SREG (status register)
     reg [7:0]   reg_irq_sreg;
 	reg [7:0]	reg_wi;								// WI (write index)
