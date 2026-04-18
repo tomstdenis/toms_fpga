@@ -2,6 +2,7 @@
 
 ; INT address
 .EQU INT_ADDR 0xFFFC
+.EQU GPIO0_ADDR 0xFFFB
 
 ; simple ISR
 .ORG 0x1E00
@@ -34,6 +35,9 @@
 	LDI 12,>MSG
 	LDI 11,<LOOP
 	LDI 10,>LOOP
+	LDI 9,<GPIO0_ADDR
+	LDI 8,>GPIO0_ADDR
+	LDI 7,0
 	LDI 1,1						; 1 second
 	JMP LOOP
 .ALIGN 0x10
@@ -41,6 +45,8 @@
 	LCALL PrintStr
 	LCALL PrintNewline
 	LCALL timerWait
+	INC 7,7
+	STM 7,9,8
 	AJMP 11,10
 :MSG
 .DS 'Hello world!'
