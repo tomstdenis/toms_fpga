@@ -208,13 +208,16 @@ The shifts all work with reg[b] and store into reg[a].
    - **DEC**: R[a] = R[b] + 1
    - **NOT**: R[a] = ~R[b]
    - **NEG**: R[a] = -R[b]
+   
+Other SHF opcodes 
 
-The instructions ROR and ROL are really meant for multibyte shifts.  You can emulate a ROL with something like 
+   - **SCC**: R[a] = carry_flag
+   - **SNZ**: R[a] = zero_flag
+   - **ROLB**: R[a] = R[b] <<< 1, carry_flag = R[b][7]
+   - **RORB**: R[a] = R[b] >>> 1, carry_flag = R[b][0]
 
-```
-   ADD 2,2,2 ; r2 = 2 * r2, carry = msb of r2
-   ADC 2,2,0 ; r2 = 2 + carry completing the ROL
-```
+The instructions ROR and ROL are really meant for multibyte shifts.  Whereas, the ROLB and RORB
+are meant for single byte rotates.
 
 #### Other Opcodes
 
@@ -226,7 +229,7 @@ The instructions ROR and ROL are really meant for multibyte shifts.  You can emu
       - Otherwise it's a memory operation
       - Loads or stores reg[d]
    - **AJMP**: Absolute jump to {R[a], R[b]}
-   -  **LCALL**: Call to 16 byte aligned address in hex
+   - **LCALL**: Call to 16 byte aligned address in hex
    - **RET**: Return from subroutine
    - **RETI**: Return from interrupt
    - **JMP**, **JC**, **JNC**, **JZ**, **JNZ**: Jumps to 9 bit signed target

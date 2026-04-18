@@ -829,7 +829,7 @@ int main(int argc, char **argv)
 	// determine memory usage
 	{
 		int y = 0;
-		for (i = 0; i < state->prog_size; i++) {
+		for (i = 0; i < MAX_PROG_SIZE; i++) {
 			if (state->program[i].line_number != -1) {
 				++y;
 			}
