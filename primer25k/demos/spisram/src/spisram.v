@@ -8,7 +8,7 @@ module top(input clk, inout [3:0] sio, output cs, output cs2, output sck, input 
 
 	localparam
         FREQ = 60,
-		DATA_WIDTH = 256,
+		DATA_WIDTH = 32,
 		SRAM_ADDR_WIDTH = 24,
 		DEBUG_ENABLE = 1,
         DEBUG_USE_MEM = 0;
@@ -103,7 +103,7 @@ module top(input clk, inout [3:0] sio, output cs, output cs2, output sck, input 
 `else
 			// PSRAM configuration (Some chips allow 1 Tclk between CS low but ESP-PSRAM requires 50ns)
             .DATA_WIDTH(DATA_WIDTH), .CLK_FREQ_MHZ(FREQ), .SRAM_ADDR_WIDTH(SRAM_ADDR_WIDTH),
-            .DUMMY_BYTES(3), .CMD_READ(8'hEB), .CMD_WRITE(8'h02), .CMD_EQIO(8'h35),
+            .DUMMY_BYTES(3), .CMD_READ(8'hEB), .CMD_WRITE(8'h38), .CMD_EQIO(8'h35),
             .MIN_CPH_NS(50), .SPI_TIMER_BITS(4), .QPI_TIMER_BITS(1), .MIN_WAKEUP_NS(150_000),
             .PSRAM_RESET(1), .CMD_RESETEN(8'h66), .CMD_RESET(8'h99)
 `endif  

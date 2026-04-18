@@ -1,3 +1,4 @@
+`default_nettype wire
 module Gowin_PLL(
     clkin,
     clkout0,

@@ -32,25 +32,25 @@ module spi_sram #(
 	parameter QPI_TIMER_BITS=1,								// divide clcok by 2 for QPI operations
 	parameter PSRAM_RESET=1									// do you need to send 66 99 to reset required by PSRAM chips?
 )(
-	input clk,												// clock
-	input rst_n,											// active low reset
+	input wire clk,												// clock
+	input wire rst_n,											// active low reset
 
 	// BUS
-	output done,											// active high means the module is done with a request
+	output wire done,											// active high means the module is done with a request
 	
 	// DATA in/out
-	input [DATA_WIDTH-1:0] data_in,							// data to write to the SRAM
-	input data_in_valid,									// active high indicates the user wants to send data to the outgoing FIFO
+	input wire [DATA_WIDTH-1:0] data_in,							// data to write to the SRAM
+	input wire data_in_valid,									// active high indicates the user wants to send data to the outgoing FIFO
 	output reg [DATA_WIDTH-1:0] data_out,					// The entire line output
-	input [3:0] data_be,									// byte enables (only supported for DATA_WIDTH==32)
+	input wire [3:0] data_be,									// byte enables (only supported for DATA_WIDTH==32)
 	
 	// CMD
-	input write_cmd,										// active high we're doing a write
-	input read_cmd,											// active high we're doing a read
-	input [SRAM_ADDR_WIDTH-1:0] address,					// address to read/write from
+	input wire write_cmd,										// active high we're doing a write
+	input wire read_cmd,											// active high we're doing a read
+	input wire [SRAM_ADDR_WIDTH-1:0] address,					// address to read/write from
 
 	// I/O
-	input [3:0] sio_din,
+	input wire [3:0] sio_din,
 	output reg [3:0] sio_dout,
 	output reg [3:0] sio_en,
 	output wire cs_pin,											// active low CS pin
