@@ -268,6 +268,59 @@ STM 1,13,12  ; store to 0x1301
 SRES 0 ; disable both increments
 ```
 
+Using AJMP to make jump tables is done in a variety of ways but a simple route could be
+
+```
+   ; based on r1[1:0] jump to the correct handler
+   LDI 2,0x03
+   AND 2,2,3	; mask lower 2 bits
+   ADD 1,1,1	; double it since each entry is 2-bytes long
+   LDI 2,>OPTION0 ; load start of switch table
+   LDI 3,<OPTION0
+   ADD 2,2,1    ; add in index offset
+   ADC 3,3,0    ; add carry
+   AJMP 3,2		; jump to switch handler
+:OPTION0
+   JMP OPTION0_HANDLER
+:OPTION1
+   JMP OPTION1_HANDLER
+:OPTION2
+   JMP OPTION2_HANDLER
+:OPTION3
+   JMP OPTION3_HANDLER
+:OPTION0_HANDLER
+   ...
+   JMP ENDIF
+:OPTION1_HANDLER
+   ...
+   JMP ENDIF
+:OPTION2_HANDLER
+   ...
+   JMP ENDIF
+:OPTION3_HANDLER
+   ...
+   JMP ENDIF
+:ENDIF
+```
+
+If you need larger case handlers you can make the stride of the table larger for instance
+
+```
+:OPTION0
+   LDI 2,>OPTION0_HANDLER
+   LDI 3,<OPTION0_HANDLER
+   AJMP 3,2
+...
+```
+
+Where you can do mult by 6 fairly easily
+
+```
+   ADD 2,1,1		; r2 = 2*r1
+   ADD 1,2,1        ; r1 = 3*r1
+   ADD 1,1,1        ; r1 = 2*3*r1 == 6*r1
+```
+
 #### Use of EQU and Labels
 
 Any instruction that has a immediate (not register name) can use a label (line starting with :) or an .EQU constant
