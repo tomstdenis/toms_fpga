@@ -79,12 +79,12 @@ module ib16 #(
 		OPCODE_LDI = 0,
 		OPCODE_ADD = 1,
 		OPCODE_ADC = 2,
-		OPCODE_SUB = 3,
-		OPCODE_XOR = 4,
-		OPCODE_AND = 5,
-		OPCODE_OR  = 6,
-		OPCODE_CMP = 7,
-		OPCODE_SHF = 8,
+		OPCODE_XOR = 3,
+		OPCODE_AND = 4,
+		OPCODE_OR  = 5,
+		OPCODE_CMP = 6,
+		OPCODE_SHF = 7,
+        OPCODE_AJMP = 8,
 		OPCODE_LDM = 9,
 		OPCODE_STM = 10,
 		OPCODE_LCAL = 11,
@@ -106,11 +106,8 @@ module ib16 #(
 		if (opcode_isn == OPCODE_LDI) begin
 			result_dff	= {1'b0, opcode_8imm};
 		end
-		if (opcode_isn == OPCODE_ADD || opcode_isn == OPCODE_ADC || opcode_isn == OPCODE_SUB) begin
-			result_dff	= {{1'b0, reg_ra} +
-						   (opcode_isn == OPCODE_SUB ? 
-								{1'b0, -reg_rb} :
-								{1'b0, reg_rb}) +
+		if (opcode_isn == OPCODE_ADD || opcode_isn == OPCODE_ADC) begin
+			result_dff	= {{1'b0, reg_ra} + reg_rb +
 						   {8'b0, ((opcode_isn == OPCODE_ADC ? 1'b1 : 1'b0) & carry_flag)}};
 		end
         if (opcode_isn == OPCODE_CMP) begin
@@ -289,6 +286,19 @@ module ib16 #(
                     state       <= FSM_FETCH;
                 end
             end /* FSM_DECODE/OPCODE_STM */
+            if (state == FSM_DECODE + OPCODE_AJMP) begin
+                if (!bus_enable) begin
+                    bus_enable		<= 1;
+                    bus_burst       <= 1;
+                    bus_wr_en		<= 0;
+                    bus_address_terma <= {reg_ra, reg_rb};
+                    bus_address_termb <= 0;
+                end
+                if (bus_enable) begin
+                    reg_pc            <= bus_address + 2;
+                    state             <= FSM_FETCH;
+                end
+            end
             if (state == FSM_DECODE + OPCODE_LCAL) begin
                 if (!bus_enable) begin
                     bus_enable		<= 1;

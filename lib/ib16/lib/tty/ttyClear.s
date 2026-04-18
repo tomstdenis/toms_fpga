@@ -20,7 +20,8 @@
 	ADC 15,15,0
 	DEC 12,12
 	SCC 11						; store carry in 11
-	SUB 13,13,11				; subtract from 13
+	NEG 11,11
+	ADD 13,13,11				; subtract carry from 13
 	OR 11,12,13					; are the remaining byte counter bytes zero?
 	JNZ TTYCLEARLOOP
 	; set cursor to 0,0

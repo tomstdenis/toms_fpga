@@ -81,17 +81,16 @@ The ECP5 and Nano1K demos are similar but have a few differences
 0 - LDI (8IMM) R[d] = imm										[ZC]
 1 - ADD (3OP)  R[d] = R[a] + R[b]								[ZC]
 2 - ADC (3OP)  R[d] = R[a] + R[b] + carry						[ZC]
-3 - SUB (3OP)  R[d] = R[a] - R[b]								[ZC]
-4 - XOR (3OP)  R[d] = R[a] ^ R[b]								[ZC]
-5 - AND (3OP)  R[d] = R[a] & R[b]								[ZC]
-6 - OR (3OP)   R[d] = R[a] | R[b]								[ZC]
-7 - CMP (2OPALU) Carry = R[a] comparison R[b]					[C]    ; set's carry flag if comparison is true
+3 - XOR (3OP)  R[d] = R[a] ^ R[b]								[ZC]
+4 - AND (3OP)  R[d] = R[a] & R[b]								[ZC]
+5 - OR (3OP)   R[d] = R[a] | R[b]								[ZC]
+6 - CMP (2OPALU) Carry = R[a] comparison R[b]					[C]    ; set's carry flag if comparison is true
 	- R[d] values
 		- 00: CMPLT R[a] < R[b]
 		- 01: CMPEQ R[a] == R[b]
 		- 10: CMPGT R[a] > R[b]
 		- 11: Unused (C=0)
-8 - Shifts (2OP)												[ZC]
+7 - Shifts (2OP)												[ZC]
 	- 4 bit modifier
 		- SHR  0: R[d] = R[a] >> 1								[ZC]
 		- SAR  1: R[d] = signed(R[a]) >> 1						[ZC]
@@ -106,6 +105,7 @@ The ECP5 and Nano1K demos are similar but have a few differences
 		- SNZ 10: R[d] = zero_flag								[Z]
 		- ROLB 11: R[d] = R[a] <<< 1							[ZC]
 		- RORB 12: R[d] = R[a] >>> 1							[ZC]
+8 - AJMP (2OPALU) PC = {R[a], R[b]}
 9 - LDM (3OP)  R[d] = memory[{R[a], R[b]}]						[ZC]  (if a == b == 15 then it's a pop or push off the stack)
 10 - STM (3OP)  memory[{R[a], R[b]}] = R[d]
 11 - LCAL (12IMM) PC = (12IMM) << 4 (push PC)
@@ -177,12 +177,11 @@ a variety of uses.
 
 #### Three Operand ALU Opcodes
 
-The three operand opcodes are **ADD**, **ADC**, **SUB**, **XOR**, **AND**, and **OR**.  They take three operands 'r', 'a', 'b' and
+The three operand opcodes are **ADD**, **ADC**, **XOR**, **AND**, and **OR**.  They take three operands 'r', 'a', 'b' and
 compute reg[d] = reg[a] OP reg[b].  For example
 
 ```
 	ADD 2,3,4 ; r2 = r3 + r4
-	SUB 2,2,4 ; r2 = r2 - r4
 	AND 1,2,2 ; handy way of doing r1 = r2
 ```
 
@@ -226,6 +225,7 @@ The instructions ROR and ROL are really meant for multibyte shifts.  You can emu
       - If a == b == 15 then it's a stack pop/push
       - Otherwise it's a memory operation
       - Loads or stores reg[d]
+   - **AJMP**: Absolute jump to {R[a], R[b]}
    -  **LCALL**: Call to 16 byte aligned address in hex
    - **RET**: Return from subroutine
    - **RETI**: Return from interrupt

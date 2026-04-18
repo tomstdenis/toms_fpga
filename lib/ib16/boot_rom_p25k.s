@@ -27,6 +27,7 @@
 	LDI 13,<GPIO0_ADDR
 	LDI 1,0					; start writing to 0
 	LDI 4,0x5A				; magic constant we wait for before reading data bytes
+	NEG 6,4					; save -0x5A since we don't have a SUB opcode
 :FLUSH
 	LDM 3,15,14
 	CMPEQ 3,4				; compare R3 to R4 (uart byte to 0x5A)
@@ -36,11 +37,11 @@
 :LOOP
 	LDM 3,15,14				; read from UART
 	STM 3,15,14				; echo char back
-	SUB 5,3,4				; subtract 0x5A to get top nibble
+	ADD 5,3,6				; subtract 0x5A to get top nibble
 	SWAP 5,5				; put it in the top
 	LDM 3,15,14
 	STM 3,15,14
-	SUB 3,3,4				; subtract 0x5A
+	ADD 3,3,6				; subtract 0x5A
 	OR 3,3,5				; OR with top half
 	STM 3,1,0				; store 
 	INC 0,0					; increment base
@@ -56,10 +57,10 @@
 	SRES 8					; boot user app
 :LOOP2						; don't echo back for offset >= 256
 	LDM 3,15,14				; read from UART
-	SUB 5,3,4
+	ADD 5,3,6
 	SWAP 5,5
 	LDM 3,15,14
-	SUB 3,3,4
+	ADD 3,3,6
 	OR 3,3,5
 	STM 3,1,0				; store 
 	INC 0,0					; increment base

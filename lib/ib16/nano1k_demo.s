@@ -32,12 +32,16 @@
 	LDI 15,<UART_ADDR	
 	LDI 13,<MSG
 	LDI 12,>MSG
+	LDI 11,<LOOP
+	LDI 10,>LOOP
 	LDI 1,1						; 1 second
+	JMP LOOP
+.ALIGN 0x10
 :LOOP
 	LCALL PrintStr
 	LCALL PrintNewline
 	LCALL timerWait
-	JMP LOOP
+	AJMP 11,10
 :MSG
 .DS 'Hello world!'
 
