@@ -276,7 +276,7 @@ Using AJMP to make jump tables is done in a variety of ways but a simple route c
 ```
    ; based on r1[1:0] jump to the correct handler
    LDI 2,0x03
-   AND 2,2,3	; mask lower 2 bits
+   AND 1,1,2	; mask lower 2 bits
    ADD 1,1,1	; double it since each entry is 2-bytes long
    LDI 2,>OPTION0 ; load start of switch table
    LDI 3,<OPTION0
@@ -320,7 +320,7 @@ Where you can do mult by 6 fairly easily
 
 ```
    ADD 2,1,1		; r2 = 2*r1
-   ADD 1,2,1        ; r1 = 3*r1
+   ADD 1,2,1        ; r1 = r1 + 2*r1 == 3*r1
    ADD 1,1,1        ; r1 = 2*3*r1 == 6*r1
 ```
 
