@@ -1,5 +1,6 @@
 `define STACK_ADDRESS 16'h1F00
 `define IRQ_VECTOR    16'h1E00
+`define STACK_PWIDTH  8
 `define FREQ          48
 
 module top(input wire clk, input wire uart_rx, output wire uart_tx, inout wire [7:0] gpio);
@@ -91,7 +92,8 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, inout wire [
         .STACK_ADDRESS(`STACK_ADDRESS),
         .IRQ_VECTOR(`IRQ_VECTOR),
         .BOOT_ROM_ADDR(16'h2000),
-        .TWO_CYCLE(0)) 
+        .TWO_CYCLE(0),
+        .STACK_PWIDTH(`STACK_PWIDTH))
     ittybitty(
         .clk(pllclk), .rst_n(rst_n),
         .bus_enable(ib16_bus_enable),

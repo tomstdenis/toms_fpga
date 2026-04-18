@@ -40,7 +40,6 @@
 	LDI 7,0
 	LDI 1,1						; 1 second
 	JMP LOOP
-.ALIGN 0x10
 :LOOP
 	LCALL PrintStr
 	LCALL PrintNewline

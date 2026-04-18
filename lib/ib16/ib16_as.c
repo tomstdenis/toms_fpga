@@ -148,7 +148,7 @@ void compile_opcodes(struct compiler_state *state, char *line)
 				state->program[state->PC].line_number = state->line_number;
 				state->program[state->PC].fname = state->cur_filename;
 			} else {
-				printf("line %s:%d: byte location %x already was programmed on line %d\n", state->cur_filename, state->line_number, state->PC, state->program[state->PC].line_number);
+				fprintf(stderr, "line %s:%d: byte location %x already was programmed on line %s:%d\n", state->cur_filename, state->line_number, state->PC, state->program[state->PC].fname, state->program[state->PC].line_number);
 				exit(-1);
 			}
 			switch (e1_opcodes[x].fmt) {
@@ -156,7 +156,7 @@ void compile_opcodes(struct compiler_state *state, char *line)
 				{
 					unsigned r_d, r_a, r_b;
 					if (sscanf(line, "%u, %u, %u", &r_d, &r_a, &r_b) != 3) {
-						printf("line %s:%d: Invalid number of arguments on line [%s]", state->cur_filename, state->line_number, line);
+						fprintf(stderr, "line %s:%d: Invalid number of arguments [%s]\n", state->cur_filename, state->line_number, line);
 						exit(-1);
 					}
 					r_d &= 0xF;
@@ -169,7 +169,7 @@ void compile_opcodes(struct compiler_state *state, char *line)
 				{
 					unsigned r_d, r_a;
 					if (sscanf(line, "%u, %u", &r_d, &r_a) != 2) {
-						printf("line %s:%d: Invalid number of arguments on line [%s]", state->cur_filename, state->line_number, line);
+						fprintf(stderr, "line %s:%d: Invalid number of arguments [%s]\n", state->cur_filename, state->line_number, line);
 						exit(-1);
 					}
 					r_d &= 0xF;
@@ -181,7 +181,7 @@ void compile_opcodes(struct compiler_state *state, char *line)
 				{
 					unsigned r_a, r_b;
 					if (sscanf(line, "%u, %u", &r_a, &r_b) != 2) {
-						printf("line %s:%d: Invalid number of arguments on line [%s]", state->cur_filename, state->line_number, line);
+						fprintf(stderr, "line %s:%d: Invalid number of arguments [%s]\n", state->cur_filename, state->line_number, line);
 						exit(-1);
 					}
 					r_a &= 0xF;
@@ -193,7 +193,7 @@ void compile_opcodes(struct compiler_state *state, char *line)
 				{
 					unsigned r_a, r_b;
 					if (sscanf(line, "%u, %u", &r_a, &r_b) != 2) {
-						printf("line %s:%d: Invalid number of arguments on line [%s]", state->cur_filename, state->line_number, line);
+						fprintf(stderr, "line %s:%d: Invalid number of arguments [%s]\n", state->cur_filename, state->line_number, line);
 						exit(-1);
 					}
 					r_a &= 0xF;
@@ -205,7 +205,7 @@ void compile_opcodes(struct compiler_state *state, char *line)
 				{
 					unsigned r_d;
 					if (sscanf(line, "%u", &r_d) != 1) {
-						printf("line %s:%d: Invalid number of arguments on line [%s]", state->cur_filename, state->line_number, line);
+						fprintf(stderr, "line %s:%d: Invalid number of arguments [%s]\n", state->cur_filename, state->line_number, line);
 						exit(-1);
 					}
 					r_d &= 0xF;
@@ -288,10 +288,10 @@ void compile_opcodes(struct compiler_state *state, char *line)
 	
 	++(state->PC);
 	if (!state->PC) {
-		printf("Warning line %d: We've wrapped PC around back to 0\n", state->program[state->PC].line_number);
+		fprintf(stderr, "Line %s:%d: We've wrapped PC around back to 0\n", state->cur_filename, state->line_number);
 	}
 	if (!e1_opcodes[x].opname) {
-		printf("Line %d: Malformed line: '%s'\n", state->line_number, line);
+		fprintf(stderr, "Line %s:%d: Malformed line: '%s'\n", state->cur_filename, state->line_number, line);
 		exit(-1);
 	}
 }	
@@ -409,6 +409,9 @@ void compile(struct compiler_state *state, char *line)
 			state->program[state->PC].fname = state->cur_filename;
 			state->program[state->PC].opidx = 0;
 			++(state->PC);
+		} else {
+			fprintf(stderr, "Line %s:%d PC==%04X was already programmed by %s:%d\n", state->cur_filename, state->line_number, state->PC, state->program[state->PC].fname, state->program[state->PC].line_number);
+			exit(-1);
 		}
 	} else if (!memcmp(line, ".DS ", 4)) {
 		uint8_t buf[256];
