@@ -5,7 +5,7 @@
 //Part Number: GW1NZ-LV1QN48C6/I5
 //Device: GW1NZ-1
 //Created Time: Sun Apr 19 13:54:22 2026
-
+`default_nettype wire
 module Gowin_ROM16 (dout, ad);
 
 output [15:0] dout;
