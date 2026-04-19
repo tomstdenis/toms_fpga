@@ -287,17 +287,8 @@ module ib16 #(
                 end
             end /* FSM_DECODE/OPCODE_STM */
             if (state == FSM_DECODE + OPCODE_AJMP) begin
-                if (!bus_enable) begin
-                    bus_enable		<= 1;
-                    bus_burst       <= 1;
-                    bus_wr_en		<= 0;
-                    bus_address_terma <= {reg_ra, reg_rb};
-                    bus_address_termb <= 0;
-                end
-                if (bus_enable) begin
-                    reg_pc            <= bus_address + 2;
-                    state             <= FSM_FETCH;
-                end
+                reg_pc <= {reg_ra, reg_rb};
+                state <= FSM_FETCH;
             end
             if (state == FSM_DECODE + OPCODE_LCAL) begin
                 if (!bus_enable) begin

@@ -4,12 +4,13 @@
 //Tool Version: V1.9.11.03 Education
 //Part Number: GW1NZ-LV1QN48C6/I5
 //Device: GW1NZ-1
-//Created Time: Fri Apr 17 20:18:03 2026
+//Created Time: Sat Apr 18 20:08:26 2026
+`default_nettype wire
 
 module Gowin_rPLL (clkout, clkin);
 
-output wire clkout;
-input wire clkin;
+output clkout;
+input clkin;
 
 wire lock_o;
 wire clkoutp_o;

@@ -6,10 +6,10 @@
 //Device: GW1NZ-1
 //Created Time: Wed 03 25 23:21:58 2026
 
-// gpio[2:0] are LED_G/R/B, gpio[7:6] are the push buttons (gpio[7] == pin 28 (bottom of side with button A), gpio[6] == push buton A)
-IO_LOC "gpio[7]" 28;
+// gpio[2:0] are the RGB LEDs, gpio[7] is push button A, the rest are the pins directly below the LED pins on the left side of the board
+IO_LOC "gpio[7]" 13; // push button
 IO_PORT "gpio[7]" IO_TYPE=LVCMOS33 PULL_MODE=UP  BANK_VCCIO=3.3;
-IO_LOC "gpio[6]" 13;
+IO_LOC "gpio[6]" 18;
 IO_PORT "gpio[6]" IO_TYPE=LVCMOS33 PULL_MODE=UP  BANK_VCCIO=3.3;
 IO_LOC "gpio[5]" 22;
 IO_PORT "gpio[5]" IO_TYPE=LVCMOS33 PULL_MODE=UP  BANK_VCCIO=3.3;
@@ -24,12 +24,12 @@ IO_PORT "gpio[1]" IO_TYPE=LVCMOS33 PULL_MODE=UP  BANK_VCCIO=3.3;
 IO_LOC "gpio[0]" 9; // red
 IO_PORT "gpio[0]" IO_TYPE=LVCMOS33 PULL_MODE=UP  BANK_VCCIO=3.3;
 
-// UART 
-IO_LOC "uart_rx" 16;
+// UART last two pins on the left side
+IO_LOC "uart_rx" 27;
 IO_PORT "uart_rx" IO_TYPE=LVCMOS33 PULL_MODE=UP BANK_VCCIO=3.3;
-IO_LOC "uart_tx" 15;
+IO_LOC "uart_tx" 28; // this is the corner of the board
 IO_PORT "uart_tx" IO_TYPE=LVCMOS33 DRIVE=4 BANK_VCCIO=3.3;
 
 // 27MHz XTAL input
-IO_LOC "clk" 47;
+IO_LOC "clk" 47; // if you can find this on the PCB you've wasted your life.
 IO_PORT "clk" IO_TYPE=LVCMOS33 PULL_MODE=UP BANK_VCCIO=3.3;
