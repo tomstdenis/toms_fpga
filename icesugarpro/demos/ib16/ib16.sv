@@ -18,8 +18,8 @@ module top(input clk,
 	output reg [3:0] vga_r, output reg [3:0] vga_g, output reg [3:0] vga_b, output vga_h_pulse, output vga_v_pulse);
 
     localparam
-		TEXTMEM			 	  = 16'hE800,
-		VIDEO_MODE_FLAG_ADDR  = 16'hFFF8,
+	TEXTMEM		 = 16'hE800,
+	VIDEO_MODE_FLAG_ADDR  = 16'hFFF8,
         TIMER_ADDR       = 16'hFFF9,
         GPIO1_DATA_ADDR  = 16'hFFFA,
         GPIO0_DATA_ADDR  = 16'hFFFB,
