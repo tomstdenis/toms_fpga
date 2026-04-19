@@ -3,7 +3,7 @@
 `timescale 1ns/1ps
 `default_nettype none
 `define BLOCKS 16
-`define FREQ 100
+`define FREQ 90
 
 // place stack at top of memory - 256 bytes, and the ISR 256 bytes before that
 `define STACK_ADDRESS (16'h0800 * `BLOCKS - 16'h0100)
@@ -284,7 +284,7 @@ module top(input wire clk,
         .STACK_ADDRESS(`STACK_ADDRESS),
         .IRQ_VECTOR(`IRQ_VECTOR),
         .BOOT_ROM_ADDR(`BOOT_ROM_ADDR),
-        .TWO_CYCLE(1)) ittybitty(
+        .TWO_CYCLE(0)) ittybitty(
         .clk(pllclk), .rst_n(rst_n),
         .bus_enable(ib16_bus_enable),
         .bus_wr_en(ib16_bus_wr_en),

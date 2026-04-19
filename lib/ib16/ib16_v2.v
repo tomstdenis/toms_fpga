@@ -108,7 +108,7 @@ module ib16 #(
 		end
 		if (opcode_isn == OPCODE_ADD || opcode_isn == OPCODE_ADC) begin
 			result_dff	= {{1'b0, reg_ra} + reg_rb +
-						   {8'b0, ((opcode_isn == OPCODE_ADC ? 1'b1 : 1'b0) & carry_flag)}};
+						   {8'b0, ((opcode_isn == OPCODE_ADC ? carry_flag : 1'b0))}};
 		end
         if (opcode_isn == OPCODE_CMP) begin
 			if (opcode_opd == 0)
