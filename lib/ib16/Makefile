@@ -15,7 +15,9 @@ ecp5_demo.s.bin: ecp5_demo.s ecp5_demo.s ib16_as
 # 32KB version
 #	./ib16_as --define DEMO_ORG 0x0000 --define IRQ_VECTOR 0x7E00 --define DEMO_PROG_SIZE 0x3F80 ecp5_demo.s --bin ecp5_demo.s.bin --list ecp5_demo.s.lst --hex ecp5_demo.s.hex --mon ecp5_demo.s.mon
 # 58KB version for primer25k/ecp5
-	./ib16_as --define DEMO_ORG 0x0000 --define IRQ_VECTOR 0xE600 --define DEMO_PROG_SIZE 0x7380 ecp5_demo.s --bin ecp5_demo.s.bin --list ecp5_demo.s.lst --hex ecp5_demo.s.hex --mon ecp5_demo.s.mon
+#	./ib16_as --define DEMO_ORG 0x0000 --define IRQ_VECTOR 0xE600 --define DEMO_PROG_SIZE 0x7380 ecp5_demo.s --bin ecp5_demo.s.bin --list ecp5_demo.s.lst --hex ecp5_demo.s.hex --mon ecp5_demo.s.mon
+# 58KB w/ 1K stack version for primer25k/ecp5
+	./ib16_as --define DEMO_ORG 0x0000 --define IRQ_VECTOR 0xE300 --define DEMO_PROG_SIZE 0x7200 ecp5_demo.s --bin ecp5_demo.s.bin --list ecp5_demo.s.lst --hex ecp5_demo.s.hex --mon ecp5_demo.s.mon
 
 boot_rom.s.bin: boot_rom.s ib16_as
 	./ib16_as boot_rom.s --bin boot_rom.s.bin --list boot_rom.s.lst --rom boot_rom.s.rom --hex boot_rom_s.hex

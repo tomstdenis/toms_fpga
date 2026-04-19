@@ -4,10 +4,11 @@
 `default_nettype none
 `define BLOCKS 29
 `define FREQ 90
+`define STACK_PWIDTH 10
 
 // place stack at top of memory - 256 bytes, and the ISR 256 bytes before that
-`define STACK_ADDRESS (16'h0800 * `BLOCKS - 16'h0100)
-`define IRQ_VECTOR    (16'h0800 * `BLOCKS - 16'h0200)
+`define STACK_ADDRESS (16'h0800 * `BLOCKS - (2**`STACK_PWIDTH))
+`define IRQ_VECTOR    (16'h0800 * `BLOCKS - (2**`STACK_PWIDTH) - 256)
 
 // ROM is fixed into the first 256 bytes of the reserved F000..FFFF space
 `define BOOT_ROM_ADDR 16'hF000
@@ -284,7 +285,8 @@ module top(input wire clk,
         .STACK_ADDRESS(`STACK_ADDRESS),
         .IRQ_VECTOR(`IRQ_VECTOR),
         .BOOT_ROM_ADDR(`BOOT_ROM_ADDR),
-        .TWO_CYCLE(0)) ittybitty(
+        .TWO_CYCLE(0),
+        .STACK_PWIDTH(`STACK_PWIDTH)) ittybitty(
         .clk(pllclk), .rst_n(rst_n),
         .bus_enable(ib16_bus_enable),
         .bus_wr_en(ib16_bus_wr_en),
