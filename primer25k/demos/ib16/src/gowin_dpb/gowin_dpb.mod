@@ -5,20 +5,20 @@
 -part_number GW5A-LV25MG121NC1/I0
 
 
--mod_name main_memory
+-mod_name Gowin_DPB
 -file_name gowin_dpb
 -path /home/tom/nas/toms_fpga/primer25k/demos/ib16/src/gowin_dpb/
 -type RAM_DP
 -file_type vlg
 -bram_b true
 -dev_type GW5A-25A
--depth_0 32768
--depth_1 32768
+-depth_0 59392
+-depth_1 59392
 -width_0 8
 -width_1 8
 -read_mode_0 bypass
 -read_mode_1 bypass
 -write_mode_0 normal
 -write_mode_1 normal
--speed false
+-speed true
 -reset_mode sync

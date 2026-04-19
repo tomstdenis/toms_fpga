@@ -2,7 +2,7 @@
 // enable IRQs for UART supporting [0] = RX ready, [1] TX empty
 `timescale 1ns/1ps
 `default_nettype none
-`define BLOCKS 16
+`define BLOCKS 29
 `define FREQ 90
 
 // place stack at top of memory - 256 bytes, and the ISR 256 bytes before that

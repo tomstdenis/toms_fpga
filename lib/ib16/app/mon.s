@@ -88,7 +88,7 @@
 	AND 1,7,3					; r1 = r7 & 15
 	JNZ TomMonDloop				; not a multiple of 16 so keep outputting
 	JMP TomMonDtop				; multiple of 16 so go to next line and print address
-:TomMonEcmd
+:TomMonEcmd						; Handle the 'E' 
 	LCALL TomMonReadr8r7		; read XXXX into r8:r7
 :TomMonEloop
 	LDM 1,15,14					; load next char

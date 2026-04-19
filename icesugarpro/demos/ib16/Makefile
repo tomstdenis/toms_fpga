@@ -1,7 +1,7 @@
 TARGET=ib16
 TOP=top
-FREQ=58
-BLOCKS=16
+FREQ=50
+BLOCKS=29
 
 OBJS+=${TARGET}.sv pll.v pll2.v \
 ../../../lib/uart/blocks/tx_uart.sv ../../../lib/uart/blocks/rx_uart.sv ../../../lib/uart/blocks/uart.sv \

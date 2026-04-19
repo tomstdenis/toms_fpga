@@ -1,21 +1,21 @@
 [General]
 file=gowin_dpb
 ipc_version=4
-module=main_memory
+module=Gowin_DPB
 target_device=gw5a25a-002
 type=ram_dpb
 version=1.0
 
 [Config]
-Area=true
+Area=false
 BYTE_SIZE=0
-DEPTH_A=32768
-DEPTH_B=32768
+DEPTH_A=59392
+DEPTH_B=59392
 LANG=0
 READ_A=0
 READ_B=0
 RESET_MODE=true
-Speed=false
+Speed=true
 WIDTH_A=8
 WIDTH_B=8
 WRITE_A=0
