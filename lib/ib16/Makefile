@@ -1,5 +1,8 @@
 all: test_ib16_v2.pass
 
+mon.s.bin: app/mon.s ib16_as
+	./ib16_as app/mon.s --bin mon.s.bin --list mon.s.lst
+
 test_ib16_v2.pass: ib16_v2.v ib16_v2_tb.v ecp5_demo.s.bin boot_rom.s.bin boot_rom_ecp5.s.bin
 	verilator -DSIM --lint-only ib16_v2.v ib16_v2_tb.v
 	iverilog -DSIM -Wall -o sim.vvp ib16_v2.v ib16_v2_tb.v
