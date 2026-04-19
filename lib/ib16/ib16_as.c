@@ -695,6 +695,26 @@ void emit_hexfile(struct compiler_state *state, char *fname)
 	fclose(f);
 }
 
+void emit_monfile(struct compiler_state *state, char *fname)
+{
+	FILE *f;
+	int x;
+	f = fopen(fname, "w");
+	if (!f) {
+		fprintf(stderr, "Could not open the mon output file '%s'\n", fname);
+		exit(-1);
+	}
+	
+	for (x = state->bin_start; x < state->bin_start + state->prog_size; x++) {
+		if (state->program[x].line_number != -1) {
+			fprintf(f, "E%04X %02X %02X\n", x*2, 
+				state->program[x].opcode>>8,
+				state->program[x].opcode&0xFF); // x is the word address so double to get byte addr
+		}
+	}
+	fclose(f);
+}
+
 void emit_binfile(struct compiler_state *state, char *fname)
 {
 	FILE *f;
@@ -860,6 +880,14 @@ int main(int argc, char **argv)
 				++i;
 			} else {
 				fprintf(stderr, "--rom requires a parameter\n");
+				exit(-1);
+			}
+		} else if (!strcmp(argv[i], "--mon")) {
+			if (i + 1 < argc) {
+				emit_monfile(state, argv[i+1]);
+				++i;
+			} else {
+				fprintf(stderr, "--mon requires a parameter\n");
 				exit(-1);
 			}
 		} else if (!strcmp(argv[i], "--list")) {

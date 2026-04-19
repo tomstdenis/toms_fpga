@@ -13,7 +13,7 @@ ecp5_demo.s.bin: ecp5_demo.s ecp5_demo.s ib16_as
 #	cpp -DIRQ_VECTOR=0x1E00 -DDEMO_PROG_SIZE=3968 ecp5_demo.s | grep -v \^# > /tmp/ecp5_demo.s 
 #	./ib16_as --define IRQ_VECTOR 0x1E00 --define DEMO_PROG_SIZE 0x0F80 ecp5_demo.s --bin ecp5_demo.s.bin --list ecp5_demo.s.lst
 # 32KB version
-	./ib16_as --define IRQ_VECTOR 0x7E00 --define DEMO_PROG_SIZE 0x3F80 ecp5_demo.s --bin ecp5_demo.s.bin --list ecp5_demo.s.lst --hex ecp5_demo.s.hex
+	./ib16_as --define IRQ_VECTOR 0x7E00 --define DEMO_PROG_SIZE 0x3F80 ecp5_demo.s --bin ecp5_demo.s.bin --list ecp5_demo.s.lst --hex ecp5_demo.s.hex --mon ecp5_demo.s.mon
 
 boot_rom_p25k.s.bin: boot_rom_p25k.s ib16_as
 	./ib16_as boot_rom_p25k.s --bin boot_rom_p25k.s.bin --rom boot_rom_p25k.s.rom --list boot_rom_p25k.s.lst --hex boot_rom_p25k.s.hex
@@ -37,4 +37,4 @@ upload_p25k: upload_p25k.c
 	gcc -O0 -Wall upload_p25k.c -o upload_p25k
 
 clean:
-	rm -f *.vvp *.vcd *.pass *.log ib16_as *.hex *.bin upload upload_p25k *.s.lst *.s.rom 
+	rm -f *.vvp *.vcd *.pass *.log ib16_as *.hex *.bin upload upload_p25k *.s.lst *.s.rom  *.s.mon

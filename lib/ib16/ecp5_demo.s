@@ -13,7 +13,7 @@
 .ORG IRQ_VECTOR		; IRQ vector
 .INC ecp5_demo_isr.s
 
-.ORG 0
+.ORG 0x1000
 
 ; switch to LRG mode and fill screen with colour
 .EQU VMEM 0xE800

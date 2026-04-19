@@ -4,7 +4,7 @@
 ; DXXXX[.YYYY]            -- dump from XXXX to YYYY by default it dumps from XXXX to XXXX+1
 ; EXXXX Y1[ Y2 Y3...]     -- Enter byte(s) at XXXX, optionally specify more bytes space delimited
 ; GXXXX                   -- Patch 0000..0001 to AJMP to XXXX, if XXXX == 0000 then it just jumps there (via boot app mode)
-; R						  -- reboot into boot rom
+; R						  -- reboot into boot rom (so you can upload a program)
 ;
 ; No real error handling, expects hex in upper case only
 ;
@@ -14,12 +14,18 @@
 ;
 ;
 .PROG_SIZE 0x100				; only include this line if you're building a TomMon ROM, if you use this in your app comment this line out
+.ORG 0x0000
+
 .INC lib/uart/uart.s
 .ALIGN 0x10
 :TomMon
 	LDI 0,0x00					; enforce r0 == 0x00 in case it was changed by accident
 	LDI 15,<UART_ADDR			; setup pointer
 	LDI 14,>UART_ADDR
+	LDI 13,<TOMMON_WELCOME
+	LDI 12,>TOMMON_WELCOME
+	LCALL PrintNewline
+	LCALL PrintStr
 	LDI 4,0x20					; r4 == SPC for later
 :TomMonLoop
 	LCALL PrintNewline
@@ -115,4 +121,5 @@
 	LCALL ReadHexByte
 	MOV 7,1						; now r8:r7 holds XXXX
 	RET
-
+:TOMMON_WELCOME
+.DS 'TomMon v1.00 by Tom St Denis'
