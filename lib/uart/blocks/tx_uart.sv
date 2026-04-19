@@ -34,6 +34,7 @@ module tx_uart
             bit_timer 	<= 0;
             bit_index 	<= 0;
         end else begin
+            bit_timer <= bit_timer - 1'b1;
             case (state)
                 IDLE: begin									// IDLE state waiting for start_tx to go high
                     tx_pin <= 1'b1; 						// UART idle is HIGH
@@ -52,8 +53,6 @@ module tx_uart
                     if (bit_timer == 0) begin
                         bit_timer <= baud_div;
                         state     <= DATA_BITS;
-                    end else begin
-                        bit_timer <= bit_timer - 1'b1;
                     end
                 end
 
@@ -66,8 +65,6 @@ module tx_uart
                         end else begin
                             bit_index <= bit_index + 1'b1;
                         end
-                    end else begin
-                        bit_timer <= bit_timer - 1'b1;
                     end
                 end
 
@@ -77,11 +74,8 @@ module tx_uart
                         tx_done		<= 1'b1;
                         tx_started	<= 1'b0;
                         state		<= IDLE;
-                    end else begin
-                        bit_timer <= bit_timer - 1'b1;
                     end
                 end
-                default: state <= IDLE;
             endcase
         end
     end

@@ -34,6 +34,7 @@ module rx_uart
 				// clear done flag since we read the byte
 				rx_done <= 0;
 			end else begin
+                bit_timer <= bit_timer - 1'b1;
 				case (state)
 					// IDLE waiting or a low pulse.  
 					IDLE: begin
@@ -53,7 +54,7 @@ module rx_uart
 								bit_index	<= 0;
 								rx_byte		<= 0;
 							end else state <= IDLE;
-						end else bit_timer <= bit_timer - 1'b1;
+						end
 					end
 
 					// read the 8 data bits
@@ -67,8 +68,6 @@ module rx_uart
 							end else begin
 								state <= STOP_BIT;								// otherwise transition to waiting for the STOP bit
 							end
-						end else begin
-							bit_timer <= bit_timer - 1'b1;
 						end
 					end
 
@@ -79,11 +78,8 @@ module rx_uart
 								rx_done <= 1'b1;
 							end
 							state <= IDLE;
-						end else begin
-							bit_timer <= bit_timer - 1'b1;
 						end
 					end
-					default: state <= IDLE;
 				endcase
 			end
         end

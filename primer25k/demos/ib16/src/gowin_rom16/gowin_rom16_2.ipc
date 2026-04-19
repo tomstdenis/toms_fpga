@@ -1,0 +1,13 @@
+[General]
+file=gowin_rom16_2
+ipc_version=4
+module=boot_rom
+target_device=gw5a25a-002
+type=ssram_rom16
+version=1.0
+
+[Config]
+DEPTH=48
+LANG=0
+MEM_FILE=/home/tom/nas/toms_fpga/lib/ib16/boot_rom_p25k.s.hex
+WIDTH=16

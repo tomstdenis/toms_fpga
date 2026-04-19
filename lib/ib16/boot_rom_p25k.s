@@ -1,5 +1,5 @@
 ; Primer25k fast boot loader (only echo back the first 256 bytes)
-.PROG_SIZE 128
+.PROG_SIZE 0x30
 .BIN_START F000
 
 .EQU UART_ADDR 0xFFFF   ; Blocking 8N1 230.4K baud UART
