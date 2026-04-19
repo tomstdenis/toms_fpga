@@ -86,6 +86,7 @@ const struct {
 	{ "SNZ",		0x70A0, OP_FMT_1OP },
 	{ "ROLB",		0x70B0, OP_FMT_2OP },
 	{ "RORB",		0x70C0, OP_FMT_2OP },
+	{ "AJMPR",		0x8100, OP_FMT_2OPALU },
 	{ "AJMP",		0x8000, OP_FMT_2OPALU },
 	{ "LDM",		0x9000, OP_FMT_3OP },
 	{ "STM",		0xA000, OP_FMT_3OP },
@@ -687,10 +688,10 @@ void emit_hexfile(struct compiler_state *state, char *fname)
 		exit(-1);
 	}
 	
-	//fprintf(f, "#File_format=Hex\n#Address_depth=%d\n#Data_width=8\n", prog_size);
+	fprintf(f, "#File_format=Hex\n#Address_depth=%d\n#Data_width=16\n", state->prog_size);
 	for (x = state->bin_start; x < state->bin_start + state->prog_size; x++) {
+		fprintf(f, "%02X", (state->program[x].opcode>>8)&0xFF);
 		fprintf(f, "%02X\n", (state->program[x].opcode)&0xFF);
-		fprintf(f, "%02X\n", (state->program[x].opcode>>8)&0xFF);
 	}
 	fclose(f);
 }

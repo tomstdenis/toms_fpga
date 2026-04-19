@@ -106,6 +106,7 @@ The ECP5 and Nano1K demos are similar but have a few differences
 		- ROLB 11: R[d] = R[a] <<< 1							[ZC]
 		- RORB 12: R[d] = R[a] >>> 1							[ZC]
 8 - AJMP (2OPALU) PC = {R[a], R[b]}
+  - AJMPR (2OPALU) has d==1 in the opcode, jumps to PC = {R[a], R[b]} but also zeroes SREG and SP to start the app clean
 9 - LDM (3OP)  R[d] = memory[{R[a], R[b]}]						[ZC]  (if a == b == 15 then it's a pop or push off the stack)
 10 - STM (3OP)  memory[{R[a], R[b]}] = R[d]
 11 - LCAL (12IMM) PC = (12IMM) << 4 (push PC)

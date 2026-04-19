@@ -288,6 +288,10 @@ module ib16 #(
             end /* FSM_DECODE/OPCODE_STM */
             if (state == FSM_DECODE + OPCODE_AJMP) begin
                 reg_pc <= {reg_ra, reg_rb};
+                if (opcode_opd[0]) begin
+                    reg_sp <= 0;
+                    reg_sreg <= 0;
+                end
                 state <= FSM_FETCH;
             end
             if (state == FSM_DECODE + OPCODE_LCAL) begin

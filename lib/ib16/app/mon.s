@@ -102,16 +102,7 @@
 	JMP TomMonEloop
 :TomMonGcmd
 	LCALL TomMonReadr8r7		; get address in r8r7
-	OR 1,8,7					; is it zero?
-	JNZ TomMonGpatch			; patch the reset vector
-	SRES 8						; Jump to user app at 0000 directly
-:TomMonGpatch					; write AJMP 8,7 to 0x0000 which is 0x8087
-	LDI 1,0x01
-	LDI 2,0x87
-	STM 2,0,0					; store 0x87 at 0000
-	LDI 2,0x80
-	STM 2,0,1					; store 0x80 at 0001
-	SRES 8
+	AJMPR 8,7					; absolute reset jump to r8:r7
 :TomMonRcmd
 	SRES 0x10					; jump to boot rom
 .ALIGN 0x10

@@ -1,11 +1,11 @@
-; ECP5 fast boot loader (only echo back the first 256 bytes)
-.PROG_SIZE 128
-.BIN_START 2000
+; nano1k boot loader
+.PROG_SIZE 0x20
+.BIN_START 0x2000
+.ORG 0x2000
 
 .EQU UART_ADDR 0xFFFF   ; Blocking 8N1 230.4K baud UART
 
 ; ROM starts at 2000
-.ORG 2000
 LDI 14,>UART_ADDR		; R15:R14 points to UART
 LDI 15,<UART_ADDR
 LDI 0,0

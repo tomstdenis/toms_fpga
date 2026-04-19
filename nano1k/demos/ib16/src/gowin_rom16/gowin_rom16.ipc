@@ -1,0 +1,13 @@
+[General]
+file=gowin_rom16
+ipc_version=4
+module=Gowin_ROM16
+target_device=gw1nz1-015
+type=ssram_rom16
+version=1.0
+
+[Config]
+DEPTH=32
+LANG=0
+MEM_FILE=/home/tom/nas/toms_fpga/lib/ib16/boot_rom_s.hex
+WIDTH=16
