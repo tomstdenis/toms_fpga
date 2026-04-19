@@ -158,6 +158,8 @@
 	SRES 0				; unask IRQs
 	POP  7				; transfer r1 from IRQ context into app context r7
 
+	LDI 9,<LOOP
+	LDI 8,>LOOP
 ; main loop body
 :LOOP
 	; wait 250ms
@@ -186,7 +188,7 @@
 	LCALL ttyPrintCRNL
 	POP 1				; restore r1
 
-	JMP LOOP
+	AJMP 9,8
 
 ; Strings
 :StrName
