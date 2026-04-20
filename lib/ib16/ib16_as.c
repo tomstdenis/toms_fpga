@@ -14,6 +14,7 @@
 struct compiler_state {
 	int prog_size;
 	char *cur_filename;
+	int reg_idx;
 
 	// the entire program can only be upto PROG_SIZE bytes so just make a simple map here
 	struct {
@@ -31,6 +32,8 @@ struct compiler_state {
 	struct {
 		char label[64];
 		uint16_t value;
+		int local;
+		int save;
 	} symbols[MAX_PROG_SIZE];
 
 	int line_number;
@@ -135,6 +138,59 @@ void consume_fname(char *dest, char **s)
 	*dest++ = 0;
 }
 
+int find_symbol(struct compiler_state *state, char *line, int only_sym)
+{
+	int y;
+	char sym[512], *s;
+
+	s = sym;
+	memset(sym, 0, sizeof sym);
+	while (!iswhitespace(line) && *line) {
+		*s++ = *line++;
+	}
+	for (y = 0; y < MAX_PROG_SIZE; y++) {
+		if (!memcmp(state->symbols[y].label, sym, strlen(state->symbols[y].label))) {
+			int n = strlen(state->symbols[y].label);
+			char *l = sym + n;
+			if (*l == 0 || iswhitespace(l) || *l == ',') {
+				return state->symbols[y].value; // symbols are literal constants and should be returned verbatim
+			}
+		}
+	}
+	if (!only_sym && sscanf(sym, "%x", &y) == 1) {
+		return y;
+	}
+	return -1;
+}
+
+static unsigned str_to_op(struct compiler_state *state, char **line)
+{
+	unsigned x;
+	if (!**line) {
+		fprintf(stderr, "%s:%d unexpect end of line\n", state->cur_filename, state->line_number);
+		exit(-1);
+	}
+	
+	if (sscanf(*line, "%u", &x) == 1) {
+	} else {
+		int y;
+		y = find_symbol(state, *line, 1);
+		if (y < 0) {
+			fprintf(stderr, "%s:%d operand symbol not defined\n", state->cur_filename, state->line_number);
+			exit(-1);
+		}
+		x = y;
+	}
+	// now advance to , or NUL
+	while (**line && **line != ',') {
+		++(*line);
+	}
+	if (**line) {
+		++(*line);
+	}
+	return x;
+}
+
 void compile_opcodes(struct compiler_state *state, char *line)
 {
 	int x;
@@ -156,10 +212,9 @@ void compile_opcodes(struct compiler_state *state, char *line)
 				case OP_FMT_3OP: // "d, a, b"
 				{
 					unsigned r_d, r_a, r_b;
-					if (sscanf(line, "%u, %u, %u", &r_d, &r_a, &r_b) != 3) {
-						fprintf(stderr, "line %s:%d: Invalid number of arguments [%s]\n", state->cur_filename, state->line_number, line);
-						exit(-1);
-					}
+					r_d = str_to_op(state, &line);
+					r_a = str_to_op(state, &line);
+					r_b = str_to_op(state, &line);
 					r_d &= 0xF;
 					r_a &= 0xF;
 					r_b &= 0xF;
@@ -169,10 +224,8 @@ void compile_opcodes(struct compiler_state *state, char *line)
 				case OP_FMT_2OP: // "d, a"
 				{
 					unsigned r_d, r_a;
-					if (sscanf(line, "%u, %u", &r_d, &r_a) != 2) {
-						fprintf(stderr, "line %s:%d: Invalid number of arguments [%s]\n", state->cur_filename, state->line_number, line);
-						exit(-1);
-					}
+					r_d = str_to_op(state, &line);
+					r_a = str_to_op(state, &line);
 					r_d &= 0xF;
 					r_a &= 0xF;
 					state->program[state->PC].opcode |= (r_d << 8) | r_a;
@@ -181,10 +234,8 @@ void compile_opcodes(struct compiler_state *state, char *line)
 				case OP_FMT_2OPALU: // "a, b"
 				{
 					unsigned r_a, r_b;
-					if (sscanf(line, "%u, %u", &r_a, &r_b) != 2) {
-						fprintf(stderr, "line %s:%d: Invalid number of arguments [%s]\n", state->cur_filename, state->line_number, line);
-						exit(-1);
-					}
+					r_a = str_to_op(state, &line);
+					r_b = str_to_op(state, &line);
 					r_a &= 0xF;
 					r_b &= 0xF;
 					state->program[state->PC].opcode |= (r_a << 4) | r_b;
@@ -193,10 +244,8 @@ void compile_opcodes(struct compiler_state *state, char *line)
 				case OP_FMT_2OPMOV: // "a, b"
 				{
 					unsigned r_a, r_b;
-					if (sscanf(line, "%u, %u", &r_a, &r_b) != 2) {
-						fprintf(stderr, "line %s:%d: Invalid number of arguments [%s]\n", state->cur_filename, state->line_number, line);
-						exit(-1);
-					}
+					r_a = str_to_op(state, &line);
+					r_b = str_to_op(state, &line);
 					r_a &= 0xF;
 					r_b &= 0xF;
 					state->program[state->PC].opcode |= (r_a << 8) | (r_b << 4) | r_b;
@@ -205,10 +254,7 @@ void compile_opcodes(struct compiler_state *state, char *line)
 				case OP_FMT_1OP: // "d"
 				{
 					unsigned r_d;
-					if (sscanf(line, "%u", &r_d) != 1) {
-						fprintf(stderr, "line %s:%d: Invalid number of arguments [%s]\n", state->cur_filename, state->line_number, line);
-						exit(-1);
-					}
+					r_d = str_to_op(state, &line);
 					r_d &= 0xF;
 					state->program[state->PC].opcode |= (r_d << 8);
 					break;
@@ -297,42 +343,29 @@ void compile_opcodes(struct compiler_state *state, char *line)
 	}
 }	
 
-void insert_symbol(struct compiler_state *state, char *line)
+void insert_symbol(struct compiler_state *state, char *line, int reg)
 {
 	int x;
 	for (x = 0; x < MAX_PROG_SIZE; x++) {
 		if (state->symbols[x].label[0] == 0) {
 			consume_label(state->symbols[x].label, &line);
-			consume_whitespace(&line);
-			sscanf(line, "%"SCNx16, &state->symbols[x].value);
+			state->symbols[x].local = reg > 0 ? 1 : 0;
+			state->symbols[x].save  = reg == 1;
+			if (reg) {
+				// assign new register
+				if (state->reg_idx < 16) {
+					state->symbols[x].value = state->reg_idx++;
+				} else {
+					fprintf(stderr, "%s:%d Out of registers\n", state->cur_filename, state->line_number);
+					exit(-1);
+				}
+			} else {
+				consume_whitespace(&line);
+				sscanf(line, "%"SCNx16, &state->symbols[x].value);
+			}
 			break;
 		}
 	}
-}
-
-int find_symbol(struct compiler_state *state, char *line)
-{
-	int y;
-	char sym[512], *s;
-
-	s = sym;
-	memset(sym, 0, sizeof sym);
-	while (!iswhitespace(line) && *line) {
-		*s++ = *line++;
-	}
-	for (y = 0; y < MAX_PROG_SIZE; y++) {
-		if (!memcmp(state->symbols[y].label, sym, strlen(state->symbols[y].label))) {
-			int n = strlen(state->symbols[y].label);
-			char *l = sym + n;
-			if (*l == 0 || iswhitespace(l)) {
-				return state->symbols[y].value; // symbols are literal constants and should be returned verbatim
-			}
-		}
-	}
-	if (sscanf(sym, "%x", &y) == 1) {
-		return y;
-	}
-	return -1;
 }
 
 void compile(struct compiler_state *state, char *line)
@@ -349,7 +382,7 @@ void compile(struct compiler_state *state, char *line)
 		int y;
 		line += 5;
 		consume_whitespace(&line);
-		y = find_symbol(state, line);
+		y = find_symbol(state, line, 0);
 		if (y >= 0) {
 			state->PC = y >> 1;
 		} else {
@@ -359,7 +392,7 @@ void compile(struct compiler_state *state, char *line)
 	} else if (!memcmp(line, ".PROG_SIZE ", 11)) {
 		int y;
 		line += 11;
-		y = find_symbol(state, line);
+		y = find_symbol(state, line, 0);
 		if (y >= 0) {
 			state->prog_size = y;
 		} else {
@@ -373,7 +406,44 @@ void compile(struct compiler_state *state, char *line)
 	} else if (!memcmp(line, ".EQU ", 5)) {
 		line += 5;
 		consume_whitespace(&line);
-		insert_symbol(state, line);
+		insert_symbol(state, line, 0);
+	} else if (!memcmp(line, ".REG ", 5)) {
+		line += 5;
+		consume_whitespace(&line);
+		insert_symbol(state, line, 1);
+	} else if (!memcmp(line, ".IREG ", 6)) {
+		line += 6;
+		consume_whitespace(&line);
+		insert_symbol(state, line, 2);
+	} else if (!memcmp(line, ".PUSHREGS", 9)) {
+		int x, y;
+		line += 9;
+		for (y = 1, x = 0; x < MAX_PROG_SIZE; x++) {
+			if (state->symbols[x].local) {
+				if (state->symbols[x].save) {
+					char tmpline[32];
+					sprintf(tmpline, "PUSH %d\n", y);
+					compile_opcodes(state, tmpline);
+				}
+				++y;
+			}
+		}
+		consume_whitespace(&line);
+	} else if (!memcmp(line, ".POPREGS", 8)) {
+		int x, y;
+		line += 8;
+		for (y = state->reg_idx - 1, x = MAX_PROG_SIZE - 1; x >= 0; x--) {
+			if (state->symbols[x].local) {
+				if (state->symbols[x].save) {
+					char tmpline[32];
+					sprintf(tmpline, "POP %d\n", y);
+					compile_opcodes(state, tmpline);
+				}
+				--y;
+				state->symbols[x].label[0] = 0; // delete local
+			}
+		}
+		state->reg_idx = 1;
 	} else if (!memcmp(line, ".ALIGN ", 7)) {
 		uint8_t x;
 		line += 7;
@@ -805,6 +875,7 @@ int main(int argc, char **argv)
 		state->program[i].opcode = 0x0000;
 		state->program[i].line_number = -1;
 	}
+	state->reg_idx = 1;
 	
 	// options pass
 	for (i = 0; i < argc; i++) {
@@ -820,7 +891,7 @@ int main(int argc, char **argv)
 			if (i + 2 < argc) {
 				char line[512];
 				sprintf(line, "%s %s", argv[i+1], argv[i+2]);
-				insert_symbol(state, line);
+				insert_symbol(state, line, 0);
 				i += 2;
 			} else {
 				fprintf(stderr, "--define requires two parameters\n");
