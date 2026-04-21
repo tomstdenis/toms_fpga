@@ -12,9 +12,16 @@ flushing, signals full/empty, handles precendence order of
 Uses registers for storage.
 */
 
+// if verifying use a non-power of 2 depth to test proper modulo math
+`ifdef FORMAL
+`define DEFAULT_DEPTH 3
+`else
+`define DEFAULT_DEPTH 4
+`endif
+
 module fifo
 #(parameter
-	FIFO_DEPTH=4,
+	FIFO_DEPTH=`DEFAULT_DEPTH,
 	DATA_WIDTH=8
 )(
 	input wire clk,
@@ -33,8 +40,8 @@ module fifo
 );
 
 	reg [DATA_WIDTH-1:0] FIFO[FIFO_DEPTH-1:0];
-	reg [$clog2(FIFO_DEPTH)-1:0] FIFO_WPTR;
-	reg [$clog2(FIFO_DEPTH)-1:0] FIFO_RPTR;
+	reg [$clog2(FIFO_DEPTH):0] FIFO_WPTR;
+	reg [$clog2(FIFO_DEPTH):0] FIFO_RPTR;
 	reg [$clog2(FIFO_DEPTH):0] FIFO_CNT;
 	
 	assign empty = (rst_n & FIFO_CNT == 0);
@@ -77,21 +84,126 @@ module fifo
 					data_out <= data_in;
 				end else begin
 					// FIFO isn't empty so read and write from respective spots
-					data_out		<= FIFO[FIFO_RPTR];
-					FIFO_RPTR		<= FIFO_RPTR + 'b1;
-					FIFO[FIFO_WPTR] <= data_in;
-					FIFO_WPTR		<= FIFO_WPTR + 'b1;
+					data_out		<= FIFO[FIFO_RPTR[$clog2(FIFO_DEPTH)-1:0]];
+					if (FIFO_RPTR == FIFO_DEPTH - 1'b1) begin
+						FIFO_RPTR <= 0;
+					end else begin
+						FIFO_RPTR <= FIFO_RPTR + 1'b1;
+					end
+					FIFO[FIFO_WPTR[$clog2(FIFO_DEPTH)-1:0]] <= data_in;
+					if (FIFO_WPTR == FIFO_DEPTH - 1'b1) begin
+						FIFO_WPTR <= 0;
+					end else begin
+						FIFO_WPTR <= FIFO_WPTR + 1'b1;
+					end
 				end
 				// no change to CNT
 			end else if (want_write && FIFO_CNT != FIFO_DEPTH) begin
-				FIFO[FIFO_WPTR] <= data_in;
-				FIFO_WPTR		<= FIFO_WPTR + 'b1;
-				FIFO_CNT		<= FIFO_CNT + 'b1;
+				FIFO[FIFO_WPTR[$clog2(FIFO_DEPTH)-1:0]] <= data_in;
+				if (FIFO_WPTR == FIFO_DEPTH - 1'b1) begin
+					FIFO_WPTR <= 0;
+				end else begin
+					FIFO_WPTR <= FIFO_WPTR + 1'b1;
+				end
+				FIFO_CNT      <= FIFO_CNT + 1'b1;
 			end else if (want_read && FIFO_CNT > 0) begin
-				data_out	<= FIFO[FIFO_RPTR];
-				FIFO_RPTR	<= FIFO_RPTR + 'b1;
+				data_out	<= FIFO[FIFO_RPTR[$clog2(FIFO_DEPTH)-1:0]];
+				if (FIFO_RPTR == FIFO_DEPTH - 1'b1) begin
+					FIFO_RPTR <= 0;
+				end else begin
+					FIFO_RPTR <= FIFO_RPTR + 1'b1;
+				end
 				FIFO_CNT	<= FIFO_CNT - 'b1;
 			end
 		end
-	end				
+	end
+			
+`ifdef FORMAL
+	initial assume(!rst_n);
+
+	// 2. Fundamental FIFO Invariants
+	always @(*) begin
+		if (rst_n) begin
+			// The count should never exceed the depth
+			assert(FIFO_CNT <= FIFO_DEPTH);
+			
+			// Zero or full count should have equal ptr
+			assert((!FIFO_CNT || FIFO_CNT == FIFO_DEPTH) ? (FIFO_RPTR == FIFO_WPTR) : (FIFO_RPTR != FIFO_WPTR));
+			
+			// FIFO_CNT + FIFO_RPTR (mod FIFO_DEPTH) == FIFO_WPTR
+			assert(((FIFO_CNT + FIFO_RPTR) % FIFO_DEPTH) == FIFO_WPTR);
+			
+			// Empty/Full flag consistency
+			assert(empty == (FIFO_CNT == 0));
+			assert(full == (FIFO_CNT == FIFO_DEPTH));
+		end
+	end
+
+	// 3. Pointer checks
+	// Ensure pointers wrap correctly or stay within bounds
+	always @(*) begin
+		if (rst_n) begin
+			assert(FIFO_WPTR < FIFO_DEPTH);
+			assert(FIFO_RPTR < FIFO_DEPTH);
+		end
+	end
+	
+	// 4. data check
+	reg data_wrote_flag = 0;
+	reg data_read_flag = 0;
+	reg [DATA_WIDTH-1:0] data_wrote = 0; 
+	reg prev_want_write = 0;
+	reg prev_want_read = 0;
+	reg prev_want_flush = 0;
+	reg [DATA_WIDTH-1:0] prev_data_in = 0;
+	reg [DATA_WIDTH-1:0] prev_data_out = 0;
+	always @(posedge clk) begin
+		if (rst_n) begin
+			// data_out is 1 cycle delayed from inputs so we compare what read/write/in were with the previous cycle
+			prev_data_in <= data_in;
+			prev_data_out <= data_out;
+			prev_want_read <= want_read;
+			prev_want_write <= want_write;
+			prev_want_flush <= want_flush;
+									
+			if (prev_want_flush) begin
+				// on a flush we either store a write or bypass it to a read
+				data_wrote_flag <= 0;
+				data_read_flag <= 0;
+				if (!prev_want_read && prev_want_write) begin
+					// no read but we have a write
+					data_wrote_flag <= 1;
+					data_read_flag <= 0;
+					data_wrote <= prev_data_in;
+				end
+				if (prev_want_read && prev_want_write) begin
+					// read and write so we bypass
+					assert(data_out == prev_data_in);
+				end
+			end else begin
+				if (!data_read_flag && prev_want_write && prev_want_read) begin
+					// doing a read + write, so we either bypass write or fetch first written data
+					data_read_flag <= 1;
+					assert(data_out == (data_wrote_flag ? data_wrote : prev_data_in));
+				end else if (!data_wrote_flag && !data_read_flag && prev_want_write) begin
+					// we're empty empty so store the first write
+					data_wrote_flag <= 1;
+					data_wrote      <= prev_data_in;
+					assert(!empty);
+				end else if (data_wrote_flag && !data_read_flag && prev_want_read) begin
+					// read data read in previous cycle
+					assert(data_out == data_wrote);
+					data_read_flag  <= 1;
+				end
+			end
+		end else begin
+			data_wrote_flag <= 0;
+			data_read_flag <= 0;
+			prev_want_write <= 0;
+			prev_want_read <= 0;
+			prev_data_in <= 0;
+			prev_want_flush <= 0;
+		end
+	end
+`endif
 endmodule
