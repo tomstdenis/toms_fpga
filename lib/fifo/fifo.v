@@ -14,7 +14,7 @@ Uses registers for storage.
 
 // if verifying use a non-power of 2 depth to test proper modulo math
 `ifdef FORMAL
-`define DEFAULT_DEPTH 3
+`define DEFAULT_DEPTH 7
 `else
 `define DEFAULT_DEPTH 4
 `endif
@@ -152,45 +152,38 @@ module fifo
 	reg data_wrote_flag = 0;
 	reg data_read_flag = 0;
 	reg [DATA_WIDTH-1:0] data_wrote = 0; 
-	reg prev_want_write = 0;
-	reg prev_want_read = 0;
-	reg prev_want_flush = 0;
-	reg [DATA_WIDTH-1:0] prev_data_in = 0;
-	reg [DATA_WIDTH-1:0] prev_data_out = 0;
 	always @(posedge clk) begin
-		if (rst_n) begin
-			// data_out is 1 cycle delayed from inputs so we compare what read/write/in were with the previous cycle
-			prev_data_in <= data_in;
-			prev_data_out <= data_out;
-			prev_want_read <= want_read;
-			prev_want_write <= want_write;
-			prev_want_flush <= want_flush;
+		if (rst_n) begin			
+			// constrain signals to sensible conditions
+			assume(!want_read || (want_read && (!empty || want_write)));
+			assume(!want_write || (want_write && (!full || want_write || want_flush)));
+			assume(!want_flush || (want_flush && (!empty || want_write)));
 									
-			if (prev_want_flush) begin
+			if ($past(want_flush)) begin
 				// on a flush we either store a write or bypass it to a read
 				data_wrote_flag <= 0;
 				data_read_flag <= 0;
-				if (!prev_want_read && prev_want_write) begin
+				if (!$past(want_read) && $past(want_write)) begin
 					// no read but we have a write
 					data_wrote_flag <= 1;
 					data_read_flag <= 0;
-					data_wrote <= prev_data_in;
+					data_wrote <= $past(data_in);
 				end
-				if (prev_want_read && prev_want_write) begin
+				if ($past(want_read) && $past(want_write)) begin
 					// read and write so we bypass
-					assert(data_out == prev_data_in);
+					assert(data_out == $past(data_in));
 				end
 			end else begin
-				if (!data_read_flag && prev_want_write && prev_want_read) begin
+				if (!data_read_flag && $past(want_write) && $past(want_read)) begin
 					// doing a read + write, so we either bypass write or fetch first written data
 					data_read_flag <= 1;
-					assert(data_out == (data_wrote_flag ? data_wrote : prev_data_in));
-				end else if (!data_wrote_flag && !data_read_flag && prev_want_write) begin
+					assert(data_out == (data_wrote_flag ? data_wrote : $past(data_in)));
+				end else if (!data_wrote_flag && !data_read_flag && $past(want_write)) begin
 					// we're empty empty so store the first write
 					data_wrote_flag <= 1;
-					data_wrote      <= prev_data_in;
+					data_wrote      <= $past(data_in);
 					assert(!empty);
-				end else if (data_wrote_flag && !data_read_flag && prev_want_read) begin
+				end else if (data_wrote_flag && !data_read_flag && $past(want_read)) begin
 					// read data read in previous cycle
 					assert(data_out == data_wrote);
 					data_read_flag  <= 1;
@@ -199,10 +192,6 @@ module fifo
 		end else begin
 			data_wrote_flag <= 0;
 			data_read_flag <= 0;
-			prev_want_write <= 0;
-			prev_want_read <= 0;
-			prev_data_in <= 0;
-			prev_want_flush <= 0;
 		end
 	end
 `endif
