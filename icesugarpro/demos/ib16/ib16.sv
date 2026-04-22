@@ -5,9 +5,12 @@
 `timescale 1ns/1ps
 `default_nettype none
 
+`define STACK_PWIDTH 10
+
 // place stack at top of memory - 256 bytes, and the ISR 256 bytes before that
-`define STACK_ADDRESS (16'h0800 * `BLOCKS - 16'h0100)
-`define IRQ_VECTOR    (16'h0800 * `BLOCKS - 16'h0200)
+`define STACK_ADDRESS (16'h0800 * `BLOCKS - (2**`STACK_PWIDTH))
+`define IRQ_VECTOR    (16'h0800 * `BLOCKS - (2**`STACK_PWIDTH) - 256)
+
 
 // ROM is fixed into the first 256 bytes of the reserved F000..FFFF space
 `define BOOT_ROM_ADDR 16'hF000
@@ -251,7 +254,8 @@ module top(input clk,
         .STACK_ADDRESS(`STACK_ADDRESS),
         .IRQ_VECTOR(`IRQ_VECTOR),
         .BOOT_ROM_ADDR(`BOOT_ROM_ADDR),
-        .TWO_CYCLE(1)) ittybitty(
+        .TWO_CYCLE(1),
+        .STACK_PWIDTH(`STACK_PWIDTH)) ittybitty(
         .clk(pllclk), .rst_n(rst_n),
         .bus_enable(ib16_bus_enable),
         .bus_wr_en(ib16_bus_wr_en),
@@ -496,24 +500,24 @@ module top(input clk,
 						8'h18: ib16_bus_data_out_reg <= 16'h0100;
 						8'h1a: ib16_bus_data_out_reg <= 16'h045a;
 						8'h1c: ib16_bus_data_out_reg <= 16'h93fe;
-						8'h1e: ib16_bus_data_out_reg <= 16'h7134;
+						8'h1e: ib16_bus_data_out_reg <= 16'h6134;
 						8'h20: ib16_bus_data_out_reg <= 16'hd5fd;
 						8'h22: ib16_bus_data_out_reg <= 16'h92fe;
 						8'h24: ib16_bus_data_out_reg <= 16'h93fe;
 						8'h26: ib16_bus_data_out_reg <= 16'ha3fe;
 						8'h28: ib16_bus_data_out_reg <= 16'ha310;
-						8'h2a: ib16_bus_data_out_reg <= 16'h8050;
+						8'h2a: ib16_bus_data_out_reg <= 16'h7050;
 						8'h2c: ib16_bus_data_out_reg <= 16'hd5fb;
-						8'h2e: ib16_bus_data_out_reg <= 16'h8151;
-						8'h30: ib16_bus_data_out_reg <= 16'h8b71;
+						8'h2e: ib16_bus_data_out_reg <= 16'h7151;
+						8'h30: ib16_bus_data_out_reg <= 16'h7b71;
 						8'h32: ib16_bus_data_out_reg <= 16'habdc;
-						8'h34: ib16_bus_data_out_reg <= 16'h7112;
+						8'h34: ib16_bus_data_out_reg <= 16'h6112;
 						8'h36: ib16_bus_data_out_reg <= 16'hd402;
-						8'h38: ib16_bus_data_out_reg <= 16'h4000;
+						8'h38: ib16_bus_data_out_reg <= 16'h3000;
 						8'h3a: ib16_bus_data_out_reg <= 16'he008;
 						8'h3c: ib16_bus_data_out_reg <= 16'h93fe;
 						8'h3e: ib16_bus_data_out_reg <= 16'ha310;
-						8'h40: ib16_bus_data_out_reg <= 16'h8050;
+						8'h40: ib16_bus_data_out_reg <= 16'h7050;
 						8'h42: ib16_bus_data_out_reg <= 16'hd5fc;
 						8'h44: ib16_bus_data_out_reg <= 16'hd1f4;
                         default: ib16_bus_data_out_reg <= 16'h0000;
