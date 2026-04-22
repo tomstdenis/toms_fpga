@@ -129,7 +129,7 @@ module fifo
 			
 			// Zero or full count should have equal ptr
 			assert((!FIFO_CNT || FIFO_CNT == FIFO_DEPTH) ? (FIFO_RPTR == FIFO_WPTR) : (FIFO_RPTR != FIFO_WPTR));
-			
+				
 			// FIFO_CNT + FIFO_RPTR (mod FIFO_DEPTH) == FIFO_WPTR
 			assert(((FIFO_CNT + FIFO_RPTR) % FIFO_DEPTH) == FIFO_WPTR);
 			
@@ -168,16 +168,32 @@ module fifo
 					data_wrote_flag <= 1;
 					data_read_flag <= 0;
 					data_wrote <= $past(data_in);
+					
+					assert(FIFO[0] == $past(data_in));
+					assert(FIFO_RPTR == 0);
+					assert(FIFO_WPTR == 1);
+					assert(FIFO_CNT == 1);
 				end
 				if ($past(want_read) && $past(want_write)) begin
 					// read and write so we bypass
 					assert(data_out == $past(data_in));
+					assert(FIFO_RPTR == 0);
+					assert(FIFO_WPTR == 0);
+					assert(FIFO_CNT == 0);
+				end
+				if (!$past(want_read) && !$past(want_write)) begin
+					assert(FIFO_RPTR == 0);
+					assert(FIFO_WPTR == 0);
+					assert(FIFO_CNT == 0);
 				end
 			end else begin
 				if (!data_read_flag && $past(want_write) && $past(want_read)) begin
 					// doing a read + write, so we either bypass write or fetch first written data
 					data_read_flag <= 1;
 					assert(data_out == (data_wrote_flag ? data_wrote : $past(data_in)));
+					if (FIFO_CNT) begin
+						//assert(data_out == FIFO[$past(FIFO_RPTR)]);
+					end
 				end else if (!data_wrote_flag && !data_read_flag && $past(want_write)) begin
 					// we're empty empty so store the first write
 					data_wrote_flag <= 1;
@@ -186,6 +202,7 @@ module fifo
 				end else if (data_wrote_flag && !data_read_flag && $past(want_read)) begin
 					// read data read in previous cycle
 					assert(data_out == data_wrote);
+					assert(data_out == FIFO[$past(FIFO_RPTR)]);
 					data_read_flag  <= 1;
 				end
 			end
