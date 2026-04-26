@@ -1,23 +1,32 @@
-; compute pixel offset into r15:r114, using x=r1,y=r2
+; uint16_t lrgGetOfs(uint8_t x, uint8_t y);
+;
+
 .ALIGN 0x10
-:lrgGetOfs ; r15:r14 == y(r2) * 48 + x(r1) + 0xE800
-	PUSH 13
-	PUSH 12
+:lrgGetOfs
+.IREG x_pos
+.IREG y_pos
+.REG ytab_hi
+.REG ytab_lo
+.REG ret_hi
+.REG ret_lo
+.PUSHREGS
 	
-	LDI 13,<lrgYTAB
-	LDI 12,>lrgYTAB
-	ADD 15,2,2				; double y
-	ADD 12,12,15			; add y to the YTAB index
-	ADC 13,13,0				; carry
-	LDM 14,13,12			; load low byte  
-	INC 12,12
-	ADC 13,13,0				; increment byte
-	LDM 15,13,12			; now r15:r14 == vid_mem + y * 48
-	ADD 14,14,1				; add r1=x in
-	ADC 15,15,0				; carry
+	LDI ytab_hi,<lrgYTAB			; load address of YTAB which basically does y*48 => 16-bit
+	LDI ytab_lo,>lrgYTAB
+	ADD ret_hi,y_pos,y_pos			; double y
+	ADD ytab_lo,ytab_lo,ret_hi		; add y to the YTAB index
+	ADC ytab_hi,ytab_hi,0			; carry
+	LDM ret_lo,ytab_hi,ytab_lo		; load low byte  
+	INC ytab_lo,ytab_lo				; advance to next byte
+	ADC ytab_hi,ytab_hi,0			; increment byte
+	LDM ret_hi,ytab_hi,ytab_lo		; now ret_hi:ret_lo == vid_mem + y * 48
+	ADD ret_lo,ret_lo,x_pos			; add x_pos in
+	ADC ret_hi,ret_hi,0				; carry
 	
-	POP 12
-	POP 13
+	MOV x_pos,ret_hi
+	MOV y_pos,ret_lo
+	
+.POPREGS
 	RET
 	
 ; table of 0xE800 + y * 48

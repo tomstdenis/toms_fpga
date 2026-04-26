@@ -1,13 +1,18 @@
+; void intEnable(uint8_t int_en);
+;
+
 .EQU INTEN_ADDR 0xFFFD
 
 .ALIGN 0x10
-; r1 = interrupts to enable
 :intEnable
-	PUSH 15
-	PUSH 14
-	LDI 15,<INTEN_ADDR
-	LDI 14,>INTEN_ADDR
-	STM 1,15,14			; store int enable flags
-	POP 14
-	POP 15
+.IREG int_en
+.REG inten_hi
+.REG inten_lo
+.PUSHREGS
+
+	LDI inten_hi,<INTEN_ADDR
+	LDI inten_lo,>INTEN_ADDR
+	STM int_en,inten_hi,inten_lo			; store int enable flags
+
+.POPREGS
 	RET

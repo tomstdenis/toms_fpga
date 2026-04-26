@@ -1,56 +1,54 @@
-; Scroll window
+; void ttyScroll(void)
+;
+
+
 .ALIGN 0x10
 :ttyScroll
-	PUSH 15
-	PUSH 14
-	PUSH 13
-	PUSH 12
-	PUSH 11
-	PUSH 10
-	PUSH 1
+.REG txtmem_hi
+.REG txtmem_lo
+.REG txtmem2_hi
+.REG txtmem2_lo
+.REG txtscrollsize_hi
+.REG txtscrollsize_lo
+.REG tmp
+.PUSHREGS
 	
 	; R15:R14 => start of memory (destination)
 	; R13:R12 => next row (source)
 	; R11:R10 => # of bytes to copy
 	
-	LDI 15,<TXTMEM	; point to video memory
-	LDI 14,>TXTMEM
-	LDI 13,<TXTMEM2	; point to the next line
-	LDI 12,>TXTMEM2
-	LDI 11,<TXTSCROLLSIZE
-	LDI 10,>TXTSCROLLSIZE
+	LDI txtmem_hi,<TXTMEM	; point to video memory
+	LDI txtmem_lo,>TXTMEM
+	LDI txtmem2_hi,<TXTMEM2	; point to the next line
+	LDI txtmem2_lo,>TXTMEM2
+	LDI txtscrollsize_hi,<TXTSCROLLSIZE
+	LDI txtscrollsize_lo,>TXTSCROLLSIZE
 :TXT_LOOP0
-	LDM 1,13,12		; load byte
-	STM 1,15,14		; store byte
-	INC 14,14		; increment r15:r14
-	ADC 15,15,0     ; carry
-	INC 12,12		; increment r13:r12
-	ADC 13,13,0		; carry
-	DEC 10,10		; decrement r11:r10
+	LDM tmp,txtmem2_hi,txtmem2_lo		; load byte
+	STM tmp,txtmem_hi,txtmem_lo		; store byte
+	INC txtmem_lo,txtmem_lo		; increment r15:r14
+	ADC txtmem_hi,txtmem_hi,0     ; carry
+	INC txtmem2_lo,txtmem2_lo		; increment r13:r12
+	ADC txtmem2_hi,txtmem2_hi,0		; carry
+	DEC txtscrollsize_lo,txtscrollsize_lo		; decrement r11:r10
 	JNC TXT_NC3
-	DEC 11,11		; carry into r11
+	DEC txtscrollsize_hi,txtscrollsize_hi		; carry into r11
 :TXT_NC3
-	OR 1,10,11		; or r11:r10
+	OR tmp,txtscrollsize_hi,txtscrollsize_lo		; or r11:r10
 	JNZ TXT_LOOP0	; loop if we still have bytes left
 	; now we need to blank the bottom line
-	LDI 1,0x20		; store a space
-	LDI 13,0x50		; 80 bytes
+	LDI tmp,0x20		; store a space
+	LDI txtscrollsize_hi,0x50		; 80 bytes
 :TXT_LOOP1
-	STM 1,15,14		; store
-	INC 14,14		; increment r15:r15
+	STM 1,txtmem_hi,txtmem_lo		; store
+	INC txtmem_lo,txtmem_lo		; increment r15:r15
 	JNZ TXT_NC4
-	INC 15,15
+	INC txtmem_hi,txtmem_hi
 :TXT_NC4
-	DEC 13,13		; decrement byte counter
+	DEC txtscrollsize_hi,txtscrollsize_hi		; decrement byte counter
 	JNZ TXT_LOOP1
-	
-	POP 1
-	POP 10
-	POP 11
-	POP 12
-	POP 13
-	POP 14
-	POP 15
+
+.POPREGS
 	RET
 	
 ; the X and Y byte, align 2 so we can always reliably increment one byte of the pointer to read/store Y

@@ -1,13 +1,18 @@
+; void lrgSetMode(uint8_t mode);
+;
+
 .EQU VIDEO_FLAG_ADDR 0xFFF8
 
 .ALIGN 0x10
 :lrgSetMode
-	PUSH 15
-	PUSH 14	
-	LDI 15,<VIDEO_FLAG_ADDR
-	LDI 14,>VIDEO_FLAG_ADDR
-	STM 1,15,14
-	POP 14
-	POP 15
+.IREG mode
+.REG vf_hi
+.reg vf_lo
+.PUSHREGS
+
+	LDI vf_hi,<VIDEO_FLAG_ADDR
+	LDI vf_lo,>VIDEO_FLAG_ADDR
+	STM mode,vf_hi,vf_lo
+
+.POPREGS
 	RET
-	
