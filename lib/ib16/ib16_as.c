@@ -119,7 +119,7 @@ void consume_whitespace(char **s)
 
 int islabel(char *s)
 {
-	return *s == '>' || *s == '<' || *s == '_' || isalpha(*s);
+	return *s == '>' || *s == '<' || *s == '_' || isalnum(*s);
 }
 
 void consume_label(char *dest, char **s)
@@ -262,11 +262,21 @@ void compile_opcodes(struct compiler_state *state, char *line)
 				case OP_FMT_8IMM: // hex val
 				{
 					int r_a;
-					if (strstr(line, ",") != NULL && sscanf(line, "%d, ", &r_a) == 1) {
+					if (strstr(line, ",") != NULL) {
+						if (sscanf(line, "%d, ", &r_a) == 1) {
+						} else {
+							// named reg?
+							r_a = find_symbol(state, line, 1);
+							if (r_a < 0) {
+								fprintf(stderr, "Line %s:%d: Invalid register name [%s]\n", state->cur_filename, state->line_number, line);
+								exit(-1);
+							}
+						}
 						state->program[state->PC].opcode |= (r_a&0xF) << 8;
 						while (line && *line != ',') ++line;
 						++line;
 					}
+
 					if (islabel(line)) {
 						// it's a label
 						if (*line == '<') {
