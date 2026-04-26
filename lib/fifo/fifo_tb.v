@@ -1,6 +1,6 @@
 `timescale 1ns/1ps
 
-`define DEPTH 16
+`define DEPTH 4
 `define WIDTH 8
 
 module fifo_tb();
@@ -86,12 +86,12 @@ module fifo_tb();
 		state = 4;
 		$display("Starting phase: %d", state);
 		for (i = 0; i < `DEPTH; i++) begin
+			expect_state(i == 0 ? 1 : 0, i == (`DEPTH) ? 1 : 0, `DEPTH - i[$clog2(`DEPTH)-1:0]);
+			expect_dout((`WIDTH'hC0 + i[7:0]));
 			read = 1;
 			@(posedge clk); #1;
 			read = 0;
 			@(posedge clk); #1;
-			expect_state(0, i == (`DEPTH - 1) ? 1 : 0, `DEPTH - i[$clog2(`DEPTH)-1:0] - 'b1);
-			expect_dout((`WIDTH'hC0 + i[7:0]));
 		end
 		expect_state(0, 1, 0);
 		
@@ -117,24 +117,25 @@ module fifo_tb();
 			data_in = `WIDTH'hE0;
 			@(posedge clk); #1;
 		// cycle 2: initiate read
-			read = 1;				// initiate read
+			read = 0;				// initiate read
 			write = 0;
 			@(posedge clk); #1;
 		// cycle 3: initiate write of E1
 			data_in = `WIDTH'hE1;
-			read = 0;
-			write = 1;
-			@(posedge clk); #1;
-			expect_dout(`WIDTH'hE0);		// should have first read back now
-		// cycle 4: initiate read
 			read = 1;
+			write = 1;
+			expect_dout(`WIDTH'hE0);		// should have first read back now
+			@(posedge clk); #1;
+		// cycle 4: initiate read
+			read = 0;
 			write = 0;
 			@(posedge clk); #1;
 		// cycle 5: idle
-			read = 0;
+			read = 1;
 			write = 0;
-			@(posedge clk); #1;
 			expect_dout(`WIDTH'hE1);		// should have 2nd read back now
+			@(posedge clk); #1;
+			read = 0;
 			expect_state(0, 1, 0); // should be idle
 			
 		// write to fifo then flush
@@ -177,12 +178,12 @@ module fifo_tb();
 			expect_state(0, 0, 1); // should have one value
 		// cycle 5 read
 			read = 1;
+			expect_dout(`WIDTH'h10);
 			@(posedge clk); #1;
 		// cycle 6 deassert read
 			read = 0;
 			@(posedge clk); #1;
 			expect_state(0, 1, 0); // should be empty
-			expect_dout(`WIDTH'h10);
 	
 		$finish;
 	end

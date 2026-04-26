@@ -51,18 +51,25 @@ module fifo
 	wire want_write = (rst_n & (write && (!full || read)));
 	wire want_flush = (rst_n & (flush));
 	
+	always @(*) begin
+		data_out = 0;
+		if ((FIFO_CNT == 0 || want_flush) && want_write && want_read) begin
+			data_out = data_in;
+		end else begin
+			data_out = FIFO[FIFO_RPTR[$clog2(FIFO_DEPTH)-1:0]];
+		end
+	end
+
 	always @(posedge clk) begin
 		if (!rst_n) begin
 			FIFO_WPTR	<= 0;
 			FIFO_RPTR	<= 0;
 			FIFO_CNT	<= 0;
-			data_out	<= 0;
 		end else begin
 			// priority is flush, then read&write, then write, then read
 			if (want_flush) begin
 				// read and writing and flushing?
 				if (want_write && want_read) begin
-					data_out	<= data_in;
 					FIFO_WPTR	<= 0;
 					FIFO_RPTR	<= 0;
 					FIFO_CNT	<= 0;
@@ -81,10 +88,9 @@ module fifo
 				// we're doing both
 				if (FIFO_CNT == 0) begin
 					// FIFO is empty just blast it out
-					data_out <= data_in;
+					FIFO[FIFO_WPTR[$clog2(FIFO_DEPTH)-1:0]] <= data_in;
 				end else begin
 					// FIFO isn't empty so read and write from respective spots
-					data_out		<= FIFO[FIFO_RPTR[$clog2(FIFO_DEPTH)-1:0]];
 					if (FIFO_RPTR == FIFO_DEPTH - 1'b1) begin
 						FIFO_RPTR <= 0;
 					end else begin
@@ -107,7 +113,6 @@ module fifo
 				end
 				FIFO_CNT      <= FIFO_CNT + 1'b1;
 			end else if (want_read && FIFO_CNT > 0) begin
-				data_out	<= FIFO[FIFO_RPTR[$clog2(FIFO_DEPTH)-1:0]];
 				if (FIFO_RPTR == FIFO_DEPTH - 1'b1) begin
 					FIFO_RPTR <= 0;
 				end else begin
