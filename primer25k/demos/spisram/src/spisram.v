@@ -4,7 +4,7 @@
 Setup to use the right most PMOD header (J4).
 
 */
-module top(input clk, inout [3:0] sio, output cs, output cs2, output sck, input uart_rx, output uart_tx);
+module top(input wire clk, inout wire [3:0] sio, output wire cs, output wire sck, input wire uart_rx, output wire uart_tx);
 
 	localparam
         FREQ = 60,
@@ -91,7 +91,7 @@ module top(input clk, inout [3:0] sio, output cs, output cs2, output sck, input 
 	// sio input is always just the sio pins
 	assign sio_din = sio;
 	assign sck = sram_sck;
-	assign cs2 = sram_cs;
+	assign cs = sram_cs;
 
     spi_sram
     #(

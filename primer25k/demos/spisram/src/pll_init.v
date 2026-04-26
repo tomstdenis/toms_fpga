@@ -1,5 +1,6 @@
-`timescale  1ns/1ns
 `default_nettype wire
+`timescale  1ns/1ns
+
 
 module PLL_INIT #
 (   parameter       CLK_PERIOD  = 20       

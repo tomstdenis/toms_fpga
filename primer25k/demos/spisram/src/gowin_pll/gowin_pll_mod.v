@@ -5,7 +5,7 @@
 //Part Number: GW5A-LV25MG121NC1/I0
 //Device: GW5A-25
 //Device Version: A
-//Created Time: Mon Mar 23 19:12:16 2026
+//Created Time: Sun Apr 26 07:11:01 2026
 `default_nettype wire
 
 module Gowin_PLL_MOD (lock, clkout0, mdrdo, clkin, reset, mdclk, mdopc, mdainc, mdwdi);

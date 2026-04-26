@@ -9,7 +9,7 @@
 #include <inttypes.h>
 #include <time.h>
 
-#define BITS 256
+#define BITS 32
 #define SRAM_ADDR_WIDTH 24
 
 #define PAYLOAD ((BITS+SRAM_ADDR_WIDTH+24)/8)												// how many bytes of payload must match BITS/8 in your instantiated debuggers
