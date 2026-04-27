@@ -1,0 +1,144 @@
+32-bit simple RISC
+
+- Instructions are 16 bit and follow a 2/1/0 operand format
+- Most opcodes bits 15:12 are the opcode, bits 11:8 are a modifier for the opcode, and bits 7:0 are operands (7:4 being regA, 3:0 being regB for most).
+- 16, 32-bit registers
+- r15 IS the program counter (cannot be changed)
+- r14 can be used as a stack pointer
+- r13 can be used as a link register
+- r0 can be left as 0 for simple access to a zero constant
+- leaving r1-r12 for GPRs
+
+- Why not RISC-V?  Simpler arch, easier to memorize the ISA.
+
+Opcodes
+
+	- 0 : reg-reg ALU op
+		- modifier:
+			- 0: ADD		; regA += regB
+			- 1: ADC		; regA += regB + carry
+			- 2: SUB		; regA -= regB
+			- 3: XOR		; regA ^= regB
+			- 4: OR			; regA |= regB	
+			- 5: AND		; regA &= regB
+			- 6: NOT		; regA = ~regB
+			- 7: NEG		; regA = -regB
+			- 8: SILT		; regA = regA < regB ? 1 : 0
+			- 9: SIEQ		; regA = regA == regB ? 1 : 0
+			-10: SIGT		; regA = regA > regB ? 1 : 0
+			-11: SHR		; regA = regB >> 1
+			-12: SAR		; regA = signed(regB >> 1)
+			-13: ROL		; regA = regB <<< 1
+			-14: ROR		; regA = regB >>> 1
+			-15: MOV		; regA = regB
+		- e.g. "ADD r1,r2" would be encoded as 0000_0000_0001_0010
+		- e.g. "SIEQ r7,r3" would be encoded as 0000_1001_0111_0011
+	- 1: Jump opcode (bits 7:0 form a 8-bit signed offset in terms of words relative to PC+2)
+		- modifier:
+			- 0: unconditional
+			- 1: jump if carry
+			- 2: jump if not carry
+			- 3: jump if zero
+			- 4: jump if not zero
+	- 2: Store (e.g. store is memory[regB] = regA)
+		- Modifier (in terms of bits)
+			- xx00: no change to address register
+			- xx01: post increment
+			- xx10: pre increment
+			- xx11: pre decrement
+			- 00xx: byte operation
+			- 01xx: word (16-bit) operation
+			- 10xx: dword operation
+		- Naming
+			- start with size ST, STW, STB
+			- then add + or - to regB, e.g.
+				- ST r1,r2+				; store r1 to [r2] then post increment r2 by 4
+				- STB r1,-r2			; store r1[7:0] to [r2-1] and then decrement r2 by 1
+	- 3: Load operation (regA = memory[regB])
+		- Modifier: same as Store
+	- 4: RETI return from interrupt
+	- 5: LWI: Load immediate relative to PC
+		- Uses modifier to select destination register
+		- uses bits 7:0 to construct bits 8:1 of an address relative to PC+2
+		- e.g. LWI r1,16 loads r1 with mem[PC+2+16]
+	- 6: ADDI
+		- Uses modifier to select regA and destination
+		- Uses bits 7:0 to form an 8-bit immediate
+		- e.g. ADDI r1,23 adds 23 to r1
+	- 7: ANDI
+		- same idea as ADDI
+	- 8: ORI
+		- same idea as ADDI
+	- 9: XORI
+		- same idea as ADDI
+	-10: MOVI
+		- same idea as ADDI
+	-11: MUL
+		- Modifier
+			- 0: regA = lo32(regA * regB)
+			- 1: regA = hi32(regA * regB)
+	-12: SHRI: regA = regB >> (2*modifier)
+		- odd shifts 2*k+1 can be done by SHRI regA,k / SHR regA,regA
+		- debating if I want to support the full range of 0..15 (0..30) or just some small subset to keep the area down e.g. maybe just 4, 8, 12 ...
+		- would be nice to support fixed point normalizations 
+	-13: SHLI: like SHRI
+	-14: 
+	-15: SYS
+		- bits 11:0 - TBD (will be used for things like masking IRQs, clearing carry/zero, etc)
+
+
+                   ┌──────────────────────────┐                                                                                           
+                   │                          │                                                                                           
+                   │   Bus Fabric (MMIO/MEM)  ├───────────────┐                                                                           
+                   │                          │               │                                                                           
+                   └──────────────┬───────────┘               │                                                                           
+                               ▲  │                           │                                                                           
+                               │  ▼                           │                                                                           
+                   ┌───────────┴──────────────┐               │                                                                           
+                   │                          │               │                                                                           
+          ┌───────►│ Port A           Port A  ├───────┐       │                                                                           
+          │        │                          │       │       │                                                                           
+          │        │                          │       │       │ LS Output: {Address, Value, write_en, byte_en}                            
+          │        │     Load Store Unit      │       │       │                                                                           
+          │        │                          │       │       │                                                                           
+          │        │                          │       │       │                                                                           
+     ┌────┼───────►│ Port B           Port B  ├───────┼────┐  │                                                                           
+     │    │        │                          │       │    │  │                                                                           
+     │    │        └──────────────────────────┘       │    │  │                                                                           
+     │    │                                           │    │  │                                                                           
+     │    │                                           │    │  │ In all dual port blocks Port B is higher priority than A                  
+     │    │        ┌──────────────────────────┐       │    │  │                                                                           
+     │    │        │                          │       │    │  │ FIFO instantiation resides in the consumer module                         
+     │    └────────┤ Opcode Fetch Opcode Data │◄──────┘    │  │                                                                           
+     │             │                          │            │  │                                                                           
+     │             │      Decoder Core        │            │  │                                                                           
+┌────┼─────────────┤ Issue Opcode             │            │  │                                                                           
+│    │             │                          │            │  │                                                                           
+│    │    ┌────────┤ Request Register Values  │◄──────┐    │  │                                                                           
+│    │    │        │                          │       │    │  │                                                                           
+│    │    │        └──────────────────────────┘       │    │  │                                                                           
+│    │    │                     ▲ {r15,jump}          │    │  │                                                                           
+│    │    │                     │                     │    │  │                                                                           
+│    │    │        ┌────────────┴─────────────┐       │    │  │ RF Input Port A: {regA addr, regB addr, lockA, lockB}                     
+│    │    │        │                          │       │    │  │ RF Input Port B: {regA addr, regA value, regB addr, regB value}           
+│    │    └───────►│ Port A           Port A  ├───────┘    │  │                                                                           
+│    │             │                          │            │  │ RF Output Port A: {regA value, regB value}                                
+│    │             │      Register File       │            │  │                                                                           
+│    │             │                          │            │  │                                                                           
+│    │    ┌───────►│ Port B                   │            │  │                                                                           
+│    │    │        │                          │            │  │                                                                           
+│    │    │        └──────────────────────────┘            │  │      "lock_en" blocks future opcodes until a retire writes to it          
+│    │    │                     ▲ {r15,jump}               │  │                                                                           
+│    │    │                     │                          │  │                                                                           
+│    │    │         ┌───────────┴──────────────┐           │  │                                                                           
+│    │    │         │                          │           │  │ RF output to Execution Core might not be needed and could be optimized out
+│    │    └─────────┤ Retire                   │           │  │                                                                           
+│    │              │     Execution Core   IRQ │◄──────────┼──┘                                                                           
+│    │              │                          │           │                                                                              
+│    └──────────────┤ Load/Store    Load/Store │◄──────────┘                                                                              
+│                   │                          │                                                                                          
+│                   │           Opcode         │                                                                                          
+│                   └──────────────────────────┘                                                                                          
+│                                  ▲                                                                                                      
+│                                  │                            Opcode Input: {PC, opcode, regA, regB, regA address, regB address}        
+└──────────────────────────────────┘                                                                                                      
