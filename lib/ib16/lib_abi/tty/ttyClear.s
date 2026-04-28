@@ -1,39 +1,44 @@
+; void ttyClear(void);
 ;
-; clear screen
+
 .ALIGN 0x10
 :ttyClear
-	PUSH 15
-	PUSH 14
-	PUSH 13
-	PUSH 12
-	PUSH 11
-	PUSH 2
-	PUSH 1
+.REG txtmem_hi
+.REG txtmem_lo
+.REG cnt_hi
+.REG cnt_lo
+.REG tmp
+.PUSHREGS
 	
-	LDI 15,<TXTMEM				; video memory
-	LDI 14,>TXTMEM
-	LDI 13,0x08					; 0x800 bytes to write
-	LDI 12,0x00
+	; txtmem = &video;
+	LDI txtmem_hi,<TXTMEM					; video memory
+	LDI txtmem_lo,>TXTMEM
+	; cnt = 0x800
+	LDI cnt_hi,0x08							; 0x800 bytes to write
+	LDI cnt_lo,0x00
 :TTYCLEARLOOP
-	STM 0,15,14
-	INC 14,14
-	ADC 15,15,0
-	DEC 12,12
-	SCC 11						; store carry in 11
-	NEG 11,11
-	ADD 13,13,11				; subtract carry from 13
-	OR 11,12,13					; are the remaining byte counter bytes zero?
+	; *txtmem = 0;
+	STM 0,txtmem_hi,txtmem_lo
+	; ++txtmem;
+	INC txtmem_lo,txtmem_lo
+	ADC txtmem_hi,txtmem_hi,0
+	; --cnt;
+	DEC cnt_lo,cnt_lo
+	SCC tmp									; store carry in tmp
+	NEG tmp,tmp
+	ADD cnt_hi,cnt_hi,tmp					; subtract carry from cnt_hi
+	; if cnt != 0 then goto TTYCLEARLOOP
+	OR tmp,cnt_lo,cnt_hi					; are the remaining byte counter bytes zero?
 	JNZ TTYCLEARLOOP
-	; set cursor to 0,0
+	; ttyMoveXY(0x00, 0x00);
+	PUSH 1
+	PUSH 2
 	LDI 1,0x00
 	LDI 2,0x00
 	LCALL ttyMoveXY
-	
-	POP 1
 	POP 2
-	POP 11
-	POP 12
-	POP 13
-	POP 14
-	POP 15
+	POP 1
+
+.POPREGS
+
 	RET

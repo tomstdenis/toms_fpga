@@ -1,26 +1,27 @@
-; *** PrintStr ***
-; Reads a NUL terminate string and prints to the UART
-; Input:
-;	- r15:14 uart
-; 	- r13:r12 string
-; Output
-;   - None
+; void PrintStr(char *p);
+;
+
 .ALIGN 0x10
 :PrintStr
-	PUSH 1
-	PUSH 12
-	PUSH 13
+.REG p_hi
+.REG p_lo
+.REG tmp
+.REG uart_hi
+.REG uart_lo
+.PUSHREGS
+
+	LDI uart_hi,<UART_ADDR
+	LDI uart_lo,>UART_ADDR
 :PRINTSTRLOOP
-	LDM 1,13,12				; load char
+	LDM tmp,p_hi,p_lo				; load char
 	JZ PRINTSTRDONE			; exit if NUL
-	INC 12,12
+	INC p_lo,p_lo
 	JNC PRINTSTRNC
-	INC 13,13				; carry
+	INC p_hi,p_hi				; carry
 :PRINTSTRNC
-	STM 1,15,14				; print it
+	STM tmp,uart_hi,uart_lo				; print it
 	JMP PRINTSTRLOOP
 :PRINTSTRDONE
-	POP 13
-	POP 12
-	POP 1
+
+.POPREGS
 	RET

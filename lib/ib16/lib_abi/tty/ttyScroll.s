@@ -24,27 +24,37 @@
 	LDI txtscrollsize_hi,<TXTSCROLLSIZE
 	LDI txtscrollsize_lo,>TXTSCROLLSIZE
 :TXT_LOOP0
+	; tmp = *txtmem2
 	LDM tmp,txtmem2_hi,txtmem2_lo		; load byte
+	; *txtmem = tmp
 	STM tmp,txtmem_hi,txtmem_lo		; store byte
+	; txtmem++;
 	INC txtmem_lo,txtmem_lo		; increment r15:r14
 	ADC txtmem_hi,txtmem_hi,0     ; carry
+	; txtmem2++;
 	INC txtmem2_lo,txtmem2_lo		; increment r13:r12
 	ADC txtmem2_hi,txtmem2_hi,0		; carry
+	; --textscroll_size;
 	DEC txtscrollsize_lo,txtscrollsize_lo		; decrement r11:r10
 	JNC TXT_NC3
 	DEC txtscrollsize_hi,txtscrollsize_hi		; carry into r11
 :TXT_NC3
+	; if txtscrollsize != 0 then goto TXT_LOOP0
 	OR tmp,txtscrollsize_hi,txtscrollsize_lo		; or r11:r10
 	JNZ TXT_LOOP0	; loop if we still have bytes left
-	; now we need to blank the bottom line
+	; tmp = 0x20; // now we need to blank the bottom line
 	LDI tmp,0x20		; store a space
+	; txtscrollsize = 0x50;
 	LDI txtscrollsize_hi,0x50		; 80 bytes
 :TXT_LOOP1
-	STM 1,txtmem_hi,txtmem_lo		; store
+	; *txtmem = 0x20;
+	STM tmp,txtmem_hi,txtmem_lo		; store
+	; ++txtmem;
 	INC txtmem_lo,txtmem_lo		; increment r15:r15
 	JNZ TXT_NC4
 	INC txtmem_hi,txtmem_hi
 :TXT_NC4
+	; if --txtscrollsize then goto TXT_LOOP1
 	DEC txtscrollsize_hi,txtscrollsize_hi		; decrement byte counter
 	JNZ TXT_LOOP1
 

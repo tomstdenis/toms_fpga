@@ -1,59 +1,59 @@
-; *** ReadStr ***
-; Reads a \n and/or \r terminated into memory as a NUL terminated string
-; Input:
-;	- r15:r14 uart
-;	- r13:r12 destination for string
-; Output:
-;   - None
+; void readStr(char *p);
+;
+
 .ALIGN 0x10
-:ReadStr
-	PUSH 1
-	PUSH 2
-	PUSH 3
-	PUSH 4
-	PUSH 5
-	PUSH 13
-	PUSH 12
-	LDI 2,0x0A				; newline and cr to compare against
-	LDI 3,0x0D
-	LDI 4,0x08				; backspace
-	LDI 5,0x00				; how many bytes we stored
+:readStr
+.REG p_hi
+.REG p_lo
+.REG uart_hi
+.REG uart_lo
+.REG nl
+.REG cr
+.REG bs
+.REG cnt
+.REG tmp
+.PUSHREGS
+
+	LDI uart_hi,<UART_ADDR
+	LDI uart_lo,>UART_ADDR
+	LDI nl,0x0A						; newline and cr to compare against
+	LDI cr,0x0D
+	LDI bs,0x08						; backspace
+	LDI cnt,0x00					; how many bytes we stored
 :READSTRLOOP
-	LDM 1,15,14				; read uart
-	CMPEQ 1,4				; backspace?
-	JC READSTRBS			; handle backspace
-	CMPEQ 1,2				; compare to linefeed
+	LDM tmp,uart_hi,uart_lo			; read uart
+	CMPEQ tmp,bs					; backspace?
+	JC READSTRBS					; handle backspace
+	CMPEQ tmp,nl					; compare to linefeed
 	JC READSTRDONE
-	CMPEQ 1,3				; compare to newline
+	CMPEQ tmp,cr					; compare to carriage return
 	JC READSTRDONE
 	; store byte in buffer
-	STM 1,15,14				; echo back
-	STM 1,13,12				; store the byte
-	INC 12,12				; increment pointer
-	ADC 13,13,0				; add r0(0) + carry to 13
-	INC 5,5					; how many bytes we stored
+	STM tmp,uart_hi,uart_lo			; echo back
+	STM tmp,p_hi,p_lo				; store the byte
+	INC p_lo,p_lo					; increment pointer
+	ADC p_hi,p_hi,0					; add r0(0) + carry to p_hi
+	INC cnt,cnt						; how many bytes we stored
 	JMP READSTRLOOP
-:READSTRBS					; handle backspace
-	AND 5,5,5				; is count zero?
-	JZ READSTRLOOP			; no bytes in buffer
-	DEC 5,5					; decrement counter
-	DEC 12,12
+:READSTRBS							; handle backspace
+	AND cnt,cnt,cnt					; is count zero?
+	JZ READSTRLOOP					; no bytes in buffer
+	DEC cnt,cnt						; decrement counter
+	DEC p_lo,p_lo
 	JNC READSTRBSNC
-	DEC 13,13
+	DEC p_hi,p_hi
 :READSTRBSNC
-	STM 1,15,14				; print backspace
+	PUSH 1
+	MOV 1,tmp
+	STM 1,uart_hi,uart_lo			; print backspace
 	LDI 1,0x20
-	STM 1,15,14				; print a space to overwrite
-	LDI 1,0x08				; print another backspace to move backwards
-	STM 1,15,14
-	JMP READSTRLOOP			; back to reading next char
-:READSTRDONE
-	STM 0,13,12				; store NUL 
-	POP 12
-	POP 13
-	POP 5
-	POP 4
-	POP 3
-	POP 2
+	STM 1,uart_hi,uart_lo			; print a space to overwrite
+	LDI 1,0x08						; print another backspace to move backwards
+	STM 1,uart_hi,uart_lo
 	POP 1
+	JMP READSTRLOOP					; back to reading next char
+:READSTRDONE
+	STM 0,p_hi,p_lo					; store NUL 
+
+.POPREGS
 	RET

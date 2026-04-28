@@ -1,19 +1,22 @@
+; void ttyPuts(char *str);
+;
+
 ; Put a string
 .ALIGN 0x10
 :ttyPuts
-	PUSH 15
-	PUSH 14
-	PUSH 1
+.REG str_hi
+.REG str_lo
+.REG tmp
+.PUSHREGS
 	
 :TTYPUTSLOOP
-	LDM 1,15,14
+	LDM tmp,str_hi,str_lo
 	JZ TTYPUTSEND
 	LCALL ttyPutc
-	INC 14,14
-	ADC 15,15,0
+	INC str_lo,str_lo
+	ADC str_hi,str_hi,0
 	JMP TTYPUTSLOOP
 :TTYPUTSEND
-	POP 1
-	POP 14
-	POP 15
+
+.POPREGS
 	RET

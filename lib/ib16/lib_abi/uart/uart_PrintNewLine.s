@@ -1,14 +1,19 @@
-; *** PrintNewline ***
-; Prints out a \n\r
-; Input:
-; 	- r15:r14 uart data
-; Output: None
+; void PrintNewline(void);
+;
+
 .ALIGN 0x10
 :PrintNewline
-	PUSH 1
-	LDI 1,0x0A
-	STM 1,15,14
-	LDI 1,0x0D
-	STM 1,15,14
-	POP 1
+.REG tmp
+.REG uart_hi
+.REG uart_lo
+.PUSHREGS
+
+	LDI uart_hi,<UART_ADDR
+	LDI uart_lo,>UART_ADDR
+	LDI tmp,0x0A
+	STM tmp,uart_hi,uart_lo
+	LDI tmp,0x0D
+	STM tmp,uart_hi,uart_lo
+
+.POPREGS
 	RET

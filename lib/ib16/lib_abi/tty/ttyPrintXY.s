@@ -1,9 +1,17 @@
+; ttyPrintXY(uint8_t x, uint8_t y, char c);
+;
+
 ; print char at 
 .ALIGN 0x10
 :ttyPrintXY
-	PUSH 1
+.REG x
+.IREG y
+.IREG c
+.PUSHREGS
+
 	LCALL ttyMoveXY
-	MOV 1,3
+	MOV x,c
 	LCALL ttyPutc
-	POP 1
+
+.POPREGS
 	RET

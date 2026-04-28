@@ -1,10 +1,15 @@
-; Print a newline/cr
+; void ttyPrintCRNL(void);
+;
+
 .ALIGN 0x10
 :ttyPrintCRNL
-	PUSH 1
-	LDI 1,0x0A
+.REG c
+.PUSHREGS
+
+	LDI c,0x0A
 	LCALL ttyPutc
-	LDI 1,0x0D
+	LDI c,0x0D
 	LCALL ttyPutc
-	POP 1
+
+.POPREGS
 	RET
