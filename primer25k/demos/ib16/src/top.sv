@@ -1,5 +1,3 @@
-/* IttyBitty SoC for ECP5 */
-// enable IRQs for UART supporting [0] = RX ready, [1] TX empty
 `timescale 1ns/1ps
 `default_nettype none
 `define BLOCKS 29
@@ -230,7 +228,7 @@ module top(input wire clk,
 		
 		if (vga_active) begin
 			if (!lrg_mode) begin
-				{vga_r, vga_g, vga_b} = text_out ? 12'b1111_1111_1111 : 12'b1_0001_0001;
+				{vga_r, vga_g, vga_b} = text_out ? 12'b1111_1111_1111 : 12'b0;
 			end else begin
 				{vga_r, vga_g, vga_b} = {
 					{ text_symbol[2:0], &text_symbol[2:0] }, 

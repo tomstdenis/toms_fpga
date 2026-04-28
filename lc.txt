@@ -9,7 +9,7 @@
 - r0 can be left as 0 for simple access to a zero constant
 - leaving r1-r12 for GPRs
 
-- Why not RISC-V?  Simpler arch, easier to memorize the ISA.
+- Why not RISC-V?  Simpler arch, easier to memorize the ISA.  (also it's just fun to make ISAs...)
 
 Opcodes
 
@@ -86,7 +86,6 @@ Opcodes
 	-15: SYS
 		- bits 11:0 - TBD (will be used for things like masking IRQs, clearing carry/zero, etc)
 
-
                    ┌──────────────────────────┐                                                                                           
                    │                          │                                                                                           
                    │   Bus Fabric (MMIO/MEM)  ├───────────────┐                                                                           
@@ -112,22 +111,22 @@ Opcodes
      │    └────────┤ Opcode Fetch Opcode Data │◄──────┘    │  │                                                                           
      │             │                          │            │  │                                                                           
      │             │      Decoder Core        │            │  │                                                                           
-┌────┼─────────────┤ Issue Opcode             │            │  │                                                                           
-│    │             │                          │            │  │                                                                           
-│    │    ┌────────┤ Request Register Values  │◄──────┐    │  │                                                                           
-│    │    │        │                          │       │    │  │                                                                           
-│    │    │        └──────────────────────────┘       │    │  │                                                                           
-│    │    │                     ▲ {r15,jump}          │    │  │                                                                           
-│    │    │                     │                     │    │  │                                                                           
-│    │    │        ┌────────────┴─────────────┐       │    │  │ RF Input Port A: {regA addr, regB addr, lockA, lockB}                     
-│    │    │        │                          │       │    │  │ RF Input Port B: {regA addr, regA value, regB addr, regB value}           
-│    │    └───────►│ Port A           Port A  ├───────┘    │  │                                                                           
-│    │             │                          │            │  │ RF Output Port A: {regA value, regB value}                                
-│    │             │      Register File       │            │  │                                                                           
-│    │             │                          │            │  │                                                                           
-│    │    ┌───────►│ Port B                   │            │  │                                                                           
+┌────┼─────────────┤ Issue Opcode      Retire │◄─────────┐ │  │                                                                           
+│    │             │                          │          │ │  │                                                                           
+│    │    ┌────────┤ Request Register Values  │◄──────┐  │ │  │                                                                           
+│    │    │        │                          │       │  │ │  │                                                                           
+│    │    │        └──────────────────────────┘       │  │ │  │                                                                           
+│    │    │                     ▲ {r15,jump}          │  │ │  │                                                                           
+│    │    │                     │                     │  │ │  │                                                                           
+│    │    │        ┌────────────┴─────────────┐       │  │ │  │ RF Input Port A: {regA addr, regB addr}                                   
+│    │    │        │                          │       │  │ │  │ RF Input Port B: {regA addr, regA value, regB addr, regB value}           
+│    │    └───────►│ Port A           Port A  ├───────┘  │ │  │                                                                           
+│    │             │                          │          │ │  │ RF Output Port A: {regA value, regB value}                                
+│    │             │      Register File       │          │ │  │                                                                           
+│    │             │                          │          │ │  │                                                                           
+│    │    ┌───────►│ Port B           Port B  ├──────────┘ │  │                                                                           
 │    │    │        │                          │            │  │                                                                           
-│    │    │        └──────────────────────────┘            │  │      "lock_en" blocks future opcodes until a retire writes to it          
+│    │    │        └──────────────────────────┘            │  │                                                                           
 │    │    │                     ▲ {r15,jump}               │  │                                                                           
 │    │    │                     │                          │  │                                                                           
 │    │    │         ┌───────────┴──────────────┐           │  │                                                                           
@@ -142,3 +141,7 @@ Opcodes
 │                                  ▲                                                                                                      
 │                                  │                            Opcode Input: {PC, opcode, regA, regB, regA address, regB address}        
 └──────────────────────────────────┘                                                                                                      
+                                                                                                                                          
+                                                                                                                                          
+   Note to future self a jump should reset the scoreboard and any time r15 is an operand                                                  
+   in the execution core it should use its local copy not what it got off the opcode fifo                                                 

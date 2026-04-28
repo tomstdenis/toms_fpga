@@ -5,9 +5,8 @@
 //Part Number: GW5A-LV25MG121NC1/I0
 //Device: GW5A-25
 //Device Version: A
-//Created Time: Sun Apr 26 07:11:01 2026
+//Created Time: Sun Apr 26 21:33:22 2026
 `default_nettype wire
-
 module Gowin_PLL_MOD (lock, clkout0, mdrdo, clkin, reset, mdclk, mdopc, mdainc, mdwdi);
 
 output lock;
@@ -64,14 +63,14 @@ PLLA PLLA_inst (
 defparam PLLA_inst.FCLKIN = "50";
 defparam PLLA_inst.IDIV_SEL = 1;
 defparam PLLA_inst.FBDIV_SEL = 1;
-defparam PLLA_inst.ODIV0_SEL = 15;
+defparam PLLA_inst.ODIV0_SEL = 7;
 defparam PLLA_inst.ODIV1_SEL = 8;
 defparam PLLA_inst.ODIV2_SEL = 8;
 defparam PLLA_inst.ODIV3_SEL = 8;
 defparam PLLA_inst.ODIV4_SEL = 8;
 defparam PLLA_inst.ODIV5_SEL = 8;
 defparam PLLA_inst.ODIV6_SEL = 8;
-defparam PLLA_inst.MDIV_SEL = 18;
+defparam PLLA_inst.MDIV_SEL = 14;
 defparam PLLA_inst.MDIV_FRAC_SEL = 0;
 defparam PLLA_inst.ODIV0_FRAC_SEL = 0;
 defparam PLLA_inst.CLKOUT0_EN = "TRUE";

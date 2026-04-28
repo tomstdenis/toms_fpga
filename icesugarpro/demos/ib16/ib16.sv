@@ -126,7 +126,7 @@ module top(input clk,
 	logic main_mem_we_b;
 	logic [7:0] main_mem_dout_b;
 
-	bram_dp_nx2048x8 #(.N(`BLOCKS)) main_mem (
+	bram_dp_nx2048x8 #(.N(`BLOCKS), .REGMODE_A("NOREG"), .REGMODE_B("NOREG")) main_mem (
 		.clk_a(pllclk), .clk_en_a(1'b1), .rst_a(~rst_n),
 		.addr_a(main_mem_addr_a), .din_a(main_mem_din_a), .we_a(main_mem_we_a), .dout_a(main_mem_dout_a),
 		
@@ -174,7 +174,7 @@ module top(input clk,
 	
 	logic lrg_mode;
 
-	bram_dp_2048x8 text_mem(
+	bram_dp_2048x8 #(.REGMODE_A("NOREG"), .REGMODE_B("NOREG")) text_mem(
 		// IttyBitty Side
 		.clk_a(pllclk), .clk_en_a(1'b1), .rst_a(~rst_n), 
 		.addr_a(text_addr_a), .din_a(text_din_a), .we_a(text_we_a), .dout_a(text_dout_a),
