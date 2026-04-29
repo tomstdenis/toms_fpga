@@ -1,8 +1,8 @@
-; void readStr(char *p);
+; void ReadStr(char *p);
 ;
 
 .ALIGN 0x10
-:readStr
+:ReadStr
 .REG p_hi
 .REG p_lo
 .REG uart_hi

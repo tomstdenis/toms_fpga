@@ -450,7 +450,8 @@ void compile(struct compiler_state *state, char *line)
 					compile_opcodes(state, tmpline);
 				}
 				--y;
-				state->symbols[x].label[0] = 0; // delete local
+				memset(&state->symbols[x], 0, sizeof state->symbols[x]);
+				//state->symbols[x].label[0] = 0; // delete local
 			}
 		}
 		state->reg_idx = 1;
@@ -933,7 +934,7 @@ int main(int argc, char **argv)
 		int y = 0;
 		for (i = 0; i < MAX_PROG_SIZE; i++) {
 			if (state->program[i].line_number != -1) {
-				++y;
+				y = i;
 			}
 		}
 		printf("Used %d (%d %%) of %d words.\n", y, (y * 100) / state->prog_size, state->prog_size);

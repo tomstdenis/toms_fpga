@@ -15,15 +15,15 @@
 
 	LDI uart_hi,<UART_ADDR
 	LDI uart_lo,>UART_ADDR
-	LDI mask,0x0F				; for masking a nibble
-	LDI nine,0x09				; for testing for >9
-	LDI zero,0x30				; '0'
-	LDI chra,0x37				; 'A' - 0x0A 
+	LDI mask,0x0F					; for masking a nibble
+	LDI nine,0x09					; for testing for >9
+	LDI zero,0x30					; '0'
+	LDI chra,0x37					; 'A' - 0x0A 
 
 ; get top nibble
-	SWAP tmp,val				; get top nibble in bottom of tmp
+	SWAP tmp,val					; get top nibble in bottom of tmp
 	AND tmp,tmp,mask				; mask nibble
-	CMPGT tmp,nine				; is it >9?
+	CMPGT tmp,nine					; is it >9?
 	JC PRINTHEXBYTE1H
 	ADD tmp,tmp,zero				; it's 0-9 so add '0' and print
 	JMP PRINTHEXBYTE2
