@@ -73,6 +73,7 @@ module fifo
 					FIFO_WPTR	<= 0;
 					FIFO_RPTR	<= 0;
 					FIFO_CNT	<= 0;
+					FIFO[0] 	<= data_in;
 				end else if (want_write) begin 	// only writing
 					// we want flush and write so jam the first entry in
 					FIFO[0]		<= data_in;
@@ -192,7 +193,7 @@ module fifo
 					assert(FIFO_CNT == 0);
 				end
 			end else begin
-				if (!data_read_flag && $past(want_write) && $past(want_read)) begin
+				if ((!data_wrote_flag || $past(want_flush)) && !data_read_flag && $past(want_write) && $past(want_read)) begin
 					// doing a read + write, so we either bypass write or fetch first written data
 					data_read_flag <= 1;
 					assert(data_out == (data_wrote_flag ? data_wrote : $past(data_in)));

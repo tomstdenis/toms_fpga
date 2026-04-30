@@ -18,6 +18,7 @@ module top(input wire clk,
 
     localparam
 		TEXTMEM			 	  = 16'hE800,
+        DIVISOR_ADDR          = 16'hFFE0,
 		VIDEO_MODE_FLAG_ADDR  = 16'hFFF8,
         TIMER_ADDR       = 16'hFFF9,
         GPIO1_DATA_ADDR  = 16'hFFFA,
@@ -238,6 +239,16 @@ module top(input wire clk,
 			end
 		end
 	end
+    // ### divider ###
+    reg [7:0] sd_reg[0:15];
+    wire [15:0] sd_quot;
+    wire [15:0] sd_rem;
+    wire sd_ready;
+
+    serial_divide #(.BIT_WIDTH(16)) mr_math(
+        .clk(pllclk), .rst_n(rst_n),
+        .num({sd_reg[1], sd_reg[0]}), .denom({sd_reg[3], sd_reg[2]}), .valid(sd_reg[4][0]),
+        .quotient(sd_quot), .remainder(sd_rem), .ready(sd_ready));
 
 	// ### IttyBitty Device ###
     logic ib16_bus_enable;
@@ -328,6 +339,12 @@ module top(input wire clk,
             int_pending    		<= 0;
             lrg_mode			<= 1'b0;
         end else begin
+            sd_reg[4][1] <= sd_ready;
+            sd_reg[5] <= sd_quot[7:0];
+            sd_reg[6] <= sd_quot[15:8];
+            sd_reg[7] <= sd_rem[7:0];
+            sd_reg[8] <= sd_rem[15:8];
+
 			// tick counter logic
             if (cycle_counter == (CYCLES_PER_TICK-1)) begin
 				cycle_counter <= 0;
@@ -380,6 +397,15 @@ module top(input wire clk,
                     end
                     ib16_bus_ready <= 1;
                 end
+                if ({ib16_bus_address[15:4], 4'b0} == DIVISOR_ADDR) begin
+                    if (ib16_bus_wr_en) begin
+                        sd_reg[ib16_bus_address[3:0]] <= ib16_bus_data_in[7:0];
+                    end else begin
+                        ib16_bus_data_out_reg <= {8'b0, sd_reg[ib16_bus_address[3:0]]};
+                    end
+                    ib16_bus_ready <= 1;
+                end
+
                 // GPIO port
                 if (ib16_bus_address == GPIO1_DATA_ADDR) begin
                     // no GPIO1 for now but I want to use ecp5 demos ...
