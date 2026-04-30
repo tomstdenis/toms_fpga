@@ -62,8 +62,11 @@ module serial_divide_tb();
 		// I guess we could try some random numbers
 		for (i = 0; i < 500000; i = i + 1) begin
 /* verilator lint_off WIDTHTRUNC */
-			num = $random;
-			denom = $random & ((1 << (BIT_WIDTH-8)) - 1);
+			num = $urandom_range(0, ((1<<BIT_WIDTH)-1));
+			if (i < 100000)
+				denom = $urandom_range(0, (1 << (BIT_WIDTH)) - 1);
+			else
+				denom = $urandom_range(0, (1 << (BIT_WIDTH-8)) - 1);
 /* verilator lint_on WIDTHTRUNC */
 			valid = 1;
 			wait(ready == 1); #1;
