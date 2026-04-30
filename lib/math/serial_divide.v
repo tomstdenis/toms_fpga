@@ -19,16 +19,14 @@ module serial_divide
 	
 	reg [BIT_WIDTH-1:0] num_l;
 	reg [BIT_WIDTH-1:0] denom_l;
-	
 	reg [BIT_WIDTH-1:0] tmp;
-	
 	reg [1:0] fsm_state;
 		
 	localparam
-		FSM_IDLE      = 0,
-		FSM_DONE      = 1,
-		FSM_NORMALIZE = 2,
-		FSM_REDUCE    = 3;
+		FSM_IDLE      = 0,				// Idle waiting for valid
+		FSM_DONE      = 1,				// Done waiting for !valid
+		FSM_NORMALIZE = 2,				// normalize denominator
+		FSM_REDUCE    = 3;				// reduce numerator
 	
 	always @(posedge clk) begin
 		if (!rst_n) begin
@@ -69,11 +67,13 @@ module serial_divide
 				FSM_REDUCE:
 					begin
 						if (denom_l <= num_l) begin
+							// update quotient and subtract shifted copy of denominator
 							quotient <= quotient + tmp;
 							num_l    <= num_l - denom_l;
 						end else begin
-							denom_l <= {1'b0, denom_l[BIT_WIDTH-1:1]};
-							tmp <= {1'b0, tmp[BIT_WIDTH-1:1]};
+							// can't subtract anymore so shift both right and stop once we hit denormalized state
+							denom_l  <= {1'b0, denom_l[BIT_WIDTH-1:1]};
+							tmp		 <= {1'b0, tmp[BIT_WIDTH-1:1]};
 							if (tmp == 1) begin
 								remainder <= num_l;
 								ready     <= 1;
@@ -83,6 +83,7 @@ module serial_divide
 					end
 				FSM_DONE:
 					begin
+						// wait for other side to drop valid
 						if (!valid) begin
 							ready     <= 0;
 							fsm_state <= FSM_IDLE;
