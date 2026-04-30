@@ -1,6 +1,6 @@
 /* C-FLEA CPU Design */
 `default_nettype none
-``timescale 1ns/1ps
+`timescale 1ns/1ps
 
 module cf_cpu(
 	input wire clk,
@@ -26,7 +26,7 @@ module cf_cpu(
 	reg [7:0]  reg_flags;  				// signed{LT, GT}, unsigned{LT, GT}, EQ
 	reg [15:0] reg_alt;
 	reg [7:0]  cur_opcode;				// opcode byte
-	reg [15:0] cur_operand;				// the operand
+	reg [15:0] reg_operand;				// the operand
 	
 	localparam
 		FLAG_SLT = 0,
@@ -50,7 +50,20 @@ module cf_cpu(
 		FSM_FETCH_OPERAND_D0_D9 = 6,
 		FSM_FETCH_OPERAND_DA_DF = 7,
 		FSM_FETCH_OPERAND_E0_EC = 8;
-		
+
+	// divider
+	reg [15:0] sd_num;
+	reg [15:0] sd_denom;
+	reg sd_valid;
+	wire sd_ready;
+	wire [15:0] sd_quotient;
+	wire [15:0] sd_remainder;
+	
+	serial_divide divider(
+		.clk(clk),
+		.rst_n(rst_n),
+		.num(sd_num), .denom(sd_denom), .valid(sd_valid),
+		.ready(sd_ready), .quotient(sd_quotient), .remainder(sd_remainder));
 		
 	always @(posedge clk) begin
 		if (!rst_n) begin
@@ -66,9 +79,12 @@ module cf_cpu(
 			reg_PC       <= 0;
 			reg_flags    <= 0;
 			cur_opcode   <= 0;
-			cur_operand  <= 0;
+			reg_operand  <= 0;
 			fsm_state    <= FSM_FETCH_OPCODE;
 			fsm_tag      <= 0;
+			sd_valid	 <= 0;
+			sd_num       <= 0;
+			sd_denom     <= 0;
 		end else begin
 			case(fsm_state)
 				FSM_FETCH_OPCODE:
@@ -83,7 +99,7 @@ module cf_cpu(
 							reg_PC      <= reg_PC + 1'b1;
 						end
 						if (bus_enable && bus_ready) begin
-							cur_operand <= bus_data_out[7:0];
+							cur_opcode  <= bus_data_out[7:0];
 							bus_enable  <= 0;
 							if (bus_data_out[7:0] < 8'h98) begin
 								// generic ALU ops that use one of the 8 operand formats
@@ -105,6 +121,9 @@ module cf_cpu(
 								fsm_state <= FSM_FETCH_OPERAND_DA_DF;
 							end else if (bus_data_out[7:0] >= 8'hE0 && bus_data_out[7:0] <= 8'hEC) begin
 								fsm_state <= FSM_FETCH_OPERAND_E0_EC;
+							end else begin
+								// unhandled opcodes just make us fetch the next...
+								fsm_state <= FSM_FETCH_OPCODE;
 							end
 						end
 					end
@@ -112,7 +131,7 @@ module cf_cpu(
 					// start of decoding one of the 8 operand modes
 					begin
 						if (!bus_enable) begin
-							case(cur_operand[2:0])
+							case(cur_opcode[2:0])
 								0: // #n x0 ii(ii)							// immediate 8/16 bit
 									begin
 										bus_enable  <= 1'b1;
@@ -156,7 +175,7 @@ module cf_cpu(
 									begin
 										bus_enable  <= 1'b1;
 										bus_address <= {1'b1, reg_SP};		// load from data memory
-										bus_burst   <= cur_opcode[3];		// bit 3 determines if the operand is 16 bits
+										bus_burst   <= 1'b1;				// stack always works in 16-bits
 										bus_wr_en   <= 1'b0;										
 										reg_SP      <= reg_SP + 16'd2;		// increment after
 									end
@@ -164,7 +183,7 @@ module cf_cpu(
 									begin
 										bus_enable  <= 1'b1;
 										bus_address <= {1'b1, reg_SP};		// load from data memory
-										bus_burst   <= cur_opcode[3];		// bit 3 determines if the operand is 16 bits
+										bus_burst   <= 1'b1;				// stack always works in 16-bits
 										bus_wr_en   <= 1'b0;										
 										reg_SP      <= reg_SP + 16'd2;		// increment after
 									end
@@ -172,7 +191,7 @@ module cf_cpu(
 									begin
 										bus_enable  <= 1'b1;
 										bus_address <= {1'b1, reg_SP};		// load from data memory
-										bus_burst   <= cur_opcode[3];		// bit 3 determines if the operand is 16 bits
+										bus_burst   <= 1'b1;				// stack always works in 16-bits
 										bus_wr_en   <= 1'b0;										
 									end
 							endcase
@@ -182,7 +201,7 @@ module cf_cpu(
 							// in other cases what we've loaded so far is the address we need
 							// to actually fetch the operand.
 							bus_enable <= 1'b0;
-							case(cur_operand[2:0])
+							case(cur_opcode[2:0])
 								0: // #n x0 ii(ii)
 									begin
 										reg_operand <= bus_data_out;
@@ -191,7 +210,7 @@ module cf_cpu(
 								1: // aaaa x1 dd dd
 									begin
 										// we read the address to read from now we have to actually read it 
-										bus_address <= bus_data_out;
+										bus_address <= {1'b1, bus_data_out};
 										bus_burst   <= cur_opcode[3];
 										fsm_state   <= FSM_FETCH_ALU_OPERAND2_00_97;
 									end
@@ -202,13 +221,13 @@ module cf_cpu(
 									end
 								3: // n,I x3 oo
 									begin
-										bus_address <= reg_INDEX + bus_data_out;
+										bus_address <= {1'b1, reg_INDEX + bus_data_out};
 										bus_burst   <= cur_opcode[3];
 										fsm_state   <= FSM_FETCH_ALU_OPERAND2_00_97;
 									end
 								4: // n,S x4 oo
 									begin
-										bus_address <= reg_SP + bus_data_out;
+										bus_address <= {1'b1, reg_SP + bus_data_out};
 										bus_burst   <= cur_opcode[3];
 										fsm_state   <= FSM_FETCH_ALU_OPERAND2_00_97;
 									end
@@ -219,13 +238,13 @@ module cf_cpu(
 									end
 								6: // [S+] x6
 									begin
-										reg_operand <= bus_data_out;
+										bus_address <= {1'b1, bus_data_out};
 										bus_burst   <= cur_opcode[3];
 										fsm_state   <= FSM_FETCH_ALU_OPERAND2_00_97;
 									end
 								7: // [S] x7
 									begin
-										reg_operand <= bus_data_out;
+										bus_address <= {1'b1, bus_data_out};
 										bus_burst   <= cur_opcode[3];
 										fsm_state   <= FSM_FETCH_ALU_OPERAND2_00_97;
 									end
@@ -236,7 +255,7 @@ module cf_cpu(
 					begin
 						if (!bus_enable) begin
 							// bus was otherwise programmed already we just need to enable it
-							bus_enable  <= 1'b1
+							bus_enable  <= 1'b1;
 						end
 						if (bus_enable && bus_ready) begin
 							bus_enable  <= 1'b0;
@@ -248,7 +267,7 @@ module cf_cpu(
 					begin
 						// we're done after this so we fetch
 						fsm_state <= FSM_FETCH_OPCODE;
-						case(cur_opcode[7:4]) begin
+						case(cur_opcode[7:4])
 							4'h0: // LD/LDB
 								begin
 									reg_ACC <= reg_operand;
@@ -267,7 +286,18 @@ module cf_cpu(
 								end
 							4'h4: // DIV/DIB
 								begin
-									// TODO: program division block and transition to wait for div
+									fsm_state <= FSM_EXECUTE_ALU_OPCODE_00_97;			// loop here until division is done
+									if (!sd_valid) begin
+										sd_num   <= reg_ACC;
+										sd_denom <= reg_operand;
+										sd_valid <= 1'b1;
+									end
+									if (sd_valid && sd_ready) begin
+										fsm_state <= FSM_FETCH_OPCODE;
+										reg_ACC   <= sd_quotient;						// ACC gets quotient and we put remainder in ALT location
+										reg_alt   <= sd_remainder;
+										sd_valid  <= 1'b0;
+									end
 								end
 							4'h5: // AND/ANDB
 								begin
@@ -293,12 +323,13 @@ module cf_cpu(
 								begin
 									reg_INDEX <= reg_operand;
 								end
+							default: begin end
 						endcase
 					end
 				FSM_FETCH_ALU_OPERAND_98_B7:								// handle ST (store) operand fetching
 					begin
 						if (!bus_enable) begin
-							case(cur_operand[2:0])
+							case(cur_opcode[2:0])
 								1: // aaaa x1 dd dd
 									begin
 									end
@@ -320,7 +351,7 @@ module cf_cpu(
 							endcase
 						end
 						if (bus_enable && bus_ready) begin
-							case(cur_operand[2:0])
+							case(cur_opcode[2:0])
 								1: // aaaa x1 dd dd
 									begin
 									end
@@ -344,7 +375,7 @@ module cf_cpu(
 					end
 				FSM_EXECUTE_OPCODE_C8_CF: //LT/LE.../UGT/UGE
 					begin
-					end;
+					end
 				FSM_FETCH_OPERAND_D0_D9: // jumps
 					begin
 					end
