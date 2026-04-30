@@ -44,7 +44,12 @@ module cf_cpu(
 		FSM_FETCH_ALU_OPERAND_00_97  = 1,
 		FSM_FETCH_ALU_OPERAND2_00_97 = 2,
 		FSM_EXECUTE_ALU_OPCODE_00_97 = 3,
-		FSM_FETCH_ALU_OPERAND_98_B7  = 4;
+		FSM_FETCH_ALU_OPERAND_98_B7  = 4,
+		
+		FSM_EXECUTE_OPCODE_C8_CF = 5,
+		FSM_FETCH_OPERAND_D0_D9 = 6,
+		FSM_FETCH_OPERAND_DA_DF = 7,
+		FSM_FETCH_OPERAND_E0_EC = 8;
 		
 		
 	always @(posedge clk) begin
@@ -89,6 +94,17 @@ module cf_cpu(
 								// ST (store) ops
 								// the goal here is to load an operand which says where to store ACC or INC
 								fsm_state <= FSM_FETCH_ALU_OPERAND_98_B7;
+							end else if (bus_data_out[7:0] >= 8'hB8 && bus_data_out[7:0] < 8'hC8) begin
+								// SHL/SHR ops no idea how these work
+							end else if (bus_data_out[7:0] >= 8'hC8 && bus_data_out[7:0] <= 8'hCF) begin
+								// LT/LE...UGT/UGE
+								fsm_state <= FSM_EXECUTE_OPCODE_C8_CF;
+							end else if (bus_data_out[7:0] >= 8'hD0 && bus_data_out[7:0] <= 8'hD9) begin
+								fsm_state <= FSM_FETCH_OPERAND_D0_D9;
+							end else if (bus_data_out[7:0] >= 8'hDA && bus_data_out[7:0] <= 8'hDF) begin
+								fsm_state <= FSM_FETCH_OPERAND_DA_DF;
+							end else if (bus_data_out[7:0] >= 8'hE0 && bus_data_out[7:0] <= 8'hEC) begin
+								fsm_state <= FSM_FETCH_OPERAND_E0_EC;
 							end
 						end
 					end
@@ -325,6 +341,18 @@ module cf_cpu(
 									end
 							endcase
 						end
+					end
+				FSM_EXECUTE_OPCODE_C8_CF: //LT/LE.../UGT/UGE
+					begin
+					end;
+				FSM_FETCH_OPERAND_D0_D9: // jumps
+					begin
+					end
+				FSM_FETCH_OPERAND_DA_DF: // stack
+					begin
+					end
+				FSM_FETCH_OPERAND_E0_EC: // misc
+					begin
 					end
 				default:
 					fsm_state <= FSM_FETCH_OPCODE;
