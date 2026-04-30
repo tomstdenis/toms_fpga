@@ -49,7 +49,8 @@ module cf_cpu(
 		FSM_EXECUTE_OPCODE_C8_CF = 5,
 		FSM_FETCH_OPERAND_D0_D9 = 6,
 		FSM_FETCH_OPERAND_DA_DF = 7,
-		FSM_FETCH_OPERAND_E0_EC = 8;
+		FSM_FETCH_OPERAND_E0_EC = 8,
+		FSM_FETCH_OPERAND2_EA_EB = 9;
 
 	// divider
 	reg [15:0] sd_num;
@@ -131,6 +132,7 @@ module cf_cpu(
 					// start of decoding one of the 8 operand modes
 					begin
 						if (!bus_enable) begin
+							bus_io_flag <= 1'b0;							// always memory here
 							case(cur_opcode[2:0])
 								0: // #n x0 ii(ii)							// immediate 8/16 bit
 									begin
@@ -196,7 +198,7 @@ module cf_cpu(
 									end
 							endcase
 						end
-						if (bus_enable && bus_ready) begin
+						if (bus_enable && bus_ready) begin					// back half of FETCH for 00..97
 							// second half of initial operand fetch.  In some cases we're done
 							// in other cases what we've loaded so far is the address we need
 							// to actually fetch the operand.
@@ -263,7 +265,7 @@ module cf_cpu(
 							fsm_state   <= FSM_EXECUTE_ALU_OPCODE_00_97;
 						end
 					end
-				FSM_EXECUTE_ALU_OPCODE_00_97:					// execute opcodes upto byte 0x97
+				FSM_EXECUTE_ALU_OPCODE_00_97:								// execute opcodes upto byte 0x97
 					begin
 						// we're done after this so we fetch
 						fsm_state <= FSM_FETCH_OPCODE;
@@ -328,6 +330,7 @@ module cf_cpu(
 					end
 				FSM_FETCH_ALU_OPERAND_98_B7:								// handle ST (store) operand fetching
 					begin
+						bus_io_flag <= 1'b0;
 						if (!bus_enable) begin
 							case(cur_opcode[2:0])
 								1: // aaaa x1 dd dd
@@ -350,7 +353,7 @@ module cf_cpu(
 									end
 							endcase
 						end
-						if (bus_enable && bus_ready) begin
+						if (bus_enable && bus_ready) begin					// back half of store operand fetching
 							case(cur_opcode[2:0])
 								1: // aaaa x1 dd dd
 									begin
@@ -375,6 +378,26 @@ module cf_cpu(
 					end
 				FSM_EXECUTE_OPCODE_C8_CF: //LT/LE.../UGT/UGE
 					begin
+						fsm_state <= FSM_FETCH_OPCODE;
+						case(cur_opcode[3:0])
+							4'h8: // LT
+								reg_ACC <= { 15'b0, reg_flags[FLAG_SLT] };
+							4'h9: // LE
+								reg_ACC <= { 15'b0, reg_flags[FLAG_SLT] | reg_flags[FLAG_EQ] };
+							4'hA: // GT
+								reg_ACC <= { 15'b0, reg_flags[FLAG_SGT] };
+							4'hB: // GE
+								reg_ACC <= { 15'b0, reg_flags[FLAG_SGT] | reg_flags[FLAG_EQ] };
+							4'hC: // ULT
+								reg_ACC <= { 15'b0, reg_flags[FLAG_ULT] };
+							4'hD: // ULE
+								reg_ACC <= { 15'b0, reg_flags[FLAG_ULT] | reg_flags[FLAG_EQ] };
+							4'hE: // UGT
+								reg_ACC <= { 15'b0, reg_flags[FLAG_UGT] };
+							4'hF: // UGE
+								reg_ACC <= { 15'b0, reg_flags[FLAG_UGT] | reg_flags[FLAG_EQ] };
+							default: begin end
+						endcase
 					end
 				FSM_FETCH_OPERAND_D0_D9: // jumps
 					begin
@@ -384,6 +407,68 @@ module cf_cpu(
 					end
 				FSM_FETCH_OPERAND_E0_EC: // misc
 					begin
+						if (!bus_enable) begin
+							// this is our first run into this FSM
+							fsm_state <= FSM_FETCH_OPCODE;
+							case(cur_opcode[3:0])
+								4'h0: // CLR
+									reg_ACC <= 0;
+								4'h1: // COM
+									reg_ACC <= ~reg_ACC;
+								4'h2: // NEG
+									reg_ACC <= -reg_ACC;
+								4'h3: // NOT
+									reg_ACC <= reg_ACC == 0 ? 16'd1 : 16'd0;
+								4'h4: // INC
+									reg_ACC <= reg_ACC + 1'b1;
+								4'h5: // DEC
+									reg_ACC <= reg_ACC - 1'b1;
+								4'h6: // TAI
+									reg_INDEX <= reg_ACC;
+								4'h7: // TIA
+									reg_ACC <= reg_INDEX;
+								4'h8: // ADAI
+									reg_INDEX <= reg_INDEX + reg_ACC;
+								4'h9: // ALT
+									reg_ACC <= reg_alt;
+								4'hA, 4'hB: // OUT/IN
+									begin
+										// fetch the port number after the opcode
+										fsm_state   <= FSM_FETCH_OPERAND_E0_EC;
+										bus_enable  <= 1'b1;
+										bus_burst   <= 1'b0;
+										bus_wr_en   <= 1'b0;
+										bus_io_flag <= 1'b0;
+										bus_address <= reg_PC + 1'b1;
+										reg_PC      <= reg_PC + 1'b1;
+									end
+								default: begin end
+							endcase
+						end
+						if (bus_enable && bus_ready) begin
+							// we got the port number, now setup the I/O request
+							bus_enable  <= 1'b0;
+							bus_io_flag <= 1'b1;
+							bus_address <= {1'b0, bus_data_out};
+							bus_wr_en   <= cur_opcode[3:0] == 4'hA ? 1'b1 : 1'b0;  // EA == out
+							fsm_state   <= FSM_FETCH_OPERAND2_EA_EB;
+						end
+					end
+				FSM_FETCH_OPERAND2_EA_EB:										   // issue I/O
+					begin
+						if (!bus_enable) begin
+							// rest of bus was previously programmed
+							bus_enable <= 1'b1;
+						end
+						if (bus_enable && bus_ready) begin
+							// I/O is complete deassert bus and go back to fetch
+							if (cur_opcode == 8'hEB) begin							// EB == IN
+								reg_ACC <= bus_data_in;
+							end
+							bus_enable  <= 1'b0;
+							bus_io_flag <= 1'b0;
+							fsm_state   <= FSM_FETCH_OPCODE;
+						end
 					end
 				default:
 					fsm_state <= FSM_FETCH_OPCODE;
