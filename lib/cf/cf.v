@@ -11,11 +11,11 @@ module cf_cpu(
 	output reg bus_wr_en,				// write enable
 	output reg bus_io_flag,				// I/O bus activity (e.g. inp/outp)
 	output reg bus_burst,				// high == 16 bit transfer
-	output reg [15:0] bus_data_out,		// output
+	output reg [15:0] bus_data_in,		// input
 	output reg bus_enable,				// tell the bus we're good to go
 	
 	input wire bus_ready,				// bus tells us it's ready
-	input wire [15:0] bus_data_in		// input
+	input wire [15:0] bus_data_out		// output
 );
 
 	// ISA state
@@ -72,7 +72,7 @@ module cf_cpu(
 			bus_wr_en    <= 0;
 			bus_io_flag  <= 0;
 			bus_burst    <= 0;
-			bus_data_out <= 0;
+			bus_data_in  <= 0;
 			bus_enable   <= 0;
 			reg_ACC		 <= 0;
 			reg_INDEX    <= 0;
@@ -401,9 +401,211 @@ module cf_cpu(
 					end
 				FSM_FETCH_OPERAND_D0_D9: // jumps
 					begin
+						if (!bus_enable) begin
+							case(cur_opcode[3:0])
+								4'h0: // JMP aaaa
+									begin
+										bus_enable  <= 1'b1;
+										bus_burst   <= 1'b1;
+										bus_wr_en   <= 1'b0;
+										bus_io_flag <= 1'b0;
+										bus_address <= {1'b1, reg_PC};
+										reg_PC      <= reg_PC + 16'd2;
+									end
+								4'h1: // JZ aaaa
+									begin
+										bus_enable  <= 1'b1;
+										bus_burst   <= 1'b1;
+										bus_wr_en   <= 1'b0;
+										bus_io_flag <= 1'b0;
+										bus_address <= {1'b1, reg_PC};
+										reg_PC      <= reg_PC + 16'd2;
+									end
+								4'h2: // JNZ aaaa
+									begin
+										bus_enable  <= 1'b1;
+										bus_burst   <= 1'b1;
+										bus_wr_en   <= 1'b0;
+										bus_io_flag <= 1'b0;
+										bus_address <= {1'b1, reg_PC};
+										reg_PC      <= reg_PC + 16'd2;
+									end
+								4'h3: // SJMP rr
+									begin
+										bus_enable  <= 1'b1;
+										bus_burst   <= 1'b0;
+										bus_wr_en   <= 1'b0;
+										bus_io_flag <= 1'b0;
+										bus_address <= {1'b1, reg_PC};
+										reg_PC      <= reg_PC + 16'd1;
+									end
+								4'h4: // SJZ rr
+									begin
+										bus_enable  <= 1'b1;
+										bus_burst   <= 1'b0;
+										bus_wr_en   <= 1'b0;
+										bus_io_flag <= 1'b0;
+										bus_address <= {1'b1, reg_PC};
+										reg_PC      <= reg_PC + 16'd1;
+									end
+								4'h5: // SJNZ rr
+									begin
+										bus_enable  <= 1'b1;
+										bus_burst   <= 1'b0;
+										bus_wr_en   <= 1'b0;
+										bus_io_flag <= 1'b0;
+										bus_address <= {1'b1, reg_PC};
+										reg_PC      <= reg_PC + 16'd1;
+									end
+								4'h6: // IJMP
+									begin
+										reg_PC	    <= reg_ACC;
+										fsm_state   <= FSM_FETCH_OPCODE;
+									end
+								4'h7: // SWITCH
+									begin
+										// TODO: sort out
+									end
+								4'h8: // CALL aaaa
+									begin
+										bus_enable  <= 1'b1;
+										bus_burst   <= 1'b1;
+										bus_wr_en   <= 1'b0;
+										bus_io_flag <= 1'b0;
+										bus_address <= {1'b1, reg_PC};
+										reg_PC      <= reg_PC + 16'd2;
+									end
+								4'h9: // RET
+									begin
+										// TODO:
+									end
+								default: begin end
+							endcase
+						end
+						if (bus_enable && bus_ready) begin
+							bus_enable <= 1'b0;
+							fsm_state  <= FSM_FETCH_OPCODE;
+							case(cur_opcode[3:0])
+								4'h0: // JMP aaaa
+									begin
+										reg_PC <= bus_data_out;
+									end
+								4'h1: // JZ aaaa
+									begin
+										if (reg_ACC == 0) begin
+											reg_PC <= bus_data_out;
+										end
+									end
+								4'h2: // JNZ aaaa
+									begin
+										if (reg_ACC != 0) begin
+											reg_PC <= bus_data_out;
+										end
+									end
+								4'h3: // SJMP rr
+									begin
+										// TODO: guessing it's just signed extended?
+										reg_PC <= reg_PC + { {8{bus_data_out[7]}}, bus_data_out[7:0] };
+									end
+								4'h4: // SJZ rr
+									begin
+										// TODO: guessing it's just signed extended?
+										if (reg_ACC == 0) begin
+											reg_PC <= reg_PC + { {8{bus_data_out[7]}}, bus_data_out[7:0] };
+										end					
+									end
+								4'h5: // SJNZ rr
+									begin
+										// TODO: guessing it's just signed extended?
+										if (reg_ACC != 0) begin
+											reg_PC <= reg_PC + { {8{bus_data_out[7]}}, bus_data_out[7:0] };
+										end					
+									end
+								4'h7: // SWITCH
+									begin
+									end
+								4'h8: // CALL aaaa
+									begin
+										// TODO:
+									end
+								4'h9: // RET
+									begin
+										// TODO:
+									end
+								default: begin end
+							endcase
+						end
 					end
 				FSM_FETCH_OPERAND_DA_DF: // stack
 					begin
+						if (!bus_enable) begin
+							case(cur_opcode[3:0])
+								4'hA: // ALLOC oo
+									begin
+										bus_enable  <= 1'b1;
+										bus_wr_en   <= 1'b0;
+										bus_io_flag <= 1'b0;
+										bus_burst   <= 1'b0;
+										bus_address <= {1'b0, reg_PC};
+										reg_PC      <= reg_PC + 1'b1;
+									end
+								4'hB: // FREE oo
+									begin
+										bus_enable  <= 1'b1;
+										bus_wr_en   <= 1'b0;
+										bus_io_flag <= 1'b0;
+										bus_burst   <= 1'b0;
+										bus_address <= {1'b0, reg_PC};
+										reg_PC      <= reg_PC + 1'b1;
+									end
+								4'hC: // PUSHA
+									begin
+										bus_enable   <= 1'b1;
+										bus_wr_en    <= 1'b1;
+										bus_io_flag  <= 1'b0;
+										bus_burst    <= 1'b1;
+										bus_address  <= {1'b1, reg_SP - 16'd2};
+										bus_data_in  <= reg_ACC;
+										reg_SP	     <= reg_SP - 16'd2;
+									end
+								4'hD: // PUSHI
+									begin
+										bus_enable   <= 1'b1;
+										bus_wr_en    <= 1'b1;
+										bus_io_flag  <= 1'b0;
+										bus_burst    <= 1'b1;
+										bus_address  <= {1'b1, reg_SP - 16'd2};
+										bus_data_in  <= reg_INDEX;
+										reg_SP	     <= reg_SP - 16'd2;
+									end
+								4'hE: // TAS
+									begin
+										reg_SP    <= reg_ACC;
+										fsm_state <= FSM_FETCH_OPCODE;
+									end
+								4'hF: // TSA
+									begin
+										reg_ACC   <= reg_SP;
+										fsm_state <= FSM_FETCH_OPCODE;
+									end
+								default: begin end
+							endcase
+						end
+						if (bus_enable && bus_ready) begin
+							bus_enable <= 1'b0;
+							fsm_state  <= FSM_FETCH_OPCODE;
+							case(cur_opcode[3:0])
+								4'hA: // ALLOC oo
+									begin
+										reg_SP <= reg_SP - {8'b0, bus_data_out[7:0]};
+									end
+								4'hB: // FREE oo
+									begin
+										reg_SP <= reg_SP + {8'b0, bus_data_out[7:0]};
+									end
+								default: begin end
+							endcase
+						end
 					end
 				FSM_FETCH_OPERAND_E0_EC: // misc
 					begin
@@ -439,7 +641,7 @@ module cf_cpu(
 										bus_burst   <= 1'b0;
 										bus_wr_en   <= 1'b0;
 										bus_io_flag <= 1'b0;
-										bus_address <= reg_PC + 1'b1;
+										bus_address <= {1'b0, reg_PC + 1'b1};
 										reg_PC      <= reg_PC + 1'b1;
 									end
 								default: begin end
@@ -450,6 +652,7 @@ module cf_cpu(
 							bus_enable  <= 1'b0;
 							bus_io_flag <= 1'b1;
 							bus_address <= {1'b0, bus_data_out};
+							bus_data_in <= reg_ACC;
 							bus_wr_en   <= cur_opcode[3:0] == 4'hA ? 1'b1 : 1'b0;  // EA == out
 							fsm_state   <= FSM_FETCH_OPERAND2_EA_EB;
 						end
@@ -463,7 +666,7 @@ module cf_cpu(
 						if (bus_enable && bus_ready) begin
 							// I/O is complete deassert bus and go back to fetch
 							if (cur_opcode == 8'hEB) begin							// EB == IN
-								reg_ACC <= bus_data_in;
+								reg_ACC <= bus_data_out;
 							end
 							bus_enable  <= 1'b0;
 							bus_io_flag <= 1'b0;
