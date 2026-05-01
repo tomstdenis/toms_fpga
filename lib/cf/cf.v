@@ -44,13 +44,19 @@ module cf_cpu(
 		FSM_FETCH_ALU_OPERAND_00_97  = 1,
 		FSM_FETCH_ALU_OPERAND2_00_97 = 2,
 		FSM_EXECUTE_ALU_OPCODE_00_97 = 3,
+
 		FSM_FETCH_ALU_OPERAND_98_B7  = 4,
 		
-		FSM_EXECUTE_OPCODE_C8_CF = 5,
-		FSM_FETCH_OPERAND_D0_D9 = 6,
-		FSM_FETCH_OPERAND_DA_DF = 7,
-		FSM_FETCH_OPERAND_E0_EC = 8,
-		FSM_FETCH_OPERAND2_EA_EB = 9;
+		FSM_EXECUTE_OPCODE_C8_CF     = 5,
+
+		FSM_FETCH_OPERAND_D0_D9      = 6,
+		FSM_OPCODE_D8_1              = 7,
+
+		FSM_FETCH_OPERAND_DA_DF      = 8,
+
+		FSM_FETCH_OPERAND_E0_EC      = 9,
+
+		FSM_FETCH_OPERAND2_EA_EB     = 10;
 
 	// divider
 	reg [15:0] sd_num;
@@ -409,7 +415,7 @@ module cf_cpu(
 										bus_burst   <= 1'b1;
 										bus_wr_en   <= 1'b0;
 										bus_io_flag <= 1'b0;
-										bus_address <= {1'b1, reg_PC};
+										bus_address <= {1'b0, reg_PC};
 										reg_PC      <= reg_PC + 16'd2;
 									end
 								4'h1: // JZ aaaa
@@ -418,7 +424,7 @@ module cf_cpu(
 										bus_burst   <= 1'b1;
 										bus_wr_en   <= 1'b0;
 										bus_io_flag <= 1'b0;
-										bus_address <= {1'b1, reg_PC};
+										bus_address <= {1'b0, reg_PC};
 										reg_PC      <= reg_PC + 16'd2;
 									end
 								4'h2: // JNZ aaaa
@@ -427,7 +433,7 @@ module cf_cpu(
 										bus_burst   <= 1'b1;
 										bus_wr_en   <= 1'b0;
 										bus_io_flag <= 1'b0;
-										bus_address <= {1'b1, reg_PC};
+										bus_address <= {1'b0, reg_PC};
 										reg_PC      <= reg_PC + 16'd2;
 									end
 								4'h3: // SJMP rr
@@ -436,7 +442,7 @@ module cf_cpu(
 										bus_burst   <= 1'b0;
 										bus_wr_en   <= 1'b0;
 										bus_io_flag <= 1'b0;
-										bus_address <= {1'b1, reg_PC};
+										bus_address <= {1'b0, reg_PC};
 										reg_PC      <= reg_PC + 16'd1;
 									end
 								4'h4: // SJZ rr
@@ -445,7 +451,7 @@ module cf_cpu(
 										bus_burst   <= 1'b0;
 										bus_wr_en   <= 1'b0;
 										bus_io_flag <= 1'b0;
-										bus_address <= {1'b1, reg_PC};
+										bus_address <= {1'b0, reg_PC};
 										reg_PC      <= reg_PC + 16'd1;
 									end
 								4'h5: // SJNZ rr
@@ -454,7 +460,7 @@ module cf_cpu(
 										bus_burst   <= 1'b0;
 										bus_wr_en   <= 1'b0;
 										bus_io_flag <= 1'b0;
-										bus_address <= {1'b1, reg_PC};
+										bus_address <= {1'b0, reg_PC};
 										reg_PC      <= reg_PC + 16'd1;
 									end
 								4'h6: // IJMP
@@ -468,16 +474,23 @@ module cf_cpu(
 									end
 								4'h8: // CALL aaaa
 									begin
+										// read the call target
 										bus_enable  <= 1'b1;
 										bus_burst   <= 1'b1;
 										bus_wr_en   <= 1'b0;
 										bus_io_flag <= 1'b0;
-										bus_address <= {1'b1, reg_PC};
+										bus_address <= {1'b0, reg_PC};
 										reg_PC      <= reg_PC + 16'd2;
 									end
 								4'h9: // RET
 									begin
-										// TODO:
+										// read PC off stack
+										bus_enable  <= 1'b1;
+										bus_burst   <= 1'b1;
+										bus_wr_en   <= 1'b0;
+										bus_io_flag <= 1'b0;
+										bus_address <= {1'b1, reg_SP};
+										reg_SP      <= reg_SP + 16'd2;
 									end
 								default: begin end
 							endcase
@@ -523,17 +536,37 @@ module cf_cpu(
 									end
 								4'h7: // SWITCH
 									begin
+										// TODO: jump to alternate state
 									end
 								4'h8: // CALL aaaa
 									begin
-										// TODO:
+										fsm_state <= FSM_OPCODE_D8_1;			// jump to back half of CALL where we do the bus transaction
+										// push PC onto stack
+										bus_enable  <= 1'b0;
+										bus_address <= {1'b1, reg_SP - 16'd2};
+										bus_data_in <= reg_PC;
+										bus_wr_en   <= 1'b1;
+										bus_io_flag <= 1'b0;
+										bus_burst   <= 1'b1;
+										reg_SP      <= reg_SP - 16'd2;
+										reg_PC      <= bus_data_out;
 									end
 								4'h9: // RET
 									begin
-										// TODO:
+										reg_PC <= bus_data_out;
 									end
 								default: begin end
 							endcase
+						end
+					end
+				FSM_OPCODE_D8_1: // back half of CALL
+					begin
+						if (!bus_enable) begin
+							bus_enable <= 1'b1;
+						end
+						if (bus_enable && bus_ready) begin
+							bus_enable <= 1'b0;
+							fsm_state  <= FSM_FETCH_OPCODE;
 						end
 					end
 				FSM_FETCH_OPERAND_DA_DF: // stack
