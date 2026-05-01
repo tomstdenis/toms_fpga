@@ -495,7 +495,7 @@ module cf_cpu(
 								default: begin end
 							endcase
 						end
-						if (bus_enable && bus_ready) begin
+						if (bus_enable && bus_ready) begin							// back half of jumps
 							bus_enable <= 1'b0;
 							fsm_state  <= FSM_FETCH_OPCODE;
 							case(cur_opcode[3:0])
@@ -562,9 +562,11 @@ module cf_cpu(
 				FSM_OPCODE_D8_1: // back half of CALL
 					begin
 						if (!bus_enable) begin
+							// enable write to stack of PC
 							bus_enable <= 1'b1;
 						end
 						if (bus_enable && bus_ready) begin
+							// PC was saved we can fetch the first opcode of the target.
 							bus_enable <= 1'b0;
 							fsm_state  <= FSM_FETCH_OPCODE;
 						end
