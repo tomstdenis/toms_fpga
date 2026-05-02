@@ -50,7 +50,7 @@ module spidma #(
 	input wire [3:0] sio_din,
 	output reg [3:0] sio_dout,
 	output reg [3:0] sio_en,
-	output wire cs_pin,											// active low CS pin
+	output reg cs_pin,											// active low CS pin
 	output reg sck_pin											// SPI clock
 );
 `ifdef SIM_MODEL
@@ -64,7 +64,6 @@ module spidma #(
 	reg [3:0] state;										// What state is our FSM in
 	reg [3:0] tag;
 	reg [3:0] bit_cnt;										// bit counter a variety of FSM states
-
 	reg [3:0] sck_timer;									// timer used to know when to change phase
 	
 
@@ -75,39 +74,13 @@ module spidma #(
 	
 	// Command data
 	reg [3:0] cmd_value_l;								// what command to run (read, write, ...)
-	reg [SRAM_ADDR_WIDTH-1:0] cmd_psram_address_l;		// address to read/write from the SPI device
+	reg [SRAM_ADDR_WIDTH-1:0] cmd_spi_address_l;		// address to read/write from the SPI device
 	reg [HOST_MEM_ADDR-1:0] cmd_host_address_l;			// address to write/read from the host memory
 	reg [5:0] cmd_burst_len_l;							// how many bytes to read (1..64)
 
 	// FSM data
 	reg [2:0] send_cmd_addr_cycle;						// counter to tell which step of sending CMD + ADDR we're on
 	reg [3:0] dummy_cnt;								// how many dummy cycles to waste
-
-/* ok changes....
-
-1.  Do away with global timer and just count inside the FSM when you're sending/reading SPI or QPI, this will let us have a cycle between operations without SCK getting
-    out of phase.  So the actual FSM state that transmits/receives SPI or QPI itself will count SPI_TIMER or QPI_TIMER when changing SCK.
-    
-2.  Drop all of the existing SEND/READ_2 code and write a generic QPI send/recv that handles 1 byte at a time (use tag to return to parent state for burst read or write)
-
-3.  The parent state that calls SEND for writing data to SPI memory can initiate the "read next byte" while transmitting the current byte to the SPI memory
-    - Note we will have to read byte 0 during the CMD phase and byte 1 will have to be issued right after that so by time we're ready to transmit byte 1 it's already read
-    (e.g. when byte 0 finishes we tell the host to read byte 2, when byte 1 finishes we tell the host to read byte 3, etc...)
-
-4.  The parent state that calls RECV to read data from the SPI memory can initiate the write to host memory once QPI comes back so host memory operations happen in parallel so there's
-no waiting.
-    - Here we wait for data from SPI memory, then once we finish shifting data in, we issue a write, and then shift in the next byte as needed.
-    - The FSM that handles shifting in a QPI byte should disable the wr_en (save power) and also advance the host_mem_address so the next write is primed to go into 
-    - the right address.
-
-5.  The IDLE state will jump into a generic "transmit CMD + ADDR" state that then jumps into a read/write (from SPI memory) FSM that iterates over the burst length
-    - The "CMD + ADDR" state would be largely for any addressed commands (sector erase, page program, read/write), for other commands we'll need their own FSM landing state
-
-6.  Rename DUMMY_BYTES to DUMMY_CYCLES since that's what they are in reality
-
-7.  Eventually I'll add a program_cmd and erase_sector_cmd to support NOR flash
-
-*/
 	
 	localparam
 		STATE_INIT					= 0,													// Initialize the SPI memory by putting into a quad-io mode
@@ -129,18 +102,22 @@ no waiting.
 
 	always @(posedge clk) begin
 		if (!rst_n) begin
-            state			<= STATE_HANGUP_WAIT;						// Jump to initial FSM state
-            tag				<= PSRAM_RESET == 1 ? STATE_SEND_RESETEN : STATE_INIT;
-            hangup_timer    <= wakeup_bauddiv;
-            sio_en			<= 4'b0000;									// disable all outputs
-            sio_dout		<= 4'b1111;									// SPI bus output
-            sck_pin			<= 1'b0;									// default low
-            cs_pin			<= 1'b1;									// default high
-            temp_wire_bits  <= 8'h00;
-            bit_cnt			<= 4'h0;
-            	
-			// TODO: other initials
-
+            state			    <= STATE_HANGUP_WAIT;						// Jump to initial FSM state
+            tag				    <= PSRAM_RESET == 1 ? STATE_SEND_RESETEN : STATE_INIT;
+            hangup_timer        <= wakeup_bauddiv;
+            sck_timer			<= 0;
+            sio_en			    <= 4'b0000;									// disable all outputs
+            sio_dout		    <= 4'b1111;									// SPI bus output
+            sck_pin			    <= 1'b0;									// default low
+            cs_pin			    <= 1'b1;									// default high
+            temp_wire_bits      <= 8'h00;
+            bit_cnt			    <= 4'h0;
+            cmd_value_l         <= 0;
+            cmd_burst_len_l     <= 0;
+            cmd_host_address_l  <= 0;
+            cmd_spi_address_l   <= 0;
+            send_cmd_addr_cycle <= 0;
+            dummy_cnt           <= 0;
 		end else begin
 			case(state)
 				STATE_SEND_RESETEN:										// Send 0x66 RESET ENABLE
@@ -300,7 +277,7 @@ no waiting.
 						if (cmd_valid) begin
 							// latch the command
 							cmd_value_l         <= cmd_value;
-							cmd_psram_address_l <= cmd_spi_address;
+							cmd_spi_address_l   <= cmd_spi_address;
 							cmd_host_address_l  <= cmd_host_address;
 							cmd_burst_len_l     <= cmd_burst_len;
 							
@@ -331,7 +308,7 @@ no waiting.
 					end
 
 				// send the command and address
-				// in: send_cmd_addr_cycle == 0, cmd_value_l == READ/WRITE/etc, cmd_psram_address_l == address
+				// in: send_cmd_addr_cycle == 0, cmd_value_l == READ/WRITE/etc, cmd_spi_address_l == address
 				STATE_QPI_SEND_CMD_ADDR:
 					begin
 						// configure I/O
@@ -363,7 +340,7 @@ no waiting.
 							endcase
 						end else begin
 							// send parts of the address
-							temp_wire_bits <= cmd_psram_address_l[SRAM_ADDR_WIDTH-(8*send_cmd_addr_cycle) +: 8];
+							temp_wire_bits <= cmd_spi_address_l[SRAM_ADDR_WIDTH-(8*send_cmd_addr_cycle) +: 8];
 							if (send_cmd_addr_cycle == {(SRAM_ADDR_WIDTH/8'd8)}[2:0]) begin
 								// last byte of address we tag out to READ/WRITE/etc operations instead of coming back here
 								case(cmd_value)
