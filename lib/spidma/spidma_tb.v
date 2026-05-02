@@ -1,45 +1,61 @@
 `timescale 1ns/1ps
 
-module sram_tb();
+module spidma_tb();
 	localparam
 		DUMMY = 6,
-		DATA_WIDTH=32,
-		SRAM_ADDR_WIDTH=24;
+		HOST_MEM_ADDR = 11,
+		SRAM_ADDR_WIDTH = 24;
 
+	reg [4:0] test_phase;
 	reg clk;
 	reg rst_n;
 	
-	wire done;
-	reg [DATA_WIDTH-1:0] data_in;
-	reg data_in_valid;
-	wire [DATA_WIDTH-1:0] data_out;
-	reg [3:0] data_be;
-	reg write_cmd;
-	reg read_cmd;
-	reg [SRAM_ADDR_WIDTH-1:0] address;
-	reg [4:0] test_phase;
+	wire ready;
+	wire [HOST_MEM_ADDR-1:0] host_mem_addr;
+	wire host_mem_wr_en;
+	wire [7:0] host_mem_data_in;
+	reg  [7:0] host_mem_data_out;
+	reg  [7:0] host_memory[0:2047];
 	
+	always @(posedge clk) begin
+		if (rst_n) begin
+			host_mem_data_out <= host_memory[host_mem_addr];
+			if (host_mem_wr_en) begin
+				host_memory[host_mem_addr] <= host_mem_data_in;
+			end
+		end
+	end
+	
+	reg [3:0] cmd_value;
+	reg cmd_valid;
+	reg [SRAM_ADDR_WIDTH-1:0] cmd_spi_address;
+	reg [HOST_MEM_ADDR-1:0] cmd_host_address;
+	reg [7:0] cmd_burst_len;
+		
 	wire sck_pin;
 	wire cs_pin;
 	wire [3:0] sio_en;
 	wire [3:0] sio_dout;
 	reg [3:0] sio_din;
 	
-	spi_sram #(
-		.CLK_FREQ_MHZ(50), .DATA_WIDTH(DATA_WIDTH),
-		.SRAM_ADDR_WIDTH(SRAM_ADDR_WIDTH), .DUMMY_BYTES(DUMMY), .CMD_READ(8'h03),
-		.CMD_WRITE(8'h02), .CMD_EQIO(8'h38), .MIN_CPH_NS(50),
-		.SPI_TIMER_BITS(2), .QPI_TIMER_BITS(1),
-		.MIN_WAKEUP_NS(150000), .PSRAM_RESET(1), .CMD_RESETEN(8'h66), .CMD_RESET(8'h99)) flat(
+	spidma #(
+		.CLK_FREQ_MHZ(50), 
+		.SRAM_ADDR_WIDTH(SRAM_ADDR_WIDTH), .DUMMY_CYCLES(DUMMY), .HOST_MEM_ADDR(HOST_MEM_ADDR),
+		.CMD_READ(8'hEB),
+		.CMD_WRITE(8'h38), .CMD_EQIO(8'h35), .MIN_CPH_NS(50),
+		.SPI_TIMER_BITS(2), .QPI_TIMER_BITS(0),
+		.MIN_WAKEUP_NS(150000), .PSRAM_RESET(1), .CMD_RESETEN(8'h66), .CMD_RESET(8'h99)) spud(
 			.clk(clk), .rst_n(rst_n),
-			.done(done),
-			.data_in(data_in), .data_in_valid(data_in_valid),
-			.data_out(data_out), .data_be(data_be),
-			
-			.write_cmd(write_cmd), .read_cmd(read_cmd),
-			.address(address), 
+
+			.ready(ready),
+			.host_mem_addr(host_mem_addr), .host_mem_wr_en(host_mem_wr_en),
+			.host_mem_data_in(host_mem_data_in), .host_mem_data_out(host_mem_data_out),
+			.cmd_value(cmd_value), .cmd_valid(cmd_valid), .cmd_spi_address(cmd_spi_address),
+			.cmd_host_address(cmd_host_address), .cmd_burst_len(cmd_burst_len),
+
 			.sio_din(sio_din), .sio_dout(sio_dout), .sio_en(sio_en),
 			.cs_pin(cs_pin), .sck_pin(sck_pin));
+
     // Parameters
     localparam CLK_PERIOD = 20;    //  50MHz
 	
@@ -54,106 +70,62 @@ module sram_tb();
 
 	initial begin
         // Waveform setup
-        $dumpfile("sram.vcd");
-        $dumpvars(0, sram_tb);
+        $dumpfile("spidma.vcd");
+        $dumpvars(0, spidma_tb);
 
+		for (X = 0; X < 2048; X = X + 1) begin
+			host_memory[X] = 0;
+		end
 		X = 0;
 		i = 0;
 		j = 0;
 		k = 0;
 		rst_n = 0;
 		clk   = 0;
-		data_in = 0;
-		data_in_valid = 0;
-		write_cmd = 0;
-		read_cmd = 0;
-		address = 0;
-		data_be = 4'b1111;
+		host_mem_data_out = 0;
+		cmd_value = 0;
+		cmd_valid = 0;
+		cmd_spi_address = 0;
+		cmd_host_address = 0;
+		cmd_burst_len = 0;
 		sio_din = 4'b0000;
 
         // Reset system
         repeat(10) @(posedge clk);
         rst_n = 1;
-        wait(done == 1);				// wait for init to finish
-
-		// write 4 bytes
-		test_phase = 0;
-		data_in = 32'h12345678;
-		data_in_valid = 1;
-		write_cmd = 1;
-		address = 'h1234;
-		@(posedge clk); #1;
-		data_in_valid = 0;
-		write_cmd = 0;
-		@(posedge clk); #1;
-		wait(done == 1); #1;
+        
+        // fill first 16 bytes with something predictable
+        test_phase = 1;
+        for (X = 0; X < 16; X = X + 1) begin
+			host_memory[X] = X[7:0] + 1'b1;
+		end
 		
-		// write 2 bytes
-		test_phase = 1;
-		data_in = 32'h0000ABCD;
-		data_in_valid = 1;
-		write_cmd = 1;
-		address = 'h1238;
-		data_be = 4'b0011;
-		@(posedge clk); #1;
-		data_in_valid = 0;
-		write_cmd = 0;
-		@(posedge clk); #1;
-		wait(done == 1); #1;
-
-		// write 1 bytes
+		// write host mem [0..3] to spi[0x10..0x13]
+		cmd_value = `spidma_cmd_write;
+		cmd_host_address = 0;
+		cmd_spi_address = 16;
+		cmd_burst_len = 3; // burst_len == size - 1
+		cmd_valid = 1;
+		wait(ready == 1);
+		cmd_valid = 0;
+		wait(ready == 0);
+		
+		// read spi[0x10..0x13] to host mem[0x100..0x103]
 		test_phase = 2;
-		data_in = 32'h000000EF;
-		data_in_valid = 1;
-		write_cmd = 1;
-		address = 'h123A;
-		data_be = 4'b0001;
-		@(posedge clk); #1;
-		data_in_valid = 0;
-		write_cmd = 0;
-		@(posedge clk); #1;
-		wait(done == 1); #1;
+		cmd_value = `spidma_cmd_read;
+		cmd_host_address = 'h100;
+		cmd_spi_address = 'h10;
+		cmd_burst_len = 3;
+		cmd_valid = 1;
+		wait(ready == 1);
+		cmd_valid = 0;
+		wait(ready == 0);
 		
-		// read 4 bytes
-		test_phase = 3;
-		address = 'h1234;
-		data_be = 4'b1111;
-		read_cmd = 1;
-		@(posedge clk); #1;
-		read_cmd = 0;
-		@(posedge clk); #1;
-		wait(done == 1);
-		if (data_out != 32'h12345678) begin
-			$display("We expected 12345678 back not %h", data_out);
-			$fatal;
-		end
-
-		// read 2 bytes
-		test_phase = 4;
-		address = 'h1238;
-		data_be = 4'b0011;
-		read_cmd = 1;
-		@(posedge clk); #1;
-		read_cmd = 0;
-		@(posedge clk); #1;
-		wait(done == 1);
-		if (data_out != 32'h0000ABCD) begin
-			$display("We expected 0000ABCD back not %h", data_out);
-			$fatal;
-		end
-
-		// read 1 bytes
-		test_phase = 5;
-		address = 'h123A;
-		data_be = 4'b0001;
-		read_cmd = 1;
-		@(posedge clk); #1;
-		read_cmd = 0;
-		@(posedge clk); #1;
-		wait(done == 1);
-		if (data_out != 32'h000000EF) begin
-			$display("We expected 000000EF back not %h", data_out);
-			$fatal;
+		for (X = 0; X < 4; X = X + 1) begin
+			if (host_memory['h100 + X] != host_memory[X] || host_memory['h100 + X] != (X[7:0] + 1'b1)) begin
+				$display("Read at %d failed, %x %x", X, host_memory[X], host_memory['h100 + X]);
+				$fatal;
+			end
 		end
 
         repeat(10) @(posedge clk);

@@ -1,6 +1,42 @@
 `timescale 1ns/1ps
 `default_nettype none
 
+/* NOR flash notes for later....
+
+- need to test QE bit first (SR2 on BYTe (35h), SR on Macronix (05h))
+- if it's not set we need to
+   - enable writing to non-volatile status reg (50h)
+   - write status/config (BYTe == 31h, Macronix == 01h)
+- Need to leave "performance enhancing bytes" set to 00h in reads which means we need sio_en = 4'b1111, sio_dout = 4'b0000 so
+as to not accidentally turn on XIP
+- "Fast reads" EBh seems to be consistent (e.g. CMD + ADDR + 6 dummy cycles)
+- "quad page program" 
+	- BYTe: 32h, sends CMD + address in SPI mode
+	- Macronix: 38h, sends CMD in SPI mode, sends address + data in QPI mode  
+- sector erase
+	- BYTe: 20h, uses SPI for CMD + ADDRESS
+	- Macronix: 20h, can operate fully in SPI or QPI mode
+	
+Deltas between the two brands I have in stock (Macronix and BYTe) for 8-pin SPI NOR flashes
+
+- Where the QE bit is stored (SR2 vs SR)
+- The command to write it (31h vs 01h)
+- quad page programming (command 32h v 38h) and command stream format
+- sector erase: only in SPI on BYTe
+
+Likely target to not go full on mad:
+
+- SPI only
+- 01h write status reg
+- 05h read status reg (WEL and WIP bits are in the same spot)
+- 06h write enable
+- 20h sector erase
+- 02h page program
+- 03h read data
+
+*/
+
+
 // cmd_read == read from SPI memory, write to host memory
 // cmd_write == write to SPI memory, read from host memory
 `define spidma_cmd_read 4'h0
@@ -117,6 +153,10 @@ module spidma #(
             cmd_spi_address_l   <= 0;
             send_cmd_addr_cycle <= 0;
             dummy_cnt           <= 0;
+            host_mem_addr		<= 0;
+            host_mem_wr_en		<= 0;
+            host_mem_data_in	<= 0;
+            ready				<= 0;
 		end else begin
 			case(state)
 				STATE_SEND_RESETEN:										// Send 0x66 RESET ENABLE
@@ -363,7 +403,9 @@ module spidma #(
 						end else begin
 							// send parts of the address
 							temp_wire_bits <= cmd_spi_address_l[SRAM_ADDR_WIDTH-(8*send_cmd_addr_cycle) +: 8];
-							if (send_cmd_addr_cycle == {(SRAM_ADDR_WIDTH/8'd8)}[2:0]) begin
+/* verilator lint_off WIDTHEXPAND */
+							if (send_cmd_addr_cycle == SRAM_ADDR_WIDTH/8) begin
+/* verilator lint_on WIDTHEXPAND */
 								// last byte of address we tag out to READ/WRITE/etc operations instead of coming back here
 								case(cmd_value)
 									`spidma_cmd_read:  tag <= STATE_START_READ;
