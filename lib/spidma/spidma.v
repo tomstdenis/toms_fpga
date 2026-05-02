@@ -96,8 +96,8 @@ module spidma #(
 `endif
 
 	// fsm related
-	reg [3:0] state;										// What state is our FSM in
-	reg [3:0] tag;
+	reg [4:0] state;										// What state is our FSM in
+	reg [4:0] tag;
 	reg [2:0] send_cmd_addr_cycle;							// counter to tell which step of sending CMD + ADDR we're on
 	reg [3:0] dummy_cnt;									// how many dummy cycles to waste
 
@@ -131,9 +131,10 @@ module spidma #(
 		STATE_QPI_SEND_CMD_ADDR     = 10,
 		STATE_START_READ			= 11,
 		STATE_START_WRITE			= 12,
-		STATE_DONE					= 13,
-		STATE_HANGUP				= 14,													// Hang up SPI bus
-		STATE_HANGUP_WAIT			= 15;													// hold CS high for a count
+		STATE_DONE_WRITE            = 13,
+		STATE_DONE					= 14,
+		STATE_HANGUP				= 15,													// Hang up SPI bus
+		STATE_HANGUP_WAIT			= 16;													// hold CS high for a count
 
 	always @(posedge clk) begin
 		if (!rst_n) begin
@@ -332,6 +333,10 @@ module spidma #(
 				STATE_IDLE:
 					begin
 						if (cmd_valid) begin
+							// ensure cs_pin drops before SCK goes high
+							cs_pin  <= 1'b0;
+							sck_pin <= 1'b0;
+							
 							// latch the command
 							cmd_value_l         <= cmd_value;
 							cmd_spi_address_l   <= cmd_spi_address;
@@ -478,11 +483,18 @@ module spidma #(
 						tag			   <= state;
 						host_mem_addr  <= host_mem_addr + 1'b1;
 						if (cmd_burst_len_l == 0) begin
-							state <= STATE_HANGUP;
-							tag   <= STATE_DONE;
+							tag <= STATE_DONE_WRITE;
 						end else begin
 							cmd_burst_len_l <= cmd_burst_len_l - 1'b1;
 						end
+					end
+				// we're done writing so hang up
+				// (this is needed so we can give STATE_HANGUP a valid tag ... if we used tag==STATE_HANGUP above
+				// it would just endlessly jump to itself
+				STATE_DONE_WRITE:
+					begin
+						state <= STATE_HANGUP;
+						tag   <= STATE_DONE;
 					end
 
 				// done, signal ready, wait for valid to drop (note: you can signal ready in the previous cycle to save time)

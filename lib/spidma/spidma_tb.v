@@ -16,6 +16,8 @@ module spidma_tb();
 	wire [7:0] host_mem_data_in;
 	reg  [7:0] host_mem_data_out;
 	reg  [7:0] host_memory[0:2047];
+	reg  [7:0] shadow_memory[0:2047];
+	reg [11:0] test_target_address;
 	
 	always @(posedge clk) begin
 		if (rst_n) begin
@@ -75,6 +77,7 @@ module spidma_tb();
 
 		for (X = 0; X < 2048; X = X + 1) begin
 			host_memory[X] = 0;
+			shadow_memory[X] = 0;
 		end
 		X = 0;
 		i = 0;
@@ -98,6 +101,7 @@ module spidma_tb();
         test_phase = 1;
         for (X = 0; X < 16; X = X + 1) begin
 			host_memory[X] = X[7:0] + 1'b1;
+			shadow_memory[X] = X[7:0] + 1'b1;
 		end
 		
 		// write host mem [0..3] to spi[0x10..0x13]
@@ -125,6 +129,49 @@ module spidma_tb();
 			if (host_memory['h100 + X] != host_memory[X] || host_memory['h100 + X] != (X[7:0] + 1'b1)) begin
 				$display("Read at %d failed, %x %x", X, host_memory[X], host_memory['h100 + X]);
 				$fatal;
+			end
+		end
+/* verilator lint_off WIDTHTRUNC */		
+		// randomize memory
+		for (X = 0; X < 2048; X = X + 1) begin
+			host_memory[X] = $urandom_range(0,255);
+			shadow_memory[X] = host_memory[X];
+		end
+		
+		// let's do random tests
+		for (X = 0; X < 1000; X = X + 1) begin
+			// pick settings 
+			cmd_host_address = $urandom_range(0,2047);
+			test_target_address = $urandom_range(0,2047);
+			cmd_spi_address  = $urandom_range(0,4095);
+			cmd_burst_len    = $urandom_range(0,15);
+			$display("Test %d: host=%x target=%x spi=%x burst=%d", X, cmd_host_address, test_target_address, cmd_spi_address, cmd_burst_len);
+			
+			// shadow the transfer
+			for (i = 0; i <= cmd_burst_len; i = i + 1) begin
+				shadow_memory[(test_target_address + i[11:0]) % 2048] = host_memory[(cmd_host_address + i[11:0]) % 2048]; // use host memory so we can deal with overlaps
+			end
+			
+			// issue the transfer to spi
+			cmd_value = `spidma_cmd_write;
+			cmd_valid = 1;
+			wait(ready == 1);
+			cmd_valid = 0;
+			wait(ready == 0);
+			
+			// issue transfer to host mem
+			cmd_host_address = test_target_address;
+			cmd_value = `spidma_cmd_read;
+			cmd_valid = 1;
+			wait(ready == 1);
+			cmd_valid = 0;
+			wait(ready == 0);
+			
+			for (i = 0; i < 2048; i = i + 1) begin
+				if (shadow_memory[i[11:0]] != host_memory[i[11:0]]) begin
+					$display("Byte difference at address %x", i);
+					$fatal;
+				end
 			end
 		end
 
