@@ -22,7 +22,7 @@ module spidma #(
 	parameter CMD_RESETEN=8'h66,							// command to enable reset
 	parameter CMD_RESET=8'h99,								// command to reset
 	parameter MIN_CPH_NS=50,								// how many ns must CS be high between commands (23LC's have a min time of mostly nothing)
-	parameter MIN_WAKEUP_NS=150_000							// how many ns to wait for it to wakeup after POR
+	parameter MIN_WAKEUP_NS=150_000,						// how many ns to wait for it to wakeup after POR
 	parameter SPI_TIMER_BITS=4,								// divide clock by X for SPI operations
 	parameter QPI_TIMER_BITS=1,								// divide clock by X for QPI operations
 	parameter PSRAM_RESET=1									// do you need to send 66 99 to reset required by PSRAM chips?
@@ -311,7 +311,7 @@ no waiting.
 							send_cmd_addr_cycle <= 0;
 							if (DUMMY_CYCLES == 0) begin
 								// with DUMMY_CYCLES==0 we signal cnt==1 to prime the initial read
-								dummy_cnt       <= 1'b1;
+								dummy_cnt       <= 1;
 							end else begin
 								dummy_cnt       <= DUMMY_CYCLES + DUMMY_CYCLES;			// x2 because a cycle is both SCK LOW and HIGH phases...
 							end
@@ -360,11 +360,11 @@ no waiting.
 										tag   <= STATE_DONE;
 										state <= STATE_HANGUP;
 									end
-							end
+							endcase
 						end else begin
 							// send parts of the address
 							temp_wire_bits <= cmd_psram_address_l[SRAM_ADDR_WIDTH-(8*send_cmd_addr_cycle) +: 8];
-							if (send_cmd_addr_cycle == (SRAM_ADDR_WIDTH/8)) begin
+							if (send_cmd_addr_cycle == {(SRAM_ADDR_WIDTH/8'd8)}[2:0]) begin
 								// last byte of address we tag out to READ/WRITE/etc operations instead of coming back here
 								case(cmd_value)
 									`spidma_cmd_read:  tag <= STATE_START_READ;
@@ -388,10 +388,10 @@ no waiting.
 					begin
 						if (DUMMY_CYCLES == 0 && dummy_cnt == 1) begin
 							// this is the state we get into when there's no dummy wait cycles but we need to prime temp_wire_bits...
-							dummy_cnt <= 1'b0;
+							dummy_cnt <= 0;
 							state     <= STATE_QPI_RECV_2;
 							tag       <= state;
-						end else if (dummy_cnt) begin
+						end else if (dummy_cnt > 0) begin
 							// waiting for dummy cycles
 							if (sck_timer == 0) begin
 								dummy_cnt  <= dummy_cnt - 1'b1;
