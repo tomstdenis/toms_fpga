@@ -252,7 +252,7 @@ module spidma #(
 									sio_dout <= temp_wire_bits[7:4];
 `ifdef SIM_MODEL
 									if (sim_wr_en) begin
-										sim_memory[sim_address + bit_cnt[0]] <= temp_wire_bits[7:4];
+										sim_memory[sim_address + bit_cnt[0]] <= temp_wire_bits[7:4] & sio_en;
 									end
 `endif
 
@@ -301,7 +301,7 @@ module spidma #(
 										sck_timer      <= QPI_TIMER_BITS;
 										sck_pin        <= ~sck_pin;
 `ifdef SIM_MODEL
-										temp_wire_bits <= {temp_wire_bits[3:0], sim_memory[sim_address + bit_cnt[0]]};
+										temp_wire_bits <= {temp_wire_bits[3:0], sim_memory[sim_address + bit_cnt[0]] & ~sio_en};
 `else
 										temp_wire_bits <= {temp_wire_bits[3:0], sio_din};
 `endif
@@ -432,9 +432,11 @@ module spidma #(
 				*/
 				STATE_START_READ:
 					begin
+						sio_dout <= 4'b0000;	// ensure SIO[3:0] is 0 during any dummy cycles
 						if (DUMMY_CYCLES == 0 && dummy_cnt == 1) begin
 							// this is the state we get into when there's no dummy wait cycles but we need to prime temp_wire_bits...
 							dummy_cnt <= 0;
+							sio_en    <= 4'b0000;
 							state     <= STATE_QPI_RECV_2;
 							tag       <= state;
 						end else if (dummy_cnt > 0) begin
@@ -445,8 +447,9 @@ module spidma #(
 								sck_timer  <= QPI_TIMER_BITS;
 								if (dummy_cnt == 1) begin
 									// issue first QPI read
-									state <= STATE_QPI_RECV_2;
-									tag   <= state;
+									sio_en    <= 4'b0000;
+									state     <= STATE_QPI_RECV_2;
+									tag       <= state;
 								end
 							end else begin
 								sck_timer  <= sck_timer - 1'b1;
