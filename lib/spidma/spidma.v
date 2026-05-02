@@ -1,31 +1,31 @@
 `timescale 1ns/1ps
 `default_nettype none
 
-// cmd_read == read from SPI memory
-// cmd_write == write to SPI memory
+// cmd_read == read from SPI memory, write to host memory
+// cmd_write == write to SPI memory, read from host memory
 `define spidma_cmd_read 4'h0
 `define spidma_cmd_write 4'h1
 
 module spidma #(
 	// Timing
-	parameter CLK_FREQ_MHZ=27,								// system clock frequency (required for walltime requirements)
+	parameter CLK_FREQ_MHZ    = 27,							// system clock frequency (required for walltime requirements)
 	
 	// Host Side Memory
-	parameter HOST_MEM_ADDR=11,								// default to typical 2048x8 memories common to most 18kBit DPRAM blocks
+	parameter HOST_MEM_ADDR   = 11,							// default to typical 2048x8 memories common to most 18kBit DPRAM blocks
 
 	// MEMORY default configuration for a typical 8-pin SPI PSRAM
-	parameter SRAM_ADDR_WIDTH=16,							// how many bits does the address have (e.g. 16 or 24)
-	parameter DUMMY_CYCLES=6,								// how many dummy reads are required before the first byte is valid
-	parameter CMD_READ=8'hEB,								// command to read 
-	parameter CMD_WRITE=8'h38,								// command to write
-	parameter CMD_EQIO=8'h35,								// command to enter quad IO mode
-	parameter CMD_RESETEN=8'h66,							// command to enable reset
-	parameter CMD_RESET=8'h99,								// command to reset
-	parameter MIN_CPH_NS=50,								// how many ns must CS be high between commands (23LC's have a min time of mostly nothing)
-	parameter MIN_WAKEUP_NS=150_000,						// how many ns to wait for it to wakeup after POR
-	parameter SPI_TIMER_BITS=4,								// divide clock by X for SPI operations
-	parameter QPI_TIMER_BITS=1,								// divide clock by X for QPI operations
-	parameter PSRAM_RESET=1									// do you need to send 66 99 to reset required by PSRAM chips?
+	parameter SRAM_ADDR_WIDTH = 24,							// how many bits does the address have (e.g. 16 or 24)
+	parameter DUMMY_CYCLES    = 6,							// how many dummy reads are required before the first byte is valid
+	parameter CMD_READ        = 8'hEB,						// command to read 
+	parameter CMD_WRITE       = 8'h38,						// command to write
+	parameter CMD_EQIO        = 8'h35,						// command to enter quad IO mode
+	parameter CMD_RESETEN     = 8'h66,						// command to enable reset
+	parameter CMD_RESET       = 8'h99,						// command to reset
+	parameter MIN_CPH_NS      = 50,							// how many ns must CS be high between commands (23LC's have a min time of mostly nothing)
+	parameter MIN_WAKEUP_NS   = 150_000,					// how many ns to wait for it to wakeup after POR
+	parameter SPI_TIMER_BITS  = 4,							// divide clock by X for SPI operations
+	parameter QPI_TIMER_BITS  = 1,							// divide clock by X for QPI operations
+	parameter PSRAM_RESET     = 1							// do you need to send 66 99 to reset required by PSRAM chips?
 )(
 	input wire clk,											// clock
 	input wire rst_n,										// active low reset
@@ -55,7 +55,7 @@ module spidma #(
 );
 `ifdef SIM_MODEL
 	reg [3:0] sim_memory[(1<<(SRAM_ADDR_WIDTH+1))-1:0];		// 4-bit memory to store QPI data only
-	reg [16:0] sim_address;									// byte address (we use bit_cnt to select the nibble)
+	reg [SRAM_ADDR_WIDTH:0] sim_address;					// byte address (we use bit_cnt to select the nibble)
 	reg sim_wr_en;											// are writes enabled at this point? (skip over cmd/address)
 `endif
 
