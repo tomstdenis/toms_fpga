@@ -1,12 +1,8 @@
 `timescale 1ns/1ps
 `default_nettype none
 
-			// PSRAM configuration (Some chips allow 1 Tclk between CS low but ESP-PSRAM requires 50ns)
-            .DATA_WIDTH(DATA_WIDTH), .CLK_FREQ_MHZ(`FREQ), .SRAM_ADDR_WIDTH(SRAM_ADDR_WIDTH),
-            .DUMMY_BYTES(3), .CMD_READ(8'hEB), .CMD_WRITE(8'h38), .CMD_EQIO(8'h35),
-            .MIN_CPH_NS(50), .SPI_TIMER_BITS(4), .QPI_TIMER_BITS(1), .MIN_WAKEUP_NS(150_000),
-            .PSRAM_RESET(1), .CMD_RESETEN(8'h66), .CMD_RESET(8'h99)
-
+`define spidma_cmd_read 4'h0
+`define spidma_cmd_write 4'h1
 
 module spidma #(
 	// Timing
@@ -17,7 +13,7 @@ module spidma #(
 
 	// MEMORY default configuration for a typical 8-pin SPI PSRAM
 	parameter SRAM_ADDR_WIDTH=16,							// how many bits does the address have (e.g. 16 or 24)
-	parameter DUMMY_BYTES=3,								// how many dummy reads are required before the first byte is valid
+	parameter DUMMY_CYCLES=6,								// how many dummy reads are required before the first byte is valid
 	parameter CMD_READ=8'hEB,								// command to read 
 	parameter CMD_WRITE=8'h38,								// command to write
 	parameter CMD_EQIO=8'h35,								// command to enter quad IO mode
@@ -25,8 +21,8 @@ module spidma #(
 	parameter CMD_RESET=8'h99,								// command to reset
 	parameter MIN_CPH_NS=50,								// how many ns must CS be high between commands (23LC's have a min time of mostly nothing)
 	parameter MIN_WAKEUP_NS=150_000							// how many ns to wait for it to wakeup after POR
-	parameter SPI_TIMER_BITS=4,								// divide clock by 16 for SPI operations
-	parameter QPI_TIMER_BITS=1,								// divide clock by 2 for QPI operations
+	parameter SPI_TIMER_BITS=4,								// divide clock by X for SPI operations
+	parameter QPI_TIMER_BITS=1,								// divide clock by X for QPI operations
 	parameter PSRAM_RESET=1									// do you need to send 66 99 to reset required by PSRAM chips?
 )(
 	input wire clk,											// clock
@@ -42,8 +38,8 @@ module spidma #(
 	input  wire [7:0] host_mem_data_out;					// data read from host mem
 	
 	// Command data
-	input wire cmd_write,									// active high we're doing a write
-	input wire cmd_read,									// active high we're doing a read
+	input wire [3:0] cmd_value,								// what command to run (read, write, ...)
+	input wire cmd_valid,									// active high when all cmd signals are valid
 	input wire [SRAM_ADDR_WIDTH-1:0] cmd_psram_address,		// address to read/write from the SPI device
 	input wire [HOST_MEM_ADDR-1:0] cmd_host_address,		// address to write/read from the host memory
 	input wire [5:0] cmd_burst_len,							// how many bytes to read (1..64)
@@ -171,6 +167,7 @@ no waiting.
 						tag				<= STATE_IDLE;
 					end
 
+				// input: sck_timer set to the count required 
 				STATE_SPI_SEND_8:										// send 8 bits in temp_spi_bits (sio_en[0] = 1, bit_cnt = 8)	
 					begin
 						cs_pin <= 1'b0;									// default CS low 
