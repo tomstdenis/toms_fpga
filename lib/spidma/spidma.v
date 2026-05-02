@@ -44,43 +44,42 @@ module spidma #(
 	input wire cmd_valid,									// active high when all cmd signals are valid
 	input wire [SRAM_ADDR_WIDTH-1:0] cmd_spi_address,		// address to read/write from the SPI device
 	input wire [HOST_MEM_ADDR-1:0] cmd_host_address,		// address to write/read from the host memory
-	input wire [5:0] cmd_burst_len,							// how many bytes to read (1..64)
+	input wire [7:0] cmd_burst_len,							// how many bytes to read (1..256)
 
 	// I/O
 	input wire [3:0] sio_din,
 	output reg [3:0] sio_dout,
 	output reg [3:0] sio_en,
-	output reg cs_pin,											// active low CS pin
-	output reg sck_pin											// SPI clock
+	output reg cs_pin,										// active low CS pin
+	output reg sck_pin										// SPI clock
 );
 `ifdef SIM_MODEL
-	reg [3:0] sim_memory[(1<<(SRAM_ADDR_WIDTH+1))-1:0];
-	reg [15:0] sim_address;
-	reg [7:0] sim_dummy;
+	reg [3:0] sim_memory[(1<<(SRAM_ADDR_WIDTH+1))-1:0];		// 4-bit memory to store QPI data only
+	reg [16:0] sim_address;									// byte address (we use bit_cnt to select the nibble)
+	reg sim_wr_en;											// are writes enabled at this point? (skip over cmd/address)
 `endif
 
-// TODO: handle assign sck_pin
-
+	// fsm related
 	reg [3:0] state;										// What state is our FSM in
 	reg [3:0] tag;
+	reg [2:0] send_cmd_addr_cycle;							// counter to tell which step of sending CMD + ADDR we're on
+	reg [3:0] dummy_cnt;									// how many dummy cycles to waste
+
+	// transfer related
 	reg [3:0] bit_cnt;										// bit counter a variety of FSM states
 	reg [3:0] sck_timer;									// timer used to know when to change phase
+	reg [7:0] temp_wire_bits;
 	
-
+	// hangup/wakeup related
 	reg [20:0] hangup_timer;
 	wire [20:0] hangup_bauddiv = ((CLK_FREQ_MHZ * MIN_CPH_NS + 999) / 1000);
 	wire [20:0] wakeup_bauddiv = ((CLK_FREQ_MHZ * MIN_WAKEUP_NS + 999) / 1000);
-	reg [7:0] temp_wire_bits;
 	
 	// Command data
 	reg [3:0] cmd_value_l;								// what command to run (read, write, ...)
 	reg [SRAM_ADDR_WIDTH-1:0] cmd_spi_address_l;		// address to read/write from the SPI device
 	reg [HOST_MEM_ADDR-1:0] cmd_host_address_l;			// address to write/read from the host memory
-	reg [5:0] cmd_burst_len_l;							// how many bytes to read (1..64)
-
-	// FSM data
-	reg [2:0] send_cmd_addr_cycle;						// counter to tell which step of sending CMD + ADDR we're on
-	reg [3:0] dummy_cnt;								// how many dummy cycles to waste
+	reg [7:0] cmd_burst_len_l;							// how many bytes to read (1..256)
 	
 	localparam
 		STATE_INIT					= 0,													// Initialize the SPI memory by putting into a quad-io mode
@@ -210,6 +209,12 @@ module spidma #(
 							1'b0:														// shift data out during SCK low phase
 								begin
 									sio_dout <= temp_wire_bits[7:4];
+`ifdef SIM_MODEL
+									if (sim_wr_en) begin
+										sim_memory[sim_address + bit_cnt[0]] <= temp_wire_bits[7:4];
+									end
+`endif
+
 									if (sck_timer == 0) begin
 										sck_timer      <= QPI_TIMER_BITS;
 										sck_pin        <= ~sck_pin;
@@ -227,6 +232,11 @@ module spidma #(
 										if (bit_cnt == 0) begin
 											bit_cnt <= 1;
 											state   <= tag;
+`ifdef SIM_MODEL
+											if (sim_wr_en) begin
+												sim_address <= sim_address + 2;
+											end
+`endif
 										end
 									end else begin
 										sck_timer <= sck_timer - 1'b1;
@@ -249,7 +259,11 @@ module spidma #(
 									if (sck_timer == 0) begin
 										sck_timer      <= QPI_TIMER_BITS;
 										sck_pin        <= ~sck_pin;
+`ifdef SIM_MODEL
+										temp_wire_bits <= {temp_wire_bits[3:0], sim_memory[sim_address + bit_cnt[0]]};
+`else
 										temp_wire_bits <= {temp_wire_bits[3:0], sio_din};
+`endif
 									end else begin
 										sck_timer      <= sck_timer - 1'b1;
 									end
@@ -263,6 +277,9 @@ module spidma #(
 										if (bit_cnt == 0) begin
 											bit_cnt <= 1;
 											state   <= tag;
+`ifdef SIM_MODEL
+											sim_address <= sim_address + 2;
+`endif
 										end
 									end else begin
 										sck_timer <= sck_timer - 1'b1;
@@ -292,6 +309,11 @@ module spidma #(
 							end else begin
 								dummy_cnt       <= DUMMY_CYCLES + DUMMY_CYCLES;			// x2 because a cycle is both SCK LOW and HIGH phases...
 							end
+
+`ifdef SIM_MODEL
+							sim_address <= cmd_spi_address << 1;
+							sim_wr_en   <= 1'b0;
+`endif
 					
 							// branch to the next state
 							case(cmd_value)
@@ -406,6 +428,9 @@ module spidma #(
 				*/
 				STATE_START_WRITE:
 					begin
+`ifdef SIM_MODEL
+						sim_wr_en      <= 1'b1;							// at this point any SEND_2's are going to memory
+`endif
 						temp_wire_bits <= host_mem_data_out;
 						state		   <= STATE_QPI_SEND_2;
 						tag			   <= state;
