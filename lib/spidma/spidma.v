@@ -171,6 +171,7 @@ module spidma #(
 				STATE_SEND_RESET:										// Send 0x99 RESET 
 					begin
 						temp_wire_bits	<= CMD_RESET;
+						bit_cnt			<= 7;
 						state			<= STATE_SPI_SHIFT_8;
 						tag				<= STATE_SEND_RESET_DONE;
 						sio_en			<= 4'b0001;						// enable MOSI output pin SIO[0]
@@ -185,6 +186,8 @@ module spidma #(
 					begin
                         // sticking some STATE_INIT initializations here.
                         temp_wire_bits	<= CMD_EQIO;					// Send "enter quad mode IO" command
+						bit_cnt			<= 7;
+						sck_timer		<= SPI_TIMER_BITS;
 						state			<= STATE_SPI_SHIFT_8;			// Use single bit SEND state
 						tag				<= STATE_EQIO_DONE;
 						sio_en			<= 4'b0001;						// enable MOSI output pin SIO[0]
@@ -277,6 +280,7 @@ module spidma #(
 							1'b1:														// hold stable during the SCK high phase
 								begin
 									if (sck_timer == 0) begin
+										sio_dout  <= temp_wire_bits[7:4];
 										bit_cnt	  <= bit_cnt - 1'b1;
 										sck_pin   <= ~sck_pin;
 										sck_timer <= QPI_TIMER_BITS;
@@ -362,7 +366,7 @@ module spidma #(
 								// with DUMMY_CYCLES==0 we signal cnt==1 to prime the initial read
 								dummy_cnt       <= 1;
 							end else begin
-								dummy_cnt       <= DUMMY_CYCLES + DUMMY_CYCLES;			// x2 because a cycle is both SCK LOW and HIGH phases...
+								dummy_cnt       <= DUMMY_CYCLES + DUMMY_CYCLES;
 							end
 
 `ifdef SIM_MODEL
@@ -404,11 +408,13 @@ module spidma #(
 							case (cmd_value)
 								`spidma_cmd_read:  
 									begin
+										sio_dout	   <= CMD_READ[7:4];
 										temp_wire_bits <= CMD_READ;
 										host_mem_addr  <= host_mem_addr - 1'b1;			// subtract one so we can have a simpler loop in READ loop
 									end
 								`spidma_cmd_write: 
 									begin
+										sio_dout	   <= CMD_WRITE[7:4];
 										temp_wire_bits <= CMD_WRITE;
 									end
 								default:
@@ -421,6 +427,7 @@ module spidma #(
 						end else begin
 							// send parts of the address
 							temp_wire_bits <= cmd_spi_address_l[SRAM_ADDR_WIDTH-(8*send_cmd_addr_cycle) +: 8];
+							sio_dout <= cmd_spi_address_l[SRAM_ADDR_WIDTH-(8*send_cmd_addr_cycle) + 4 +: 4];
 /* verilator lint_off WIDTHEXPAND */
 							if (send_cmd_addr_cycle == SRAM_ADDR_WIDTH/8) begin
 /* verilator lint_on WIDTHEXPAND */
@@ -495,6 +502,7 @@ module spidma #(
 						sim_wr_en      <= 1'b1;							// at this point any SEND_2's are going to memory
 `endif
 						temp_wire_bits <= host_mem_data_out;
+						sio_dout	   <= host_mem_data_out[7:4];
 						state		   <= STATE_QPI_SEND_2;
 						tag			   <= state;
 						host_mem_addr  <= host_mem_addr + 1'b1;

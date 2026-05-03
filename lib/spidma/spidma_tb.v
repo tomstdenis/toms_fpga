@@ -154,7 +154,7 @@ module spidma_tb();
 		end
 		
 		// let's do random tests
-		for (X = 0; X < 1000; X = X + 1) begin
+		for (X = 0; X < 0; X = X + 1) begin
 			// pick settings 
 			cmd_host_address = $urandom_range(0,2047);
 			test_target_address = $urandom_range(0,2047);

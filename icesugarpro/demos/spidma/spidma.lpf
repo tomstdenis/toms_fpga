@@ -1,0 +1,37 @@
+LOCATE      COMP "clk"    SITE "P3";
+IOBUF       PORT "clk"    IO_TYPE=LVCMOS33;
+FREQUENCY   PORT "clk"    25 MHZ;
+
+LOCATE      COMP "uart_rx"       SITE "H18";   // iCELink-UART3-RX
+IOBUF       PORT "uart_rx"       PULLMODE=UP IO_TYPE=LVCMOS33;
+
+LOCATE      COMP "uart_tx"       SITE "J17";
+IOBUF       PORT "uart_tx"       IO_TYPE=LVCMOS33;
+
+// FROM GND (near the middle of P3) to the edge of the board (corner of P3/P4)
+// TOP: 3V3 GND E3 C2 C1 D1
+// BOT: 3V3 GND A3 B1 D2 E2
+
+// alt location
+// FROM GND (P3 next to the DVI header)
+// TOP: 3V3 GND F20 B20 B18 C17
+// BOT: 3V3 GND D20 B19 A19 A18
+
+// SIO[3:0] is on the bottom with SIO[0] next to GND
+LOCATE		COMP "sio[0]"		SITE "A3";
+IOBUF		PORT "sio[0]"		PULLMODE=UP IO_TYPE=LVCMOS33 DRIVE=4 SLEWRATE=FAST;
+LOCATE		COMP "sio[1]"		SITE "B1";
+IOBUF		PORT "sio[1]"		PULLMODE=UP IO_TYPE=LVCMOS33 DRIVE=4 SLEWRATE=FAST;
+LOCATE		COMP "sio[2]"		SITE "D2";
+IOBUF		PORT "sio[2]"		PULLMODE=UP IO_TYPE=LVCMOS33 DRIVE=4 SLEWRATE=FAST;
+LOCATE		COMP "sio[3]"		SITE "E2";
+IOBUF		PORT "sio[3]"		PULLMODE=UP IO_TYPE=LVCMOS33 DRIVE=4 SLEWRATE=FAST;
+
+// SCK is on top next to GND
+LOCATE		COMP "sck"		 	SITE "E3";
+IOBUF		PORT "sck"			PULLMODE=DOWN IO_TYPE=LVCMOS33 DRIVE=8 SLEWRATE=FAST;
+
+// CS is on top next to SCK
+LOCATE		COMP "cs"			SITE "C2";
+IOBUF		PORT "cs"		 	PULLMODE=UP IO_TYPE=LVCMOS33;
+
