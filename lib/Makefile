@@ -1,4 +1,5 @@
 all:
+	make -C spidma
 	make -C math
 	make -C vga
 	make -C ib16
@@ -11,6 +12,7 @@ all:
 	make -C timer
 
 clean:
+	make -C spidma clean
 	make -C math clean
 	make -C vga clean
 	make -C ib16 clean
