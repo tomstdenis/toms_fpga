@@ -1,0 +1,20 @@
+<?xml version="1" encoding="UTF-8"?>
+<!DOCTYPE gowin-fpga-project>
+<Project>
+    <Template>FPGA</Template>
+    <Version>5</Version>
+    <Device name="GW5A-25A" pn="GW5A-LV25MG121NC1/I0">gw5a25a-002</Device>
+    <FileList>
+        <File path="/home/tom/nas/toms_fpga/lib/spidma/spidma.v" type="file.verilog" enable="1"/>
+        <File path="/home/tom/nas/toms_fpga/lib/uart/blocks/rx_uart.v" type="file.verilog" enable="1"/>
+        <File path="/home/tom/nas/toms_fpga/lib/uart/blocks/tx_uart.v" type="file.verilog" enable="1"/>
+        <File path="/home/tom/nas/toms_fpga/lib/uart/blocks/uart.v" type="file.verilog" enable="1"/>
+        <File path="src/gowin_dpb/gowin_dpb.v" type="file.verilog" enable="1"/>
+        <File path="src/gowin_pll/gowin_pll.v" type="file.verilog" enable="1"/>
+        <File path="src/gowin_pll/gowin_pll_mod.v" type="file.verilog" enable="1"/>
+        <File path="src/pll_init.v" type="file.verilog" enable="1"/>
+        <File path="src/spidma.v" type="file.verilog" enable="1"/>
+        <File path="src/spidma.cst" type="file.cst" enable="1"/>
+        <File path="src/spidma.sdc" type="file.sdc" enable="1"/>
+    </FileList>
+</Project>
