@@ -28,7 +28,7 @@ module top(input wire clk, inout wire [3:0] sio, output wire cs, output wire sck
     end
 
     // *** UART ***
-	wire [15:0] uart_bauddiv = FREQ * 1_000_000 / 1_000_000;
+	wire [15:0] uart_bauddiv = (FREQ * 1_000_000) / 115_200;
     reg uart_tx_start;
     reg [7:0] uart_tx_data_in;
     wire uart_tx_fifo_full;
@@ -37,7 +37,7 @@ module top(input wire clk, inout wire [3:0] sio, output wire cs, output wire sck
     wire uart_rx_ready;
     wire [7:0] uart_rx_byte;
 
-    uart mrtalky(
+    uart #(.FIFO_DEPTH(2), .RX_ENABLE(1), .TX_ENABLE(1)) mrtalky(
         .clk(pll_clk), .rst_n(rst_n), .baud_div(uart_bauddiv),
         .uart_tx_start(uart_tx_start), .uart_tx_pin(uart_tx),
         .uart_tx_data_in(uart_tx_data_in), .uart_tx_fifo_empty(uart_tx_fifo_empty),
@@ -179,6 +179,8 @@ module top(input wire clk, inout wire [3:0] sio, output wire cs, output wire sck
         FSM_STOP        = 12,
         FSM_DELAY_1C    = 13,
         FSM_DELAY_READY = 14;
+    
+    wire lfsr_tap = ~(test_LFSR[31] ^ test_LFSR[21] ^ test_LFSR[1] ^ test_LFSR[0]);
 
     always @(posedge pll_clk) begin
         if (!rst_n) begin
@@ -198,12 +200,13 @@ module top(input wire clk, inout wire [3:0] sio, output wire cs, output wire sck
             test_host_mem_target    <= 0;
             test_burst_len          <= 0;
             test_X                  <= 0;
+            test_Y                  <= 0;
             test_LFSR               <= 32'hDEADF001; 
             fsm_state               <= FSM_INIT;
             fsm_tag                 <= 0;
         end else begin
-            // I.O.U step the LSFR 1 bit
-            test_LFSR <= (test_LFSR >> 1); //  ^ (...);
+            // step LFSR
+            test_LFSR <= {test_LFSR[30:0], lfsr_tap};
 
             // fsm
             case(fsm_state)
@@ -247,23 +250,27 @@ module top(input wire clk, inout wire [3:0] sio, output wire cs, output wire sck
                     begin
                         spidma_cmd_value <= `spidma_eqio;
                         spidma_cmd_valid <= 1'b1;
-                        fsm_tag          <= FSM_ISSUE_EQIO;
+                        fsm_tag          <= FSM_START_TEST;
                         fsm_state        <= FSM_DELAY_READY;
                     end
 
                 FSM_START_TEST:                                 // we choose our test parameters here
                     begin
-                        test_host_mem_src    <= test_LFSR[9:0];
-                        test_spi_mem_target  <= test_LFSR[19:10];
-                        test_burst_len       <= test_LFSR[24:20];
-                        test_host_mem_target <= 1024 + (test_LFSR[9:0] ^ test_LFSR[19:10]); // host_mem_src ^ spi_mem_target
-                        test_X               <= 0;
-                        test_Y               <= 0;
-                        fsm_state            <= FSM_ISSUE_WRITE;
+						if (uart_rx_ready) begin
+							uart_rx_read <= 1;
+							test_host_mem_src    <= test_LFSR[9:0];
+							test_spi_mem_target  <= test_LFSR[19:10];
+							test_burst_len       <= test_LFSR[24:20];
+							test_host_mem_target <= 1024 + (test_LFSR[9:0] ^ test_LFSR[19:10]); // host_mem_src ^ spi_mem_target
+							test_X               <= 0;
+							test_Y               <= 0;
+							fsm_state            <= FSM_ISSUE_WRITE;
+						end
                     end
 
                 FSM_ISSUE_WRITE:                                // issue write to spi command
                     begin
+						uart_rx_read			<= 0;
                         spidma_cmd_burst_len    <= test_burst_len;
                         spidma_cmd_value        <= `spidma_cmd_write;
                         spidma_cmd_host_address <= test_host_mem_src;
@@ -295,14 +302,14 @@ module top(input wire clk, inout wire [3:0] sio, output wire cs, output wire sck
                     begin
                         test_Y                  <= host_mem_data_out;                   // save first read
                         host_mem_addr           <= test_host_mem_target + test_X;       // read from top 1K
+//                        host_mem_addr           <= test_host_mem_src + test_X;        // <<< JUST TESTING THE FSM!!!
                         fsm_tag                 <= FSM_COMPARE;
                         fsm_state               <= FSM_DELAY_1C;
-                        test_X                  <= test_X + 1;
                     end
 
                 FSM_COMPARE:                                    // 
                     begin
-                        if (test_X != host_mem_data_out) begin
+                        if (test_Y != host_mem_data_out) begin
                             fsm_state <= FSM_BAD;
                         end else begin
                             fsm_state <= FSM_GOOD;
@@ -311,29 +318,30 @@ module top(input wire clk, inout wire [3:0] sio, output wire cs, output wire sck
 
                 FSM_GOOD:                                       // echo 1 and go back to TOP or START_TEST
                     begin
-                        uart_tx_data_in <= 8'h31;               // '1'
-                        uart_tx_start   <= 1;
-                        if (test_X == 1024) begin
-                            fsm_tag <= FSM_START_TEST;
+                        if (test_X >= test_burst_len) begin
+                            if (!uart_tx_fifo_full) begin
+                                uart_tx_data_in <= 8'h31;               // '1'
+                                uart_tx_start   <= 1;
+                                fsm_tag         <= FSM_START_TEST;
+                                fsm_state       <= FSM_DELAY_1C;
+                            end
                         end else begin
-                            fsm_tag <= FSM_COMPARE_TOP;
+                            test_X              <= test_X + 1;
+                            fsm_state           <= FSM_COMPARE_TOP;
                         end
-                        fsm_state <= FSM_DELAY_1C;
                     end
 
                 FSM_BAD:                                        // echo 2 and then stop
                     begin
-                        uart_tx_data_in <= 8'h32;               // '2'
-                        uart_tx_start   <= 1;
-                        fsm_tag <= FSM_STOP;
-                        fsm_state <= FSM_DELAY_1C;
+                        if (!uart_tx_fifo_full) begin
+                            uart_tx_data_in <= 8'h32;               // '2'
+                            uart_tx_start   <= 1;
+                            fsm_tag         <= FSM_START_TEST;
+                            fsm_state       <= FSM_DELAY_1C;
+                        end
                     end
 
-                FSM_STOP:                                       // never ending loop to halt the FSM
-                    begin
-                    end
-
-                default: begin end
+                default: begin fsm_state <= FSM_INIT; end
             endcase
         end
     end
