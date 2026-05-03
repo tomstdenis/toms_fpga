@@ -144,7 +144,7 @@ module spidma_tb();
 			cmd_host_address = $urandom_range(0,2047);
 			test_target_address = $urandom_range(0,2047);
 			cmd_spi_address  = $urandom_range(0,4095);
-			cmd_burst_len    = $urandom_range(0,15);
+			cmd_burst_len    = $urandom_range(0,31);
 			$display("Test %d: host=%x target=%x spi=%x burst=%d", X, cmd_host_address, test_target_address, cmd_spi_address, cmd_burst_len);
 			
 			// shadow the transfer

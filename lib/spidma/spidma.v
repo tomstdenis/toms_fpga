@@ -36,6 +36,8 @@ Likely target to not go full on mad:
 
 */
 
+// writes take 7 + DUMMY_CYCLES + (1 + SRAM_ADDR_WIDTH/8 + BURST_LEN + 1) * (2 * (1 + QPI_TIMER_BITS) + 1) cycles
+// reads take 7 + (1 + SRAM_ADDR_WIDTH/8 + BURST_LEN + 1) * (2 * (1 + QPI_TIMER_BITS) + 1) cycles
 
 // cmd_read == read from SPI memory, write to host memory
 // cmd_write == write to SPI memory, read from host memory
