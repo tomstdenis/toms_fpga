@@ -46,7 +46,7 @@ module spidma_tb();
 		.CMD_READ(8'hEB),
 		.CMD_WRITE(8'h38), .CMD_EQIO(8'h35), .MIN_CPH_NS(50),
 		.SPI_TIMER_BITS(2), .QPI_TIMER_BITS(0),
-		.MIN_WAKEUP_NS(150000), .PSRAM_RESET(1), .CMD_RESETEN(8'h66), .CMD_RESET(8'h99)) spud(
+		.MIN_WAKEUP_NS(150000), .CMD_RESETEN(8'h66), .CMD_RESET(8'h99)) spud(
 			.clk(clk), .rst_n(rst_n),
 
 			.ready(ready),
@@ -103,6 +103,21 @@ module spidma_tb();
 			host_memory[X] = X[7:0] + 1'b1;
 			shadow_memory[X] = X[7:0] + 1'b1;
 		end
+		
+		// issue reset
+		cmd_value = `spidma_reset;
+		cmd_valid = 1;
+		wait(ready == 1);
+		cmd_valid = 0;
+		wait(ready == 0);
+		
+		// issue EQIO
+		cmd_value = `spidma_eqio;
+		cmd_valid = 1;
+		wait(ready == 1);
+		cmd_valid = 0;
+		wait(ready == 0);
+		
 		
 		// write host mem [0..3] to spi[0x10..0x13]
 		cmd_value = `spidma_cmd_write;

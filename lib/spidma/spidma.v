@@ -29,10 +29,17 @@ Reads take 7 + (1 + SRAM_ADDR_WIDTH/8 + BURST_LEN + 1) * (2 * (1 + QPI_TIMER_BIT
 `timescale 1ns/1ps
 `default_nettype none
 
+
+// perform reset
+`define spidma_reset     4'h0
+// enter quad mode I/O
+`define spidma_eqio      4'h1
+// leave quad mode I/o
+`define spidma_qmex		 4'h2
 // cmd_read == read from SPI memory, write to host memory
+`define spidma_cmd_read  4'h3
 // cmd_write == write to SPI memory, read from host memory
-`define spidma_cmd_read 4'h0
-`define spidma_cmd_write 4'h1
+`define spidma_cmd_write 4'h4
 
 module spidma #(
 	// Timing
@@ -47,13 +54,13 @@ module spidma #(
 	parameter CMD_READ        = 8'hEB,						// command to read 
 	parameter CMD_WRITE       = 8'h38,						// command to write
 	parameter CMD_EQIO        = 8'h35,						// command to enter quad IO mode
+	parameter CMD_QMEX        = 8'hF5,						// command to exit quad mod IO
 	parameter CMD_RESETEN     = 8'h66,						// command to enable reset
 	parameter CMD_RESET       = 8'h99,						// command to reset
 	parameter MIN_CPH_NS      = 50,							// how many ns must CS be high between commands (23LC's have a min time of mostly nothing)
 	parameter MIN_WAKEUP_NS   = 150_000,					// how many ns to wait for it to wakeup after POR
-	parameter SPI_TIMER_BITS  = 4,							// divide clock by X for SPI operations
-	parameter QPI_TIMER_BITS  = 1,							// divide clock by X for QPI operations
-	parameter PSRAM_RESET     = 1							// do you need to send 66 99 to reset required by PSRAM chips?
+	parameter SPI_TIMER_BITS  = 3,							// divide clock by X for SPI operations
+	parameter QPI_TIMER_BITS  = 0							// divide clock by X for QPI operations
 )(
 	input wire clk,											// clock
 	input wire rst_n,										// active low reset
@@ -92,6 +99,7 @@ module spidma #(
 	reg [4:0] tag;
 	reg [2:0] send_cmd_addr_cycle;							// counter to tell which step of sending CMD + ADDR we're on
 	reg [3:0] dummy_cnt;									// how many dummy cycles to waste
+	reg       quad_mode;									// are we in quad mode or spi mode?
 
 	// transfer related
 	reg [3:0] bit_cnt;										// bit counter a variety of FSM states
@@ -110,28 +118,30 @@ module spidma #(
 	reg [7:0] cmd_burst_len_l;							// how many bytes to read (1..256)
 	
 	localparam
-		STATE_INIT					= 0,													// Initialize the SPI memory by putting into a quad-io mode
-		STATE_INIT_DONE				= 1,													
-		STATE_SEND_RESETEN			= 2,													// enable RESET
-		STATE_SEND_RESETEN_DONE		= 3,
-		STATE_SEND_RESET			= 4,													// issue RESET command
-		STATE_SEND_RESET_DONE		= 5,
-		STATE_SPI_SHIFT_8			= 6,													// Send a command in 1-bit SPI mode
-		STATE_QPI_SEND_2			= 7,
-		STATE_QPI_RECV_2			= 8,
-		STATE_IDLE					= 9,													// Idle state waiting for a command
-		STATE_QPI_SEND_CMD_ADDR     = 10,
-		STATE_START_READ			= 11,
-		STATE_START_WRITE			= 12,
-		STATE_DONE_WRITE            = 13,
-		STATE_DONE					= 14,
-		STATE_HANGUP				= 15,													// Hang up SPI bus
-		STATE_HANGUP_WAIT			= 16;													// hold CS high for a count
+		STATE_EQIO					= 0,													// enter quad mode
+		STATE_EQIO_DONE				= 1,													
+		STATE_QMEX					= 2,													// exit quad mode
+		STATE_QMEX_DONE			    = 3,
+		STATE_SEND_RESETEN			= 4,													// enable RESET
+		STATE_SEND_RESETEN_DONE		= 5,
+		STATE_SEND_RESET			= 6,													// issue RESET command
+		STATE_SEND_RESET_DONE		= 7,
+		STATE_SPI_SHIFT_8			= 8,													// Send a command in 1-bit SPI mode
+		STATE_QPI_SEND_2			= 9,
+		STATE_QPI_RECV_2			= 10,
+		STATE_IDLE					= 11,													// Idle state waiting for a command
+		STATE_QPI_SEND_CMD_ADDR     = 12,
+		STATE_START_READ			= 13,
+		STATE_START_WRITE			= 14,
+		STATE_DONE_WRITE            = 15,
+		STATE_DONE					= 16,
+		STATE_HANGUP				= 17,													// Hang up SPI bus
+		STATE_HANGUP_WAIT			= 18;													// hold CS high for a count
 
 	always @(posedge clk) begin
 		if (!rst_n) begin
             state			    <= STATE_HANGUP_WAIT;						// Jump to initial FSM state
-            tag				    <= PSRAM_RESET == 1 ? STATE_SEND_RESETEN : STATE_INIT;
+            tag				    <= STATE_IDLE;
             hangup_timer        <= wakeup_bauddiv;
             sck_timer			<= 0;
             sio_en			    <= 4'b0000;									// disable all outputs
@@ -150,6 +160,7 @@ module spidma #(
             host_mem_wr_en		<= 0;
             host_mem_data_in	<= 0;
             ready				<= 0;
+            quad_mode			<= 0;
 		end else begin
 			case(state)
 				STATE_SEND_RESETEN:										// Send 0x66 RESET ENABLE
@@ -177,21 +188,38 @@ module spidma #(
 				STATE_SEND_RESET_DONE:								    // done sending 0x66 RESET ENABLE, hangup and then issue RESET
 					begin
 						state			<= STATE_HANGUP;
-						tag				<= STATE_INIT;
+						tag				<= STATE_DONE;
 					end
 
-				STATE_INIT:												// send enter Quad I/O command
+				STATE_EQIO:												// send enter Quad I/O command
 					begin
                         // sticking some STATE_INIT initializations here.
                         temp_wire_bits	<= CMD_EQIO;					// Send "enter quad mode IO" command
 						state			<= STATE_SPI_SHIFT_8;			// Use single bit SEND state
-						tag				<= STATE_INIT_DONE;
+						tag				<= STATE_EQIO_DONE;
 						sio_en			<= 4'b0001;						// enable MOSI output pin SIO[0]
 					end
-				STATE_INIT_DONE:
+				STATE_EQIO_DONE:
 					begin
 						state			<= STATE_HANGUP;
-						tag				<= STATE_IDLE;
+						tag				<= STATE_DONE;
+						quad_mode		<= 1;
+					end
+
+				STATE_QMEX:												// send exit quad mode I/O command
+					begin
+						tag            <= STATE_QMEX_DONE;
+						state          <= STATE_QPI_SEND_2;
+						temp_wire_bits <= CMD_QMEX;
+						bit_cnt        <= 1;
+						sck_timer      <= QPI_TIMER_BITS;
+						sio_en		   <= 4'b1111;	
+					end
+				STATE_QMEX_DONE:
+					begin
+						state          <= STATE_HANGUP;
+						tag			   <= STATE_DONE;
+						quad_mode	   <= 0;
 					end
 
 				/* STATE_SPI_SHIFT_8:
@@ -354,6 +382,9 @@ module spidma #(
 					
 							// branch to the next state
 							case(cmd_value)
+								`spidma_reset:     state <= STATE_SEND_RESETEN;
+								`spidma_eqio:      state <= STATE_EQIO;
+								`spidma_qmex:      state <= STATE_QMEX;
 								`spidma_cmd_read:  state <= STATE_QPI_SEND_CMD_ADDR;
 								`spidma_cmd_write: state <= STATE_QPI_SEND_CMD_ADDR;
 								default:
