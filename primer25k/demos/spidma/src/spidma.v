@@ -3,6 +3,10 @@
 Setup to use the right most PMOD header (J4).
 
 */
+
+`include "spidma.vh"
+
+
 module top(input wire clk, inout wire [3:0] sio, output wire cs, output wire sck, input wire uart_rx, output wire uart_tx);
 
 	localparam
@@ -42,34 +46,34 @@ module top(input wire clk, inout wire [3:0] sio, output wire cs, output wire sck
         .uart_rx_byte(uart_rx_byte));
 
     // *** Host Memory ***
-    reg host_memory_wr_en;
-    reg [HOST_MEM_ADDR-1:0] host_memory_addr;
-    reg [7:0] host_memory_data_in;
-    wire [7:0] host_memory_data_out;
+    reg host_mem_wr_en;
+    reg [HOST_MEM_ADDR-1:0] host_mem_addr;
+    reg [7:0] host_mem_data_in;
+    wire [7:0] host_mem_data_out;
 
-    wire spi_memory_wr_en;
-    wire [HOST_MEM_ADDR-1:0] spi_memory_addr;
-    wire [7:0] spi_memory_data_in;
-    wire [7:0] spi_memory_data_out;
+    wire spi_mem_wr_en;
+    wire [HOST_MEM_ADDR-1:0] spi_mem_addr;
+    wire [7:0] spi_mem_data_in;
+    wire [7:0] spi_mem_data_out;
 
     Gowin_DPB host_memory(
         .clka(pll_clk), //input clka
         .ocea(1'b1), //input ocea
         .cea(1'b1), //input cea
         .reseta(~rst_n), //input reseta
-        .wrea(host_memory_wr_en), //input wrea
-        .ada(host_memory_addr), //input [10:0] ada
-        .dina(host_memory_data_in), //input [7:0] dina
-        .douta(host_memory_data_out), //output [7:0] douta
+        .wrea(host_mem_wr_en), //input wrea
+        .ada(host_mem_addr), //input [10:0] ada
+        .dina(host_mem_data_in), //input [7:0] dina
+        .douta(host_mem_data_out), //output [7:0] douta
 
         .clkb(pll_clk), //input clkb
         .oceb(1'b1), //input oceb
         .ceb(1'b1), //input ceb
         .resetb(~rst_n), //input resetb
-        .wreb(spi_memory_wr_en), //input wreb
-        .adb(spi_memory_addr), //input [10:0] adb
-        .dinb(spi_memory_data_in), //input [7:0] dinb
-        .doutb(spi_memory_data_out) //output [7:0] doutb
+        .wreb(spi_mem_wr_en), //input wreb
+        .adb(spi_mem_addr), //input [10:0] adb
+        .dinb(spi_mem_data_in), //input [7:0] dinb
+        .doutb(spi_mem_data_out) //output [7:0] doutb
     );
 
     // *** SPI DMA ***
@@ -97,24 +101,240 @@ module top(input wire clk, inout wire [3:0] sio, output wire cs, output wire sck
     assign sck = sram_sck;
     assign cs = sram_cs;
 
-    spidma #(
-        // PSRAM configuration (Some chips allow 1 Tclk between CS low but ESP-PSRAM requires 50ns)
-        .CLK_FREQ_MHZ(FREQ),
-        .SRAM_ADDR_WIDTH(SRAM_ADDR_WIDTH), .HOST_MEM_ADDR(HOST_MEM_ADDR),
-        .DUMMY_CYCLES(6), 
-        
-        .CMD_READ(8'hEB), .CMD_WRITE(8'h38), .CMD_EQIO(8'h35), .CMD_QMEX(8'hF5),
-        .CMD_RESETEN(8'h66), .CMD_RESET(8'h99),
+    spidma 
+        #(
+            // PSRAM configuration (Some chips allow 1 Tclk between CS low but ESP-PSRAM requires 50ns)
+            .CLK_FREQ_MHZ(FREQ),
+            .SRAM_ADDR_WIDTH(SRAM_ADDR_WIDTH), .HOST_MEM_ADDR(HOST_MEM_ADDR),
+            .DUMMY_CYCLES(6), 
+            
+            .CMD_READ(8'hEB), .CMD_WRITE(8'h38), .CMD_EQIO(8'h35), .CMD_QMEX(8'hF5),
+            .CMD_RESETEN(8'h66), .CMD_RESET(8'h99),
 
-        .MIN_CPH_NS(50), .SPI_TIMER_BITS(3), .QPI_TIMER_BITS(0), .MIN_WAKEUP_NS(150_000)) sdma(
-        .clk(pll_clk), .rst_n(rst_n),
-        .ready(spidma_ready),
-        .host_mem_addr(spi_memory_addr), .host_mem_wr_en(spi_memory_wr_en),
-        .host_mem_data_in(spi_memory_data_in), .host_mem_data_out(spi_memory_data_out),
-        .cmd_value(spidma_cmd_value), .cmd_valid(spidma_cmd_valid),
-        .cmd_spi_address(spidma_cmd_spi_address), .cmd_host_address(spidma_cmd_host_address),
-        .cmd_burst_len(spidma_cmd_burst_len),
-        .sio_din(sio_din), .sio_dout(sio_dout), .sio_en(sio_en),
-        .cs_pin(sram_cs), .sck_pin(sram_sck));
+            .MIN_CPH_NS(50), .SPI_TIMER_BITS(3), .QPI_TIMER_BITS(0), .MIN_WAKEUP_NS(150_000)
+        ) sdma(
+            .clk(pll_clk), .rst_n(rst_n),
+            .ready(spidma_ready),
+            .host_mem_addr(spi_mem_addr), .host_mem_wr_en(spi_mem_wr_en),
+            .host_mem_data_in(spi_mem_data_in), .host_mem_data_out(spi_mem_data_out),
+            .cmd_value(spidma_cmd_value), .cmd_valid(spidma_cmd_valid),
+            .cmd_spi_address(spidma_cmd_spi_address), .cmd_host_address(spidma_cmd_host_address),
+            .cmd_burst_len(spidma_cmd_burst_len),
+            .sio_din(sio_din), .sio_dout(sio_dout), .sio_en(sio_en),
+            .cs_pin(sram_cs), .sck_pin(sram_sck)
+        );
 
+    // *** Test Regs ***
+    reg [HOST_MEM_ADDR-1:0] test_host_mem_src;
+    reg [HOST_MEM_ADDR-1:0] test_spi_mem_target;
+    reg [HOST_MEM_ADDR-1:0] test_host_mem_target;
+    reg [7:0] test_burst_len;
+    reg [HOST_MEM_ADDR:0] test_X;
+    reg [7:0] test_Y;
+    reg [31:0] test_LFSR;
+
+/* Test plan:
+
+    - we have a 2KB memory but because I'm lazy we're going split it in half
+      so it's really a 1KB memory where the top 1KB is a manually mirrored copy
+
+    - the gist of the test is to fill 1K with random data
+    - then repeatedly copy a part of the lower 1K to somewhere in SPI memory
+    - then copy that back out randomly to somewhere in the top 1K
+    - then read back the written to 1K part against the source in the bottom 1K
+
+    1. Using a 32-bit LFSR clocked each cycle
+    2. For x = 0 to 1023 do
+       2.1 host_mem[x] = lfsr[7:0]
+    3. Wait for UART char 'G'
+    4. Forever
+       4.1 host_mem_src    = lfsr[9:0]
+       4.2 spi_mem_target  = lfsr[19:10]
+       4.3 burst_len       = lfsr[24:20]
+       4.4 host_mem_target = host_mem_src ^ spi_mem_target
+       4.6 Issue spi_write (copy from host to spi)
+       4.7 issue spi_read (copy from spi to host)
+       4.8 Compare, for X = 0 to burst_len
+          4.8.1 Y = host_mem[host_mem_src + X]                   <--- maybe have a FSM state dedicate to the dummy cycle
+          4.8.2 Z = host_mem[host_mem_target + X + 1024]
+          4.8.3 if Y != Z output '2' and stop in a failed state
+       4.9 uart out '1' and goto 4
+*/
+
+    reg [4:0] fsm_state;
+    reg [4:0] fsm_tag;
+
+    localparam
+        FSM_INIT        = 0,
+        FSM_ISSUE_RESET = 1,
+        FSM_ISSUE_EQIO  = 3,
+        FSM_START_TEST  = 4,
+        FSM_ISSUE_WRITE = 5,
+        FSM_ISSUE_READ  = 6,
+        FSM_COMPARE_TOP = 7,
+        FSM_READ_TGT    = 8,
+        FSM_COMPARE     = 9,
+        FSM_GOOD        = 10,
+        FSM_BAD         = 11,
+        FSM_STOP        = 12,
+        FSM_DELAY_1C    = 13,
+        FSM_DELAY_READY = 14;
+
+    always @(posedge pll_clk) begin
+        if (!rst_n) begin
+            uart_tx_start           <= 0;
+            uart_tx_data_in         <= 0;
+            uart_rx_read            <= 0;
+            host_mem_wr_en          <= 0;
+            host_mem_addr           <= 0;
+            host_mem_data_in        <= 0;
+            spidma_cmd_value        <= 0;
+            spidma_cmd_valid        <= 0;
+            spidma_cmd_spi_address  <= 0;
+            spidma_cmd_host_address <= 0;
+            spidma_cmd_burst_len    <= 0;
+            test_host_mem_src       <= 0;
+            test_spi_mem_target     <= 0;
+            test_host_mem_target    <= 0;
+            test_burst_len          <= 0;
+            test_X                  <= 0;
+            test_LFSR               <= 32'hDEADF001; 
+            fsm_state               <= FSM_INIT;
+            fsm_tag                 <= 0;
+        end else begin
+            // I.O.U step the LSFR 1 bit
+            test_LFSR <= (test_LFSR >> 1); //  ^ (...);
+
+            // fsm
+            case(fsm_state)
+                FSM_DELAY_1C:                                   // delay for 1 cycle for host mem reads
+                    begin
+                        uart_tx_start <= 0;
+                        fsm_state     <= fsm_tag;
+                    end
+
+                FSM_DELAY_READY:                                // wait for spidma_ready and jump to tag
+                    begin
+                        if (spidma_ready) begin
+                            spidma_cmd_valid <= 1'b0;
+                            fsm_state        <= fsm_tag;
+                        end
+                    end
+
+                FSM_INIT:                                       // fill first 1K
+                    begin
+                        host_mem_data_in   <= test_LFSR[7:0];
+                        host_mem_addr[9:0] <= test_X[9:0];
+                        host_mem_wr_en     <= 1'b1;
+                        if (test_X == 1024) begin
+                            host_mem_wr_en <= 1'b0;
+                            test_X         <= 0;
+                            fsm_state      <= FSM_ISSUE_RESET;
+                        end else begin
+                            test_X         <= test_X + 1'b1;
+                        end
+                    end
+
+                FSM_ISSUE_RESET:                                // issue reset command
+                    begin
+                        spidma_cmd_value <= `spidma_reset;
+                        spidma_cmd_valid <= 1'b1;
+                        fsm_tag          <= FSM_ISSUE_EQIO;
+                        fsm_state        <= FSM_DELAY_READY;
+                    end
+
+                FSM_ISSUE_EQIO:                                 // issue EQIO (enter quad io) command
+                    begin
+                        spidma_cmd_value <= `spidma_eqio;
+                        spidma_cmd_valid <= 1'b1;
+                        fsm_tag          <= FSM_ISSUE_EQIO;
+                        fsm_state        <= FSM_DELAY_READY;
+                    end
+
+                FSM_START_TEST:                                 // we choose our test parameters here
+                    begin
+                        test_host_mem_src    <= test_LFSR[9:0];
+                        test_spi_mem_target  <= test_LFSR[19:10];
+                        test_burst_len       <= test_LFSR[24:20];
+                        test_host_mem_target <= 1024 + (test_LFSR[9:0] ^ test_LFSR[19:10]); // host_mem_src ^ spi_mem_target
+                        test_X               <= 0;
+                        test_Y               <= 0;
+                        fsm_state            <= FSM_ISSUE_WRITE;
+                    end
+
+                FSM_ISSUE_WRITE:                                // issue write to spi command
+                    begin
+                        spidma_cmd_burst_len    <= test_burst_len;
+                        spidma_cmd_value        <= `spidma_cmd_write;
+                        spidma_cmd_host_address <= test_host_mem_src;
+                        spidma_cmd_spi_address  <= test_spi_mem_target;
+                        spidma_cmd_valid        <= 1'b1;
+                        fsm_tag                 <= FSM_ISSUE_READ;
+                        fsm_state               <= FSM_DELAY_READY;
+                    end
+
+                FSM_ISSUE_READ:                                 // issue read from spi
+                    begin
+                        spidma_cmd_burst_len    <= test_burst_len;
+                        spidma_cmd_value        <= `spidma_cmd_read;
+                        spidma_cmd_host_address <= test_host_mem_target;
+                        spidma_cmd_spi_address  <= test_spi_mem_target;
+                        spidma_cmd_valid        <= 1'b1;
+                        fsm_tag                 <= FSM_COMPARE_TOP;
+                        fsm_state               <= FSM_DELAY_READY;
+                    end
+
+                FSM_COMPARE_TOP:                                // issue read from bottom 1K
+                    begin
+                        host_mem_addr           <= test_host_mem_src + test_X;
+                        fsm_tag                 <= FSM_READ_TGT;
+                        fsm_state               <= FSM_DELAY_1C;
+                    end
+
+                FSM_READ_TGT:                                   // issue read from top 1K
+                    begin
+                        test_Y                  <= host_mem_data_out;                   // save first read
+                        host_mem_addr           <= test_host_mem_target + test_X;       // read from top 1K
+                        fsm_tag                 <= FSM_COMPARE;
+                        fsm_state               <= FSM_DELAY_1C;
+                        test_X                  <= test_X + 1;
+                    end
+
+                FSM_COMPARE:                                    // 
+                    begin
+                        if (test_X != host_mem_data_out) begin
+                            fsm_state <= FSM_BAD;
+                        end else begin
+                            fsm_state <= FSM_GOOD;
+                        end
+                    end
+
+                FSM_GOOD:                                       // echo 1 and go back to TOP or START_TEST
+                    begin
+                        uart_tx_data_in <= 8'h31;               // '1'
+                        uart_tx_start   <= 1;
+                        if (test_X == 1024) begin
+                            fsm_tag <= FSM_START_TEST;
+                        end else begin
+                            fsm_tag <= FSM_COMPARE_TOP;
+                        end
+                        fsm_state <= FSM_DELAY_1C;
+                    end
+
+                FSM_BAD:                                        // echo 2 and then stop
+                    begin
+                        uart_tx_data_in <= 8'h32;               // '2'
+                        uart_tx_start   <= 1;
+                        fsm_tag <= FSM_STOP;
+                        fsm_state <= FSM_DELAY_1C;
+                    end
+
+                FSM_STOP:                                       // never ending loop to halt the FSM
+                    begin
+                    end
+
+                default: begin end
+            endcase
+        end
+    end
 endmodule
