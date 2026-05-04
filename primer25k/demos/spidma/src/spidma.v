@@ -10,7 +10,7 @@ Setup to use the right most PMOD header (J4).
 module top(input wire clk, inout wire [3:0] sio, output wire cs, output wire sck, input wire uart_rx, output wire uart_tx);
 
 	localparam
-        FREQ = 50,
+        FREQ = 160,
 		SRAM_ADDR_WIDTH = 24,
         HOST_MEM_ADDR = 11;
 
@@ -178,7 +178,8 @@ module top(input wire clk, inout wire [3:0] sio, output wire cs, output wire sck
         FSM_BAD         = 11,
         FSM_STOP        = 12,
         FSM_DELAY_1C    = 13,
-        FSM_DELAY_READY = 14;
+        FSM_DELAY_0C    = 14,
+        FSM_DELAY_READY = 15;
     
     wire lfsr_tap = ~(test_LFSR[31] ^ test_LFSR[21] ^ test_LFSR[1] ^ test_LFSR[0]);
 
@@ -213,6 +214,10 @@ module top(input wire clk, inout wire [3:0] sio, output wire cs, output wire sck
                 FSM_DELAY_1C:                                   // delay for 1 cycle for host mem reads
                     begin
                         uart_tx_start <= 0;
+                        fsm_state     <= FSM_DELAY_0C;
+                    end
+                FSM_DELAY_0C:
+                    begin
                         fsm_state     <= fsm_tag;
                     end
 
