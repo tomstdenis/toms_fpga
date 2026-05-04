@@ -10,7 +10,7 @@ Setup to use the right most PMOD header (J4).
 module top(input wire clk, inout wire [3:0] sio, output wire cs, output wire sck, input wire uart_rx, output wire uart_tx);
 
 	localparam
-        FREQ = 50,
+        FREQ = 135,
 		SRAM_ADDR_WIDTH = 24,
         HOST_MEM_ADDR = 11;
 

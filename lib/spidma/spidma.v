@@ -156,6 +156,7 @@ module spidma #(
 				STATE_SEND_RESETEN:										// Send 0x66 RESET ENABLE
 					begin
 						temp_wire_bits	<= CMD_RESETEN;
+						sio_dout[0]     <= CMD_RESETEN[7];
 						bit_cnt			<= 7;
 						state			<= STATE_SPI_SHIFT_8;
 						tag				<= STATE_SEND_RESETEN_DONE;
@@ -171,6 +172,7 @@ module spidma #(
 				STATE_SEND_RESET:										// Send 0x99 RESET 
 					begin
 						temp_wire_bits	<= CMD_RESET;
+						sio_dout[0]     <= CMD_RESET[7];
 						bit_cnt			<= 7;
 						state			<= STATE_SPI_SHIFT_8;
 						tag				<= STATE_SEND_RESET_DONE;
@@ -186,6 +188,7 @@ module spidma #(
 					begin
                         // sticking some STATE_INIT initializations here.
                         temp_wire_bits	<= CMD_EQIO;					// Send "enter quad mode IO" command
+						sio_dout[0]     <= CMD_EQIO[7];
 						bit_cnt			<= 7;
 						sck_timer		<= SPI_TIMER_BITS;
 						state			<= STATE_SPI_SHIFT_8;			// Use single bit SEND state
@@ -204,6 +207,7 @@ module spidma #(
 						tag            <= STATE_QMEX_DONE;
 						state          <= STATE_QPI_SEND_2;
 						temp_wire_bits <= CMD_QMEX;
+						sio_dout	   <= CMD_QMEX[7:4];
 						bit_cnt        <= 1;
 						sck_timer      <= QPI_TIMER_BITS;
 						sio_en		   <= 4'b1111;	
@@ -238,6 +242,7 @@ module spidma #(
 							1'd1:										// SCK high phase, keep data steady, move to next bit at end of phase
 								begin
 									if (sck_timer == 0) begin
+										sio_dout[0]	   <= temp_wire_bits[7];
 										bit_cnt        <= bit_cnt - 1'b1;
 										sck_pin        <= ~sck_pin;							// set SCK to low for either the next bit of this transaction or the start of the next transaction
 										sck_timer      <= SPI_TIMER_BITS;					// reset timer in case we chain SEND_8's
@@ -314,17 +319,17 @@ module spidma #(
 									if (sck_timer == 0) begin
 										sck_timer      <= QPI_TIMER_BITS;
 										sck_pin        <= ~sck_pin;
-`ifdef SIM_MODEL
-										temp_wire_bits <= {temp_wire_bits[3:0], sim_memory[sim_address + bit_cnt[0]] & ~sio_en};
-`else
-										temp_wire_bits <= {temp_wire_bits[3:0], sio_din};
-`endif
 									end else begin
 										sck_timer      <= sck_timer - 1'b1;
 									end
 								end
 							1'b1:														// hold stable during the SCK high phase
 								begin
+`ifdef SIM_MODEL
+										temp_wire_bits <= {temp_wire_bits[3:0], sim_memory[sim_address + bit_cnt[0]] & ~sio_en};
+`else
+										temp_wire_bits <= {temp_wire_bits[3:0], sio_din};
+`endif
 									if (sck_timer == 0) begin
 										bit_cnt	  <= bit_cnt - 1'b1;
 										sck_pin   <= ~sck_pin;
