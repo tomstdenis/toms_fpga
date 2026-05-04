@@ -388,7 +388,11 @@ module spidma #(
 								`spidma_reset:     state <= STATE_SEND_RESETEN;
 								`spidma_eqio:      state <= STATE_EQIO;
 								`spidma_qmex:      state <= STATE_QMEX;
-								`spidma_cmd_read:  state <= STATE_QPI_SEND_CMD_ADDR;
+								`spidma_cmd_read:  
+									begin
+										state <= STATE_QPI_SEND_CMD_ADDR;
+										host_mem_addr  <= cmd_host_address - 1'b1;			// subtract one so we can have a simpler loop in READ loop
+									end
 								`spidma_cmd_write: state <= STATE_QPI_SEND_CMD_ADDR;
 								default:
 									begin
@@ -415,7 +419,6 @@ module spidma #(
 									begin
 										sio_dout	   <= CMD_READ[7:4];
 										temp_wire_bits <= CMD_READ;
-										host_mem_addr  <= host_mem_addr - 1'b1;			// subtract one so we can have a simpler loop in READ loop
 									end
 								`spidma_cmd_write: 
 									begin
