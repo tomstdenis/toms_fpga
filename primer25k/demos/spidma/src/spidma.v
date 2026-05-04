@@ -121,7 +121,7 @@ module top(input wire clk, inout wire [3:0] sio, output wire cs, output wire sck
             .CMD_EQIO(8'h35), .CMD_QMEX(8'hF5),
             .CMD_RESETEN(8'h66), .CMD_RESET(8'h99),
 
-            .MIN_CPH_NS(50), .SPI_TIMER_BITS(5), .QPI_TIMER_BITS(0), .MIN_WAKEUP_NS(150_000)
+            .MIN_CPH_NS(50), .SPI_TIMER_BITS(4), .QPI_TIMER_BITS(0), .MIN_WAKEUP_NS(150_000)
         ) sdma(
             .clk(pll_clk), .rst_n(rst_n),
             .ready(spidma_ready),
