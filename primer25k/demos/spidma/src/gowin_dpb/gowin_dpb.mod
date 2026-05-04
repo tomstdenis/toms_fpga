@@ -16,8 +16,8 @@
 -depth_1 2048
 -width_0 8
 -width_1 8
--read_mode_0 bypass
--read_mode_1 bypass
+-read_mode_0 pipeline
+-read_mode_1 pipeline
 -write_mode_0 normal
 -write_mode_1 normal
 -speed true

@@ -6,7 +6,7 @@
 //Device: GW5A-25
 //Device Version: A
 //Created Time: Sun May  3 22:38:40 2026
-
+`default_nettype wire
 module Gowin_PLL_MOD (lock, clkout0, mdrdo, clkin, reset, mdclk, mdopc, mdainc, mdwdi);
 
 output lock;

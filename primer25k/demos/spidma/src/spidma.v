@@ -214,7 +214,7 @@ module top(input wire clk, inout wire [3:0] sio, output wire cs, output wire sck
                 FSM_DELAY_1C:                                   // delay for 1 cycle for host mem reads
                     begin
                         uart_tx_start <= 0;
-                        fsm_state     <= fsm_tag; // FSM_DELAY_0C;
+                        fsm_state     <= FSM_DELAY_0C;
                     end
                 FSM_DELAY_0C:
                     begin
@@ -323,7 +323,7 @@ module top(input wire clk, inout wire [3:0] sio, output wire cs, output wire sck
 
                 FSM_GOOD:                                       // echo 1 and go back to TOP or START_TEST
                     begin
-                        if (test_X >= test_burst_len) begin
+                        if (test_X == test_burst_len) begin
                             if (!uart_tx_fifo_full) begin
                                 uart_tx_data_in <= 8'h31;               // '1'
                                 uart_tx_start   <= 1;

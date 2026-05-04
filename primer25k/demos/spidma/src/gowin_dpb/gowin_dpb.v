@@ -5,9 +5,8 @@
 //Part Number: GW5A-LV25MG121NC1/I0
 //Device: GW5A-25
 //Device Version: A
-//Created Time: Sun May  3 22:34:20 2026
+//Created Time: Mon May  4 15:44:17 2026
 `default_nettype wire
-
 module Gowin_DPB (douta, doutb, clka, ocea, cea, reseta, wrea, clkb, oceb, ceb, resetb, wreb, ada, dina, adb, dinb);
 
 output [7:0] douta;
@@ -54,8 +53,8 @@ DPB dpb_inst_0 (
     .DIB({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,dinb[7:0]})
 );
 
-defparam dpb_inst_0.READ_MODE0 = 1'b0;
-defparam dpb_inst_0.READ_MODE1 = 1'b0;
+defparam dpb_inst_0.READ_MODE0 = 1'b1;
+defparam dpb_inst_0.READ_MODE1 = 1'b1;
 defparam dpb_inst_0.WRITE_MODE0 = 2'b00;
 defparam dpb_inst_0.WRITE_MODE1 = 2'b00;
 defparam dpb_inst_0.BIT_WIDTH_0 = 8;
