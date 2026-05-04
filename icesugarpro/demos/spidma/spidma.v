@@ -57,7 +57,7 @@ module top(input wire clk, inout wire [3:0] sio, output wire cs, output wire sck
     wire [7:0] spi_mem_data_in;
     wire [7:0] spi_mem_data_out;
 
-	bram_dp_2048x8 mem(
+	bram_dp_2048x8 #(.REGMODE_A("OUTREG"), .REGMODE_B("OUTREG")) mem(
 		.clk_a(pll_clk), .clk_en_a(1'b1), .rst_a(~rst_n),
 		.addr_a(host_mem_addr), .din_a(host_mem_data_in),
 		.we_a(host_mem_wr_en), .dout_a(host_mem_data_out),
@@ -203,7 +203,7 @@ module top(input wire clk, inout wire [3:0] sio, output wire cs, output wire sck
                 FSM_DELAY_1C:                                   // delay for 1 cycle for host mem reads
                     begin
                         uart_tx_start <= 0;
-                        fsm_state     <= fsm_tag; // FSM_DELAY_0C;
+                        fsm_state     <= FSM_DELAY_0C;
                     end
                 FSM_DELAY_0C:
                     begin

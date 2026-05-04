@@ -1,6 +1,6 @@
 TARGET=spidma
 TOP=top
-FREQ=75
+FREQ=125
 SRAM_ADDR_WIDTH=24
 
 OBJS+=${TARGET}.v pll1.v \
@@ -38,10 +38,10 @@ flash: ${TARGET}.bit
 pll1.v:
 	ecppll --highres -i 25 -o ${FREQ} -f pll1.v --module pll1
 
-debug_cli: debug_cli.c
-	${CC} -O2 -Wall -DSRAM_ADDR_WIDTH=${SRAM_ADDR_WIDTH} -DBITS=${BITS} debug_cli.c -o debug_cli
+iter: iter.c
+	gcc iter.c -o iter
 
 clean:
-		rm -f *.svf *.bit *.config *.ys pll*.v *.asc *.json debug_cli
+		rm -f *.svf *.bit *.config *.ys pll*.v *.asc *.json iter
 
 .PHONY: sram flash clean
