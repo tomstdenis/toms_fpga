@@ -41,8 +41,10 @@ module spidma #(
 	// MEMORY default configuration for a typical 8-pin SPI PSRAM
 	parameter SRAM_ADDR_WIDTH = 24,							// how many bits does the address have (e.g. 16 or 24)
 	parameter DUMMY_CYCLES    = 6,							// how many dummy reads are required before the first byte is valid
-	parameter CMD_READ        = 8'hEB,						// command to read 
-	parameter CMD_WRITE       = 8'h38,						// command to write
+	parameter CMD_SPI_READ    = 8'hEB,						// command to read in SPI mode
+	parameter CMD_SPI_WRITE   = 8'h38,						// command to write in SPI mode
+	parameter CMD_QPI_READ    = 8'hEB,						// command to read in QPI mode
+	parameter CMD_QPI_WRITE   = 8'h38,						// command to write in QPI mode
 	parameter CMD_EQIO        = 8'h35,						// command to enter quad IO mode
 	parameter CMD_QMEX        = 8'hF5,						// command to exit quad mod IO
 	parameter CMD_RESETEN     = 8'h66,						// command to enable reset
@@ -120,7 +122,7 @@ module spidma #(
 		STATE_QPI_SEND_2			= 9,
 		STATE_QPI_RECV_2			= 10,
 		STATE_IDLE					= 11,													// Idle state waiting for a command
-		STATE_QPI_SEND_CMD_ADDR     = 12,
+		STATE_SEND_CMD_ADDR         = 12,
 		STATE_START_READ			= 13,
 		STATE_START_WRITE			= 14,
 		STATE_DONE_WRITE            = 15,
@@ -357,8 +359,9 @@ module spidma #(
 							sck_pin <= 1'b0;
 
 							// configure I/O
-							sio_en  <= 4'b1111;
-							bit_cnt <= 1;
+							sio_en    <= quad_mode ? 4'b1111 : 4'b0001;
+							bit_cnt   <= quad_mode ? 1 : 7;
+							sck_timer <= quad_mode ? QPI_TIMER_BITS : SPI_TIMER_BITS;
 							
 							// latch the command
 							cmd_value_l         <= cmd_value;
@@ -390,10 +393,10 @@ module spidma #(
 								`spidma_qmex:      state <= STATE_QMEX;
 								`spidma_cmd_read:  
 									begin
-										state <= STATE_QPI_SEND_CMD_ADDR;
+										state <= STATE_SEND_CMD_ADDR;
 										host_mem_addr  <= cmd_host_address - 1'b1;			// subtract one so we can have a simpler loop in READ loop
 									end
-								`spidma_cmd_write: state <= STATE_QPI_SEND_CMD_ADDR;
+								`spidma_cmd_write: state <= STATE_SEND_CMD_ADDR;
 								default:
 									begin
 										// invalid cmd_value so just hangup
@@ -406,24 +409,34 @@ module spidma #(
 
 				// send the command and address
 				// in: send_cmd_addr_cycle == 0, cmd_value_l == READ/WRITE/etc, cmd_spi_address_l == address
-				STATE_QPI_SEND_CMD_ADDR:
+				STATE_SEND_CMD_ADDR:
 					begin
 						// setup QPI send
 						send_cmd_addr_cycle <= send_cmd_addr_cycle + 1'b1;
-						state               <= STATE_QPI_SEND_2;
+						state               <= quad_mode ? STATE_QPI_SEND_2 : STATE_SPI_SHIFT_8;
 						tag                 <= state;
 						if (send_cmd_addr_cycle == 0) begin
 							// write the command byte
 							case (cmd_value)
 								`spidma_cmd_read:  
 									begin
-										sio_dout	   <= CMD_READ[7:4];
-										temp_wire_bits <= CMD_READ;
+										if (quad_mode) begin
+											sio_dout	   <= CMD_QPI_READ[7:4];
+											temp_wire_bits <= CMD_QPI_READ;
+										end else begin
+											sio_dout[0]	   <= CMD_SPI_READ[7];
+											temp_wire_bits <= CMD_SPI_READ;
+										end
 									end
 								`spidma_cmd_write: 
 									begin
-										sio_dout	   <= CMD_WRITE[7:4];
-										temp_wire_bits <= CMD_WRITE;
+										if (quad_mode) begin
+											sio_dout	   <= CMD_QPI_WRITE[7:4];
+											temp_wire_bits <= CMD_QPI_WRITE;
+										end else begin
+											sio_dout[0]	   <= CMD_SPI_WRITE[7];
+											temp_wire_bits <= CMD_SPI_WRITE;
+										end
 									end
 								default:
 									begin
@@ -435,7 +448,11 @@ module spidma #(
 						end else begin
 							// send parts of the address
 							temp_wire_bits <= cmd_spi_address_l[SRAM_ADDR_WIDTH-(8*send_cmd_addr_cycle) +: 8];
-							sio_dout <= cmd_spi_address_l[SRAM_ADDR_WIDTH-(8*send_cmd_addr_cycle) + 4 +: 4];
+							if (quad_mode) begin
+								sio_dout <= cmd_spi_address_l[SRAM_ADDR_WIDTH-(8*send_cmd_addr_cycle) + 4 +: 4];
+							end else begin
+								sio_dout[0] <= cmd_spi_address_l[SRAM_ADDR_WIDTH-(8*send_cmd_addr_cycle) + 7];
+							end
 /* verilator lint_off WIDTHEXPAND */
 							if (send_cmd_addr_cycle == SRAM_ADDR_WIDTH/8) begin
 /* verilator lint_on WIDTHEXPAND */
@@ -464,17 +481,17 @@ module spidma #(
 						if (DUMMY_CYCLES == 0 && dummy_cnt == 1) begin
 							// this is the state we get into when there's no dummy wait cycles but we need to prime temp_wire_bits...
 							dummy_cnt <= 0;
-							state     <= STATE_QPI_RECV_2;
+							state     <= quad_mode ? STATE_QPI_RECV_2 : STATE_SPI_SHIFT_8;
 							tag       <= state;
 						end else if (dummy_cnt > 0) begin
 							// waiting for dummy cycles
 							if (sck_timer == 0) begin
 								dummy_cnt  <= dummy_cnt - 1'b1;
 								sck_pin    <= ~sck_pin;
-								sck_timer  <= QPI_TIMER_BITS;
+								sck_timer  <= quad_mode ? QPI_TIMER_BITS : SPI_TIMER_BITS;
 								if (dummy_cnt == 1) begin
 									// issue first QPI read
-									state     <= STATE_QPI_RECV_2;
+									state     <= quad_mode ? STATE_QPI_RECV_2 : STATE_SPI_SHIFT_8;
 									tag       <= state;
 								end
 							end else begin
@@ -492,7 +509,7 @@ module spidma #(
 								tag   <= STATE_DONE;
 							end else begin
 								cmd_burst_len_l <= cmd_burst_len_l - 1'b1;
-								state <= STATE_QPI_RECV_2;
+								state <= quad_mode ? STATE_QPI_RECV_2 : STATE_SPI_SHIFT_8;
 								tag   <= state;
 							end
 						end
@@ -508,8 +525,12 @@ module spidma #(
 						sim_wr_en      <= 1'b1;							// at this point any SEND_2's are going to memory
 `endif
 						temp_wire_bits <= host_mem_data_out;
-						sio_dout	   <= host_mem_data_out[7:4];
-						state		   <= STATE_QPI_SEND_2;
+						if (quad_mode) begin
+							sio_dout	   <= host_mem_data_out[7:4];
+						end else begin
+							sio_dout[0]	   <= host_mem_data_out[7];
+						end
+						state		   <= quad_mode ? STATE_QPI_SEND_2 : STATE_SPI_SHIFT_8;
 						tag			   <= state;
 						host_mem_addr  <= host_mem_addr + 1'b1;
 						if (cmd_burst_len_l == 0) begin
