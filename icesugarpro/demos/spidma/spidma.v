@@ -168,10 +168,10 @@ module top(input wire clk, inout wire [3:0] sio, output wire cs, output wire sck
         FSM_BAD         = 11,
         FSM_STOP        = 12,
         FSM_DELAY_1C    = 13,
-        FSM_DELAY_READY = 14;
+        FSM_DELAY_0C    = 14,
+        FSM_DELAY_READY = 15;
     
     wire lfsr_tap = ~(test_LFSR[31] ^ test_LFSR[21] ^ test_LFSR[1] ^ test_LFSR[0]);
-
     always @(posedge pll_clk) begin
         if (!rst_n) begin
             uart_tx_start           <= 0;
@@ -203,6 +203,10 @@ module top(input wire clk, inout wire [3:0] sio, output wire cs, output wire sck
                 FSM_DELAY_1C:                                   // delay for 1 cycle for host mem reads
                     begin
                         uart_tx_start <= 0;
+                        fsm_state     <= fsm_tag; // FSM_DELAY_0C;
+                    end
+                FSM_DELAY_0C:
+                    begin
                         fsm_state     <= fsm_tag;
                     end
 
@@ -248,10 +252,10 @@ module top(input wire clk, inout wire [3:0] sio, output wire cs, output wire sck
                     begin
 						if (uart_rx_ready) begin
 							uart_rx_read <= 1;
-							test_host_mem_src    <= test_LFSR[9:0];
-							test_spi_mem_target  <= test_LFSR[19:10];
+							test_host_mem_src    <= test_LFSR[8:0];
+							test_spi_mem_target  <= test_LFSR[18:10];
 							test_burst_len       <= test_LFSR[24:20];
-							test_host_mem_target <= 1024 + (test_LFSR[9:0] ^ test_LFSR[19:10]); // host_mem_src ^ spi_mem_target
+							test_host_mem_target <= 1024 + (test_LFSR[8:0] ^ test_LFSR[18:10]); // host_mem_src ^ spi_mem_target
 							test_X               <= 0;
 							test_Y               <= 0;
 							fsm_state            <= FSM_ISSUE_WRITE;
