@@ -52,8 +52,8 @@ int main(int argc, char **argv)
 		write(fd, &b, 1);
 		tcdrain(fd);
 		while (read(fd, &b, 1) != 1);
-		if (b == '2') {
-			printf("\nFailed!\n");
+		if (b != '1') {
+			printf("\nFailed! (%c %x)\n", b, b);
 			exit(-1);
 		}
 		++tests;

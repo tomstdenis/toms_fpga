@@ -10,7 +10,7 @@ Setup to use the right most PMOD header (J4).
 module top(input wire clk, inout wire [3:0] sio, output wire cs, output wire sck, input wire uart_rx, output wire uart_tx);
 
 	localparam
-        FREQ = 135,
+        FREQ = 50,
 		SRAM_ADDR_WIDTH = 24,
         HOST_MEM_ADDR = 11;
 
@@ -258,10 +258,10 @@ module top(input wire clk, inout wire [3:0] sio, output wire cs, output wire sck
                     begin
 						if (uart_rx_ready) begin
 							uart_rx_read <= 1;
-							test_host_mem_src    <= test_LFSR[9:0];
-							test_spi_mem_target  <= test_LFSR[19:10];
+							test_host_mem_src    <= test_LFSR[8:0];
+							test_spi_mem_target  <= test_LFSR[18:10];
 							test_burst_len       <= test_LFSR[24:20];
-							test_host_mem_target <= 1024 + (test_LFSR[9:0] ^ test_LFSR[19:10]); // host_mem_src ^ spi_mem_target
+							test_host_mem_target <= 1024 + (test_LFSR[8:0] ^ test_LFSR[18:10]); // host_mem_src ^ spi_mem_target
 							test_X               <= 0;
 							test_Y               <= 0;
 							fsm_state            <= FSM_ISSUE_WRITE;

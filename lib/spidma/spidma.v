@@ -234,7 +234,6 @@ module spidma #(
 									if (sck_timer == 0) begin
 										sck_timer      <= SPI_TIMER_BITS;					 // time to switch to SCK high
 										sck_pin        <= ~sck_pin;
-										temp_wire_bits <= {temp_wire_bits[6:0], sio_din[1]}; // shift wire bits, and insert MISO bit
 									end else begin
 										sck_timer <= sck_timer - 1'b1;
 									end
@@ -242,7 +241,8 @@ module spidma #(
 							1'd1:										// SCK high phase, keep data steady, move to next bit at end of phase
 								begin
 									if (sck_timer == 0) begin
-										sio_dout[0]	   <= temp_wire_bits[7];
+										temp_wire_bits <= {temp_wire_bits[6:0], sio_din[1]}; // shift wire bits, and insert MISO bit
+										sio_dout[0]	   <= temp_wire_bits[6];
 										bit_cnt        <= bit_cnt - 1'b1;
 										sck_pin        <= ~sck_pin;							// set SCK to low for either the next bit of this transaction or the start of the next transaction
 										sck_timer      <= SPI_TIMER_BITS;					// reset timer in case we chain SEND_8's
@@ -355,6 +355,10 @@ module spidma #(
 							// ensure cs_pin drops before SCK goes high
 							cs_pin  <= 1'b0;
 							sck_pin <= 1'b0;
+
+							// configure I/O
+							sio_en  <= 4'b1111;
+							bit_cnt <= 1;
 							
 							// latch the command
 							cmd_value_l         <= cmd_value;
@@ -400,10 +404,6 @@ module spidma #(
 				// in: send_cmd_addr_cycle == 0, cmd_value_l == READ/WRITE/etc, cmd_spi_address_l == address
 				STATE_QPI_SEND_CMD_ADDR:
 					begin
-						// configure I/O
-						sio_en  <= 4'b1111;
-						bit_cnt <= 1;
-
 						// setup QPI send
 						send_cmd_addr_cycle <= send_cmd_addr_cycle + 1'b1;
 						state               <= STATE_QPI_SEND_2;
@@ -457,11 +457,10 @@ module spidma #(
 				*/
 				STATE_START_READ:
 					begin
-						sio_dout <= 4'b0000;	// ensure SIO[3:0] is 0 during any dummy cycles
+						sio_en   <= 4'b0000;    // switch to input
 						if (DUMMY_CYCLES == 0 && dummy_cnt == 1) begin
 							// this is the state we get into when there's no dummy wait cycles but we need to prime temp_wire_bits...
 							dummy_cnt <= 0;
-							sio_en    <= 4'b0000;
 							state     <= STATE_QPI_RECV_2;
 							tag       <= state;
 						end else if (dummy_cnt > 0) begin
@@ -472,7 +471,6 @@ module spidma #(
 								sck_timer  <= QPI_TIMER_BITS;
 								if (dummy_cnt == 1) begin
 									// issue first QPI read
-									sio_en    <= 4'b0000;
 									state     <= STATE_QPI_RECV_2;
 									tag       <= state;
 								end
