@@ -295,7 +295,11 @@ module top(input wire clk, inout wire [3:0] sio, output wire cs, output wire sck
 `ifdef QUAD_MODE
 							test_burst_len       <= test_LFSR[24:20];
 `else
+    `ifdef FAST_SPI_MODE
+							test_burst_len       <= test_LFSR[23:20];
+    `else
 							test_burst_len       <= test_LFSR[22:20];
+    `endif
 `endif
 							test_host_mem_target <= 1024 + (test_LFSR[8:0] ^ test_LFSR[18:10]); // host_mem_src ^ spi_mem_target
 							test_X               <= 0;

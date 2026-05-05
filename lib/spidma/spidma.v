@@ -21,11 +21,18 @@
 			│                  │    ready                                                         
 			└──────────────────┘                                                                  
 
+
+PSRAM/SRAM timing
+
 Writes take 7 + DUMMY_CYCLES + (1 + SRAM_ADDR_WIDTH/8 + BURST_LEN + 1) * ([2 or 8] * 2 * (1 + QPI_TIMER_BITS) + 1) cycles
 Reads take 7 + (1 + SRAM_ADDR_WIDTH/8 + BURST_LEN + 1) * ([2 or 8] * 2 * (1 + QPI_TIMER_BITS) + 1) cycles
 
 so a 32 byte QPI write takes 7 + 6 + (1 + 3 + 32) * (4 + 1) cycles or 193 cycles, or for SPI 625 cycles.
 At say Core Clock == 150MHz this nets 198.96Mbit/sec for QPI and 61.44Mbit/sec for SPI (using SPI/QPI TIMER == 0)
+
+Another way, at 150MHz, 32 bytes of QPI takes 1.29uS, or SPI takes 4.17uS slightly over the max Tcem of 4uS.
+To keep to Tcem on SPI you want to limit your burst to 24 bytes when doing SPI with SPI_TIMER_BITS==0, this will net
+489 cycles per 24 bytes (58.895Mbit/sec) or about 3.26uS well within the 4uS window.  
 
 */
 
