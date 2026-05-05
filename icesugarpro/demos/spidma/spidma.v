@@ -6,6 +6,28 @@ Setup to use the right most PMOD header (J4).
 
 `include "spidma.vh"
 
+// Enable QPI mode in the test, otherwise use SPI mode
+//`define QUAD_MODE
+
+// use FAST read (0Bh) instead of normal speed (03h)
+`define FAST_SPI_MODE
+
+`ifdef QUAD_MODE
+    `define DUMMY_CYCLES 6
+    `define SPI_READ_CMD 8'h03
+    `define SPI_TIMER_BITS 4
+`else
+    `ifdef FAST_SPI_MODE
+        `define DUMMY_CYCLES 8
+        `define SPI_READ_CMD 8'h0B
+        `define SPI_TIMER_BITS 0
+    `else
+        `define DUMMY_CYCLES 0
+        `define SPI_READ_CMD 8'h03
+        `define SPI_TIMER_BITS 4
+    `endif
+`endif
+
 
 module top(input wire clk, inout wire [3:0] sio, output wire cs, output wire sck, input wire uart_rx, output wire uart_tx);
 
@@ -96,12 +118,14 @@ module top(input wire clk, inout wire [3:0] sio, output wire cs, output wire sck
             // PSRAM configuration (Some chips allow 1 Tclk between CS low but ESP-PSRAM requires 50ns)
             .CLK_FREQ_MHZ(FREQ),
             .SRAM_ADDR_WIDTH(SRAM_ADDR_WIDTH), .HOST_MEM_ADDR(HOST_MEM_ADDR),
-            .DUMMY_CYCLES(6), 
+            .DUMMY_CYCLES(`DUMMY_CYCLES),
             
-            .CMD_READ(8'hEB), .CMD_WRITE(8'h38), .CMD_EQIO(8'h35), .CMD_QMEX(8'hF5),
+            .CMD_QPI_READ(8'hEB), .CMD_QPI_WRITE(8'h38), 
+            .CMD_SPI_READ(`SPI_READ_CMD), .CMD_SPI_WRITE(8'h02),
+            .CMD_EQIO(8'h35), .CMD_QMEX(8'hF5),
             .CMD_RESETEN(8'h66), .CMD_RESET(8'h99),
 
-            .MIN_CPH_NS(50), .SPI_TIMER_BITS(3), .QPI_TIMER_BITS(0), .MIN_WAKEUP_NS(150_000)
+            .MIN_CPH_NS(50), .SPI_TIMER_BITS(`SPI_TIMER_BITS), .QPI_TIMER_BITS(0), .MIN_WAKEUP_NS(150_000)
         ) sdma(
             .clk(pll_clk), .rst_n(rst_n),
             .ready(spidma_ready),
@@ -172,6 +196,7 @@ module top(input wire clk, inout wire [3:0] sio, output wire cs, output wire sck
         FSM_DELAY_READY = 15;
     
     wire lfsr_tap = ~(test_LFSR[31] ^ test_LFSR[21] ^ test_LFSR[1] ^ test_LFSR[0]);
+
     always @(posedge pll_clk) begin
         if (!rst_n) begin
             uart_tx_start           <= 0;
@@ -236,7 +261,11 @@ module top(input wire clk, inout wire [3:0] sio, output wire cs, output wire sck
                     begin
                         spidma_cmd_value <= `spidma_reset;
                         spidma_cmd_valid <= 1'b1;
+`ifdef QUAD_MODE
                         fsm_tag          <= FSM_ISSUE_EQIO;
+`else
+                        fsm_tag          <= FSM_START_TEST; //FSM_ISSUE_EQIO;
+`endif
                         fsm_state        <= FSM_DELAY_READY;
                     end
 
@@ -254,7 +283,11 @@ module top(input wire clk, inout wire [3:0] sio, output wire cs, output wire sck
 							uart_rx_read <= 1;
 							test_host_mem_src    <= test_LFSR[8:0];
 							test_spi_mem_target  <= test_LFSR[18:10];
+`ifdef QUAD_MODE
 							test_burst_len       <= test_LFSR[24:20];
+`else
+							test_burst_len       <= test_LFSR[22:20];
+`endif
 							test_host_mem_target <= 1024 + (test_LFSR[8:0] ^ test_LFSR[18:10]); // host_mem_src ^ spi_mem_target
 							test_X               <= 0;
 							test_Y               <= 0;
@@ -312,7 +345,7 @@ module top(input wire clk, inout wire [3:0] sio, output wire cs, output wire sck
 
                 FSM_GOOD:                                       // echo 1 and go back to TOP or START_TEST
                     begin
-                        if (test_X >= test_burst_len) begin
+                        if (test_X == test_burst_len) begin
                             if (!uart_tx_fifo_full) begin
                                 uart_tx_data_in <= 8'h31;               // '1'
                                 uart_tx_start   <= 1;
