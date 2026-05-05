@@ -41,8 +41,8 @@ module spidma #(
 	// MEMORY default configuration for a typical 8-pin SPI PSRAM
 	parameter SRAM_ADDR_WIDTH = 24,							// how many bits does the address have (e.g. 16 or 24)
 	parameter DUMMY_CYCLES    = 6,							// how many dummy reads are required before the first byte is valid
-	parameter CMD_SPI_READ    = 8'hEB,						// command to read in SPI mode
-	parameter CMD_SPI_WRITE   = 8'h38,						// command to write in SPI mode
+	parameter CMD_SPI_READ    = 8'h03,						// command to read in SPI mode
+	parameter CMD_SPI_WRITE   = 8'h02,						// command to write in SPI mode
 	parameter CMD_QPI_READ    = 8'hEB,						// command to read in QPI mode
 	parameter CMD_QPI_WRITE   = 8'h38,						// command to write in QPI mode
 	parameter CMD_EQIO        = 8'h35,						// command to enter quad IO mode
@@ -90,7 +90,7 @@ module spidma #(
 	reg [4:0] state;										// What state is our FSM in
 	reg [4:0] tag;
 	reg [2:0] send_cmd_addr_cycle;							// counter to tell which step of sending CMD + ADDR we're on
-	reg [3:0] dummy_cnt;									// how many dummy cycles to waste
+	reg [4:0] dummy_cnt;									// how many dummy cycles to waste
 	reg       quad_mode;									// are we in quad mode or spi mode?
 
 	// transfer related
@@ -110,25 +110,25 @@ module spidma #(
 	reg [7:0] cmd_burst_len_l;							// how many bytes to read (1..256)
 	
 	localparam
-		STATE_EQIO					= 0,													// enter quad mode
-		STATE_EQIO_DONE				= 1,													
-		STATE_QMEX					= 2,													// exit quad mode
+		STATE_EQIO					= 0,				// enter quad mode
+		STATE_EQIO_DONE				= 1,				//
+		STATE_QMEX					= 2,				// exit quad mode
 		STATE_QMEX_DONE			    = 3,
-		STATE_SEND_RESETEN			= 4,													// enable RESET
+		STATE_SEND_RESETEN			= 4,				// enable RESET
 		STATE_SEND_RESETEN_DONE		= 5,
-		STATE_SEND_RESET			= 6,													// issue RESET command
+		STATE_SEND_RESET			= 6,				// issue RESET command
 		STATE_SEND_RESET_DONE		= 7,
-		STATE_SPI_SHIFT_8			= 8,													// Send a command in 1-bit SPI mode
-		STATE_QPI_SEND_2			= 9,
-		STATE_QPI_RECV_2			= 10,
-		STATE_IDLE					= 11,													// Idle state waiting for a command
-		STATE_SEND_CMD_ADDR         = 12,
-		STATE_START_READ			= 13,
-		STATE_START_WRITE			= 14,
-		STATE_DONE_WRITE            = 15,
-		STATE_DONE					= 16,
-		STATE_HANGUP				= 17,													// Hang up SPI bus
-		STATE_HANGUP_WAIT			= 18;													// hold CS high for a count
+		STATE_SPI_SHIFT_8			= 8,				// Transfer a byte in/out using 1-bit SPI mode
+		STATE_QPI_SEND_2			= 9,				// Send a byte in QPI mode
+		STATE_QPI_RECV_2			= 10,				// Read a byte in QPI mode
+		STATE_IDLE					= 11,				// Idle state waiting for a command
+		STATE_SEND_CMD_ADDR         = 12,				// Send a 1 byte command + address
+		STATE_START_READ			= 13,				// Start a read from SPI memory burst
+		STATE_START_WRITE			= 14,				// Start a write to SPI memory burst
+		STATE_DONE_WRITE            = 15,				// Cycle to finish off write bursts
+		STATE_DONE					= 16,				// Raise ready, wait for !valid
+		STATE_HANGUP				= 17,				// Hang up SPI bus
+		STATE_HANGUP_WAIT			= 18;				// hold CS high for a count
 
 	always @(posedge clk) begin
 		if (!rst_n) begin
@@ -393,7 +393,7 @@ module spidma #(
 								`spidma_qmex:      state <= STATE_QMEX;
 								`spidma_cmd_read:  
 									begin
-										state <= STATE_SEND_CMD_ADDR;
+										state 		   <= STATE_SEND_CMD_ADDR;
 										host_mem_addr  <= cmd_host_address - 1'b1;			// subtract one so we can have a simpler loop in READ loop
 									end
 								`spidma_cmd_write: state <= STATE_SEND_CMD_ADDR;
