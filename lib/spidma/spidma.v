@@ -21,8 +21,11 @@
 			│                  │    ready                                                         
 			└──────────────────┘                                                                  
 
-Writes take 7 + DUMMY_CYCLES + (1 + SRAM_ADDR_WIDTH/8 + BURST_LEN + 1) * (2 * (1 + QPI_TIMER_BITS) + 1) cycles
-Reads take 7 + (1 + SRAM_ADDR_WIDTH/8 + BURST_LEN + 1) * (2 * (1 + QPI_TIMER_BITS) + 1) cycles
+Writes take 7 + DUMMY_CYCLES + (1 + SRAM_ADDR_WIDTH/8 + BURST_LEN + 1) * ([2 or 8] * 2 * (1 + QPI_TIMER_BITS) + 1) cycles
+Reads take 7 + (1 + SRAM_ADDR_WIDTH/8 + BURST_LEN + 1) * ([2 or 8] * 2 * (1 + QPI_TIMER_BITS) + 1) cycles
+
+so a 32 byte QPI write takes 7 + 6 + (1 + 3 + 32) * (4 + 1) cycles or 193 cycles, or for SPI 625 cycles.
+At say Core Clock == 150MHz this nets 198.96Mbit/sec for QPI and 61.44Mbit/sec for SPI (using SPI/QPI TIMER == 0)
 
 */
 
