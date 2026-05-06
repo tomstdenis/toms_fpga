@@ -21,6 +21,12 @@
 			│                  │    ready                                                         
 			└──────────────────┘                                                                  
 
+This module supports NOR flashes too.  When CMD_WRITE_ENABLE is non-zero the code
+assumes we're talking to a NOR flash.  This means the write command (02h) will invoke a write
+enable latch command, then write (page program) followed by a wait for write in progress to end.
+NOR mode also terminates cs immediately after the last byte which is required for all output
+commands (sector erase, page program, etc).  In NOR mode the spidma_cmd_write command is 
+the page program call.
 
 PSRAM/SRAM timing
 
@@ -58,7 +64,7 @@ module spidma #(
 	parameter CMD_SECTOR_ERASE = 8'h20,						// erase a sector
 
 	parameter CMD_SPI_READ    = 8'h03,						// command to read in SPI mode
-	parameter CMD_SPI_WRITE   = 8'h02,						// command to write in SPI mode
+	parameter CMD_SPI_WRITE   = 8'h02,						// command to write in SPI mode (page program in NOR mode)
 	parameter CMD_QPI_READ    = 8'hEB,						// command to read in QPI mode
 	parameter CMD_QPI_WRITE   = 8'h38,						// command to write in QPI mode
 
@@ -151,8 +157,9 @@ module spidma #(
 		STATE_HANGUP_WAIT			= 18,				// hold CS high for a count
 		STATE_WRITE_ENABLE			= 19,				// set the write enable latch
 		STATE_WAIT_WIP				= 20,				// wait for WIP to be cleared
-		STATE_SECTOR_ERASE          = 21;
-		
+		STATE_SECTOR_ERASE          = 21,				// 
+		STATE_WRITE_ENABLE_RESUME   = 22,				// Resume the SEND_CMD_ADDR call
+		STATE_WRITE_ENABLE_DONE     = 23;				// we're done issuing the WRITE_ENABLE command
 
 	always @(posedge clk) begin
 		if (!rst_n) begin
@@ -644,15 +651,35 @@ end
 				/* STATE_WRITE_ENABLE: enable the Write Enable Latch */
 				STATE_WRITE_ENABLE:
 					begin
+if (CMD_WRITE_ENABLE != 0) begin
+						temp_wire_bits <= CMD_WRITE_ENABLE;
+						shift8_cs_exit <= 1'b1;
+						state          <= STATE_SPI_SHIFT_8;
+						tag			   <= STATE_WRITE_ENABLE_DONE;
+end
+					end
+				STATE_WRITE_ENABLE_DONE:
+					begin
+						// need to hang up and then issue command
+						tag	  <= STATE_WRITE_ENABLE_RESUME;
+						state <= STATE_HANGUP;
+					end
+				STATE_WRITE_ENABLE_RESUME:
+					begin
+						// resume our command
+						cs_pin         <= 1'b0;							// lower CS pin
+						sck_pin        <= 1'b0;
+						sio_en         <= 4'b0001;
 						sck_timer      <= SPI_TIMER_BITS;
 						bit_cnt        <= 7;
-						temp_wire_bits <= CMD_WRITE_ENABLE;
-						state          <= STATE_SPI_SHIFT_8;
+						state		   <= STATE_SEND_CMD_ADDR;
 					end
+						
 					
 				/* STATE_WAIT_WIP: constantly read status reg for WIP==0 */
 				STATE_WAIT_WIP:
 					begin
+if (CMD_WRITE_ENABLE != 0) begin
 						case(wait_wip_timer)
 							0:
 								begin
@@ -688,13 +715,16 @@ end
 										wait_wip_timer <= 0;						// reset wip timer
 									end
 								end
-						endcase;	
+						endcase
+end	
 					end
 					
 				STATE_SECTOR_ERASE: // command is done here just need to hangup
 					begin
+if (CMD_WRITE_ENABLE != 0) begin
 						tag   <= STATE_WAIT_WIP;
 						state <= STATE_HANGUP;
+end
 					end
 
 				// done, signal ready, wait for valid to drop (note: you can signal ready in the previous cycle to save time)
