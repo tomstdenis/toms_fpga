@@ -90,7 +90,14 @@ Modules
   
   - A bus wrapper in **timer/timer_mem.v** with test bench **timer/timer_mem_tb.v**
 
-- **sram**: SPI PSRAM/SRAM controllers
+- **spidma**: SPI DMA controller for PSRAM/SRAM (and eventually NOR flash) memories
+
+   - Works with PSRAM/SRAM evices in SPI and QPI mode (using read, fast read, or quad read)
+   - Run time management allows switching between QPI/SPI mode, more robust FSM that to handle diff technologies
+   - Can DMA 1 .. 256 bytes from/to SPI memory to a host synchronous memory (registered or not)
+   - Uses simple valid/ready handshake
+
+- (deprecated) **sram**: SPI PSRAM/SRAM controllers
 
   - Works with PSRAM and SRAM devices in Quad-IO mode
 

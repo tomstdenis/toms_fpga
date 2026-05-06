@@ -7,16 +7,20 @@ Setup to use the right most PMOD header (J4).
 `include "spidma.vh"
 
 // Enable QPI mode in the test, otherwise use SPI mode
-//`define QUAD_MODE
+`define QUAD_MODE
 
 // use FAST read (0Bh) instead of normal speed (03h)
-`define FAST_SPI_MODE
+// `define FAST_SPI_MODE
 
 `ifdef QUAD_MODE
     `define DUMMY_CYCLES 6
     `define SPI_READ_CMD 8'h03
     `define SPI_TIMER_BITS 4
+    `define CMD_EQIO 8'h35
+    `define CMD_QMEX 8'hF5
 `else
+    `define CMD_EQIO 8'h00
+    `define CMD_QMEX 8'h00
     `ifdef FAST_SPI_MODE
         `define DUMMY_CYCLES 8
         `define SPI_READ_CMD 8'h0B
@@ -131,7 +135,7 @@ module top(input wire clk, inout wire [3:0] sio, output wire cs, output wire sck
             
             .CMD_QPI_READ(8'hEB), .CMD_QPI_WRITE(8'h38), 
             .CMD_SPI_READ(`SPI_READ_CMD), .CMD_SPI_WRITE(8'h02),
-            .CMD_EQIO(8'h35), .CMD_QMEX(8'hF5),
+            .CMD_EQIO(`CMD_EQIO), .CMD_QMEX(`CMD_QMEX),
             .CMD_RESETEN(8'h66), .CMD_RESET(8'h99),
 
             .MIN_CPH_NS(50), .SPI_TIMER_BITS(`SPI_TIMER_BITS), .QPI_TIMER_BITS(0), .MIN_WAKEUP_NS(150_000)
