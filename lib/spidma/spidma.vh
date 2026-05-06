@@ -11,5 +11,7 @@
 `define spidma_cmd_read  4'h3
 // cmd_write == write to SPI memory, read from host memory
 `define spidma_cmd_write 4'h4
+// cmd_sector_erase == erase a 4K sector
+`define spidma_cmd_sector_erase 4'h5
 
 `endif

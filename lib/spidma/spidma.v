@@ -51,14 +51,23 @@ module spidma #(
 	// MEMORY default configuration for a typical 8-pin SPI PSRAM
 	parameter SRAM_ADDR_WIDTH = 24,							// how many bits does the address have (e.g. 16 or 24)
 	parameter DUMMY_CYCLES    = 6,							// how many dummy reads are required before the first byte is valid
+
+	// Commands 
+	parameter CMD_WRITE_ENABLE = 8'h00,						// enable the Write Enable Latch (set to 8'h06 to enable)
+	parameter CMD_READ_STATUS  = 8'h05,						// read the status register for WEL/WIP
+	parameter CMD_SECTOR_ERASE = 8'h20,						// erase a sector
+
 	parameter CMD_SPI_READ    = 8'h03,						// command to read in SPI mode
 	parameter CMD_SPI_WRITE   = 8'h02,						// command to write in SPI mode
 	parameter CMD_QPI_READ    = 8'hEB,						// command to read in QPI mode
 	parameter CMD_QPI_WRITE   = 8'h38,						// command to write in QPI mode
+
 	parameter CMD_EQIO        = 8'h35,						// command to enter quad IO mode
 	parameter CMD_QMEX        = 8'hF5,						// command to exit quad mod IO
 	parameter CMD_RESETEN     = 8'h66,						// command to enable reset
 	parameter CMD_RESET       = 8'h99,						// command to reset
+
+	// Timing parameters
 	parameter MIN_CPH_NS      = 50,							// how many ns must CS be high between commands (23LC's have a min time of mostly nothing)
 	parameter MIN_WAKEUP_NS   = 150_000,					// how many ns to wait for it to wakeup after POR
 	parameter SPI_TIMER_BITS  = 3,							// divide clock by X for SPI operations
@@ -100,6 +109,7 @@ module spidma #(
 	reg [4:0] state;										// What state is our FSM in
 	reg [4:0] tag;
 	reg [2:0] send_cmd_addr_cycle;							// counter to tell which step of sending CMD + ADDR we're on
+	reg [1:0] wait_wip_timer;
 	reg [4:0] dummy_cnt;									// how many dummy cycles to waste
 	reg       quad_mode;									// are we in quad mode or spi mode?
 
@@ -138,7 +148,11 @@ module spidma #(
 		STATE_DONE_WRITE            = 15,				// Cycle to finish off write bursts
 		STATE_DONE					= 16,				// Raise ready, wait for !valid
 		STATE_HANGUP				= 17,				// Hang up SPI bus
-		STATE_HANGUP_WAIT			= 18;				// hold CS high for a count
+		STATE_HANGUP_WAIT			= 18,				// hold CS high for a count
+		STATE_WRITE_ENABLE			= 19,				// set the write enable latch
+		STATE_WAIT_WIP				= 20,				// wait for WIP to be cleared
+		STATE_SECTOR_ERASE          = 21;
+		
 
 	always @(posedge clk) begin
 		if (!rst_n) begin
@@ -163,6 +177,7 @@ module spidma #(
             ready				<= 0;
             quad_mode			<= 0;
             shift8_cs_exit		<= 0;
+            wait_wip_timer		<= 0;
 		end else begin
 			case(state)
 				STATE_SEND_RESETEN:										// Send 0x66 RESET ENABLE
@@ -269,7 +284,8 @@ end
 										if (bit_cnt == 0) begin
 											bit_cnt    <= 7;								// reset bit count in case we chain SEND_8's
 											state      <= tag;
-											cs_pin     <= shift8_cs_exit;
+											cs_pin     <= shift8_cs_exit;					// some commands require cs to go high after the last bit
+											shift8_cs_exit <= 0;							// reset cs_exit for next SPI transfer
 										end
 									end else begin
 										sck_timer <= sck_timer - 1'b1;
@@ -439,7 +455,18 @@ end
 									end
 								`spidma_cmd_write:
 									begin
-										state <= STATE_SEND_CMD_ADDR;
+										if (CMD_WRITE_ENABLE == 0) begin
+											state <= STATE_SEND_CMD_ADDR;
+										end else begin
+											// if CMD_WRITE_ENABLE is set then we assume it's a NOR and we need to turn on WEL
+											tag   <= STATE_SEND_CMD_ADDR;
+											state <= STATE_WRITE_ENABLE;
+										end
+									end
+								`spidma_cmd_sector_erase:
+									begin
+										state <= STATE_WRITE_ENABLE;						// enable write latch
+										tag   <= STATE_SEND_CMD_ADDR;						// then jump to sending sector erase command
 									end
 								default:
 									begin
@@ -482,6 +509,11 @@ end
 											temp_wire_bits <= CMD_SPI_WRITE;
 										end
 									end
+								`spidma_cmd_sector_erase:
+									begin
+										sio_dout[0]    <= CMD_SECTOR_ERASE[7];
+										temp_wire_bits <= CMD_SECTOR_ERASE;
+									end
 								default:
 									begin
 										// invalid cmd_value so just hangup
@@ -502,8 +534,19 @@ end
 /* verilator lint_on WIDTHEXPAND */
 								// last byte of address we tag out to READ/WRITE/etc operations instead of coming back here
 								case(cmd_value_l)
-									`spidma_cmd_read:  tag <= STATE_START_READ;
-									`spidma_cmd_write: tag <= STATE_START_WRITE;
+									`spidma_cmd_read:
+										begin
+											tag <= STATE_START_READ;
+										end
+									`spidma_cmd_write:
+										begin
+											tag <= STATE_START_WRITE;
+										end
+									`spidma_cmd_sector_erase:
+										begin
+											shift8_cs_exit <= 1'b1;						// we need to set CS high immediately
+											tag 		   <= STATE_SECTOR_ERASE;
+										end
 									default:
 										begin
 											// shouldn't get here but if we do hangup gracefully
@@ -578,7 +621,8 @@ end
 						tag			   <= state;
 						host_mem_addr  <= host_mem_addr + 1'b1;
 						if (cmd_burst_len_l == 0) begin
-							tag <= STATE_DONE_WRITE;
+							shift8_cs_exit <= 1'b1;
+							tag 		   <= STATE_DONE_WRITE;
 						end else begin
 							cmd_burst_len_l <= cmd_burst_len_l - 1'b1;
 						end
@@ -588,8 +632,69 @@ end
 				// it would just endlessly jump to itself
 				STATE_DONE_WRITE:
 					begin
+						if (CMD_WRITE_ENABLE == 0) begin
+							state <= STATE_HANGUP;
+							tag   <= STATE_DONE;
+						end else begin
+							state <= STATE_HANGUP;
+							tag   <= STATE_WAIT_WIP;
+						end
+					end
+
+				/* STATE_WRITE_ENABLE: enable the Write Enable Latch */
+				STATE_WRITE_ENABLE:
+					begin
+						sck_timer      <= SPI_TIMER_BITS;
+						bit_cnt        <= 7;
+						temp_wire_bits <= CMD_WRITE_ENABLE;
+						state          <= STATE_SPI_SHIFT_8;
+					end
+					
+				/* STATE_WAIT_WIP: constantly read status reg for WIP==0 */
+				STATE_WAIT_WIP:
+					begin
+						case(wait_wip_timer)
+							0:
+								begin
+									cs_pin         <= 1'b0;							// lower CS pin
+									sck_pin        <= 1'b0;
+									sio_en         <= 4'b0001;
+									sck_timer      <= SPI_TIMER_BITS;
+									bit_cnt        <= 7;
+									temp_wire_bits <= CMD_READ_STATUS;
+									wait_wip_timer <= 1;
+								end
+							1:	// write READ_STATUS command
+								begin
+									tag 		   <= state;
+									state 		   <= STATE_SPI_SHIFT_8;
+									wait_wip_timer <= 2;
+								end
+							2:  // throw away first input 
+								begin
+									tag			   <= state;
+									state		   <= STATE_SPI_SHIFT_8;
+									wait_wip_timer <= 3;
+								end
+							3: // loop until it's 0
+								begin
+									if (temp_wire_bits[0]) begin
+										tag   <= state;
+										state <= STATE_SPI_SHIFT_8;
+									end else begin
+										// WIP == 0 we're done
+										tag   <= STATE_DONE;
+										state <= STATE_HANGUP;
+										wait_wip_timer <= 0;						// reset wip timer
+									end
+								end
+						endcase;	
+					end
+					
+				STATE_SECTOR_ERASE: // command is done here just need to hangup
+					begin
+						tag   <= STATE_WAIT_WIP;
 						state <= STATE_HANGUP;
-						tag   <= STATE_DONE;
 					end
 
 				// done, signal ready, wait for valid to drop (note: you can signal ready in the previous cycle to save time)
