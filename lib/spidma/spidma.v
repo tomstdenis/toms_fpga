@@ -121,7 +121,10 @@ module spidma #(
 
 	// transfer related
 	reg [3:0] bit_cnt;										// bit counter a variety of FSM states
+	wire [3:0] bit_cnt_orig = quad_mode ? 1 : 7;
 	reg [3:0] sck_timer;									// timer used to know when to change phase
+	wire [3:0] sck_timer_orig = quad_mode ? QPI_TIMER_BITS : SPI_TIMER_BITS;
+	wire [3:0] sio_en_orig = quad_mode ? 4'b1111 : 4'b0001;
 	reg [7:0] temp_wire_bits;
 	reg       shift8_cs_exit;								// some commands require CS to go high immediately
 	
@@ -146,21 +149,20 @@ module spidma #(
 		STATE_SEND_RESETEN_DONE		= 5,
 		STATE_SEND_RESET			= 6,				// issue RESET command
 		STATE_SEND_RESET_DONE		= 7,
-		STATE_SPI_SHIFT_8			= 8,				// Transfer a byte in/out using 1-bit SPI mode
-		STATE_QPI_SHIFT_2			= 9,				// Send a byte in QPI mode
-		STATE_IDLE					= 11,				// Idle state waiting for a command
-		STATE_SEND_CMD_ADDR         = 12,				// Send a 1 byte command + address
-		STATE_START_READ			= 13,				// Start a read from SPI memory burst
-		STATE_START_WRITE			= 14,				// Start a write to SPI memory burst
-		STATE_DONE_WRITE            = 15,				// Cycle to finish off write bursts
-		STATE_DONE					= 16,				// Raise ready, wait for !valid
-		STATE_HANGUP				= 17,				// Hang up SPI bus
-		STATE_HANGUP_WAIT			= 18,				// hold CS high for a count
-		STATE_WRITE_ENABLE			= 19,				// set the write enable latch
-		STATE_WAIT_WIP				= 20,				// wait for WIP to be cleared
-		STATE_SECTOR_ERASE          = 21,				// 
-		STATE_WRITE_ENABLE_RESUME   = 22,				// Resume the SEND_CMD_ADDR call
-		STATE_WRITE_ENABLE_DONE     = 23;				// we're done issuing the WRITE_ENABLE command
+		STATE_SHIFT_DATA			= 8,				// Transfer a byte in/out using 1-bit SPI mode
+		STATE_IDLE					= 9,				// Idle state waiting for a command
+		STATE_SEND_CMD_ADDR         = 10,				// Send a 1 byte command + address
+		STATE_START_READ			= 11,				// Start a read from SPI memory burst
+		STATE_START_WRITE			= 12,				// Start a write to SPI memory burst
+		STATE_DONE_WRITE            = 13,				// Cycle to finish off write bursts
+		STATE_DONE					= 14,				// Raise ready, wait for !valid
+		STATE_HANGUP				= 15,				// Hang up SPI bus
+		STATE_HANGUP_WAIT			= 16,				// hold CS high for a count
+		STATE_WRITE_ENABLE			= 17,				// set the write enable latch
+		STATE_WAIT_WIP				= 18,				// wait for WIP to be cleared
+		STATE_SECTOR_ERASE          = 19,				// 
+		STATE_WRITE_ENABLE_RESUME   = 20,				// Resume the SEND_CMD_ADDR call
+		STATE_WRITE_ENABLE_DONE     = 21;				// we're done issuing the WRITE_ENABLE command
 
 	always @(posedge clk) begin
 		if (!rst_n) begin
@@ -192,11 +194,11 @@ module spidma #(
 					begin
 						temp_wire_bits	<= CMD_RESETEN;
 						sio_dout[0]     <= CMD_RESETEN[7];
-						bit_cnt			<= 7;
-						state			<= STATE_SPI_SHIFT_8;
+						bit_cnt			<= bit_cnt_orig;
+						state			<= STATE_SHIFT_DATA;
 						tag				<= STATE_SEND_RESETEN_DONE;
-						sio_en			<= 4'b0001;						// enable MOSI output pin SIO[0]
-						sck_timer		<= SPI_TIMER_BITS;
+						sio_en			<= sio_en_orig;						// enable MOSI output pin SIO[0]
+						sck_timer		<= sck_timer_orig;
 					end
 				STATE_SEND_RESETEN_DONE:								// done sending 0x66 RESET ENABLE, hangup and then issue RESET
 					begin
@@ -208,10 +210,10 @@ module spidma #(
 					begin
 						temp_wire_bits	<= CMD_RESET;
 						sio_dout[0]     <= CMD_RESET[7];
-						bit_cnt			<= 7;
-						state			<= STATE_SPI_SHIFT_8;
+						bit_cnt			<= bit_cnt_orig;
+						state			<= STATE_SHIFT_DATA;
 						tag				<= STATE_SEND_RESET_DONE;
-						sio_en			<= 4'b0001;						// enable MOSI output pin SIO[0]
+						sio_en			<= sio_en_orig;						// enable MOSI output pin SIO[0]
 					end
 				STATE_SEND_RESET_DONE:								    // done sending 0x66 RESET ENABLE, hangup and then issue RESET
 					begin
@@ -225,11 +227,11 @@ if (CMD_EQIO != 0) begin
                         // sticking some STATE_INIT initializations here.
                         temp_wire_bits	<= CMD_EQIO;					// Send "enter quad mode IO" command
 						sio_dout[0]     <= CMD_EQIO[7];
-						bit_cnt			<= 7;
-						sck_timer		<= SPI_TIMER_BITS;
-						state			<= STATE_SPI_SHIFT_8;			// Use single bit SEND state
+						bit_cnt			<= bit_cnt_orig;
+						sck_timer		<= sck_timer_orig;
+						state			<= STATE_SHIFT_DATA;			// Use single bit SEND state
 						tag				<= STATE_EQIO_DONE;
-						sio_en			<= 4'b0001;						// enable MOSI output pin SIO[0]
+						sio_en			<= sio_en_orig;						// enable MOSI output pin SIO[0]
 end
 					end
 				STATE_EQIO_DONE:
@@ -245,12 +247,12 @@ end
 					begin
 if (CMD_QMEX != 0) begin
 						tag            <= STATE_QMEX_DONE;
-						state          <= STATE_QPI_SHIFT_2;
+						state          <= STATE_SHIFT_DATA;
 						temp_wire_bits <= CMD_QMEX;
 						sio_dout	   <= CMD_QMEX[7:4];
-						bit_cnt        <= 1;
-						sck_timer      <= QPI_TIMER_BITS;
-						sio_en		   <= 4'b1111;	
+						bit_cnt        <= bit_cnt_orig;
+						sck_timer      <= sck_timer_orig;
+						sio_en		   <= sio_en_orig;	
 end
 					end
 				STATE_QMEX_DONE:
@@ -262,20 +264,29 @@ if (CMD_QMEX != 0) begin
 end
 					end
 
-				/* STATE_SPI_SHIFT_8:
-					in: sio_en = 4'b0001, bit_cnt = 7, sck_timer = SPI_TIMER_BITS, temp_wire_bits = data to shift out MOSI
-					out: bit_cnt = 7, sck_timer = SPI_TIMER_BITS, temp_wire_bits = data shifted in MISO
+				/* STATE_SHIFT_DATA:
+					in: sio_en = sio_en_orig, bit_cnt = bit_cnt_orig, sck_timer = sck_timer_origin, temp_wire_bits = data to shift out MOSI/SIO
+					out: bit_cnt, sck_timer: unchanged, temp_wire_bits = data shifted in MISO/SIO
 				*/
-				STATE_SPI_SHIFT_8:										// shift 8 bits in/out temp_spi_bits (sio_en[0] = 1, bit_cnt = 7)	
+				STATE_SHIFT_DATA:										// shift 8 bits in/out temp_spi_bits	
 					begin
 						cs_pin <= 1'b0;									// default CS low 
 						case(sck_pin)
 							1'd0:										// SCK low phase, put data on wire
 								begin
 									// write during low
-									sio_dout[0] <= temp_wire_bits[7];
+									if (quad_mode) begin
+`ifdef SIM_MODEL
+										if (sim_wr_en && sio_en == 4'b1111) begin
+											sim_memory[sim_address + bit_cnt[0]] <= temp_wire_bits[7:4];
+										end
+`endif
+										sio_dout <= temp_wire_bits[7:4];
+									end else begin
+										sio_dout[0] <= temp_wire_bits[7];
+									end
 									if (sck_timer == 0) begin
-										sck_timer      <= SPI_TIMER_BITS;					 // time to switch to SCK high
+										sck_timer      <= sck_timer_orig;					 // time to switch to SCK high
 										sck_pin        <= ~sck_pin;
 									end else begin
 										sck_timer <= sck_timer - 1'b1;
@@ -284,13 +295,25 @@ end
 							1'd1:										// SCK high phase, keep data steady, move to next bit at end of phase
 								begin
 									if (sck_timer == 0) begin
-										temp_wire_bits <= {temp_wire_bits[6:0], sio_din[1]}; // shift wire bits, and insert MISO bit
-										sio_dout[0]	   <= temp_wire_bits[6];
+										if (quad_mode) begin
+											sio_dout	   <= temp_wire_bits[3:0];
+`ifdef SIM_MODEL
+											temp_wire_bits <= {temp_wire_bits[3:0], sim_memory[sim_address + bit_cnt[0]]}; // shift wire bits, and insert MISO bit
+`else
+											temp_wire_bits <= {temp_wire_bits[3:0], sio_din}; // shift wire bits, and insert MISO bit
+`endif											
+										end else begin
+											temp_wire_bits <= {temp_wire_bits[6:0], sio_din[1]}; // shift wire bits, and insert MISO bit
+											sio_dout[0]	   <= temp_wire_bits[6];
+										end										
 										bit_cnt        <= bit_cnt - 1'b1;
 										sck_pin        <= ~sck_pin;							// set SCK to low for either the next bit of this transaction or the start of the next transaction
-										sck_timer      <= SPI_TIMER_BITS;					// reset timer in case we chain SEND_8's
+										sck_timer      <= sck_timer_orig;					// reset timer in case we chain SEND_8's
 										if (bit_cnt == 0) begin
-											bit_cnt    <= 7;								// reset bit count in case we chain SEND_8's
+`ifdef SIM_MODEL
+											sim_address <= sim_address + 2;
+`endif
+											bit_cnt    <= bit_cnt_orig;						// reset bit count in case we chain SEND_8's
 											state      <= tag;
 											cs_pin     <= shift8_cs_exit;					// some commands require cs to go high after the last bit
 											shift8_cs_exit <= 0;							// reset cs_exit for next SPI transfer
@@ -300,60 +323,6 @@ end
 									end
 								end
 						endcase
-					end
-					
-				/* STATE_QPI_SHIFT_2:
-					in: sio_en = 4'b1111, bit_cnt = 1, sck_timer = QPI_TIMER_BITS, temp_wire_bits = data to shift out SIO[3:0]
-					out: bit_cnt = 1, sck_timer = QPI_TIMER_BITS, temp_wire_bits = data shifted in
-				*/
-				STATE_QPI_SHIFT_2:
-					begin
-if (CMD_EQIO != 0) begin
-						cs_pin <= 1'b0;
-						case(sck_pin)
-							1'b0:														// shift data out during SCK low phase
-								begin
-									sio_dout <= temp_wire_bits[7:4];
-`ifdef SIM_MODEL
-									if (sim_wr_en && sio_en == 4'b1111) begin
-										sim_memory[sim_address + bit_cnt[0]] <= temp_wire_bits[7:4] & sio_en;
-									end
-`endif
-
-									if (sck_timer == 0) begin
-										sck_timer      <= QPI_TIMER_BITS;
-										sck_pin        <= ~sck_pin;
-									end else begin
-										sck_timer      <= sck_timer - 1'b1;
-									end
-								end
-							1'b1:														// hold stable during the SCK high phase
-								begin
-									if (sck_timer == 0) begin
-`ifdef SIM_MODEL
-										temp_wire_bits <= {temp_wire_bits[3:0], sim_memory[sim_address + bit_cnt[0]] & ~sio_en};
-`else
-										temp_wire_bits <= {temp_wire_bits[3:0], sio_din};
-`endif
-										sio_dout  <= temp_wire_bits[3:0];
-										bit_cnt	  <= bit_cnt - 1'b1;
-										sck_pin   <= ~sck_pin;
-										sck_timer <= QPI_TIMER_BITS;
-										if (bit_cnt == 0) begin
-											bit_cnt <= 1;
-											state   <= tag;
-`ifdef SIM_MODEL
-											if ((sim_wr_en && sio_en == 4'b1111) || sio_en == 4'b0000) begin
-												sim_address <= sim_address + 2;
-											end
-`endif
-										end
-									end else begin
-										sck_timer <= sck_timer - 1'b1;
-									end
-								end
-						endcase
-end
 					end
 
 				// IDLE waiting for cmd_valid
@@ -365,9 +334,9 @@ end
 							sck_pin <= 1'b0;
 
 							// configure I/O
-							sio_en    <= quad_mode ? 4'b1111 : 4'b0001;
-							bit_cnt   <= quad_mode ? 1 : 7;
-							sck_timer <= quad_mode ? QPI_TIMER_BITS : SPI_TIMER_BITS;
+							sio_en    <= sio_en_orig;
+							bit_cnt   <= bit_cnt_orig;
+							sck_timer <= sck_timer_orig;
 							
 							// latch the command
 							cmd_value_l         <= cmd_value;
@@ -451,7 +420,7 @@ end
 					begin
 						// setup send
 						send_cmd_addr_cycle <= send_cmd_addr_cycle + 1'b1;
-						state               <= quad_mode ? STATE_QPI_SHIFT_2 : STATE_SPI_SHIFT_8;
+						state               <= STATE_SHIFT_DATA;
 						tag                 <= state;
 						if (send_cmd_addr_cycle == 0) begin
 							// write the command byte
@@ -535,17 +504,17 @@ end
 						if (DUMMY_CYCLES == 0 && dummy_cnt == 1) begin
 							// this is the state we get into when there's no dummy wait cycles but we need to prime temp_wire_bits...
 							dummy_cnt <= 0;
-							state     <= quad_mode ? STATE_QPI_SHIFT_2 : STATE_SPI_SHIFT_8;
+							state     <= STATE_SHIFT_DATA;
 							tag       <= state;
 						end else if (dummy_cnt > 0) begin
 							// waiting for dummy cycles
 							if (sck_timer == 0) begin
 								dummy_cnt  <= dummy_cnt - 1'b1;
 								sck_pin    <= ~sck_pin;
-								sck_timer  <= quad_mode ? QPI_TIMER_BITS : SPI_TIMER_BITS;
+								sck_timer  <= sck_timer_orig;
 								if (dummy_cnt == 1) begin
 									// issue first QPI read
-									state     <= quad_mode ? STATE_QPI_SHIFT_2 : STATE_SPI_SHIFT_8;
+									state     <= STATE_SHIFT_DATA;
 									tag       <= state;
 								end
 							end else begin
@@ -563,7 +532,7 @@ end
 								tag   <= STATE_DONE;
 							end else begin
 								cmd_burst_len_l <= cmd_burst_len_l - 1'b1;
-								state <= quad_mode ? STATE_QPI_SHIFT_2 : STATE_SPI_SHIFT_8;
+								state <= STATE_SHIFT_DATA;
 								tag   <= state;
 							end
 						end
@@ -584,7 +553,7 @@ end
 						end else begin
 							sio_dout[0]	   <= host_mem_data_out[7];
 						end
-						state		   <= quad_mode ? STATE_QPI_SHIFT_2 : STATE_SPI_SHIFT_8;
+						state		   <= STATE_SHIFT_DATA;
 						tag			   <= state;
 						host_mem_addr  <= host_mem_addr + 1'b1;
 						if (cmd_burst_len_l == 0) begin
@@ -617,7 +586,7 @@ end
 if (CMD_WRITE_ENABLE != 0) begin
 						temp_wire_bits <= CMD_WRITE_ENABLE;
 						shift8_cs_exit <= 1'b1;
-						state          <= STATE_SPI_SHIFT_8;
+						state          <= STATE_SHIFT_DATA;
 						tag			   <= STATE_WRITE_ENABLE_DONE;
 end
 					end
@@ -635,9 +604,9 @@ if (CMD_WRITE_ENABLE != 0) begin
 						// resume our command
 						cs_pin         <= 1'b0;							// lower CS pin
 						sck_pin        <= 1'b0;
-						sio_en         <= 4'b0001;
-						sck_timer      <= SPI_TIMER_BITS;
-						bit_cnt        <= 7;
+						sio_en         <= sio_en_orig;
+						sck_timer      <= sck_timer_orig;
+						bit_cnt        <= bit_cnt_orig;
 						state		   <= STATE_SEND_CMD_ADDR;
 end
 					end
@@ -652,29 +621,29 @@ if (CMD_WRITE_ENABLE != 0) begin
 								begin
 									cs_pin         <= 1'b0;							// lower CS pin
 									sck_pin        <= 1'b0;
-									sio_en         <= 4'b0001;
-									sck_timer      <= SPI_TIMER_BITS;
-									bit_cnt        <= 7;
+									sio_en         <= sio_en_orig;
+									sck_timer      <= sck_timer_orig;
+									bit_cnt        <= bit_cnt_orig;
 									temp_wire_bits <= CMD_READ_STATUS;
 									wait_wip_timer <= 1;
 								end
 							1:	// write READ_STATUS command
 								begin
 									tag 		   <= state;
-									state 		   <= STATE_SPI_SHIFT_8;
+									state 		   <= STATE_SHIFT_DATA;
 									wait_wip_timer <= 2;
 								end
 							2:  // throw away first input 
 								begin
 									tag			   <= state;
-									state		   <= STATE_SPI_SHIFT_8;
+									state		   <= STATE_SHIFT_DATA;
 									wait_wip_timer <= 3;
 								end
 							3: // loop until it's 0
 								begin
 									if (temp_wire_bits[0]) begin
 										tag   <= state;
-										state <= STATE_SPI_SHIFT_8;
+										state <= STATE_SHIFT_DATA;
 									end else begin
 										// WIP == 0 we're done
 										tag   <= STATE_DONE;
