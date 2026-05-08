@@ -126,9 +126,11 @@ module spidma #(
 	reg       shift8_cs_exit;								// some commands require CS to go high immediately
 	
 	// hangup/wakeup related
-	reg [20:0] hangup_timer;
-	wire [20:0] hangup_bauddiv = ((CLK_FREQ_MHZ * MIN_CPH_NS + 999) / 1000);
-	wire [20:0] wakeup_bauddiv = ((CLK_FREQ_MHZ * MIN_WAKEUP_NS + 999) / 1000);
+	/* verilator lint_off WIDTHTRUNC */
+	reg [15:0] hangup_timer;
+	wire [15:0] hangup_bauddiv = ((CLK_FREQ_MHZ * MIN_CPH_NS + 999) / 1000);
+	wire [15:0] wakeup_bauddiv = ((CLK_FREQ_MHZ * MIN_WAKEUP_NS + 999) / 1000);
+	/* verilator lint_on WIDTHTRUNC */
 	
 	// Command data
 	reg [3:0] cmd_value_l;								// what command to run (read, write, ...)
@@ -489,7 +491,7 @@ end
 				// in: send_cmd_addr_cycle == 0, cmd_value_l == READ/WRITE/etc, cmd_spi_address_l == address
 				STATE_SEND_CMD_ADDR:
 					begin
-						// setup QPI send
+						// setup send
 						send_cmd_addr_cycle <= send_cmd_addr_cycle + 1'b1;
 						state               <= quad_mode ? STATE_QPI_SEND_2 : STATE_SPI_SHIFT_8;
 						tag                 <= state;
@@ -660,12 +662,15 @@ end
 					end
 				STATE_WRITE_ENABLE_DONE:
 					begin
+if (CMD_WRITE_ENABLE != 0) begin
 						// need to hang up and then issue command
 						tag	  <= STATE_WRITE_ENABLE_RESUME;
 						state <= STATE_HANGUP;
+end
 					end
 				STATE_WRITE_ENABLE_RESUME:
 					begin
+if (CMD_WRITE_ENABLE != 0) begin
 						// resume our command
 						cs_pin         <= 1'b0;							// lower CS pin
 						sck_pin        <= 1'b0;
@@ -673,6 +678,7 @@ end
 						sck_timer      <= SPI_TIMER_BITS;
 						bit_cnt        <= 7;
 						state		   <= STATE_SEND_CMD_ADDR;
+end
 					end
 						
 					
