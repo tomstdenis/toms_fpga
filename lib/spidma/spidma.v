@@ -147,8 +147,7 @@ module spidma #(
 		STATE_SEND_RESET			= 6,				// issue RESET command
 		STATE_SEND_RESET_DONE		= 7,
 		STATE_SPI_SHIFT_8			= 8,				// Transfer a byte in/out using 1-bit SPI mode
-		STATE_QPI_SEND_2			= 9,				// Send a byte in QPI mode
-		STATE_QPI_RECV_2			= 10,				// Read a byte in QPI mode
+		STATE_QPI_SHIFT_2			= 9,				// Send a byte in QPI mode
 		STATE_IDLE					= 11,				// Idle state waiting for a command
 		STATE_SEND_CMD_ADDR         = 12,				// Send a 1 byte command + address
 		STATE_START_READ			= 13,				// Start a read from SPI memory burst
@@ -246,7 +245,7 @@ end
 					begin
 if (CMD_QMEX != 0) begin
 						tag            <= STATE_QMEX_DONE;
-						state          <= STATE_QPI_SEND_2;
+						state          <= STATE_QPI_SHIFT_2;
 						temp_wire_bits <= CMD_QMEX;
 						sio_dout	   <= CMD_QMEX[7:4];
 						bit_cnt        <= 1;
@@ -303,11 +302,11 @@ end
 						endcase
 					end
 					
-				/* STATE_QPI_SEND_2:
+				/* STATE_QPI_SHIFT_2:
 					in: sio_en = 4'b1111, bit_cnt = 1, sck_timer = QPI_TIMER_BITS, temp_wire_bits = data to shift out SIO[3:0]
-					out: bit_cnt = 1, sck_timer = QPI_TIMER_BITS, temp_wire_bits = 0
+					out: bit_cnt = 1, sck_timer = QPI_TIMER_BITS, temp_wire_bits = data shifted in
 				*/
-				STATE_QPI_SEND_2:
+				STATE_QPI_SHIFT_2:
 					begin
 if (CMD_EQIO != 0) begin
 						cs_pin <= 1'b0;
@@ -316,7 +315,7 @@ if (CMD_EQIO != 0) begin
 								begin
 									sio_dout <= temp_wire_bits[7:4];
 `ifdef SIM_MODEL
-									if (sim_wr_en) begin
+									if (sim_wr_en && sio_en == 4'b1111) begin
 										sim_memory[sim_address + bit_cnt[0]] <= temp_wire_bits[7:4] & sio_en;
 									end
 `endif
@@ -324,7 +323,6 @@ if (CMD_EQIO != 0) begin
 									if (sck_timer == 0) begin
 										sck_timer      <= QPI_TIMER_BITS;
 										sck_pin        <= ~sck_pin;
-										temp_wire_bits <= {temp_wire_bits[3:0], 4'b0};
 									end else begin
 										sck_timer      <= sck_timer - 1'b1;
 									end
@@ -332,54 +330,12 @@ if (CMD_EQIO != 0) begin
 							1'b1:														// hold stable during the SCK high phase
 								begin
 									if (sck_timer == 0) begin
-										sio_dout  <= temp_wire_bits[7:4];
-										bit_cnt	  <= bit_cnt - 1'b1;
-										sck_pin   <= ~sck_pin;
-										sck_timer <= QPI_TIMER_BITS;
-										if (bit_cnt == 0) begin
-											bit_cnt <= 1;
-											state   <= tag;
-`ifdef SIM_MODEL
-											if (sim_wr_en) begin
-												sim_address <= sim_address + 2;
-											end
-`endif
-										end
-									end else begin
-										sck_timer <= sck_timer - 1'b1;
-									end
-								end
-						endcase
-end
-					end
-
-				/* STATE_QPI_RECV_2:
-					in: sio_en = 4'b0000, bit_cnt = 1, sck_timer = QPI_TIMER_BITS, temp_wire_bits = X
-					out: bit_cnt = 1, sck_timer = QPI_TIMER_BITS, temp_wire_bits = data shifted in over SIO[3:0]
-				*/
-				STATE_QPI_RECV_2:
-					begin
-if (CMD_EQIO != 0) begin
-						host_mem_wr_en <= 1'b0;											// ensure host write is turned off now
-						cs_pin 		   <= 1'b0;											// ensure CS is low
-						case(sck_pin)
-							1'b0:														// shift data in during SCK low phase
-								begin
-									if (sck_timer == 0) begin
-										sck_timer      <= QPI_TIMER_BITS;
-										sck_pin        <= ~sck_pin;
-									end else begin
-										sck_timer      <= sck_timer - 1'b1;
-									end
-								end
-							1'b1:														// hold stable during the SCK high phase
-								begin
 `ifdef SIM_MODEL
 										temp_wire_bits <= {temp_wire_bits[3:0], sim_memory[sim_address + bit_cnt[0]] & ~sio_en};
 `else
 										temp_wire_bits <= {temp_wire_bits[3:0], sio_din};
 `endif
-									if (sck_timer == 0) begin
+										sio_dout  <= temp_wire_bits[3:0];
 										bit_cnt	  <= bit_cnt - 1'b1;
 										sck_pin   <= ~sck_pin;
 										sck_timer <= QPI_TIMER_BITS;
@@ -387,7 +343,9 @@ if (CMD_EQIO != 0) begin
 											bit_cnt <= 1;
 											state   <= tag;
 `ifdef SIM_MODEL
-											sim_address <= sim_address + 2;
+											if ((sim_wr_en && sio_en == 4'b1111) || sio_en == 4'b0000) begin
+												sim_address <= sim_address + 2;
+											end
 `endif
 										end
 									end else begin
@@ -493,7 +451,7 @@ end
 					begin
 						// setup send
 						send_cmd_addr_cycle <= send_cmd_addr_cycle + 1'b1;
-						state               <= quad_mode ? STATE_QPI_SEND_2 : STATE_SPI_SHIFT_8;
+						state               <= quad_mode ? STATE_QPI_SHIFT_2 : STATE_SPI_SHIFT_8;
 						tag                 <= state;
 						if (send_cmd_addr_cycle == 0) begin
 							// write the command byte
@@ -577,7 +535,7 @@ end
 						if (DUMMY_CYCLES == 0 && dummy_cnt == 1) begin
 							// this is the state we get into when there's no dummy wait cycles but we need to prime temp_wire_bits...
 							dummy_cnt <= 0;
-							state     <= quad_mode ? STATE_QPI_RECV_2 : STATE_SPI_SHIFT_8;
+							state     <= quad_mode ? STATE_QPI_SHIFT_2 : STATE_SPI_SHIFT_8;
 							tag       <= state;
 						end else if (dummy_cnt > 0) begin
 							// waiting for dummy cycles
@@ -587,7 +545,7 @@ end
 								sck_timer  <= quad_mode ? QPI_TIMER_BITS : SPI_TIMER_BITS;
 								if (dummy_cnt == 1) begin
 									// issue first QPI read
-									state     <= quad_mode ? STATE_QPI_RECV_2 : STATE_SPI_SHIFT_8;
+									state     <= quad_mode ? STATE_QPI_SHIFT_2 : STATE_SPI_SHIFT_8;
 									tag       <= state;
 								end
 							end else begin
@@ -605,7 +563,7 @@ end
 								tag   <= STATE_DONE;
 							end else begin
 								cmd_burst_len_l <= cmd_burst_len_l - 1'b1;
-								state <= quad_mode ? STATE_QPI_RECV_2 : STATE_SPI_SHIFT_8;
+								state <= quad_mode ? STATE_QPI_SHIFT_2 : STATE_SPI_SHIFT_8;
 								tag   <= state;
 							end
 						end
@@ -626,7 +584,7 @@ end
 						end else begin
 							sio_dout[0]	   <= host_mem_data_out[7];
 						end
-						state		   <= quad_mode ? STATE_QPI_SEND_2 : STATE_SPI_SHIFT_8;
+						state		   <= quad_mode ? STATE_QPI_SHIFT_2 : STATE_SPI_SHIFT_8;
 						tag			   <= state;
 						host_mem_addr  <= host_mem_addr + 1'b1;
 						if (cmd_burst_len_l == 0) begin
@@ -641,6 +599,9 @@ end
 				// it would just endlessly jump to itself
 				STATE_DONE_WRITE:
 					begin
+`ifdef SIM_MODEL
+						sim_wr_en      <= 1'b0;							// at this point any SEND_2's are going to memory
+`endif
 						if (CMD_WRITE_ENABLE == 0) begin
 							state <= STATE_HANGUP;
 							tag   <= STATE_DONE;
