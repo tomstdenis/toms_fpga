@@ -17,13 +17,13 @@
 -mdrp_en true
 -rst_o false
 -fclkin 50
--idiv_sel 2
+-idiv_sel 1
 -clkfb_sel 0
 -fbdiv_sel 1
 -en_lock true
 -dyn_dpa_en false
 -clkout0_bypass false
--odiv0_sel 5
+-odiv0_sel 10
 -odiv0_frac_sel 0
 -clkout0_dt_dir 1
 -clkout0_dt_step 0
@@ -40,5 +40,5 @@
 -en_clkout5 false
 -en_clkout6 false
 -en_clkfbout false
--mdiv_sel 31
+-mdiv_sel 16
 -mdiv_frac_sel 0
