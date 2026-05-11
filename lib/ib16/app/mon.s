@@ -22,8 +22,8 @@
 	LDI 0,0x00					; enforce r0 == 0x00 in case it was changed by accident
 	LDI 15,<UART_ADDR			; setup pointer
 	LDI 14,>UART_ADDR
-	LDI 13,<TOMMON_WELCOME
-	LDI 12,>TOMMON_WELCOME
+	LDI 1,<TOMMON_WELCOME
+	LDI 2,>TOMMON_WELCOME
 	LCALL PrintNewline
 	LCALL PrintStr
 	LDI 4,0x20					; r4 == SPC for later
@@ -61,9 +61,9 @@
 	ADC 6,8,0					; carry into r6
 	JMP TomMonDtop
 :TomMonDreadY					; read YYYY
-	LCALL ReadHexByte
+	LCALL readHexByte
 	MOV 6,1						; r6 == top YYYY
-	LCALL ReadHexByte
+	LCALL readHexByte
 	MOV 5,1						; now r6:r5 == YYYY
 :TomMonDtop						; top of 'D' command loop where we print the address + space
 	; print XXXX in hex on a new line
@@ -95,7 +95,7 @@
 	STM 1,15,14					; echo char
 	CMPEQ 1,4					; is it a space?
 	JNC TomMonLoop				; not space so go to top of loop
-	LCALL ReadHexByte			; load byte into r1
+	LCALL readHexByte			; load byte into r1
 	STM 1,8,7					; store byte
 	INC 7,7						; increment r8:r7
 	ADC 8,8,0
@@ -107,9 +107,9 @@
 	SRES 0x10					; jump to boot rom
 .ALIGN 0x10
 :TomMonReadr8r7
-	LCALL ReadHexByte			; read hex byte into r1
+	LCALL readHexByte			; read hex byte into r1
 	MOV 8,1						; store in r8
-	LCALL ReadHexByte
+	LCALL readHexByte
 	MOV 7,1						; now r8:r7 holds XXXX
 	RET
 :TOMMON_WELCOME

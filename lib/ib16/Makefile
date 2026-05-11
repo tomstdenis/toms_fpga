@@ -1,7 +1,7 @@
 all: test_ib16_v2.pass
 
 mon.s.bin: app/mon.s ib16_as
-	./ib16_as app/mon.s --bin mon.s.bin --list mon.s.lst
+	./ib16_as --lib lib_abi/ app/mon.s --bin mon.s.bin --list mon.s.lst
 
 abi_uart_demo.s.bin: abi_uart_demo.s ib16_as
 	./ib16_as --lib lib_abi/ abi_uart_demo.s --bin abi_uart_demo.s.bin --list abi_uart_demo.s.lst
