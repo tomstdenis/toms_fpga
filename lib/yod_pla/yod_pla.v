@@ -44,7 +44,7 @@ PINS	TERMS	Fuse bits	DFFs
 32	256	25920	288
 
 */
-
+`default_nettype wire
 `timescale 1ns/1ps
 module pla #(
     parameter PINS = 8,								// how many in/out signals

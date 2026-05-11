@@ -149,7 +149,7 @@ module spidma #(
 		STATE_SEND_RESETEN_DONE		= 5,
 		STATE_SEND_RESET			= 6,				// issue RESET command
 		STATE_SEND_RESET_DONE		= 7,
-		STATE_SHIFT_DATA			= 8,				// Transfer a byte in/out using 1-bit SPI mode
+		STATE_SHIFT_DATA			= 8,				// Transfer a byte in/out
 		STATE_IDLE					= 9,				// Idle state waiting for a command
 		STATE_SEND_CMD_ADDR         = 10,				// Send a 1 byte command + address
 		STATE_START_READ			= 11,				// Start a read from SPI memory burst
@@ -158,11 +158,11 @@ module spidma #(
 		STATE_DONE					= 14,				// Raise ready, wait for !valid
 		STATE_HANGUP				= 15,				// Hang up SPI bus
 		STATE_HANGUP_WAIT			= 16,				// hold CS high for a count
-		STATE_WRITE_ENABLE			= 17,				// set the write enable latch
-		STATE_WAIT_WIP				= 18,				// wait for WIP to be cleared
-		STATE_SECTOR_ERASE          = 19,				// 
+		STATE_WRITE_ENABLE			= 17,				// set the write enable latch (NOR)
+		STATE_WAIT_WIP				= 18,				// wait for WIP to be cleared (NOR)
+		STATE_SECTOR_ERASE          = 19,				// Erase a 4KB sector (NOR)
 		STATE_WRITE_ENABLE_RESUME   = 20,				// Resume the SEND_CMD_ADDR call
-		STATE_WRITE_ENABLE_DONE     = 21;				// we're done issuing the WRITE_ENABLE command
+		STATE_WRITE_ENABLE_DONE     = 21;				// we're done issuing the WRITE_ENABLE command, advance to RESUME
 
 	always @(posedge clk) begin
 		if (!rst_n) begin
@@ -281,15 +281,15 @@ end
 											sim_memory[sim_address + bit_cnt[0]] <= temp_wire_bits[7:4];
 										end
 `endif
-										sio_dout <= temp_wire_bits[7:4];
+										sio_dout    <= temp_wire_bits[7:4];
 									end else begin
 										sio_dout[0] <= temp_wire_bits[7];
 									end
 									if (sck_timer == 0) begin
-										sck_timer      <= sck_timer_orig;					 // time to switch to SCK high
-										sck_pin        <= ~sck_pin;
+										sck_timer   <= sck_timer_orig;					 // time to switch to SCK high
+										sck_pin     <= ~sck_pin;
 									end else begin
-										sck_timer <= sck_timer - 1'b1;
+										sck_timer   <= sck_timer - 1'b1;
 									end
 								end
 							1'd1:										// SCK high phase, keep data steady, move to next bit at end of phase

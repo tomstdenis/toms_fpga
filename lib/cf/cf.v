@@ -27,6 +27,7 @@ module cf_cpu(
 	reg [15:0] reg_alt;
 	reg [7:0]  cur_opcode;				// opcode byte
 	reg [15:0] reg_operand;				// the operand
+	reg 	   reg_operand_16;			// is it a 16-bit operand?
 	
 	localparam
 		FLAG_SLT = 0,
@@ -87,6 +88,7 @@ module cf_cpu(
 			reg_flags    <= 0;
 			cur_opcode   <= 0;
 			reg_operand  <= 0;
+			reg_operand_16 <= 0;
 			fsm_state    <= FSM_FETCH_OPCODE;
 			fsm_tag      <= 0;
 			sd_valid	 <= 0;
@@ -112,13 +114,16 @@ module cf_cpu(
 								// generic ALU ops that use one of the 8 operand formats
 								// so the goal here is to first load an "operand" to pair with
 								// an ALU op like ADD, SUB, etc...
-								fsm_state <= FSM_FETCH_ALU_OPERAND_00_97;
+								fsm_state      <= FSM_FETCH_ALU_OPERAND_00_97;
+								reg_operand_16 <= bus_data_out[3];
 							end else if (bus_data_out[7:0] > 8'h97 && bus_data_out[7:0] < 8'hB8) begin
 								// ST (store) ops
 								// the goal here is to load an operand which says where to store ACC or INC
 								fsm_state <= FSM_FETCH_ALU_OPERAND_98_B7;
 							end else if (bus_data_out[7:0] >= 8'hB8 && bus_data_out[7:0] < 8'hC8) begin
-								// SHL/SHR ops no idea how these work
+								// SHR and SHL: fall back to generic ops but force operand to 8 bit
+								fsm_state		<= FSM_FETCH_ALU_OPERAND2_00_97;
+								reg_operand_16  <= 0;
 							end else if (bus_data_out[7:0] >= 8'hC8 && bus_data_out[7:0] <= 8'hCF) begin
 								// LT/LE...UGT/UGE
 								fsm_state <= FSM_EXECUTE_OPCODE_C8_CF;
@@ -144,7 +149,7 @@ module cf_cpu(
 									begin
 										bus_enable  <= 1'b1;
 										bus_address <= {1'b0, reg_PC};
-										reg_PC 		<= reg_PC + 1'b1 + cur_opcode[3];
+										reg_PC 		<= reg_PC + 1'b1 + reg_operand_16;
 										bus_burst   <= cur_opcode[3];		// bit 3 determines if the operand is 16 bits
 										bus_wr_en   <= 1'b0;
 									end
@@ -219,7 +224,7 @@ module cf_cpu(
 									begin
 										// we read the address to read from now we have to actually read it 
 										bus_address <= {1'b1, bus_data_out};
-										bus_burst   <= cur_opcode[3];
+										bus_burst   <= reg_operand_16;
 										fsm_state   <= FSM_FETCH_ALU_OPERAND2_00_97;
 									end
 								2: // I x2 I
@@ -230,13 +235,13 @@ module cf_cpu(
 								3: // n,I x3 oo
 									begin
 										bus_address <= {1'b1, reg_INDEX + bus_data_out};
-										bus_burst   <= cur_opcode[3];
+										bus_burst   <= reg_operand_16;
 										fsm_state   <= FSM_FETCH_ALU_OPERAND2_00_97;
 									end
 								4: // n,S x4 oo
 									begin
 										bus_address <= {1'b1, reg_SP + bus_data_out};
-										bus_burst   <= cur_opcode[3];
+										bus_burst   <= reg_operand_16;
 										fsm_state   <= FSM_FETCH_ALU_OPERAND2_00_97;
 									end
 								5: // S+ x5
@@ -247,13 +252,13 @@ module cf_cpu(
 								6: // [S+] x6
 									begin
 										bus_address <= {1'b1, bus_data_out};
-										bus_burst   <= cur_opcode[3];
+										bus_burst   <= reg_operand_16;
 										fsm_state   <= FSM_FETCH_ALU_OPERAND2_00_97;
 									end
 								7: // [S] x7
 									begin
 										bus_address <= {1'b1, bus_data_out};
-										bus_burst   <= cur_opcode[3];
+										bus_burst   <= reg_operand_16;
 										fsm_state   <= FSM_FETCH_ALU_OPERAND2_00_97;
 									end
 							endcase
@@ -322,16 +327,39 @@ module cf_cpu(
 							4'h8: // CMP/CMPB
 								begin
 									reg_flags[FLAG_EQ]  <= (reg_ACC == reg_operand) ? 1'b1 : 1'b0;
+									reg_ACC             <= (reg_ACC == reg_operand) ? 16'd1 : 16'd0;
 									reg_flags[FLAG_SLT] <= ($signed(reg_ACC) < $signed(reg_operand)) ? 1'b1 : 1'b0;
 									reg_flags[FLAG_SGT] <= ($signed(reg_ACC) > $signed(reg_operand)) ? 1'b1 : 1'b0;
 									reg_flags[FLAG_ULT] <= (reg_ACC < reg_operand) ? 1'b1 : 1'b0;
-									reg_flags[FLAG_UGT] <= (reg_ACC > reg_operand) ? 1'b1 : 1'b0;									
+									reg_flags[FLAG_UGT] <= (reg_ACC > reg_operand) ? 1'b1 : 1'b0;
 								end
 							4'h9: // LDI
 								begin
 									reg_INDEX <= reg_operand;
 								end
-							default: begin end
+							default:
+								begin
+									// SHR/SHL opcodes
+									case(cur_opcode[7:3])
+										5'h17: // SHR
+											begin
+												if (reg_operand != 0) begin
+													reg_ACC 	<= {1'b0, reg_ACC[15:1]};
+													reg_operand <= reg_operand - 1'b1;
+													fsm_state 	<= fsm_state;
+												end
+											end
+										5'h18: // SHL
+											begin
+												if (reg_operand != 0) begin
+													reg_ACC		<= {reg_ACC[14:0], 1'b0};
+													reg_operand <= reg_operand - 1'b1;
+													fsm_state   <= fsm_state;
+												end
+											end
+										default: begin end
+									endcase
+								end
 						endcase
 					end
 				FSM_FETCH_ALU_OPERAND_98_B7:								// handle ST (store) operand fetching

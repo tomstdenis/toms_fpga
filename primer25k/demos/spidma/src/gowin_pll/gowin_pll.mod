@@ -17,7 +17,7 @@
 -mdrp_en true
 -rst_o false
 -fclkin 50
--idiv_sel 1
+-idiv_sel 2
 -clkfb_sel 0
 -fbdiv_sel 1
 -en_lock true
@@ -40,5 +40,5 @@
 -en_clkout5 false
 -en_clkout6 false
 -en_clkfbout false
--mdiv_sel 15
+-mdiv_sel 31
 -mdiv_frac_sel 0
