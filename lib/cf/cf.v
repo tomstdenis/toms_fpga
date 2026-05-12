@@ -1,4 +1,8 @@
 /* C-FLEA CPU Design */
+
+// version, read by using opcode 0xED which puts this in ACC
+`define cf_core_version 16'h0001
+
 `default_nettype none
 `timescale 1ns/1ps
 
@@ -117,7 +121,7 @@ module cf_cpu(
 						end
 						if (bus_enable && bus_ready) begin
 							cur_opcode  <= bus_data_out[7:0];
-							bus_enable  <= 0;
+							bus_enable  <= 1'b0;
 							if (bus_data_out[7:0] <= 8'h97) begin
 								// generic ALU ops that use one of the 8 operand formats
 								// so the goal here is to first load an "operand" to pair with
@@ -142,6 +146,8 @@ module cf_cpu(
 								fsm_state <= FSM_FETCH_OPERAND_DA_DF;
 							end else if (bus_data_out[7:0] >= 8'hE0 && bus_data_out[7:0] <= 8'hEC) begin
 								fsm_state <= FSM_FETCH_OPERAND_E0_EC;
+							end else if (bus_data_out[7:0] == 8'hED) begin
+								reg_ACC   <= `cf_core_version;
 							end else begin
 								// unhandled opcodes just make us fetch the next...
 								fsm_state <= FSM_FETCH_OPCODE;
@@ -555,9 +561,15 @@ module cf_cpu(
 										reg_PC	    <= reg_ACC;
 										fsm_state   <= FSM_FETCH_OPCODE;
 									end
-								4'h7: // SWITCH
+								4'h7: // SWITCH (ACC == value to test, INDEX == address of switch table (addr,value,addr2,value2,...,0,addrdefault)
 									begin
-										// TODO: sort out
+										bus_enable  <= 1'b0;
+										bus_address <= {1'b0, reg_INDEX};
+										bus_burst   <= 1'b1;
+										bus_wr_en   <= 1'b0;
+										bus_io_flag	<= 1'b0;
+										switch_table_addr <= reg_INDEX;
+										fsm_state   <= FSM_SWITCH_LOAD_ADDR;
 									end
 								4'h8: // CALL aaaa
 									begin
@@ -620,16 +632,6 @@ module cf_cpu(
 										if (reg_ACC != 0) begin
 											reg_PC <= reg_PC + { {8{bus_data_out[7]}}, bus_data_out[7:0] };
 										end					
-									end
-								4'h7: // SWITCH (ACC == value to test, INDEX == address of switch table (addr,value,addr2,value2,...,0,addrdefault)
-									begin
-										bus_enable  <= 1'b0;
-										bus_address <= {1'b0, reg_INDEX};
-										bus_burst   <= 1'b1;
-										bus_wr_en   <= 1'b0;
-										bus_io_flag	<= 1'b0;
-										switch_table_addr <= reg_INDEX;
-										fsm_state   <= FSM_SWITCH_LOAD_ADDR;
 									end
 								4'h8: // CALL aaaa
 									begin
@@ -803,7 +805,7 @@ module cf_cpu(
 				FSM_SWITCH_LOAD_ADDR: // load the address part of a switch table tuple
 					begin
 						if (!bus_enable && !bus_ready) begin
-							bus_enable <= 1'b1;
+							bus_enable 		  <= 1'b1;
 							switch_table_addr <= switch_table_addr + 16'd2;
 						end
 						if (bus_enable && bus_ready) begin
@@ -816,7 +818,7 @@ module cf_cpu(
 				FSM_SWITCH_LOAD_VALUE: // load the value part of a switch table tuple, then compare
 					begin
 						if (!bus_enable && !bus_ready) begin
-							bus_enable <= 1'b1;
+							bus_enable 		  <= 1'b1;
 							switch_table_addr <= switch_table_addr + 16'd2;
 						end
 						if (bus_enable && bus_ready) begin
