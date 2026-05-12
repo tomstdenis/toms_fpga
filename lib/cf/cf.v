@@ -52,8 +52,8 @@ module cf_cpu(
 		FSM_FETCH_ALU_OPERAND2_00_97      = 2,
 		FSM_EXECUTE_ALU_OPCODE_00_97      = 3,
 
-		FSM_FETCH_ALU_OPERAND_A0_B7       = 4,		// store
-		FSM_FETCH_ALU_OPERAND_A0_B7_STORE = 5,  	// back half of store
+		FSM_FETCH_ALU_OPERAND_98_B7       = 4,		// store
+		FSM_FETCH_ALU_OPERAND_98_B7_STORE = 5,  	// back half of store
 		
 		FSM_EXECUTE_OPCODE_C8_CF          = 6,		// directly execute C8...CF
 
@@ -68,6 +68,9 @@ module cf_cpu(
 		
 		FSM_SWITCH_LOAD_ADDR              = 12,		// load current 
 		FSM_SWITCH_LOAD_VALUE		      = 13;
+
+	// used to detect when we're starting a new opcode
+	wire cf_start_fetch = (fsm_state == FSM_FETCH_OPCODE) & !bus_enable;
 
 	// divider
 	reg [15:0] sd_num;
@@ -130,10 +133,10 @@ module cf_cpu(
 								// an ALU op like ADD, SUB, etc...
 								fsm_state      <= FSM_FETCH_ALU_OPERAND_00_97;
 								reg_operand_16 <= bus_data_out[3];
-							end else if (bus_data_out[7:0] >= 8'hA0 && bus_data_out[7:0] <= 8'hB7) begin
-								// ST (store) ops (ST, STB, STI)
+							end else if (bus_data_out[7:0] >= 8'h98 && bus_data_out[7:0] <= 8'hB7) begin
+								// ST (store) ops (LEAI, ST, STB, STI)
 								// the goal here is to load an operand which says where to store ACC or INC
-								fsm_state 		<= FSM_FETCH_ALU_OPERAND_A0_B7;
+								fsm_state 		<= FSM_FETCH_ALU_OPERAND_98_B7;
 								reg_operand_16 	<= (bus_data_out[7:4] == 4'hB) ? 1'b1 : bus_data_out[3]; // 16-bit if STI or ST, 8-bit for STB
 							end else if (bus_data_out[7:0] >= 8'hB8 && bus_data_out[7:0] <= 8'hC7) begin
 								// SHR and SHL: fall back to generic ops but force operand to 8 bit
@@ -384,9 +387,9 @@ module cf_cpu(
 						endcase
 					end
 
-				// ST, STB, and STI opcodes
+				// LEAI, ST, STB, and STI opcodes
 				// Like 00..9F we have to resolve the operand address if any first
-				FSM_FETCH_ALU_OPERAND_A0_B7:								// handle ST (store) operand fetching
+				FSM_FETCH_ALU_OPERAND_98_B7:								// handle ST (store) operand fetching
 					begin
 						// fetch the destination to store to
 						if (!bus_enable && !bus_ready) begin				// fetch the destination operand
@@ -403,7 +406,7 @@ module cf_cpu(
 									begin
 										bus_enable  <= 1'b0;
 										reg_operand <= reg_INDEX;
-										fsm_state   <= FSM_FETCH_ALU_OPERAND_A0_B7_STORE;
+										fsm_state   <= FSM_FETCH_ALU_OPERAND_98_B7_STORE;
 									end
 								3: // n,I x3 oo								// load from INDEX+nn
 									begin
@@ -436,7 +439,7 @@ module cf_cpu(
 						// we've loaded the address from memory 
 						if (bus_enable && bus_ready) begin					// back half of store operand fetching
 							bus_enable  <= 1'b0;
-							fsm_state   <= FSM_FETCH_ALU_OPERAND_A0_B7_STORE;
+							fsm_state   <= FSM_FETCH_ALU_OPERAND_98_B7_STORE;
 							bus_data_in <= (cur_opcode[7:4] == 4'hA) ? reg_ACC : reg_INDEX; // ST/STB or STI
 							bus_burst   <= reg_operand_16;									// are we storing 16 or 8 bits
 							case(cur_opcode[2:0])
@@ -466,11 +469,16 @@ module cf_cpu(
 					end
 				
 				// back half of ST/STB/STI where we actually do the store.
-				FSM_FETCH_ALU_OPERAND_A0_B7_STORE:
+				FSM_FETCH_ALU_OPERAND_98_B7_STORE:
 					begin
 						if (!bus_enable && !bus_ready) begin
-							bus_wr_en  <= 1'b1;
-							bus_enable <= 1'b1;
+							if (cur_opcode[7:3] == 5'h13) begin // LEAI
+								reg_INDEX <= bus_address[15:0];
+								fsm_state <= FSM_FETCH_OPCODE;
+							end else begin
+								bus_wr_en  <= 1'b1;
+								bus_enable <= 1'b1;
+							end
 						end
 						if (bus_enable && bus_ready) begin
 							bus_wr_en  <= 1'b0;
