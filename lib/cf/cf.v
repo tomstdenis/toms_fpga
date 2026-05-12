@@ -52,8 +52,8 @@ module cf_cpu(
 		FSM_FETCH_ALU_OPERAND2_00_97 = 2,
 		FSM_EXECUTE_ALU_OPCODE_00_97 = 3,
 
-		FSM_FETCH_ALU_OPERAND_A0_B0  = 4,		// store
-		FSM_FETCH_ALU_OPERAND_A0_B0_STORE = 5,  // back half of store
+		FSM_FETCH_ALU_OPERAND_A0_B7  = 4,		// store
+		FSM_FETCH_ALU_OPERAND_A0_B7_STORE = 5,  // back half of store
 		
 		FSM_EXECUTE_OPCODE_C8_CF     = 6,		// directly execute C8...CF
 
@@ -128,11 +128,11 @@ module cf_cpu(
 								// an ALU op like ADD, SUB, etc...
 								fsm_state      <= FSM_FETCH_ALU_OPERAND_00_97;
 								reg_operand_16 <= bus_data_out[3];
-							end else if (bus_data_out[7:0] >= 8'hA0 && bus_data_out[7:0] <= 8'hAF) begin
-								// ST (store) ops
+							end else if (bus_data_out[7:0] >= 8'hA0 && bus_data_out[7:0] <= 8'hB7) begin
+								// ST (store) ops (ST, STB, STI)
 								// the goal here is to load an operand which says where to store ACC or INC
-								fsm_state 		<= FSM_FETCH_ALU_OPERAND_A0_B0;
-								reg_operand_16 	<= bus_data_out[3];
+								fsm_state 		<= FSM_FETCH_ALU_OPERAND_A0_B7;
+								reg_operand_16 	<= (bus_data_out[7:4] == 4'hB) ? 1'b1 : bus_data_out[3]; // 16-bit if STI or ST, 8-bit for STB
 							end else if (bus_data_out[7:0] >= 8'hB8 && bus_data_out[7:0] <= 8'hC7) begin
 								// SHR and SHL: fall back to generic ops but force operand to 8 bit
 								fsm_state		<= FSM_FETCH_ALU_OPERAND2_00_97;
@@ -232,6 +232,7 @@ module cf_cpu(
 							case(cur_opcode[2:0])
 								0: // #n x0 ii(ii)
 									begin
+										// immediate we have the operand
 										reg_operand <= bus_data_out;
 										fsm_state   <= FSM_EXECUTE_ALU_OPCODE_00_97;
 									end
@@ -244,6 +245,7 @@ module cf_cpu(
 									end
 								2: // I x2 I
 									begin
+										// we've read [INDEX]
 										reg_operand <= bus_data_out;
 										fsm_state   <= FSM_EXECUTE_ALU_OPCODE_00_97;
 									end
@@ -261,6 +263,7 @@ module cf_cpu(
 									end
 								5: // S+ x5
 									begin
+										// popped the operand off the stack
 										reg_operand <= bus_data_out;
 										fsm_state   <= FSM_EXECUTE_ALU_OPCODE_00_97;
 									end
@@ -279,7 +282,10 @@ module cf_cpu(
 							endcase
 						end
 					end
-				FSM_FETCH_ALU_OPERAND2_00_97:								// 2nd FSM state for fetching operands for ALU ops upto 0x97
+				// 2nd FSM state for fetching operands for ALU ops upto 0x97
+				// This is called after we've loaded the address from the adjacent opcode bytes or off the stack
+				// now we have a pointer so we have to load the reg_operand
+				FSM_FETCH_ALU_OPERAND2_00_97:
 					begin
 						if (!bus_enable && !bus_ready) begin
 							// bus was otherwise programmed already we just need to enable it
@@ -290,7 +296,7 @@ module cf_cpu(
 							fsm_state   <= FSM_EXECUTE_ALU_OPCODE_00_97;
 						end
 					end
-				FSM_EXECUTE_ALU_OPCODE_00_97:								// execute opcodes upto byte 0x97
+				FSM_EXECUTE_ALU_OPCODE_00_97:								// execute opcodes upto byte 0x97 (also SHR/SHL)
 					begin
 						// we're done after this so we fetch
 						fsm_state <= FSM_FETCH_OPCODE;
@@ -311,10 +317,10 @@ module cf_cpu(
 								begin
 									{reg_alt,reg_ACC} <= reg_ACC * reg_operand;
 								end
-							4'h4: // DIV/DIB
+							4'h4: // DIV/DIVB
 								begin
 									fsm_state <= FSM_EXECUTE_ALU_OPCODE_00_97;			// loop here until division is done
-									if (!sd_valid) begin
+									if (!sd_valid && !sd_ready) begin
 										sd_num   <= reg_ACC;
 										sd_denom <= reg_operand;
 										sd_valid <= 1'b1;
@@ -342,8 +348,15 @@ module cf_cpu(
 								begin
 									reg_flags[FLAG_EQ]  <= (reg_ACC == reg_operand) ? 1'b1 : 1'b0;
 									reg_ACC             <= (reg_ACC == reg_operand) ? 16'd1 : 16'd0;
-									reg_flags[FLAG_SLT] <= ($signed(reg_ACC) < $signed(reg_operand)) ? 1'b1 : 1'b0;
-									reg_flags[FLAG_SGT] <= ($signed(reg_ACC) > $signed(reg_operand)) ? 1'b1 : 1'b0;
+									if (cur_opcode[3]) begin
+										// compare full 16 bits
+										reg_flags[FLAG_SLT] <= ($signed(reg_ACC) < $signed(reg_operand)) ? 1'b1 : 1'b0;
+										reg_flags[FLAG_SGT] <= ($signed(reg_ACC) > $signed(reg_operand)) ? 1'b1 : 1'b0;
+									end else begin
+										// compare only bottom 8 bits for CMPB
+										reg_flags[FLAG_SLT] <= ($signed(reg_ACC[7:0]) < $signed(reg_operand[7:0])) ? 1'b1 : 1'b0;
+										reg_flags[FLAG_SGT] <= ($signed(reg_ACC[7:0]) > $signed(reg_operand[7:0])) ? 1'b1 : 1'b0;
+									end
 									reg_flags[FLAG_ULT] <= (reg_ACC < reg_operand) ? 1'b1 : 1'b0;
 									reg_flags[FLAG_UGT] <= (reg_ACC > reg_operand) ? 1'b1 : 1'b0;
 								end
@@ -377,8 +390,9 @@ module cf_cpu(
 						endcase
 					end
 
-
-				FSM_FETCH_ALU_OPERAND_A0_B0:								// handle ST (store) operand fetching
+				// ST, STB, and STI opcodes
+				// Like 00..9F we have to resolve the operand address if any first
+				FSM_FETCH_ALU_OPERAND_A0_B7:								// handle ST (store) operand fetching
 					begin
 						bus_io_flag <= 1'b0;
 						if (!bus_enable && !bus_ready) begin				// fetch the destination operand
@@ -394,7 +408,7 @@ module cf_cpu(
 								2: // I x2 I								// load directly from I
 									begin
 										reg_operand <= reg_INDEX;
-										fsm_state   <= FSM_FETCH_ALU_OPERAND_A0_B0_STORE;
+										fsm_state   <= FSM_FETCH_ALU_OPERAND_A0_B7_STORE;
 									end
 								3: // n,I x3 oo								// load from INDEX+nn
 									begin
@@ -433,8 +447,8 @@ module cf_cpu(
 						end
 						if (bus_enable && bus_ready) begin					// back half of store operand fetching
 							bus_enable  <= 1'b0;
-							fsm_state   <= FSM_FETCH_ALU_OPERAND_A0_B0_STORE;
-							bus_data_in <= reg_ACC;
+							fsm_state   <= FSM_FETCH_ALU_OPERAND_A0_B7_STORE;
+							bus_data_in <= (cur_opcode[7:4] == 4'hA) ? reg_ACC : reg_INDEX; // ST/STB or STI
 							bus_burst   <= reg_operand_16;
 							case(cur_opcode[2:0])
 								1: // aaaa x1 dd dd
@@ -462,7 +476,7 @@ module cf_cpu(
 						end
 					end
 					
-				FSM_FETCH_ALU_OPERAND_A0_B0_STORE:
+				FSM_FETCH_ALU_OPERAND_A0_B7_STORE:
 					begin
 						if (!bus_enable && !bus_ready) begin
 							bus_wr_en  <= 1'b1;
