@@ -475,7 +475,7 @@ module cf_cpu(
 							if (cur_opcode[7:3] == 5'h13) begin // LEAI
 								reg_INDEX <= bus_address[15:0];
 								fsm_state <= FSM_FETCH_OPCODE;
-							end else begin
+							end else begin						// ST/STB/STI
 								bus_wr_en  <= 1'b1;
 								bus_enable <= 1'b1;
 							end
@@ -690,13 +690,15 @@ module cf_cpu(
 									end
 								4'hE: // TAS
 									begin
-										reg_SP    <= reg_ACC;
-										fsm_state <= FSM_FETCH_OPCODE;
+										reg_SP      <= reg_ACC;
+										fsm_state   <= FSM_FETCH_OPCODE;
+										bus_enable  <= 1'b0;
 									end
 								4'hF: // TSA
 									begin
 										reg_ACC   <= reg_SP;
 										fsm_state <= FSM_FETCH_OPCODE;
+										bus_enable  <= 1'b0;
 									end
 								default: begin end // note: lockup
 							endcase
