@@ -158,69 +158,54 @@ module cf_cpu(
 					// start of decoding one of the 8 operand modes
 					begin
 						if (!bus_enable && !bus_ready) begin
-							bus_io_flag <= 1'b0;							// always memory here
+							bus_enable  <= 1'b1;
+							bus_wr_en   <= 1'b0;
 							case(cur_opcode[2:0])
 								0: // #n x0 ii(ii)							// immediate 8/16 bit
 									begin
-										bus_enable  <= 1'b1;
 										bus_address <= {1'b0, reg_PC};
 										reg_PC 		<= reg_PC + 1'b1 + reg_operand_16;
 										bus_burst   <= cur_opcode[3];		// bit 3 determines if the operand is 16 bits
-										bus_wr_en   <= 1'b0;
 									end
 								1: // aaaa x1 dd dd							// load from data memory		
 									begin
-										bus_enable  <= 1'b1;
 										bus_address <= {1'b0, reg_PC};		// load address from code memory first
 										reg_PC 		<= reg_PC + 16'd2;
 										bus_burst   <= 1'b1;
-										bus_wr_en   <= 1'b0;
 									end
 								2: // I x2 I								// load directly from I
 									begin
-										bus_enable  <= 1'b1;
 										bus_address <= {1'b1, reg_INDEX};	// load from data memory
 										bus_burst   <= cur_opcode[3];		// bit 3 determines if the operand is 16 bits
-										bus_wr_en   <= 1'b0;										
 									end
 								3: // n,I x3 oo								// load from INDEX+nn
 									begin
-										bus_enable  <= 1'b1;
 										bus_address <= {1'b0, reg_PC};
 										reg_PC 		<= reg_PC + 1'b1;
 										bus_burst   <= 0;					// offset is only 8 bits 
-										bus_wr_en   <= 1'b0;
 									end
 								4: // n,S x4 oo								// load from SP+nn
 									begin
-										bus_enable  <= 1'b1;
 										bus_address <= {1'b0, reg_PC};
 										reg_PC 		<= reg_PC + 1'b1;
 										bus_burst   <= 0;					// offset is only 8 bits 
-										bus_wr_en   <= 1'b0;
 									end
 								5: // S+ x5									// load from S then increment S
 									begin
-										bus_enable  <= 1'b1;
 										bus_address <= {1'b1, reg_SP};		// load from data memory
 										bus_burst   <= 1'b1;				// stack always works in 16-bits
-										bus_wr_en   <= 1'b0;										
 										reg_SP      <= reg_SP + 16'd2;		// increment after
 									end
 								6: // [S+] x6								// load from [S] then increment S
 									begin
-										bus_enable  <= 1'b1;
 										bus_address <= {1'b1, reg_SP};		// load from data memory
 										bus_burst   <= 1'b1;				// stack always works in 16-bits
-										bus_wr_en   <= 1'b0;										
 										reg_SP      <= reg_SP + 16'd2;		// increment after
 									end
 								7: // [S] x7								// load from [S]
 									begin
-										bus_enable  <= 1'b1;
 										bus_address <= {1'b1, reg_SP};		// load from data memory
 										bus_burst   <= 1'b1;				// stack always works in 16-bits
-										bus_wr_en   <= 1'b0;										
 									end
 							endcase
 						end
@@ -396,50 +381,43 @@ module cf_cpu(
 					begin
 						bus_io_flag <= 1'b0;
 						if (!bus_enable && !bus_ready) begin				// fetch the destination operand
+							bus_enable  <= 1'b1;
+							bus_wr_en   <= 1'b0;
 							case(cur_opcode[2:0])
 								1: // aaaa x1 dd dd							// load from data memory		
 									begin
-										bus_enable  <= 1'b1;
 										bus_address <= {1'b0, reg_PC};		// load address from code memory first
 										reg_PC 		<= reg_PC + 16'd2;
 										bus_burst   <= 1'b1;
-										bus_wr_en   <= 1'b0;
 									end
 								2: // I x2 I								// load directly from I
 									begin
+										bus_enable  <= 1'b0;
 										reg_operand <= reg_INDEX;
 										fsm_state   <= FSM_FETCH_ALU_OPERAND_A0_B7_STORE;
 									end
 								3: // n,I x3 oo								// load from INDEX+nn
 									begin
-										bus_enable  <= 1'b1;
 										bus_address <= {1'b0, reg_PC};
 										reg_PC 		<= reg_PC + 1'b1;
 										bus_burst   <= 0;					// offset is only 8 bits 
-										bus_wr_en   <= 1'b0;
 									end
 								4: // n,S x4 oo								// load from SP+nn
 									begin
-										bus_enable  <= 1'b1;
 										bus_address <= {1'b0, reg_PC};
 										reg_PC 		<= reg_PC + 1'b1;
 										bus_burst   <= 0;					// offset is only 8 bits 
-										bus_wr_en   <= 1'b0;
 									end
 								6: // [S+] x6								// load from [S] then increment S
 									begin
-										bus_enable  <= 1'b1;
 										bus_address <= {1'b1, reg_SP};		// load from data memory
 										bus_burst   <= 1'b1;				// stack always works in 16-bits
-										bus_wr_en   <= 1'b0;										
 										reg_SP      <= reg_SP + 16'd2;		// increment after
 									end
 								7: // [S] x7								// load from [S]
 									begin
-										bus_enable  <= 1'b1;
 										bus_address <= {1'b1, reg_SP};		// load from data memory
 										bus_burst   <= 1'b1;				// stack always works in 16-bits
-										bus_wr_en   <= 1'b0;										
 									end
 								default: // NOTE: lockup
 									begin end
@@ -515,93 +493,71 @@ module cf_cpu(
 				FSM_FETCH_OPERAND_D0_D9: // jumps
 					begin
 						if (!bus_enable && !bus_ready) begin
+							bus_enable  <= 1'b1;
+							bus_wr_en   <= 1'b0;
+							bus_io_flag <= 1'b0;
 							case(cur_opcode[3:0])
 								4'h0: // JMP aaaa
 									begin
-										bus_enable  <= 1'b1;
 										bus_burst   <= 1'b1;
-										bus_wr_en   <= 1'b0;
-										bus_io_flag <= 1'b0;
 										bus_address <= {1'b0, reg_PC};
 										reg_PC      <= reg_PC + 16'd2;
 									end
 								4'h1: // JZ aaaa
 									begin
-										bus_enable  <= 1'b1;
 										bus_burst   <= 1'b1;
-										bus_wr_en   <= 1'b0;
-										bus_io_flag <= 1'b0;
 										bus_address <= {1'b0, reg_PC};
 										reg_PC      <= reg_PC + 16'd2;
 									end
 								4'h2: // JNZ aaaa
 									begin
-										bus_enable  <= 1'b1;
 										bus_burst   <= 1'b1;
-										bus_wr_en   <= 1'b0;
-										bus_io_flag <= 1'b0;
 										bus_address <= {1'b0, reg_PC};
 										reg_PC      <= reg_PC + 16'd2;
 									end
 								4'h3: // SJMP rr
 									begin
-										bus_enable  <= 1'b1;
 										bus_burst   <= 1'b0;
-										bus_wr_en   <= 1'b0;
-										bus_io_flag <= 1'b0;
 										bus_address <= {1'b0, reg_PC};
 										reg_PC      <= reg_PC + 16'd1;
 									end
 								4'h4: // SJZ rr
 									begin
-										bus_enable  <= 1'b1;
 										bus_burst   <= 1'b0;
-										bus_wr_en   <= 1'b0;
-										bus_io_flag <= 1'b0;
 										bus_address <= {1'b0, reg_PC};
 										reg_PC      <= reg_PC + 16'd1;
 									end
 								4'h5: // SJNZ rr
 									begin
-										bus_enable  <= 1'b1;
 										bus_burst   <= 1'b0;
-										bus_wr_en   <= 1'b0;
-										bus_io_flag <= 1'b0;
 										bus_address <= {1'b0, reg_PC};
 										reg_PC      <= reg_PC + 16'd1;
 									end
 								4'h6: // IJMP
 									begin
+										bus_enable  <= 1'b0;
 										reg_PC	    <= reg_ACC;
 										fsm_state   <= FSM_FETCH_OPCODE;
 									end
 								4'h7: // SWITCH (ACC == value to test, INDEX == address of switch table (addr,value,addr2,value2,...,0,addrdefault)
 									begin
-										bus_enable  <= 1'b0;
-										bus_address <= {1'b0, reg_INDEX};
-										bus_burst   <= 1'b1;
-										bus_wr_en   <= 1'b0;
-										bus_io_flag	<= 1'b0;
+										bus_enable        <= 1'b0;
+										bus_address 	  <= {1'b0, reg_INDEX};
+										bus_burst   	  <= 1'b1;
 										switch_table_addr <= reg_INDEX;
-										fsm_state   <= FSM_SWITCH_LOAD_ADDR;
+										fsm_state   	  <= FSM_SWITCH_LOAD_ADDR;
 									end
 								4'h8: // CALL aaaa
 									begin
 										// read the call target
-										bus_enable  <= 1'b1;
 										bus_burst   <= 1'b1;
-										bus_wr_en   <= 1'b0;
-										bus_io_flag <= 1'b0;
 										bus_address <= {1'b0, reg_PC};
 										reg_PC      <= reg_PC + 16'd2;
 									end
 								4'h9: // RET
 									begin
 										// read PC off stack
-										bus_enable  <= 1'b1;
 										bus_burst   <= 1'b1;
-										bus_wr_en   <= 1'b0;
-										bus_io_flag <= 1'b0;
 										bus_address <= {1'b1, reg_SP};
 										reg_SP      <= reg_SP + 16'd2;
 									end
@@ -651,11 +607,9 @@ module cf_cpu(
 									begin
 										fsm_state <= FSM_OPCODE_D8_1;			// jump to back half of CALL where we do the bus transaction
 										// push PC onto stack
-										bus_enable  <= 1'b0;
 										bus_address <= {1'b1, reg_SP - 16'd2};
 										bus_data_in <= reg_PC;
 										bus_wr_en   <= 1'b1;
-										bus_io_flag <= 1'b0;
 										bus_burst   <= 1'b1;
 										reg_SP      <= reg_SP - 16'd2;
 										reg_PC      <= bus_data_out;
@@ -668,7 +622,7 @@ module cf_cpu(
 							endcase
 						end
 					end
-				FSM_OPCODE_D8_1: // back half of CALL
+				FSM_OPCODE_D8_1: // back half of CALL where we push PC on the stack
 					begin
 						if (!bus_enable && !bus_ready) begin
 							// enable write to stack of PC
@@ -682,30 +636,25 @@ module cf_cpu(
 				FSM_FETCH_OPERAND_DA_DF: // stack
 					begin
 						if (!bus_enable && !bus_ready) begin
+							bus_enable  <= 1'b1;
+							bus_wr_en   <= 1'b0;
+							bus_io_flag <= 1'b0;
 							case(cur_opcode[3:0])
 								4'hA: // ALLOC oo
 									begin
-										bus_enable  <= 1'b1;
-										bus_wr_en   <= 1'b0;
-										bus_io_flag <= 1'b0;
 										bus_burst   <= 1'b0;
 										bus_address <= {1'b0, reg_PC};
 										reg_PC      <= reg_PC + 1'b1;
 									end
 								4'hB: // FREE oo
 									begin
-										bus_enable  <= 1'b1;
-										bus_wr_en   <= 1'b0;
-										bus_io_flag <= 1'b0;
 										bus_burst   <= 1'b0;
 										bus_address <= {1'b0, reg_PC};
 										reg_PC      <= reg_PC + 1'b1;
 									end
 								4'hC: // PUSHA
 									begin
-										bus_enable   <= 1'b1;
 										bus_wr_en    <= 1'b1;
-										bus_io_flag  <= 1'b0;
 										bus_burst    <= 1'b1;
 										bus_address  <= {1'b1, reg_SP - 16'd2};
 										bus_data_in  <= reg_ACC;
@@ -713,9 +662,7 @@ module cf_cpu(
 									end
 								4'hD: // PUSHI
 									begin
-										bus_enable   <= 1'b1;
 										bus_wr_en    <= 1'b1;
-										bus_io_flag  <= 1'b0;
 										bus_burst    <= 1'b1;
 										bus_address  <= {1'b1, reg_SP - 16'd2};
 										bus_data_in  <= reg_INDEX;
