@@ -585,6 +585,7 @@ end
 					begin
 if (CMD_WRITE_ENABLE != 0) begin
 						temp_wire_bits <= CMD_WRITE_ENABLE;
+						sio_dout[0]    <= CMD_WRITE_ENABLE[7];
 						shift8_cs_exit <= 1'b1;
 						state          <= STATE_SHIFT_DATA;
 						tag			   <= STATE_WRITE_ENABLE_DONE;
@@ -625,6 +626,7 @@ if (CMD_WRITE_ENABLE != 0) begin
 									sck_timer      <= sck_timer_orig;
 									bit_cnt        <= bit_cnt_orig;
 									temp_wire_bits <= CMD_READ_STATUS;
+									sio_dout[0]    <= CMD_READ_STATUS[7];
 									wait_wip_timer <= 1;
 								end
 							1:	// write READ_STATUS command
