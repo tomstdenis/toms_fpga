@@ -77,11 +77,12 @@ module cf_tb();
         rst_n = 1;
 
 		// step 1024 opcodes
-		i = -1;
+		i = 1024;
 		while (inst_cnt < 1024) begin
 			i = i + 1;
 			case(i)
-				0: // LD #5AA5
+				// do all 8 variants for LD
+				default: // LD #5AA5
 					begin
 						mem[0] = 8'h00;
 						mem[1] = 8'hA5;
@@ -91,8 +92,102 @@ module cf_tb();
 						cf_dut.bus_enable = 0;
 						step_opcode();
 						if (cf_dut.reg_PC != (3 + 1) || cf_dut.reg_ACC != 16'h5AA5) fail_code();
+						i = 0;
 					end
-				1: // LDB #5A
+				1: // LD (100h)
+					begin
+						mem[256] = 8'h11;			// store 2211 at address 0x100
+						mem[257] = 8'h22;
+						mem[0]   = 8'h01;			// LD 256
+						mem[1]   = 8'h00;
+						mem[2]   = 8'h01;
+						cf_dut.reg_PC = 0;
+						cf_dut.fsm_state = 0;
+						cf_dut.bus_enable = 0;
+						step_opcode();
+						if (cf_dut.reg_PC != (3 + 1) || cf_dut.reg_ACC != 16'h2211) fail_code();
+					end
+				2: // LD I
+					begin
+						mem[256] = 8'h33;			// store 4433 at address 0x100
+						mem[257] = 8'h44;
+						mem[0]   = 8'h02;			// LD I
+						cf_dut.reg_PC = 0;
+						cf_dut.reg_INDEX = 16'h0100; // INDEX = 100h
+						cf_dut.fsm_state = 0;
+						cf_dut.bus_enable = 0;
+						step_opcode();
+						if (cf_dut.reg_PC != (1 + 1) || cf_dut.reg_ACC != 16'h4433) fail_code();
+					end
+				3: // LD n,I
+					begin
+						mem[256] = 8'h55;			// store 6655 at address 0x100
+						mem[257] = 8'h66;
+						mem[0]   = 8'h03;			// LD n,I
+						mem[1]   = 8'h10;			// n == 10h
+						cf_dut.reg_PC = 0;
+						cf_dut.reg_INDEX = 16'h0100 - 16'h0010; // INDEX = 100h - 10h
+						cf_dut.fsm_state = 0;
+						cf_dut.bus_enable = 0;
+						step_opcode();
+						if (cf_dut.reg_PC != (2 + 1) || cf_dut.reg_ACC != 16'h6655) fail_code();
+					end
+				4: // LD n,S
+					begin
+						mem[256] = 8'h88;			// store 8877 at address 0x100
+						mem[257] = 8'h77;
+						mem[0]   = 8'h04;			// LD n,S
+						mem[1]   = 8'h10;			// n == 10h
+						cf_dut.reg_PC = 0;
+						cf_dut.reg_SP = 16'h0100 - 16'h0010; // SP = 100h - 10h
+						cf_dut.fsm_state = 0;
+						cf_dut.bus_enable = 0;
+						step_opcode();
+						if (cf_dut.reg_PC != (2 + 1) || cf_dut.reg_ACC != 16'h7788) fail_code();
+					end
+				5: // LD S+
+					begin
+						mem[256] = 8'h99;			// store AA99 at address 0x100
+						mem[257] = 8'hAA;
+						mem[0]   = 8'h05;			// LD S+
+						cf_dut.reg_PC = 0;
+						cf_dut.reg_SP = 16'h0100; // SP = 100h
+						cf_dut.fsm_state = 0;
+						cf_dut.bus_enable = 0;
+						step_opcode();
+						if (cf_dut.reg_PC != (1 + 1) || cf_dut.reg_ACC != 16'hAA99 || cf_dut.reg_SP != 16'h0102) fail_code();
+					end
+				6: // LD [S+]
+					begin
+						mem[256] = 8'hBB;			// store CCBB at address 0x100
+						mem[257] = 8'hCC;
+						mem[258] = 8'h00;			// store indirect pointer tat 0x102 pointing to 0x100
+						mem[259] = 8'h01;
+						mem[0]   = 8'h06;			// LD [S+]
+						cf_dut.reg_PC = 0;
+						cf_dut.reg_SP = 16'h0102;   // SP = 102h
+						cf_dut.fsm_state = 0;
+						cf_dut.bus_enable = 0;
+						step_opcode();
+						if (cf_dut.reg_PC != (1 + 1) || cf_dut.reg_ACC != 16'hCCBB || cf_dut.reg_SP != 16'h0104) fail_code();
+					end
+				7: // LD [S]
+					begin
+						mem[256] = 8'hDD;			// store EEDD at address 0x100
+						mem[257] = 8'hEE;
+						mem[258] = 8'h00;			// store indirect pointer tat 0x102 pointing to 0x100
+						mem[259] = 8'h01;
+						mem[0]   = 8'h07;			// LD [S]
+						cf_dut.reg_PC = 0;
+						cf_dut.reg_SP = 16'h0102;   // SP = 102h
+						cf_dut.fsm_state = 0;
+						cf_dut.bus_enable = 0;
+						step_opcode();
+						if (cf_dut.reg_PC != (1 + 1) || cf_dut.reg_ACC != 16'hEEDD || cf_dut.reg_SP != 16'h0102) fail_code();
+					end
+					
+				// do 1 variant for rest of ALU Commands...
+				8: // LDB #5A
 					begin
 						mem[0] = 8'h08;
 						mem[1] = 8'h5A;
@@ -102,7 +197,6 @@ module cf_tb();
 						step_opcode();
 						if (cf_dut.reg_PC != (2 + 1) || cf_dut.reg_ACC != 16'h005A) fail_code();
 					end
-				default: i = 0;
 			endcase
 		end
 		$display("Ran %d opcodes in %d cycles (%d per inst)", inst_cnt, cycles, (cycles * 100) / inst_cnt); 
