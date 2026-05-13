@@ -44,7 +44,6 @@ module cf_cpu(
 	
 	// FSM state
 	reg [3:0]  fsm_state;
-	reg [3:0]  fsm_tag;
 
 	localparam
 		FSM_FETCH_OPCODE                  = 0,
@@ -104,7 +103,6 @@ module cf_cpu(
 			reg_operand  <= 0;
 			reg_operand_16 <= 0;
 			fsm_state    <= FSM_FETCH_OPCODE;
-			fsm_tag      <= 0;
 			sd_valid	 <= 0;
 			sd_num       <= 0;
 			sd_denom     <= 0;
@@ -172,7 +170,7 @@ module cf_cpu(
 									begin
 										bus_address <= {1'b0, reg_PC};
 										reg_PC 		<= reg_PC + 1'b1 + reg_operand_16;
-										bus_burst   <= cur_opcode[3];		// bit 3 determines if the operand is 16 bits
+										bus_burst   <= reg_operand_16;		// 8 or 16 bit immediate
 									end
 								1: // aaaa x1 dd dd							// load from data memory		
 									begin
@@ -183,7 +181,7 @@ module cf_cpu(
 								2: // I x2 I								// load directly from I
 									begin
 										bus_address <= {1'b1, reg_INDEX};	// load from data memory
-										bus_burst   <= cur_opcode[3];		// bit 3 determines if the operand is 16 bits
+										bus_burst   <= reg_operand_16;		// load 8 or 16 bit from [I]
 									end
 								3: // n,I x3 oo								// load from INDEX+nn
 									begin
