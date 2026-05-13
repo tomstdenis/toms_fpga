@@ -7,10 +7,10 @@ Setup to use the right most PMOD header (J4).
 `include "spidma.vh"
 
 // Enable QPI mode in the test, otherwise use SPI mode
-//`define QUAD_MODE
+`define QUAD_MODE
 
 // use FAST read (0Bh) instead of normal speed (03h)
-`define FAST_SPI_MODE
+//`define FAST_SPI_MODE
 
 `ifdef QUAD_MODE
     `define DUMMY_CYCLES 6
@@ -35,7 +35,7 @@ Setup to use the right most PMOD header (J4).
 module top(input wire clk, inout wire [3:0] sio, output wire cs, output wire sck, input wire uart_rx, output wire uart_tx);
 
 	localparam
-        FREQ = 80,
+        FREQ = 150,
 		SRAM_ADDR_WIDTH = 24,
         HOST_MEM_ADDR = 11;
 
