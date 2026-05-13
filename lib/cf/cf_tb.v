@@ -15,13 +15,20 @@ module cf_tb();
 	wire mem_enable;
 	wire mem_io_flag;
 	reg [31:0] cycles;
+	reg [31:0] inst_cnt;
+	reg prev_cf_fetch;
 
 	always @(posedge clk) begin
 		if (!rst_n) begin
 			mem_data_out <= 0;
 			mem_ready <= 0;
 			cycles <= 0;
+			inst_cnt <= 0;
 		end else begin
+			if (prev_cf_fetch != cf_dut.cf_start_fetch && cf_dut.cf_start_fetch) begin
+				inst_cnt <= inst_cnt + 1;
+			end
+			prev_cf_fetch <= cf_dut.cf_start_fetch;
 			cycles <= cycles + 1;
 			if (mem_enable && !mem_ready) begin
 				mem_ready <= 1;
@@ -55,8 +62,6 @@ module cf_tb();
     
     integer i;
     
-    reg [31:0] inst_cnt;
-
 	initial begin
         // Waveform setup
         $dumpfile("cf_tb.vcd");
@@ -73,18 +78,23 @@ module cf_tb();
 		@(posedge clk);
 
 		// step 1024 opcodes
-		repeat(1024) begin
+		repeat(1024) step_opcode();
+		$display("Ran %d opcodes in %d cycles (%d per inst)", inst_cnt, cycles, cycles / inst_cnt); 
+
+		$finish;
+	end
+	
+    task step_opcode();
+		begin
 			while (cf_dut.cf_start_fetch != 1) begin
 				@(posedge clk);
 			end
 			while (cf_dut.cf_start_fetch == 1) begin
 				@(posedge clk);
 			end
-			inst_cnt = inst_cnt + 1;
+			while (cf_dut.cf_start_fetch != 1) begin
+				@(posedge clk);
+			end
 		end
-		$display("Ran %d opcodes in %d cycles (%d per inst)", inst_cnt, cycles, cycles / inst_cnt); 
-			
-
-		$finish;
-	end
+	endtask
 endmodule
