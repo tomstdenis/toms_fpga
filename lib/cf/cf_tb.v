@@ -14,12 +14,15 @@ module cf_tb();
 	reg mem_ready;
 	wire mem_enable;
 	wire mem_io_flag;
-	
+	reg [31:0] cycles;
+
 	always @(posedge clk) begin
 		if (!rst_n) begin
 			mem_data_out <= 0;
 			mem_ready <= 0;
+			cycles <= 0;
 		end else begin
+			cycles <= cycles + 1;
 			if (mem_enable && !mem_ready) begin
 				mem_ready <= 1;
 				if (!mem_io_flag) begin
@@ -48,25 +51,39 @@ module cf_tb();
     // Parameters for the simulation
     localparam CLK_PERIOD = 20; // 50MHz Clock
     // Clock Generation
-    always #(CLK_PERIOD/2) clk = ~clk;
+    always #(CLK_PERIOD/2) begin clk = ~clk; end
     
     integer i;
-	
+    
+    reg [31:0] inst_cnt;
+
 	initial begin
         // Waveform setup
         $dumpfile("cf_tb.vcd");
         $dumpvars(0, cf_tb);
 		clk = 0;
 		rst_n = 0;
+		inst_cnt = 0;
 		
 		$readmemh("lds.hex", mem);
 
         // Reset system
         repeat(3) @(posedge clk);
         rst_n = 1;
-		@(posedge clk); #1;
+		@(posedge clk);
 
-		repeat(1024) @(posedge clk);
+		// step 1024 opcodes
+		repeat(1024) begin
+			while (cf_dut.cf_start_fetch != 1) begin
+				@(posedge clk);
+			end
+			while (cf_dut.cf_start_fetch == 1) begin
+				@(posedge clk);
+			end
+			inst_cnt = inst_cnt + 1;
+		end
+		$display("Ran %d opcodes in %d cycles (%d per inst)", inst_cnt, cycles, cycles / inst_cnt); 
+			
 
 		$finish;
 	end

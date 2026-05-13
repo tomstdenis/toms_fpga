@@ -95,6 +95,7 @@ module cf_cpu(
 			bus_data_in  <= 0;
 			bus_enable   <= 0;
 			reg_ACC		 <= 0;
+			reg_alt      <= 0;
 			reg_INDEX    <= 0;
 			reg_SP       <= 0;
 			reg_PC       <= 0;
