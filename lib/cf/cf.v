@@ -69,8 +69,8 @@ module cf_cpu(
 		FSM_SWITCH_LOAD_VALUE		      = 13;
 
 	// used to detect when we're starting a new opcode
-	wire cf_start_fetch = (fsm_state == FSM_FETCH_OPCODE) & !bus_enable;
-
+	reg cf_start_fetch;
+	
 	// divider
 	reg [15:0] sd_num;
 	reg [15:0] sd_denom;
@@ -109,13 +109,16 @@ module cf_cpu(
 			sd_denom     <= 0;
 			switch_addr  <= 0;
 			switch_table_addr <= 0;
+			cf_start_fetch <= 0;
 		end else begin
+			cf_start_fetch <= 1'b0;
 			case(fsm_state)
 				// Initial state where we fetch the next opcode byte
 				FSM_FETCH_OPCODE:
 					begin
 						// fetch next opcode byte
 						if (!bus_enable && !bus_ready) begin	// we're doing the double handshake for now, probably don't need !bus_ready 
+							cf_start_fetch <= 1'b1;
 							bus_enable  <= 1'b1;
 							bus_wr_en   <= 1'b0;
 							bus_io_flag <= 1'b0;

@@ -73,28 +73,60 @@ module cf_tb();
 		$readmemh("lds.hex", mem);
 
         // Reset system
-        repeat(3) @(posedge clk);
+        repeat(3) @(posedge clk); #1
         rst_n = 1;
-		@(posedge clk);
 
 		// step 1024 opcodes
-		repeat(1024) step_opcode();
-		$display("Ran %d opcodes in %d cycles (%d per inst)", inst_cnt, cycles, cycles / inst_cnt); 
+		i = -1;
+		while (inst_cnt < 1024) begin
+			i = i + 1;
+			case(i)
+				0: // LD #5AA5
+					begin
+						mem[0] = 8'h00;
+						mem[1] = 8'hA5;
+						mem[2] = 8'h5A;
+						cf_dut.reg_PC = 0;
+						cf_dut.fsm_state = 0;
+						cf_dut.bus_enable = 0;
+						step_opcode();
+						if (cf_dut.reg_PC != (3 + 1) || cf_dut.reg_ACC != 16'h5AA5) fail_code();
+					end
+				1: // LDB #5A
+					begin
+						mem[0] = 8'h08;
+						mem[1] = 8'h5A;
+						cf_dut.reg_PC = 0;
+						cf_dut.fsm_state = 0;
+						cf_dut.bus_enable = 0;
+						step_opcode();
+						if (cf_dut.reg_PC != (2 + 1) || cf_dut.reg_ACC != 16'h005A) fail_code();
+					end
+				default: i = 0;
+			endcase
+		end
+		$display("Ran %d opcodes in %d cycles (%d per inst)", inst_cnt, cycles, (cycles * 100) / inst_cnt); 
 
 		$finish;
 	end
 	
+	task fail_code();
+		begin
+			$display("Failed test #%d", i);
+			$display("PC=%x ACC=%x INDEX=%x SP=%x", cf_dut.reg_PC, cf_dut.reg_ACC, cf_dut.reg_INDEX, cf_dut.reg_SP);
+			$fatal;
+		end
+	endtask
+	
     task step_opcode();
 		begin
-			while (cf_dut.cf_start_fetch != 1) begin
+			while (cf_dut.fsm_state == 0) begin
 				@(posedge clk);
 			end
-			while (cf_dut.cf_start_fetch == 1) begin
+			while (cf_dut.fsm_state != 0) begin
 				@(posedge clk);
 			end
-			while (cf_dut.cf_start_fetch != 1) begin
-				@(posedge clk);
-			end
+			#1;
 		end
 	endtask
 endmodule
