@@ -456,10 +456,66 @@ module cf_tb();
 						step_opcode();
 						if (cf_dut.reg_PC != (1 + 1) || cf_dut.reg_INDEX != (16'h0100)) fail_code();
 					end
-					
-//         [S+]  x6        Indirect through TOS (remove)
-//         [S]   x7        Indirect through TOS (leave on stack)
-
+				31: // ST 100
+					begin
+						mem[0] = 8'hA1;
+						mem[1] = 8'h00;
+						mem[2] = 8'h01;
+						cf_dut.reg_PC = 0;
+						cf_dut.fsm_state = 0;
+						cf_dut.bus_enable = 0;
+						cf_dut.reg_ACC = 16'h1234;
+						step_opcode();
+						if (cf_dut.reg_PC != (2 + 1) || mem[256] != 8'h34 || mem[257] != 8'h12) fail_code();
+					end
+				32: // STB 100
+					begin
+						mem[0] = 8'hA9;
+						mem[1] = 8'h00;
+						mem[2] = 8'h01;
+						cf_dut.reg_PC = 0;
+						cf_dut.fsm_state = 0;
+						cf_dut.bus_enable = 0;
+						cf_dut.reg_ACC = 16'h0058;
+						step_opcode();
+						if (cf_dut.reg_PC != (2 + 1) || mem[256] != 8'h58 || mem[257] != 8'h12) fail_code();
+					end
+				33: // STI 100
+					begin
+						mem[0] = 8'hB1;
+						mem[1] = 8'h00;
+						mem[2] = 8'h01;
+						cf_dut.reg_PC = 0;
+						cf_dut.fsm_state = 0;
+						cf_dut.bus_enable = 0;
+						cf_dut.reg_INDEX = 16'h7898;
+						step_opcode();
+						if (cf_dut.reg_PC != (2 + 1) || mem[256] != 8'h98 || mem[257] != 8'h78) fail_code();
+					end
+				34: // SHR ##
+					begin
+						mem[0] = 8'hB8;
+						mem[1] = 8'h0B;
+						cf_dut.reg_PC = 0;
+						cf_dut.fsm_state = 0;
+						cf_dut.bus_enable = 0;
+						cf_dut.reg_ACC = 16'hFFFF;
+						step_opcode();
+						if (cf_dut.reg_PC != (2 + 1) || cf_dut.reg_ACC != (16'hFFFF >> 11)) fail_code();
+					end
+				35: // SHL 100
+					begin
+						mem[0] = 8'hC1;
+						mem[1] = 8'h00;
+						mem[2] = 8'h01;
+						mem[256] = 7;
+						cf_dut.reg_PC = 0;
+						cf_dut.fsm_state = 0;
+						cf_dut.bus_enable = 0;
+						cf_dut.reg_ACC = 16'h0001;
+						step_opcode();
+						if (cf_dut.reg_PC != (3 + 1) || cf_dut.reg_ACC != (16'h0001 << 7)) fail_code();
+					end
 			endcase
 		end
 		$display("Ran %d opcodes in %d cycles (%d per inst)", inst_cnt, cycles, (cycles * 100) / inst_cnt); 
@@ -470,7 +526,7 @@ module cf_tb();
 	task fail_code();
 		begin
 			$display("Failed test #%d", i);
-			$display("PC=%x ACC=%x INDEX=%x SP=%x", cf_dut.reg_PC, cf_dut.reg_ACC, cf_dut.reg_INDEX, cf_dut.reg_SP);
+			$display("PC=%x ACC=%x INDEX=%x SP=%x m1=%x m2=%x", cf_dut.reg_PC, cf_dut.reg_ACC, cf_dut.reg_INDEX, cf_dut.reg_SP, mem[256], mem[257]);
 			$fatal;
 		end
 	endtask

@@ -142,7 +142,7 @@ module cf_cpu(
 								reg_operand_16 	<= (bus_data_out[7:4] == 4'hB) ? 1'b1 : ~bus_data_out[3]; // 16-bit if STI or ST, 8-bit for STB
 							end else if (bus_data_out[7:0] >= 8'hB8 && bus_data_out[7:0] <= 8'hC7) begin
 								// SHR and SHL: fall back to generic ops but force operand to 8 bit
-								fsm_state		<= FSM_FETCH_ALU_OPERAND2_00_97;
+								fsm_state		<= FSM_FETCH_ALU_OPERAND_00_97;
 								reg_operand_16  <= 0;
 							end else if (bus_data_out[7:0] >= 8'hC8 && bus_data_out[7:0] <= 8'hCF) begin
 								// LT/LE...UGT/UGE
