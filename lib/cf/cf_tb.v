@@ -82,8 +82,6 @@ module cf_tb();
 		clk = 0;
 		rst_n = 0;
 		inst_cnt = 0;
-		
-		$readmemh("lds.hex", mem);
 
         // Reset system
         repeat(3) @(posedge clk); #1
@@ -906,7 +904,7 @@ module cf_tb();
 						step_opcode();
 						if (cf_dut.reg_PC != 2) fail_code();
 						mem[16'h0000] = 8'hEB; // IN pp
-						mem[16'h0001] = 8'h97; // port 23h
+						mem[16'h0001] = 8'h97; // port 97h
 						cf_dut.reg_PC = 16'h0000;
 						cf_dut.reg_ACC = 16'h0091;
 						cf_dut.fsm_state = 0;
