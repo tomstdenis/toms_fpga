@@ -395,7 +395,7 @@ module cf_tb();
 					end
 				25: // LEAI 5678
 					begin
-						mem[0] = 8'h98; // LEAI dddd
+						mem[0] = 8'h98 + 8'h01; // LEAI dddd
 						mem[1] = 8'h78;
 						mem[2] = 8'h56;
 						cf_dut.reg_PC = 0;
@@ -404,6 +404,62 @@ module cf_tb();
 						step_opcode();
 						if (cf_dut.reg_PC != (3 + 1) || cf_dut.reg_INDEX != 16'h5678) fail_code();
 					end
+				26: // LEAI I
+					begin
+						mem[0] = 8'h98 + 8'h02; // LEAI I
+						cf_dut.reg_PC = 0;
+						cf_dut.fsm_state = 0;
+						cf_dut.bus_enable = 0;
+						cf_dut.reg_INDEX = 16'h789A;
+						step_opcode();
+						if (cf_dut.reg_PC != (1 + 1) || cf_dut.reg_INDEX != 16'h789A) fail_code();
+					end
+				27: // LEAI n,I
+					begin
+						mem[0] = 8'h98 + 8'h03; // LEAI n,I
+						mem[1] = 8'h33;
+						cf_dut.reg_PC = 0;
+						cf_dut.fsm_state = 0;
+						cf_dut.bus_enable = 0;
+						cf_dut.reg_INDEX = 16'h789A;
+						step_opcode();
+						if (cf_dut.reg_PC != (2 + 1) || cf_dut.reg_INDEX != (16'h789A + 16'h0033)) fail_code();
+					end
+				28: // LEAI n,S
+					begin
+						mem[0] = 8'h98 + 8'h04; // LEAI n,S
+						mem[1] = 8'h44;
+						cf_dut.reg_PC = 0;
+						cf_dut.fsm_state = 0;
+						cf_dut.bus_enable = 0;
+						cf_dut.reg_SP = 16'h4321;
+						step_opcode();
+						if (cf_dut.reg_PC != (2 + 1) || cf_dut.reg_INDEX != (16'h4321 + 16'h0044)) fail_code();
+					end
+				29: // LEAI [S+]
+					begin
+						mem[0] = 8'h98 + 8'h06; // LEAI [S+]
+						cf_dut.reg_PC = 0;
+						cf_dut.fsm_state = 0;
+						cf_dut.bus_enable = 0;
+						cf_dut.reg_SP = 16'h0100;
+						step_opcode();
+						if (cf_dut.reg_PC != (1 + 1) || cf_dut.reg_INDEX != (16'h0102)) fail_code();
+					end
+				30: // LEAI [S]
+					begin
+						mem[0] = 8'h98 + 8'h07; // LEAI [S]
+						cf_dut.reg_PC = 0;
+						cf_dut.fsm_state = 0;
+						cf_dut.bus_enable = 0;
+						cf_dut.reg_SP = 16'h0100;
+						step_opcode();
+						if (cf_dut.reg_PC != (1 + 1) || cf_dut.reg_INDEX != (16'h0100)) fail_code();
+					end
+					
+//         [S+]  x6        Indirect through TOS (remove)
+//         [S]   x7        Indirect through TOS (leave on stack)
+
 			endcase
 		end
 		$display("Ran %d opcodes in %d cycles (%d per inst)", inst_cnt, cycles, (cycles * 100) / inst_cnt); 

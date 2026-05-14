@@ -407,7 +407,7 @@ module cf_cpu(
 								2: // I x2 I								// load directly from I
 									begin
 										bus_enable  <= 1'b0;
-										reg_operand <= reg_INDEX;
+										bus_address <= {1'b0, reg_INDEX};
 										fsm_state   <= FSM_FETCH_ALU_OPERAND_98_B7_STORE;
 									end
 								3: // n,I x3 oo								// load from INDEX+nn
@@ -424,14 +424,15 @@ module cf_cpu(
 									end
 								6: // [S+] x6								// load from [S] then increment S
 									begin
-										bus_address <= {1'b1, reg_SP};		// load from data memory
-										bus_burst   <= 1'b1;				// stack always works in 16-bits
-										reg_SP      <= reg_SP + 16'd2;		// increment after
+										bus_enable  <= 1'b0;
+										bus_address <= {1'b1, reg_SP + 16'd2};		// load from data memory
+										fsm_state   <= FSM_FETCH_ALU_OPERAND_98_B7_STORE;
 									end
 								7: // [S] x7								// load from [S]
 									begin
+										bus_enable  <= 1'b0;
 										bus_address <= {1'b1, reg_SP};		// load from data memory
-										bus_burst   <= 1'b1;				// stack always works in 16-bits
+										fsm_state   <= FSM_FETCH_ALU_OPERAND_98_B7_STORE;
 									end
 								default: // NOTE: lockup
 									begin end
