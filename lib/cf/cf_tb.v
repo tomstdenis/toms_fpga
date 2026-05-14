@@ -32,7 +32,20 @@ module cf_tb();
 			cycles <= cycles + 1;
 			if (mem_enable && !mem_ready) begin
 				mem_ready <= 1;
-				if (!mem_io_flag) begin
+				if (mem_io_flag) begin
+					// we only support writing the value 91h to port 23h, and we read 8Bh from port 97h
+					if (mem_wr_en && (mem_addr[7:0] != 8'h23 || mem_data_in[7:0] != 8'h91)) begin
+						$display("Invalid I/O write of %x to port %x", mem_data_in[7:0], mem_addr[7:0]);
+						$fatal;
+					end
+					if (!mem_wr_en) begin
+						if (mem_addr[7:0] != 8'h97) begin
+							$display("Invalid I/O read from port %x", mem_addr[7:0]);
+							$fatal;
+						end
+						mem_data_out <= {8'h00, 8'h8B};
+					end
+				end else begin
 					mem_data_out <= { mem_burst ? mem[mem_addr[15:0] + 1] : 8'h0, mem[mem_addr[15:0]] };
 					if (mem_wr_en) begin
 						mem[mem_addr[15:0]] <= mem_data_in[7:0];
@@ -516,6 +529,392 @@ module cf_tb();
 						step_opcode();
 						if (cf_dut.reg_PC != (3 + 1) || cf_dut.reg_ACC != (16'h0001 << 7)) fail_code();
 					end
+				36: // setup compare we'll compare 0xFFFF to 1 which should be LT if signed and GT if unsigned
+					begin
+						mem[0] = 8'h80; // CMP ####
+						mem[1] = 8'h01;
+						mem[2] = 8'h00;
+						cf_dut.reg_PC = 0;
+						cf_dut.fsm_state = 0;
+						cf_dut.bus_enable = 0;
+						cf_dut.reg_ACC = 16'hFFFF; // FFFF cmp 0001
+						step_opcode();
+						
+						// now let's execute comparison opcodes
+						mem[0] = 8'hC8; // LT
+						cf_dut.reg_PC = 0;
+						cf_dut.fsm_state = 0;
+						cf_dut.bus_enable = 0;
+						cf_dut.reg_ACC = 16'hFFFF; // dummy value
+						step_opcode();
+						if (cf_dut.reg_PC != (1 + 1) || cf_dut.reg_ACC != 1) fail_code(); // should be signed less than
+
+						mem[0] = 8'hCA; // GT
+						cf_dut.reg_PC = 0;
+						cf_dut.fsm_state = 0;
+						cf_dut.bus_enable = 0;
+						cf_dut.reg_ACC = 16'hFFFF; // dummy value
+						step_opcode();
+						if (cf_dut.reg_PC != (1 + 1) || cf_dut.reg_ACC != 0) fail_code(); // should be not signed greater than
+
+						mem[0] = 8'hCC; // ULT
+						cf_dut.reg_PC = 0;
+						cf_dut.fsm_state = 0;
+						cf_dut.bus_enable = 0;
+						cf_dut.reg_ACC = 16'hFFFF; // dummy value
+						step_opcode();
+						if (cf_dut.reg_PC != (1 + 1) || cf_dut.reg_ACC != 0) fail_code(); // should not be unsigned less than
+
+						mem[0] = 8'hCE; // UGT
+						cf_dut.reg_PC = 0;
+						cf_dut.fsm_state = 0;
+						cf_dut.bus_enable = 0;
+						cf_dut.reg_ACC = 16'hFFFF; // dummy value
+						step_opcode();
+						if (cf_dut.reg_PC != (1 + 1) || cf_dut.reg_ACC != 1) fail_code(); // should be unsigned greater than						
+					end
+				37: // JMP aaaa
+					begin
+						mem[0] = 8'hD0; // JMP aaaa
+						mem[1] = 8'h5E;
+						mem[2] = 8'h73;
+						cf_dut.reg_PC = 0;
+						cf_dut.fsm_state = 0;
+						cf_dut.bus_enable = 0;
+						step_opcode();
+						if (cf_dut.reg_PC != 16'h735E) fail_code();
+					end
+				38: // JZ aaaa
+					begin
+						mem[0] = 8'hD1; // JZ aaaa
+						mem[1] = 8'h11;
+						mem[2] = 8'h22;
+						cf_dut.reg_PC = 0;
+						cf_dut.fsm_state = 0;
+						cf_dut.bus_enable = 0;
+						cf_dut.reg_ACC = 0;
+						step_opcode();
+						if (cf_dut.reg_PC != 16'h2211) fail_code();
+						mem[0] = 8'hD1; // JZ aaaa
+						mem[1] = 8'h11;
+						mem[2] = 8'h22;
+						cf_dut.reg_PC = 0;
+						cf_dut.fsm_state = 0;
+						cf_dut.bus_enable = 0;
+						cf_dut.reg_ACC = 1;
+						step_opcode();
+						if (cf_dut.reg_PC != 16'h3) fail_code();
+					end
+				39: // JNZ aaaa
+					begin
+						mem[0] = 8'hD2; // JNZ aaaa
+						mem[1] = 8'h11;
+						mem[2] = 8'h22;
+						cf_dut.reg_PC = 0;
+						cf_dut.fsm_state = 0;
+						cf_dut.bus_enable = 0;
+						cf_dut.reg_ACC = 0;
+						step_opcode();
+						if (cf_dut.reg_PC != 16'h3) fail_code();
+						mem[0] = 8'hD2; // JNZ aaaa
+						mem[1] = 8'h11;
+						mem[2] = 8'h22;
+						cf_dut.reg_PC = 0;
+						cf_dut.fsm_state = 0;
+						cf_dut.bus_enable = 0;
+						cf_dut.reg_ACC = 1;
+						step_opcode();
+						if (cf_dut.reg_PC != 16'h2211) fail_code();
+					end
+				40: // SJMP rr
+					begin
+						mem[16'h0100] = 8'hD3; // SJMP rr
+						mem[16'h0101] = 8'hFF; // -1
+						cf_dut.reg_PC = 16'h0100;
+						cf_dut.fsm_state = 0;
+						cf_dut.bus_enable = 0;
+						step_opcode();
+						if (cf_dut.reg_PC != 16'h101) fail_code(); // should jump back 1 byte from 102 which is just after the SJMP
+					end
+				41: // SJZ rr
+					begin
+						mem[16'h0100] = 8'hD4; // SJZ rr
+						mem[16'h0101] = 8'hFF; // -1
+						cf_dut.reg_PC = 16'h0100;
+						cf_dut.fsm_state = 0;
+						cf_dut.bus_enable = 0;
+						cf_dut.reg_ACC = 0;
+						step_opcode();
+						if (cf_dut.reg_PC != 16'h101) fail_code(); // should jump back 1 byte from 102 which is just after the SJZ
+
+						mem[16'h0100] = 8'hD4; // SJZ rr
+						mem[16'h0101] = 8'hFF; // -1
+						cf_dut.reg_PC = 16'h0100;
+						cf_dut.fsm_state = 0;
+						cf_dut.bus_enable = 0;
+						cf_dut.reg_ACC = 1;
+						step_opcode();
+						if (cf_dut.reg_PC != 16'h102) fail_code(); // should not jump back 1 byte from 102 which is just after the SJZ
+					end
+				42: // SJNZ rr
+					begin
+						mem[16'h0100] = 8'hD5; // SJNZ rr
+						mem[16'h0101] = 8'hFF; // -1
+						cf_dut.reg_PC = 16'h0100;
+						cf_dut.fsm_state = 0;
+						cf_dut.bus_enable = 0;
+						cf_dut.reg_ACC = 1;
+						step_opcode();
+						if (cf_dut.reg_PC != 16'h101) fail_code(); // should jump back 1 byte from 102 which is just after the SJNZ
+
+						mem[16'h0100] = 8'hD5; // SJNZ rr
+						mem[16'h0101] = 8'hFF; // -1
+						cf_dut.reg_PC = 16'h0100;
+						cf_dut.fsm_state = 0;
+						cf_dut.bus_enable = 0;
+						cf_dut.reg_ACC = 0;
+						step_opcode();
+						if (cf_dut.reg_PC != 16'h102) fail_code(); // should not jump back 1 byte from 102 which is just after the SJNZ
+					end
+				43: // IJMP
+					begin
+						mem[16'h0100] = 8'hD6; // IJMP
+						cf_dut.reg_PC = 16'h0100;
+						cf_dut.fsm_state = 0;
+						cf_dut.bus_enable = 0;
+						cf_dut.reg_ACC = 16'h5432;
+						step_opcode();
+						if (cf_dut.reg_PC != 16'h5433) fail_code();
+					end
+				44: // SWITCH
+					begin
+						// setup table at 0100: {200h, 0}, {300h, 1}, {0, 400h}
+						mem[16'h0100] = 8'h00;
+						mem[16'h0101] = 8'h02;
+						mem[16'h0102] = 8'h00;
+						mem[16'h0103] = 8'h00;
+						
+						mem[16'h0104] = 8'h00;
+						mem[16'h0105] = 8'h03;
+						mem[16'h0106] = 8'h01;
+						mem[16'h0107] = 8'h00;
+						
+						mem[16'h0108] = 8'h00;
+						mem[16'h0109] = 8'h00;
+						mem[16'h010A] = 8'h00;
+						mem[16'h010B] = 8'h04;
+						
+						// run three tests
+						// case 0
+						mem[0] = 8'hD7;
+						cf_dut.reg_PC = 0;
+						cf_dut.fsm_state = 0;
+						cf_dut.bus_enable = 0;
+						cf_dut.reg_ACC = 16'h0;
+						cf_dut.reg_INDEX = 16'h0100;
+						step_opcode();
+						if (cf_dut.reg_PC != 16'h0200) fail_code();
+						// case 1
+						mem[0] = 8'hD7;
+						cf_dut.reg_PC = 0;
+						cf_dut.fsm_state = 0;
+						cf_dut.bus_enable = 0;
+						cf_dut.reg_ACC = 16'h1;
+						cf_dut.reg_INDEX = 16'h0100;
+						step_opcode();
+						if (cf_dut.reg_PC != 16'h0300) fail_code();
+						// default
+						mem[0] = 8'hD7;
+						cf_dut.reg_PC = 0;
+						cf_dut.fsm_state = 0;
+						cf_dut.bus_enable = 0;
+						cf_dut.reg_ACC = 16'h2;
+						cf_dut.reg_INDEX = 16'h0100;
+						step_opcode();
+						if (cf_dut.reg_PC != 16'h0400) fail_code();
+					end
+				45: // CALL and RET
+					begin
+						mem[16'h0000] = 8'hD8; // CALL 200h
+						mem[16'h0001] = 8'h00;
+						mem[16'h0002] = 8'h02;
+						cf_dut.reg_PC = 16'h0000;
+						cf_dut.reg_SP = 16'h0100;
+						cf_dut.fsm_state = 0;
+						cf_dut.bus_enable = 0;
+						step_opcode();
+						if (cf_dut.reg_PC != 16'h0200 || cf_dut.reg_SP != 16'h00FE || mem[16'h00FE] != 8'h03 || mem[16'h00FF] != 8'h00) fail_code();
+						// RET
+						mem[16'h0200] = 8'hD9;
+						cf_dut.reg_PC = 16'h0200;
+						cf_dut.fsm_state = 0;
+						cf_dut.bus_enable = 0;
+						step_opcode();
+						if (cf_dut.reg_PC != 16'h0003 || cf_dut.reg_SP != 16'h0100) fail_code();
+					end
+				46: // ALLOC and FREE
+					begin
+						mem[16'h0000] = 8'hDA;
+						mem[16'h0001] = 8'h20; // ALLOC 20h
+						cf_dut.reg_PC = 16'h0000;
+						cf_dut.reg_SP = 16'h0100;
+						cf_dut.fsm_state = 0;
+						cf_dut.bus_enable = 0;
+						step_opcode();
+						if (cf_dut.reg_PC != 2 || cf_dut.reg_SP != (16'h0100 - 16'h0020)) fail_code();
+						mem[16'h0000] = 8'hDB;
+						mem[16'h0001] = 8'h20; // FREE 20h
+						cf_dut.reg_PC = 16'h0000;
+						cf_dut.fsm_state = 0;
+						cf_dut.bus_enable = 0;
+						step_opcode();
+						if (cf_dut.reg_PC != 2 || cf_dut.reg_SP != (16'h0100)) fail_code();
+					end
+				47: // PUSHA
+					begin
+						mem[16'h0000] = 8'hDC;
+						cf_dut.reg_PC = 16'h0000;
+						cf_dut.reg_SP = 16'h0100;
+						cf_dut.fsm_state = 0;
+						cf_dut.bus_enable = 0;
+						cf_dut.reg_ACC = 16'hABCD;
+						step_opcode();
+						if (cf_dut.reg_PC != 1 || cf_dut.reg_SP != (16'h0100 - 16'h0002) || mem[16'hFE] != 8'hCD || mem[16'hFF] != 8'hAB) fail_code();
+					end
+				48: // PUSHI
+					begin
+						mem[16'h0000] = 8'hDD;
+						cf_dut.reg_PC = 16'h0000;
+						cf_dut.reg_SP = 16'h0100;
+						cf_dut.fsm_state = 0;
+						cf_dut.bus_enable = 0;
+						cf_dut.reg_INDEX = 16'hEF01;
+						step_opcode();
+						if (cf_dut.reg_PC != 1 || cf_dut.reg_SP != (16'h0100 - 16'h0002) || mem[16'hFE] != 8'h01 || mem[16'hFF] != 8'hEF) fail_code();
+					end
+				49: // TAS and TSA
+					begin
+						mem[16'h0000] = 8'hDE; // TAS
+						cf_dut.reg_PC = 16'h0000;
+						cf_dut.reg_SP = 16'h0100;
+						cf_dut.reg_ACC = 16'hEF01;
+						cf_dut.fsm_state = 0;
+						cf_dut.bus_enable = 0;
+						step_opcode();
+						if (cf_dut.reg_PC != 2 || cf_dut.reg_SP != 16'hEF01) fail_code();
+						mem[16'h0000] = 8'hDF; // TSA
+						cf_dut.reg_PC = 16'h0000;
+						cf_dut.reg_ACC = 16'h0000;
+						cf_dut.fsm_state = 0;
+						cf_dut.bus_enable = 0;
+						step_opcode();
+						if (cf_dut.reg_PC != 2 || cf_dut.reg_ACC != 16'hEF01) fail_code();
+					end
+				50: // CLR, COM, NEG, NOT, INC, DEC
+					begin
+						mem[16'h0000] = 8'hE0; // CLR
+						cf_dut.reg_PC = 16'h0000;
+						cf_dut.reg_ACC = 16'hEF01;
+						cf_dut.fsm_state = 0;
+						cf_dut.bus_enable = 0;
+						step_opcode();
+						if (cf_dut.reg_PC != 2 || cf_dut.reg_ACC != 16'h0000) fail_code();
+
+						mem[16'h0000] = 8'hE1; // COM
+						cf_dut.reg_PC = 16'h0000;
+						cf_dut.reg_ACC = 16'h5AA5;
+						cf_dut.fsm_state = 0;
+						cf_dut.bus_enable = 0;
+						step_opcode();
+						if (cf_dut.reg_PC != 2 || cf_dut.reg_ACC != ~16'h5AA5) fail_code();
+						
+						mem[16'h0000] = 8'hE2; // NEG
+						cf_dut.reg_PC = 16'h0000;
+						cf_dut.reg_ACC = 16'h0001;
+						cf_dut.fsm_state = 0;
+						cf_dut.bus_enable = 0;
+						step_opcode();
+						if (cf_dut.reg_PC != 2 || cf_dut.reg_ACC != 16'hFFFF) fail_code();
+
+						mem[16'h0000] = 8'hE3; // NOT
+						cf_dut.reg_PC = 16'h0000;
+						cf_dut.reg_ACC = 16'h0000;
+						cf_dut.fsm_state = 0;
+						cf_dut.bus_enable = 0;
+						step_opcode();
+						if (cf_dut.reg_PC != 2 || cf_dut.reg_ACC != 16'h0001) fail_code();
+
+						mem[16'h0000] = 8'hE4; // INC
+						cf_dut.reg_PC = 16'h0000;
+						cf_dut.reg_ACC = 16'h1122;
+						cf_dut.fsm_state = 0;
+						cf_dut.bus_enable = 0;
+						step_opcode();
+						if (cf_dut.reg_PC != 2 || cf_dut.reg_ACC != 16'h1123) fail_code();
+
+						mem[16'h0000] = 8'hE5; // DEC
+						cf_dut.reg_PC = 16'h0000;
+						cf_dut.reg_ACC = 16'h4443;
+						cf_dut.fsm_state = 0;
+						cf_dut.bus_enable = 0;
+						step_opcode();
+						if (cf_dut.reg_PC != 2 || cf_dut.reg_ACC != 16'h4442) fail_code();
+					end
+				51: // TAI, TIA, ADAI, ALT
+					begin
+						mem[16'h0000] = 8'hE6; // TAI
+						cf_dut.reg_PC = 16'h0000;
+						cf_dut.reg_ACC = 16'h4443;
+						cf_dut.fsm_state = 0;
+						cf_dut.bus_enable = 0;
+						step_opcode();
+						if (cf_dut.reg_PC != 2 || cf_dut.reg_INDEX != 16'h4443) fail_code();
+						mem[16'h0000] = 8'hE7; // TIA
+						cf_dut.reg_PC = 16'h0000;
+						cf_dut.reg_INDEX = 16'h3278;
+						cf_dut.fsm_state = 0;
+						cf_dut.bus_enable = 0;
+						step_opcode();
+						if (cf_dut.reg_PC != 2 || cf_dut.reg_ACC != 16'h3278) fail_code();
+						mem[16'h0000] = 8'hE8; // ADAI
+						cf_dut.reg_PC = 16'h0000;
+						cf_dut.reg_ACC = 16'h7777;
+						cf_dut.reg_INDEX = 16'h8888;
+						cf_dut.fsm_state = 0;
+						cf_dut.bus_enable = 0;
+						step_opcode();
+						if (cf_dut.reg_PC != 2 || cf_dut.reg_INDEX != (16'h7777 + 16'h8888)) fail_code();
+						mem[16'h0000] = 8'hE9; // ALT
+						cf_dut.reg_PC = 16'h0000;
+						cf_dut.reg_ACC = 16'h3333;
+						cf_dut.reg_alt = 16'h2222;
+						cf_dut.fsm_state = 0;
+						cf_dut.bus_enable = 0;
+						step_opcode();
+						if (cf_dut.reg_PC != 2 || cf_dut.reg_ACC != 16'h2222) fail_code();
+					end
+				52: // OUT, IN
+					begin
+						// to test the mechanism we only support very specific I/O access in this bench
+						// we only support writing the value 91h to port 23h, and we read 8Bh from port 97h
+						mem[16'h0000] = 8'hEA; // OUT pp
+						mem[16'h0001] = 8'h23; // port 23h
+						cf_dut.reg_PC = 16'h0000;
+						cf_dut.reg_ACC = 16'h0091;
+						cf_dut.fsm_state = 0;
+						cf_dut.bus_enable = 0;
+						step_opcode();
+						if (cf_dut.reg_PC != 2) fail_code();
+						mem[16'h0000] = 8'hEB; // IN pp
+						mem[16'h0001] = 8'h97; // port 23h
+						cf_dut.reg_PC = 16'h0000;
+						cf_dut.reg_ACC = 16'h0091;
+						cf_dut.fsm_state = 0;
+						cf_dut.bus_enable = 0;
+						step_opcode();
+						if (cf_dut.reg_PC != 2 || cf_dut.reg_ACC != 16'h8B) fail_code();
+					end
+						
 			endcase
 		end
 		$display("Ran %d opcodes in %d cycles (%d per inst)", inst_cnt, cycles, (cycles * 100) / inst_cnt); 

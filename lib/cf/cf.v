@@ -347,7 +347,7 @@ module cf_cpu(
 								begin
 									reg_flags[FLAG_EQ]  <= (reg_ACC == reg_operand) ? 1'b1 : 1'b0;
 									reg_ACC             <= (reg_ACC == reg_operand) ? 16'd1 : 16'd0;
-									if (cur_opcode[3]) begin
+									if (reg_operand_16) begin
 										// compare full 16 bits
 										reg_flags[FLAG_SLT] <= ($signed(reg_ACC) < $signed(reg_operand)) ? 1'b1 : 1'b0;
 										reg_flags[FLAG_SGT] <= ($signed(reg_ACC) > $signed(reg_operand)) ? 1'b1 : 1'b0;
@@ -752,12 +752,12 @@ module cf_cpu(
 								4'hA, 4'hB: // OUT/IN
 									begin
 										// fetch the port number after the opcode
-										fsm_state   <= FSM_EXECUTE_OPERAND_E0_EC;
+										fsm_state   <= fsm_state;
 										bus_enable  <= 1'b1;
 										bus_burst   <= 1'b0;
 										bus_wr_en   <= 1'b0;
 										bus_io_flag <= 1'b0;
-										bus_address <= {1'b0, reg_PC + 1'b1};
+										bus_address <= {1'b0, reg_PC};
 										reg_PC      <= reg_PC + 1'b1;
 									end
 								default: begin end
