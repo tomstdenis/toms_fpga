@@ -1,12 +1,14 @@
 /* C-FLEA CPU Design */
 
 // version, read by using opcode 0xED which puts this in ACC
-`define cf_core_version 16'h0001
+`define cf_core_version 8'h01
 
 `default_nettype none
 `timescale 1ns/1ps
 
-module cf_cpu(
+module cf_cpu #(
+	parameter TOP_VER = 8'h00
+)(
 	input wire clk,
 	input wire rst_n,
 	
@@ -154,7 +156,7 @@ module cf_cpu(
 							end else if (bus_data_out[7:0] >= 8'hE0 && bus_data_out[7:0] <= 8'hEC) begin
 								fsm_state <= FSM_EXECUTE_OPERAND_E0_EC;
 							end else if (bus_data_out[7:0] == 8'hED) begin
-								reg_ACC   <= `cf_core_version;
+								reg_ACC   <= {TOP_VER, `cf_core_version};
 							end else begin
 								// unhandled opcodes just make us fetch the next...
 								fsm_state <= FSM_FETCH_OPCODE;

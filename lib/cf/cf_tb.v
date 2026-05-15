@@ -61,7 +61,7 @@ module cf_tb();
 		end
 	end
 	
-	cf_cpu cf_dut(
+	cf_cpu #(.TOP_VER(8'h11)) cf_dut(
 		.clk(clk), .rst_n(rst_n),
 		.bus_address(mem_addr), .bus_io_flag(mem_io_flag), .bus_burst(mem_burst),
 		.bus_data_in(mem_data_in), .bus_enable(mem_enable), .bus_ready(mem_ready),
@@ -911,6 +911,17 @@ module cf_tb();
 						cf_dut.bus_enable = 0;
 						step_opcode();
 						if (cf_dut.reg_PC != 2 || cf_dut.reg_ACC != 16'h8B) fail_code();
+					end
+				53: // CPUVER (opcode 0xED)
+					begin
+						mem[16'h0000] = 8'hED; // CPUVER
+						mem[16'h0001] = 8'hE4; // INC (the way we single step is stupid so we force a single byte opcode here .... TODO: fix)
+						cf_dut.reg_PC = 16'h0000;
+						cf_dut.reg_ACC = 16'hFFFF;
+						cf_dut.fsm_state = 0;
+						cf_dut.bus_enable = 0;
+						step_opcode();
+						if (cf_dut.reg_PC != 3 || cf_dut.reg_ACC != (16'h1101 + 1)) fail_code();
 					end
 						
 			endcase
