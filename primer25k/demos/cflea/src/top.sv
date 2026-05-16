@@ -282,6 +282,7 @@ module top(input wire clk,
             cf_bus_ready        <= 0;
             cf_bus_data_out     <= 0;
         end else begin
+            gpio_out <= { bus_cycle, 2'b0, cf_bus_ready, cf_bus_enable };
             if (cf_bus_enable && !cf_bus_ready) begin
                 if (cf_bus_io_flag) begin
                     // handle I/O
@@ -317,6 +318,7 @@ module top(input wire clk,
                         end else begin
                             cf_bus_data_out <= { 8'h00, gpio_in };
                         end
+                        cf_bus_ready <= 1'b1;
                     end else begin
                         // default to just ack the bus
                         cf_bus_ready <= 1'b1;
@@ -370,12 +372,12 @@ module top(input wire clk,
                         // video memory
                         if (bus_cycle == 0) begin
                             bus_cycle <= 1;
-                            text_addr_a <= cf_bus_address;
+                            text_addr_a <= cf_bus_address[10:0];
                             text_din_a  <= cf_bus_data_in[7:0];
                             text_we_a   <= cf_bus_wr_en;
                         end else if (bus_cycle == 1) begin
                             bus_cycle <= 2;
-                            text_addr_a <= cf_bus_address + 1;
+                            text_addr_a <= text_addr_a + 1'b1;
                             text_din_a  <= cf_bus_data_in[15:8];
                             if (!cf_bus_burst && cf_bus_wr_en) begin
                                 text_we_a <= 1'b0;
@@ -403,9 +405,9 @@ module top(input wire clk,
                 end
             end
             if (!cf_bus_enable && cf_bus_ready) begin
-                cf_bus_ready <= 1'b0;
-                bus_cycle <= 0;
-           end
+                    cf_bus_ready <= 1'b0;
+                    bus_cycle <= 0;
+            end
         end
     end
 endmodule 

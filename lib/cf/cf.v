@@ -8,7 +8,7 @@
 
 module cf_cpu #(
 	parameter TOP_VER = 8'h00,
-    parameter BOOT_VECTOR = 16'h0000
+    parameter BOOT_VECTOR = 16'hF000
 )(
 	input wire clk,
 	input wire rst_n,
