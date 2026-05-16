@@ -1,4 +1,4 @@
-all: test_cf.pass boot_hex_to_rom boot_sim.hex
+all: test_cf.pass
 
 test_cf.pass: cf.v cf_tb.v ../math/serial_divide.v boot_test_sim.hex
 	verilator --lint-only cf.v cf_tb.v ../math/serial_divide.v
@@ -11,15 +11,11 @@ lds: lds.c
 boot_hex_to_rom: boot_hex_to_rom.c
 	gcc boot_hex_to_rom.c -o boot_hex_to_rom
 	
-moves:
-	mv BOOT_R~1.HEX boot_rom_test.hex
-	mv BOOT_R~1.LST boot_rom_test.lst
-
-boot_test_sim.hex: boot_hex_to_rom
-	./boot_hex_to_rom 1 < boot_rom_test.hex > boot_test_sim.hex
+mon_p25.hex.mi: boot_hex_to_rom
+	./boot_hex_to_rom < MON_P25.HEX > mon_p25.hex.mi
 
 boot_sim.hex: boot_hex_to_rom
 	./boot_hex_to_rom < boot_rom_test.hex > boot_test.hex
 
 clean:
-	rm -rf *.vvp *.vcd *.pass *.log lds lds.hex boot_hex_to_rom boot_test_sim.hex
+	rm -rf *.vvp *.vcd *.pass *.log lds lds.hex boot_hex_to_rom boot_test_sim.hex *.mi
