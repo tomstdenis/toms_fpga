@@ -1,0 +1,15 @@
+DUNFIELD CFLEA ASSEMBLER: BOOT_R~1                                     PAGE: 1
+
+0000                         1  * SIMPLE BOOT ROM DEMO
+F000                         2     ORG $F000
+F000                         3  
+F000  90 00 F8               4     LDI #$F800
+F003                         5  loop EQU *
+F003  08 65                  6     LDB #'e'
+F005  AA                     7     STB I
+F006  E7                     8     TIA
+F007  EA 10                  9     OUT $10
+F009  E4                    10     INC
+F00A  E6                    11     TAI
+F00B  D3 F6                 12     SJMP loop
+F00D                        13     

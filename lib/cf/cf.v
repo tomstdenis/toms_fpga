@@ -7,7 +7,8 @@
 `timescale 1ns/1ps
 
 module cf_cpu #(
-	parameter TOP_VER = 8'h00
+	parameter TOP_VER = 8'h00,
+    parameter BOOT_VECTOR = 16'h0000
 )(
 	input wire clk,
 	input wire rst_n,
@@ -100,7 +101,7 @@ module cf_cpu #(
 			reg_alt      <= 0;
 			reg_INDEX    <= 0;
 			reg_SP       <= 0;
-			reg_PC       <= 0;
+			reg_PC       <= BOOT_VECTOR;
 			reg_flags    <= 0;
 			cur_opcode   <= 0;
 			reg_operand  <= 0;

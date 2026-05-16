@@ -32,7 +32,7 @@ module cf_tb();
 			cycles <= cycles + 1;
 			if (mem_enable && !mem_ready) begin
 				mem_ready <= 1;
-				if (mem_io_flag) begin
+				if (mem_io_flag && mem_addr[7:0] != 8'h10) begin
 					// we only support writing the value 91h to port 23h, and we read 8Bh from port 97h
 					if (mem_wr_en && (mem_addr[7:0] != 8'h23 || mem_data_in[7:0] != 8'h91)) begin
 						$display("Invalid I/O write of %x to port %x", mem_data_in[7:0], mem_addr[7:0]);
@@ -923,7 +923,14 @@ module cf_tb();
 						step_opcode();
 						if (cf_dut.reg_PC != 3 || cf_dut.reg_ACC != (16'h1101 + 1)) fail_code();
 					end
-						
+				54: // boot rom test
+					begin
+						$readmemh("boot_test_sim.hex", mem);
+						cf_dut.reg_PC = 16'hF000;
+						cf_dut.fsm_state = 0;
+						cf_dut.bus_enable = 0;
+						repeat(1024) @(posedge clk);
+					end
 			endcase
 		end
 		$display("Ran %d opcodes in %d cycles (%d per inst)", inst_cnt, cycles, (cycles * 100) / inst_cnt); 

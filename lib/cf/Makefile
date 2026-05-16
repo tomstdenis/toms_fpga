@@ -1,6 +1,6 @@
-all: test_cf.pass
+all: test_cf.pass boot_hex_to_rom boot_sim.hex
 
-test_cf.pass: cf.v cf_tb.v ../math/serial_divide.v
+test_cf.pass: cf.v cf_tb.v ../math/serial_divide.v boot_test_sim.hex
 	verilator --lint-only cf.v cf_tb.v ../math/serial_divide.v
 	iverilog -Wall -o sim.vvp cf.v cf_tb.v ../math/serial_divide.v
 	(vvp sim.vvp -fst > $@.log && touch $@) || cat $@.log
@@ -8,5 +8,18 @@ test_cf.pass: cf.v cf_tb.v ../math/serial_divide.v
 lds: lds.c
 	gcc lds.c -o lds
 
+boot_hex_to_rom: boot_hex_to_rom.c
+	gcc boot_hex_to_rom.c -o boot_hex_to_rom
+	
+moves:
+	mv BOOT_R~1.HEX boot_rom_test.hex
+	mv BOOT_R~1.LST boot_rom_test.lst
+
+boot_test_sim.hex: boot_hex_to_rom
+	./boot_hex_to_rom 1 < boot_rom_test.hex > boot_test_sim.hex
+
+boot_sim.hex: boot_hex_to_rom
+	./boot_hex_to_rom < boot_rom_test.hex > boot_test.hex
+
 clean:
-	rm -rf *.vvp *.vcd *.pass *.log lds lds.hex
+	rm -rf *.vvp *.vcd *.pass *.log lds lds.hex boot_hex_to_rom boot_test_sim.hex
