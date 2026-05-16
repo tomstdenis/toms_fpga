@@ -5,12 +5,15 @@ F000                         2     ORG $F000
 F000                         3  
 F000  90 00 F8               4     LDI #$F800
 F003                         5  loop EQU *
-F003                         6  *   LDB #$40
-F003  08 5A                  7     LDB #$5A
-F005  EA 10                  8     OUT $10
-F007  E7                     9     TIA
-F008  AA                    10     STB I
-F009  E4                    11     INC
-F00A  E6                    12     TAI
-F00B  D3 F6                 13     SJMP loop
-F00D                        14     
+F003  EB 00                  6     IN $00
+F005  D1 03 F0               7     JZ loop
+F008  EA 00                  8     OUT $00
+F00A                         9  *   LDB #$40
+F00A  08 5A                 10     LDB #$5A
+F00C  EA 10                 11     OUT $10
+F00E  E7                    12     TIA
+F00F  AA                    13     STB I
+F010  E4                    14     INC
+F011  E6                    15     TAI
+F012  D3 EF                 16     SJMP loop
+F014                        17     

@@ -21,7 +21,7 @@ for I/O the following ports are used
 `define BLOCKS 30
 `define FREQ 50
 
-module top(input wire clk, 
+module top(input wire clk, input wire s1,
 	input wire uart_rx, output wire uart_tx, 
 	inout wire [7:0] gpio,
 	output reg [3:0] vga_r, output reg [3:0] vga_g, output reg   [3:0] vga_b, output wire vga_h_pulse, output wire vga_v_pulse);
@@ -37,7 +37,7 @@ module top(input wire clk,
     logic pllclk;
 	
 	reg [3:0] rst = 0;
-	wire rst_n = rst[3];
+	wire rst_n = rst[3] & ~s1; // s1 is pulled up by the button so we want to pull reset low when the button is pressed
 	
 	always @(posedge pllclk) begin
         rst <= {rst[2:0], 1'b1};
@@ -47,7 +47,7 @@ module top(input wire clk,
     logic pll2clk;
 	
 	reg [3:0] rst2 = 0;
-	wire rst2_n = rst2[3];
+	wire rst2_n = rst2[3] & ~s1;
 	
 	always @(posedge pll2clk) begin
         rst2 <= {rst2[2:0], 1'b1};
@@ -252,7 +252,7 @@ module top(input wire clk,
 
     cf_cpu #(
         .TOP_VER(`CF_TOP_VER),
-        .BOOT_VECTOR(bus_address_rom_mem_bot)) (
+        .BOOT_VECTOR(bus_address_rom_mem_bot)) mr_thinky(
         .clk(pllclk), .rst_n(rst_n),
         .bus_address(cf_bus_address),
         .bus_wr_en(cf_bus_wr_en),
@@ -302,6 +302,10 @@ module top(input wire clk,
                                 if (uart_rx_ready) begin
                                     uart_rx_read <= 1'b1;
                                     bus_cycle <= 1;
+                                end else begin
+                                    // Dave's model returns 0 if there's no char...
+                                    cf_bus_ready <= 1'b1;
+                                    cf_bus_data_out <= 16'd0;
                                 end
                             end else if (bus_cycle == 1) begin
                                 uart_rx_read <= 1'b0;
@@ -404,8 +408,8 @@ module top(input wire clk,
                 end
             end
             if (!cf_bus_enable && cf_bus_ready) begin
-                    cf_bus_ready <= 1'b0;
-                    bus_cycle <= 0;
+                cf_bus_ready <= 1'b0;
+                bus_cycle <= 0;
             end
         end
     end

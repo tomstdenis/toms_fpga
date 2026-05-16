@@ -5,7 +5,7 @@
 //Part Number: GW5A-LV25MG121NC1/I0
 //Device: GW5A-25
 //Device Version: A
-//Created Time: Sat May 16 05:43:32 2026
+//Created Time: Sat May 16 07:15:36 2026
 `default_nettype wire
 
 module boot_rom (dout, ad);
@@ -2051,112 +2051,112 @@ ROM16 rom16_inst_0 (
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_0.INIT_0 = 16'h0880;
+defparam rom16_inst_0.INIT_0 = 16'h4068;
 
 ROM16 rom16_inst_1 (
     .DO(rom16_inst_1_dout[1]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_1.INIT_0 = 16'h1DB0;
+defparam rom16_inst_1.INIT_0 = 16'hD948;
 
 ROM16 rom16_inst_2 (
     .DO(rom16_inst_2_dout[2]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_2.INIT_0 = 16'h1680;
+defparam rom16_inst_2.INIT_0 = 16'h4000;
 
 ROM16 rom16_inst_3 (
     .DO(rom16_inst_3_dout[3]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_3.INIT_0 = 16'h013C;
+defparam rom16_inst_3.INIT_0 = 16'h9D0C;
 
 ROM16 rom16_inst_4 (
     .DO(rom16_inst_4_dout[4]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_4.INIT_0 = 16'h1855;
+defparam rom16_inst_4.INIT_0 = 16'h28A5;
 
 ROM16 rom16_inst_5 (
     .DO(rom16_inst_5_dout[5]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_5.INIT_0 = 16'h17A4;
+defparam rom16_inst_5.INIT_0 = 16'hD18C;
 
 ROM16 rom16_inst_6 (
     .DO(rom16_inst_6_dout[6]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_6.INIT_0 = 16'h1EB4;
+defparam rom16_inst_6.INIT_0 = 16'h59AC;
 
 ROM16 rom16_inst_7 (
     .DO(rom16_inst_7_dout[7]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_7.INIT_0 = 16'h1FA5;
+defparam rom16_inst_7.INIT_0 = 16'hD1AD;
 
 ROM16 rom16_inst_8 (
     .DO(rom16_inst_8_dout[0]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_8.INIT_0 = 16'h0000;
+defparam rom16_inst_8.INIT_0 = 16'h000C;
 
 ROM16 rom16_inst_9 (
     .DO(rom16_inst_9_dout[1]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_9.INIT_0 = 16'h0000;
+defparam rom16_inst_9.INIT_0 = 16'h000E;
 
 ROM16 rom16_inst_10 (
     .DO(rom16_inst_10_dout[2]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_10.INIT_0 = 16'h0000;
+defparam rom16_inst_10.INIT_0 = 16'h000B;
 
 ROM16 rom16_inst_11 (
     .DO(rom16_inst_11_dout[3]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_11.INIT_0 = 16'h0000;
+defparam rom16_inst_11.INIT_0 = 16'h0008;
 
 ROM16 rom16_inst_12 (
     .DO(rom16_inst_12_dout[4]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_12.INIT_0 = 16'h0000;
+defparam rom16_inst_12.INIT_0 = 16'h0004;
 
 ROM16 rom16_inst_13 (
     .DO(rom16_inst_13_dout[5]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_13.INIT_0 = 16'h0000;
+defparam rom16_inst_13.INIT_0 = 16'h000B;
 
 ROM16 rom16_inst_14 (
     .DO(rom16_inst_14_dout[6]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_14.INIT_0 = 16'h0000;
+defparam rom16_inst_14.INIT_0 = 16'h000F;
 
 ROM16 rom16_inst_15 (
     .DO(rom16_inst_15_dout[7]),
     .AD(ad[3:0])
 );
 
-defparam rom16_inst_15.INIT_0 = 16'h0000;
+defparam rom16_inst_15.INIT_0 = 16'h000F;
 
 ROM16 rom16_inst_16 (
     .DO(rom16_inst_16_dout[0]),

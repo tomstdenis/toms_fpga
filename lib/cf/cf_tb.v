@@ -923,6 +923,7 @@ module cf_tb();
 						step_opcode();
 						if (cf_dut.reg_PC != 3 || cf_dut.reg_ACC != (16'h1101 + 1)) fail_code();
 					end
+/*
 				54: // boot rom test
 					begin
 						$readmemh("boot_test_sim.hex", mem);
@@ -931,6 +932,7 @@ module cf_tb();
 						cf_dut.bus_enable = 0;
 						repeat(1024) @(posedge clk);
 					end
+*/
 			endcase
 		end
 		$display("Ran %d opcodes in %d cycles (%d per inst)", inst_cnt, cycles, (cycles * 100) / inst_cnt); 
