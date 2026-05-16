@@ -13,103 +13,118 @@ FFFD                        10  temp3 EQU $FFFD
 FFFC                        11  temp4 EQU $FFFC   * n
 FFFA                        12  addr EQU $FFFA    * we can 16-bit load the addr from here
 FFFB                        13  addrhi EQU $FFFB  * and write to the top half here
-F900                        14  stack EQU $F900   * stack inside the video so we have something to see
-F000                        15  
-F000  00 00 F9              16     LD #stack
-F003  DE                    17     TAS          * SP = stack (F900)
-F004                        18  top
-F004  EB 00                 19     IN $00       * read from UART
-F006  D4 FC                 20     SJZ top      * loop while no char
-F008  EA 00                 21     OUT $00
-F00A  A9 FF FF              22     STB temp
-F00D  88 53                 23     CMPB #'S'    * compare to S
-F00F  D5 09                 24     SJNZ is_S    * it's an 'S' so jump to that handler
-F011  09 FF FF              25     LDB temp
-F014  88 47                 26     CMPB #'G'
-F016  D5 39                 27     SJNZ is_G    * it's an 'G' jump there
-F018  D3 EA                 28     SJMP top     * ignore and jump to top
-F01A                        29  
-F01A                        30  * S records we need 
-F01A                        31  * 1. Read command '1' or '9'
-F01A                        32  * 2. Read 1 hex byte, n =  # of data + 3
-F01A                        33  * 3. Read 2 hex bytes (addr)
-F01A                        34  * 4. Read n - 3 hex bytes (data)
-F01A                        35  * 5. Read 1 hex byte (checksum)
-F01A                        36  is_S
-F01A  EB 00                 37     IN $00
-F01C  D4 FC                 38     SJZ is_S       * wait for a char (the command)
-F01E  EA 00                 39     OUT $00
-F020  D8 65 F0              40     CALL read_hex  * read the # of bytes 'n'
-F023  28 03                 41     SUBB #3		  * sub addr/checksum
-F025  A9 FC FF              42     STB temp4      * temp4 == n
-F028  D8 65 F0              43     CALL read_hex  * read addrhi
-F02B  A9 FB FF              44     STB addrhi
-F02E  D8 65 F0              45     CALL read_hex  * read bottom
-F031  A9 FA FF              46     STB addr
-F034  91 FA FF              47     LDI addr       * INDEX = address to store to
-F037                        48  is_S_loop
-F037  08 73                 49     LDB #'s'
-F039  EA 00                 50     OUT $00
-F03B  D8 65 F0              51     CALL read_hex
-F03E  AA                    52     STB I		  * store via index
-F03F  E7                    53     TIA			  * increment index
-F040  E4                    54     INC
-F041  E6                    55     TAI
-F042  09 FC FF              56     LDB temp4      * load n
-F045  E5                    57     DEC
-F046  A9 FC FF              58     STB temp4
+F000                        14  *stack EQU $F900   * stack inside the video so we have something to see
+8000                        15  stack EQU $8000 * stack inside main mem for testing...
+F000                        16  
+F000  00 00 80              17     LD #stack
+F003  DE                    18     TAS          * SP = stack (F900)
+F004  99 BC F0              19     LEAI ?STR
+F007  D8 B2 F0              20     CALL putstr
+F00A                        21  top
+F00A  EB 00                 22     IN $00       * read from UART
+F00C  D4 FC                 23     SJZ top      * loop while no char
+F00E  EA 00                 24     OUT $00
+F010  A9 FF FF              25     STB temp
+F013  88 53                 26     CMPB #'S'    * compare to S
+F015  D5 09                 27     SJNZ is_S    * it's an 'S' so jump to that handler
+F017  09 FF FF              28     LDB temp
+F01A  88 47                 29     CMPB #'G'
+F01C  D5 3A                 30     SJNZ is_G    * it's an 'G' jump there
+F01E  D3 EA                 31     SJMP top     * ignore and jump to top
+F020                        32  
+F020                        33  * S records we need 
+F020                        34  * 1. Read command '1' or '9'
+F020                        35  * 2. Read 1 hex byte, n =  # of data + 3
+F020                        36  * 3. Read 2 hex bytes (addr)
+F020                        37  * 4. Read n - 3 hex bytes (data)
+F020                        38  * 5. Read 1 hex byte (checksum)
+F020                        39  is_S
+F020  EB 00                 40     IN $00
+F022  D4 FC                 41     SJZ is_S       * wait for a char (the command)
+F024  EA 00                 42     OUT $00
+F026  D8 6C F0              43     CALL read_hex  * read the # of bytes 'n'
+F029  28 03                 44     SUBB #3		  * sub addr/checksum
+F02B  D4 DD                 45     SJZ top		  * no bytes to store so just exit out
+F02D  A9 FC FF              46     STB temp4      * temp4 == n
+F030  D8 6C F0              47     CALL read_hex  * read addrhi
+F033  A9 FB FF              48     STB addrhi
+F036  D8 6C F0              49     CALL read_hex  * read bottom
+F039  A9 FA FF              50     STB addr
+F03C  91 FA FF              51     LDI addr       * INDEX = address to store to
+F03F                        52  is_S_loop
+F03F  08 73                 53     LDB #'s'
+F041  EA 00                 54     OUT $00
+F043  D8 6C F0              55     CALL read_hex
+F046  AA                    56     STB I		  * store via index
+F047  9B 01                 57     LEAI 1,I		  * increment iindex
+F049  09 FC FF              58     LDB temp4      * load n
 DUNFIELD CFLEA ASSEMBLER: MON_P25                                      PAGE: 2
 
-F049  D5 EC                 59     SJNZ is_S_loop
-F04B  D8 65 F0              60     CALL read_hex  * skip checksum
-F04E  D0 04 F0              61     JMP top
-F051                        62     
-F051                        63  is_G
-F051  08 67                 64     LDB #'g'
-F053  EA 00                 65     OUT $00
-F055  D8 65 F0              66     CALL read_hex  * read address
-F058  A9 FB FF              67     STB addrhi
-F05B  D8 65 F0              68     CALL read_hex
-F05E  A9 FA FF              69     STB addr
-F061  01 FA FF              70     LD addr        * jump to address
-F064  D6                    71     IJMP
-F065                        72  
-F065                        73  * read hex byte into ACC
-F065                        74  read_hex EQU *
-F065  08 72                 75     LDB #'r'
-F067  EA 00                 76     OUT $00
-F069  E0                    77     CLR
-F06A  A9 FF FF              78     STB temp         * zero the temp byte
-F06D  08 02                 79     LDB #2
-F06F  A9 FE FF              80     STB temp2        * zero nibble count
-F072                        81  read_hex_top
-F072  09 FF FF              82     LDB temp         * shift temp up 4 bits for next nibble
-F075  C0 04                 83     SHL #4
-F077  A9 FF FF              84     STB temp
-F07A                        85  read_hex_loop
-F07A  EB 00                 86     IN $00
-F07C  D4 FC                 87     SJZ read_hex_loop * read from uart
-F07E  EA 00                 88     OUT $00          * echo back
-F080  A9 FD FF              89     STB temp3		* save the char being read
-F083  88 39                 90     CMPB #'9'        * assume it's 0-9A-F
-F085  CE                    91     UGT              * check for >'9'
-F086  D5 16                 92     SJNZ read_hex_af
-F088  09 FD FF              93     LDB temp3        * readload byte
-F08B  28 30                 94     SUBB #'0'		* it's 0-9
-F08D                        95  read_hex_store_nibble
-F08D  69 FF FF              96     ORB temp			* or with accumulated data
-F090  A9 FF FF              97     STB temp         * store back
-F093  09 FE FF              98     LDB temp2
-F096  E5                    99     DEC
-F097  A9 FE FF             100     STB temp2
-F09A  D5 D6                101     SJNZ read_hex_top
-F09C  D3 09                102     SJMP read_hex_end
-F09E                       103  read_hex_af
-F09E  09 FD FF             104     LDB temp3        * reload byte
-F0A1  28 41                105     SUBB #'A'        * subtract 'A'
-F0A3  18 0A                106     ADDB #10         * then normalize to 10..15
-F0A5  D3 E6                107     SJMP read_hex_store_nibble
-F0A7                       108  read_hex_end
-F0A7  09 FF FF             109     LDB temp         * we're done
-F0AA  D9                   110     RET
-F0AB                       111  
+F04C  E5                    59     DEC
+F04D  A9 FC FF              60     STB temp4
+F050  D5 ED                 61     SJNZ is_S_loop
+F052  D8 6C F0              62     CALL read_hex  * skip checksum
+F055  D0 0A F0              63     JMP top
+F058                        64     
+F058                        65  is_G
+F058  08 67                 66     LDB #'g'
+F05A  EA 00                 67     OUT $00
+F05C  D8 6C F0              68     CALL read_hex  * read address
+F05F  A9 FB FF              69     STB addrhi
+F062  D8 6C F0              70     CALL read_hex
+F065  A9 FA FF              71     STB addr
+F068  01 FA FF              72     LD addr        * jump to address
+F06B  D6                    73     IJMP
+F06C                        74     
+F06C                        75  * read hex byte into ACC
+F06C                        76  read_hex
+F06C  08 72                 77     LDB #'r'
+F06E  EA 00                 78     OUT $00
+F070  E0                    79     CLR
+F071  A9 FF FF              80     STB temp         * zero the temp byte
+F074  08 02                 81     LDB #2
+F076  A9 FE FF              82     STB temp2        * zero nibble count
+F079                        83  read_hex_top
+F079  09 FF FF              84     LDB temp         * shift temp up 4 bits for next nibble
+F07C  C0 04                 85     SHL #4
+F07E  A9 FF FF              86     STB temp
+F081                        87  read_hex_loop
+F081  EB 00                 88     IN $00
+F083  D4 FC                 89     SJZ read_hex_loop * read from uart
+F085  EA 00                 90     OUT $00          * echo back
+F087  A9 FD FF              91     STB temp3		* save the char being read
+F08A  88 39                 92     CMPB #'9'        * assume it's 0-9A-F
+F08C  CE                    93     UGT              * check for >'9'
+F08D  D5 16                 94     SJNZ read_hex_af
+F08F  09 FD FF              95     LDB temp3        * readload byte
+F092  28 30                 96     SUBB #'0'		* it's 0-9
+F094                        97  read_hex_store_nibble
+F094  69 FF FF              98     ORB temp			* or with accumulated data
+F097  A9 FF FF              99     STB temp         * store back
+F09A  09 FE FF             100     LDB temp2
+F09D  E5                   101     DEC
+F09E  A9 FE FF             102     STB temp2
+F0A1  D5 D6                103     SJNZ read_hex_top
+F0A3  D3 09                104     SJMP read_hex_end
+F0A5                       105  read_hex_af
+F0A5  09 FD FF             106     LDB temp3        * reload byte
+F0A8  28 41                107     SUBB #'A'        * subtract 'A'
+F0AA  18 0A                108     ADDB #10         * then normalize to 10..15
+F0AC  D3 E6                109     SJMP read_hex_store_nibble
+F0AE                       110  read_hex_end
+F0AE  09 FF FF             111     LDB temp         * we're done
+F0B1  D9                   112     RET
+F0B2                       113  
+F0B2                       114  * putstr in INDEX
+F0B2                       115  putstr
+F0B2  0A                   116  	LDB I
+DUNFIELD CFLEA ASSEMBLER: MON_P25                                      PAGE: 3
+
+F0B3  D4 06                117  	SJZ putstr_end
+F0B5  EA 00                118  	OUT $00
+F0B7  9B 01                119      LEAI 1,I		  * increment iindex
+F0B9  D3 F7                120  	SJMP putstr
+F0BB                       121  putstr_end
+F0BB  D9                   122  	RET
+F0BC                       123  
+F0BC  48 65 6C 6C 6F 20 +  124  ?STR FCB 72,101,108,108,111,32,87,111,114,108,100,10,13,0

@@ -100,24 +100,24 @@ module top(input wire clk, input wire s1,
 
 	// ### main memory ###  we use a dual port 8-bit memory so we can do
 	// 8 or 16 bit operations in the same amount of time
-	logic [10+$clog2(`BLOCKS):0] main_mem_addr_a;
+	logic [15:0] main_mem_addr_a;
 	logic [7:0] main_mem_din_a;
 	logic main_mem_we_a;
 	logic [7:0] main_mem_dout_a;
 	
-	logic [10+$clog2(`BLOCKS):0] main_mem_addr_b;
+	logic [15:0] main_mem_addr_b;
 	logic [7:0] main_mem_din_b;
 	logic main_mem_we_b;
 	logic [7:0] main_mem_dout_b;
 
-    cflea_main_mem so_many_ib16_memories(
+    cflea_main_mem cflea_mem(
         .douta(main_mem_dout_a), //output [7:0] douta
         .clka(pllclk), //input clka
         .ocea(1'b1), //input ocea
         .cea(1'b1), //input cea
         .reseta(~rst_n), //input reseta
         .wrea(main_mem_we_a), //input wrea
-        .ada(main_mem_addr_a), //input [14:0] ada
+        .ada(main_mem_addr_a), //input [15:0] ada
         .dina(main_mem_din_a), //input [7:0] dina
 
         .doutb(main_mem_dout_b), //output [7:0] doutb
@@ -126,7 +126,7 @@ module top(input wire clk, input wire s1,
         .ceb(1'b1), //input ceb
         .resetb(~rst_n), //input resetb
         .wreb(main_mem_we_b), //input wreb
-        .adb(main_mem_addr_b), //input [14:0] adb
+        .adb(main_mem_addr_b), //input [15:0] adb
         .dinb(main_mem_din_b) //input [7:0] dinb
     );
 
@@ -348,7 +348,7 @@ module top(input wire clk, input wire s1,
                             end
                         end else if (bus_cycle == 2) begin
                             cf_bus_ready <= 1;
-                            cf_bus_data_out = { cf_bus_burst ? main_mem_dout_b : 8'b0, main_mem_dout_a };
+                            cf_bus_data_out = { cf_bus_burst ? main_mem_dout_b : 8'b00, main_mem_dout_a };
                         end
                     end else if (cf_bus_address[15:0] <= bus_address_rom_mem_top) begin
                         // rom memory

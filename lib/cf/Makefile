@@ -1,6 +1,6 @@
 all: test_cf.pass
 
-test_cf.pass: cf.v cf_tb.v ../math/serial_divide.v boot_test_sim.hex
+test_cf.pass: cf.v cf_tb.v ../math/serial_divide.v
 	verilator --lint-only cf.v cf_tb.v ../math/serial_divide.v
 	iverilog -Wall -o sim.vvp cf.v cf_tb.v ../math/serial_divide.v
 	(vvp sim.vvp -fst > $@.log && touch $@) || cat $@.log

@@ -11,10 +11,13 @@ temp3 EQU $FFFD
 temp4 EQU $FFFC   * n
 addr EQU $FFFA    * we can 16-bit load the addr from here
 addrhi EQU $FFFB  * and write to the top half here
-stack EQU $F900   * stack inside the video so we have something to see
+*stack EQU $F900   * stack inside the video so we have something to see
+stack EQU $8000 * stack inside main mem for testing...
 
    LD #stack
    TAS          * SP = stack (F900)
+   LEAI ?STR
+   CALL putstr
 top
    IN $00       * read from UART
    SJZ top      * loop while no char
@@ -39,6 +42,7 @@ is_S
    OUT $00
    CALL read_hex  * read the # of bytes 'n'
    SUBB #3		  * sub addr/checksum
+   SJZ top		  * no bytes to store so just exit out
    STB temp4      * temp4 == n
    CALL read_hex  * read addrhi
    STB addrhi
@@ -50,9 +54,7 @@ is_S_loop
    OUT $00
    CALL read_hex
    STB I		  * store via index
-   TIA			  * increment index
-   INC
-   TAI
+   LEAI 1,I		  * increment iindex
    LDB temp4      * load n
    DEC
    STB temp4
@@ -69,9 +71,9 @@ is_G
    STB addr
    LD addr        * jump to address
    IJMP
-
+   
 * read hex byte into ACC
-read_hex EQU *
+read_hex
    LDB #'r'
    OUT $00
    CLR
@@ -109,3 +111,14 @@ read_hex_end
    LDB temp         * we're done
    RET
 
+* putstr in INDEX
+putstr
+	LDB I
+	SJZ putstr_end
+	OUT $00
+    LEAI 1,I		  * increment iindex
+	SJMP putstr
+putstr_end
+	RET
+
+?STR FCB 72,101,108,108,111,32,87,111,114,108,100,10,13,0
