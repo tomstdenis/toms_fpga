@@ -7,8 +7,10 @@
 * some variables to keep state, let's hide them at the end of video mem
 temp EQU $FFFF    * temp variables
 temp2 EQU $FFFE
-addr EQU $FFFC    * we can 16-bit load the addr from here
-addrhi EQU $FFFD  * and write to the top half here
+temp3 EQU $FFFD
+temp4 EQU $FFFC   * n
+addr EQU $FFFA    * we can 16-bit load the addr from here
+addrhi EQU $FFFB  * and write to the top half here
 stack EQU $F900   * stack inside the video so we have something to see
 
    LD #stack
@@ -16,10 +18,13 @@ stack EQU $F900   * stack inside the video so we have something to see
 top
    IN $00       * read from UART
    SJZ top      * loop while no char
+   OUT $00
+   STB temp
    CMPB #'S'    * compare to S
-   JNZ is_S     * it's an 'S' so jump to that handler
+   SJNZ is_S    * it's an 'S' so jump to that handler
+   LDB temp
    CMPB #'G'
-   JNZ is_G     * it's an 'G' jump there
+   SJNZ is_G    * it's an 'G' jump there
    SJMP top     * ignore and jump to top
 
 * S records we need 
@@ -31,28 +36,33 @@ top
 is_S
    IN $00
    SJZ is_S       * wait for a char (the command)
+   OUT $00
    CALL read_hex  * read the # of bytes 'n'
    SUBB #3		  * sub addr/checksum
-   STB temp2      * temp2 == n
+   STB temp4      * temp4 == n
    CALL read_hex  * read addrhi
    STB addrhi
    CALL read_hex  * read bottom
    STB addr
    LDI addr       * INDEX = address to store to
 is_S_loop
+   LDB #'s'
+   OUT $00
    CALL read_hex
    STB I		  * store via index
    TIA			  * increment index
    INC
    TAI
-   LDB temp2      * load n
+   LDB temp4      * load n
    DEC
-   STB temp2
+   STB temp4
    SJNZ is_S_loop
    CALL read_hex  * skip checksum
    JMP top
    
 is_G
+   LDB #'g'
+   OUT $00
    CALL read_hex  * read address
    STB addrhi
    CALL read_hex
@@ -62,6 +72,8 @@ is_G
 
 * read hex byte into ACC
 read_hex EQU *
+   LDB #'r'
+   OUT $00
    CLR
    STB temp         * zero the temp byte
    LDB #2
@@ -72,10 +84,13 @@ read_hex_top
    STB temp
 read_hex_loop
    IN $00
-   SJZ read_hex_loop
-   CMPB #'9'
-   UGT
+   SJZ read_hex_loop * read from uart
+   OUT $00          * echo back
+   STB temp3		* save the char being read
+   CMPB #'9'        * assume it's 0-9A-F
+   UGT              * check for >'9'
    SJNZ read_hex_af
+   LDB temp3        * readload byte
    SUBB #'0'		* it's 0-9
 read_hex_store_nibble
    ORB temp			* or with accumulated data
@@ -86,6 +101,7 @@ read_hex_store_nibble
    SJNZ read_hex_top
    SJMP read_hex_end
 read_hex_af
+   LDB temp3        * reload byte
    SUBB #'A'        * subtract 'A'
    ADDB #10         * then normalize to 10..15
    SJMP read_hex_store_nibble

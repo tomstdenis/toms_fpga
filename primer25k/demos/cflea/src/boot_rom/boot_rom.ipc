@@ -9,5 +9,5 @@ version=1.0
 [Config]
 DEPTH=2048
 LANG=0
-MEM_FILE=/home/tom/nas/toms_fpga/lib/cf/boot_test.hex
+MEM_FILE=/home/tom/nas/toms_fpga/lib/cf/mon_p25.hex.mi
 WIDTH=8
