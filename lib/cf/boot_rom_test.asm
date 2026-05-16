@@ -3,10 +3,11 @@
 
    LDI #$F800
 loop EQU *
-   LDB #$40
-   STB I
-   TIA
+*   LDB #$40
+   LDB #$5A
    OUT $10
+   TIA
+   STB I
    INC
    TAI
    SJMP loop

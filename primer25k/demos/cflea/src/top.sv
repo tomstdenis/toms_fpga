@@ -168,7 +168,7 @@ module top(input wire clk,
     assign text_out = font_dout[7 - vga_x[2:0]];    // bit of output indexed from the ROM output
 
     // our 256 symbol 8x8 CP437 font
-    font_rom madamme_font(
+    text_font_rom madamme_font(
         .dout(font_dout), //output [7:0] dout
         .ad(font_ad) //input [10:0] ad
     );
@@ -282,7 +282,6 @@ module top(input wire clk,
             cf_bus_ready        <= 0;
             cf_bus_data_out     <= 0;
         end else begin
-            gpio_out <= { bus_cycle, 2'b0, cf_bus_ready, cf_bus_enable };
             if (cf_bus_enable && !cf_bus_ready) begin
                 if (cf_bus_io_flag) begin
                     // handle I/O

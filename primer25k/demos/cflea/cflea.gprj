@@ -16,8 +16,8 @@
         <File path="src/cflea_main_dpb/cflea_main_mem.v" type="file.verilog" enable="1"/>
         <File path="src/cflea_pll/cflea_pll.v" type="file.verilog" enable="1"/>
         <File path="src/cflea_pll/cflea_pll_mod.v" type="file.verilog" enable="1"/>
-        <File path="src/font_prom/text_font_rom.v" type="file.verilog" enable="1"/>
         <File path="src/pll_init.v" type="file.verilog" enable="1"/>
+        <File path="src/text_font_rom/text_font_rom.v" type="file.verilog" enable="1"/>
         <File path="src/top.sv" type="file.verilog" enable="1"/>
         <File path="src/video_mem_dpb/video_mem.v" type="file.verilog" enable="1"/>
         <File path="src/cflea.cst" type="file.cst" enable="1"/>

@@ -3,13 +3,11 @@ file=boot_rom
 ipc_version=4
 module=boot_rom
 target_device=gw5a25a-002
-type=ram_prom
+type=ssram_rom16
 version=1.0
 
 [Config]
 DEPTH=2048
 LANG=0
 MEM_FILE=/home/tom/nas/toms_fpga/lib/cf/boot_test.hex
-READ=0
-RESET_MODE=true
 WIDTH=8
