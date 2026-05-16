@@ -27,7 +27,7 @@ module top(input wire clk,
 	output reg [3:0] vga_r, output reg [3:0] vga_g, output reg   [3:0] vga_b, output wire vga_h_pulse, output wire vga_v_pulse);
 
     localparam
-        bus_address_main_mem_top = 16'hF000,
+        bus_address_main_mem_top = 16'hEFFF,
 		bus_address_text_mem_bot = 16'hF800,
 		bus_address_text_mem_top = 16'hFFFF,
 		bus_address_rom_mem_bot  = 16'hF000,
@@ -231,11 +231,11 @@ module top(input wire clk,
 		end
 	end
 
-    // TODO: this rom is just the CP437 font since I needed something 2K to fit here hehehehehe 
-    wire [15:0] boot_rom_out;
+    // ### boot rom
+    wire [7:0] boot_rom_out;
     reg [10:0] boot_rom_address;
     boot_rom mr_bootup(
-        .dout(boot_rom_out), //output [15:0] dout
+        .dout(boot_rom_out), //output [7:0] dout
         .ad(boot_rom_address) //input [10:0] ad
     );
 
@@ -250,7 +250,9 @@ module top(input wire clk,
     reg [15:0] cf_bus_data_out;
     reg [3:0] bus_cycle;
 
-    cf_cpu #(.TOP_VER(`CF_TOP_VER)) (
+    cf_cpu #(
+        .TOP_VER(`CF_TOP_VER),
+        .BOOT_VECTOR(bus_address_rom_mem_bot)) (
         .clk(pllclk), .rst_n(rst_n),
         .bus_address(cf_bus_address),
         .bus_wr_en(cf_bus_wr_en),
@@ -321,7 +323,7 @@ module top(input wire clk,
                     end
                 end else begin
                     // handle memory (we fold 128K to 64K)
-                    if (cf_bus_address[15:0] < bus_address_main_mem_top) begin
+                    if (cf_bus_address[15:0] <= bus_address_main_mem_top) begin
                         // main mem
                         if (bus_cycle == 0) begin
                             main_mem_addr_a <= cf_bus_address[15:0];
@@ -343,7 +345,7 @@ module top(input wire clk,
                             cf_bus_ready <= 1;
                             cf_bus_data_out = { cf_bus_burst ? main_mem_dout_b : 8'b0, main_mem_dout_a };
                         end
-                    end else if (cf_bus_address[15:0] < bus_address_rom_mem_top) begin
+                    end else if (cf_bus_address[15:0] <= bus_address_rom_mem_top) begin
                         // rom memory
                         if (cf_bus_wr_en) begin
                             cf_bus_ready <= 1'b1;
@@ -364,16 +366,16 @@ module top(input wire clk,
                                 cf_bus_ready <= 1'b1;
                             end
                         end
-                    end else if (cf_bus_address[15:0] < bus_address_text_mem_top) begin
+                    end else if (cf_bus_address[15:0] <= bus_address_text_mem_top) begin
                         // video memory
                         if (bus_cycle == 0) begin
                             bus_cycle <= 1;
-                            text_addr_a <= cf_bus_address - bus_address_text_mem_bot;
+                            text_addr_a <= cf_bus_address;
                             text_din_a  <= cf_bus_data_in[7:0];
                             text_we_a   <= cf_bus_wr_en;
                         end else if (bus_cycle == 1) begin
                             bus_cycle <= 2;
-                            text_addr_a <= cf_bus_address - bus_address_text_mem_bot + 1;
+                            text_addr_a <= cf_bus_address + 1;
                             text_din_a  <= cf_bus_data_in[15:8];
                             if (!cf_bus_burst && cf_bus_wr_en) begin
                                 text_we_a <= 1'b0;

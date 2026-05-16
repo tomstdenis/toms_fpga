@@ -3,7 +3,7 @@
 
    LDI #$F800
 loop EQU *
-   LDB #'e'
+   LDB #$40
    STB I
    TIA
    OUT $10

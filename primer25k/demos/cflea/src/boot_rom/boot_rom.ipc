@@ -9,7 +9,7 @@ version=1.0
 [Config]
 DEPTH=2048
 LANG=0
-MEM_FILE=/home/tom/nas/toms_fpga/lib/vga/blocks/8x8_font_256.hex
+MEM_FILE=/home/tom/nas/toms_fpga/lib/cf/boot_test.hex
 READ=0
 RESET_MODE=true
 WIDTH=8

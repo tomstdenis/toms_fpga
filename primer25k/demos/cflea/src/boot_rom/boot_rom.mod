@@ -15,4 +15,4 @@
 -width 8
 -read_mode bypass
 -reset_mode sync
--init_file /home/tom/nas/toms_fpga/lib/vga/blocks/8x8_font_256.hex
+-init_file /home/tom/nas/toms_fpga/lib/cf/boot_test.hex

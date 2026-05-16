@@ -455,7 +455,7 @@ module cf_tb();
 						cf_dut.bus_enable = 0;
 						cf_dut.reg_SP = 16'h0100;
 						step_opcode();
-						if (cf_dut.reg_PC != (1 + 1) || cf_dut.reg_INDEX != (16'h0102)) fail_code();
+						if (cf_dut.reg_PC != (1 + 1) || cf_dut.reg_INDEX != (16'h0100)) fail_code();
 					end
 				30: // LEAI [S]
 					begin
@@ -463,7 +463,7 @@ module cf_tb();
 						cf_dut.reg_PC = 0;
 						cf_dut.fsm_state = 0;
 						cf_dut.bus_enable = 0;
-						cf_dut.reg_SP = 16'h0100;
+						cf_dut.reg_SP = 16'h0102;
 						step_opcode();
 						if (cf_dut.reg_PC != (1 + 1) || cf_dut.reg_INDEX != (16'h0100)) fail_code();
 					end
