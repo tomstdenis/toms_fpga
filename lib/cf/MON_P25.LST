@@ -1,260 +1,265 @@
 DUNFIELD CFLEA ASSEMBLER: MON_P25                                      PAGE: 1
 
 0000                         1  * BOOT ROM for C-FLEA on Primer 25K
-0000                         2  * Parses basic S records (S1 and S9) as well as Gxxxx command to run programs
-0000                         3  
-0000                         4  * we have 2KB of ROM starting at F000
-F000                         5     ORG $F000
-F000                         6  
-F000                         7  * some variables to keep state, let's hide them at the end of video mem
-FFFF                         8  temp EQU $FFFF    * temp variables
-FFFE                         9  temp2 EQU $FFFE
-FFFD                        10  temp3 EQU $FFFD
-FFFC                        11  temp4 EQU $FFFC   * n
-FFFA                        12  addr EQU $FFFA    * we can 16-bit load the addr from here
-FFFB                        13  addrhi EQU $FFFB  * and write to the top half here
-F900                        14  stack EQU $F900   * stack inside the video so we have something to see
-F000                        15  
-F000  00 00 F9              16     LD #stack
-F003  DE                    17     TAS          * SP = stack (F900)
-F004  99 74 F1              18     LEAI ?WELCOMSTR
-F007  D8 C8 F0              19     CALL putstr
-F00A                        20  top
-F00A  EB 00                 21     IN $00       	* read from UART
-F00C  E4                    22     INC
-F00D  D4 FB                 23     SJZ top     * loop while no char
-F00F  E5                    24     DEC
-F010  EA 00                 25     OUT $00
-F012  E6                    26     TAI
-F013  88 53                 27     CMPB #'S'    * compare to S
-F015  D5 11                 28     SJNZ is_S    * it's an 'S' so jump to that handler
-F017  E7                    29     TIA
-F018  88 47                 30     CMPB #'G'
-F01A  D5 42                 31     SJNZ is_G    * it's an 'G' jump there
-F01C  E7                    32     TIA
-F01D  88 44                 33     CMPB #'D'
-F01F  D5 41                 34     SJNZ is_D
-F021  E7                    35     TIA
-F022  88 42                 36     CMPB #'B'
-F024  D5 45                 37     SJNZ is_B
-F026  D3 E2                 38     SJMP top     * ignore and jump to top
-F028                        39  
-F028                        40  * S records we need 
-F028                        41  * 1. Read command '1' or '9'
-F028                        42  * 2. Read 1 hex byte, n =  # of data + 3
-F028                        43  * 3. Read 2 hex bytes (addr)
-F028                        44  * 4. Read n - 3 hex bytes (data)
-F028                        45  * 5. Read 1 hex byte (checksum)
-F028                        46  is_S
-F028  EB 00                 47     IN $00
-F02A  E4                    48     INC
-F02B  D4 FB                 49     SJZ is_S       * wait for a char (the command)
-F02D  E5                    50     DEC
-F02E  EA 00                 51     OUT $00
-F030  D8 84 F0              52     CALL read_hex  * read the # of bytes 'n'
-F033  28 03                 53     SUBB #3		  * sub addr/checksum
-F035  D4 D3                 54     SJZ top		  * no bytes to store so just exit out
-F037  A9 FC FF              55     STB temp4      * temp4 == n
-F03A  D8 84 F0              56     CALL read_hex  * read addrhi
-F03D  A9 FB FF              57     STB addrhi
-F040  D8 84 F0              58     CALL read_hex  * read bottom
+0000                         2  * Parses basic S records as well as
+0000                         3  * - Gxxxx command to run programs (jumps to xxxx)
+0000                         4  * - Dxxxx to dump 16 bytes 
+0000                         5  * - Bxxxx to dump 256 bytes
+0000                         6  
+0000                         7  * we have 2KB of ROM starting at F000
+0000                         8  * Note that the RTL is configured for only holding 512 bytes currently...
+F000                         9     ORG $F000
+F000                        10  
+F000                        11  * some variables to keep state, let's hide them at the end of video mem
+FFFF                        12  temp EQU $FFFF    * temp variables
+FFFE                        13  temp2 EQU $FFFE
+FFFD                        14  temp3 EQU $FFFD
+FFFC                        15  temp4 EQU $FFFC   * n
+FFFA                        16  addr EQU $FFFA    * we can 16-bit load the addr from here
+FFFB                        17  addrhi EQU $FFFB  * and write to the top half here
+F900                        18  stack EQU $F900   * stack inside the video so we have something to see
+F000                        19  
+F000  00 00 F9              20     LD #stack
+F003  DE                    21     TAS          * SP = stack (F900)
+F004  99 74 F1              22     LEAI ?WELCOMSTR
+F007  D8 C8 F0              23     CALL putstr
+F00A                        24  top
+F00A  EB 00                 25     IN $00       	* read from UART
+F00C  E4                    26     INC
+F00D  D4 FB                 27     SJZ top     * loop while no char
+F00F  E5                    28     DEC
+F010  EA 00                 29     OUT $00
+F012  E6                    30     TAI
+F013  88 53                 31     CMPB #'S'    * compare to S
+F015  D5 11                 32     SJNZ is_S    * it's an 'S' so jump to that handler
+F017  E7                    33     TIA
+F018  88 47                 34     CMPB #'G'
+F01A  D5 42                 35     SJNZ is_G    * it's an 'G' jump there
+F01C  E7                    36     TIA
+F01D  88 44                 37     CMPB #'D'
+F01F  D5 41                 38     SJNZ is_D
+F021  E7                    39     TIA
+F022  88 42                 40     CMPB #'B'
+F024  D5 45                 41     SJNZ is_B
+F026  D3 E2                 42     SJMP top     * ignore and jump to top
+F028                        43  
+F028                        44  * S records we need 
+F028                        45  * 1. Read command '1' or '9'
+F028                        46  * 2. Read 1 hex byte, n =  # of data + 3
+F028                        47  * 3. Read 2 hex bytes (addr)
+F028                        48  * 4. Read n - 3 hex bytes (data)
+F028                        49  * 5. Read 1 hex byte (checksum)
+F028                        50  is_S
+F028  EB 00                 51     IN $00
+F02A  E4                    52     INC
+F02B  D4 FB                 53     SJZ is_S       * wait for a char (the command)
+F02D  E5                    54     DEC
+F02E  EA 00                 55     OUT $00
+F030  D8 84 F0              56     CALL read_hex  * read the # of bytes 'n'
+F033  28 03                 57     SUBB #3		  * sub addr/checksum
+F035  D4 D3                 58     SJZ top		  * no bytes to store so just exit out
 DUNFIELD CFLEA ASSEMBLER: MON_P25                                      PAGE: 2
 
-F043  A9 FA FF              59     STB addr
-F046  91 FA FF              60     LDI addr       * INDEX = address to store to
-F049                        61  is_S_loop
-F049  D8 84 F0              62     CALL read_hex
-F04C  AA                    63     STB I		  * store via index
-F04D  9B 01                 64     LEAI 1,I		  * increment iindex
-F04F  09 FC FF              65     LDB temp4      * load n
-F052  E5                    66     DEC
-F053  A9 FC FF              67     STB temp4
-F056  D5 F1                 68     SJNZ is_S_loop
-F058  D8 84 F0              69     CALL read_hex  * skip checksum
-F05B  D0 0A F0              70     JMP top
-F05E                        71     
-F05E                        72  is_G
-F05E  D8 74 F0              73     CALL read_addr
-F061  D6                    74     IJMP
-F062                        75  
-F062                        76  is_D
-F062  D8 74 F0              77     CALL read_addr
-F065  D8 04 F1              78     CALL puthexline
-F068  D0 0A F0              79     JMP top
-F06B                        80     
-F06B                        81  is_B
-F06B  D8 74 F0              82     CALL read_addr
-F06E  D8 DE F0              83     CALL puthexblock
-F071  D0 0A F0              84     JMP top
-F074                        85     
-F074                        86  * read address into addr
-F074                        87  read_addr
-F074  D8 84 F0              88     CALL read_hex
-F077  A9 FB FF              89     STB addrhi
-F07A  D8 84 F0              90     CALL read_hex
-F07D  A9 FA FF              91     STB addr
-F080  01 FA FF              92     LD addr
-F083  D9                    93     RET
-F084                        94  
-F084                        95  * read hex byte into ACC
-F084                        96  read_hex
-F084  E0                    97     CLR
-F085  A9 FF FF              98     STB temp         * zero the temp byte
-F088  08 02                 99     LDB #2
-F08A  A9 FE FF             100     STB temp2        * zero nibble count
-F08D                       101  read_hex_top
-F08D  09 FF FF             102     LDB temp         * shift temp up 4 bits for next nibble
-F090  C0 04                103     SHL #4
-F092  A9 FF FF             104     STB temp
-F095                       105  read_hex_loop
-F095  EB 00                106     IN $00
-F097  E4                   107     INC
-F098  D4 FB                108     SJZ read_hex_loop * read from uart
-F09A  E5                   109     DEC
-F09B  EA 00                110     OUT $00          * echo back
-F09D  A9 FD FF             111     STB temp3		* save the char being read
-F0A0  88 39                112     CMPB #'9'        * assume it's 0-9A-F
-F0A2  CE                   113     UGT              * check for >'9'
-F0A3  D5 16                114     SJNZ read_hex_af
-F0A5  09 FD FF             115     LDB temp3        * readload byte
-F0A8  28 30                116     SUBB #'0'		* it's 0-9
+F037  A9 FC FF              59     STB temp4      * temp4 == n
+F03A  D8 84 F0              60     CALL read_hex  * read addrhi
+F03D  A9 FB FF              61     STB addrhi
+F040  D8 84 F0              62     CALL read_hex  * read bottom
+F043  A9 FA FF              63     STB addr
+F046  91 FA FF              64     LDI addr       * INDEX = address to store to
+F049                        65  is_S_loop
+F049  D8 84 F0              66     CALL read_hex
+F04C  AA                    67     STB I		  * store via index
+F04D  9B 01                 68     LEAI 1,I		  * increment iindex
+F04F  09 FC FF              69     LDB temp4      * load n
+F052  E5                    70     DEC
+F053  A9 FC FF              71     STB temp4
+F056  D5 F1                 72     SJNZ is_S_loop
+F058  D8 84 F0              73     CALL read_hex  * skip checksum
+F05B  D0 0A F0              74     JMP top
+F05E                        75     
+F05E                        76  is_G
+F05E  D8 74 F0              77     CALL read_addr
+F061  D6                    78     IJMP
+F062                        79  
+F062                        80  is_D
+F062  D8 74 F0              81     CALL read_addr
+F065  D8 04 F1              82     CALL puthexline
+F068  D0 0A F0              83     JMP top
+F06B                        84     
+F06B                        85  is_B
+F06B  D8 74 F0              86     CALL read_addr
+F06E  D8 DE F0              87     CALL puthexblock
+F071  D0 0A F0              88     JMP top
+F074                        89     
+F074                        90  * read address into addr
+F074                        91  read_addr
+F074  D8 84 F0              92     CALL read_hex
+F077  A9 FB FF              93     STB addrhi
+F07A  D8 84 F0              94     CALL read_hex
+F07D  A9 FA FF              95     STB addr
+F080  01 FA FF              96     LD addr
+F083  D9                    97     RET
+F084                        98  
+F084                        99  * read hex byte into ACC
+F084                       100  read_hex
+F084  E0                   101     CLR
+F085  A9 FF FF             102     STB temp         * zero the temp byte
+F088  08 02                103     LDB #2
+F08A  A9 FE FF             104     STB temp2        * zero nibble count
+F08D                       105  read_hex_top
+F08D  09 FF FF             106     LDB temp         * shift temp up 4 bits for next nibble
+F090  C0 04                107     SHL #4
+F092  A9 FF FF             108     STB temp
+F095                       109  read_hex_loop
+F095  EB 00                110     IN $00
+F097  E4                   111     INC
+F098  D4 FB                112     SJZ read_hex_loop * read from uart
+F09A  E5                   113     DEC
+F09B  EA 00                114     OUT $00          * echo back
+F09D  A9 FD FF             115     STB temp3		* save the char being read
+F0A0  88 39                116     CMPB #'9'        * assume it's 0-9A-F
 DUNFIELD CFLEA ASSEMBLER: MON_P25                                      PAGE: 3
 
-F0AA                       117  read_hex_store_nibble
-F0AA  69 FF FF             118     ORB temp			* or with accumulated data
-F0AD  A9 FF FF             119     STB temp         * store back
-F0B0  09 FE FF             120     LDB temp2
-F0B3  E5                   121     DEC
-F0B4  A9 FE FF             122     STB temp2
-F0B7  D5 D4                123     SJNZ read_hex_top
-F0B9  D3 09                124     SJMP read_hex_end
-F0BB                       125  read_hex_af
-F0BB  09 FD FF             126     LDB temp3        * reload byte
-F0BE  28 41                127     SUBB #'A'        * subtract 'A'
-F0C0  18 0A                128     ADDB #10         * then normalize to 10..15
-F0C2  D3 E6                129     SJMP read_hex_store_nibble
-F0C4                       130  read_hex_end
-F0C4  09 FF FF             131     LDB temp         * we're done
-F0C7  D9                   132     RET
-F0C8                       133  
-F0C8                       134  * putstr in INDEX
-F0C8                       135  putstr
-F0C8  DC                   136  	PUSHA
-F0C9  DD                   137  	PUSHI
-F0CA                       138  putstrtop
-F0CA  0A                   139  	LDB I
-F0CB  D4 06                140  	SJZ putstr_end
-F0CD  EA 00                141  	OUT $00
-F0CF  9B 01                142      LEAI 1,I		  * increment iindex
-F0D1  D3 F7                143  	SJMP putstrtop
-F0D3                       144  putstr_end
-F0D3  95                   145  	LDI S+
-F0D4  08 0A                146  	LDB #10
-F0D6  EA 00                147  	OUT $00
-F0D8  08 0D                148  	LDB #13
-F0DA  EA 00                149  	OUT $00
-F0DC  05                   150  	LD S+
-F0DD  D9                   151  	RET
-F0DE                       152  
-F0DE                       153  * display 16 lines at ACC
-F0DE                       154  puthexblock
-F0DE  DC                   155  	PUSHA				* 2,S == address
-F0DF  00 10 00             156  	LD #16
-F0E2  DC                   157  	PUSHA				* 0,S == number of lines 
-F0E3                       158  puthexblock_top
-F0E3  04 02                159  	LD 2,S
-F0E5  D8 04 F1             160  	CALL puthexline
-F0E8  10 10 00             161  	ADD #16
-F0EB  A4 02                162  	ST 2,S				* increment by 16
-F0ED  04 00                163  	LD 0,S
-F0EF  E5                   164  	DEC
-F0F0  A4 00                165  	ST 0,S
-F0F2  D2 E3 F0             166  	JNZ puthexblock_top
-F0F5  DB 02                167  	FREE 2
-F0F7  08 0A                168  	LDB #10				* print newline/cr
-F0F9  EA 00                169  	OUT $00
-F0FB  08 0D                170  	LDB #13
-F0FD  EA 00                171  	OUT $00
-F0FF  05                   172  	LD S+
-F100  20 00 01             173  	SUB #256			* subtract the 256 we added 
-F103  D9                   174  	RET
+F0A2  CE                   117     UGT              * check for >'9'
+F0A3  D5 16                118     SJNZ read_hex_af
+F0A5  09 FD FF             119     LDB temp3        * readload byte
+F0A8  28 30                120     SUBB #'0'		* it's 0-9
+F0AA                       121  read_hex_store_nibble
+F0AA  69 FF FF             122     ORB temp			* or with accumulated data
+F0AD  A9 FF FF             123     STB temp         * store back
+F0B0  09 FE FF             124     LDB temp2
+F0B3  E5                   125     DEC
+F0B4  A9 FE FF             126     STB temp2
+F0B7  D5 D4                127     SJNZ read_hex_top
+F0B9  D3 09                128     SJMP read_hex_end
+F0BB                       129  read_hex_af
+F0BB  09 FD FF             130     LDB temp3        * reload byte
+F0BE  28 41                131     SUBB #'A'        * subtract 'A'
+F0C0  18 0A                132     ADDB #10         * then normalize to 10..15
+F0C2  D3 E6                133     SJMP read_hex_store_nibble
+F0C4                       134  read_hex_end
+F0C4  09 FF FF             135     LDB temp         * we're done
+F0C7  D9                   136     RET
+F0C8                       137  
+F0C8                       138  * putstr in INDEX
+F0C8                       139  putstr
+F0C8  DC                   140  	PUSHA
+F0C9  DD                   141  	PUSHI
+F0CA                       142  putstrtop
+F0CA  0A                   143  	LDB I
+F0CB  D4 06                144  	SJZ putstr_end
+F0CD  EA 00                145  	OUT $00
+F0CF  9B 01                146      LEAI 1,I		  * increment iindex
+F0D1  D3 F7                147  	SJMP putstrtop
+F0D3                       148  putstr_end
+F0D3  95                   149  	LDI S+
+F0D4  08 0A                150  	LDB #10
+F0D6  EA 00                151  	OUT $00
+F0D8  08 0D                152  	LDB #13
+F0DA  EA 00                153  	OUT $00
+F0DC  05                   154  	LD S+
+F0DD  D9                   155  	RET
+F0DE                       156  
+F0DE                       157  * display 16 lines at ACC
+F0DE                       158  puthexblock
+F0DE  DC                   159  	PUSHA				* 2,S == address
+F0DF  00 10 00             160  	LD #16
+F0E2  DC                   161  	PUSHA				* 0,S == number of lines 
+F0E3                       162  puthexblock_top
+F0E3  04 02                163  	LD 2,S
+F0E5  D8 04 F1             164  	CALL puthexline
+F0E8  10 10 00             165  	ADD #16
+F0EB  A4 02                166  	ST 2,S				* increment by 16
+F0ED  04 00                167  	LD 0,S
+F0EF  E5                   168  	DEC
+F0F0  A4 00                169  	ST 0,S
+F0F2  D2 E3 F0             170  	JNZ puthexblock_top
+F0F5  DB 02                171  	FREE 2
+F0F7  08 0A                172  	LDB #10				* print newline/cr
+F0F9  EA 00                173  	OUT $00
+F0FB  08 0D                174  	LDB #13
 DUNFIELD CFLEA ASSEMBLER: MON_P25                                      PAGE: 4
 
-F104                       175  
-F104                       176  * display 16 bytes at ACC
-F104                       177  puthexline
-F104  DD                   178  	PUSHI
-F105  DC                   179  	PUSHA				* 2,S == address
-F106  00 10 00             180  	LD #16
-F109  DC                   181  	PUSHA				* 0,S == number of bytes to print
-F10A                       182  * display newline
-F10A  08 0A                183      LDB #10
-F10C  EA 00                184      OUT $00
-F10E  08 0D                185      LDB #13
-F110  EA 00                186      OUT $00
-F112                       187  * display address and space
-F112  04 02                188  	LD 2,S
-F114  B8 08                189  	SHR #8
-F116  D8 43 F1             190      CALL puthex
-F119  04 02                191  	LD 2,S
-F11B  D8 43 F1             192      CALL puthex
-F11E  08 20                193      LDB #' '
-F120  EA 00                194      OUT $00
-F122                       195  * display 16 bytes
-F122  94 02                196  	LDI 2,S				* address
-F124                       197  puthexline_top
-F124  0A                   198  	LDB I				* read byte
-F125  D8 43 F1             199  	CALL puthex
-F128  08 20                200  	LDB #' '
-F12A  EA 00                201  	OUT $00
-F12C  04 02                202  	LD 2,S
-F12E  E4                   203  	INC
-F12F  A4 02                204  	ST 2,S
-F131  9B 01                205  	LEAI 1,I            * advance index
-F133  04 00                206  	LD 0,S
-F135  E5                   207  	DEC
-F136  A4 00                208  	ST 0,S
-F138  D2 24 F1             209  	JNZ puthexline_top
-F13B  DB 02                210  	FREE 2
-F13D  05                   211  	LD S+
-F13E  20 10 00             212      SUB #16				* subtract the 16 we added to it
-F141  95                   213  	LDI S+
-F142  D9                   214  	RET
-F143                       215  	
-F143                       216  * put hex from ACC
-F143                       217  puthex
-F143  DD                   218  	PUSHI
-F144  DC                   219  	PUSHA				* save what we are printing 2,S
-F145  00 02 00             220  	LD #2
-F148  DC                   221  	PUSHA				* 0,S == # of digits to print
-F149                       222  puthex_ch
-F149  04 02                223  	LD 2,S
-F14B  B8 04                224  	SHR #4				* grab only 4 bits
-F14D  50 0F 00             225  	AND #$F
-F150  E6                   226  	TAI					* save it
-F151  88 09                227  	CMPB #9             * compare to 9
-F153  CE                   228  	UGT                 * greater than?
-F154  D5 05                229  	SJNZ puthex_af
-F156  E7                   230  	TIA                 * restore masked copy
-F157  18 30                231  	ADDB #'0'           * it was 0-9 so map to '0'-'9'
-F159  D3 05                232  	SJMP puthex_bot
+F0FD  EA 00                175  	OUT $00
+F0FF  05                   176  	LD S+
+F100  20 00 01             177  	SUB #256			* subtract the 256 we added 
+F103  D9                   178  	RET
+F104                       179  
+F104                       180  * display 16 bytes at ACC
+F104                       181  puthexline
+F104  DD                   182  	PUSHI
+F105  DC                   183  	PUSHA				* 2,S == address
+F106  00 10 00             184  	LD #16
+F109  DC                   185  	PUSHA				* 0,S == number of bytes to print
+F10A                       186  * display newline
+F10A  08 0A                187      LDB #10
+F10C  EA 00                188      OUT $00
+F10E  08 0D                189      LDB #13
+F110  EA 00                190      OUT $00
+F112                       191  * display address and space
+F112  04 02                192  	LD 2,S
+F114  B8 08                193  	SHR #8
+F116  D8 43 F1             194      CALL puthex
+F119  04 02                195  	LD 2,S
+F11B  D8 43 F1             196      CALL puthex
+F11E  08 20                197      LDB #' '
+F120  EA 00                198      OUT $00
+F122                       199  * display 16 bytes
+F122  94 02                200  	LDI 2,S				* address
+F124                       201  puthexline_top
+F124  0A                   202  	LDB I				* read byte
+F125  D8 43 F1             203  	CALL puthex
+F128  08 20                204  	LDB #' '
+F12A  EA 00                205  	OUT $00
+F12C  04 02                206  	LD 2,S
+F12E  E4                   207  	INC
+F12F  A4 02                208  	ST 2,S
+F131  9B 01                209  	LEAI 1,I            * advance index
+F133  04 00                210  	LD 0,S
+F135  E5                   211  	DEC
+F136  A4 00                212  	ST 0,S
+F138  D2 24 F1             213  	JNZ puthexline_top
+F13B  DB 02                214  	FREE 2
+F13D  05                   215  	LD S+
+F13E  20 10 00             216      SUB #16				* subtract the 16 we added to it
+F141  95                   217  	LDI S+
+F142  D9                   218  	RET
+F143                       219  	
+F143                       220  * put hex from ACC
+F143                       221  puthex
+F143  DD                   222  	PUSHI
+F144  DC                   223  	PUSHA				* save what we are printing 2,S
+F145  00 02 00             224  	LD #2
+F148  DC                   225  	PUSHA				* 0,S == # of digits to print
+F149                       226  puthex_ch
+F149  04 02                227  	LD 2,S
+F14B  B8 04                228  	SHR #4				* grab only 4 bits
+F14D  50 0F 00             229  	AND #$F
+F150  E6                   230  	TAI					* save it
+F151  88 09                231  	CMPB #9             * compare to 9
+F153  CE                   232  	UGT                 * greater than?
 DUNFIELD CFLEA ASSEMBLER: MON_P25                                      PAGE: 5
 
-F15B                       233  puthex_af
-F15B  E7                   234      TIA
-F15C  28 0A                235      SUBB #10
-F15E  18 41                236      ADDB #'A'           * restore and normalize to 'A'-'F'
-F160                       237  puthex_bot
-F160  EA 00                238      out $00
-F162  04 02                239      LD 2,S
-F164  C0 04                240      SHL #4
-F166  A4 02                241      ST 2,S              * shift right 4 bits
-F168  04 00                242      LD 0,S
-F16A  E5                   243      DEC
-F16B  A4 00                244      ST 0,S
-F16D  D5 DA                245      SJNZ puthex_ch
-F16F  DB 02                246      FREE 2
-F171  05                   247      LD S+
-F172  95                   248      LDI S+
-F173  D9                   249      RET
-F174  43 2D 46 4C 45 41 +  250  ?WELCOMSTR STR "C-FLEA Primer25K monitor -- Tom St Denis"
+F154  D5 05                233  	SJNZ puthex_af
+F156  E7                   234  	TIA                 * restore masked copy
+F157  18 30                235  	ADDB #'0'           * it was 0-9 so map to '0'-'9'
+F159  D3 05                236  	SJMP puthex_bot
+F15B                       237  puthex_af
+F15B  E7                   238      TIA
+F15C  28 0A                239      SUBB #10
+F15E  18 41                240      ADDB #'A'           * restore and normalize to 'A'-'F'
+F160                       241  puthex_bot
+F160  EA 00                242      out $00
+F162  04 02                243      LD 2,S
+F164  C0 04                244      SHL #4
+F166  A4 02                245      ST 2,S              * shift right 4 bits
+F168  04 00                246      LD 0,S
+F16A  E5                   247      DEC
+F16B  A4 00                248      ST 0,S
+F16D  D5 DA                249      SJNZ puthex_ch
+F16F  DB 02                250      FREE 2
+F171  05                   251      LD S+
+F172  95                   252      LDI S+
+F173  D9                   253      RET
+F174  43 2D 46 4C 45 41 +  254  ?WELCOMSTR STR "C-FLEA Primer25K monitor -- Tom St Denis"
+F19C                       255  ROM_END EQU *

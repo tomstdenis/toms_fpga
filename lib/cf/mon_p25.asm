@@ -1,7 +1,11 @@
 * BOOT ROM for C-FLEA on Primer 25K
-* Parses basic S records (S1 and S9) as well as Gxxxx command to run programs
+* Parses basic S records as well as
+* - Gxxxx command to run programs (jumps to xxxx)
+* - Dxxxx to dump 16 bytes 
+* - Bxxxx to dump 256 bytes
 
 * we have 2KB of ROM starting at F000
+* Note that the RTL is configured for only holding 512 bytes currently...
    ORG $F000
 
 * some variables to keep state, let's hide them at the end of video mem
@@ -248,3 +252,4 @@ puthex_bot
     LDI S+
     RET
 ?WELCOMSTR STR "C-FLEA Primer25K monitor -- Tom St Denis"
+ROM_END EQU *
