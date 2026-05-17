@@ -1,7 +1,7 @@
 /* C-FLEA CPU Design */
 
 // version, read by using opcode 0xED which puts this in ACC
-`define cf_core_version 8'h02
+`define cf_core_version 8'h03
 
 `default_nettype none
 `timescale 1ns/1ps
@@ -130,9 +130,9 @@ module cf_cpu #(
 							bus_io_flag <= 1'b0;
 							bus_burst   <= 1'b0;
 							bus_address <= {1'b0, reg_PC};
-							reg_PC      <= reg_PC + 1'b1;
 						end
 						if (bus_enable && bus_ready) begin
+							reg_PC      <= reg_PC + 1'b1;
 							cur_opcode  <= bus_data_out[7:0];
 							bus_enable  <= 1'b0;
 							if (bus_data_out[7:0] <= 8'h97) begin
@@ -308,6 +308,12 @@ module cf_cpu #(
 					begin
 						// we're done after this so we fetch
 						fsm_state <= FSM_FETCH_OPCODE;
+						bus_enable  <= 1'b1;
+						bus_wr_en   <= 1'b0;
+						bus_io_flag <= 1'b0;
+						bus_burst   <= 1'b0;
+						bus_address <= {1'b0, reg_PC};
+						
 						case(cur_opcode[7:4])
 							4'h0: // LD/LDB
 								begin
@@ -328,6 +334,7 @@ module cf_cpu #(
 							4'h4: // DIV/DIVB
 								begin
 									fsm_state <= FSM_EXECUTE_ALU_OPCODE_00_97;			// loop here until division is done
+									bus_enable <= 1'b0;
 									if (!sd_valid && !sd_ready) begin
 										sd_num   <= reg_ACC;
 										sd_denom <= reg_operand;
@@ -335,6 +342,7 @@ module cf_cpu #(
 									end
 									if (sd_valid && sd_ready) begin
 										fsm_state <= FSM_FETCH_OPCODE;
+										bus_enable <= 1'b1;
 										reg_ACC   <= sd_quotient;						// ACC gets quotient and we put remainder in ALT location
 										reg_alt   <= sd_remainder;
 										sd_valid  <= 1'b0;
@@ -509,6 +517,11 @@ module cf_cpu #(
 				FSM_EXECUTE_OPCODE_C8_CF: //LT/LE.../UGT/UGE
 					begin
 						fsm_state <= FSM_FETCH_OPCODE;
+						bus_enable  <= 1'b1;
+						bus_wr_en   <= 1'b0;
+						bus_io_flag <= 1'b0;
+						bus_burst   <= 1'b0;
+						bus_address <= {1'b0, reg_PC };
 						case(cur_opcode[3:0])
 							4'h8: // LT
 								reg_ACC <= { 15'b0, reg_flags[FLAG_SLT] };
@@ -741,6 +754,11 @@ module cf_cpu #(
 						if (!bus_enable) begin
 							// this is our first run into this FSM
 							fsm_state <= FSM_FETCH_OPCODE;
+							bus_enable  <= 1'b1;
+							bus_wr_en   <= 1'b0;
+							bus_io_flag <= 1'b0;
+							bus_burst   <= 1'b0;
+							bus_address <= {1'b0, reg_PC};
 							case(cur_opcode[3:0])
 								4'h0: // CLR
 									reg_ACC <= 0;
@@ -766,11 +784,6 @@ module cf_cpu #(
 									begin
 										// fetch the port number after the opcode
 										fsm_state   <= fsm_state;
-										bus_enable  <= 1'b1;
-										bus_burst   <= 1'b0;
-										bus_wr_en   <= 1'b0;
-										bus_io_flag <= 1'b0;
-										bus_address <= {1'b0, reg_PC};
 										reg_PC      <= reg_PC + 1'b1;
 									end
 								default: begin end
