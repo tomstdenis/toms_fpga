@@ -303,9 +303,9 @@ module top(input wire clk, input wire s1,
                                     uart_rx_read <= 1'b1;
                                     bus_cycle <= 1;
                                 end else begin
-                                    // Dave's model returns 0 if there's no char...
+                                    // Dave's model returns -1 if there's no char...
                                     cf_bus_ready <= 1'b1;
-                                    cf_bus_data_out <= 16'd0;
+                                    cf_bus_data_out <= {8'h00, 8'h00};
                                 end
                             end else if (bus_cycle == 1) begin
                                 uart_rx_read <= 1'b0;

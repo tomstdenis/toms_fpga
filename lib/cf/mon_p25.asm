@@ -18,6 +18,8 @@ stack EQU $8000 * stack inside main mem for testing...
    TAS          * SP = stack (F900)
    LEAI ?STR
    CALL putstr
+   LDB #$23
+   CALL puthex
 top
    IN $00       * read from UART
    SJZ top      * loop while no char
@@ -28,6 +30,9 @@ top
    LDB temp
    CMPB #'G'
    SJNZ is_G    * it's an 'G' jump there
+   LDB temp
+   CMPB #'D'
+   SJNZ is_D
    SJMP top     * ignore and jump to top
 
 * S records we need 
@@ -50,8 +55,6 @@ is_S
    STB addr
    LDI addr       * INDEX = address to store to
 is_S_loop
-   LDB #'s'
-   OUT $00
    CALL read_hex
    STB I		  * store via index
    LEAI 1,I		  * increment iindex
@@ -63,19 +66,24 @@ is_S_loop
    JMP top
    
 is_G
-   LDB #'g'
-   OUT $00
    CALL read_hex  * read address
    STB addrhi
    CALL read_hex
    STB addr
    LD addr        * jump to address
    IJMP
+
+is_D
+   CALL read_hex
+   STB addrhi
+   CALL read_hex
+   STB addr
+   LD addr
+   CALL puthexline
+   JMP top
    
 * read hex byte into ACC
 read_hex
-   LDB #'r'
-   OUT $00
    CLR
    STB temp         * zero the temp byte
    LDB #2
@@ -113,12 +121,92 @@ read_hex_end
 
 * putstr in INDEX
 putstr
+	PUSHI
 	LDB I
 	SJZ putstr_end
 	OUT $00
     LEAI 1,I		  * increment iindex
 	SJMP putstr
 putstr_end
+	LDI S+
 	RET
 
+
+* display 16 bytes at ACC
+puthexline
+	PUSHI
+	PUSHA				* 2,S == address
+	LD #16
+	PUSHA				* 0,S == number of bytes to print
+* display newline
+    LDB #10
+    OUT $00
+    LDB #13
+    OUT $00
+* display address and space
+	LD 2,S
+	SHR #8
+    CALL puthex
+	LD 2,S
+    CALL puthex
+    LDB #' '
+    OUT $00
+* display 16 bytes
+	LDI 2,S				* address
+puthexline_top
+	LDB I				* read byte
+	CALL puthex
+	LDB #' '
+	OUT $00
+	LD 2,S
+	INC
+	ST 2,S
+	LEAI 1,I            * advance index
+	LD 0,S
+	DEC
+	ST 0,S
+	JNZ puthexline_top
+    LDB #10				* print newline/cr
+    OUT $00
+    LDB #13
+    OUT $00
+	FREE 2
+	LD S+
+	LDI S+
+	RET
+	
+* put hex from ACC
+puthex
+	PUSHI
+	PUSHA				* save what we are printing 2,S
+	LD #2
+	PUSHA				* 0,S == # of digits to print
+puthex_ch
+	LD 2,S
+	SHR #4				* grab only 4 bits
+	AND #$F
+	TAI					* save it
+	CMPB #9             * compare to 9
+	UGT                 * greater than?
+	SJNZ puthex_af
+	TIA                 * restore masked copy
+	ADDB #'0'           * it was 0-9 so map to '0'-'9'
+	SJMP puthex_bot
+puthex_af
+    TIA
+    SUBB #10
+    ADDB #'A'           * restore and normalize to 'A'-'F'
+puthex_bot
+    out $00
+    LD 2,S
+    SHL #4
+    ST 2,S              * shift right 4 bits
+    LD 0,S
+    DEC
+    ST 0,S
+    SJNZ puthex_ch
+    FREE 2
+    LD S+
+    LDI S+
+    RET
 ?STR FCB 72,101,108,108,111,32,87,111,114,108,100,10,13,0
