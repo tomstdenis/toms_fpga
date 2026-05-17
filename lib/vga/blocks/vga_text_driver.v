@@ -107,7 +107,7 @@ module vga_text_driver #(
 			// lowres graphics mode
 			if (x < (((LRG_COLS - 1) * LRG_PWIDTH) - 1) && y < (LRG_ROWS * LRG_PHEIGHT)) begin
 				rd_addr <= lrg_current_addr + 1'b1;
-				if (x_cnt == (LRG_PWIDTH-1)) begin
+				if (x_cnt == (LRG_PWIDTH-X_FETCH_DELAY)) begin
 					symbol  <= rd_data;
 				end
 			end else begin

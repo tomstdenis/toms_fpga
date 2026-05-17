@@ -1,4 +1,4 @@
-DUNFIELD CFLEA ASSEMBLER: HELLO                                        PAGE: 1
+DUNFIELD CFLEA ASSEMBLER: hello                                        PAGE: 1
 
 0000                         1  *#cpu CFLEA
 0000                         2  *
@@ -13,7 +13,7 @@ DUNFIELD CFLEA ASSEMBLER: HELLO                                        PAGE: 1
 1003  DE                    11  	TAS			Set up stack
 1004  E0                    12  	CLR			Get zero
 1005  A9 02 00              13  	STB	?heap		Zero heap
-1008  D8 91 10              14  	CALL	main		Run main program
+1008  D8 96 10              14  	CALL	main		Run main program
 100B                        15  * Most embedded programs will never return or exit, however if they
 100B                        16  * do, this section of code should do something appropriate, either
 100B                        17  * restart the program, or stop the machine. For this system, we will
@@ -58,7 +58,7 @@ DUNFIELD CFLEA ASSEMBLER: HELLO                                        PAGE: 1
 1035  EE                    56  				FCB $EE
 1036  01 00 00              57  				LD 0000
 1039  EE                    58  				FCB $EE
-DUNFIELD CFLEA ASSEMBLER: HELLO                                        PAGE: 2
+DUNFIELD CFLEA ASSEMBLER: hello                                        PAGE: 2
 
 103A  D9                    59  				RET
 103B                        60  ?AB8 EQU *
@@ -92,588 +92,652 @@ DUNFIELD CFLEA ASSEMBLER: HELLO                                        PAGE: 1
 107B                        88  rtl_version EQU *
 107B  ED                    89  		FCB $ED
 107C  D9                    90   RET
-107D  5D 11 63 11 68 11 +   91  tests FDB ?AB0+0,?AB0+6,?AB0+11,?AB0+15,?AB0+25,?AB0+33,?AB0+41
-108B  8D 11 90 11 00 00     92   FDB ?AB0+48,?AB0+51,0
-1091  DA 46                 93  main ALLOC 70
-1093  00 94 11              94   LD #?AB0+55
-1096  DC                    95   PUSHA
-1097  08 01                 96   LDB #1
-1099  D8 F1 11              97   CALL printf
-109C  DB 02                 98   FREE 2
-109E  E0                    99   CLR
-109F  A4 02                100   ST 2,S
-10A1  A4 04                101   ST 4,S
-10A3                       102  ?AB13 EQU *
-10A3  04 02                103   LD 2,S
-10A5  38 02                104   MULB #2
-10A7  90 7D 10             105   LDI #tests
-10AA  E8                   106   ADAI
-10AB  02                   107   LD I
-10AC  D5 0A                108   SJNZ ?AB15
-10AE  D0 EA 10             109   JMP ?AB14
-10B1                       110  ?AB16 EQU *
-10B1  04 02                111   LD 2,S
-10B3  E4                   112   INC
-10B4  A4 02                113   ST 2,S
-10B6  D3 EB                114   SJMP ?AB13
-10B8                       115  ?AB15 EQU *
-10B8  04 02                116   LD 2,S
-DUNFIELD CFLEA ASSEMBLER: HELLO                                        PAGE: 3
+107D                        91  vid_mode EQU *
+107D  04 02                 92  		LD 2,S
+107F  EA 12                 93  		OUT $12
+1081  D9                    94   RET
+1082  C0 11 C6 11 CB 11 +   95  tests FDB ?AB0+0,?AB0+6,?AB0+11,?AB0+15,?AB0+25,?AB0+33,?AB0+41
+1090  F0 11 F3 11 00 00     96   FDB ?AB0+48,?AB0+51,0
+1096  DA 46                 97  main ALLOC 70
+1098  00 F7 11              98   LD #?AB0+55
+109B  DC                    99   PUSHA
+109C  08 01                100   LDB #1
+109E  D8 54 12             101   CALL printf
+10A1  DB 02                102   FREE 2
+10A3  E0                   103   CLR
+10A4  A4 02                104   ST 2,S
+10A6  A4 04                105   ST 4,S
+10A8                       106  ?AB13 EQU *
+10A8  04 02                107   LD 2,S
+10AA  38 02                108   MULB #2
+10AC  90 82 10             109   LDI #tests
+10AF  E8                   110   ADAI
+10B0  02                   111   LD I
+10B1  D5 0A                112   SJNZ ?AB15
+10B3  D0 EF 10             113   JMP ?AB14
+10B6                       114  ?AB16 EQU *
+10B6  04 02                115   LD 2,S
+10B8  E4                   116   INC
+DUNFIELD CFLEA ASSEMBLER: hello                                        PAGE: 3
 
-10BA  DC                   117   PUSHA
-10BB  D8 17 10             118   CALL cpu_cycles
-10BE  DB 02                119   FREE 2
-10C0  24 04                120   SUB 4,S
-10C2  A4 00                121   ST 0,S
-10C4  04 02                122   LD 2,S
-10C6  88 00                123   CMPB #0
-10C8  D1 CF 10             124   JZ ?AB17
-10CB  04 00                125   LD 0,S
-10CD  A4 04                126   ST 4,S
-10CF                       127  ?AB17 EQU *
-10CF  00 A4 11             128   LD #?AB0+71
-10D2  DC                   129   PUSHA
-10D3  04 04                130   LD 4,S
-10D5  38 02                131   MULB #2
-10D7  90 7D 10             132   LDI #tests
-10DA  E8                   133   ADAI
-10DB  02                   134   LD I
-10DC  DC                   135   PUSHA
-10DD  04 04                136   LD 4,S
-10DF  DC                   137   PUSHA
-10E0  08 03                138   LDB #3
-10E2  D8 F1 11             139   CALL printf
-10E5  DB 06                140   FREE 6
-10E7  D0 B1 10             141   JMP ?AB16
-10EA                       142  ?AB14 EQU *
-10EA  E0                   143   CLR
-10EB  A4 00                144   ST 0,S
-10ED  00 00 F8             145   LD #-2048
-10F0  DC                   146   PUSHA
-10F1  E0                   147   CLR
-10F2  DC                   148   PUSHA
-10F3  00 00 08             149   LD #2048
-10F6  DC                   150   PUSHA
-10F7  D8 1E 12             151   CALL memset
-10FA  DB 06                152   FREE 6
-10FC                       153  ?AB18 EQU *
-10FC  08 21                154   LDB #33
-10FE  DC                   155   PUSHA
-10FF  D8 0D 10             156   CALL wait_ms
-1102  DB 02                157   FREE 2
-1104  E0                   158   CLR
-1105  DC                   159   PUSHA
-1106  D8 17 10             160   CALL cpu_cycles
-1109  DB 02                161   FREE 2
-110B  A4 02                162   ST 2,S
-110D  D8 7B 10             163   CALL rtl_version
-1110  A4 04                164   ST 4,S
-1112  9C 06                165   LEAI 6,S
-1114  DD                   166   PUSHI
-1115  00 AD 11             167   LD #?AB0+80
-1118  DC                   168   PUSHA
-1119  04 04                169   LD 4,S
-111B  E4                   170   INC
-111C  A4 04                171   ST 4,S
-111E  DC                   172   PUSHA
-111F  04 08                173   LD 8,S
-1121  DC                   174   PUSHA
-DUNFIELD CFLEA ASSEMBLER: HELLO                                        PAGE: 4
+10B9  A4 02                117   ST 2,S
+10BB  D3 EB                118   SJMP ?AB13
+10BD                       119  ?AB15 EQU *
+10BD  04 02                120   LD 2,S
+10BF  DC                   121   PUSHA
+10C0  D8 17 10             122   CALL cpu_cycles
+10C3  DB 02                123   FREE 2
+10C5  24 04                124   SUB 4,S
+10C7  A4 00                125   ST 0,S
+10C9  04 02                126   LD 2,S
+10CB  88 00                127   CMPB #0
+10CD  D1 D4 10             128   JZ ?AB17
+10D0  04 00                129   LD 0,S
+10D2  A4 04                130   ST 4,S
+10D4                       131  ?AB17 EQU *
+10D4  00 07 12             132   LD #?AB0+71
+10D7  DC                   133   PUSHA
+10D8  04 04                134   LD 4,S
+10DA  38 02                135   MULB #2
+10DC  90 82 10             136   LDI #tests
+10DF  E8                   137   ADAI
+10E0  02                   138   LD I
+10E1  DC                   139   PUSHA
+10E2  04 04                140   LD 4,S
+10E4  DC                   141   PUSHA
+10E5  08 03                142   LDB #3
+10E7  D8 54 12             143   CALL printf
+10EA  DB 06                144   FREE 6
+10EC  D0 B6 10             145   JMP ?AB16
+10EF                       146  ?AB14 EQU *
+10EF  E0                   147   CLR
+10F0  A4 00                148   ST 0,S
+10F2  00 00 F8             149   LD #-2048
+10F5  DC                   150   PUSHA
+10F6  E0                   151   CLR
+10F7  DC                   152   PUSHA
+10F8  00 00 08             153   LD #2048
+10FB  DC                   154   PUSHA
+10FC  D8 81 12             155   CALL memset
+10FF  DB 06                156   FREE 6
+1101  08 01                157   LDB #1
+1103  DC                   158   PUSHA
+1104  D8 7D 10             159   CALL vid_mode
+1107  DB 02                160   FREE 2
+1109  E0                   161   CLR
+110A  A4 02                162   ST 2,S
+110C                       163  ?AB18 EQU *
+110C  04 02                164   LD 2,S
+110E  80 00 08             165   CMP #2048
+1111  CC                   166   ULT
+1112  D5 0A                167   SJNZ ?AB20
+1114  D0 2A 11             168   JMP ?AB19
+1117                       169  ?AB21 EQU *
+1117  04 02                170   LD 2,S
+1119  E4                   171   INC
+111A  A4 02                172   ST 2,S
+111C  D3 EE                173   SJMP ?AB18
+111E                       174  ?AB20 EQU *
+DUNFIELD CFLEA ASSEMBLER: hello                                        PAGE: 4
 
-1122  04 0C                175   LD 12,S
-1124  B8 08                176   SHR #8
-1126  DC                   177   PUSHA
-1127  04 0E                178   LD 14,S
-1129  58 FF                179   ANDB #255
-112B  DC                   180   PUSHA
-112C  08 06                181   LDB #6
-112E  D8 FC 11             182   CALL sprintf
-1131  DB 0C                183   FREE 12
-1133  00 00 F8             184   LD #-2048
-1136  DC                   185   PUSHA
-1137  9C 08                186   LEAI 8,S
-1139  DD                   187   PUSHI
-113A  D8 52 12             188   CALL strcpy
-113D  DB 04                189   FREE 4
-113F  00 50 F8             190   LD #-1968
-1142  DC                   191   PUSHA
-1143  9C 08                192   LEAI 8,S
-1145  DD                   193   PUSHI
-1146  D8 52 12             194   CALL strcpy
-1149  DB 04                195   FREE 4
-114B  00 A0 F8             196   LD #-1888
-114E  DC                   197   PUSHA
-114F  9C 08                198   LEAI 8,S
-1151  DD                   199   PUSHI
-1152  D8 52 12             200   CALL strcpy
-1155  DB 04                201   FREE 4
-1157  D0 FC 10             202   JMP ?AB18
-115A                       203  ?AB19 EQU *
-115A  DB 46                204   FREE 70
-115C  D9                   205   RET
-115D  52 44 54 53 43 00 +  206  ?AB0 FCB 82,68,84,83,67,0,67,65,76,76,0,82,69,84,0,65
-116D  44 44 20 23 46 46 +  207   FCB 68,68,32,35,70,70,70,70,0,76,68,32,48,48,48,48
-117D  00 53 54 20 38 30 +  208   FCB 0,83,84,32,56,48,48,48,0,76,68,32,50,44,83,0
-118D  4C 54 00 43 4C 52 +  209   FCB 76,84,0,67,76,82,0,10,67,121,99,108,101,32,99,111
-119D  75 6E 74 73 3A 0A +  210   FCB 117,110,116,115,58,10,0,9,37,115,58,32,37,117,10,0
-11AD  54 6F 6D 20 77 61 +  211   FCB 84,111,109,32,119,97,115,32,104,101,114,101,33,32,37,53
-11BD  75 20 74 69 6D 65 +  212   FCB 117,32,116,105,109,101,115,44,32,37,53,117,32,99,121,99
-11CD  6C 65 73 20 70 65 +  213   FCB 108,101,115,32,112,101,114,32,99,97,108,108,44,32,116,111
-11DD  70 3A 20 25 30 32 +  214   FCB 112,58,32,37,48,50,120,44,32,99,111,114,101,58,32,37
-11ED  30 32 78 00          215   FCB 48,50,120,0
-11F1                       216  *
-11F1                       217  * Formatted print to the console device: printf(format, args ...)
-11F1                       218  *
-11F1  38 02                219  printf	MULB	#2		Word entries
-11F3  9C 00                220  	LEAI	,S		Point to stack
-11F5  E8                   221  	ADAI			Point to argument
-11F6  00 BE 13             222  	LD	#putch		Point to output func
-11F9  D0 63 12             223  	JMP	format		Format it
-11FC                       224  *DEMO installed May 14, 2026 (Not to be used after 30 days).
-11FC                       225  *
-11FC                       226  * Formatted print to a string: sprintf(string, format, args ...)
-11FC                       227  *
-11FC  38 02                228  sprintf	MULB	#2		Word entries
-11FE  9C 00                229  	LEAI	,S		Point to stack
-1200  E8                   230  	ADAI			Point to argument
-1201  02                   231  	LD	I		Get output pointer
-1202  A1 00 00             232  	ST	?temp		Save for later
-DUNFIELD CFLEA ASSEMBLER: HELLO                                        PAGE: 5
+111E  04 02                175   LD 2,S
+1120  90 00 F8             176   LDI #-2048
+1123  E8                   177   ADAI
+1124  04 02                178   LD 2,S
+1126  AA                   179   STB I
+1127  D0 17 11             180   JMP ?AB21
+112A                       181  ?AB19 EQU *
+112A  E0                   182   CLR
+112B  A4 02                183   ST 2,S
+112D                       184  ?AB22 EQU *
+112D  04 02                185   LD 2,S
+112F  88 64                186   CMPB #100
+1131  CC                   187   ULT
+1132  D5 0A                188   SJNZ ?AB24
+1134  D0 49 11             189   JMP ?AB23
+1137                       190  ?AB25 EQU *
+1137  04 02                191   LD 2,S
+1139  E4                   192   INC
+113A  A4 02                193   ST 2,S
+113C  D3 EF                194   SJMP ?AB22
+113E                       195  ?AB24 EQU *
+113E  08 FA                196   LDB #250
+1140  DC                   197   PUSHA
+1141  D8 0D 10             198   CALL wait_ms
+1144  DB 02                199   FREE 2
+1146  D0 37 11             200   JMP ?AB25
+1149                       201  ?AB23 EQU *
+1149  E0                   202   CLR
+114A  DC                   203   PUSHA
+114B  D8 7D 10             204   CALL vid_mode
+114E  DB 02                205   FREE 2
+1150  00 00 F8             206   LD #-2048
+1153  DC                   207   PUSHA
+1154  E0                   208   CLR
+1155  DC                   209   PUSHA
+1156  00 00 08             210   LD #2048
+1159  DC                   211   PUSHA
+115A  D8 81 12             212   CALL memset
+115D  DB 06                213   FREE 6
+115F                       214  ?AB26 EQU *
+115F  08 21                215   LDB #33
+1161  DC                   216   PUSHA
+1162  D8 0D 10             217   CALL wait_ms
+1165  DB 02                218   FREE 2
+1167  E0                   219   CLR
+1168  DC                   220   PUSHA
+1169  D8 17 10             221   CALL cpu_cycles
+116C  DB 02                222   FREE 2
+116E  A4 02                223   ST 2,S
+1170  D8 7B 10             224   CALL rtl_version
+1173  A4 04                225   ST 4,S
+1175  9C 06                226   LEAI 6,S
+1177  DD                   227   PUSHI
+1178  00 10 12             228   LD #?AB0+80
+117B  DC                   229   PUSHA
+117C  04 04                230   LD 4,S
+117E  E4                   231   INC
+117F  A4 04                232   ST 4,S
+DUNFIELD CFLEA ASSEMBLER: hello                                        PAGE: 5
 
-1205  E7                   233  	TIA			Point to it
-1206  E5                   234  	DEC			Backup
-1207  E5                   235  	DEC			Backup
-1208  E6                   236  	TAI			Back to index
-1209  00 12 12             237  	LD	#?AD1		Output functino
-120C  D8 63 12             238  	CALL	format		Format it
-120F  E0                   239  	CLR			Get zero
-1210  D3 02                240  	SJMP	?AD2		And write it
-1212  04 02                241  ?AD1	LD	2,S		Get character
-1214  91 00 00             242  ?AD2	LDI	?temp		Get output pointer
-1217  AA                   243  	STB	I		Write to memory
-1218  9B 01                244  	LEAI	1,I		Advance
-121A  B1 00 00             245  	STI	?temp		Resave
-121D  D9                   246  	RET
-121E                       247  *DEMO installed May 14, 2026 (Not to be used after 30 days).
-121E                       248  *
-121E                       249  * Set memory to a specified value: memset(block, value, size)
-121E                       250  *
-121E  94 06                251  memset	LDI	6,S		Get pointer
-1220  04 02                252  ?AE1	LD	2,S		Get size
-1222  D4 21                253  	SJZ	?AE2		Zero, exit
-1224  E5                   254  	DEC			Backup
-1225  A4 02                255  	ST	2,S		Resave
-1227  04 04                256  	LD	4,S		Get value
-1229  AA                   257  	STB	I		Write to memory
-122A  9B 01                258  	LEAI	1,I		Advance
-122C  D3 F2                259  	SJMP	?AE1		And proceed
-122E                       260  *
-122E                       261  * Copy memory: memcpy(dest, source, size)
-122E                       262  *
-122E  04 02                263  memcpy	LD	2,S		Get size
-1230  D4 13                264  	SJZ	?AE2		Zero, exit
-1232  E5                   265  	DEC			Reduce count
-1233  A4 02                266  	ST	2,S		Resave
-1235  94 04                267  	LDI	4,S		Get source
-1237  0A                   268  	LDB	I		Get byte
-1238  9B 01                269  	LEAI	1,I		Advance
-123A  B4 04                270  	STI	4,S		Resave
-123C  94 06                271  	LDI	6,S		Get dest
-123E  AA                   272  	STB	I		Write byte
-123F  9B 01                273  	LEAI	1,I		Advance
-1241  B4 06                274  	STI	6,S		Resave
-1243  D3 E9                275  	SJMP	memcpy		And proceed
-1245  D9                   276  ?AE2	RET
-1246                       277  *DEMO installed May 14, 2026 (Not to be used after 30 days).
-1246                       278  *
-1246                       279  * Concatinate one string to another: strcat(dest, source)
-1246                       280  *
-1246  94 04                281  strcat	LDI	4,S		Get dest ptr
-1248  0A                   282  ?AF1	LDB	I		Get byte from index
-1249  D1 50 12             283  	JZ	?AF2		End of string, copy
-124C  9B 01                284  	LEAI	1,I		Advance pointer
-124E  D3 F8                285  	SJMP	?AF1		And proceed
-1250  B4 04                286  ?AF2	STI	4,S		Resave pointer
-1252                       287  *
-1252                       288  * Copy strings: strcpy(dest, source)
-1252                       289  *
-1252  94 02                290  strcpy	LDI	2,S		Get source ptr
-DUNFIELD CFLEA ASSEMBLER: HELLO                                        PAGE: 6
+1181  DC                   233   PUSHA
+1182  04 08                234   LD 8,S
+1184  DC                   235   PUSHA
+1185  04 0C                236   LD 12,S
+1187  B8 08                237   SHR #8
+1189  DC                   238   PUSHA
+118A  04 0E                239   LD 14,S
+118C  58 FF                240   ANDB #255
+118E  DC                   241   PUSHA
+118F  08 06                242   LDB #6
+1191  D8 5F 12             243   CALL sprintf
+1194  DB 0C                244   FREE 12
+1196  00 00 F8             245   LD #-2048
+1199  DC                   246   PUSHA
+119A  9C 08                247   LEAI 8,S
+119C  DD                   248   PUSHI
+119D  D8 B5 12             249   CALL strcpy
+11A0  DB 04                250   FREE 4
+11A2  00 50 F8             251   LD #-1968
+11A5  DC                   252   PUSHA
+11A6  9C 08                253   LEAI 8,S
+11A8  DD                   254   PUSHI
+11A9  D8 B5 12             255   CALL strcpy
+11AC  DB 04                256   FREE 4
+11AE  00 A0 F8             257   LD #-1888
+11B1  DC                   258   PUSHA
+11B2  9C 08                259   LEAI 8,S
+11B4  DD                   260   PUSHI
+11B5  D8 B5 12             261   CALL strcpy
+11B8  DB 04                262   FREE 4
+11BA  D0 5F 11             263   JMP ?AB26
+11BD                       264  ?AB27 EQU *
+11BD  DB 46                265   FREE 70
+11BF  D9                   266   RET
+11C0  52 44 54 53 43 00 +  267  ?AB0 FCB 82,68,84,83,67,0,67,65,76,76,0,82,69,84,0,65
+11D0  44 44 20 23 46 46 +  268   FCB 68,68,32,35,70,70,70,70,0,76,68,32,48,48,48,48
+11E0  00 53 54 20 38 30 +  269   FCB 0,83,84,32,56,48,48,48,0,76,68,32,50,44,83,0
+11F0  4C 54 00 43 4C 52 +  270   FCB 76,84,0,67,76,82,0,10,67,121,99,108,101,32,99,111
+1200  75 6E 74 73 3A 0A +  271   FCB 117,110,116,115,58,10,0,9,37,115,58,32,37,117,10,0
+1210  54 6F 6D 20 77 61 +  272   FCB 84,111,109,32,119,97,115,32,104,101,114,101,33,32,37,53
+1220  75 20 74 69 6D 65 +  273   FCB 117,32,116,105,109,101,115,44,32,37,53,117,32,99,121,99
+1230  6C 65 73 20 70 65 +  274   FCB 108,101,115,32,112,101,114,32,99,97,108,108,44,32,116,111
+1240  70 3A 20 25 30 32 +  275   FCB 112,58,32,37,48,50,120,44,32,99,111,114,101,58,32,37
+1250  30 32 78 00          276   FCB 48,50,120,0
+1254                       277  *
+1254                       278  * Formatted print to the console device: printf(format, args ...)
+1254                       279  *
+1254  38 02                280  printf	MULB	#2		Word entries
+1256  9C 00                281  	LEAI	,S		Point to stack
+1258  E8                   282  	ADAI			Point to argument
+1259  00 21 14             283  	LD	#putch		Point to output func
+125C  D0 C6 12             284  	JMP	format		Format it
+125F                       285  *DEMO installed May 14, 2026 (Not to be used after 30 days).
+125F                       286  *
+125F                       287  * Formatted print to a string: sprintf(string, format, args ...)
+125F                       288  *
+125F  38 02                289  sprintf	MULB	#2		Word entries
+1261  9C 00                290  	LEAI	,S		Point to stack
+DUNFIELD CFLEA ASSEMBLER: hello                                        PAGE: 6
 
-1254  0A                   291  	LDB	I		Get byte from source
-1255  9B 01                292  	LEAI	1,I		Advance source ptr
-1257  B4 02                293  	STI	2,S		Resave
-1259  94 04                294  	LDI	4,S		Get dest ptr
-125B  AA                   295  	STB	I		Write to dest
-125C  9B 01                296  	LEAI	1,I		Advance dest ptr
-125E  B4 04                297  	STI	4,S		Resave
-1260  D5 F0                298  	SJNZ	strcpy		Do them all
-1262  D9                   299  	RET
-1263                       300  *DEMO installed May 14, 2026 (Not to be used after 30 days).
-1263                       301  *
-1263                       302  * Format to "printf" output: A=Output Function, I = Argument List
-1263                       303  *
-1263  DC                   304  format	PUSHA			Save output function pointer
-1264  DD                   305  	PUSHI			Save argument pointer
-1265  DA 0A                306  	ALLOC	10		Save  flag variable
-1267                       307  * Local variable & argument offsets
-000C                       308  ?AG1	EQU	12		Pointer to output function
-000A                       309  ?AG2	EQU	10		Pointer to argument list
-0004                       310  ?AG3	EQU	4		Buffer for number conversions (6 bytes)
-0002                       311  ?AG4	EQU	2		Temporary locations
-0001                       312  ?AG5	EQU	1		Character count
-0000                       313  ?AG6	EQU	0		Formatting controls
-1267                       314  *
-1267  94 0A                315  	LDI	?AG2,S		Get arg pointer
-1269  92                   316  	LDI	I		Get format string
-126A  0A                   317  ?AG7	LDB	I		Get character from string
-126B  D4 12                318  	SJZ	?AG8		Exit if end
-126D  88 25                319  	CMPB	#'%'		Format character
-126F  D5 12                320  	SJNZ	?AG10		Yes, handle it
-1271  0A                   321  	LDB	I		Get char back
-1272  9B 01                322  	LEAI	1,I		Advance pointer
-1274  DD                   323  	PUSHI			Save Index
-1275  DC                   324  	PUSHA			Pass character
-1276  04 10                325  	LD	4+?AG1,S		Get output function
-1278  D8 82 12             326  	CALL	?AG9		Output the character
-127B  05                   327  	LD	S+		Clean stack
-127C  95                   328  	LDI	S+		Get Index back
-127D  D3 EB                329  	SJMP	?AG7		And proceed
-127F  DB 0E                330  ?AG8	FREE	14		Release stack
-1281  D9                   331  	RET
-1282                       332  * Call output function in A
-1282  D6                   333  ?AG9	IJMP			Call function
-1283                       334  * Format character located
-1283  9B 01                335  ?AG10	LEAI	1,I		Skip to next
-1285  E0                   336  	CLR			Begin with zero
-1286  A4 02                337  	ST	?AG4,S		Save for later
-1288                       338  * Check for leading '-' = Left justify
-1288  AC 00                339  	STB	?AG6,S		Init. flag
-128A  AC 01                340  	STB	?AG5,S		Init. count
-128C  0A                   341  	LDB	I		Get char
-128D  88 2D                342  	CMPB	#'-'		Minus?
-128F  D4 06                343  	SJZ	?AG11		No, try next
-1291  9B 01                344  	LEAI	1,I		Advance pointer
-1293  08 80                345  	LDB	#%10000000	Set justify flag
-1295  AC 00                346  	STB	?AG6,S		Resave
-1297                       347  * Check for leading '0' = Zero fill
-1297  0A                   348  ?AG11	LDB	I		Get char back
-DUNFIELD CFLEA ASSEMBLER: HELLO                                        PAGE: 7
+1263  E8                   291  	ADAI			Point to argument
+1264  02                   292  	LD	I		Get output pointer
+1265  A1 00 00             293  	ST	?temp		Save for later
+1268  E7                   294  	TIA			Point to it
+1269  E5                   295  	DEC			Backup
+126A  E5                   296  	DEC			Backup
+126B  E6                   297  	TAI			Back to index
+126C  00 75 12             298  	LD	#?AD1		Output functino
+126F  D8 C6 12             299  	CALL	format		Format it
+1272  E0                   300  	CLR			Get zero
+1273  D3 02                301  	SJMP	?AD2		And write it
+1275  04 02                302  ?AD1	LD	2,S		Get character
+1277  91 00 00             303  ?AD2	LDI	?temp		Get output pointer
+127A  AA                   304  	STB	I		Write to memory
+127B  9B 01                305  	LEAI	1,I		Advance
+127D  B1 00 00             306  	STI	?temp		Resave
+1280  D9                   307  	RET
+1281                       308  *DEMO installed May 14, 2026 (Not to be used after 30 days).
+1281                       309  *
+1281                       310  * Set memory to a specified value: memset(block, value, size)
+1281                       311  *
+1281  94 06                312  memset	LDI	6,S		Get pointer
+1283  04 02                313  ?AE1	LD	2,S		Get size
+1285  D4 21                314  	SJZ	?AE2		Zero, exit
+1287  E5                   315  	DEC			Backup
+1288  A4 02                316  	ST	2,S		Resave
+128A  04 04                317  	LD	4,S		Get value
+128C  AA                   318  	STB	I		Write to memory
+128D  9B 01                319  	LEAI	1,I		Advance
+128F  D3 F2                320  	SJMP	?AE1		And proceed
+1291                       321  *
+1291                       322  * Copy memory: memcpy(dest, source, size)
+1291                       323  *
+1291  04 02                324  memcpy	LD	2,S		Get size
+1293  D4 13                325  	SJZ	?AE2		Zero, exit
+1295  E5                   326  	DEC			Reduce count
+1296  A4 02                327  	ST	2,S		Resave
+1298  94 04                328  	LDI	4,S		Get source
+129A  0A                   329  	LDB	I		Get byte
+129B  9B 01                330  	LEAI	1,I		Advance
+129D  B4 04                331  	STI	4,S		Resave
+129F  94 06                332  	LDI	6,S		Get dest
+12A1  AA                   333  	STB	I		Write byte
+12A2  9B 01                334  	LEAI	1,I		Advance
+12A4  B4 06                335  	STI	6,S		Resave
+12A6  D3 E9                336  	SJMP	memcpy		And proceed
+12A8  D9                   337  ?AE2	RET
+12A9                       338  *DEMO installed May 14, 2026 (Not to be used after 30 days).
+12A9                       339  *
+12A9                       340  * Concatinate one string to another: strcat(dest, source)
+12A9                       341  *
+12A9  94 04                342  strcat	LDI	4,S		Get dest ptr
+12AB  0A                   343  ?AF1	LDB	I		Get byte from index
+12AC  D1 B3 12             344  	JZ	?AF2		End of string, copy
+12AF  9B 01                345  	LEAI	1,I		Advance pointer
+12B1  D3 F8                346  	SJMP	?AF1		And proceed
+12B3  B4 04                347  ?AF2	STI	4,S		Resave pointer
+12B5                       348  *
+DUNFIELD CFLEA ASSEMBLER: hello                                        PAGE: 7
 
-1298  88 30                349  	CMPB	#'0'		Zero fill?
-129A  D4 08                350  	SJZ	?AG12		No, try next
-129C  9B 01                351  	LEAI	1,I		Advance
-129E  0C 00                352  	LDB	?AG6,S		Get value
-12A0  68 40                353  	ORB	#%01000000	Set zero fill flag
-12A2  AC 00                354  	STB	?AG6,S		Resave
-12A4                       355  * Get field width
-12A4  0A                   356  ?AG12	LDB	I		Get character
-12A5  28 30                357  	SUBB	#'0'		Convert to binary
-12A7  DC                   358  	PUSHA			Save
-12A8  88 0A                359  	CMPB	#10		In range?
-12AA  CC                   360  	ULT			Must be less than
-12AB  D4 0B                361  	SJZ	?AG13		Nope
-12AD  9B 01                362  	LEAI	1,I		Skip digit
-12AF  04 04                363  	LD	2+?AG4,S		Get old value
-12B1  38 0A                364  	MULB	#10		x10
-12B3  15                   365  	ADD	S+		Include new
-12B4  A4 02                366  	ST	?AG4,S		Resave
-12B6  D3 EC                367  	SJMP	?AG12		Do them all
-12B8  05                   368  ?AG13	LD	S+		Clear stack
-12B9  04 02                369  	LD	?AG4,S		Get value
-12BB  6C 00                370  	ORB	?AG6,S		Include previous flags
-12BD  AC 00                371  	STB	?AG6,S		Resave
-12BF                       372  * Lookup character & dispatch handler
-12BF  DD                   373  	PUSHI			Save format pointer
-12C0  04 0C                374  	LD	2+?AG2,S		Get argptr
-12C2  E5                   375  	DEC			Backup
-12C3  E5                   376  	DEC			Backup
-12C4  A4 0C                377  	ST	2+?AG2,S		Resave
-12C6  E6                   378  	TAI			Address
-12C7  02                   379  	LD	I		Get value
-12C8  A4 04                380  	ST	2+?AG4,S		Resave
-12CA  0F                   381  	LDB	[S]		Get next character
-12CB  99 CF 12             382  	LEAI	?AG14		Point to table
-12CE  D7                   383  	SWITCH			Lookup & execute
-12CF  EB 12 6F 00          384  ?AG14	FDB	?AG15,'o'		Octal number
-12D3  EF 12 64 00          385  	FDB	?AG16,'d'		Decimal number
-12D7  0F 13 75 00          386  	FDB	?AG17,'u'		Unsigned number
-12DB  13 13 78 00          387  	FDB	?AG18,'x'		Hexidecimal number
-12DF  69 13 63 00          388  	FDB	?AG26,'c'		Character output
-12E3  74 13 73 00          389  	FDB	?AG28,'s'		String output
-12E7  00 00 6B 13          390  	FDB	0,?AG27		Ignore it
-12EB                       391  * '%o' - Octal number
-12EB  08 08                392  ?AG15	LDB	#8		Base 8
-12ED  D3 26                393  	SJMP	?AG19		Do number
-12EF                       394  * '%d' - signed Decimal number
-12EF  04 04                395  ?AG16	LD	2+?AG4,S		Get value
-12F1  50 00 80             396  	AND	#$8000		Negatve?
-12F4  D4 19                397  	SJZ	?AG17		Nothing special
-12F6  08 2D                398  	LDB	#'-'		Minus size
-12F8  DC                   399  	PUSHA			Pass to function
-12F9  04 10                400  	LD	4+?AG1,S		Get output function
-12FB  D8 82 12             401  	CALL	?AG9		Call function
-12FE  05                   402  	LD	S+		Clean stack
-12FF  04 04                403  	LD	2+?AG4,S		Get value
-1301  E2                   404  	NEG			Negate
-1302  A4 04                405  	ST	2+?AG4,S		And prcoeed
-1304  0C 02                406  	LDB	2+?AG6,S		Get length
-DUNFIELD CFLEA ASSEMBLER: HELLO                                        PAGE: 8
+12B5                       349  * Copy strings: strcpy(dest, source)
+12B5                       350  *
+12B5  94 02                351  strcpy	LDI	2,S		Get source ptr
+12B7  0A                   352  	LDB	I		Get byte from source
+12B8  9B 01                353  	LEAI	1,I		Advance source ptr
+12BA  B4 02                354  	STI	2,S		Resave
+12BC  94 04                355  	LDI	4,S		Get dest ptr
+12BE  AA                   356  	STB	I		Write to dest
+12BF  9B 01                357  	LEAI	1,I		Advance dest ptr
+12C1  B4 04                358  	STI	4,S		Resave
+12C3  D5 F0                359  	SJNZ	strcpy		Do them all
+12C5  D9                   360  	RET
+12C6                       361  *DEMO installed May 14, 2026 (Not to be used after 30 days).
+12C6                       362  *
+12C6                       363  * Format to "printf" output: A=Output Function, I = Argument List
+12C6                       364  *
+12C6  DC                   365  format	PUSHA			Save output function pointer
+12C7  DD                   366  	PUSHI			Save argument pointer
+12C8  DA 0A                367  	ALLOC	10		Save  flag variable
+12CA                       368  * Local variable & argument offsets
+000C                       369  ?AG1	EQU	12		Pointer to output function
+000A                       370  ?AG2	EQU	10		Pointer to argument list
+0004                       371  ?AG3	EQU	4		Buffer for number conversions (6 bytes)
+0002                       372  ?AG4	EQU	2		Temporary locations
+0001                       373  ?AG5	EQU	1		Character count
+0000                       374  ?AG6	EQU	0		Formatting controls
+12CA                       375  *
+12CA  94 0A                376  	LDI	?AG2,S		Get arg pointer
+12CC  92                   377  	LDI	I		Get format string
+12CD  0A                   378  ?AG7	LDB	I		Get character from string
+12CE  D4 12                379  	SJZ	?AG8		Exit if end
+12D0  88 25                380  	CMPB	#'%'		Format character
+12D2  D5 12                381  	SJNZ	?AG10		Yes, handle it
+12D4  0A                   382  	LDB	I		Get char back
+12D5  9B 01                383  	LEAI	1,I		Advance pointer
+12D7  DD                   384  	PUSHI			Save Index
+12D8  DC                   385  	PUSHA			Pass character
+12D9  04 10                386  	LD	4+?AG1,S		Get output function
+12DB  D8 E5 12             387  	CALL	?AG9		Output the character
+12DE  05                   388  	LD	S+		Clean stack
+12DF  95                   389  	LDI	S+		Get Index back
+12E0  D3 EB                390  	SJMP	?AG7		And proceed
+12E2  DB 0E                391  ?AG8	FREE	14		Release stack
+12E4  D9                   392  	RET
+12E5                       393  * Call output function in A
+12E5  D6                   394  ?AG9	IJMP			Call function
+12E6                       395  * Format character located
+12E6  9B 01                396  ?AG10	LEAI	1,I		Skip to next
+12E8  E0                   397  	CLR			Begin with zero
+12E9  A4 02                398  	ST	?AG4,S		Save for later
+12EB                       399  * Check for leading '-' = Left justify
+12EB  AC 00                400  	STB	?AG6,S		Init. flag
+12ED  AC 01                401  	STB	?AG5,S		Init. count
+12EF  0A                   402  	LDB	I		Get char
+12F0  88 2D                403  	CMPB	#'-'		Minus?
+12F2  D4 06                404  	SJZ	?AG11		No, try next
+12F4  9B 01                405  	LEAI	1,I		Advance pointer
+12F6  08 80                406  	LDB	#%10000000	Set justify flag
+DUNFIELD CFLEA ASSEMBLER: hello                                        PAGE: 8
 
-1306  58 7F                407  	ANDB	#%001111111	Free format?
-1308  D4 05                408  	SJZ	?AG17		Yes, ignore
-130A  0C 02                409  	LDB	2+?AG6,S		Get value back
-130C  E5                   410  	DEC			Adjust for '-'
-130D  AC 02                411  	STB	2+?AG6,S		Resave
-130F                       412  * '%u' - Unsigned decimal number
-130F  08 0A                413  ?AG17	LDB	#10		Base 10 output
-1311  D3 02                414  	SJMP	?AG19		Do number
-1313                       415  * '%x' - heXidecimal number
-1313  08 10                416  ?AG18	LDB	#16		Base 16 output
-1315                       417  * Output a number in the specified number base
-1315  AC 06                418  ?AG19	STB	2+?AG3,S		Save number base
-1317  9C 0C                419  	LEAI	6+2+?AG3,S	Point to END of buffer
-1319  E7                   420  ?AG20	TIA			Get index
-131A  E5                   421  	DEC			Backup
-131B  E6                   422  	TAI			Set index
-131C  0C 03                423  	LDB	2+?AG5,S		Get count
-131E  E4                   424  	INC			Advance
-131F  AC 03                425  	STB	2+?AG5,S		Resave
-1321  04 04                426  	LD	2+?AG4,S		Get value
-1323  4C 06                427  	DIVB	2+?AG3,S		Divide by 10
-1325  DC                   428  	PUSHA			Save quotient
-1326  E9                   429  	ALT			Get remainder
-1327  18 30                430  	ADDB	#'0'		Convert to ASCII
-1329  AA                   431  	STB	I		Write to stack
-132A  88 39                432  	CMPB	#'9'		Is it HEX?
-132C  CE                   433  	UGT			Complete test
-132D  D4 04                434  	SJZ	?AG21		Yes it is
-132F  0A                   435  	LDB	I		Get char back
-1330  18 07                436  	ADDB	#7		Adjust
-1332  AA                   437  	STB	I		Resave char
-1333  05                   438  ?AG21	LD	S+		Get quotient
-1334  A4 04                439  	ST	2+?AG4,S		Save new value
-1336  D5 E1                440  	SJNZ	?AG20		Do them all
-1338                       441  * At this point, I = pointer, ?5=Length
-1338  0C 03                442  ?AG22	LDB	2+?AG5,S		Get count
-133A  AC 05                443  	STB	3+?AG4,S		Set extra count
-133C  0C 02                444  	LDB	2+?AG6,S		Get flag
-133E  58 80                445  	ANDB	#%10000000	Left justify?
-1340  D5 03                446  	SJNZ	?AG23		Yes, don't fill
-1342  D8 86 13             447  	CALL	?AG31		Do any pre-output
-1345  0C 05                448  ?AG23	LDB	3+?AG4,S		Get count
-1347  D4 11                449  	SJZ	?AG24		All done, exit
-1349  E5                   450  	DEC			Reduce count
-134A  AC 05                451  	STB	3+?AG4,S		Resave
-134C  0A                   452  	LDB	I		Get character from string
-134D  9B 01                453  	LEAI	1,I		Advance
-134F  DD                   454  	PUSHI			Save it
-1350  DC                   455  	PUSHA			Pass character
-1351  04 12                456  	LD	6+?AG1,S		Get output function
-1353  D8 82 12             457  	CALL	?AG9		Output character
-1356  05                   458  	LD	S+		Clean stack
-1357  95                   459  	LDI	S+		Restore I
-1358  D3 EB                460  	SJMP	?AG23		Go again
-135A  0C 02                461  ?AG24	LDB	2+?AG6,S		Get flag
-135C  58 80                462  	ANDB	#%10000000	Left justify
-135E  D4 03                463  	SJZ	?AG25		No, skip it
-1360  D8 86 13             464  	CALL	?AG31		Post justify
-DUNFIELD CFLEA ASSEMBLER: HELLO                                        PAGE: 9
+12F8  AC 00                407  	STB	?AG6,S		Resave
+12FA                       408  * Check for leading '0' = Zero fill
+12FA  0A                   409  ?AG11	LDB	I		Get char back
+12FB  88 30                410  	CMPB	#'0'		Zero fill?
+12FD  D4 08                411  	SJZ	?AG12		No, try next
+12FF  9B 01                412  	LEAI	1,I		Advance
+1301  0C 00                413  	LDB	?AG6,S		Get value
+1303  68 40                414  	ORB	#%01000000	Set zero fill flag
+1305  AC 00                415  	STB	?AG6,S		Resave
+1307                       416  * Get field width
+1307  0A                   417  ?AG12	LDB	I		Get character
+1308  28 30                418  	SUBB	#'0'		Convert to binary
+130A  DC                   419  	PUSHA			Save
+130B  88 0A                420  	CMPB	#10		In range?
+130D  CC                   421  	ULT			Must be less than
+130E  D4 0B                422  	SJZ	?AG13		Nope
+1310  9B 01                423  	LEAI	1,I		Skip digit
+1312  04 04                424  	LD	2+?AG4,S		Get old value
+1314  38 0A                425  	MULB	#10		x10
+1316  15                   426  	ADD	S+		Include new
+1317  A4 02                427  	ST	?AG4,S		Resave
+1319  D3 EC                428  	SJMP	?AG12		Do them all
+131B  05                   429  ?AG13	LD	S+		Clear stack
+131C  04 02                430  	LD	?AG4,S		Get value
+131E  6C 00                431  	ORB	?AG6,S		Include previous flags
+1320  AC 00                432  	STB	?AG6,S		Resave
+1322                       433  * Lookup character & dispatch handler
+1322  DD                   434  	PUSHI			Save format pointer
+1323  04 0C                435  	LD	2+?AG2,S		Get argptr
+1325  E5                   436  	DEC			Backup
+1326  E5                   437  	DEC			Backup
+1327  A4 0C                438  	ST	2+?AG2,S		Resave
+1329  E6                   439  	TAI			Address
+132A  02                   440  	LD	I		Get value
+132B  A4 04                441  	ST	2+?AG4,S		Resave
+132D  0F                   442  	LDB	[S]		Get next character
+132E  99 32 13             443  	LEAI	?AG14		Point to table
+1331  D7                   444  	SWITCH			Lookup & execute
+1332  4E 13 6F 00          445  ?AG14	FDB	?AG15,'o'		Octal number
+1336  52 13 64 00          446  	FDB	?AG16,'d'		Decimal number
+133A  72 13 75 00          447  	FDB	?AG17,'u'		Unsigned number
+133E  76 13 78 00          448  	FDB	?AG18,'x'		Hexidecimal number
+1342  CC 13 63 00          449  	FDB	?AG26,'c'		Character output
+1346  D7 13 73 00          450  	FDB	?AG28,'s'		String output
+134A  00 00 CE 13          451  	FDB	0,?AG27		Ignore it
+134E                       452  * '%o' - Octal number
+134E  08 08                453  ?AG15	LDB	#8		Base 8
+1350  D3 26                454  	SJMP	?AG19		Do number
+1352                       455  * '%d' - signed Decimal number
+1352  04 04                456  ?AG16	LD	2+?AG4,S		Get value
+1354  50 00 80             457  	AND	#$8000		Negatve?
+1357  D4 19                458  	SJZ	?AG17		Nothing special
+1359  08 2D                459  	LDB	#'-'		Minus size
+135B  DC                   460  	PUSHA			Pass to function
+135C  04 10                461  	LD	4+?AG1,S		Get output function
+135E  D8 E5 12             462  	CALL	?AG9		Call function
+1361  05                   463  	LD	S+		Clean stack
+1362  04 04                464  	LD	2+?AG4,S		Get value
+DUNFIELD CFLEA ASSEMBLER: hello                                        PAGE: 9
 
-1363  95                   465  ?AG25	LDI	S+		Restore format string
-1364  9B 01                466  	LEAI	1,I		Advance pointer
-1366  D0 6A 12             467  	JMP	?AG7		And proceed
-1369                       468  * '%c' - output character
-1369  0C 04                469  ?AG26	LDB	2+?AG4,S		Get character
-136B  9C 06                470  ?AG27	LEAI	2+?AG3,S		Point to buffer
-136D  AA                   471  	STB	I		Save it
-136E  08 01                472  	LDB	#1		Get 1
-1370  AC 03                473  	STB	2+?AG5,S
-1372  D3 C4                474  	SJMP	?AG22
-1374                       475  * '%s' - output string
-1374  94 04                476  ?AG28	LDI	2+?AG4,S		Get string pointer
-1376  0A                   477  ?AG29	LDB	I		Get character
-1377  D4 09                478  	SJZ	?AG30		End of string
-1379  9B 01                479  	LEAI	1,I		Skip to next
-137B  0C 03                480  	LDB	2+?AG5,S		Get count
-137D  E4                   481  	INC			Advance
-137E  AC 03                482  	STB	2+?AG5,S		Resave count
-1380  D3 F4                483  	SJMP	?AG29		And proceed
-1382  94 04                484  ?AG30	LDI	2+?AG4,S		Get pointer back
-1384  D3 B2                485  	SJMP	?AG22		And output
-1386                       486  * Perform pre-output justify
-1386  0C 04                487  ?AG31	LDB	4+?AG6,S		Get flag
-1388  58 3F                488  	ANDB	#%00111111	Save length only
-138A  D4 23                489  	SJZ	?AG35		No justify
-138C  AC 06                490  	STB	4+?AG4,S		Save for later
-138E  DD                   491  	PUSHI			Save index
-138F  0C 07                492  ?AG32	LDB	6+?AG5,S		Get count
-1391  8C 08                493  	CMPB	6+?AG4,S		Are we over
-1393  CF                   494  	UGE			Complete test
-1394  D5 18                495  	SJNZ	?AG34		Yes, exit
-1396  0C 06                496  	LDB	6+?AG6,S		Get flag
-1398  58 40                497  	ANDB	#%01000000	Zero fill?
-139A  D4 02                498  	SJZ	?AG33		No, use ' '
-139C  08 10                499  	LDB	#'0'-' '	Get value
-139E  18 20                500  ?AG33	ADDB	#' '		Convert to char
-13A0  DC                   501  	PUSHA			Pass character
-13A1  04 14                502  	LD	8+?AG1,S		Get output function
-13A3  D8 82 12             503  	CALL	?AG9		Output character
-13A6  05                   504  	LD	S+		Clean stack
-13A7  0C 08                505  	LDB	6+?AG4,S		Get remaining width
-13A9  E5                   506  	DEC			Reduce
-13AA  AC 08                507  	STB	6+?AG4,S		Resave
-13AC  D3 E1                508  	SJMP	?AG32		Do next
-13AE  95                   509  ?AG34	LDI	S+		Restore index
-13AF  D9                   510  ?AG35	RET
-13B0                       511  *DEMO installed May 14, 2026 (Not to be used after 30 days).
-13B0                       512  *
-13B0                       513  * Write a string to the console: putstr(string)
-13B0                       514  *
-13B0  94 02                515  putstr	LDI	2,S		Get argument
-13B2  0A                   516  ?putstr	LDB	I		Get char
-13B3  D4 37                517  	SJZ	?AH2		Exit
-13B5  9B 01                518  	LEAI	1,I		Advance
-13B7  DC                   519  	PUSHA			Pass parm
-13B8  D8 C0 13             520  	CALL	?putch		Output it
-13BB  05                   521  	LD	S+		Clean stack
-13BC  D3 F4                522  	SJMP	?putstr		And proceed
-DUNFIELD CFLEA ASSEMBLER: HELLO                                        PAGE: 10
+1364  E2                   465  	NEG			Negate
+1365  A4 04                466  	ST	2+?AG4,S		And prcoeed
+1367  0C 02                467  	LDB	2+?AG6,S		Get length
+1369  58 7F                468  	ANDB	#%001111111	Free format?
+136B  D4 05                469  	SJZ	?AG17		Yes, ignore
+136D  0C 02                470  	LDB	2+?AG6,S		Get value back
+136F  E5                   471  	DEC			Adjust for '-'
+1370  AC 02                472  	STB	2+?AG6,S		Resave
+1372                       473  * '%u' - Unsigned decimal number
+1372  08 0A                474  ?AG17	LDB	#10		Base 10 output
+1374  D3 02                475  	SJMP	?AG19		Do number
+1376                       476  * '%x' - heXidecimal number
+1376  08 10                477  ?AG18	LDB	#16		Base 16 output
+1378                       478  * Output a number in the specified number base
+1378  AC 06                479  ?AG19	STB	2+?AG3,S		Save number base
+137A  9C 0C                480  	LEAI	6+2+?AG3,S	Point to END of buffer
+137C  E7                   481  ?AG20	TIA			Get index
+137D  E5                   482  	DEC			Backup
+137E  E6                   483  	TAI			Set index
+137F  0C 03                484  	LDB	2+?AG5,S		Get count
+1381  E4                   485  	INC			Advance
+1382  AC 03                486  	STB	2+?AG5,S		Resave
+1384  04 04                487  	LD	2+?AG4,S		Get value
+1386  4C 06                488  	DIVB	2+?AG3,S		Divide by 10
+1388  DC                   489  	PUSHA			Save quotient
+1389  E9                   490  	ALT			Get remainder
+138A  18 30                491  	ADDB	#'0'		Convert to ASCII
+138C  AA                   492  	STB	I		Write to stack
+138D  88 39                493  	CMPB	#'9'		Is it HEX?
+138F  CE                   494  	UGT			Complete test
+1390  D4 04                495  	SJZ	?AG21		Yes it is
+1392  0A                   496  	LDB	I		Get char back
+1393  18 07                497  	ADDB	#7		Adjust
+1395  AA                   498  	STB	I		Resave char
+1396  05                   499  ?AG21	LD	S+		Get quotient
+1397  A4 04                500  	ST	2+?AG4,S		Save new value
+1399  D5 E1                501  	SJNZ	?AG20		Do them all
+139B                       502  * At this point, I = pointer, ?5=Length
+139B  0C 03                503  ?AG22	LDB	2+?AG5,S		Get count
+139D  AC 05                504  	STB	3+?AG4,S		Set extra count
+139F  0C 02                505  	LDB	2+?AG6,S		Get flag
+13A1  58 80                506  	ANDB	#%10000000	Left justify?
+13A3  D5 03                507  	SJNZ	?AG23		Yes, don't fill
+13A5  D8 E9 13             508  	CALL	?AG31		Do any pre-output
+13A8  0C 05                509  ?AG23	LDB	3+?AG4,S		Get count
+13AA  D4 11                510  	SJZ	?AG24		All done, exit
+13AC  E5                   511  	DEC			Reduce count
+13AD  AC 05                512  	STB	3+?AG4,S		Resave
+13AF  0A                   513  	LDB	I		Get character from string
+13B0  9B 01                514  	LEAI	1,I		Advance
+13B2  DD                   515  	PUSHI			Save it
+13B3  DC                   516  	PUSHA			Pass character
+13B4  04 12                517  	LD	6+?AG1,S		Get output function
+13B6  D8 E5 12             518  	CALL	?AG9		Output character
+13B9  05                   519  	LD	S+		Clean stack
+13BA  95                   520  	LDI	S+		Restore I
+13BB  D3 EB                521  	SJMP	?AG23		Go again
+13BD  0C 02                522  ?AG24	LDB	2+?AG6,S		Get flag
+DUNFIELD CFLEA ASSEMBLER: hello                                        PAGE: 10
 
-13BE                       523  *
-13BE                       524  * Output character to console with newline translation: putch(c)
-13BE                       525  *
-13BE  04 02                526  putch	LD	2,S		Get character
-13C0  80 0A 00             527  ?putch	CMP	#$0A		Newline?
-13C3  D4 05                528  	SJZ	putchr		No, don't process
-13C5  08 0D                529  	LDB	#$0D		Get RETURN
-13C7  D8 CC 13             530  	CALL	?putchr		Output it
-13CA                       531  *
-13CA                       532  * Output 'raw' character to console: putchr(c)
-13CA                       533  *
-13CA  04 02                534  putchr	LD	2,S		Get character
-13CC  EA 00                535  ?putchr	OUT	0		Write to console
-13CE  D9                   536  	RET
-13CF                       537  *
-13CF                       538  * Read a character from console with newline translation: getch()
-13CF                       539  *
-13CF  D8 DC 13             540  getch	CALL	chkch		Test for character ready
-13D2  D4 FB                541  	SJZ	getch		Wait for it
-13D4  D9                   542  	RET
-13D5                       543  *
-13D5                       544  * Read 'raw' character from console: getchr()
-13D5                       545  *
-13D5  EB 00                546  getchr	IN	0		Read console port
-13D7  E4                   547  	INC			Test for character
-13D8  D4 FB                548  	SJZ	getchr		Wait for character
-13DA  E5                   549  	DEC			Restore proper character
-13DB  D9                   550  	RET
-13DC                       551  *
-13DC                       552  * Check for character from the console with translation: chkch()
-13DC                       553  *
-13DC  EB 00                554  chkch	IN	0		Read port 0
-13DE  E4                   555  	INC			Test for char
-13DF  D4 0B                556  	SJZ	?AH2		None, exit
-13E1  E5                   557  	DEC			Restore proper char
-13E2  DC                   558  	PUSHA			Save for later
-13E3  88 0D                559  	CMPB	#$0D		RETURN?
-13E5  D4 04                560  	SJZ	?AH1		No, its OK
-13E7  05                   561  	LD	S+		Clean stack
-13E8  08 0A                562  	LDB	#$0A		Get NEWLINE
-13EA  D9                   563  	RET
-13EB  05                   564  ?AH1	LD	S+		Get char back
-13EC  D9                   565  ?AH2	RET
-13ED                       566  *
-13ED                       567  * Check for 'raw' character from the console: chkchr()
-13ED                       568  *
-13ED  EB 00                569  chkchr	IN	0		Read port 0
-13EF  D9                   570  	RET
-13F0                       571  *
-13F0                       572  * Get string from console (with editing): getstr(string, size)
-13F0                       573  *
-13F0  E0                   574  getstr	CLR			Zero length
-13F1  DC                   575  	PUSHA			Save on stack
-13F2  D8 D5 13             576  ?AH3	CALL	getchr		Get a character
-13F5  90 F9 13             577  	LDI	#?AH4		Point to table
-13F8  D7                   578  	SWITCH			Dispatch
-13F9  22 14 08 00          579  ?AH4	FDB	?AH6,$08		Backspace
-13FD  22 14 7F 00          580  	FDB	?AH6,$7F		Delete
-DUNFIELD CFLEA ASSEMBLER: HELLO                                        PAGE: 11
+13BF  58 80                523  	ANDB	#%10000000	Left justify
+13C1  D4 03                524  	SJZ	?AG25		No, skip it
+13C3  D8 E9 13             525  	CALL	?AG31		Post justify
+13C6  95                   526  ?AG25	LDI	S+		Restore format string
+13C7  9B 01                527  	LEAI	1,I		Advance pointer
+13C9  D0 CD 12             528  	JMP	?AG7		And proceed
+13CC                       529  * '%c' - output character
+13CC  0C 04                530  ?AG26	LDB	2+?AG4,S		Get character
+13CE  9C 06                531  ?AG27	LEAI	2+?AG3,S		Point to buffer
+13D0  AA                   532  	STB	I		Save it
+13D1  08 01                533  	LDB	#1		Get 1
+13D3  AC 03                534  	STB	2+?AG5,S
+13D5  D3 C4                535  	SJMP	?AG22
+13D7                       536  * '%s' - output string
+13D7  94 04                537  ?AG28	LDI	2+?AG4,S		Get string pointer
+13D9  0A                   538  ?AG29	LDB	I		Get character
+13DA  D4 09                539  	SJZ	?AG30		End of string
+13DC  9B 01                540  	LEAI	1,I		Skip to next
+13DE  0C 03                541  	LDB	2+?AG5,S		Get count
+13E0  E4                   542  	INC			Advance
+13E1  AC 03                543  	STB	2+?AG5,S		Resave count
+13E3  D3 F4                544  	SJMP	?AG29		And proceed
+13E5  94 04                545  ?AG30	LDI	2+?AG4,S		Get pointer back
+13E7  D3 B2                546  	SJMP	?AG22		And output
+13E9                       547  * Perform pre-output justify
+13E9  0C 04                548  ?AG31	LDB	4+?AG6,S		Get flag
+13EB  58 3F                549  	ANDB	#%00111111	Save length only
+13ED  D4 23                550  	SJZ	?AG35		No justify
+13EF  AC 06                551  	STB	4+?AG4,S		Save for later
+13F1  DD                   552  	PUSHI			Save index
+13F2  0C 07                553  ?AG32	LDB	6+?AG5,S		Get count
+13F4  8C 08                554  	CMPB	6+?AG4,S		Are we over
+13F6  CF                   555  	UGE			Complete test
+13F7  D5 18                556  	SJNZ	?AG34		Yes, exit
+13F9  0C 06                557  	LDB	6+?AG6,S		Get flag
+13FB  58 40                558  	ANDB	#%01000000	Zero fill?
+13FD  D4 02                559  	SJZ	?AG33		No, use ' '
+13FF  08 10                560  	LDB	#'0'-' '	Get value
+1401  18 20                561  ?AG33	ADDB	#' '		Convert to char
+1403  DC                   562  	PUSHA			Pass character
+1404  04 14                563  	LD	8+?AG1,S		Get output function
+1406  D8 E5 12             564  	CALL	?AG9		Output character
+1409  05                   565  	LD	S+		Clean stack
+140A  0C 08                566  	LDB	6+?AG4,S		Get remaining width
+140C  E5                   567  	DEC			Reduce
+140D  AC 08                568  	STB	6+?AG4,S		Resave
+140F  D3 E1                569  	SJMP	?AG32		Do next
+1411  95                   570  ?AG34	LDI	S+		Restore index
+1412  D9                   571  ?AG35	RET
+1413                       572  *DEMO installed May 14, 2026 (Not to be used after 30 days).
+1413                       573  *
+1413                       574  * Write a string to the console: putstr(string)
+1413                       575  *
+1413  94 02                576  putstr	LDI	2,S		Get argument
+1415  0A                   577  ?putstr	LDB	I		Get char
+1416  D4 37                578  	SJZ	?AH2		Exit
+1418  9B 01                579  	LEAI	1,I		Advance
+141A  DC                   580  	PUSHA			Pass parm
+DUNFIELD CFLEA ASSEMBLER: hello                                        PAGE: 11
 
-1401  31 14 0D 00          581  	FDB	?AH7,$0D		Return
-1405  00 00 09 14          582  	FDB	0,?AH5		Default
-1409                       583  * Normal character
-1409  A9 00 00             584  ?AH5	STB	?temp		Save for later
-140C  04 00                585  	LD	,S		Get current position
-140E  84 04                586  	CMP	4,S		Are we OK
-1410  CF                   587  	UGE			Test for over
-1411  D5 DF                588  	SJNZ	?AH3		Ignore
-1413  94 06                589  	LDI	6,S		Get pointer
-1415  05                   590  	LD	S+		Get size
-1416  E8                   591  	ADAI			Adjust pointer
-1417  E4                   592  	INC			Advance count
-1418  DC                   593  	PUSHA			Resave
-1419  09 00 00             594  	LDB	?temp		Get char back
-141C  AA                   595  	STB	I		Save in buffer
-141D  D8 CC 13             596  	CALL	?putchr		Echo it
-1420  D3 D0                597  	SJMP	?AH3		And proceed
-1422                       598  * Backspace & delete
-1422  04 00                599  ?AH6	LD	,S		Get count
-1424  D4 CC                600  	SJZ	?AH3		At zero, ignore
-1426  E5                   601  	DEC			Backup
-1427  A4 00                602  	ST	,S		Resave
-1429  90 3B 14             603  	LDI	#?AH8		Point to message
-142C  D8 B2 13             604  	CALL	?putstr		Output
-142F  D3 C1                605  	SJMP	?AH3		And proceed
-1431                       606  * RETURN, terminate entry
-1431  94 06                607  ?AH7	LDI	6,S		Get buffer pointer
-1433  05                   608  	LD	S+		Get count
-1434  E8                   609  	ADAI			Adjust pointer
-1435  E0                   610  	CLR			Get zero
-1436  AA                   611  	STB	I		Terminate buffer
-1437  08 0A                612  	LDB	#$0A		Newline
-1439  D3 91                613  	SJMP	?putchr		Output
-143B  08 20 08 00          614  ?AH8	FCB	$08,' ',$08,0
-143F                       615  *DEMO installed May 14, 2026 (Not to be used after 30 days).
-143F                       616  *
-143F                       617  * DDS MICRO-C C-FLEA Runtime Library - Middle file
-143F                       618  *
-143F                       619  * Copyright 1991-2005 Dave Dunfield
-143F                       620  * All rights reserved.
-143F                       621  *
-0000                       622  	ORG	$0000		Start RAM based variables here
-0000                       623  ?temp	RMB	2		Temporary location used by compiler
-0002                       624  *DEMO installed May 14, 2026 (Not to be used after 30 days).
-0002                       625  *
-0002                       626  * DDS MICRO-C C-FLEA Runtime Library - Suffix file
-0002                       627  *
-0002                       628  * Copyright 1991-2005 Dave Dunfield
-0002                       629  * All rights reserved.
-0002                       630  *
-0002                       631  ?heap	EQU	*		Beginning of unused RAM
-0002                       632  *DEMO installed May 14, 2026 (Not to be used after 30 days).
-DUNFIELD CFLEA ASSEMBLER: HELLO                                        PAGE: 12
+141B  D8 23 14             581  	CALL	?putch		Output it
+141E  05                   582  	LD	S+		Clean stack
+141F  D3 F4                583  	SJMP	?putstr		And proceed
+1421                       584  *
+1421                       585  * Output character to console with newline translation: putch(c)
+1421                       586  *
+1421  04 02                587  putch	LD	2,S		Get character
+1423  80 0A 00             588  ?putch	CMP	#$0A		Newline?
+1426  D4 05                589  	SJZ	putchr		No, don't process
+1428  08 0D                590  	LDB	#$0D		Get RETURN
+142A  D8 2F 14             591  	CALL	?putchr		Output it
+142D                       592  *
+142D                       593  * Output 'raw' character to console: putchr(c)
+142D                       594  *
+142D  04 02                595  putchr	LD	2,S		Get character
+142F  EA 00                596  ?putchr	OUT	0		Write to console
+1431  D9                   597  	RET
+1432                       598  *
+1432                       599  * Read a character from console with newline translation: getch()
+1432                       600  *
+1432  D8 3F 14             601  getch	CALL	chkch		Test for character ready
+1435  D4 FB                602  	SJZ	getch		Wait for it
+1437  D9                   603  	RET
+1438                       604  *
+1438                       605  * Read 'raw' character from console: getchr()
+1438                       606  *
+1438  EB 00                607  getchr	IN	0		Read console port
+143A  E4                   608  	INC			Test for character
+143B  D4 FB                609  	SJZ	getchr		Wait for character
+143D  E5                   610  	DEC			Restore proper character
+143E  D9                   611  	RET
+143F                       612  *
+143F                       613  * Check for character from the console with translation: chkch()
+143F                       614  *
+143F  EB 00                615  chkch	IN	0		Read port 0
+1441  E4                   616  	INC			Test for char
+1442  D4 0B                617  	SJZ	?AH2		None, exit
+1444  E5                   618  	DEC			Restore proper char
+1445  DC                   619  	PUSHA			Save for later
+1446  88 0D                620  	CMPB	#$0D		RETURN?
+1448  D4 04                621  	SJZ	?AH1		No, its OK
+144A  05                   622  	LD	S+		Clean stack
+144B  08 0A                623  	LDB	#$0A		Get NEWLINE
+144D  D9                   624  	RET
+144E  05                   625  ?AH1	LD	S+		Get char back
+144F  D9                   626  ?AH2	RET
+1450                       627  *
+1450                       628  * Check for 'raw' character from the console: chkchr()
+1450                       629  *
+1450  EB 00                630  chkchr	IN	0		Read port 0
+1452  D9                   631  	RET
+1453                       632  *
+1453                       633  * Get string from console (with editing): getstr(string, size)
+1453                       634  *
+1453  E0                   635  getstr	CLR			Zero length
+1454  DC                   636  	PUSHA			Save on stack
+1455  D8 38 14             637  ?AH3	CALL	getchr		Get a character
+1458  90 5C 14             638  	LDI	#?AH4		Point to table
+DUNFIELD CFLEA ASSEMBLER: hello                                        PAGE: 12
+
+145B  D7                   639  	SWITCH			Dispatch
+145C  85 14 08 00          640  ?AH4	FDB	?AH6,$08		Backspace
+1460  85 14 7F 00          641  	FDB	?AH6,$7F		Delete
+1464  94 14 0D 00          642  	FDB	?AH7,$0D		Return
+1468  00 00 6C 14          643  	FDB	0,?AH5		Default
+146C                       644  * Normal character
+146C  A9 00 00             645  ?AH5	STB	?temp		Save for later
+146F  04 00                646  	LD	,S		Get current position
+1471  84 04                647  	CMP	4,S		Are we OK
+1473  CF                   648  	UGE			Test for over
+1474  D5 DF                649  	SJNZ	?AH3		Ignore
+1476  94 06                650  	LDI	6,S		Get pointer
+1478  05                   651  	LD	S+		Get size
+1479  E8                   652  	ADAI			Adjust pointer
+147A  E4                   653  	INC			Advance count
+147B  DC                   654  	PUSHA			Resave
+147C  09 00 00             655  	LDB	?temp		Get char back
+147F  AA                   656  	STB	I		Save in buffer
+1480  D8 2F 14             657  	CALL	?putchr		Echo it
+1483  D3 D0                658  	SJMP	?AH3		And proceed
+1485                       659  * Backspace & delete
+1485  04 00                660  ?AH6	LD	,S		Get count
+1487  D4 CC                661  	SJZ	?AH3		At zero, ignore
+1489  E5                   662  	DEC			Backup
+148A  A4 00                663  	ST	,S		Resave
+148C  90 9E 14             664  	LDI	#?AH8		Point to message
+148F  D8 15 14             665  	CALL	?putstr		Output
+1492  D3 C1                666  	SJMP	?AH3		And proceed
+1494                       667  * RETURN, terminate entry
+1494  94 06                668  ?AH7	LDI	6,S		Get buffer pointer
+1496  05                   669  	LD	S+		Get count
+1497  E8                   670  	ADAI			Adjust pointer
+1498  E0                   671  	CLR			Get zero
+1499  AA                   672  	STB	I		Terminate buffer
+149A  08 0A                673  	LDB	#$0A		Newline
+149C  D3 91                674  	SJMP	?putchr		Output
+149E  08 20 08 00          675  ?AH8	FCB	$08,' ',$08,0
+14A2                       676  *DEMO installed May 14, 2026 (Not to be used after 30 days).
+14A2                       677  *
+14A2                       678  * DDS MICRO-C C-FLEA Runtime Library - Middle file
+14A2                       679  *
+14A2                       680  * Copyright 1991-2005 Dave Dunfield
+14A2                       681  * All rights reserved.
+14A2                       682  *
+0000                       683  	ORG	$0000		Start RAM based variables here
+0000                       684  ?temp	RMB	2		Temporary location used by compiler
+0002                       685  *DEMO installed May 14, 2026 (Not to be used after 30 days).
+0002                       686  *
+0002                       687  * DDS MICRO-C C-FLEA Runtime Library - Suffix file
+0002                       688  *
+0002                       689  * Copyright 1991-2005 Dave Dunfield
+0002                       690  * All rights reserved.
+0002                       691  *
+0002                       692  ?heap	EQU	*		Beginning of unused RAM
+0002                       693  *DEMO installed May 14, 2026 (Not to be used after 30 days).
+DUNFIELD CFLEA ASSEMBLER: hello                                        PAGE: 13
 
 SYMBOL TABLE:
 
-?AB0    -115D   ?AB1    -1079   ?AB10   -1046   ?AB11   -104A   ?AB12   -107A
-?AB13   -10A3   ?AB14   -10EA   ?AB15   -10B8   ?AB16   -10B1   ?AB17   -10CF
-?AB18   -10FC   ?AB19   -115A   ?AB2    -1051   ?AB3    -101D   ?AB4    -1020
-?AB5    -1028   ?AB6    -102F   ?AB7    -1035   ?AB8    -103B   ?AB9    -1041
-?AD1    -1212   ?AD2    -1214   ?AE1    -1220   ?AE2    -1245   ?AF1    -1248
-?AF2    -1250   ?AG1    -000C   ?AG10   -1283   ?AG11   -1297   ?AG12   -12A4
-?AG13   -12B8   ?AG14   -12CF   ?AG15   -12EB   ?AG16   -12EF   ?AG17   -130F
-?AG18   -1313   ?AG19   -1315   ?AG2    -000A   ?AG20   -1319   ?AG21   -1333
-?AG22   -1338   ?AG23   -1345   ?AG24   -135A   ?AG25   -1363   ?AG26   -1369
-?AG27   -136B   ?AG28   -1374   ?AG29   -1376   ?AG3    -0004   ?AG30   -1382
-?AG31   -1386   ?AG32   -138F   ?AG33   -139E   ?AG34   -13AE   ?AG35   -13AF
-?AG4    -0002   ?AG5    -0001   ?AG6    -0000   ?AG7    -126A   ?AG8    -127F
-?AG9    -1282   ?AH1    -13EB   ?AH2    -13EC   ?AH3    -13F2   ?AH4    -13F9
-?AH5    -1409   ?AH6    -1422   ?AH7    -1431   ?AH8    -143B   ?heap   -0002
-?putch  -13C0   ?putchr -13CC   ?putstr -13B2   ?temp   -0000   chkch   -13DC
-chkchr  -13ED   cpu_cycles              -1017   cpu_cycles_1            -1024
-cpu_cycles_2            -102D   exit    -100B   format  -1263   getch   -13CF
-getchr  -13D5   getstr  -13F0   main    -1091   memcpy  -122E   memset  -121E
-printf  -11F1   putch   -13BE   putchr  -13CA   putstr  -13B0   rtl_version             -107B
-sprintf -11FC   strcat  -1246   strcpy  -1252   tests   -107D   wait_ms -100D
-wait_ms_top             -100F
+?AB0    -11C0   ?AB1    -1079   ?AB10   -1046   ?AB11   -104A   ?AB12   -107A
+?AB13   -10A8   ?AB14   -10EF   ?AB15   -10BD   ?AB16   -10B6   ?AB17   -10D4
+?AB18   -110C   ?AB19   -112A   ?AB2    -1051   ?AB20   -111E   ?AB21   -1117
+?AB22   -112D   ?AB23   -1149   ?AB24   -113E   ?AB25   -1137   ?AB26   -115F
+?AB27   -11BD   ?AB3    -101D   ?AB4    -1020   ?AB5    -1028   ?AB6    -102F
+?AB7    -1035   ?AB8    -103B   ?AB9    -1041   ?AD1    -1275   ?AD2    -1277
+?AE1    -1283   ?AE2    -12A8   ?AF1    -12AB   ?AF2    -12B3   ?AG1    -000C
+?AG10   -12E6   ?AG11   -12FA   ?AG12   -1307   ?AG13   -131B   ?AG14   -1332
+?AG15   -134E   ?AG16   -1352   ?AG17   -1372   ?AG18   -1376   ?AG19   -1378
+?AG2    -000A   ?AG20   -137C   ?AG21   -1396   ?AG22   -139B   ?AG23   -13A8
+?AG24   -13BD   ?AG25   -13C6   ?AG26   -13CC   ?AG27   -13CE   ?AG28   -13D7
+?AG29   -13D9   ?AG3    -0004   ?AG30   -13E5   ?AG31   -13E9   ?AG32   -13F2
+?AG33   -1401   ?AG34   -1411   ?AG35   -1412   ?AG4    -0002   ?AG5    -0001
+?AG6    -0000   ?AG7    -12CD   ?AG8    -12E2   ?AG9    -12E5   ?AH1    -144E
+?AH2    -144F   ?AH3    -1455   ?AH4    -145C   ?AH5    -146C   ?AH6    -1485
+?AH7    -1494   ?AH8    -149E   ?heap   -0002   ?putch  -1423   ?putchr -142F
+?putstr -1415   ?temp   -0000   chkch   -143F   chkchr  -1450   cpu_cycles              -1017
+cpu_cycles_1            -1024   cpu_cycles_2            -102D   exit    -100B
+format  -12C6   getch   -1432   getchr  -1438   getstr  -1453   main    -1096
+memcpy  -1291   memset  -1281   printf  -1254   putch   -1421   putchr  -142D
+putstr  -1413   rtl_version             -107B   sprintf -125F   strcat  -12A9
+strcpy  -12B5   tests   -1082   vid_mode-107D   wait_ms -100D   wait_ms_top             -100F

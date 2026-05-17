@@ -21,7 +21,7 @@ for I/O the following ports are used
 `define CF_TOP_VER 8'h01
 
 `define BLOCKS 30
-`define FREQ 100
+`define FREQ 125
 
 module top(input wire clk, input wire s1,
 	input wire uart_rx, output wire uart_tx, 
@@ -379,6 +379,7 @@ module top(input wire clk, input wire s1,
                         end else begin
                             cf_bus_data_out <= {15'b0, lrg_mode};
                         end
+                        cf_bus_ready <= 1'b1;
                     end else if (cf_bus_address[7:0] == 8'h01) begin // GPIO0
                         if (cf_bus_wr_en) begin
                             gpio_out <= cf_bus_data_in[7:0];

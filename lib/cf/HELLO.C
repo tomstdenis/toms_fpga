@@ -97,6 +97,14 @@ unsigned rtl_version(void)
 	}
 }
 
+vid_mode(unsigned mode)
+{
+	asm {
+		LD 2,S
+		OUT $12
+	}
+}
+
 const char *tests[] = {
 	"RDTSC",
 	"CALL",
@@ -123,6 +131,17 @@ main()
 		printf("\t%s: %u\n", tests[x], y);
 	}
 	y = 0;
+
+
+ 	memset(vidmem, 0, 2048);
+	vid_mode(1);
+	for (x = 0; x < 2048; x++) {
+		vidmem[x] = x;
+	}
+	for (x = 0; x < 25 * 4; x++) {
+		wait_ms(250);
+	}
+	vid_mode(0);
 	memset(vidmem, 0, 2048);
 	for (;;) {
 		wait_ms(33);
