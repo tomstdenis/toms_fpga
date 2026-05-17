@@ -5,14 +5,20 @@
 //Part Number: GW5A-LV25MG121NC1/I0
 //Device: GW5A-25
 //Device Version: A
-//Created Time: Sat May 16 05:15:17 2026
+//Created Time: Sun May 17 17:15:07 2026
 
 //Change the instance name and port connections to the signal names
 //--------Copy here to design--------
 
     text_font_rom your_instance_name(
         .dout(dout), //output [7:0] dout
-        .ad(ad) //input [10:0] ad
+        .clk(clk), //input clk
+        .oce(oce), //input oce
+        .ce(ce), //input ce
+        .reset(reset), //input reset
+        .wre(wre), //input wre
+        .ad(ad), //input [10:0] ad
+        .din(din) //input [7:0] din
     );
 
 //--------Copy end-------------------

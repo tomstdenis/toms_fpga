@@ -10,6 +10,7 @@ rom can produce the signal to output
 
 // TODO: Currently only powers of two are supported for the Font dimensions
 module vga_text_driver #(
+    parameter X_FETCH_DELAY = 1,                                    // when to fetch next symbol 1==comb, 2+ == sync
 	parameter H_VISIBLE  = 640,										// visible width		
 	parameter V_VISIBLE  = 480,										// visible height
     parameter V_TOTAL    = 525,
@@ -70,7 +71,7 @@ module vga_text_driver #(
 			if (text_row < TEXTROWS && text_col < TEXTCOLS) begin
 				rd_addr <= text_current_addr + 1'b1;
 				// Latch symbol at the last column of font
-				if (x[$clog2(FONTWIDTH)-1:0] == (FONTWIDTH-1)) begin
+				if (x[$clog2(FONTWIDTH)-1:0] == (FONTWIDTH-X_FETCH_DELAY)) begin
 					symbol <= rd_data;
 				end
 			end else begin

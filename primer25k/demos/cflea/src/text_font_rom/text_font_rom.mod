@@ -5,12 +5,14 @@
 -part_number GW5A-LV25MG121NC1/I0
 
 
--dev_type GW5A-25A
 -mod_name text_font_rom
 -file_name text_font_rom
 -path /home/tom/nas/toms_fpga/primer25k/demos/cflea/src/text_font_rom/
--type SSRAM_ROM
+-type RAM_SP
 -file_type vlg
--ssram_depth 2048
--ssram_width 8
+-depth 2048
+-width 8
+-read_mode bypass
+-write_mode normal
+-reset_mode sync
 -init_file /home/tom/nas/toms_fpga/lib/vga/blocks/8x8_font_256.hex

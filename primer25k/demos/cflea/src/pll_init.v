@@ -1,4 +1,3 @@
-`default_nettype wire
 `timescale  1ns/1ns
 
 

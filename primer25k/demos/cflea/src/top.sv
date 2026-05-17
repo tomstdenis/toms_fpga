@@ -21,7 +21,7 @@ for I/O the following ports are used
 `define CF_TOP_VER 8'h01
 
 `define BLOCKS 30
-`define FREQ 90
+`define FREQ 100
 
 module top(input wire clk, input wire s1,
 	input wire uart_rx, output wire uart_tx, 
@@ -175,7 +175,13 @@ module top(input wire clk, input wire s1,
     // our 256 symbol 8x8 CP437 font
     text_font_rom madamme_font(
         .dout(font_dout), //output [7:0] dout
-        .ad(font_ad) //input [10:0] ad
+        .clk(pll2clk), //input clk
+        .oce(1'b1), //input oce
+        .ce(1'b1), //input ce
+        .reset(~rst2_n), //input reset
+        .wre(1'b0), //input wre
+        .ad(font_ad), //input [10:0] ad
+        .din(8'b0) //input [7:0] din
     );
 
 	logic [10:0] text_addr_a;
@@ -212,7 +218,7 @@ module top(input wire clk, input wire s1,
 	// ### VGA text mode driver ###, defaults to 80x25 using an 8x8 font
 	// notice we're scaling the font by 2 so we change the height to 16 here
 	// also since we don't use the full y resolution anyways we shift things down so the overscan doesn't eat the first line
-	vga_text_driver #(.FONTHEIGHT(16)) textdrv(
+	vga_text_driver #(.FONTHEIGHT(16), .X_FETCH_DELAY(2)) textdrv(
 		.clk(pll2clk), .rst_n(rst2_n),
 		.x(vga_x), .y(vga_y), .active_video(vga_active), .lrg_mode(lrg_mode_pll2),
 		.rd_addr(text_addr_b), .rd_data(text_dout_b),
