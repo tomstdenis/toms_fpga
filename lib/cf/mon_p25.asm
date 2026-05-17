@@ -23,16 +23,16 @@ top
    SJZ top     * loop while no char
    DEC
    OUT $00
-   STB temp
+   TAI
    CMPB #'S'    * compare to S
    SJNZ is_S    * it's an 'S' so jump to that handler
-   LDB temp
+   TIA
    CMPB #'G'
    SJNZ is_G    * it's an 'G' jump there
-   LDB temp
+   TIA
    CMPB #'D'
    SJNZ is_D
-   LDB temp
+   TIA
    CMPB #'B'
    SJNZ is_B
    SJMP top     * ignore and jump to top
@@ -70,30 +70,27 @@ is_S_loop
    JMP top
    
 is_G
-   CALL read_hex  * read address
-   STB addrhi
-   CALL read_hex
-   STB addr
-   LD addr        * jump to address
+   CALL read_addr
    IJMP
 
 is_D
-   CALL read_hex
-   STB addrhi
-   CALL read_hex
-   STB addr
-   LD addr
+   CALL read_addr
    CALL puthexline
    JMP top
    
 is_B
+   CALL read_addr
+   CALL puthexblock
+   JMP top
+   
+* read address into addr
+read_addr
    CALL read_hex
    STB addrhi
    CALL read_hex
    STB addr
    LD addr
-   CALL puthexblock
-   JMP top
+   RET
 
 * read hex byte into ACC
 read_hex
