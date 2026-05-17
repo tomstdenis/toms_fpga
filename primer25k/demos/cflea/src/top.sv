@@ -386,7 +386,7 @@ module top(input wire clk, input wire s1,
                             cf_bus_ready <= 1'b1;
                         end else begin
                             if (bus_cycle == 0) begin
-                                boot_rom_address <= cf_bus_address[10:0];
+                                boot_rom_address <= cf_bus_address[8:0];
                                 bus_cycle <= 1;
                             end else if (bus_cycle == 1) begin
                                 cf_bus_data_out   <= {8'h00, boot_rom_out};
@@ -405,7 +405,7 @@ module top(input wire clk, input wire s1,
                         // video memory
                         if (bus_cycle == 0) begin
                             bus_cycle <= 1;
-                            text_addr_a <= cf_bus_address[8:0];
+                            text_addr_a <= cf_bus_address[10:0];
                             text_din_a  <= cf_bus_data_in[7:0];
                             text_we_a   <= cf_bus_wr_en;
                         end else if (bus_cycle == 1) begin

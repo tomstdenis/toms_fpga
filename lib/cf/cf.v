@@ -162,7 +162,7 @@ module cf_cpu #(
 							end else if (bus_data_out[7:0] == 8'hED) begin
 								reg_ACC   <= {TOP_VER, `cf_core_version};
 							end else if (bus_data_out[7:0] == 8'hEE) begin
-								reg_ACC   <= cycle_count;
+								reg_ACC     <= cycle_count;
                                 cycle_count <= 16'b0;
 							end else begin
 								// unhandled opcodes just make us fetch the next...
@@ -622,19 +622,16 @@ module cf_cpu #(
 									end
 								4'h3: // SJMP rr
 									begin
-										// TODO: guessing it's just signed extended?
 										reg_PC <= reg_PC + { {8{bus_data_out[7]}}, bus_data_out[7:0] };
 									end
 								4'h4: // SJZ rr
 									begin
-										// TODO: guessing it's just signed extended?
 										if (reg_ACC == 0) begin
 											reg_PC <= reg_PC + { {8{bus_data_out[7]}}, bus_data_out[7:0] };
 										end					
 									end
 								4'h5: // SJNZ rr
 									begin
-										// TODO: guessing it's just signed extended?
 										if (reg_ACC != 0) begin
 											reg_PC <= reg_PC + { {8{bus_data_out[7]}}, bus_data_out[7:0] };
 										end					
