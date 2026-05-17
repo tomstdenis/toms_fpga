@@ -11,16 +11,17 @@ temp3 EQU $FFFD
 temp4 EQU $FFFC   * n
 addr EQU $FFFA    * we can 16-bit load the addr from here
 addrhi EQU $FFFB  * and write to the top half here
-*stack EQU $F900   * stack inside the video so we have something to see
-stack EQU $8000 * stack inside main mem for testing...
+stack EQU $F900   * stack inside the video so we have something to see
 
    LD #stack
    TAS          * SP = stack (F900)
    LEAI ?WELCOMSTR
    CALL putstr
 top
-   IN $00       * read from UART
-   SJZ top      * loop while no char
+   IN $00       	* read from UART
+   INC
+   SJZ top     * loop while no char
+   DEC
    OUT $00
    STB temp
    CMPB #'S'    * compare to S
@@ -31,6 +32,9 @@ top
    LDB temp
    CMPB #'D'
    SJNZ is_D
+   LDB temp
+   CMPB #'B'
+   SJNZ is_B
    SJMP top     * ignore and jump to top
 
 * S records we need 
@@ -41,7 +45,9 @@ top
 * 5. Read 1 hex byte (checksum)
 is_S
    IN $00
+   INC
    SJZ is_S       * wait for a char (the command)
+   DEC
    OUT $00
    CALL read_hex  * read the # of bytes 'n'
    SUBB #3		  * sub addr/checksum
@@ -80,6 +86,15 @@ is_D
    CALL puthexline
    JMP top
    
+is_B
+   CALL read_hex
+   STB addrhi
+   CALL read_hex
+   STB addr
+   LD addr
+   CALL puthexblock
+   JMP top
+
 * read hex byte into ACC
 read_hex
    CLR
@@ -92,7 +107,9 @@ read_hex_top
    STB temp
 read_hex_loop
    IN $00
+   INC
    SJZ read_hex_loop * read from uart
+   DEC
    OUT $00          * echo back
    STB temp3		* save the char being read
    CMPB #'9'        * assume it's 0-9A-F
@@ -136,6 +153,29 @@ putstr_end
 	LD S+
 	RET
 
+* display 16 lines at ACC
+puthexblock
+	PUSHA				* 2,S == address
+	LD #16
+	PUSHA				* 0,S == number of lines 
+puthexblock_top
+	LD 2,S
+	CALL puthexline
+	ADD #16
+	ST 2,S				* increment by 16
+	LD 0,S
+	DEC
+	ST 0,S
+	JNZ puthexblock_top
+	FREE 2
+	LDB #10				* print newline/cr
+	OUT $00
+	LDB #13
+	OUT $00
+	LD S+
+	SUB #256			* subtract the 256 we added 
+	RET
+
 * display 16 bytes at ACC
 puthexline
 	PUSHI
@@ -170,12 +210,9 @@ puthexline_top
 	DEC
 	ST 0,S
 	JNZ puthexline_top
-    LDB #10				* print newline/cr
-    OUT $00
-    LDB #13
-    OUT $00
 	FREE 2
 	LD S+
+    SUB #16				* subtract the 16 we added to it
 	LDI S+
 	RET
 	

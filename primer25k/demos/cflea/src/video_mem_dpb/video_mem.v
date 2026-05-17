@@ -6,7 +6,7 @@
 //Device: GW5A-25
 //Device Version: A
 //Created Time: Fri May 15 18:44:08 2026
-
+`default_nettype wire
 module video_mem (douta, doutb, clka, ocea, cea, reseta, wrea, clkb, oceb, ceb, resetb, wreb, ada, dina, adb, dinb);
 
 output [7:0] douta;

@@ -6,10 +6,11 @@ Simple memory map of 60K of RAM followed by 2K boot ROM, and 2K video memory
 
 for I/O the following ports are used
 
-   - 00: uart data (blocking)
-   - 01: uart status (tbd)
-   - 02: timer (1ms ticks)  
-   - 10: gpio0
+   - 00h: uart data (non-blocking read => retursn FFFF is no char available on read, blocking writes)
+   - 01h: gpio0
+   - 02..04h: gpio1-3
+   - 10h: uart status (uart_rx_ready, uart_tx_fifo_empty, uart_tx_fifo_full)
+   - 11h: timer (counts 1ms ticks, writing anything to it resets to 0)
    
 */
 
@@ -19,7 +20,7 @@ for I/O the following ports are used
 `define CF_TOP_VER 8'h00
 
 `define BLOCKS 30
-`define FREQ 50
+`define FREQ 65
 
 module top(input wire clk, input wire s1,
 	input wire uart_rx, output wire uart_tx, 
@@ -266,6 +267,11 @@ module top(input wire clk, input wire s1,
         .bus_ready(cf_bus_ready),
         .bus_data_out(cf_bus_data_out));
 
+    localparam
+		CYCLES_PER_TICK = ((`FREQ * 1_000_000) / 1000) * 1;					// tick every 1ms
+    logic [7:0] tick_counter;
+    logic [$clog2(CYCLES_PER_TICK):0] cycle_counter;
+
     // bus controller
     always_ff @(posedge pllclk) begin
         if (!rst_n) begin
@@ -282,7 +288,17 @@ module top(input wire clk, input wire s1,
             gpio_out            <= 16'hFF;
             cf_bus_ready        <= 0;
             cf_bus_data_out     <= 0;
+            tick_counter        <= 0;
+            cycle_counter       <= 0;
         end else begin
+			// tick counter logic
+            if (cycle_counter == (CYCLES_PER_TICK-1)) begin
+				cycle_counter <= 0;
+				tick_counter  <= tick_counter + 1'b1;
+			end else begin
+				cycle_counter <= cycle_counter + 1'b1;
+			end
+
             if (cf_bus_enable && !cf_bus_ready) begin
                 if (cf_bus_io_flag) begin
                     // handle I/O
@@ -306,7 +322,7 @@ module top(input wire clk, input wire s1,
                                 end else begin
                                     // Dave's model returns -1 if there's no char...
                                     cf_bus_ready <= 1'b1;
-                                    cf_bus_data_out <= {8'h00, 8'h00};
+                                    cf_bus_data_out <= 16'hFFFF; // note this must be 16 bit since his INC/JZ/DEC test relies on FFFF rolling to 0
                                 end
                             end else if (bus_cycle == 1) begin
                                 uart_rx_read <= 1'b0;
@@ -316,7 +332,20 @@ module top(input wire clk, input wire s1,
                                 cf_bus_data_out <= { 8'h00, uart_rx_byte };
                             end
                         end
-                    end else if (cf_bus_address[7:0] == 8'h10) begin // GPIO0
+                    end else if (cf_bus_address[7:0] == 8'h10) begin // uart status
+                        if (cf_bus_wr_en) begin
+                        end else begin
+                            cf_bus_data_out <= { 8'h00, 5'b0, uart_rx_ready, uart_tx_fifo_empty, uart_tx_fifo_full };
+                        end
+                        cf_bus_ready <= 1'b1;
+                    end else if (cf_bus_address[7:0] == 8'h11) begin // timer 1ms tick
+                        if (cf_bus_wr_en) begin
+                            tick_counter <= 0;
+                        end else begin
+                            cf_bus_data_out <= { 8'h00, tick_counter };
+                        end
+                        cf_bus_ready <= 1'b1;
+                    end else if (cf_bus_address[7:0] == 8'h01) begin // GPIO0
                         if (cf_bus_wr_en) begin
                             gpio_out <= cf_bus_data_in[7:0];
                         end else begin

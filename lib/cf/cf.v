@@ -37,6 +37,7 @@ module cf_cpu #(
 	reg 	   reg_operand_16;			// is it a 16-bit operand?
 	reg [15:0] switch_table_addr;		// current address of switch table
 	reg [15:0] switch_addr;				// current switch address (to pair with value)
+    reg [15:0] cycle_count;             // cycle count can be read+reset with opcode 0xEE
 	
 	localparam
 		FLAG_SLT = 0,
@@ -113,8 +114,10 @@ module cf_cpu #(
 			switch_addr  <= 0;
 			switch_table_addr <= 0;
 			cf_start_fetch <= 0;
+            cycle_count  <= 0;
 		end else begin
 			cf_start_fetch <= 1'b0;
+            cycle_count <= cycle_count + 1'b1;
 			case(fsm_state)
 				// Initial state where we fetch the next opcode byte
 				FSM_FETCH_OPCODE:
@@ -158,6 +161,9 @@ module cf_cpu #(
 								fsm_state <= FSM_EXECUTE_OPERAND_E0_EC;
 							end else if (bus_data_out[7:0] == 8'hED) begin
 								reg_ACC   <= {TOP_VER, `cf_core_version};
+							end else if (bus_data_out[7:0] == 8'hEE) begin
+								reg_ACC   <= cycle_count;
+                                cycle_count <= 16'b0;
 							end else begin
 								// unhandled opcodes just make us fetch the next...
 								fsm_state <= FSM_FETCH_OPCODE;

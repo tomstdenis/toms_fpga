@@ -6,6 +6,7 @@
 //Device: GW5A-25
 //Device Version: A
 //Created Time: Fri May 15 18:43:02 2026
+`default_nettype wire
 
 module cflea_main_mem (douta, doutb, clka, ocea, cea, reseta, wrea, clkb, oceb, ceb, resetb, wreb, ada, dina, adb, dinb);
 
