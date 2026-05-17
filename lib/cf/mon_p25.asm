@@ -16,10 +16,8 @@ stack EQU $8000 * stack inside main mem for testing...
 
    LD #stack
    TAS          * SP = stack (F900)
-   LEAI ?STR
+   LEAI ?WELCOMSTR
    CALL putstr
-   LDB #$23
-   CALL puthex
 top
    IN $00       * read from UART
    SJZ top      * loop while no char
@@ -121,16 +119,22 @@ read_hex_end
 
 * putstr in INDEX
 putstr
+	PUSHA
 	PUSHI
+putstrtop
 	LDB I
 	SJZ putstr_end
 	OUT $00
     LEAI 1,I		  * increment iindex
-	SJMP putstr
+	SJMP putstrtop
 putstr_end
 	LDI S+
+	LDB #10
+	OUT $00
+	LDB #13
+	OUT $00
+	LD S+
 	RET
-
 
 * display 16 bytes at ACC
 puthexline
@@ -209,4 +213,4 @@ puthex_bot
     LD S+
     LDI S+
     RET
-?STR FCB 72,101,108,108,111,32,87,111,114,108,100,10,13,0
+?WELCOMSTR STR "C-FLEA Primer25K monitor -- Tom St Denis"

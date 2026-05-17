@@ -26,6 +26,7 @@ module top(input wire clk, input wire s1,
 	inout wire [7:0] gpio,
 	output reg [3:0] vga_r, output reg [3:0] vga_g, output reg   [3:0] vga_b, output wire vga_h_pulse, output wire vga_v_pulse);
 
+
     localparam
         bus_address_main_mem_top = 16'hEFFF,
 		bus_address_text_mem_bot = 16'hF800,
@@ -37,9 +38,11 @@ module top(input wire clk, input wire s1,
     logic pllclk;
 	
 	reg [3:0] rst = 0;
-	wire rst_n = rst[3] & ~s1; // s1 is pulled up by the button so we want to pull reset low when the button is pressed
+    reg [1:0] reset_sw;
+	wire rst_n = rst[3] & ~reset_sw[1]; // s1 is pulled up by the button so we want to pull reset low when the button is pressed
 	
 	always @(posedge pllclk) begin
+        reset_sw = {reset_sw[0], s1 };
         rst <= {rst[2:0], 1'b1};
 	end
 
@@ -277,8 +280,6 @@ module top(input wire clk, input wire s1,
             main_mem_din_b		<= 0;
             bus_cycle           <= 0;
             gpio_out            <= 16'hFF;
-            uart_prev_rx_ready  <= 0;
-            uart_prev_tx_fifo_empty <= 0;
             cf_bus_ready        <= 0;
             cf_bus_data_out     <= 0;
         end else begin
