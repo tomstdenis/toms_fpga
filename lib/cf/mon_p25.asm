@@ -5,7 +5,6 @@
 * - Bxxxx to dump 256 bytes
 
 * we have 2KB of ROM starting at F000
-* Note that the RTL is configured for only holding 512 bytes currently...
    ORG $F000
 
 * some variables to keep state, let's hide them at the end of video mem

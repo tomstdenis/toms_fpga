@@ -5,12 +5,22 @@
 -part_number GW5A-LV25MG121NC1/I0
 
 
--dev_type GW5A-25A
 -mod_name boot_rom
 -file_name boot_rom
 -path /home/tom/nas/toms_fpga/primer25k/demos/cflea/src/boot_rom/
--type SSRAM_ROM
+-type RAM_DP
 -file_type vlg
--ssram_depth 512
--ssram_width 8
+-bram_b true
+-dev_type GW5A-25A
+-depth_0 2048
+-depth_1 2048
+-width_0 8
+-width_1 8
+-read_mode_0 bypass
+-read_mode_1 bypass
+-write_mode_0 normal
+-write_mode_1 normal
+-speed false
+-reset_mode sync
 -init_file /home/tom/nas/toms_fpga/lib/cf/mon_p25.hex.mi
+-init_match port_A

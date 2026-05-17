@@ -46,7 +46,7 @@ int main(int argc, char **argv)
 	
 	if (argc == 1) {
 		// output hexfile
-		#define ROMSIZE 512
+		#define ROMSIZE 2048
 		printf(
 		"#File_format=Hex\n"
 		"#Address_depth=%d\n"

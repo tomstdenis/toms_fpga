@@ -238,11 +238,26 @@ module top(input wire clk, input wire s1,
 	end
 
     // ### boot rom
-    wire [7:0] boot_rom_out;
-    reg [8:0] boot_rom_address;
+    wire [7:0] boot_rom_dout_a;
+    wire [7:0] boot_rom_dout_b;
+
     boot_rom mr_bootup(
-        .dout(boot_rom_out), //output [7:0] dout
-        .ad(boot_rom_address) //input [8:0] ad
+        .douta(boot_rom_dout_a), //output [7:0] douta
+        .doutb(boot_rom_dout_b), //output [7:0] doutb
+        .clka(pllclk), //input clka
+        .ocea(1'b1), //input ocea
+        .cea(1'b1), //input cea
+        .reseta(~rst_n), //input reseta
+        .wrea(1'b0), //input wrea
+        .clkb(pllclk), //input clkb
+        .oceb(1'b1), //input oceb
+        .ceb(1'b1), //input ceb
+        .resetb(~rst_n), //input resetb
+        .wreb(1'b0), //input wreb
+        .ada(cf_bus_address[10:0]), //input [10:0] ada
+        .dina(8'b0), //input [7:0] dina
+        .adb(cf_bus_address[10:0] + 1'b1), //input [10:0] adb
+        .dinb(8'b0) //input [7:0] dinb
     );
 
     // ### CFLEA core
@@ -393,19 +408,10 @@ module top(input wire clk, input wire s1,
                             cf_bus_ready <= 1'b1;
                         end else begin
                             if (bus_cycle == 0) begin
-                                boot_rom_address <= cf_bus_address[8:0];
                                 bus_cycle <= 1;
                             end else if (bus_cycle == 1) begin
-                                cf_bus_data_out   <= {8'h00, boot_rom_out};
-                                boot_rom_address  <= boot_rom_address + 1'b1;
-                                if (cf_bus_burst) begin
-                                    bus_cycle <= 2;
-                                end else begin
-                                    cf_bus_ready <= 1'b1;
-                                end
-                            end else if (bus_cycle == 2) begin
-                                cf_bus_data_out[15:8] <= boot_rom_out;
-                                cf_bus_ready <= 1'b1;
+                                cf_bus_ready <= 1;
+                                cf_bus_data_out = { cf_bus_burst ? boot_rom_dout_b : 8'b00, boot_rom_dout_a };
                             end
                         end
                     end else if (cf_bus_address[15:0] <= bus_address_text_mem_top) begin

@@ -3,11 +3,22 @@ file=boot_rom
 ipc_version=4
 module=boot_rom
 target_device=gw5a25a-002
-type=ssram_rom16
+type=ram_dpb
 version=1.0
 
 [Config]
-DEPTH=512
+Area=true
+BYTE_SIZE=0
+DEPTH_A=2048
+DEPTH_B=2048
+DIMENSION_MATCH=65
 LANG=0
 MEM_FILE=/home/tom/nas/toms_fpga/lib/cf/mon_p25.hex.mi
-WIDTH=8
+READ_A=0
+READ_B=0
+RESET_MODE=true
+Speed=false
+WIDTH_A=8
+WIDTH_B=8
+WRITE_A=0
+WRITE_B=0

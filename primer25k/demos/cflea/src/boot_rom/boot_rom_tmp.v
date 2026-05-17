@@ -5,14 +5,28 @@
 //Part Number: GW5A-LV25MG121NC1/I0
 //Device: GW5A-25
 //Device Version: A
-//Created Time: Sun May 17 10:48:34 2026
+//Created Time: Sun May 17 16:07:06 2026
 
 //Change the instance name and port connections to the signal names
 //--------Copy here to design--------
 
     boot_rom your_instance_name(
-        .dout(dout), //output [7:0] dout
-        .ad(ad) //input [8:0] ad
+        .douta(douta), //output [7:0] douta
+        .doutb(doutb), //output [7:0] doutb
+        .clka(clka), //input clka
+        .ocea(ocea), //input ocea
+        .cea(cea), //input cea
+        .reseta(reseta), //input reseta
+        .wrea(wrea), //input wrea
+        .clkb(clkb), //input clkb
+        .oceb(oceb), //input oceb
+        .ceb(ceb), //input ceb
+        .resetb(resetb), //input resetb
+        .wreb(wreb), //input wreb
+        .ada(ada), //input [10:0] ada
+        .dina(dina), //input [7:0] dina
+        .adb(adb), //input [10:0] adb
+        .dinb(dinb) //input [7:0] dinb
     );
 
 //--------Copy end-------------------
