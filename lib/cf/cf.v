@@ -378,20 +378,24 @@ module cf_cpu #(
 									case(cur_opcode[7:3])
 										5'h17: // SHR
 											begin
+                                                reg_ACC <= reg_ACC >> reg_operand;
+/*
 												if (reg_operand != 0) begin
 													reg_ACC 	<= {1'b0, reg_ACC[15:1]};
 													reg_operand <= reg_operand - 1'b1;
 													fsm_state 	<= fsm_state;
 												end
+*/
 											end
 										5'h18: // SHL
 											begin
-												if (reg_operand != 0) begin
+                                                reg_ACC <= reg_ACC << reg_operand;
+/*												if (reg_operand != 0) begin
 													reg_ACC		<= {reg_ACC[14:0], 1'b0};
 													reg_operand <= reg_operand - 1'b1;
 													fsm_state   <= fsm_state;
 												end
-											end
+*/											end
 										default: begin end
 									endcase
 								end

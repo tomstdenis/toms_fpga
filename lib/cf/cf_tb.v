@@ -477,7 +477,7 @@ module cf_tb();
 						cf_dut.bus_enable = 0;
 						cf_dut.reg_ACC = 16'h1234;
 						step_opcode();
-						if (cf_dut.reg_PC != (2 + 1) || mem[256] != 8'h34 || mem[257] != 8'h12) fail_code();
+						if (cf_dut.reg_PC != (3 + 1) || mem[256] != 8'h34 || mem[257] != 8'h12) fail_code();
 					end
 				32: // STB 100
 					begin
@@ -489,7 +489,7 @@ module cf_tb();
 						cf_dut.bus_enable = 0;
 						cf_dut.reg_ACC = 16'h0058;
 						step_opcode();
-						if (cf_dut.reg_PC != (2 + 1) || mem[256] != 8'h58 || mem[257] != 8'h12) fail_code();
+						if (cf_dut.reg_PC != (3 + 1) || mem[256] != 8'h58 || mem[257] != 8'h12) fail_code();
 					end
 				33: // STI 100
 					begin
@@ -501,7 +501,7 @@ module cf_tb();
 						cf_dut.bus_enable = 0;
 						cf_dut.reg_INDEX = 16'h7898;
 						step_opcode();
-						if (cf_dut.reg_PC != (2 + 1) || mem[256] != 8'h98 || mem[257] != 8'h78) fail_code();
+						if (cf_dut.reg_PC != (3 + 1) || mem[256] != 8'h98 || mem[257] != 8'h78) fail_code();
 					end
 				34: // SHR ##
 					begin
@@ -580,7 +580,7 @@ module cf_tb();
 						cf_dut.fsm_state = 0;
 						cf_dut.bus_enable = 0;
 						step_opcode();
-						if (cf_dut.reg_PC != 16'h735E) fail_code();
+						if (cf_dut.reg_PC != 16'h735F) fail_code();
 					end
 				38: // JZ aaaa
 					begin
@@ -592,7 +592,7 @@ module cf_tb();
 						cf_dut.bus_enable = 0;
 						cf_dut.reg_ACC = 0;
 						step_opcode();
-						if (cf_dut.reg_PC != 16'h2211) fail_code();
+						if (cf_dut.reg_PC != 16'h2212) fail_code();
 						mem[0] = 8'hD1; // JZ aaaa
 						mem[1] = 8'h11;
 						mem[2] = 8'h22;
@@ -601,7 +601,7 @@ module cf_tb();
 						cf_dut.bus_enable = 0;
 						cf_dut.reg_ACC = 1;
 						step_opcode();
-						if (cf_dut.reg_PC != 16'h3) fail_code();
+						if (cf_dut.reg_PC != 16'h4) fail_code();
 					end
 				39: // JNZ aaaa
 					begin
@@ -613,7 +613,7 @@ module cf_tb();
 						cf_dut.bus_enable = 0;
 						cf_dut.reg_ACC = 0;
 						step_opcode();
-						if (cf_dut.reg_PC != 16'h3) fail_code();
+						if (cf_dut.reg_PC != 16'h4) fail_code();
 						mem[0] = 8'hD2; // JNZ aaaa
 						mem[1] = 8'h11;
 						mem[2] = 8'h22;
@@ -622,7 +622,7 @@ module cf_tb();
 						cf_dut.bus_enable = 0;
 						cf_dut.reg_ACC = 1;
 						step_opcode();
-						if (cf_dut.reg_PC != 16'h2211) fail_code();
+						if (cf_dut.reg_PC != 16'h2212) fail_code();
 					end
 				40: // SJMP rr
 					begin
@@ -632,7 +632,7 @@ module cf_tb();
 						cf_dut.fsm_state = 0;
 						cf_dut.bus_enable = 0;
 						step_opcode();
-						if (cf_dut.reg_PC != 16'h101) fail_code(); // should jump back 1 byte from 102 which is just after the SJMP
+						if (cf_dut.reg_PC != 16'h102) fail_code(); // should jump back 1 byte from 102 which is just after the SJMP
 					end
 				41: // SJZ rr
 					begin
@@ -643,7 +643,7 @@ module cf_tb();
 						cf_dut.bus_enable = 0;
 						cf_dut.reg_ACC = 0;
 						step_opcode();
-						if (cf_dut.reg_PC != 16'h101) fail_code(); // should jump back 1 byte from 102 which is just after the SJZ
+						if (cf_dut.reg_PC != 16'h102) fail_code(); // should jump back 1 byte from 102 which is just after the SJZ
 
 						mem[16'h0100] = 8'hD4; // SJZ rr
 						mem[16'h0101] = 8'hFF; // -1
@@ -652,7 +652,7 @@ module cf_tb();
 						cf_dut.bus_enable = 0;
 						cf_dut.reg_ACC = 1;
 						step_opcode();
-						if (cf_dut.reg_PC != 16'h102) fail_code(); // should not jump back 1 byte from 102 which is just after the SJZ
+						if (cf_dut.reg_PC != 16'h103) fail_code(); // should not jump back 1 byte from 102 which is just after the SJZ
 					end
 				42: // SJNZ rr
 					begin
@@ -663,7 +663,7 @@ module cf_tb();
 						cf_dut.bus_enable = 0;
 						cf_dut.reg_ACC = 1;
 						step_opcode();
-						if (cf_dut.reg_PC != 16'h101) fail_code(); // should jump back 1 byte from 102 which is just after the SJNZ
+						if (cf_dut.reg_PC != 16'h102) fail_code(); // should jump back 1 byte from 102 which is just after the SJNZ
 
 						mem[16'h0100] = 8'hD5; // SJNZ rr
 						mem[16'h0101] = 8'hFF; // -1
@@ -672,7 +672,7 @@ module cf_tb();
 						cf_dut.bus_enable = 0;
 						cf_dut.reg_ACC = 0;
 						step_opcode();
-						if (cf_dut.reg_PC != 16'h102) fail_code(); // should not jump back 1 byte from 102 which is just after the SJNZ
+						if (cf_dut.reg_PC != 16'h103) fail_code(); // should not jump back 1 byte from 102 which is just after the SJNZ
 					end
 				43: // IJMP
 					begin
@@ -711,7 +711,7 @@ module cf_tb();
 						cf_dut.reg_ACC = 16'h0;
 						cf_dut.reg_INDEX = 16'h0100;
 						step_opcode();
-						if (cf_dut.reg_PC != 16'h0200) fail_code();
+						if (cf_dut.reg_PC != 16'h0201) fail_code();
 						// case 1
 						mem[0] = 8'hD7;
 						cf_dut.reg_PC = 0;
@@ -720,7 +720,7 @@ module cf_tb();
 						cf_dut.reg_ACC = 16'h1;
 						cf_dut.reg_INDEX = 16'h0100;
 						step_opcode();
-						if (cf_dut.reg_PC != 16'h0300) fail_code();
+						if (cf_dut.reg_PC != 16'h0301) fail_code();
 						// default
 						mem[0] = 8'hD7;
 						cf_dut.reg_PC = 0;
@@ -729,7 +729,7 @@ module cf_tb();
 						cf_dut.reg_ACC = 16'h2;
 						cf_dut.reg_INDEX = 16'h0100;
 						step_opcode();
-						if (cf_dut.reg_PC != 16'h0400) fail_code();
+						if (cf_dut.reg_PC != 16'h0401) fail_code();
 					end
 				45: // CALL and RET
 					begin
@@ -741,14 +741,14 @@ module cf_tb();
 						cf_dut.fsm_state = 0;
 						cf_dut.bus_enable = 0;
 						step_opcode();
-						if (cf_dut.reg_PC != 16'h0200 || cf_dut.reg_SP != 16'h00FE || mem[16'h00FE] != 8'h03 || mem[16'h00FF] != 8'h00) fail_code();
+						if (cf_dut.reg_PC != 16'h0201 || cf_dut.reg_SP != 16'h00FE || mem[16'h00FE] != 8'h03 || mem[16'h00FF] != 8'h00) fail_code();
 						// RET
 						mem[16'h0200] = 8'hD9;
 						cf_dut.reg_PC = 16'h0200;
 						cf_dut.fsm_state = 0;
 						cf_dut.bus_enable = 0;
 						step_opcode();
-						if (cf_dut.reg_PC != 16'h0003 || cf_dut.reg_SP != 16'h0100) fail_code();
+						if (cf_dut.reg_PC != 16'h0004 || cf_dut.reg_SP != 16'h0100) fail_code();
 					end
 				46: // ALLOC and FREE
 					begin
@@ -759,14 +759,14 @@ module cf_tb();
 						cf_dut.fsm_state = 0;
 						cf_dut.bus_enable = 0;
 						step_opcode();
-						if (cf_dut.reg_PC != 2 || cf_dut.reg_SP != (16'h0100 - 16'h0020)) fail_code();
+						if (cf_dut.reg_PC != 3 || cf_dut.reg_SP != (16'h0100 - 16'h0020)) fail_code();
 						mem[16'h0000] = 8'hDB;
 						mem[16'h0001] = 8'h20; // FREE 20h
 						cf_dut.reg_PC = 16'h0000;
 						cf_dut.fsm_state = 0;
 						cf_dut.bus_enable = 0;
 						step_opcode();
-						if (cf_dut.reg_PC != 2 || cf_dut.reg_SP != (16'h0100)) fail_code();
+						if (cf_dut.reg_PC != 3 || cf_dut.reg_SP != (16'h0100)) fail_code();
 					end
 				47: // PUSHA
 					begin
@@ -777,7 +777,7 @@ module cf_tb();
 						cf_dut.bus_enable = 0;
 						cf_dut.reg_ACC = 16'hABCD;
 						step_opcode();
-						if (cf_dut.reg_PC != 1 || cf_dut.reg_SP != (16'h0100 - 16'h0002) || mem[16'hFE] != 8'hCD || mem[16'hFF] != 8'hAB) fail_code();
+						if (cf_dut.reg_PC != 2 || cf_dut.reg_SP != (16'h0100 - 16'h0002) || mem[16'hFE] != 8'hCD || mem[16'hFF] != 8'hAB) fail_code();
 					end
 				48: // PUSHI
 					begin
@@ -788,7 +788,7 @@ module cf_tb();
 						cf_dut.bus_enable = 0;
 						cf_dut.reg_INDEX = 16'hEF01;
 						step_opcode();
-						if (cf_dut.reg_PC != 1 || cf_dut.reg_SP != (16'h0100 - 16'h0002) || mem[16'hFE] != 8'h01 || mem[16'hFF] != 8'hEF) fail_code();
+						if (cf_dut.reg_PC != 2 || cf_dut.reg_SP != (16'h0100 - 16'h0002) || mem[16'hFE] != 8'h01 || mem[16'hFF] != 8'hEF) fail_code();
 					end
 				49: // TAS and TSA
 					begin
@@ -902,7 +902,7 @@ module cf_tb();
 						cf_dut.fsm_state = 0;
 						cf_dut.bus_enable = 0;
 						step_opcode();
-						if (cf_dut.reg_PC != 2) fail_code();
+						if (cf_dut.reg_PC != 3) fail_code();
 						mem[16'h0000] = 8'hEB; // IN pp
 						mem[16'h0001] = 8'h97; // port 97h
 						cf_dut.reg_PC = 16'h0000;
@@ -910,7 +910,7 @@ module cf_tb();
 						cf_dut.fsm_state = 0;
 						cf_dut.bus_enable = 0;
 						step_opcode();
-						if (cf_dut.reg_PC != 2 || cf_dut.reg_ACC != 16'h8B) fail_code();
+						if (cf_dut.reg_PC != 3 || cf_dut.reg_ACC != 16'h8B) fail_code();
 					end
 				53: // CPUVER (opcode 0xED)
 					begin
@@ -921,7 +921,7 @@ module cf_tb();
 						cf_dut.fsm_state = 0;
 						cf_dut.bus_enable = 0;
 						step_opcode();
-						if (cf_dut.reg_PC != 3 || cf_dut.reg_ACC != (16'h1101 + 1)) fail_code();
+						if (cf_dut.reg_PC != 3 || cf_dut.reg_ACC != (16'h1102 + 1)) fail_code();
 					end
 /*
 				54: // boot rom test

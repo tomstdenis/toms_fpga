@@ -122,7 +122,7 @@ module top(input wire clk, input wire s1,
         .cea(1'b1), //input cea
         .reseta(~rst_n), //input reseta
         .wrea(main_mem_we_a), //input wrea
-        .ada(main_mem_addr_a), //input [15:0] ada
+        .ada(cf_bus_address[15:0]), //input [15:0] ada
         .dina(main_mem_din_a), //input [7:0] dina
 
         .doutb(main_mem_dout_b), //output [7:0] doutb
@@ -131,7 +131,7 @@ module top(input wire clk, input wire s1,
         .ceb(1'b1), //input ceb
         .resetb(~rst_n), //input resetb
         .wreb(main_mem_we_b), //input wreb
-        .adb(main_mem_addr_b), //input [15:0] adb
+        .adb(cf_bus_address[15:0] + 1'b1), //input [15:0] adb
         .dinb(main_mem_din_b) //input [7:0] dinb
     );
 
@@ -384,12 +384,6 @@ module top(input wire clk, input wire s1,
                         end else if (bus_cycle == 1) begin
                             main_mem_we_a <= 1'b0;
                             main_mem_we_b <= 1'b0;
-                            if (cf_bus_wr_en) begin
-                                cf_bus_ready <= 1;
-                            end else begin
-                                bus_cycle <= 2;
-                            end
-                        end else if (bus_cycle == 2) begin
                             cf_bus_ready <= 1;
                             cf_bus_data_out = { cf_bus_burst ? main_mem_dout_b : 8'b00, main_mem_dout_a };
                         end
