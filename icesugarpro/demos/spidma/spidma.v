@@ -7,10 +7,10 @@ Setup to use the right most PMOD header (J4).
 `include "spidma.vh"
 
 // Enable QPI mode in the test, otherwise use SPI mode
-`define QUAD_MODE
+//`define QUAD_MODE
 
 // use FAST read (0Bh) instead of normal speed (03h)
-//`define FAST_SPI_MODE
+`define FAST_SPI_MODE
 
 `ifdef QUAD_MODE
     `define DUMMY_CYCLES 6
