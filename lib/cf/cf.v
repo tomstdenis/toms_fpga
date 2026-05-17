@@ -1,7 +1,7 @@
 /* C-FLEA CPU Design */
 
 // version, read by using opcode 0xED which puts this in ACC
-`define cf_core_version 8'h01
+`define cf_core_version 8'h02
 
 `default_nettype none
 `timescale 1ns/1ps
@@ -123,7 +123,7 @@ module cf_cpu #(
 				FSM_FETCH_OPCODE:
 					begin
 						// fetch next opcode byte
-						if (!bus_enable && !bus_ready) begin	// we're doing the double handshake for now, probably don't need !bus_ready 
+						if (!bus_enable) begin	// we're doing the double handshake for now, probably don't need !bus_ready 
 							cf_start_fetch <= 1'b1;
 							bus_enable  <= 1'b1;
 							bus_wr_en   <= 1'b0;
@@ -176,7 +176,7 @@ module cf_cpu #(
 					// start of decoding one of the 8 operand modes
 					begin
 						// first half to either read an immediate or address of the operand
-						if (!bus_enable && !bus_ready) begin
+						if (!bus_enable) begin
 							bus_enable  <= 1'b1;
 							case(cur_opcode[2:0])
 								0: // #n x0 ii(ii)							// immediate 8/16 bit
@@ -293,7 +293,7 @@ module cf_cpu #(
 				// now we have a pointer so we have to load the reg_operand
 				FSM_FETCH_ALU_OPERAND2_00_97:
 					begin
-						if (!bus_enable && !bus_ready) begin
+						if (!bus_enable) begin
 							// bus was otherwise programmed already we just need to enable it
 							bus_enable  <= 1'b1;
 						end else if (bus_enable && bus_ready) begin
@@ -403,7 +403,7 @@ module cf_cpu #(
 				FSM_FETCH_ALU_OPERAND_98_B7:								// handle ST (store) operand fetching
 					begin
 						// fetch the destination to store to
-						if (!bus_enable && !bus_ready) begin				// fetch the destination operand
+						if (!bus_enable) begin				// fetch the destination operand
 							bus_enable  <= 1'b1;
 							bus_wr_en   <= 1'b0;
 							case(cur_opcode[2:0])
@@ -486,7 +486,7 @@ module cf_cpu #(
 				// back half of ST/STB/STI where we actually do the store.
 				FSM_FETCH_ALU_OPERAND_98_B7_STORE:
 					begin
-						if (!bus_enable && !bus_ready) begin
+						if (!bus_enable) begin
 							if (cur_opcode[7:3] == 5'h13) begin // LEAI
 								reg_INDEX <= bus_address[15:0];
 								fsm_state <= FSM_FETCH_OPCODE;
@@ -528,7 +528,7 @@ module cf_cpu #(
 
 				FSM_EXECUTE_OPERAND_D0_D9: // jumps
 					begin
-						if (!bus_enable && !bus_ready) begin
+						if (!bus_enable) begin
 							bus_enable  <= 1'b1;
 							bus_wr_en   <= 1'b0;
 							bus_io_flag <= 1'b0;
@@ -660,7 +660,7 @@ module cf_cpu #(
 					end
 				FSM_OPCODE_D8_1: // back half of CALL where we push PC on the stack
 					begin
-						if (!bus_enable && !bus_ready) begin
+						if (!bus_enable) begin
 							// enable write to stack of PC
 							bus_enable <= 1'b1;
 						end else if (bus_enable && bus_ready) begin
@@ -672,7 +672,7 @@ module cf_cpu #(
 
 				FSM_EXECUTE_OPERAND_DA_DF: // stack
 					begin
-						if (!bus_enable && !bus_ready) begin
+						if (!bus_enable) begin
 							bus_enable  <= 1'b1;
 							case(cur_opcode[3:0])
 								4'hA: // ALLOC oo
@@ -737,7 +737,7 @@ module cf_cpu #(
 
 				FSM_EXECUTE_OPERAND_E0_EC: // misc
 					begin
-						if (!bus_enable && !bus_ready) begin
+						if (!bus_enable) begin
 							// this is our first run into this FSM
 							fsm_state <= FSM_FETCH_OPCODE;
 							case(cur_opcode[3:0])
@@ -787,7 +787,7 @@ module cf_cpu #(
 					end
 				FSM_EXECUTE_OPERAND2_EA_EB:										   // issue I/O
 					begin
-						if (!bus_enable && !bus_ready) begin
+						if (!bus_enable) begin
 							// rest of bus was previously programmed
 							bus_enable <= 1'b1;
 						end else if (bus_enable && bus_ready) begin
@@ -803,7 +803,7 @@ module cf_cpu #(
 
 				FSM_SWITCH_LOAD_ADDR: // load the address part of a switch table tuple
 					begin
-						if (!bus_enable && !bus_ready) begin
+						if (!bus_enable) begin
 							bus_enable 		  <= 1'b1;
 							switch_table_addr <= switch_table_addr + 16'd2;
 						end
@@ -816,7 +816,7 @@ module cf_cpu #(
 					end
 				FSM_SWITCH_LOAD_VALUE: // load the value part of a switch table tuple, then compare
 					begin
-						if (!bus_enable && !bus_ready) begin
+						if (!bus_enable) begin
 							bus_enable 		  <= 1'b1;
 							switch_table_addr <= switch_table_addr + 16'd2;
 						end
