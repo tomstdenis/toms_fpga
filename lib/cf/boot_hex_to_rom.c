@@ -46,12 +46,13 @@ int main(int argc, char **argv)
 	
 	if (argc == 1) {
 		// output hexfile
+		#define ROMSIZE 512
 		printf(
 		"#File_format=Hex\n"
-		"#Address_depth=2048\n"
-		"#Data_width=8\n");
+		"#Address_depth=%d\n"
+		"#Data_width=8\n", ROMSIZE);
 		
-		for (x = 0; x < 2048; x++) {
+		for (x = 0; x < ROMSIZE; x++) {
 			printf("%02x\n", mem[(60 * 1024) + x]);
 		}
 	} else {

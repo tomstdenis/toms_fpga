@@ -2,7 +2,7 @@
 
     C-FLEA Top for Primer 25K
 
-Simple memory map of 60K of RAM followed by 2K boot ROM, and 2K video memory
+Simple memory map of 60K of RAM followed by 2K boot ROM (**only 512 bytes is pnr**), and 2K video memory
 
 for I/O the following ports are used
 
@@ -20,7 +20,7 @@ for I/O the following ports are used
 `define CF_TOP_VER 8'h00
 
 `define BLOCKS 30
-`define FREQ 65
+`define FREQ 90
 
 module top(input wire clk, input wire s1,
 	input wire uart_rx, output wire uart_tx, 
@@ -89,7 +89,7 @@ module top(input wire clk, input wire s1,
     logic uart_prev_tx_fifo_empty;
     logic uart_prev_rx_ready;
 
-    uart #(.FIFO_DEPTH(16), .RX_ENABLE(1), .TX_ENABLE(1)) mrtalky (
+    uart #(.FIFO_DEPTH(8), .RX_ENABLE(1), .TX_ENABLE(1)) mrtalky (
         .clk(pllclk), .rst_n(rst_n),
         .baud_div(baud_div),
         .uart_tx_start(uart_tx_start),
@@ -237,10 +237,10 @@ module top(input wire clk, input wire s1,
 
     // ### boot rom
     wire [7:0] boot_rom_out;
-    reg [10:0] boot_rom_address;
+    reg [8:0] boot_rom_address;
     boot_rom mr_bootup(
         .dout(boot_rom_out), //output [7:0] dout
-        .ad(boot_rom_address) //input [10:0] ad
+        .ad(boot_rom_address) //input [8:0] ad
     );
 
     // ### CFLEA core
@@ -405,7 +405,7 @@ module top(input wire clk, input wire s1,
                         // video memory
                         if (bus_cycle == 0) begin
                             bus_cycle <= 1;
-                            text_addr_a <= cf_bus_address[10:0];
+                            text_addr_a <= cf_bus_address[8:0];
                             text_din_a  <= cf_bus_data_in[7:0];
                             text_we_a   <= cf_bus_wr_en;
                         end else if (bus_cycle == 1) begin

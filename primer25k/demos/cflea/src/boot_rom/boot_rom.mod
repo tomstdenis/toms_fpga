@@ -11,6 +11,6 @@
 -path /home/tom/nas/toms_fpga/primer25k/demos/cflea/src/boot_rom/
 -type SSRAM_ROM
 -file_type vlg
--ssram_depth 2048
+-ssram_depth 512
 -ssram_width 8
 -init_file /home/tom/nas/toms_fpga/lib/cf/mon_p25.hex.mi

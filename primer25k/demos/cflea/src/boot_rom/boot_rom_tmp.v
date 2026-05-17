@@ -5,14 +5,14 @@
 //Part Number: GW5A-LV25MG121NC1/I0
 //Device: GW5A-25
 //Device Version: A
-//Created Time: Sun May 17 08:12:34 2026
+//Created Time: Sun May 17 10:29:08 2026
 
 //Change the instance name and port connections to the signal names
 //--------Copy here to design--------
 
     boot_rom your_instance_name(
         .dout(dout), //output [7:0] dout
-        .ad(ad) //input [10:0] ad
+        .ad(ad) //input [8:0] ad
     );
 
 //--------Copy end-------------------

@@ -7,7 +7,7 @@ type=ssram_rom16
 version=1.0
 
 [Config]
-DEPTH=2048
+DEPTH=512
 LANG=0
 MEM_FILE=/home/tom/nas/toms_fpga/lib/cf/mon_p25.hex.mi
 WIDTH=8
