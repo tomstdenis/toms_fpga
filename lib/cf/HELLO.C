@@ -86,6 +86,27 @@ cpu_cycles_2
 				FCB $EE
 				RET
 			}
+		case 9:
+			asm {
+				FCB $EE
+				ST $F800
+				FCB $EE
+				RET
+			}
+		case 10:
+			asm {
+				FCB $EE
+				LD $F800
+				FCB $EE
+				RET
+			}
+		case 11:
+			asm {
+				FCB $EE
+				LD $F000
+				FCB $EE
+				RET
+			}
 	}
 	return 0;
 }
@@ -115,6 +136,9 @@ const char *tests[] = {
 	"LD 2,S",
 	"LT",
 	"CLR",
+	"ST $F800",
+	"LD $F800",
+	"LD $F000",
 	NULL
 };
 

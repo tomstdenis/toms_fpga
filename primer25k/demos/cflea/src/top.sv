@@ -2,7 +2,32 @@
 
     C-FLEA Top for Primer 25K
 
-Simple memory map of 60K of RAM followed by 2K boot ROM (**only 512 bytes is pnr**), and 2K video memory
+Simple memory map of 60K of RAM followed by 2K boot ROM, and 2K video memory
+
+    - 0000..EFFF: Main system RAM
+    - F000..F7FF: Boot ROM
+    - F800..FFFF: Text/LRG video memory
+
+Currently cycle counts as follows:
+
+Cycle counts:
+        RDTSC: 3
+        CALL: 12
+        RET: 8
+        ADD #FFFF: 8
+        LD 0000: 12
+        ST 8000: 12
+        LD 2,S: 12
+        LT: 4
+        CLR: 4
+        ST $F800: 13
+        LD $F800: 14
+        LD $F000: 12
+
+Keep in mind ALU opcodes (LD, ADD, SUB, etc...) have all the same timing (except DIV) which means LD 0000 takes the same time as ADD 0000, etc.
+Similarly, LEI, ST/STB/STI opcodes have similar timing.
+
+Main memory and boot rom have the same timing.  Video memory is slower since we only have 1 port to work with.
 
 for I/O the following ports are used
 
