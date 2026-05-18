@@ -8,6 +8,9 @@ Simple memory map of 60K of RAM followed by 2K boot ROM, and 2K video memory
     - F000..F7FF: Boot ROM
     - F800..FFFF: Text/LRG video memory
 
+If you're not using the VGA output you can use it as "more memory" just keep in mind
+that it's slower than main memory since it's single ported (to the cpu).  
+
 Currently cycle counts as follows:
 
 Cycle counts:
@@ -31,12 +34,14 @@ Main memory and boot rom have the same timing.  Video memory is slower since we 
 
 for I/O the following ports are used
 
-   - 00h: uart data (non-blocking read => retursn FFFF is no char available on read, blocking writes)
-   - 01h: gpio0
-   - 02..04h: gpio1-3
+   - 00h: uart data (non-blocking read => returns FFFF is no char available on read, blocking writes if FIFO is full)
+          UART has an 8 byte RX and 8 byte TX FIFO and is set to 230400 baud 8N1
+   - 01h: gpio0 PCF8574 style, write a 1 bit to turn that pin into a pulled-high input (also drives the pin high), write 0 to drive it as output low
+          You may need external pullups to snap up, and definitely a decent pull down to snap down.
+   - 02..04h: gpio1-3 same as gpio0
    - 10h: uart status (uart_rx_ready, uart_tx_fifo_empty, uart_tx_fifo_full)
    - 11h: timer (counts 1ms ticks, writing anything to it resets to 0)
-   - 12h: video mode (lsb == lrg_mode)
+   - 12h: video mode (lsb == lrg_mode (48x40 8-bit colour mode, text mode is 1 byte per character 80x25 mode using CP437)
    
 */
 
@@ -73,7 +78,7 @@ module top(input wire clk, input wire s1,
         rst <= {rst[2:0], 1'b1};
 	end
 
-	// Domain #2: VGA @ 25.175
+	// Domain #2: VGA @ 25MHz
     logic pll2clk;
 	
 	reg [3:0] rst2 = 0;
@@ -85,10 +90,10 @@ module top(input wire clk, input wire s1,
 	
     // PLLs
     cflea_pll ms_minutes(
-        .clkin(clk), //input  clkin
-        .clkout0(pllclk), //output  clkout0
-        .clkout1(pll2clk), //output  clkout1
-        .mdclk()); //input  mdclk
+        .clkin(clk),        //input  clkin      (50MHz XTAL)
+        .clkout0(pllclk),   //output  clkout0   (125MHz CFLEA clock)
+        .clkout1(pll2clk),  //output  clkout1   (25MHz VGA clock)
+        .mdclk());          //input  mdclk
 
     // ### GPIO ###
     reg [7:0] gpio_out;
