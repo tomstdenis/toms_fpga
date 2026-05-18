@@ -105,13 +105,9 @@ module top(input wire clk, input wire s1,
 
 	// ### main memory ###  we use a dual port 8-bit memory so we can do
 	// 8 or 16 bit operations in the same amount of time
-	logic [15:0] main_mem_addr_a;
-	logic [7:0] main_mem_din_a;
 	logic main_mem_we_a;
 	logic [7:0] main_mem_dout_a;
 	
-	logic [15:0] main_mem_addr_b;
-	logic [7:0] main_mem_din_b;
 	logic main_mem_we_b;
 	logic [7:0] main_mem_dout_b;
 
@@ -123,7 +119,7 @@ module top(input wire clk, input wire s1,
         .reseta(~rst_n), //input reseta
         .wrea(main_mem_we_a), //input wrea
         .ada(cf_bus_address[15:0]), //input [15:0] ada
-        .dina(main_mem_din_a), //input [7:0] dina
+        .dina(cf_bus_data_in[7:0]), //input [7:0] dina
 
         .doutb(main_mem_dout_b), //output [7:0] doutb
         .clkb(pllclk), //input clkb
@@ -132,7 +128,7 @@ module top(input wire clk, input wire s1,
         .resetb(~rst_n), //input resetb
         .wreb(main_mem_we_b), //input wreb
         .adb(cf_bus_address[15:0] + 1'b1), //input [15:0] adb
-        .dinb(main_mem_din_b) //input [7:0] dinb
+        .dinb(cf_bus_data_in[15:8]) //input [7:0] dinb
     );
 
     // bit widths are for 640x480 VGA
@@ -306,11 +302,7 @@ module top(input wire clk, input wire s1,
             uart_tx_data_in     <= 0;
             uart_rx_read        <= 0;
             main_mem_we_a 		<= 0;
-            main_mem_addr_a		<= 0;
-            main_mem_din_a		<= 0;
             main_mem_we_b 		<= 0;
-            main_mem_addr_b		<= 0;
-            main_mem_din_b		<= 0;
             bus_cycle           <= 0;
             gpio_out            <= 16'hFF;
             cf_bus_ready        <= 0;
@@ -396,10 +388,6 @@ module top(input wire clk, input wire s1,
                     if (cf_bus_address[15:0] <= bus_address_main_mem_top) begin
                         // main mem
                         if (bus_cycle == 0) begin
-                            main_mem_addr_a <= cf_bus_address[15:0];
-                            main_mem_addr_b <= cf_bus_address[15:0] + 1'b1;
-                            main_mem_din_a <= cf_bus_data_in[7:0];
-                            main_mem_din_b <= cf_bus_data_in[15:8];
                             main_mem_we_a  <= cf_bus_wr_en;
                             main_mem_we_b  <= cf_bus_burst ? cf_bus_wr_en : 1'b0;
                             bus_cycle <= 1;
