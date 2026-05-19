@@ -136,11 +136,29 @@ vid_mode(unsigned mode)
 	}
 }
 
+unsigned read_video_status(void)
+{
+	asm {
+		IN $12
+	}
+}
 // wait till start of VGA vsync
 wait_vsync(void)
 {
+// active low so a 0 bit means we're in VSYNC
 	asm {
 wait_vsync_top
+		IN $12
+		ANDB #2
+		JNZ wait_vsync_top
+	}
+}
+
+// wait till end of VGA vsync
+wait_nvsync(void)
+{
+	asm {
+wait_nvsync_top
 		IN $12
 		ANDB #2
 		JZ wait_vsync_top
@@ -150,11 +168,23 @@ wait_vsync_top
 // wait till start of VGA hsync
 wait_hsync(void)
 {
+// active low HSYNC as well
 	asm {
 wait_hsync_top
 		IN $12
 		ANDB #4
-		JZ wait_vsync_top
+		JNZ wait_vsync_top
+	}
+}
+
+// wait to be in active video (this would be time to update your app logic)
+void wait_active_video(void)
+{
+	asm {
+wait_active_top
+		IN $12
+		ANDB #8
+		JZ wait_active_top
 	}
 }
 
@@ -191,7 +221,7 @@ main()
 
  	memset(vidmem, 0, 2048);
 	vid_mode(1);
-	for (y = 0; y < 5 * 4; y++) {
+	for (y = 0; y < 2 * 4; y++) {
 		wait_ms(250);
 		for (x = 0; x < 2048; x++) {
 			vidmem[x] = x + (y * 13);
@@ -201,10 +231,13 @@ main()
 	memset(vidmem, 0, 2048);
 	for (;;) {
 		wait_vsync();
+		// we're now in vsync for a bit which also includes time outside of vsync but still in blanking.
 		x = cpu_cycles(0);
 		z = rtl_version();
+		outp1(~(y>>4));				// output to LEDs ...
 		sprintf(vidmem, "Tom was here! %5u times, %5u cycles per call, top: %02x, core: %02x", ++y, x, z >> 8, z & 255);
 		memcpy(vidmem+80, vidmem, 80);
 		memcpy(vidmem+160, vidmem+80, 80);
+		wait_nvsync();
 	}
 }

@@ -327,6 +327,8 @@ module top(input wire clk, input wire s1,
 
     reg [1:0] vga_v_sync_cf;
     reg [1:0] vga_h_sync_cf;
+    reg [1:0] vga_active_cf;
+
     // bus controller
     always_ff @(posedge pllclk) begin
         if (!rst_n) begin
@@ -347,6 +349,7 @@ module top(input wire clk, input wire s1,
         end else begin
             vga_v_sync_cf <= {vga_v_sync_cf[0], vga_v_sync};  // 2-DFF sync the VGA V Sync into the CFLEA clock domain
             vga_h_sync_cf <= {vga_h_sync_cf[0], vga_h_sync};
+            vga_active_cf <= {vga_active_cf[0], vga_active};
 
 			// tick counter logic
             if (cycle_counter == (CYCLES_PER_TICK-1)) begin
@@ -406,7 +409,7 @@ module top(input wire clk, input wire s1,
                         if (cf_bus_wr_en) begin
                             lrg_mode <= cf_bus_data_in[0];
                         end else begin
-                            cf_bus_data_out <= {13'b0, vga_h_sync_cf[1], vga_v_sync_cf[1], lrg_mode};
+                            cf_bus_data_out <= {12'b0, vga_active_cf[1], vga_h_sync_cf[1], vga_v_sync_cf[1], lrg_mode};
                         end
                         cf_bus_ready <= 1'b1;
                     end else if (cf_bus_address[7:0] == 8'h01) begin // GPIO0
