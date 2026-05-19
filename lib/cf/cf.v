@@ -123,7 +123,7 @@ module cf_cpu #(
 				FSM_FETCH_OPCODE:
 					begin
 						// fetch next opcode byte
-						if (!bus_enable) begin	// we're doing the double handshake for now, probably don't need !bus_ready 
+						if (!bus_enable) begin
 							cf_start_fetch <= 1'b1;
 							bus_enable  <= 1'b1;
 							bus_wr_en   <= 1'b0;
@@ -166,7 +166,7 @@ module cf_cpu #(
                                 cycle_count <= 16'b0;
 							end else begin
 								// unhandled opcodes just make us fetch the next...
-								fsm_state <= FSM_FETCH_OPCODE;
+								fsm_state <= fsm_state;
 							end
 						end
 					end
@@ -333,7 +333,7 @@ module cf_cpu #(
 								end
 							4'h4: // DIV/DIVB
 								begin
-									fsm_state <= FSM_EXECUTE_ALU_OPCODE_00_97;			// loop here until division is done
+									fsm_state <= fsm_state;			// loop here until division is done
 									bus_enable <= 1'b0;
 									if (!sd_valid && !sd_ready) begin
 										sd_num   <= reg_ACC;
@@ -688,17 +688,17 @@ module cf_cpu #(
 					begin
 						if (!bus_enable) begin
 							bus_enable  <= 1'b1;
+							bus_wr_en   <= 1'b0;
+							bus_io_flag <= 1'b0;
+							bus_burst   <= 1'b0;
+							bus_address <= {1'b0, reg_PC };
 							case(cur_opcode[3:0])
 								4'hA: // ALLOC oo
 									begin
-										bus_burst   <= 1'b0;
-										bus_address <= {1'b0, reg_PC};
 										reg_PC      <= reg_PC + 1'b1;
 									end
 								4'hB: // FREE oo
 									begin
-										bus_burst   <= 1'b0;
-										bus_address <= {1'b0, reg_PC};
 										reg_PC      <= reg_PC + 1'b1;
 									end
 								4'hC: // PUSHA
@@ -719,15 +719,13 @@ module cf_cpu #(
 									end
 								4'hE: // TAS
 									begin
-										reg_SP      <= reg_ACC;
-										fsm_state   <= FSM_FETCH_OPCODE;
-										bus_enable  <= 1'b0;
+										reg_SP    <= reg_ACC;
+										fsm_state <= FSM_FETCH_OPCODE;
 									end
 								4'hF: // TSA
 									begin
 										reg_ACC   <= reg_SP;
 										fsm_state <= FSM_FETCH_OPCODE;
-										bus_enable  <= 1'b0;
 									end
 								default: begin end // note: lockup
 							endcase

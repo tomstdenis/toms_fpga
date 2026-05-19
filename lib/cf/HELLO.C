@@ -107,6 +107,13 @@ cpu_cycles_2
 				FCB $EE
 				RET
 			}
+		case 12:
+			asm {
+				FCB $EE
+				TSA
+				FCB $EE
+				RET
+			}
 	}
 	return 0;
 }
@@ -139,6 +146,7 @@ const char *tests[] = {
 	"ST $F800",
 	"LD $F800",
 	"LD $F000",
+	"TSA",
 	NULL
 };
 
