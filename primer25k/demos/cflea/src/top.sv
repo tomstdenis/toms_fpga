@@ -348,8 +348,8 @@ module top(input wire clk, input wire s1,
             vga_h_sync_cf       <= 0;
         end else begin
             vga_v_sync_cf <= {vga_v_sync_cf[0], vga_v_sync};  // 2-DFF sync the VGA V Sync into the CFLEA clock domain
-            vga_h_sync_cf <= {vga_h_sync_cf[0], vga_h_sync};
-            vga_active_cf <= {vga_active_cf[0], vga_active};
+            vga_h_sync_cf <= {vga_h_sync_cf[0], vga_h_sync};  // same for hsync
+            vga_active_cf <= {vga_active_cf[0], vga_active};  // same for vga_active
 
 			// tick counter logic
             if (cycle_counter == (CYCLES_PER_TICK-1)) begin

@@ -21,10 +21,7 @@ stack EQU $F900   * stack inside the video so we have something to see
    LEAI ?WELCOMSTR
    CALL putstr
 top
-   IN $00       	* read from UART
-   INC
-   SJZ top     * loop while no char
-   DEC
+   CALL getch
    OUT $00
    TAI
    CMPB #'S'    * compare to S
@@ -47,10 +44,7 @@ top
 * 4. Read n - 3 hex bytes (data)
 * 5. Read 1 hex byte (checksum)
 is_S
-   IN $00
-   INC
-   SJZ is_S       * wait for a char (the command)
-   DEC
+   CALL getch
    OUT $00
    CALL read_hex  * read the # of bytes 'n'
    SUBB #3		  * sub addr/checksum
@@ -70,7 +64,7 @@ is_S_loop
    STB temp4
    SJNZ is_S_loop
    CALL read_hex  * skip checksum
-   JMP top
+   SJMP top
    
 is_G
    CALL read_addr
@@ -79,12 +73,12 @@ is_G
 is_D
    CALL read_addr
    CALL puthexline
-   JMP top
+   SJMP top
    
 is_B
    CALL read_addr
    CALL puthexblock
-   JMP top
+   SJMP top
    
 * read address into addr
 read_addr
@@ -106,10 +100,7 @@ read_hex_top
    SHL #4
    STB temp
 read_hex_loop
-   IN $00
-   INC
-   SJZ read_hex_loop * read from uart
-   DEC
+   CALL getch
    OUT $00          * echo back
    STB temp3		* save the char being read
    CMPB #'9'        * assume it's 0-9A-F
@@ -166,7 +157,7 @@ puthexblock_top
 	LD 0,S
 	DEC
 	ST 0,S
-	JNZ puthexblock_top
+	SJNZ puthexblock_top
 	FREE 2
 	LDB #10				* print newline/cr
 	OUT $00
@@ -209,7 +200,7 @@ puthexline_top
 	LD 0,S
 	DEC
 	ST 0,S
-	JNZ puthexline_top
+	SJNZ puthexline_top
 	FREE 2
 	LD S+
     SUB #16				* subtract the 16 we added to it
@@ -250,5 +241,13 @@ puthex_bot
     LD S+
     LDI S+
     RET
+    
+getch
+   IN $00        * read from UART
+   INC
+   SJZ getch     * loop while no char
+   DEC
+   RET
+
 ?WELCOMSTR STR "C-FLEA Primer25K monitor -- Tom St Denis"
 ROM_END EQU *
