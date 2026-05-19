@@ -17,6 +17,7 @@ wait_ms_top
 	}
 }
 
+// benchmark various opcodes
 unsigned cpu_cycles(unsigned test)
 {
 	switch(test) {
@@ -118,6 +119,7 @@ cpu_cycles_2
 	return 0;
 }
 
+// return the TOP and CORE versions 
 unsigned rtl_version(void)
 {
 	asm {
@@ -125,11 +127,34 @@ unsigned rtl_version(void)
 	}
 }
 
+// set the video mode (0 == text, 1 == LRG)
 vid_mode(unsigned mode)
 {
 	asm {
 		LD 2,S
 		OUT $12
+	}
+}
+
+// wait till start of VGA vsync
+wait_vsync(void)
+{
+	asm {
+wait_vsync_top
+		IN $12
+		ANDB #2
+		JZ wait_vsync_top
+	}
+}
+
+// wait till start of VGA hsync
+wait_hsync(void)
+{
+	asm {
+wait_hsync_top
+		IN $12
+		ANDB #4
+		JZ wait_vsync_top
 	}
 }
 
@@ -153,7 +178,6 @@ const char *tests[] = {
 main()
 {
 	unsigned y, x, z;
-	char buf[64];
 	printf("\nCycle counts:\n");
 	for (z = x = 0; tests[x]; x++) {
 		y = cpu_cycles(x) - z;
@@ -167,21 +191,20 @@ main()
 
  	memset(vidmem, 0, 2048);
 	vid_mode(1);
-	for (x = 0; x < 2048; x++) {
-		vidmem[x] = x;
-	}
-	for (x = 0; x < 25 * 4; x++) {
+	for (y = 0; y < 5 * 4; y++) {
 		wait_ms(250);
+		for (x = 0; x < 2048; x++) {
+			vidmem[x] = x + (y * 13);
+		}
 	}
 	vid_mode(0);
 	memset(vidmem, 0, 2048);
 	for (;;) {
-		wait_ms(33);
+		wait_vsync();
 		x = cpu_cycles(0);
 		z = rtl_version();
-		sprintf(buf, "Tom was here! %5u times, %5u cycles per call, top: %02x, core: %02x", ++y, x, z >> 8, z & 255);
-		strcpy(vidmem, buf);
-		strcpy(vidmem+80, buf);
-		strcpy(vidmem+160, buf);
+		sprintf(vidmem, "Tom was here! %5u times, %5u cycles per call, top: %02x, core: %02x", ++y, x, z >> 8, z & 255);
+		memcpy(vidmem+80, vidmem, 80);
+		memcpy(vidmem+160, vidmem+80, 80);
 	}
 }
