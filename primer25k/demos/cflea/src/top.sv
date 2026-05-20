@@ -310,7 +310,7 @@ module top(input wire clk, input wire s1,
     wire cf_bus_enable;
     reg cf_bus_ready;
     reg [15:0] cf_bus_data_out;
-    reg [3:0] bus_cycle;
+    reg [1:0] bus_cycle;
 
     cf_cpu #(
         .TOP_VER(`CF_TOP_VER),
@@ -420,7 +420,7 @@ module top(input wire clk, input wire s1,
                     end else if (cf_bus_address[7:0] == 8'h13) begin // WDT
                         if (cf_bus_wr_en) begin
                             wdt          <= cf_bus_data_in[7:0];
-                            tick_counter <= 0;
+//                            tick_counter <= 0;
                         end else begin
                             cf_bus_data_out <= { 8'h00, wdt }; 
                         end
@@ -440,11 +440,11 @@ module top(input wire clk, input wire s1,
                     // handle memory (we fold 128K to 64K)
                     if (cf_bus_address[15:0] <= bus_address_main_mem_top) begin
                         // main mem
-                        if (bus_cycle == 0) begin
+                        if (bus_cycle[0] == 0) begin
                             main_mem_we_a  <= cf_bus_wr_en;
                             main_mem_we_b  <= cf_bus_burst ? cf_bus_wr_en : 1'b0;
                             bus_cycle <= 1;
-                        end else if (bus_cycle == 1) begin
+                        end else if (bus_cycle[0] == 1) begin
                             main_mem_we_a <= 1'b0;
                             main_mem_we_b <= 1'b0;
                             cf_bus_ready <= 1;
@@ -452,15 +452,11 @@ module top(input wire clk, input wire s1,
                         end
                     end else if (cf_bus_address[15:0] <= bus_address_rom_mem_top) begin
                         // rom memory
-                        if (cf_bus_wr_en) begin
-                            cf_bus_ready <= 1'b1;
-                        end else begin
-                            if (bus_cycle == 0) begin
-                                bus_cycle <= 1;
-                            end else if (bus_cycle == 1) begin
-                                cf_bus_ready <= 1;
-                                cf_bus_data_out = { cf_bus_burst ? boot_rom_dout_b : 8'b00, boot_rom_dout_a };
-                            end
+                        if (bus_cycle[0] == 0) begin
+                            bus_cycle <= 1;
+                        end else if (bus_cycle[0] == 1) begin
+                            cf_bus_ready <= 1;
+                            cf_bus_data_out = { cf_bus_burst ? boot_rom_dout_b : 8'b00, boot_rom_dout_a };
                         end
                     end else if (cf_bus_address[15:0] <= bus_address_text_mem_top) begin
                         // video memory

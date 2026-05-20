@@ -240,9 +240,10 @@ main()
 		memcpy(vidmem+160, vidmem+80, 80);
 		wait_nvsync();
 /*
-		if (y == 500) { // set 250ms WDT that we don't ack 
+		if (y == 500) { // set 250ms WDT that we don't ack (clear the tick counter first)
 			asm {
 				LDB #$FA
+				OUT $11
 				OUT $13
 			}
 		}
