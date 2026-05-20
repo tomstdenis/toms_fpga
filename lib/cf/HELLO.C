@@ -239,5 +239,19 @@ main()
 		memcpy(vidmem+80, vidmem, 80);
 		memcpy(vidmem+160, vidmem+80, 80);
 		wait_nvsync();
+/*
+		if (y == 500) { // set 250ms WDT that we don't ack 
+			asm {
+				LDB #$FA
+				OUT $13
+			}
+		}
+		// clear the tick counter for some time then stop to trigger the WDT
+		if (y < 532) {
+			asm {
+				OUT $11
+			}
+		}
+*/
 	}
 }

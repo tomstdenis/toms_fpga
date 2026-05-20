@@ -42,6 +42,8 @@ for I/O the following ports are used
    - 10h: uart status (uart_rx_ready, uart_tx_fifo_empty, uart_tx_fifo_full)
    - 11h: timer (counts 1ms ticks, writing anything to it resets to 0)
    - 12h: video mode (lsb == lrg_mode (48x40 8-bit colour mode, text mode is 1 byte per character 80x25 mode using CP437)
+   - 13h: WDT, non-zero value means if the tick_counter (11h) matches it triggers a reset.  A zero value disables the WDT
+          The idea is you write to 11h before the tick counter matches 
    
 */
 
@@ -71,7 +73,14 @@ module top(input wire clk, input wire s1,
 	
 	reg [3:0] rst = 0;
     reg [1:0] reset_sw;
-	wire rst_n = rst[3] & ~reset_sw[1]; // s1 is pulled up by the button so we want to pull reset low when the button is pressed
+    localparam
+		CYCLES_PER_TICK = ((`FREQ * 1_000_000) / 1000) * 1;					// tick every 1ms
+    reg [7:0] tick_counter;
+    reg [$clog2(CYCLES_PER_TICK):0] cycle_counter;
+
+    reg [7:0] wdt;
+    wire wdt_reset = ~(wdt > 0 && wdt == tick_counter);
+	wire rst_n = rst[3] & ~reset_sw[1] & wdt_reset; // s1 is pulled up by the button so we want to pull reset low when the button is pressed
 	
 	always @(posedge pllclk) begin
         reset_sw = {reset_sw[0], s1 };
@@ -316,11 +325,6 @@ module top(input wire clk, input wire s1,
         .bus_ready(cf_bus_ready),
         .bus_data_out(cf_bus_data_out));
 
-    localparam
-		CYCLES_PER_TICK = ((`FREQ * 1_000_000) / 1000) * 1;					// tick every 1ms
-    logic [7:0] tick_counter;
-    logic [$clog2(CYCLES_PER_TICK):0] cycle_counter;
-
     always_ff @(posedge pll2clk) begin
         lrg_mode_pll2 <= lrg_mode;
     end
@@ -346,6 +350,7 @@ module top(input wire clk, input wire s1,
             lrg_mode            <= 0;
             vga_v_sync_cf       <= 0;
             vga_h_sync_cf       <= 0;
+            wdt                 <= 0;
         end else begin
             vga_v_sync_cf <= {vga_v_sync_cf[0], vga_v_sync};  // 2-DFF sync the VGA V Sync into the CFLEA clock domain
             vga_h_sync_cf <= {vga_h_sync_cf[0], vga_h_sync};  // same for hsync
@@ -410,6 +415,14 @@ module top(input wire clk, input wire s1,
                             lrg_mode <= cf_bus_data_in[0];
                         end else begin
                             cf_bus_data_out <= {12'b0, vga_active_cf[1], vga_h_sync_cf[1], vga_v_sync_cf[1], lrg_mode};
+                        end
+                        cf_bus_ready <= 1'b1;
+                    end else if (cf_bus_address[7:0] == 8'h13) begin // WDT
+                        if (cf_bus_wr_en) begin
+                            wdt          <= cf_bus_data_in[7:0];
+                            tick_counter <= 0;
+                        end else begin
+                            cf_bus_data_out <= { 8'h00, wdt }; 
                         end
                         cf_bus_ready <= 1'b1;
                     end else if (cf_bus_address[7:0] == 8'h01) begin // GPIO0

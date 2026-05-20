@@ -16,26 +16,26 @@ addr EQU $FFFA    * we can 16-bit load the addr from here
 addrhi EQU $FFFB  * and write to the top half here
 stack EQU $F900   * stack inside the video so we have something to see
 
-   LD #stack
-   TAS          * SP = stack (F900)
-   LEAI ?WELCOMSTR
-   CALL putstr
+    LD #stack
+    TAS             * SP = stack (F900)
+    LEAI ?WELCOMSTR
+    CALL putstr
 top
-   CALL getch
-   OUT $00
-   TAI
-   CMPB #'S'    * compare to S
-   SJNZ is_S    * it's an 'S' so jump to that handler
-   TIA
-   CMPB #'G'
-   SJNZ is_G    * it's an 'G' jump there
-   TIA
-   CMPB #'D'
-   SJNZ is_D
-   TIA
-   CMPB #'B'
-   SJNZ is_B
-   SJMP top     * ignore and jump to top
+    CALL getch
+    OUT $00
+    TAI
+    CMPB #'S'     * compare to S
+    SJNZ is_S     * it's an 'S' so jump to that handler
+    TIA
+    CMPB #'G'
+    SJNZ is_G     * it's an 'G' jump there
+    TIA
+    CMPB #'D'
+    SJNZ is_D
+    TIA
+    CMPB #'B'
+    SJNZ is_B
+    SJMP top      * ignore and jump to top
 
 * S records we need 
 * 1. Read command '1' or '9'
@@ -44,86 +44,86 @@ top
 * 4. Read n - 3 hex bytes (data)
 * 5. Read 1 hex byte (checksum)
 is_S
-   CALL getch
-   OUT $00
-   CALL read_hex  * read the # of bytes 'n'
-   SUBB #3		  * sub addr/checksum
-   SJZ top		  * no bytes to store so just exit out
-   STB temp4      * temp4 == n
-   CALL read_hex  * read addrhi
-   STB addrhi
-   CALL read_hex  * read bottom
-   STB addr
-   LDI addr       * INDEX = address to store to
+    CALL getch
+    OUT $00
+    CALL read_hex  	* read the # of bytes 'n'
+    SUBB #3		  	* sub addr/checksum
+    SJZ top		  	* no bytes to store so just exit out
+    STB temp4       * temp4 == n
+    CALL read_hex  	* read addrhi
+    STB addrhi
+    CALL read_hex	* read bottom
+    STB addr
+    LDI addr        * INDEX = address to store to
 is_S_loop
-   CALL read_hex
-   STB I		  * store via index
-   LEAI 1,I		  * increment iindex
-   LDB temp4      * load n
-   DEC
-   STB temp4
-   SJNZ is_S_loop
-   CALL read_hex  * skip checksum
-   SJMP top
-   
+    CALL read_hex
+    STB I		  	* store via index
+    LEAI 1,I		* increment iindex
+    LDB temp4       * load n
+    DEC
+    STB temp4
+    SJNZ is_S_loop
+    CALL read_hex	* skip checksum
+    SJMP top
+    
 is_G
-   CALL read_addr
-   IJMP
+    CALL read_addr
+    IJMP
 
 is_D
-   CALL read_addr
-   CALL puthexline
-   SJMP top
-   
+    CALL read_addr
+    CALL puthexline
+    SJMP top
+    
 is_B
-   CALL read_addr
-   CALL puthexblock
-   SJMP top
-   
+    CALL read_addr
+    CALL puthexblock
+    SJMP top
+    
 * read address into addr
 read_addr
-   CALL read_hex
-   STB addrhi
-   CALL read_hex
-   STB addr
-   LD addr
-   RET
+    CALL read_hex
+    STB addrhi
+    CALL read_hex
+    STB addr
+    LD addr
+    RET
 
 * read hex byte into ACC
 read_hex
-   CLR
-   STB temp         * zero the temp byte
-   LDB #2
-   STB temp2        * zero nibble count
+    CLR
+    STB temp            * zero the temp byte
+    LDB #2
+    STB temp2          	* zero nibble count
 read_hex_top
-   LDB temp         * shift temp up 4 bits for next nibble
-   SHL #4
-   STB temp
+    LDB temp            * shift temp up 4 bits for next nibble
+    SHL #4
+    STB temp
 read_hex_loop
-   CALL getch
-   OUT $00          * echo back
-   STB temp3		* save the char being read
-   CMPB #'9'        * assume it's 0-9A-F
-   UGT              * check for >'9'
-   SJNZ read_hex_af
-   LDB temp3        * readload byte
-   SUBB #'0'		* it's 0-9
+    CALL getch
+    OUT $00             * echo back
+    STB temp3			* save the char being read
+    CMPB #'9'          	* assume it's 0-9A-F
+    UGT                 * check for >'9'
+    SJNZ read_hex_af
+    LDB temp3          	* readload byte
+    SUBB #'0'			* it's 0-9
 read_hex_store_nibble
-   ORB temp			* or with accumulated data
-   STB temp         * store back
-   LDB temp2
-   DEC
-   STB temp2
-   SJNZ read_hex_top
-   SJMP read_hex_end
+    ORB temp			* or with accumulated data
+    STB temp            * store back
+    LDB temp2
+    DEC
+    STB temp2
+    SJNZ read_hex_top
+    SJMP read_hex_end
 read_hex_af
-   LDB temp3        * reload byte
-   SUBB #'A'        * subtract 'A'
-   ADDB #10         * then normalize to 10..15
-   SJMP read_hex_store_nibble
+    LDB temp3          	* reload byte
+    SUBB #'A'          	* subtract 'A'
+    ADDB #10            * then normalize to 10..15
+    SJMP read_hex_store_nibble
 read_hex_end
-   LDB temp         * we're done
-   RET
+    LDB temp            * we're done
+    RET
 
 * putstr in INDEX
 putstr
@@ -243,11 +243,11 @@ puthex_bot
     RET
     
 getch
-   IN $00        * read from UART
-   INC
-   SJZ getch     * loop while no char
-   DEC
-   RET
+    IN $00        * read from UART
+    INC
+    SJZ getch     * loop while no char
+    DEC
+    RET
 
 ?WELCOMSTR STR "C-FLEA Primer25K monitor -- Tom St Denis"
 ROM_END EQU *
