@@ -1,6 +1,11 @@
-all: test_serial_divide.pass
+all: test_serial_divide.pass test_sqrt_bin.pass
 
 test_serial_divide.pass: serial_divide.v serial_divide_tb.v
+	verilator --lint-only $^
+	iverilog -Wall -o sim.vvp $^
+	(vvp sim.vvp -fst > $@.log && touch $@) || cat $@.log
+
+test_sqrt_bin.pass: sqrt_bin.v sqrt_bin_tb.v
 	verilator --lint-only $^
 	iverilog -Wall -o sim.vvp $^
 	(vvp sim.vvp -fst > $@.log && touch $@) || cat $@.log

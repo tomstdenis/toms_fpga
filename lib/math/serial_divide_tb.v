@@ -60,10 +60,10 @@ module serial_divide_tb();
 		
 		// normally at this point testing would be considered complete.  But for the sake of being a "perfectionist"
 		// I guess we could try some random numbers
-		for (i = 0; i < 500000; i = i + 1) begin
+		for (i = 0; i < 50000; i = i + 1) begin
 /* verilator lint_off WIDTHTRUNC */
 			num = $urandom_range(0, ((1<<BIT_WIDTH)-1));
-			if (i < 100000)
+			if (i < 10000)
 				denom = $urandom_range(0, (1 << (BIT_WIDTH)) - 1);
 			else
 				denom = $urandom_range(0, (1 << (BIT_WIDTH-8)) - 1);

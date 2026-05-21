@@ -1,0 +1,1 @@
+SUBSYSTEM=="usb", ATTR{idVendor}=="33aa", ATTR{idProduct}=="0120", SYMLINK+="gowinsemi_gwu2x%n", MODE="0666"

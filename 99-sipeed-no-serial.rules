@@ -1,0 +1,5 @@
+# Grant permissions for raw libusb JTAG access
+SUBSYSTEM=="usb", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6010", MODE="0666", GROUP="plugdev"
+
+# The Bulletproof Unbind: Triggers whenever the Sipeed device is bound to a driver
+SUBSYSTEM=="usb", ATTRS{idVendor}=="0403", ATTRS{idProduct}=="6010", ACTION=="bind", RUN+="/bin/sh -c 'clunbind() { echo $1 > /sys/bus/usb/drivers/ftdi_sio/unbind; }; clunbind $kernel:1.0; clunbind $kernel:1.1'"
