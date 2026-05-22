@@ -42,6 +42,7 @@ module vga_text_driver #(
 	output reg [7:0] symbol											// symbol to feed font rom
 );	
 
+    // TODO: change text_col/row to reg and count manually
 	// variables for text mode 
 	// which character position are we at
 	wire [$clog2(H_VISIBLE):0] text_col = x / FONTWIDTH;
@@ -75,24 +76,27 @@ module vga_text_driver #(
 					symbol <= rd_data;
 				end
 			end else begin
-				if (x == (H_TOTAL-3)) begin
-					// set the next address 
-					if (y >= (V_TOTAL-1)) begin
-						rd_addr <= 0;
+                // we're either just entering HBLANK or VBLANK
+				if (x == (H_TOTAL-3-X_FETCH_DELAY)) begin
+					// set the next address for the next scanline which is either
+                    // another line of the same text char row or the first row of the next row of text...
+					if (y >= (TEXTROWS*FONTHEIGHT-1)) begin
+						rd_addr <= 0;                                               // we're beyond text row 25 so start at 0
 					end else begin
-						if (y[$clog2(FONTHEIGHT)-1:0] == (FONTHEIGHT-1)) begin
+						if (y[$clog2(FONTHEIGHT)-1:0] == (FONTHEIGHT-1)) begin      // next row of chars
 							rd_addr <= (text_row * TEXTCOLS) + TEXTCOLS;
 						end else begin
-							rd_addr <= (text_row * TEXTCOLS);
+							rd_addr <= (text_row * TEXTCOLS);                       // next font row of same text row
 						end
 					end
-				end else if (x == (H_TOTAL-1)) begin
-					if (text_row >= TEXTROWS) begin
-						symbol <= 8'h20;
-					end else begin
-						symbol <= rd_data;
-					end
+				end else if (x == (H_TOTAL-1-X_FETCH_DELAY)) begin
+                    if (y < (TEXTROWS*FONTHEIGHT-1)|| y == V_TOTAL-1) begin            // either we're in the first 25 rows OR the last line preparing for row 0
+                        symbol <= rd_data;
+                    end else begin
+                        symbol <= 8'h20; // SPC
+                    end
 				end
+
 			end
 			if (active_video && y >= (TEXTROWS*FONTHEIGHT)) begin
 				symbol <= 8'h20;
@@ -105,9 +109,9 @@ module vga_text_driver #(
 				x_cnt   <= x_cnt + 1'b1;
 			end
 			// lowres graphics mode
-			if (x < (((LRG_COLS - 1) * LRG_PWIDTH) - 1) && y < (LRG_ROWS * LRG_PHEIGHT)) begin
+			if (x < ((LRG_COLS) * LRG_PWIDTH) && y < (LRG_ROWS * LRG_PHEIGHT)) begin
 				rd_addr <= lrg_current_addr + 1'b1;
-				if (x_cnt == (LRG_PWIDTH-X_FETCH_DELAY)) begin
+				if (x_cnt == (LRG_PWIDTH-1)) begin
 					symbol  <= rd_data;
 				end
 			end else begin
