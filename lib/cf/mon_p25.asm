@@ -22,7 +22,6 @@ stack EQU $F900   * stack inside the video so we have something to see
     CALL putstr
 top
     CALL getch
-    OUT $00
     TAI
     CMPB #'S'     * compare to S
     SJNZ is_S     * it's an 'S' so jump to that handler
@@ -45,7 +44,6 @@ top
 * 5. Read 1 hex byte (checksum)
 is_S
     CALL getch
-    OUT $00
     CALL read_hex  	* read the # of bytes 'n'
     SUBB #3		  	* sub addr/checksum
     SJZ top		  	* no bytes to store so just exit out
@@ -101,7 +99,6 @@ read_hex_top
     STB temp
 read_hex_loop
     CALL getch
-    OUT $00             * echo back
     STB temp3			* save the char being read
     CMPB #'9'          	* assume it's 0-9A-F
     UGT                 * check for >'9'

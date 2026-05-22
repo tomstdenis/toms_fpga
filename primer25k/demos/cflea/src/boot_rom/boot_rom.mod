@@ -20,7 +20,7 @@
 -read_mode_1 bypass
 -write_mode_0 normal
 -write_mode_1 normal
--speed false
+-speed true
 -reset_mode sync
 -init_file /home/tom/nas/toms_fpga/lib/cf/mon_p25.hex.mi
 -init_match port_A

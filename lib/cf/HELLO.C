@@ -205,9 +205,12 @@ const char *tests[] = {
 	NULL
 };
 
+char buf[128];
+
 main()
 {
 	unsigned y, x, z;
+	void *p, *p2;
 	printf("\nCycle counts:\n");
 	for (z = x = 0; tests[x]; x++) {
 		y = cpu_cycles(x) - z;
@@ -217,7 +220,12 @@ main()
 		printf("\t%s: %u\n", tests[x], y);
 	}
 	y = 0;
-
+	
+	p = malloc(1024);
+	p2 = malloc(1024);
+	printf("p == %x, p2 == %x, &buf == %x\n", p, p2, &buf[0]);
+	free(p);
+	free(p2);
 
  	memset(vidmem, 0, 2048);
 	vid_mode(1);

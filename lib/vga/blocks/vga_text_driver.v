@@ -76,6 +76,10 @@ module vga_text_driver #(
 					symbol <= rd_data;
 				end
 			end else begin
+
+// TODO:  current bug.  the first column of pixels is shifted down one, or more so the font char
+// is the one above, e.g. when rendering vga_x == 0, we're using (vga_y-FONTHEIGHT)/FONTHEIGHT as the text_y 
+
                 // we're either just entering HBLANK or VBLANK
 				if (x == (H_TOTAL-3-X_FETCH_DELAY)) begin
 					// set the next address for the next scanline which is either
@@ -96,10 +100,6 @@ module vga_text_driver #(
                         symbol <= 8'h20; // SPC
                     end
 				end
-
-			end
-			if (active_video && y >= (TEXTROWS*FONTHEIGHT)) begin
-				symbol <= 8'h20;
 			end
 		end else begin
 			if (x_cnt >= (LRG_PWIDTH-1)) begin

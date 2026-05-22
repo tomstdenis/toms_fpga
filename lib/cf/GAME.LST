@@ -1,0 +1,1166 @@
+DUNFIELD CFLEA ASSEMBLER: game                                         PAGE: 1
+
+0000                         1  *#cpu CFLEA
+0000                         2  *
+0000                         3  * DDS MICRO-C C-FLEA Runtime Library - Prefix file
+0000                         4  *
+0000                         5  * Copyright 1991-2005 Dave Dunfield
+0000                         6  * All rights reserved.
+0000                         7  *
+1000                         8  	ORG	$1000		Place code in memory here
+1000                         9  * Begin execution here... Setup stack, zero heap & call main()
+1000  00 00 10              10  	LD	#*		Stack below here
+1003  DE                    11  	TAS			Set up stack
+1004  E0                    12  	CLR			Get zero
+1005  A9 02 00              13  	STB	?heap		Zero heap
+1008  D8 9D 13              14  	CALL	main		Run main program
+100B                        15  * Most embedded programs will never return or exit, however if they
+100B                        16  * do, this section of code should do something appropriate, either
+100B                        17  * restart the program, or stop the machine. For this system, we will
+100B                        18  * simply freeze by entering an infinite loop.
+100B  D3 FE                 19  exit	SJMP	*		Loop forever
+100D                        20  *50000 22/5/2026
+100D                        21  wait_ms EQU *
+100D  EA 11                 22  		OUT $11			* clear timer
+100F                        23  wait_ms_top
+100F  EB 11                 24  		IN $11			* read timer
+1011  84 02                 25  		CMP 2,S			* compare to ms 
+1013  D1 0F 10              26  		JZ wait_ms_top  * wait till ms passes
+1016  D9                    27   RET
+1017                        28  vid_mode EQU *
+1017  04 02                 29  		LD 2,S
+1019  EA 12                 30  		OUT $12
+101B  D9                    31   RET
+101C                        32  read_video_stat EQU *
+101C  EB 12                 33  		IN $12
+101E  D9                    34   RET
+101F                        35  wait_vsync EQU *
+101F                        36  wait_vsync_top
+101F  EB 12                 37  		IN $12
+1021  58 02                 38  		ANDB #2
+1023  D2 1F 10              39  		JNZ wait_vsync_top
+1026  D9                    40   RET
+1027                        41  wait_nvsync EQU *
+1027                        42  wait_nvsync_top
+1027  EB 12                 43  		IN $12
+1029  58 02                 44  		ANDB #2
+102B  D1 1F 10              45  		JZ wait_vsync_top
+102E  D9                    46   RET
+102F                        47  wait_hsync EQU *
+102F                        48  wait_hsync_top
+102F  EB 12                 49  		IN $12
+1031  58 04                 50  		ANDB #4
+1033  D2 1F 10              51  		JNZ wait_vsync_top
+1036  D9                    52   RET
+1037                        53  wait_active_vid EQU *
+1037                        54  wait_active_top
+1037  EB 12                 55  		IN $12
+1039  58 08                 56  		ANDB #8
+103B  D1 37 10              57  		JZ wait_active_top
+103E  D9                    58   RET
+DUNFIELD CFLEA ASSEMBLER: game                                         PAGE: 2
+
+103F                        59  clrscr EQU *
+103F  00 00 F8              60   LD #-2048
+1042  DC                    61   PUSHA
+1043  E0                    62   CLR
+1044  DC                    63   PUSHA
+1045  00 00 08              64   LD #2048
+1048  DC                    65   PUSHA
+1049  D8 FC 14              66   CALL memset
+104C  DB 06                 67   FREE 6
+104E  D9                    68   RET
+104F  DA 02                 69  putsxy ALLOC 2
+1051  04 04                 70   LD 4,S
+1053  38 50                 71   MULB #80
+1055  10 00 F8              72   ADD #-2048
+1058  14 06                 73   ADD 6,S
+105A  A4 00                 74   ST 0,S
+105C  DC                    75   PUSHA
+105D  04 0A                 76   LD 10,S
+105F  DC                    77   PUSHA
+1060  D8 30 15              78   CALL strcpy
+1063  DB 06                 79   FREE 4+2
+1065  D9                    80   RET
+1066                        81  putscentered EQU *
+1066  04 04                 82   LD 4,S
+1068  DC                    83   PUSHA
+1069  04 06                 84   LD 6,S
+106B  DC                    85   PUSHA
+106C  D8 41 15              86   CALL strlen
+106F  DB 02                 87   FREE 2
+1071  B8 01                 88   SHR #1
+1073  A1 00 00              89   ST ?temp
+1076  08 28                 90   LDB #40
+1078  21 00 00              91   SUB ?temp
+107B  DC                    92   PUSHA
+107C  04 06                 93   LD 6,S
+107E  DC                    94   PUSHA
+107F  D8 4F 10              95   CALL putsxy
+1082  DB 06                 96   FREE 6
+1084  D9                    97   RET
+1085  DA 02                 98  hline ALLOC 2
+1087  04 06                 99   LD 6,S
+1089  38 30                100   MULB #48
+108B  10 00 F8             101   ADD #-2048
+108E  14 08                102   ADD 8,S
+1090  A4 00                103   ST 0,S
+1092                       104  ?AB1 EQU *
+1092  04 08                105   LD 8,S
+1094  E4                   106   INC
+1095  A4 08                107   ST 8,S
+1097  E5                   108   DEC
+1098  84 04                109   CMP 4,S
+109A  CD                   110   ULE
+109B  D1 AA 10             111   JZ ?AB2
+109E  04 00                112   LD 0,S
+10A0  E6                   113   TAI ;
+10A1  E4                   114   INC
+10A2  A4 00                115   ST 0,S
+10A4  0C 0A                116   LDB 10,S
+DUNFIELD CFLEA ASSEMBLER: game                                         PAGE: 3
+
+10A6  AA                   117   STB I
+10A7  D0 92 10             118   JMP ?AB1
+10AA                       119  ?AB2 EQU *
+10AA  95                   120   LDI S+
+10AB  D9                   121   RET
+10AC  DA 02                122  vline ALLOC 2
+10AE  04 06                123   LD 6,S
+10B0  38 30                124   MULB #48
+10B2  10 00 F8             125   ADD #-2048
+10B5  14 08                126   ADD 8,S
+10B7  A4 00                127   ST 0,S
+10B9                       128  ?AB3 EQU *
+10B9  04 06                129   LD 6,S
+10BB  E4                   130   INC
+10BC  A4 06                131   ST 6,S
+10BE  E5                   132   DEC
+10BF  84 04                133   CMP 4,S
+10C1  CD                   134   ULE
+10C2  D1 D3 10             135   JZ ?AB4
+10C5  94 00                136   LDI 0,S
+10C7  0C 0A                137   LDB 10,S
+10C9  AA                   138   STB I
+10CA  04 00                139   LD 0,S
+10CC  18 30                140   ADDB #48
+10CE  A4 00                141   ST 0,S
+10D0  D0 B9 10             142   JMP ?AB3
+10D3                       143  ?AB4 EQU *
+10D3  95                   144   LDI S+
+10D4  D9                   145   RET
+10D5                       146  plotxy EQU *
+10D5  04 02                147   LD 2,S
+10D7  38 30                148   MULB #48
+10D9  14 04                149   ADD 4,S
+10DB  90 00 F8             150   LDI #-2048
+10DE  E8                   151   ADAI
+10DF  0C 06                152   LDB 6,S
+10E1  AA                   153   STB I
+10E2  D9                   154   RET
+10E3  4A 14 50 14 00 00    155  menutxt FDB ?AB0+0,?AB0+6,0
+10E9  DA 24                156  menu ALLOC 36
+10EB  D8 3F 10             157   CALL clrscr
+10EE  E0                   158   CLR
+10EF  DC                   159   PUSHA
+10F0  D8 17 10             160   CALL vid_mode
+10F3  DB 02                161   FREE 2
+10F5  00 5B 14             162   LD #?AB0+17
+10F8  DC                   163   PUSHA
+10F9  08 03                164   LDB #3
+10FB  DC                   165   PUSHA
+10FC  D8 66 10             166   CALL putscentered
+10FF  DB 04                167   FREE 4
+1101  E0                   168   CLR
+1102  A4 20                169   ST 32,S
+1104                       170  ?AB5 EQU *
+1104  04 20                171   LD 32,S
+1106  38 02                172   MULB #2
+1108  90 E3 10             173   LDI #menutxt
+110B  E8                   174   ADAI
+DUNFIELD CFLEA ASSEMBLER: game                                         PAGE: 4
+
+110C  02                   175   LD I
+110D  D5 0A                176   SJNZ ?AB7
+110F  D0 49 11             177   JMP ?AB6
+1112                       178  ?AB8 EQU *
+1112  04 20                179   LD 32,S
+1114  E4                   180   INC
+1115  A4 20                181   ST 32,S
+1117  D3 EB                182   SJMP ?AB5
+1119                       183  ?AB7 EQU *
+1119  9C 00                184   LEAI 0,S
+111B  DD                   185   PUSHI
+111C  00 7C 14             186   LD #?AB0+50
+111F  DC                   187   PUSHA
+1120  04 24                188   LD 36,S
+1122  18 01                189   ADDB #1
+1124  DC                   190   PUSHA
+1125  04 26                191   LD 38,S
+1127  38 02                192   MULB #2
+1129  90 E3 10             193   LDI #menutxt
+112C  E8                   194   ADAI
+112D  02                   195   LD I
+112E  DC                   196   PUSHA
+112F  08 04                197   LDB #4
+1131  D8 DA 14             198   CALL sprintf
+1134  DB 08                199   FREE 8
+1136  9C 00                200   LEAI 0,S
+1138  DD                   201   PUSHI
+1139  08 05                202   LDB #5
+113B  DC                   203   PUSHA
+113C  04 24                204   LD 36,S
+113E  18 05                205   ADDB #5
+1140  DC                   206   PUSHA
+1141  D8 4F 10             207   CALL putsxy
+1144  DB 06                208   FREE 6
+1146  D0 12 11             209   JMP ?AB8
+1149                       210  ?AB6 EQU *
+1149  00 84 14             211   LD #?AB0+58
+114C  DC                   212   PUSHA
+114D  08 05                213   LDB #5
+114F  DC                   214   PUSHA
+1150  04 24                215   LD 36,S
+1152  18 07                216   ADDB #7
+1154  DC                   217   PUSHA
+1155  D8 4F 10             218   CALL putsxy
+1158  DB 06                219   FREE 6
+115A                       220  ?AB9 EQU *
+115A  D8 6E 15             221   CALL getch
+115D  A4 22                222   ST 34,S
+115F                       223  ?AB10 EQU *
+115F  04 22                224   LD 34,S
+1161  88 30                225   CMPB #48
+1163  C8                   226   LT
+1164  D5 05                227   SJNZ ?AB12
+1166  04 22                228   LD 34,S
+1168  88 39                229   CMPB #57
+116A  CA                   230   GT
+116B                       231  ?AB12 EQU *
+116B  D2 5A 11             232   JNZ ?AB9
+DUNFIELD CFLEA ASSEMBLER: game                                         PAGE: 5
+
+116E                       233  ?AB11 EQU *
+116E  04 22                234   LD 34,S
+1170  28 30                235   SUBB #48
+1172                       236  ?AB13 EQU *
+1172  DB 24                237   FREE 36
+1174  D9                   238   RET
+1175  DA 2D                239  snake ALLOC 45
+1177                       240  ?AB14 EQU *
+1177  9C 00                241   LEAI 0,S
+1179  DD                   242   PUSHI
+117A  E0                   243   CLR
+117B  DC                   244   PUSHA
+117C  08 10                245   LDB #16
+117E  DC                   246   PUSHA
+117F  D8 FC 14             247   CALL memset
+1182  DB 06                248   FREE 6
+1184  9C 10                249   LEAI 16,S
+1186  DD                   250   PUSHI
+1187  E0                   251   CLR
+1188  DC                   252   PUSHA
+1189  08 10                253   LDB #16
+118B  DC                   254   PUSHA
+118C  D8 FC 14             255   CALL memset
+118F  DB 06                256   FREE 6
+1191  9C 00                257   LEAI 0+0,S
+1193  08 04                258   LDB #4
+1195  AA                   259   STB I
+1196  9C 10                260   LEAI 16+0,S
+1198  08 04                261   LDB #4
+119A  AA                   262   STB I
+119B  08 01                263   LDB #1
+119D  AC 21                264   STB 33,S
+119F  08 0A                265   LDB #10
+11A1  AC 24                266   STB 36,S
+11A3  AC 23                267   STB 35,S
+11A5  08 01                268   LDB #1
+11A7  AC 20                269   STB 32,S
+11A9  E0                   270   CLR
+11AA  AC 22                271   STB 34,S
+11AC  E0                   272   CLR
+11AD  A4 29                273   ST 41,S
+11AF  D8 3F 10             274   CALL clrscr
+11B2  08 01                275   LDB #1
+11B4  DC                   276   PUSHA
+11B5  D8 17 10             277   CALL vid_mode
+11B8  DB 02                278   FREE 2
+11BA                       279  ?AB15 EQU *
+11BA                       280  ?AB17 EQU *
+11BA  D8 1C 10             281   CALL read_video_stat
+11BD  58 08                282   ANDB #8
+11BF  D1 BA 11             283   JZ ?AB17
+11C2                       284  ?AB18 EQU *
+11C2                       285  ?AB19 EQU *
+11C2  D8 8C 15             286   CALL chkchr
+11C5  A4 2B                287   ST 43,S
+11C7  90 E9 11             288   LDI #?AB23
+11CA  D7                   289   SWITCH
+11CB                       290  ?AB24 EQU *
+DUNFIELD CFLEA ASSEMBLER: game                                         PAGE: 6
+
+11CB  E0                   291   CLR
+11CC  AC 21                292   STB 33,S
+11CE  D0 01 12             293   JMP ?AB22
+11D1                       294  ?AB25 EQU *
+11D1  08 02                295   LDB #2
+11D3  AC 21                296   STB 33,S
+11D5  D0 01 12             297   JMP ?AB22
+11D8                       298  ?AB26 EQU *
+11D8  08 03                299   LDB #3
+11DA  AC 21                300   STB 33,S
+11DC  D0 01 12             301   JMP ?AB22
+11DF                       302  ?AB27 EQU *
+11DF  08 01                303   LDB #1
+11E1  AC 21                304   STB 33,S
+11E3  D0 01 12             305   JMP ?AB22
+11E6                       306  ?AB28 EQU *
+11E6  D0 9A 13             307   JMP ?AB29
+11E9                       308  ?AB23 EQU *
+11E9  E6 11 71 00 DF 11 +  309   FDB ?AB28,113,?AB27,100,?AB26,97,?AB25,115,?AB24,119,0,?AB22
+1201                       310  ?AB22 EQU *
+1201                       311  ?AB20 EQU *
+1201  D8 1C 10             312   CALL read_video_stat
+1204  58 02                313   ANDB #2
+1206  D2 C2 11             314   JNZ ?AB19
+1209                       315  ?AB21 EQU *
+1209  04 29                316   LD 41,S
+120B  E4                   317   INC
+120C  A4 29                318   ST 41,S
+120E  88 02                319   CMPB #2
+1210  D1 BA 11             320   JZ ?AB15
+1213                       321  ?AB30 EQU *
+1213  E0                   322   CLR
+1214  A4 29                323   ST 41,S
+1216  D8 3F 10             324   CALL clrscr
+1219  08 07                325   LDB #7
+121B  DC                   326   PUSHA
+121C  E0                   327   CLR
+121D  DC                   328   PUSHA
+121E  E0                   329   CLR
+121F  DC                   330   PUSHA
+1220  08 2F                331   LDB #47
+1222  DC                   332   PUSHA
+1223  D8 85 10             333   CALL hline
+1226  DB 08                334   FREE 8
+1228  08 07                335   LDB #7
+122A  DC                   336   PUSHA
+122B  E0                   337   CLR
+122C  DC                   338   PUSHA
+122D  08 27                339   LDB #39
+122F  DC                   340   PUSHA
+1230  08 2F                341   LDB #47
+1232  DC                   342   PUSHA
+1233  D8 85 10             343   CALL hline
+1236  DB 08                344   FREE 8
+1238  08 07                345   LDB #7
+123A  DC                   346   PUSHA
+123B  E0                   347   CLR
+123C  DC                   348   PUSHA
+DUNFIELD CFLEA ASSEMBLER: game                                         PAGE: 7
+
+123D  E0                   349   CLR
+123E  DC                   350   PUSHA
+123F  08 27                351   LDB #39
+1241  DC                   352   PUSHA
+1242  D8 AC 10             353   CALL vline
+1245  DB 08                354   FREE 8
+1247  08 07                355   LDB #7
+1249  DC                   356   PUSHA
+124A  08 2F                357   LDB #47
+124C  DC                   358   PUSHA
+124D  E0                   359   CLR
+124E  DC                   360   PUSHA
+124F  08 27                361   LDB #39
+1251  DC                   362   PUSHA
+1252  D8 AC 10             363   CALL vline
+1255  DB 08                364   FREE 8
+1257  0C 20                365   LDB 32,S
+1259  A4 25                366   ST 37,S
+125B                       367  ?AB31 EQU *
+125B  04 25                368   LD 37,S
+125D  88 00                369   CMPB #0
+125F  CE                   370   UGT
+1260  D5 0A                371   SJNZ ?AB33
+1262  D0 8D 12             372   JMP ?AB32
+1265                       373  ?AB34 EQU *
+1265  04 25                374   LD 37,S
+1267  E5                   375   DEC
+1268  A4 25                376   ST 37,S
+126A  D3 EF                377   SJMP ?AB31
+126C                       378  ?AB33 EQU *
+126C  04 25                379   LD 37,S
+126E  9C 00                380   LEAI 0,S
+1270  E8                   381   ADAI
+1271  DD                   382   PUSHI
+1272  04 27                383   LD 39,S
+1274  28 01                384   SUBB #1
+1276  9C 02                385   LEAI 2,S
+1278  E8                   386   ADAI
+1279  0A                   387   LDB I
+127A  AE                   388   STB [S+]
+127B  04 25                389   LD 37,S
+127D  9C 10                390   LEAI 16,S
+127F  E8                   391   ADAI
+1280  DD                   392   PUSHI
+1281  04 27                393   LD 39,S
+1283  28 01                394   SUBB #1
+1285  9C 12                395   LEAI 18,S
+1287  E8                   396   ADAI
+1288  0A                   397   LDB I
+1289  AE                   398   STB [S+]
+128A  D0 65 12             399   JMP ?AB34
+128D                       400  ?AB32 EQU *
+128D  0C 21                401   LDB 33,S
+128F  90 B3 12             402   LDI #?AB36
+1292  D7                   403   SWITCH
+1293                       404  ?AB37 EQU *
+1293  9C 10                405   LEAI 16+0,S
+1295  0A                   406   LDB I
+DUNFIELD CFLEA ASSEMBLER: game                                         PAGE: 8
+
+1296  E5                   407   DEC
+1297  AA                   408   STB I
+1298  D0 C7 12             409   JMP ?AB35
+129B                       410  ?AB38 EQU *
+129B  9C 00                411   LEAI 0+0,S
+129D  0A                   412   LDB I
+129E  E4                   413   INC
+129F  AA                   414   STB I
+12A0  D0 C7 12             415   JMP ?AB35
+12A3                       416  ?AB39 EQU *
+12A3  9C 10                417   LEAI 16+0,S
+12A5  0A                   418   LDB I
+12A6  E4                   419   INC
+12A7  AA                   420   STB I
+12A8  D0 C7 12             421   JMP ?AB35
+12AB                       422  ?AB40 EQU *
+12AB  9C 00                423   LEAI 0+0,S
+12AD  0A                   424   LDB I
+12AE  E5                   425   DEC
+12AF  AA                   426   STB I
+12B0  D0 C7 12             427   JMP ?AB35
+12B3                       428  ?AB36 EQU *
+12B3  AB 12 03 00 A3 12 +  429   FDB ?AB40,3,?AB39,2,?AB38,1,?AB37,0,0,?AB35
+12C7                       430  ?AB35 EQU *
+12C7  0C 20                431   LDB 32,S
+12C9  A4 25                432   ST 37,S
+12CB                       433  ?AB41 EQU *
+12CB  04 25                434   LD 37,S
+12CD  88 00                435   CMPB #0
+12CF  CE                   436   UGT
+12D0  D5 0A                437   SJNZ ?AB43
+12D2  D0 12 13             438   JMP ?AB42
+12D5                       439  ?AB44 EQU *
+12D5  04 25                440   LD 37,S
+12D7  E5                   441   DEC
+12D8  A4 25                442   ST 37,S
+12DA  D3 EF                443   SJMP ?AB41
+12DC                       444  ?AB43 EQU *
+12DC  08 38                445   LDB #56
+12DE  DC                   446   PUSHA
+12DF  04 27                447   LD 39,S
+12E1  9C 02                448   LEAI 2,S
+12E3  E8                   449   ADAI
+12E4  0A                   450   LDB I
+12E5  DC                   451   PUSHA
+12E6  04 29                452   LD 41,S
+12E8  9C 14                453   LEAI 20,S
+12EA  E8                   454   ADAI
+12EB  0A                   455   LDB I
+12EC  DC                   456   PUSHA
+12ED  D8 D5 10             457   CALL plotxy
+12F0  DB 06                458   FREE 6
+12F2  04 25                459   LD 37,S
+12F4  9C 00                460   LEAI 0,S
+12F6  E8                   461   ADAI
+12F7  DD                   462   PUSHI
+12F8  9C 02                463   LEAI 2+0,S
+12FA  0E                   464   LDB [S+]
+DUNFIELD CFLEA ASSEMBLER: game                                         PAGE: 9
+
+12FB  8A                   465   CMPB I
+12FC  D5 0A                466   SJNZ ?AB46
+12FE  04 25                467   LD 37,S
+1300  9C 10                468   LEAI 16,S
+1302  E8                   469   ADAI
+1303  DD                   470   PUSHI
+1304  9C 12                471   LEAI 18+0,S
+1306  0E                   472   LDB [S+]
+1307  8A                   473   CMPB I
+1308                       474  ?AB46 EQU *
+1308  D1 0F 13             475   JZ ?AB45
+130B  08 01                476   LDB #1
+130D  AC 22                477   STB 34,S
+130F                       478  ?AB45 EQU *
+130F  D0 D5 12             479   JMP ?AB44
+1312                       480  ?AB42 EQU *
+1312  08 F8                481   LDB #248
+1314  DC                   482   PUSHA
+1315  9C 02                483   LEAI 2+0,S
+1317  0A                   484   LDB I
+1318  DC                   485   PUSHA
+1319  9C 14                486   LEAI 20+0,S
+131B  0A                   487   LDB I
+131C  DC                   488   PUSHA
+131D  D8 D5 10             489   CALL plotxy
+1320  DB 06                490   FREE 6
+1322  08 3F                491   LDB #63
+1324  DC                   492   PUSHA
+1325  0C 25                493   LDB 37,S
+1327  DC                   494   PUSHA
+1328  0C 28                495   LDB 40,S
+132A  DC                   496   PUSHA
+132B  D8 D5 10             497   CALL plotxy
+132E  DB 06                498   FREE 6
+1330  9C 00                499   LEAI 0+0,S
+1332  0A                   500   LDB I
+1333  88 00                501   CMPB #0
+1335  D5 13                502   SJNZ ?AB48
+1337  9C 00                503   LEAI 0+0,S
+1339  0A                   504   LDB I
+133A  88 2F                505   CMPB #47
+133C  D5 0C                506   SJNZ ?AB49
+133E  9C 10                507   LEAI 16+0,S
+1340  0A                   508   LDB I
+1341  88 00                509   CMPB #0
+1343  D5 05                510   SJNZ ?AB50
+1345  9C 10                511   LEAI 16+0,S
+1347  0A                   512   LDB I
+1348  88 27                513   CMPB #39
+134A                       514  ?AB50 EQU *
+134A                       515  ?AB49 EQU *
+134A                       516  ?AB48 EQU *
+134A  D1 51 13             517   JZ ?AB47
+134D  08 01                518   LDB #1
+134F  AC 22                519   STB 34,S
+1351                       520  ?AB47 EQU *
+1351  9C 00                521   LEAI 0+0,S
+1353  0A                   522   LDB I
+DUNFIELD CFLEA ASSEMBLER: game                                         PAGE: 10
+
+1354  8C 23                523   CMPB 35,S
+1356  D4 05                524   SJZ ?AB52
+1358  9C 10                525   LEAI 16+0,S
+135A  0A                   526   LDB I
+135B  8C 24                527   CMPB 36,S
+135D                       528  ?AB52 EQU *
+135D  D1 6D 13             529   JZ ?AB51
+1360  0C 20                530   LDB 32,S
+1362  88 0F                531   CMPB #15
+1364  CC                   532   ULT
+1365  D1 6D 13             533   JZ ?AB53
+1368  0C 20                534   LDB 32,S
+136A  E4                   535   INC
+136B  AC 20                536   STB 32,S
+136D                       537  ?AB53 EQU *
+136D                       538  ?AB51 EQU *
+136D  0C 22                539   LDB 34,S
+136F  D2 75 13             540   JNZ ?AB55
+1372                       541  ?AB54 EQU *
+1372  D0 BA 11             542   JMP ?AB15
+1375                       543  ?AB16 EQU *
+1375                       544  ?AB55 EQU *
+1375  D8 3F 10             545   CALL clrscr
+1378  E0                   546   CLR
+1379  DC                   547   PUSHA
+137A  D8 17 10             548   CALL vid_mode
+137D  DB 02                549   FREE 2
+137F  00 93 14             550   LD #?AB0+73
+1382  DC                   551   PUSHA
+1383  08 0A                552   LDB #10
+1385  DC                   553   PUSHA
+1386  D8 66 10             554   CALL putscentered
+1389  DB 04                555   FREE 4
+138B                       556  ?AB56 EQU *
+138B  D8 8C 15             557   CALL chkchr
+138E  80 FF FF             558   CMP #-1
+1391  D1 8B 13             559   JZ ?AB56
+1394                       560  ?AB57 EQU *
+1394  D8 6E 15             561   CALL getch
+1397  D0 77 11             562   JMP ?AB14
+139A                       563  ?AB29 EQU *
+139A  DB 2D                564   FREE 45
+139C  D9                   565   RET
+139D  DA 02                566  main ALLOC 2
+139F  D8 3F 10             567   CALL clrscr
+13A2  90 00 F8             568   LDI #-2048+0
+13A5  08 31                569   LDB #49
+13A7  AA                   570   STB I
+13A8  90 4F F8             571   LDI #-2048+79
+13AB  08 32                572   LDB #50
+13AD  AA                   573   STB I
+13AE  90 30 FF             574   LDI #-2048+1840
+13B1  08 33                575   LDB #51
+13B3  AA                   576   STB I
+13B4  90 80 FF             577   LDI #-2048+1920
+13B7  08 35                578   LDB #53
+13B9  AA                   579   STB I
+13BA  90 31 FF             580   LDI #-2048+1841
+DUNFIELD CFLEA ASSEMBLER: game                                         PAGE: 11
+
+13BD  08 33                581   LDB #51
+13BF  AA                   582   STB I
+13C0  90 81 FF             583   LDI #-2048+1921
+13C3  08 35                584   LDB #53
+13C5  AA                   585   STB I
+13C6  90 7F FF             586   LDI #-2048+1919
+13C9  08 36                587   LDB #54
+13CB  AA                   588   STB I
+13CC  90 CF FF             589   LDI #-2048+1999
+13CF  08 34                590   LDB #52
+13D1  AA                   591   STB I
+13D2                       592  ?AB58 EQU *
+13D2  D0 D2 13             593   JMP ?AB58
+13D5                       594  ?AB59 EQU *
+13D5  08 01                595   LDB #1
+13D7  DC                   596   PUSHA
+13D8  D8 17 10             597   CALL vid_mode
+13DB  DB 02                598   FREE 2
+13DD  D8 3F 10             599   CALL clrscr
+13E0  08 FF                600   LDB #255
+13E2  DC                   601   PUSHA
+13E3  E0                   602   CLR
+13E4  DC                   603   PUSHA
+13E5  E0                   604   CLR
+13E6  DC                   605   PUSHA
+13E7  D8 D5 10             606   CALL plotxy
+13EA  DB 06                607   FREE 6
+13EC  08 07                608   LDB #7
+13EE  DC                   609   PUSHA
+13EF  08 2F                610   LDB #47
+13F1  DC                   611   PUSHA
+13F2  E0                   612   CLR
+13F3  DC                   613   PUSHA
+13F4  D8 D5 10             614   CALL plotxy
+13F7  DB 06                615   FREE 6
+13F9  08 38                616   LDB #56
+13FB  DC                   617   PUSHA
+13FC  E0                   618   CLR
+13FD  DC                   619   PUSHA
+13FE  08 27                620   LDB #39
+1400  DC                   621   PUSHA
+1401  D8 D5 10             622   CALL plotxy
+1404  DB 06                623   FREE 6
+1406  08 C0                624   LDB #192
+1408  DC                   625   PUSHA
+1409  08 2F                626   LDB #47
+140B  DC                   627   PUSHA
+140C  08 27                628   LDB #39
+140E  DC                   629   PUSHA
+140F  D8 D5 10             630   CALL plotxy
+1412  DB 06                631   FREE 6
+1414                       632  ?AB60 EQU *
+1414  D0 14 14             633   JMP ?AB60
+1417                       634  ?AB61 EQU *
+1417                       635  ?AB62 EQU *
+1417  D8 E9 10             636   CALL menu
+141A  A4 00                637   ST 0,S
+141C  90 39 14             638   LDI #?AB65
+DUNFIELD CFLEA ASSEMBLER: game                                         PAGE: 12
+
+141F  D7                   639   SWITCH
+1420                       640  ?AB66 EQU *
+1420  D8 75 11             641   CALL snake
+1423  D0 45 14             642   JMP ?AB64
+1426                       643  ?AB67 EQU *
+1426  D8 3F 10             644   CALL clrscr
+1429  00 C1 14             645   LD #?AB0+119
+142C  DC                   646   PUSHA
+142D  E0                   647   CLR
+142E  DC                   648   PUSHA
+142F  E0                   649   CLR
+1430  DC                   650   PUSHA
+1431  D8 4F 10             651   CALL putsxy
+1434  DB 06                652   FREE 6
+1436  D0 00 F0             653   JMP $F000
+1439                       654  ?AB65 EQU *
+1439  26 14 02 00 20 14 +  655   FDB ?AB67,2,?AB66,1,0,?AB64
+1445                       656  ?AB64 EQU *
+1445  D0 17 14             657   JMP ?AB62
+1448                       658  ?AB63 EQU *
+1448  95                   659   LDI S+
+1449  D9                   660   RET
+144A  53 6E 61 6B 65 00 +  661  ?AB0 FCB 83,110,97,107,101,0,66,111,111,116,108,111,97,100,101,114
+145A  00 43 2D 46 4C 45 +  662   FCB 0,67,45,70,76,69,65,32,71,97,109,101,32,77,101,110
+146A  75 20 2D 2D 20 54 +  663   FCB 117,32,45,45,32,84,111,109,32,83,116,32,68,101,110,105
+147A  73 00 23 25 64 2E +  664   FCB 115,0,35,37,100,46,32,37,115,0,69,110,116,101,114,32
+148A  63 68 6F 69 63 65 +  665   FCB 99,104,111,105,99,101,58,32,0,83,110,101,107,32,105,115
+149A  20 64 65 64 2E 2E +  666   FCB 32,100,101,100,46,46,46,32,115,111,32,115,97,100,46,32
+14AA  20 48 69 74 20 6B +  667   FCB 32,72,105,116,32,107,101,121,32,112,108,97,121,32,97,103
+14BA  61 69 6E 2E 2E 2E +  668   FCB 97,105,110,46,46,46,0,74,117,109,112,105,110,103,32,116
+14CA  6F 20 62 6F 6F 74 +  669   FCB 111,32,98,111,111,116,108,111,97,100,101,114,46,46,46,0
+14DA                       670  *
+14DA                       671  * Formatted print to a string: sprintf(string, format, args ...)
+14DA                       672  *
+14DA  38 02                673  sprintf	MULB	#2		Word entries
+14DC  9C 00                674  	LEAI	,S		Point to stack
+14DE  E8                   675  	ADAI			Point to argument
+14DF  02                   676  	LD	I		Get output pointer
+14E0  A1 00 00             677  	ST	?temp		Save for later
+14E3  E7                   678  	TIA			Point to it
+14E4  E5                   679  	DEC			Backup
+14E5  E5                   680  	DEC			Backup
+14E6  E6                   681  	TAI			Back to index
+14E7  00 F0 14             682  	LD	#?AC1		Output functino
+14EA  D8 DE 15             683  	CALL	format		Format it
+14ED  E0                   684  	CLR			Get zero
+14EE  D3 02                685  	SJMP	?AC2		And write it
+14F0  04 02                686  ?AC1	LD	2,S		Get character
+14F2  91 00 00             687  ?AC2	LDI	?temp		Get output pointer
+14F5  AA                   688  	STB	I		Write to memory
+14F6  9B 01                689  	LEAI	1,I		Advance
+14F8  B1 00 00             690  	STI	?temp		Resave
+14FB  D9                   691  	RET
+14FC                       692  *50000 22/5/2026
+14FC                       693  *
+14FC                       694  * Set memory to a specified value: memset(block, value, size)
+14FC                       695  *
+14FC  94 06                696  memset	LDI	6,S		Get pointer
+DUNFIELD CFLEA ASSEMBLER: game                                         PAGE: 13
+
+14FE  04 02                697  ?AD1	LD	2,S		Get size
+1500  D4 21                698  	SJZ	?AD2		Zero, exit
+1502  E5                   699  	DEC			Backup
+1503  A4 02                700  	ST	2,S		Resave
+1505  04 04                701  	LD	4,S		Get value
+1507  AA                   702  	STB	I		Write to memory
+1508  9B 01                703  	LEAI	1,I		Advance
+150A  D3 F2                704  	SJMP	?AD1		And proceed
+150C                       705  *
+150C                       706  * Copy memory: memcpy(dest, source, size)
+150C                       707  *
+150C  04 02                708  memcpy	LD	2,S		Get size
+150E  D4 13                709  	SJZ	?AD2		Zero, exit
+1510  E5                   710  	DEC			Reduce count
+1511  A4 02                711  	ST	2,S		Resave
+1513  94 04                712  	LDI	4,S		Get source
+1515  0A                   713  	LDB	I		Get byte
+1516  9B 01                714  	LEAI	1,I		Advance
+1518  B4 04                715  	STI	4,S		Resave
+151A  94 06                716  	LDI	6,S		Get dest
+151C  AA                   717  	STB	I		Write byte
+151D  9B 01                718  	LEAI	1,I		Advance
+151F  B4 06                719  	STI	6,S		Resave
+1521  D3 E9                720  	SJMP	memcpy		And proceed
+1523  D9                   721  ?AD2	RET
+1524                       722  *50000 22/5/2026
+1524                       723  *
+1524                       724  * Concatinate one string to another: strcat(dest, source)
+1524                       725  *
+1524  94 04                726  strcat	LDI	4,S		Get dest ptr
+1526  0A                   727  ?AE1	LDB	I		Get byte from index
+1527  D1 2E 15             728  	JZ	?AE2		End of string, copy
+152A  9B 01                729  	LEAI	1,I		Advance pointer
+152C  D3 F8                730  	SJMP	?AE1		And proceed
+152E  B4 04                731  ?AE2	STI	4,S		Resave pointer
+1530                       732  *
+1530                       733  * Copy strings: strcpy(dest, source)
+1530                       734  *
+1530  94 02                735  strcpy	LDI	2,S		Get source ptr
+1532  0A                   736  	LDB	I		Get byte from source
+1533  9B 01                737  	LEAI	1,I		Advance source ptr
+1535  B4 02                738  	STI	2,S		Resave
+1537  94 04                739  	LDI	4,S		Get dest ptr
+1539  AA                   740  	STB	I		Write to dest
+153A  9B 01                741  	LEAI	1,I		Advance dest ptr
+153C  B4 04                742  	STI	4,S		Resave
+153E  D5 F0                743  	SJNZ	strcpy		Do them all
+1540  D9                   744  	RET
+1541                       745  *50000 22/5/2026
+1541                       746  *
+1541                       747  * Determine length of string: strlen(string)
+1541                       748  *
+1541  94 02                749  strlen	LDI	2,S		; Get string ptr
+1543  0A                   750  ?AF1	LDB	I		; Get byte from string
+1544  D1 4B 15             751  	JZ	?AF2		; We are at end
+1547  9B 01                752  	LEAI	1,I		; Skip to next
+1549  D3 F8                753  	SJMP	?AF1		; And proceed
+154B  E7                   754  ?AF2	TIA			; Get pointer
+DUNFIELD CFLEA ASSEMBLER: game                                         PAGE: 14
+
+154C  24 02                755  	SUB	2,S		; Compute actual length
+154E  D9                   756  	RET
+154F                       757  *50000 22/5/2026
+154F                       758  *
+154F                       759  * Write a string to the console: putstr(string)
+154F                       760  *
+154F  94 02                761  putstr	LDI	2,S		Get argument
+1551  0A                   762  ?putstr	LDB	I		Get char
+1552  D4 37                763  	SJZ	?AG2		Exit
+1554  9B 01                764  	LEAI	1,I		Advance
+1556  DC                   765  	PUSHA			Pass parm
+1557  D8 5F 15             766  	CALL	?putch		Output it
+155A  05                   767  	LD	S+		Clean stack
+155B  D3 F4                768  	SJMP	?putstr		And proceed
+155D                       769  *
+155D                       770  * Output character to console with newline translation: putch(c)
+155D                       771  *
+155D  04 02                772  putch	LD	2,S		Get character
+155F  80 0A 00             773  ?putch	CMP	#$0A		Newline?
+1562  D4 05                774  	SJZ	putchr		No, don't process
+1564  08 0D                775  	LDB	#$0D		Get RETURN
+1566  D8 6B 15             776  	CALL	?putchr		Output it
+1569                       777  *
+1569                       778  * Output 'raw' character to console: putchr(c)
+1569                       779  *
+1569  04 02                780  putchr	LD	2,S		Get character
+156B  EA 00                781  ?putchr	OUT	0		Write to console
+156D  D9                   782  	RET
+156E                       783  *
+156E                       784  * Read a character from console with newline translation: getch()
+156E                       785  *
+156E  D8 7B 15             786  getch	CALL	chkch		Test for character ready
+1571  D4 FB                787  	SJZ	getch		Wait for it
+1573  D9                   788  	RET
+1574                       789  *
+1574                       790  * Read 'raw' character from console: getchr()
+1574                       791  *
+1574  EB 00                792  getchr	IN	0		Read console port
+1576  E4                   793  	INC			Test for character
+1577  D4 FB                794  	SJZ	getchr		Wait for character
+1579  E5                   795  	DEC			Restore proper character
+157A  D9                   796  	RET
+157B                       797  *
+157B                       798  * Check for character from the console with translation: chkch()
+157B                       799  *
+157B  EB 00                800  chkch	IN	0		Read port 0
+157D  E4                   801  	INC			Test for char
+157E  D4 0B                802  	SJZ	?AG2		None, exit
+1580  E5                   803  	DEC			Restore proper char
+1581  DC                   804  	PUSHA			Save for later
+1582  88 0D                805  	CMPB	#$0D		RETURN?
+1584  D4 04                806  	SJZ	?AG1		No, its OK
+1586  05                   807  	LD	S+		Clean stack
+1587  08 0A                808  	LDB	#$0A		Get NEWLINE
+1589  D9                   809  	RET
+158A  05                   810  ?AG1	LD	S+		Get char back
+158B  D9                   811  ?AG2	RET
+158C                       812  *
+DUNFIELD CFLEA ASSEMBLER: game                                         PAGE: 15
+
+158C                       813  * Check for 'raw' character from the console: chkchr()
+158C                       814  *
+158C  EB 00                815  chkchr	IN	0		Read port 0
+158E  D9                   816  	RET
+158F                       817  *
+158F                       818  * Get string from console (with editing): getstr(string, size)
+158F                       819  *
+158F  E0                   820  getstr	CLR			Zero length
+1590  DC                   821  	PUSHA			Save on stack
+1591  D8 74 15             822  ?AG3	CALL	getchr		Get a character
+1594  90 98 15             823  	LDI	#?AG4		Point to table
+1597  D7                   824  	SWITCH			Dispatch
+1598  C1 15 08 00          825  ?AG4	FDB	?AG6,$08		Backspace
+159C  C1 15 7F 00          826  	FDB	?AG6,$7F		Delete
+15A0  D0 15 0D 00          827  	FDB	?AG7,$0D		Return
+15A4  00 00 A8 15          828  	FDB	0,?AG5		Default
+15A8                       829  * Normal character
+15A8  A9 00 00             830  ?AG5	STB	?temp		Save for later
+15AB  04 00                831  	LD	,S		Get current position
+15AD  84 04                832  	CMP	4,S		Are we OK
+15AF  CF                   833  	UGE			Test for over
+15B0  D5 DF                834  	SJNZ	?AG3		Ignore
+15B2  94 06                835  	LDI	6,S		Get pointer
+15B4  05                   836  	LD	S+		Get size
+15B5  E8                   837  	ADAI			Adjust pointer
+15B6  E4                   838  	INC			Advance count
+15B7  DC                   839  	PUSHA			Resave
+15B8  09 00 00             840  	LDB	?temp		Get char back
+15BB  AA                   841  	STB	I		Save in buffer
+15BC  D8 6B 15             842  	CALL	?putchr		Echo it
+15BF  D3 D0                843  	SJMP	?AG3		And proceed
+15C1                       844  * Backspace & delete
+15C1  04 00                845  ?AG6	LD	,S		Get count
+15C3  D4 CC                846  	SJZ	?AG3		At zero, ignore
+15C5  E5                   847  	DEC			Backup
+15C6  A4 00                848  	ST	,S		Resave
+15C8  90 DA 15             849  	LDI	#?AG8		Point to message
+15CB  D8 51 15             850  	CALL	?putstr		Output
+15CE  D3 C1                851  	SJMP	?AG3		And proceed
+15D0                       852  * RETURN, terminate entry
+15D0  94 06                853  ?AG7	LDI	6,S		Get buffer pointer
+15D2  05                   854  	LD	S+		Get count
+15D3  E8                   855  	ADAI			Adjust pointer
+15D4  E0                   856  	CLR			Get zero
+15D5  AA                   857  	STB	I		Terminate buffer
+15D6  08 0A                858  	LDB	#$0A		Newline
+15D8  D3 91                859  	SJMP	?putchr		Output
+15DA  08 20 08 00          860  ?AG8	FCB	$08,' ',$08,0
+15DE                       861  *50000 22/5/2026
+15DE                       862  *
+15DE                       863  * Format to "printf" output: A=Output Function, I = Argument List
+15DE                       864  *
+15DE  DC                   865  format	PUSHA			Save output function pointer
+15DF  DD                   866  	PUSHI			Save argument pointer
+15E0  DA 0A                867  	ALLOC	10		Save  flag variable
+15E2                       868  * Local variable & argument offsets
+000C                       869  ?AH1	EQU	12		Pointer to output function
+000A                       870  ?AH2	EQU	10		Pointer to argument list
+DUNFIELD CFLEA ASSEMBLER: game                                         PAGE: 16
+
+0004                       871  ?AH3	EQU	4		Buffer for number conversions (6 bytes)
+0002                       872  ?AH4	EQU	2		Temporary locations
+0001                       873  ?AH5	EQU	1		Character count
+0000                       874  ?AH6	EQU	0		Formatting controls
+15E2                       875  *
+15E2  94 0A                876  	LDI	?AH2,S		Get arg pointer
+15E4  92                   877  	LDI	I		Get format string
+15E5  0A                   878  ?AH7	LDB	I		Get character from string
+15E6  D4 12                879  	SJZ	?AH8		Exit if end
+15E8  88 25                880  	CMPB	#'%'		Format character
+15EA  D5 12                881  	SJNZ	?AH10		Yes, handle it
+15EC  0A                   882  	LDB	I		Get char back
+15ED  9B 01                883  	LEAI	1,I		Advance pointer
+15EF  DD                   884  	PUSHI			Save Index
+15F0  DC                   885  	PUSHA			Pass character
+15F1  04 10                886  	LD	4+?AH1,S		Get output function
+15F3  D8 FD 15             887  	CALL	?AH9		Output the character
+15F6  05                   888  	LD	S+		Clean stack
+15F7  95                   889  	LDI	S+		Get Index back
+15F8  D3 EB                890  	SJMP	?AH7		And proceed
+15FA  DB 0E                891  ?AH8	FREE	14		Release stack
+15FC  D9                   892  	RET
+15FD                       893  * Call output function in A
+15FD  D6                   894  ?AH9	IJMP			Call function
+15FE                       895  * Format character located
+15FE  9B 01                896  ?AH10	LEAI	1,I		Skip to next
+1600  E0                   897  	CLR			Begin with zero
+1601  A4 02                898  	ST	?AH4,S		Save for later
+1603                       899  * Check for leading '-' = Left justify
+1603  AC 00                900  	STB	?AH6,S		Init. flag
+1605  AC 01                901  	STB	?AH5,S		Init. count
+1607  0A                   902  	LDB	I		Get char
+1608  88 2D                903  	CMPB	#'-'		Minus?
+160A  D4 06                904  	SJZ	?AH11		No, try next
+160C  9B 01                905  	LEAI	1,I		Advance pointer
+160E  08 80                906  	LDB	#%10000000	Set justify flag
+1610  AC 00                907  	STB	?AH6,S		Resave
+1612                       908  * Check for leading '0' = Zero fill
+1612  0A                   909  ?AH11	LDB	I		Get char back
+1613  88 30                910  	CMPB	#'0'		Zero fill?
+1615  D4 08                911  	SJZ	?AH12		No, try next
+1617  9B 01                912  	LEAI	1,I		Advance
+1619  0C 00                913  	LDB	?AH6,S		Get value
+161B  68 40                914  	ORB	#%01000000	Set zero fill flag
+161D  AC 00                915  	STB	?AH6,S		Resave
+161F                       916  * Get field width
+161F  0A                   917  ?AH12	LDB	I		Get character
+1620  28 30                918  	SUBB	#'0'		Convert to binary
+1622  DC                   919  	PUSHA			Save
+1623  88 0A                920  	CMPB	#10		In range?
+1625  CC                   921  	ULT			Must be less than
+1626  D4 0B                922  	SJZ	?AH13		Nope
+1628  9B 01                923  	LEAI	1,I		Skip digit
+162A  04 04                924  	LD	2+?AH4,S		Get old value
+162C  38 0A                925  	MULB	#10		x10
+162E  15                   926  	ADD	S+		Include new
+162F  A4 02                927  	ST	?AH4,S		Resave
+1631  D3 EC                928  	SJMP	?AH12		Do them all
+DUNFIELD CFLEA ASSEMBLER: game                                         PAGE: 17
+
+1633  05                   929  ?AH13	LD	S+		Clear stack
+1634  04 02                930  	LD	?AH4,S		Get value
+1636  6C 00                931  	ORB	?AH6,S		Include previous flags
+1638  AC 00                932  	STB	?AH6,S		Resave
+163A                       933  * Lookup character & dispatch handler
+163A  DD                   934  	PUSHI			Save format pointer
+163B  04 0C                935  	LD	2+?AH2,S		Get argptr
+163D  E5                   936  	DEC			Backup
+163E  E5                   937  	DEC			Backup
+163F  A4 0C                938  	ST	2+?AH2,S		Resave
+1641  E6                   939  	TAI			Address
+1642  02                   940  	LD	I		Get value
+1643  A4 04                941  	ST	2+?AH4,S		Resave
+1645  0F                   942  	LDB	[S]		Get next character
+1646  99 4A 16             943  	LEAI	?AH14		Point to table
+1649  D7                   944  	SWITCH			Lookup & execute
+164A  66 16 6F 00          945  ?AH14	FDB	?AH15,'o'		Octal number
+164E  6A 16 64 00          946  	FDB	?AH16,'d'		Decimal number
+1652  8A 16 75 00          947  	FDB	?AH17,'u'		Unsigned number
+1656  8E 16 78 00          948  	FDB	?AH18,'x'		Hexidecimal number
+165A  E4 16 63 00          949  	FDB	?AH26,'c'		Character output
+165E  EF 16 73 00          950  	FDB	?AH28,'s'		String output
+1662  00 00 E6 16          951  	FDB	0,?AH27		Ignore it
+1666                       952  * '%o' - Octal number
+1666  08 08                953  ?AH15	LDB	#8		Base 8
+1668  D3 26                954  	SJMP	?AH19		Do number
+166A                       955  * '%d' - signed Decimal number
+166A  04 04                956  ?AH16	LD	2+?AH4,S		Get value
+166C  50 00 80             957  	AND	#$8000		Negatve?
+166F  D4 19                958  	SJZ	?AH17		Nothing special
+1671  08 2D                959  	LDB	#'-'		Minus size
+1673  DC                   960  	PUSHA			Pass to function
+1674  04 10                961  	LD	4+?AH1,S		Get output function
+1676  D8 FD 15             962  	CALL	?AH9		Call function
+1679  05                   963  	LD	S+		Clean stack
+167A  04 04                964  	LD	2+?AH4,S		Get value
+167C  E2                   965  	NEG			Negate
+167D  A4 04                966  	ST	2+?AH4,S		And prcoeed
+167F  0C 02                967  	LDB	2+?AH6,S		Get length
+1681  58 7F                968  	ANDB	#%001111111	Free format?
+1683  D4 05                969  	SJZ	?AH17		Yes, ignore
+1685  0C 02                970  	LDB	2+?AH6,S		Get value back
+1687  E5                   971  	DEC			Adjust for '-'
+1688  AC 02                972  	STB	2+?AH6,S		Resave
+168A                       973  * '%u' - Unsigned decimal number
+168A  08 0A                974  ?AH17	LDB	#10		Base 10 output
+168C  D3 02                975  	SJMP	?AH19		Do number
+168E                       976  * '%x' - heXidecimal number
+168E  08 10                977  ?AH18	LDB	#16		Base 16 output
+1690                       978  * Output a number in the specified number base
+1690  AC 06                979  ?AH19	STB	2+?AH3,S		Save number base
+1692  9C 0C                980  	LEAI	6+2+?AH3,S	Point to END of buffer
+1694  E7                   981  ?AH20	TIA			Get index
+1695  E5                   982  	DEC			Backup
+1696  E6                   983  	TAI			Set index
+1697  0C 03                984  	LDB	2+?AH5,S		Get count
+1699  E4                   985  	INC			Advance
+169A  AC 03                986  	STB	2+?AH5,S		Resave
+DUNFIELD CFLEA ASSEMBLER: game                                         PAGE: 18
+
+169C  04 04                987  	LD	2+?AH4,S		Get value
+169E  4C 06                988  	DIVB	2+?AH3,S		Divide by 10
+16A0  DC                   989  	PUSHA			Save quotient
+16A1  E9                   990  	ALT			Get remainder
+16A2  18 30                991  	ADDB	#'0'		Convert to ASCII
+16A4  AA                   992  	STB	I		Write to stack
+16A5  88 39                993  	CMPB	#'9'		Is it HEX?
+16A7  CE                   994  	UGT			Complete test
+16A8  D4 04                995  	SJZ	?AH21		Yes it is
+16AA  0A                   996  	LDB	I		Get char back
+16AB  18 07                997  	ADDB	#7		Adjust
+16AD  AA                   998  	STB	I		Resave char
+16AE  05                   999  ?AH21	LD	S+		Get quotient
+16AF  A4 04               1000  	ST	2+?AH4,S		Save new value
+16B1  D5 E1               1001  	SJNZ	?AH20		Do them all
+16B3                      1002  * At this point, I = pointer, ?5=Length
+16B3  0C 03               1003  ?AH22	LDB	2+?AH5,S		Get count
+16B5  AC 05               1004  	STB	3+?AH4,S		Set extra count
+16B7  0C 02               1005  	LDB	2+?AH6,S		Get flag
+16B9  58 80               1006  	ANDB	#%10000000	Left justify?
+16BB  D5 03               1007  	SJNZ	?AH23		Yes, don't fill
+16BD  D8 01 17            1008  	CALL	?AH31		Do any pre-output
+16C0  0C 05               1009  ?AH23	LDB	3+?AH4,S		Get count
+16C2  D4 11               1010  	SJZ	?AH24		All done, exit
+16C4  E5                  1011  	DEC			Reduce count
+16C5  AC 05               1012  	STB	3+?AH4,S		Resave
+16C7  0A                  1013  	LDB	I		Get character from string
+16C8  9B 01               1014  	LEAI	1,I		Advance
+16CA  DD                  1015  	PUSHI			Save it
+16CB  DC                  1016  	PUSHA			Pass character
+16CC  04 12               1017  	LD	6+?AH1,S		Get output function
+16CE  D8 FD 15            1018  	CALL	?AH9		Output character
+16D1  05                  1019  	LD	S+		Clean stack
+16D2  95                  1020  	LDI	S+		Restore I
+16D3  D3 EB               1021  	SJMP	?AH23		Go again
+16D5  0C 02               1022  ?AH24	LDB	2+?AH6,S		Get flag
+16D7  58 80               1023  	ANDB	#%10000000	Left justify
+16D9  D4 03               1024  	SJZ	?AH25		No, skip it
+16DB  D8 01 17            1025  	CALL	?AH31		Post justify
+16DE  95                  1026  ?AH25	LDI	S+		Restore format string
+16DF  9B 01               1027  	LEAI	1,I		Advance pointer
+16E1  D0 E5 15            1028  	JMP	?AH7		And proceed
+16E4                      1029  * '%c' - output character
+16E4  0C 04               1030  ?AH26	LDB	2+?AH4,S		Get character
+16E6  9C 06               1031  ?AH27	LEAI	2+?AH3,S		Point to buffer
+16E8  AA                  1032  	STB	I		Save it
+16E9  08 01               1033  	LDB	#1		Get 1
+16EB  AC 03               1034  	STB	2+?AH5,S
+16ED  D3 C4               1035  	SJMP	?AH22
+16EF                      1036  * '%s' - output string
+16EF  94 04               1037  ?AH28	LDI	2+?AH4,S		Get string pointer
+16F1  0A                  1038  ?AH29	LDB	I		Get character
+16F2  D4 09               1039  	SJZ	?AH30		End of string
+16F4  9B 01               1040  	LEAI	1,I		Skip to next
+16F6  0C 03               1041  	LDB	2+?AH5,S		Get count
+16F8  E4                  1042  	INC			Advance
+16F9  AC 03               1043  	STB	2+?AH5,S		Resave count
+16FB  D3 F4               1044  	SJMP	?AH29		And proceed
+DUNFIELD CFLEA ASSEMBLER: game                                         PAGE: 19
+
+16FD  94 04               1045  ?AH30	LDI	2+?AH4,S		Get pointer back
+16FF  D3 B2               1046  	SJMP	?AH22		And output
+1701                      1047  * Perform pre-output justify
+1701  0C 04               1048  ?AH31	LDB	4+?AH6,S		Get flag
+1703  58 3F               1049  	ANDB	#%00111111	Save length only
+1705  D4 23               1050  	SJZ	?AH35		No justify
+1707  AC 06               1051  	STB	4+?AH4,S		Save for later
+1709  DD                  1052  	PUSHI			Save index
+170A  0C 07               1053  ?AH32	LDB	6+?AH5,S		Get count
+170C  8C 08               1054  	CMPB	6+?AH4,S		Are we over
+170E  CF                  1055  	UGE			Complete test
+170F  D5 18               1056  	SJNZ	?AH34		Yes, exit
+1711  0C 06               1057  	LDB	6+?AH6,S		Get flag
+1713  58 40               1058  	ANDB	#%01000000	Zero fill?
+1715  D4 02               1059  	SJZ	?AH33		No, use ' '
+1717  08 10               1060  	LDB	#'0'-' '	Get value
+1719  18 20               1061  ?AH33	ADDB	#' '		Convert to char
+171B  DC                  1062  	PUSHA			Pass character
+171C  04 14               1063  	LD	8+?AH1,S		Get output function
+171E  D8 FD 15            1064  	CALL	?AH9		Output character
+1721  05                  1065  	LD	S+		Clean stack
+1722  0C 08               1066  	LDB	6+?AH4,S		Get remaining width
+1724  E5                  1067  	DEC			Reduce
+1725  AC 08               1068  	STB	6+?AH4,S		Resave
+1727  D3 E1               1069  	SJMP	?AH32		Do next
+1729  95                  1070  ?AH34	LDI	S+		Restore index
+172A  D9                  1071  ?AH35	RET
+172B                      1072  *50000 22/5/2026
+172B                      1073  *
+172B                      1074  * DDS MICRO-C C-FLEA Runtime Library - Middle file
+172B                      1075  *
+172B                      1076  * Copyright 1991-2005 Dave Dunfield
+172B                      1077  * All rights reserved.
+172B                      1078  *
+0000                      1079  	ORG	$0000		Start RAM based variables here
+0000                      1080  ?temp	RMB	2		Temporary location used by compiler
+0002                      1081  *50000 22/5/2026
+0002                      1082  *
+0002                      1083  * DDS MICRO-C C-FLEA Runtime Library - Suffix file
+0002                      1084  *
+0002                      1085  * Copyright 1991-2005 Dave Dunfield
+0002                      1086  * All rights reserved.
+0002                      1087  *
+0002                      1088  ?heap	EQU	*		Beginning of unused RAM
+0002                      1089  *50000 22/5/2026
+DUNFIELD CFLEA ASSEMBLER: game                                         PAGE: 20
+
+SYMBOL TABLE:
+
+?AB0    -144A   ?AB1    -1092   ?AB10   -115F   ?AB11   -116E   ?AB12   -116B
+?AB13   -1172   ?AB14   -1177   ?AB15   -11BA   ?AB16   -1375   ?AB17   -11BA
+?AB18   -11C2   ?AB19   -11C2   ?AB2    -10AA   ?AB20   -1201   ?AB21   -1209
+?AB22   -1201   ?AB23   -11E9   ?AB24   -11CB   ?AB25   -11D1   ?AB26   -11D8
+?AB27   -11DF   ?AB28   -11E6   ?AB29   -139A   ?AB3    -10B9   ?AB30   -1213
+?AB31   -125B   ?AB32   -128D   ?AB33   -126C   ?AB34   -1265   ?AB35   -12C7
+?AB36   -12B3   ?AB37   -1293   ?AB38   -129B   ?AB39   -12A3   ?AB4    -10D3
+?AB40   -12AB   ?AB41   -12CB   ?AB42   -1312   ?AB43   -12DC   ?AB44   -12D5
+?AB45   -130F   ?AB46   -1308   ?AB47   -1351   ?AB48   -134A   ?AB49   -134A
+?AB5    -1104   ?AB50   -134A   ?AB51   -136D   ?AB52   -135D   ?AB53   -136D
+?AB54   -1372   ?AB55   -1375   ?AB56   -138B   ?AB57   -1394   ?AB58   -13D2
+?AB59   -13D5   ?AB6    -1149   ?AB60   -1414   ?AB61   -1417   ?AB62   -1417
+?AB63   -1448   ?AB64   -1445   ?AB65   -1439   ?AB66   -1420   ?AB67   -1426
+?AB7    -1119   ?AB8    -1112   ?AB9    -115A   ?AC1    -14F0   ?AC2    -14F2
+?AD1    -14FE   ?AD2    -1523   ?AE1    -1526   ?AE2    -152E   ?AF1    -1543
+?AF2    -154B   ?AG1    -158A   ?AG2    -158B   ?AG3    -1591   ?AG4    -1598
+?AG5    -15A8   ?AG6    -15C1   ?AG7    -15D0   ?AG8    -15DA   ?AH1    -000C
+?AH10   -15FE   ?AH11   -1612   ?AH12   -161F   ?AH13   -1633   ?AH14   -164A
+?AH15   -1666   ?AH16   -166A   ?AH17   -168A   ?AH18   -168E   ?AH19   -1690
+?AH2    -000A   ?AH20   -1694   ?AH21   -16AE   ?AH22   -16B3   ?AH23   -16C0
+?AH24   -16D5   ?AH25   -16DE   ?AH26   -16E4   ?AH27   -16E6   ?AH28   -16EF
+?AH29   -16F1   ?AH3    -0004   ?AH30   -16FD   ?AH31   -1701   ?AH32   -170A
+?AH33   -1719   ?AH34   -1729   ?AH35   -172A   ?AH4    -0002   ?AH5    -0001
+?AH6    -0000   ?AH7    -15E5   ?AH8    -15FA   ?AH9    -15FD   ?heap   -0002
+?putch  -155F   ?putchr -156B   ?putstr -1551   ?temp   -0000   chkch   -157B
+chkchr  -158C   clrscr  -103F   exit    -100B   format  -15DE   getch   -156E
+getchr  -1574   getstr  -158F   hline   -1085   main    -139D   memcpy  -150C
+memset  -14FC   menu    -10E9   menutxt -10E3   plotxy  -10D5   putch   -155D
+putchr  -1569   putscentered            -1066   putstr  -154F   putsxy  -104F
+read_video_stat         -101C   snake   -1175   sprintf -14DA   strcat  -1524
+strcpy  -1530   strlen  -1541   vid_mode-1017   vline   -10AC
+wait_active_top         -1037   wait_active_vid         -1037   wait_hsync              -102F
+wait_hsync_top          -102F   wait_ms -100D   wait_ms_top             -100F
+wait_nvsync             -1027   wait_nvsync_top         -1027   wait_vsync              -101F
+wait_vsync_top          -101F
