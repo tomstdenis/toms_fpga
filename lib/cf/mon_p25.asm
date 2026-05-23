@@ -14,10 +14,13 @@ temp3 EQU $FFFD
 temp4 EQU $FFFC   * n
 addr EQU $FFFA    * we can 16-bit load the addr from here
 addrhi EQU $FFFB  * and write to the top half here
+echo EQU $FFF9	  * local echo
 stack EQU $F900   * stack inside the video so we have something to see
 
     LD #stack
     TAS             * SP = stack (F900)
+    LDB #$FF
+    STB echo		* default echo is on
     LEAI ?WELCOMSTR
     CALL putstr
 top
@@ -36,6 +39,12 @@ top
     SJNZ is_B
     SJMP top      * ignore and jump to top
 
+* restore echo flag
+top_echo
+	LD S+		  * pop old echo off the stack
+	STB echo
+	SJMP top
+
 * S records we need 
 * 1. Read command '1' or '9'
 * 2. Read 1 hex byte, n =  # of data + 3
@@ -43,10 +52,14 @@ top
 * 4. Read n - 3 hex bytes (data)
 * 5. Read 1 hex byte (checksum)
 is_S
+	LDB echo		* save echo to the stack 
+	PUSHA
+	CLR
+	STB echo		* save and clear echo flag since that messes with uploads
     CALL getch
     CALL read_hex  	* read the # of bytes 'n'
     SUBB #3		  	* sub addr/checksum
-    SJZ top		  	* no bytes to store so just exit out
+    SJZ top_echo  	* no bytes to store so just exit out
     STB temp4       * temp4 == n
     CALL read_hex  	* read addrhi
     STB addrhi
@@ -62,7 +75,7 @@ is_S_loop
     STB temp4
     SJNZ is_S_loop
     CALL read_hex	* skip checksum
-    SJMP top
+    SJMP top_echo
     
 is_G
     CALL read_addr
@@ -243,8 +256,13 @@ getch
     IN $00        * read from UART
     INC
     SJZ getch     * loop while no char
-    DEC
+    DEC			  * we have a char
+    PUSHA
+    ANDB echo     * and with echo 
+    JZ getch_noecho
+    OUT $00
+getch_noecho
+	LD S+		  * retore char
     RET
 
 ?WELCOMSTR STR "C-FLEA Primer25K monitor -- Tom St Denis"
-ROM_END EQU *
