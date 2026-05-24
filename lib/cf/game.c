@@ -169,7 +169,7 @@ snake()
 	unsigned char snake_x[SNAKELEN], snake_y[SNAKELEN]; // [0] is the head
 	unsigned char snake_len, snake_dir, snake_dead;
 	unsigned char food_x, food_y;
-	unsigned x, y, gr;
+	int x, y, gr;
 	unsigned ch;
 
 replay:
@@ -275,18 +275,6 @@ main()
 	
 	vid_mode(1);
 	clrscr();
-	
-	for (ch = 0; ch < 40; ch++) {
-		plotxy(RGB(0,7,0), 47, ch);
-		plotxy(RGB(7,0,0), 0, ch);
-	}
-
-	plotxy(RGB(7,7,3), 0, 0); // white at top left
-	plotxy(RGB(7,0,0), 47, 0); // red top right
-	plotxy(RGB(0,7,0), 0, 39); // green bottom left
-	plotxy(RGB(0,0,3), 47, 39); // blue bottom right
-	
-	for(;;);
 	
 	for (;;) {
 		ch = menu();
