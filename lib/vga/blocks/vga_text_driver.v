@@ -77,8 +77,7 @@ module vga_text_driver #(
 				end
 			end else begin
 
-// TODO:  current bug.  the first column of pixels is shifted down one, or more so the font char
-// is the one above, e.g. when rendering vga_x == 0, we're using (vga_y-FONTHEIGHT)/FONTHEIGHT as the text_y 
+// TODO:  current bug.  the first column of pixels is shifted down one
 
                 // we're either just entering HBLANK or VBLANK
 				if (x == (H_TOTAL-3-X_FETCH_DELAY)) begin
@@ -94,7 +93,7 @@ module vga_text_driver #(
 						end
 					end
 				end else if (x == (H_TOTAL-1-X_FETCH_DELAY)) begin
-                    if (y < (TEXTROWS*FONTHEIGHT-1)|| y == V_TOTAL-1) begin            // either we're in the first 25 rows OR the last line preparing for row 0
+                    if (y < (TEXTROWS*FONTHEIGHT-1)|| y == (V_TOTAL-1)) begin            // either we're in the first 25 rows OR the last line preparing for row 0
                         symbol <= rd_data;
                     end else begin
                         symbol <= 8'h20; // SPC

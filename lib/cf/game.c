@@ -276,12 +276,12 @@ main()
 	clrscr();
 	vidmem[0] = '1';
 	vidmem[79] = '2';
-	vidmem[23*80+0] = '3';
 	vidmem[24*80+0] = '5';
-	vidmem[23*80+1] = '3';
-	vidmem[24*80+1] = '5';
-	vidmem[23*80+79] = '6';
 	vidmem[24*80+79] = '4';
+	for (ch = 1; ch < 24; ch++) {
+		vidmem[ch*80] = 'A' + ch;
+		vidmem[ch*80+1] = 'A' + ch;
+	}
 	for(;;);
 	
 	

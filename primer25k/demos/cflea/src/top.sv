@@ -203,8 +203,12 @@ module top(input wire clk, input wire s1,
 //	vga_8x8_font_256 font(.symbol(text_symbol), .x(vga_x[2:0]), .y(vga_y[3:1]), .out(text_out));	
 
     // on Gowin a Shadow ROM is better as it's both faster and smaller (and faster to compile)
+
+    // vga_y_p1 accounts for the fact we need the value of y the next cycle to account
+    // for the fact the font rom is synchronous.
+    wire [10:0] vga_y_p1 = (vga_y + (vga_x == 799 ? 1'b1 : 1'b0));
     wire [7:0] font_dout;                           // output of rom
-    wire [10:0] font_ad = {text_symbol, vga_y[3:1]};     // address into the rom, it's 11 bits of which the top 8 are the symbol and bottom 3 are the row
+    wire [10:0] font_ad = {text_symbol, vga_y_p1[3:1]};     // address into the rom, it's 11 bits of which the top 8 are the symbol and bottom 3 are the row
     assign text_out = font_dout[7 - vga_x[2:0]];    // bit of output indexed from the ROM output
 
     // our 256 symbol 8x8 CP437 font
