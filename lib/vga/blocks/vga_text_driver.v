@@ -76,9 +76,6 @@ module vga_text_driver #(
 					symbol <= rd_data;
 				end
 			end else begin
-
-// TODO:  current bug.  the first column of pixels is shifted down one
-
                 // we're either just entering HBLANK or VBLANK
 				if (x == (H_TOTAL-3-X_FETCH_DELAY)) begin
 					// set the next address for the next scanline which is either
@@ -111,7 +108,11 @@ module vga_text_driver #(
 			if (x < ((LRG_COLS) * LRG_PWIDTH) && y < (LRG_ROWS * LRG_PHEIGHT)) begin
 				rd_addr <= lrg_current_addr + 1'b1;
 				if (x_cnt == (LRG_PWIDTH-1)) begin
-					symbol  <= rd_data;
+                    if (lrg_col == LRG_COLS-1) begin
+                        symbol <= 0;
+                    end else begin
+                        symbol  <= rd_data;
+                    end
 				end
 			end else begin
 				symbol  <= 8'h00;

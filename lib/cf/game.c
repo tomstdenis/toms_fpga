@@ -273,25 +273,19 @@ main()
 {
 	int ch;
 	
-	clrscr();
-	vidmem[0] = '1';
-	vidmem[79] = '2';
-	vidmem[24*80+0] = '5';
-	vidmem[24*80+79] = '4';
-	for (ch = 1; ch < 24; ch++) {
-		vidmem[ch*80] = 'A' + ch;
-		vidmem[ch*80+1] = 'A' + ch;
-	}
-	for(;;);
-	
-	
 	vid_mode(1);
 	clrscr();
 	
+	for (ch = 0; ch < 40; ch++) {
+		plotxy(RGB(0,7,0), 47, ch);
+		plotxy(RGB(7,0,0), 0, ch);
+	}
+
 	plotxy(RGB(7,7,3), 0, 0); // white at top left
 	plotxy(RGB(7,0,0), 47, 0); // red top right
 	plotxy(RGB(0,7,0), 0, 39); // green bottom left
 	plotxy(RGB(0,0,3), 47, 39); // blue bottom right
+	
 	for(;;);
 	
 	for (;;) {
