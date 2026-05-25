@@ -7,10 +7,10 @@ Setup to use the right most PMOD header (J4).
 `include "spidma.vh"
 
 // Enable QPI mode in the test, otherwise use SPI mode
-//`define QUAD_MODE
+`define QUAD_MODE
 
 // use FAST read (0Bh) instead of normal speed (03h)
-`define FAST_SPI_MODE
+//`define FAST_SPI_MODE
 
 `ifdef QUAD_MODE
     `define DUMMY_CYCLES 6
@@ -33,12 +33,23 @@ Setup to use the right most PMOD header (J4).
 `endif
 
 
-module top(input wire clk, inout wire [3:0] sio, output wire cs, output wire sck, input wire uart_rx, output wire uart_tx);
+module top(input wire clk, inout wire [3:0] sio, output wire cs, output wire sck, output wire sck8, input wire uart_rx, output wire uart_tx);
 
 	localparam
         FREQ = `FREQ,
 		SRAM_ADDR_WIDTH = `SRAM_ADDR_WIDTH,
         HOST_MEM_ADDR = 11;
+
+	// divide SCK output by 8 so I can scope it on my FNRSI scope which is limited to 50MHz
+	reg [1:0] sck8_cnt = 0;
+	reg sck8_out = 0;
+	assign sck8 = sck8_out & ~sram_cs;
+	always @(posedge sram_sck) begin
+		sck8_cnt <= sck8_cnt + 1'b1;
+		if (sck8_cnt == 3) begin
+			sck8_out <= ~sck8_out;
+		end
+	end
 
     reg [3:0] rstcnt = 4'b0;
     wire rst_n;
