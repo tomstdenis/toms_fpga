@@ -1,14 +1,15 @@
 /* C-FLEA CPU Design */
 
 // version, read by using opcode 0xED which puts this in ACC
-`define cf_core_version 8'h03
+`define cf_core_version 8'h04
 
 `default_nettype none
 `timescale 1ns/1ps
 
 module cf_cpu #(
-	parameter TOP_VER = 8'h00,
-    parameter BOOT_VECTOR = 16'hF000
+	parameter TOP_VER     = 8'h00,
+    parameter BOOT_VECTOR = 16'hF000,
+    parameter USE_BARREL  = 1           // barrel shifter results in faster shr/shl but at cost of about 36 logic cells and hit to Fmax by about 2-3%
 )(
 	input wire clk,
 	input wire rst_n,
@@ -386,24 +387,28 @@ module cf_cpu #(
 									case(cur_opcode[7:3])
 										5'h17: // SHR
 											begin
-                                                reg_ACC <= reg_ACC >> reg_operand;
-/*
-												if (reg_operand != 0) begin
-													reg_ACC 	<= {1'b0, reg_ACC[15:1]};
-													reg_operand <= reg_operand - 1'b1;
-													fsm_state 	<= fsm_state;
-												end
-*/
-											end
+                                                if (USE_BARREL == 1) begin
+                                                    reg_ACC <= reg_ACC >> reg_operand;
+                                                end else begin
+                                                    if (reg_operand != 0) begin
+                                                        reg_ACC 	<= {1'b0, reg_ACC[15:1]};
+                                                        reg_operand <= reg_operand - 1'b1;
+                                                        fsm_state 	<= fsm_state;
+                                                    end
+                                                end
+                                            end
 										5'h18: // SHL
 											begin
-                                                reg_ACC <= reg_ACC << reg_operand;
-/*												if (reg_operand != 0) begin
-													reg_ACC		<= {reg_ACC[14:0], 1'b0};
-													reg_operand <= reg_operand - 1'b1;
-													fsm_state   <= fsm_state;
-												end
-*/											end
+                                                if (USE_BARREL == 1) begin
+                                                    reg_ACC <= reg_ACC << reg_operand;
+                                                end else begin
+                                                    if (reg_operand != 0) begin
+                                                        reg_ACC		<= {reg_ACC[14:0], 1'b0};
+                                                        reg_operand <= reg_operand - 1'b1;
+                                                        fsm_state   <= fsm_state;
+                                                    end
+                                                end
+											end
 										default: begin end
 									endcase
 								end
@@ -834,11 +839,11 @@ module cf_cpu #(
 						end
 						if (bus_enable && bus_ready) begin
 							bus_enable <= 1'b0;
-							if (bus_data_out == reg_ACC) begin					// compare against value
-								reg_PC    <= switch_addr;
-								fsm_state <= FSM_FETCH_OPCODE;
-							end else if (switch_addr == 0) begin				// are we at the default?
+							if (switch_addr == 0) begin				// are we at the default?
 								reg_PC    <= bus_data_out;
+								fsm_state <= FSM_FETCH_OPCODE;
+							end else if (bus_data_out == reg_ACC) begin					// compare against value
+								reg_PC    <= switch_addr;
 								fsm_state <= FSM_FETCH_OPCODE;
 							end else begin										// fetch the next tuple
 								bus_address <= {1'b0, switch_table_addr};

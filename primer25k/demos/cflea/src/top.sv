@@ -271,7 +271,7 @@ module top(input wire clk, input wire s1,
 		
 		if (vga_active) begin
 			if (!lrg_mode) begin
-				{vga_r, vga_g, vga_b} = text_out ? 12'b1111_1111_1111 : 12'b0;
+				{vga_r, vga_g, vga_b} = text_out ? 12'b1111_1111_1111 : 12'b0001_0001_0001;
 			end else begin
 				{vga_r, vga_g, vga_b} = {
 					{ text_symbol[2:0], &text_symbol[2:0] }, 
@@ -318,7 +318,8 @@ module top(input wire clk, input wire s1,
 
     cf_cpu #(
         .TOP_VER(`CF_TOP_VER),
-        .BOOT_VECTOR(bus_address_rom_mem_bot)) mr_thinky(
+        .BOOT_VECTOR(bus_address_rom_mem_bot),
+        .USE_BARREL(1)) mr_thinky(
         .clk(pllclk), .rst_n(rst_n),
         .bus_address(cf_bus_address),
         .bus_wr_en(cf_bus_wr_en),
