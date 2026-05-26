@@ -452,7 +452,7 @@ module cf_cpu #(
 									end
 								6: // [S+] x6								// load from [S] then increment S
 									begin
-										bus_address <= {1'b1, reg_SP + 16'd2};		// load from data memory
+										bus_address <= {1'b1, reg_SP};		// load from data memory
 										if (cur_opcode[7:4] != 4'h9) begin  // don't move SP for LEAI?
 											reg_SP <= reg_SP + 16'd2;
 										end
