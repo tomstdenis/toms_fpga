@@ -122,6 +122,14 @@ cpu_cycles_2
 				FCB $EE
 				RET
 			}
+		case 14:
+			asm {
+				FCB $EE
+				LD #$FFFF
+				DIVB #$11
+				FCB $EE
+				RET
+			}
 	}
 	return 0;
 }
@@ -210,6 +218,7 @@ const char *tests[] = {
 	"LD $F000",
 	"TSA",
 	"OUT $01",
+	"DIV $FFFF/$11 (+LD 0000)",
 	NULL
 };
 

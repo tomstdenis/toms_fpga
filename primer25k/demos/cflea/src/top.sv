@@ -83,7 +83,7 @@ module top(input wire clk, input wire s1,
 	wire rst_n = rst[3] & ~reset_sw[1] & wdt_reset; // s1 is pulled up by the button so we want to pull reset low when the button is pressed
 	
 	always @(posedge pllclk) begin
-        reset_sw = {reset_sw[0], s1 };
+        reset_sw <= {reset_sw[0], s1 };
         rst <= {rst[2:0], 1'b1};
 	end
 
@@ -377,65 +377,57 @@ module top(input wire clk, input wire s1,
                             if (bus_cycle == 0) begin
                                 if (!uart_tx_fifo_full) begin
                                     uart_tx_data_in <= cf_bus_data_in[7:0];
-                                    uart_tx_start <= 1'b1;
-                                    bus_cycle <= 1;
+                                    uart_tx_start   <= 1'b1;
+                                    bus_cycle       <= 1;
                                 end
                             end else if (bus_cycle == 1) begin
-                                cf_bus_ready <= 1'b1;
+                                cf_bus_ready  <= 1'b1;
                                 uart_tx_start <= 1'b0;
                             end                            
                         end else begin // reads
                             if (bus_cycle == 0) begin
                                 if (uart_rx_ready) begin
                                     uart_rx_read <= 1'b1;
-                                    bus_cycle <= 1;
+                                    bus_cycle    <= 1;
                                 end else begin
                                     // Dave's model returns -1 if there's no char...
-                                    cf_bus_ready <= 1'b1;
+                                    cf_bus_ready    <= 1'b1;
                                     cf_bus_data_out <= 16'hFFFF; // note this must be 16 bit since his INC/JZ/DEC test relies on FFFF rolling to 0
                                 end
                             end else if (bus_cycle == 1) begin
                                 uart_rx_read <= 1'b0;
-                                bus_cycle <= 2;
+                                bus_cycle    <= 2;
                             end else if (bus_cycle == 2) begin
-                                cf_bus_ready <= 1'b1;
+                                cf_bus_ready    <= 1'b1;
                                 cf_bus_data_out <= { 8'h00, uart_rx_byte };
                             end
                         end
                     end else if (cf_bus_address[7:0] == 8'h10) begin // uart status
-                        if (cf_bus_wr_en) begin
-                        end else begin
-                            cf_bus_data_out <= { 8'h00, 5'b0, uart_rx_ready, uart_tx_fifo_empty, uart_tx_fifo_full };
-                        end
-                        cf_bus_ready <= 1'b1;
+                        cf_bus_data_out <= { 8'h00, 5'b0, uart_rx_ready, uart_tx_fifo_empty, uart_tx_fifo_full };
+                        cf_bus_ready    <= 1'b1;
                     end else if (cf_bus_address[7:0] == 8'h11) begin // timer 1ms tick
                         if (cf_bus_wr_en) begin
                             tick_counter <= 0;
-                        end else begin
-                            cf_bus_data_out <= { 8'h00, tick_counter };
                         end
-                        cf_bus_ready <= 1'b1;
+                        cf_bus_data_out <= { 8'h00, tick_counter };
+                        cf_bus_ready    <= 1'b1;
                     end else if (cf_bus_address[7:0] == 8'h12) begin // video flags 
                         if (cf_bus_wr_en) begin
                             lrg_mode <= cf_bus_data_in[0];
-                        end else begin
-                            cf_bus_data_out <= {12'b0, vga_active_cf[1], vga_h_sync_cf[1], vga_v_sync_cf[1], lrg_mode};
                         end
-                        cf_bus_ready <= 1'b1;
+                        cf_bus_data_out <= {12'b0, vga_active_cf[1], vga_h_sync_cf[1], vga_v_sync_cf[1], lrg_mode};
+                        cf_bus_ready    <= 1'b1;
                     end else if (cf_bus_address[7:0] == 8'h13) begin // WDT
                         if (cf_bus_wr_en) begin
                             wdt          <= cf_bus_data_in[7:0];
-//                            tick_counter <= 0;
-                        end else begin
-                            cf_bus_data_out <= { 8'h00, wdt }; 
                         end
-                        cf_bus_ready <= 1'b1;
+                        cf_bus_data_out <= { 8'h00, wdt }; 
+                        cf_bus_ready    <= 1'b1;
                     end else if (cf_bus_address[7:0] == 8'h01) begin // GPIO0
                         if (cf_bus_wr_en) begin
                             gpio_out <= cf_bus_data_in[7:0];
-                        end else begin
-                            cf_bus_data_out <= { 8'h00, gpio_in };
                         end
+                        cf_bus_data_out <= { 8'h00, gpio_in };
                         cf_bus_ready <= 1'b1;
                     end else begin
                         // default to just ack the bus
@@ -448,20 +440,20 @@ module top(input wire clk, input wire s1,
                         if (bus_cycle[0] == 0) begin
                             main_mem_we_a  <= cf_bus_wr_en;
                             main_mem_we_b  <= cf_bus_burst ? cf_bus_wr_en : 1'b0;
-                            bus_cycle <= 1;
+                            bus_cycle      <= 1;
                         end else if (bus_cycle[0] == 1) begin
-                            main_mem_we_a <= 1'b0;
-                            main_mem_we_b <= 1'b0;
-                            cf_bus_ready <= 1;
-                            cf_bus_data_out = { cf_bus_burst ? main_mem_dout_b : 8'b00, main_mem_dout_a };
+                            main_mem_we_a   <= 1'b0;
+                            main_mem_we_b   <= 1'b0;
+                            cf_bus_ready    <= 1;
+                            cf_bus_data_out <= { cf_bus_burst ? main_mem_dout_b : 8'b00, main_mem_dout_a };
                         end
                     end else if (cf_bus_address[15:0] <= bus_address_rom_mem_top) begin
                         // rom memory
                         if (bus_cycle[0] == 0) begin
                             bus_cycle <= 1;
                         end else if (bus_cycle[0] == 1) begin
-                            cf_bus_ready <= 1;
-                            cf_bus_data_out = { cf_bus_burst ? boot_rom_dout_b : 8'b00, boot_rom_dout_a };
+                            cf_bus_ready    <= 1;
+                            cf_bus_data_out <= { cf_bus_burst ? boot_rom_dout_b : 8'b00, boot_rom_dout_a };
                         end
                     end else if (cf_bus_address[15:0] <= bus_address_text_mem_top) begin
                         // video memory
