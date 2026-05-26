@@ -232,7 +232,7 @@ module top(input wire clk, input wire s1,
 	logic [7:0] text_dout_b;
 	
 	logic lrg_mode;
-    logic lrg_mode_pll2;
+    logic [1:0] lrg_mode_pll2;
 
     video_mem reliving_my_childhood (
         .ada(text_addr_a), //input [10:0] ada
@@ -259,7 +259,7 @@ module top(input wire clk, input wire s1,
 	// also since we don't use the full y resolution anyways we shift things down so the overscan doesn't eat the first line
 	vga_text_driver #(.FONTHEIGHT(16), .X_FETCH_DELAY(2)) textdrv(
 		.clk(pll2clk), .rst_n(rst2_n),
-		.x(vga_x), .y(vga_y), .active_video(vga_active), .lrg_mode(lrg_mode_pll2),
+		.x(vga_x), .y(vga_y), .active_video(vga_active), .lrg_mode(lrg_mode_pll2[1]),
 		.rd_addr(text_addr_b), .rd_data(text_dout_b),
 		.symbol(text_symbol));
 
@@ -331,7 +331,7 @@ module top(input wire clk, input wire s1,
         .bus_data_out(cf_bus_data_out));
 
     always_ff @(posedge pll2clk) begin
-        lrg_mode_pll2 <= lrg_mode;
+        lrg_mode_pll2 <= {lrg_mode_pll2[0], lrg_mode};
     end
 
     reg [1:0] vga_v_sync_cf;
@@ -428,7 +428,7 @@ module top(input wire clk, input wire s1,
                             gpio_out <= cf_bus_data_in[7:0];
                         end
                         cf_bus_data_out <= { 8'h00, gpio_in };
-                        cf_bus_ready <= 1'b1;
+                        cf_bus_ready    <= 1'b1;
                     end else begin
                         // default to just ack the bus
                         cf_bus_ready <= 1'b1;
