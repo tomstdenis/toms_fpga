@@ -395,14 +395,12 @@ end
 											state <= STATE_SEND_CMD_ADDR;
 										end else begin
 											// if CMD_WRITE_ENABLE is set then we assume it's a NOR and we need to turn on WEL
-											tag   <= STATE_SEND_CMD_ADDR;
 											state <= STATE_WRITE_ENABLE;
 										end
 									end
 								`spidma_cmd_sector_erase:
 									begin
 										state <= STATE_WRITE_ENABLE;						// enable write latch
-										tag   <= STATE_SEND_CMD_ADDR;						// then jump to sending sector erase command
 									end
 								default:
 									begin
