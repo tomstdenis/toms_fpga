@@ -1,6 +1,6 @@
 TARGET=spidma
 TOP=top
-FREQ=175
+FREQ=140
 SRAM_ADDR_WIDTH=24
 
 OBJS+=${TARGET}.v pll1.v \

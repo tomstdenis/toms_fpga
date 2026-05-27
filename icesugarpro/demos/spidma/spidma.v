@@ -296,25 +296,25 @@ module top(input wire clk, inout wire [3:0] sio, output wire cs, output wire sck
                     begin
 						if (uart_rx_ready) begin
 							uart_rx_read <= 1;
-							test_host_mem_src    <= test_LFSR[8:0];
-							test_spi_mem_target  <= test_LFSR[18:10];
+							test_host_mem_src    <= test_LFSR[8:0];			// src from first 512 bytes of host mem
+							test_spi_mem_target  <= test_LFSR[18:10];		// spi target is somewhere in first 512 bytes
 `ifdef QUAD_MODE
-							test_burst_len       <= test_LFSR[24:20];
+							test_burst_len       <= test_LFSR[24:20];		// set a random 1..32 byte payload length
 `else
 	`ifdef FAST_SPI_MODE
-							test_burst_len       <= test_LFSR[23:20];
+							test_burst_len       <= test_LFSR[23:20];		// use shorter 16 bytes for fast SPI
 	`else
-							test_burst_len       <= test_LFSR[22:20];
+							test_burst_len       <= test_LFSR[22:20];		// or shorter 8 byte for slow SPI
 	`endif
 `endif
-							test_host_mem_target <= 1024 + (test_LFSR[8:0] ^ test_LFSR[18:10]); // host_mem_src ^ spi_mem_target
+							test_host_mem_target <= 1024 + (test_LFSR[8:0] ^ test_LFSR[18:10]); // target a random target in the top 1K of host memory to read back: host_mem_src ^ spi_mem_target
 							test_X               <= 0;
 							test_Y               <= 0;
 							fsm_state            <= FSM_ISSUE_WRITE;
 						end
                     end
 
-                FSM_ISSUE_WRITE:                                // issue write to spi command
+                FSM_ISSUE_WRITE:                                // issue write to spi command, this copies from host mem to SPI mem
                     begin
 						uart_rx_read			<= 0;
                         spidma_cmd_burst_len    <= test_burst_len;
@@ -326,7 +326,7 @@ module top(input wire clk, inout wire [3:0] sio, output wire cs, output wire sck
                         fsm_state               <= FSM_DELAY_READY;
                     end
 
-                FSM_ISSUE_READ:                                 // issue read from spi
+                FSM_ISSUE_READ:                                 // issue read from spi, this copies from SPI mem to host mem (in the top 1K)
                     begin
                         spidma_cmd_burst_len    <= test_burst_len;
                         spidma_cmd_value        <= `spidma_cmd_read;
@@ -337,7 +337,7 @@ module top(input wire clk, inout wire [3:0] sio, output wire cs, output wire sck
                         fsm_state               <= FSM_DELAY_READY;
                     end
 
-                FSM_COMPARE_TOP:                                // issue read from bottom 1K
+                FSM_COMPARE_TOP:                                // setup comparing the burst length we're comparing a block from the lower 1K to the a block in the upper 1K for equality
                     begin
                         host_mem_addr           <= test_host_mem_src + test_X;
                         fsm_tag                 <= FSM_READ_TGT;
@@ -353,7 +353,7 @@ module top(input wire clk, inout wire [3:0] sio, output wire cs, output wire sck
                         fsm_state               <= FSM_DELAY_1C;
                     end
 
-                FSM_COMPARE:                                    // 
+                FSM_COMPARE:                                    // compare the bottom and top 1K values
                     begin
                         if (test_Y != host_mem_data_out) begin
                             fsm_state <= FSM_BAD;
@@ -377,7 +377,7 @@ module top(input wire clk, inout wire [3:0] sio, output wire cs, output wire sck
                         end
                     end
 
-                FSM_BAD:                                        // echo 2 and then stop
+                FSM_BAD:                                        // echo 2 and then back to start
                     begin
                         if (!uart_tx_fifo_full) begin
                             uart_tx_data_in <= 8'h32;               // '2'
