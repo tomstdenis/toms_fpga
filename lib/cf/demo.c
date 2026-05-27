@@ -146,9 +146,9 @@ plotxy(unsigned char col, unsigned x1, unsigned y1)
 	vidmem[y1 * 48 + x1] = col;
 }
 
-#define STARS 64
+#define STARS 80
 struct {
-	unsigned x[STARS], y[STARS], sx[STARS], sy[STARS], sdx[STARS], sdy[STARS];
+	unsigned x[STARS], y[STARS], sx[STARS], sy[STARS], sdx[STARS], sdy[STARS], c[STARS];
 } stars;
 
 unsigned randy = 4;
@@ -162,6 +162,8 @@ main()
 {
 	unsigned x, y, z, sx, sy;
 	char msg[80];
+	
+//	goto starsc;
 
 	// boot
 	clrscr();
@@ -174,6 +176,8 @@ main()
 		clrscr();
 	}
 	
+top:
+	clrscr();
 	putsxy("Booting C-FLEA Primer25K CISC Thingy...", 0, 1);
 	for (x = 0; x < 8; x++) {
 		sprintf(msg, "Testing memory: %02d KB", x);
@@ -210,7 +214,7 @@ main()
 	wait_xms(3000);
 	putsxy("Plural?", 0, 2);
 	wait_xms(1500);
-	putsxy("Fine (I had to fix a bug in the RTL...", 0, 3);
+	putsxy("Fine (I had to fix a bug in the RTL...)", 0, 3);
 	wait_xms(1500);
 	
 	// actual star field?
@@ -222,8 +226,8 @@ starsf:
 		for (x = 0; x < STARS; x++) {
 			// If the star is dead (0), spawn it in the middle
 			if (stars.x[x] == 0) {
-				stars.x[x] = ((35 + ((rng() >> 1) & 7)) << 4); // Center X in .4 fixed point (640)
-				stars.y[x] = ((8 + ((rng() >> 7) & 7)) << 4); // Center Y in .4 fixed point (192)
+				stars.x[x] = 40 << 4; // ((35 + ((rng() >> 1) & 7)) << 4); // Center X in .4 fixed point (640)
+				stars.y[x] = 12 << 4; // ((8 + ((rng() >> 7) & 7)) << 4); // Center Y in .4 fixed point (192)
 				
 				// Give it a valid delta speed between 1 and 16 (0.06 to 1.0 pixels/frame)
 				stars.sx[x] = ((rng() >> 5) & 15) + 1; 
@@ -283,6 +287,77 @@ starsf:
 		wait_ms(33);
 		clrscr();
 	}
+
+starsc:
+	vid_mode(1);
+	clrscr();
+	memset(stars, 0, sizeof(stars));
+	
+	for (z = 0; z < (20 * 30); z++) {
+		for (x = 0; x < STARS; x++) {
+			// If the star is dead (0), spawn it in the middle
+			if (stars.x[x] == 0) {
+				stars.x[x] = 24 << 4; // ((16 + ((rng() >> 1) & 15)) << 4); // Center X in .4 fixed point (640)
+				stars.y[x] = 20 << 4; // ((12 + ((rng() >> 7) & 15)) << 4); // Center Y in .4 fixed point (192)
+				
+				// Give it a valid delta speed between 1 and 16 (0.06 to 1.0 pixels/frame)
+				stars.sx[x] = ((rng() >> 5) & 15) + 1; 
+				stars.sy[x] = ((rng() >> 7) & 15) + 1; 
+				
+				// Direction: 0 = Positive (Right/Down), 1 = Negative (Left/Up)
+				stars.sdx[x] = (rng() >> 7) & 1;
+				stars.sdy[x] = (rng() >> 3) & 1;
+				
+				stars.c[x] = (rng() >> 3) & 255;
+			} else { 
+				// --- MOVE X ---
+				if (stars.sdx[x] == 0) {
+					stars.x[x] += stars.sx[x];
+				} else {
+					// Safe unsigned subtraction: check if it would underflow 0
+					if (stars.x[x] > stars.sx[x]) {
+						stars.x[x] -= stars.sx[x];
+					} else {
+						stars.x[x] = 0; // Force to edge
+					}
+				}
+
+				// --- MOVE Y ---
+				if (stars.sdy[x] == 0) {
+					stars.y[x] += stars.sy[x];
+				} else {
+					// Safe unsigned subtraction
+					if (stars.y[x] > stars.sy[x]) {
+						stars.y[x] -= stars.sy[x];
+					} else {
+						stars.y[x] = 0;
+					}
+				}
+
+				// Convert fixed-point back to actual screen coordinates
+				sx = stars.x[x] >> 4;
+				sy = stars.y[x] >> 4;
+
+				// Kill the star if it hits the screen boundaries
+				// On an 80x25 screen, valid pixels are X: 0-79, Y: 0-24
+				if (sx <= 1 || sx >= 47 || sy <= 1 || sy >= 39) {
+					stars.x[x] = 0; // Mark as dead so it respawns next frame
+				}
+			}
+
+			// Draw the star only if it didn't just get killed
+			if (stars.x[x] != 0) {
+				sx = stars.x[x] >> 4;
+				sy = stars.y[x] >> 4;
+				vidmem[sx + (sy * 48)] = stars.c[x];
+			}
+//			printf("star %u: x=%u, y=%u, sx=%u, sy=%u, sdx=%u, sdy=%u, rng == %u\n", x, stars.x[x], stars.y[x], stars.sx[x], stars.sy[x], stars.sdx[x], stars.sdy[x], rng());  
+		}	
+		wait_ms(33);
+		clrscr();
+	}
+
+	vid_mode(0);
 	clrscr();
 	putsxy("Demo by Tom St Denis", 0, 1); wait_xms(500);
 	putsxy("RTL by Tom St Denis", 0, 2);  wait_xms(500);
@@ -292,8 +367,7 @@ starsf:
 	putsxy("                        and", 0, 6);  wait_xms(500);
 	putsxy("                    Tom St Denis", 0, 7);  wait_xms(500);
 	putsxy("That...", 0, 8);  wait_xms(1250);
-	putsxy("THAT is how you ATTENTION WHORE!!!! :-)", 0, 9);  wait_ms(250);
-	
-	for (;;);
+	putsxy("THAT is how you ATTENTION WHORE!!!! :-)", 0, 9);  wait_xms(5000);
+	goto top;
 }
 

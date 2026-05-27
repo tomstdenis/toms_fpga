@@ -1,7 +1,7 @@
 /* C-FLEA CPU Design */
 
 // version, read by using opcode 0xED which puts this in ACC
-`define cf_core_version 8'h04
+`define cf_core_version 8'h05
 
 `default_nettype none
 `timescale 1ns/1ps
