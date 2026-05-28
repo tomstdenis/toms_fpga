@@ -35,8 +35,7 @@ This module implements a hardware SPI/Quad SPI controller with host memory DMA c
 ## Architecture & State Machine
 The core drives transaction flow using a predefined finite state machine:
 - **Initialization & Reset**: `STATE_INIT` → `STATE_INIT_DONE` → `STATE_SEND_RESETEN*` → `STATE_SEND_RESET_DONE` 
-- **Command/Address Phase**: `STATE_SPI_SHIFT_8` cycles through 8-bit command and address bytes.
-- **QPI Data Phase**: `STATE_QPI_SEND_2` and `STATE_QPI_RECV_2` manage quad-line data transfers.
+- **Command/Address Phase**: `STATE_SHIFT_DATA` cycles through 8-bit command and address bytes.
 - **Host Memory Coordination**: `STATE_START_READ` and `STATE_START_WRITE` increment host addresses and decrement burst counters.
 - **Termination**: `STATE_HANGUP` and `STATE_DONE` gracefully end transactions and prepare for the next command.
 

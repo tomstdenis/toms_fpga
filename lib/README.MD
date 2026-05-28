@@ -65,86 +65,65 @@ Modules
 - **debug**: A chainable debug system that allows reading and writing 128-bit payloads deep inside design, supports dynamic addressing with identifiable nodes.
 
 - **fifo**: A generic read/write single clock FIFO with flush support
-  
   - Implemented in **fifo/fifo.v** with test bench **fifo/fifo_tb.v**.
+  
+- **math**: Various math things
+  - **serial_divide**: Implements a simple shift/reduce division algorithm, produces quotient/remainder
+  - **sqrt**: FPGA friendly simple O(ln(N)) integer square root (uses a DSP block).
 
 - **uart**: A 8N1 serial UART with FIFO support.
-  
   - Individual transmit and receive implemented as
-    
     - Transmit: **uart/blocks/tx_uart.v** with test bench **uart/blocks/tx_uart_tb.v**
-    
     - Receive: **uart/blocks/rx_uart.v** with test bench **uart/blocks/rx_uart_tb.v**
-    
     - Transceiver (with FIFO): **uart/blocks/uart.v** with test bench **uart/blocks/uart_tb.v**
-      
       - Has parameters for FIFO depth, RX and TX enables.
-  
   - A bus wrapper in **uart/uart_mem.v** with test bench **uart/uart_mem_tb.v**
-    
     - Supports IRQ for TX and RX using W1C clears
 
 - **timer**: A generic timer with variable width prescaler and counter.  Provides signals for compare match, top match, and PWM signalling.
-  
   - Low level timer imlemented in **timer/blocks/timer.v** with test bench **timer/blocks/timer_tb.v**
-  
   - A bus wrapper in **timer/timer_mem.v** with test bench **timer/timer_mem_tb.v**
 
 - **spidma**: SPI DMA controller for PSRAM/SRAM (and eventually NOR flash) memories
-
    - Works with PSRAM/SRAM evices in SPI and QPI mode (using read, fast read, or quad read)
    - Run time management allows switching between QPI/SPI mode, more robust FSM that to handle diff technologies
    - Can DMA 1 .. 256 bytes from/to SPI memory to a host synchronous memory (registered or not)
    - Uses simple valid/ready handshake
+   - Supports NOR commands (untested so far) for
+     - sector erase
+     - page program (which is really just "write" with a WEL and WIP loop)
+     - read (same as SRAM)
 
 - (deprecated) **sram**: SPI PSRAM/SRAM controllers
-
   - Works with PSRAM and SRAM devices in Quad-IO mode
 
-- **bsram**: On GW2AR parts the Block SRAM doesn't support a byte enable so this wrapper provides it.  Also allows **burst** mode traffic on the bus protocol.
-  
-  - Implemented in **bsram/sp_bsram.v** with test bench **bsram/sp_bsram_tb.v**
-  
-  - Default configuration is for 32KB (out of 92KB) in four 8x8192 memories.  (Uses 16 out of 46 BRAM blocks)
-  
-  - Implements byte lanes supporting naturally aligned byte, word, dword reads and writes (bus_err on unaligned access).
+- **cflea**: An implementation of Dave Dunfield's C-FLEA 16-bit VM in RTL
+  - Implements full ISA including divide, mult, and switch
+  - Really simple boot rom that can load Motorola S-Records
+  - ALU ops take 8 cycles with bypass BRAM (12 if the operand is in memory)
+  - Two added opcodes for getting top/core version and another to get lower 16 bits of cycle counter.
+  - Top demo for Primer25K that is compatible with his Micro-C LIBCF runtime
+     - Also sports a uart, timer, and VGA output
+     - Hits ~125MHz with the barrel shifter
 
 - **ib16**: An IttyBitty DIY **8-bit RISC** like processor with a 16-bit bus
-
   - Can be implemented fully on a Gowin GW1NZ-1 device (1152 LUT4, 850 DFF)
-  
   - Uses simple bus controller logic that allows flexibility in how to service memory requests
-
   - 16 general purpose registers with shadow bank for interrupt handling (no need to push/pop in your ISR)
-  
   - Has 2 and 3-operand ALU opcodes (reduces the need for manually moving register contents)
-  
   - Any pair of registers can be used to access memory by combining to form a 16-bit address (other than r15+r15 which is used for stack operations)
-
-  - RAM based stack (256 bytes)
-
+  - RAM based stack (256 bytes default, configurable)
   - Supports **64KB address space**
-
   - Assembler provided with initial library code to write apps in
-  
-  - boot roms and demo programs for both a **nano1k** and **ECP5** demo designs
+  - boot roms and demo programs for both a **nano1k** and **ECP5**/**Primer25K** demo designs
 
 - **useq**: A DIY 8-bit processor using 4KB of block ram as the main memory
-  
   - Uses about 1400 logic cells (7% of GW2AR-18), 5 SRAM blocks, 2 DPB blocks, 1 MULT9x9 in the demo configuration.
- 
   - Core provides bit-twiddling efficient opcodes
-  
   - Supports a HW accelerated FIFO that the parent module can also steer data into and out of for the core to work with
-  
   - Supports a HW stack
-  
   - Has IRQ support
-  
   - Has parameters to enable/disable IRQs, Host FIFO control, and you can control the size of the FIFO and the Stack.
-  
   - Supports 8 input and 8 output ports (or you can overlay them 8574 style)
-  
   - Operates at 3 cycles per opcode and can PNR at around 80-94.5MHz more than fast enough to bit bang many simple protocols (spi/i2c/uart).  A 60MHz clock would roughly approximate an AVR core's performance.
-  
   - Comes with a bootloader to load applications and assembler.
