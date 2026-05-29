@@ -1,0 +1,145 @@
+SD SPI notes...
+
+#0 Global Constrains
+
+Pin outs:
+   - MISO: DAT0
+   - MOSI: CMD
+   - CS: CD/DAT3
+   - SCK: CLK
+   
+Commands should have a timeout waiting for a response of no more than 1000ms.  If a command
+times out you should assume the card is not available (removed), and go back to the the start 
+by trying to initiate SPI mode.
+
+#1 Getting into SPI Mode
+
+From power on you basically send at <400kHz 10 consecutive 0xFF bytes over SPI with the CS pin held high.
+After this point sending a CMD0 command should get it into the idle state.
+
+#2 Commands
+
+All commands are 6 bytes and take the form
+
+byte 0: { 1'b0, 1'b1, CMD[5:0] }
+byte 1..4: payload[31:0]
+byte 5: { CRC[6:0], 1'b0 }
+
+only CMD0 needs a valid CRC and takes the form
+
+0x40, 0x00, 0x00, 0x00, 0x00, 0x95
+
+You should get an R1 packet with the value of 0x01, anything else and you can assume the card isn't in SPI
+mode (or present...).
+
+#3 Responses
+
+While waiting for a R1 reply the MISO pin is high, you clock SCK until MISO goes low, then the next 7 bits
+form the R1 response byte.  If there are additional response bytes they're just read in immediately after
+R1.
+
+Responses come in various forms:
+
+R1: Single 7-bit byte
+   0x40: parameter error
+   0x20: address error
+   0x10: erase sequence error
+   0x08: CRC error
+   0x04: illegal command
+   0x02: erase reset
+   0x01: in idle state
+   
+R1b: R1 + 0 bits until not busy
+   
+R2: R1 + 8-bits of additional status
+    0x80 - out of range
+    0x40 - erase param
+    0x20 - wp violation
+    0x10 - card ecc failed
+    0x08 - CC error
+    0x04 - error
+    0x02 - wp erase skip
+    0x01 - card is locked
+
+R3: R1 + 32-bits of OCR
+   - bit 31: 0 == not powered up
+   - bit 30: CCS bit 
+
+R7: R1 + 32-bits of SEND_IF_COND (CMD8) data
+	- [31:28] => command version
+	- [27:12] => reserved
+	- [11:8] => voltage accepted
+	- [7:0] => echo back
+	
+#4 Initialization
+
+After in the idle state (see #1 above):
+
+1. Send a CMD8(0x000001AA) with last byte 0x87 (can't use CRC of 00)
+1.1 If R1(0x04) is set or timeout it's SDSC v1
+1.2 If R7 response is 0x000001AA then it's SDSC or SDHC v2
+1.3 Any other R7 response and it's not supported go back to top (#1 SPI enable)
+
+2. Send CMD55 and expect R1(0x01)
+2.1 Send ACMD41(0x40000000)
+2.2 If ACMD41 returns R1(0x01) then goto 2 (CMD55)
+
+At this point you can speed up to the regular <25MHz SCK clock.  Also at this point
+if any R1 returns the idle state bit set then you need to jump back to #5.1
+
+3. If v2 then
+3.1 Send CMD58(0x00000000)
+3.2 Expect R3 back, if power up bit (31) is 0 goto 3
+3.3 If CCS bit (30) in OCR set then it's block addressed otherwise byte address
+
+4. If SDSC v1 or byte addressed
+4.1 Send CMD16(0x200) to set block length to a sector size
+4.2 Expect R1(0x00)
+
+5. Ideally compute the # of sectors available .... (TODO)
+
+#5 Reading a sector
+
+1. Send CMD17(sector), wait for R1(0x00)
+2. Keep shifting full bytes until read token 0xFE
+3. Read 512 bytes from SPI
+4. Read 2 bytes of CITT CRC-16
+
+#6 Writing a sector
+
+1. Send CMD24(sector), wait for R1(0x00).
+2. Clock out 1 dummy byte of 0xFF over SPI to give the card controller setup timing.
+3. Send Data Start Token: 0xFE.
+4. Stream your 512 bytes of payload data out over MOSI.
+5. Send exactly 2 bytes of dummy CRC-16 (0xFF, 0xFF is standard if SPI CRC checking isn't explicitly active).
+6. Read 1 byte from MISO to pull the Data Response Token. Mask the byte with `token & 0x1F`:
+   0x05: Data accepted!
+   0x0B: Data rejected due to CRC error.
+   0x0D: Data rejected due to Write Error.
+7. Keep reading bytes from MISO as long as MISO reads 0x00. The card holds MISO low to signal it is internally busy burning data to flash silicon.
+8. Once MISO returns to non-zero, the flash programming is complete. Raise CS high to end the write transaction.
+
+#7 Probing Card
+
+It may prove useful to periodically ping the card for presence if the module is idle.
+
+1.  Send CMD13(0x00000000)
+1.1 Expect R2(0x00 + next byte)
+
+#8 RTL Notes
+
+- Timers: 
+  - Need a 1ms tick counter
+  - Need a 100kHz bauddiv (core_clock / 100_000)
+  - Need a 24MHz bauddiv (core_clock / 24_000_000)
+- The FSM_INIT state should wait 1000ms before starting the SPI enablement/etc
+- The FSM_IDLE state should send out a SEND_STATUS command every ~500ms or so
+  - If the status command times out enter into FSM_INIT
+- Use SHIFT_DATA state from spidma
+  - use bit cnt of 6 to handle reading R1's
+  - introduce reg for spi bauddiv target (allows CMD0/CMD8/CMD55/ACMD41 to run at 100kHz and rest at 24MHz)
+  - count up for spi timer instead of down
+- Add a FSM_WAIT_R1 "wait for resp" state for SCK clocking while MISO high
+  - Use spi bauddiv target reg here too since R1 waits can be diff speeds too
+- Any timeout (1000 ticks) (other than CMD8) should send the FSM back to FSM_INIT
+- FSM_START_CMD should SHIFT_DATA over the 6 bytes of the cmd_wire = { cmd, payload[31:0], crc } bytes
