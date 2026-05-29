@@ -143,3 +143,4 @@ It may prove useful to periodically ping the card for presence if the module is 
   - Use spi bauddiv target reg here too since R1 waits can be diff speeds too
 - Any timeout (1000 ticks) (other than CMD8) should send the FSM back to FSM_INIT
 - FSM_START_CMD should SHIFT_DATA over the 6 bytes of the cmd_wire = { cmd, payload[31:0], crc } bytes
+- Hangup state: raise CS and SHIFT_DATA 0xFF once.
