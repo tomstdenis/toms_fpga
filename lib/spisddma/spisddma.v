@@ -86,11 +86,8 @@ module spisddma #(
     reg [$clog2(FAST_CLK):0]     sck_cycles;
     wire [$clog2(FAST_CLK):0]    timeout;
     reg [7:0]   temp_wire_bits;
-    reg         shift8_cs_exit;                                // some commands require CS to go high immediately
     
     // Command data
-    reg        cmd_wr_en_l;                                    // latched write enable signal
-    reg [31:0] cmd_sector_l;                                   // latched sector number to read/write from the SPI device
     reg [8:0]  cmd_pos;                                        // byte position in sector we're reading
     
     // SPI CMD data
@@ -153,13 +150,10 @@ module spisddma #(
             state_step          <= 0;
 
             // shared reset/init_spi nets
-            cmd_wr_en_l         <= 0;
-            cmd_sector_l        <= 0;
             host_mem_addr       <= 0;
             host_mem_wr_en      <= 0; //keep
             host_mem_data_in    <= 0;
             ready               <= 0; //keep
-            shift8_cs_exit      <= 0; //keep
             spi_cmd_opcode      <= 0;
             spi_cmd_payload     <= 0;
             spi_cmd_crc         <= 0;
@@ -173,13 +167,10 @@ module spisddma #(
                     begin
                         if (!cmd_valid) begin
                             // wait for host to drop valid if there's an error (marked keeps we must have to have sanity)
-                            cmd_wr_en_l          <= 0;
-                            cmd_sector_l         <= 0;
                             host_mem_addr        <= 0;
                             host_mem_wr_en       <= 0;                            // keep
                             host_mem_data_in     <= 0;
                             ready                <= 0;                            // keep
-                            shift8_cs_exit       <= 0;                            // keep
                             spi_cmd_opcode       <= 0;
                             spi_cmd_payload      <= 0;
                             spi_cmd_crc          <= 0;
@@ -192,6 +183,7 @@ module spisddma #(
                             cs_pin                 <= 1'b1;
                             state_step             <= (state_step == 9) ? 0 : (state_step + 1'b1);
                             temp_wire_bits         <= 8'hFF;
+                            mosi_pin               <= 1'b1;
                             bit_cnt                <= bit_cnt_orig;
                             sck_timer              <= ($clog2(SLOW_CLKDIV)+1)'(SLOW_CLKDIV);
                             state                  <= STATE_SHIFT_DATA;
@@ -233,7 +225,7 @@ module spisddma #(
                     begin
                         if ((temp_wire_bits & 8'h04) == 8'h04) begin
                             // card is v1 so skip to switching to ready mode CMD55
-                            card_is_v1 <= 1'b1;
+                            card_is_v1     <= 1'b1;
                             state          <= STATE_INIT_CMD55;
                         end else begin
                             if (temp_wire_bits == 8'h01) begin
@@ -381,6 +373,7 @@ module spisddma #(
                     begin
                         // send the 6 bytes of the command
                         temp_wire_bits <= spi_cmd_block[40 - (state_step * 8) +: 8];
+                        mosi_pin       <= spi_cmd_block[47 - (state_step * 8)];
                         bit_cnt        <= bit_cnt_orig;
                         sck_timer      <= sck_timer_orig;
                         state          <= STATE_SHIFT_DATA;
@@ -464,8 +457,6 @@ module spisddma #(
                                         if (bit_cnt == 0) begin
                                             bit_cnt    <= bit_cnt_orig;                        // reset bit count in case we chain SEND_8's
                                             state      <= tag;
-                                            cs_pin     <= shift8_cs_exit;                    // some commands require cs to go high after the last bit
-                                            shift8_cs_exit <= 0;                            // reset cs_exit for next SPI transfer
                                         end
                                     end else begin
                                         sck_timer <= sck_timer - 1'b1;
@@ -483,8 +474,6 @@ module spisddma #(
                             sck_pin             <= 1'b0;
                             
                             // latch the command
-                            cmd_wr_en_l         <= cmd_wr_en;
-                            cmd_sector_l        <= cmd_sector;
                             cmd_pos             <= 9'd0;
                             
                             // init the host memory address (this also gets the first read primed
@@ -528,9 +517,10 @@ module spisddma #(
                             state            <= STATE_DONE;
                         end else begin
                             // clock out 8 bits before sending the write token
-                            temp_wire_bits <= 8'hFF;
-                            state          <= STATE_SHIFT_DATA;
-                            tag               <= STATE_WRITE_TOKEN;
+                            temp_wire_bits   <= 8'hFF;
+                            mosi_pin         <= 1'b1;
+                            state            <= STATE_SHIFT_DATA;
+                            tag              <= STATE_WRITE_TOKEN;
                         end
                     end
                 
@@ -538,6 +528,7 @@ module spisddma #(
                 STATE_WRITE_TOKEN:
                     begin
                         temp_wire_bits     <= 8'hFE;
+						mosi_pin           <= 1'b1;
                         state              <= STATE_SHIFT_DATA;
                         tag                <= STATE_WRITE_SHIFT;
                     end
@@ -547,6 +538,7 @@ module spisddma #(
                 STATE_WRITE_SHIFT:
                     begin
                         temp_wire_bits <= host_mem_data_out;
+                        mosi_pin       <= host_mem_data_out[7];
                         host_mem_addr  <= host_mem_addr + 1'b1;
                         state          <= STATE_SHIFT_DATA;
                         tag            <= (cmd_pos == 9'd511) ? STATE_WRITE_CRC : state;
@@ -557,6 +549,7 @@ module spisddma #(
                 STATE_WRITE_CRC:
                     begin
                         temp_wire_bits <= 8'hFF;
+                        mosi_pin       <= 1'b1;
                         tag            <= (state_step == 2) ? STATE_WRITE_BLOCK_RESP : state;
                         state          <= STATE_SHIFT_DATA;
                         state_step     <= (state_step == 2) ? 0 : (state_step + 1'b1);
@@ -664,6 +657,7 @@ module spisddma #(
                     begin
                         cs_pin            <= 1'b1;
                         temp_wire_bits    <= 8'hFF;
+                        mosi_pin          <= 1'b1;
                         host_mem_wr_en    <= 1'b0;
                         state             <= STATE_SHIFT_DATA;
                         tag               <= STATE_WAIT_VALID_LOW;
