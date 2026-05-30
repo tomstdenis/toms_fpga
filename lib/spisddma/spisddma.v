@@ -152,29 +152,32 @@ module spisddma #(
 				// this performs a partial reset of the module, then sends 8 'FFs with the CS pin high
 				STATE_INIT_SPI:
 					begin
-						cmd_wr_en_l         <= 0;
-						cmd_sector_l 	    <= 0;
-						host_mem_addr		<= 0;
-						host_mem_wr_en		<= 0;
-						host_mem_data_in	<= 0;
-						ready				<= 0;
-						shift8_cs_exit		<= 0;
-						spi_cmd_opcode		<= 0;
-						spi_cmd_payload     <= 0;
-						spi_cmd_crc 		<= 0;
-						card_is_init		<= 1'b0;
-						card_is_sdsc		<= 1'b0;
-						fst_clk				<= 1'b0;
+						if (!cmd_valid) begin
+							// wait for host to drop valid if there's an error 
+							cmd_wr_en_l         <= 0;
+							cmd_sector_l 	    <= 0;
+							host_mem_addr		<= 0;
+							host_mem_wr_en		<= 0;
+							host_mem_data_in	<= 0;
+							ready				<= 0;
+							shift8_cs_exit		<= 0;
+							spi_cmd_opcode		<= 0;
+							spi_cmd_payload     <= 0;
+							spi_cmd_crc 		<= 0;
+							card_is_init		<= 1'b0;
+							card_is_sdsc		<= 1'b0;
+							fst_clk				<= 1'b0;
 
-						// send 8 FF's with CS high
-						sck_cycles	   		<= 0;
-						cs_pin         		<= 1'b1;
-						state_step     		<= (state_step == 7) ? 0 : (state_step + 1'b1);
-						temp_wire_bits 		<= 8'hFF;
-						bit_cnt 	   		<= bit_cnt_orig;
-						sck_timer 	   		<= ($clog2(SLOW_CLKDIV)+1)'(SLOW_CLKDIV);
-						state          		<= STATE_SHIFT_DATA;
-						tag            		<= (state_step == 7) ? STATE_INIT_CMD0 : STATE_INIT_SPI;
+							// send 8 FF's with CS high
+							sck_cycles	   		<= 0;
+							cs_pin         		<= 1'b1;
+							state_step     		<= (state_step == 7) ? 0 : (state_step + 1'b1);
+							temp_wire_bits 		<= 8'hFF;
+							bit_cnt 	   		<= bit_cnt_orig;
+							sck_timer 	   		<= ($clog2(SLOW_CLKDIV)+1)'(SLOW_CLKDIV);
+							state          		<= STATE_SHIFT_DATA;
+							tag            		<= (state_step == 7) ? STATE_INIT_CMD0 : STATE_INIT_SPI;
+						end
 					end
 				
 				// Send the initial CMD0 to see if we're in SPI mode
