@@ -149,6 +149,21 @@ module spisddma #(
 			error				<= `SPISD_ERR_OK;
 			card_is_init		<= 1'b0;
 			state_step 			<= 0;
+
+			// shared reset/init_spi nets
+			cmd_wr_en_l         <= 0;
+			cmd_sector_l 	    <= 0;
+			host_mem_addr		<= 0;
+			host_mem_wr_en		<= 0;
+			host_mem_data_in	<= 0;
+			ready				<= 0;
+			shift8_cs_exit		<= 0;
+			spi_cmd_opcode		<= 0;
+			spi_cmd_payload     <= 0;
+			spi_cmd_crc 		<= 0;
+			card_is_init		<= 1'b0;
+			card_is_sdsc		<= 1'b0;
+			fst_clk				<= 1'b0;			
 		end else begin
 			case(state)
 				// this performs a partial reset of the module, then sends 8 'FFs with the CS pin high
@@ -195,14 +210,14 @@ module spisddma #(
 						state		    <= STATE_SEND_CMD;
 					end
 					
-				// process the R1
+				// process the R1, should get 01 (in idle state) back if not we're not in SPI mode
 				STATE_INIT_CMD0_R1:
 					begin
 						if (temp_wire_bits != 8'h01) begin
 							// not in idle state try again (TODO: with delay...)
 							state 			<= STATE_INIT_SPI;
 						end else begin
-							// Got idle state, send CMD8(0x1AA) CRC: 0x87
+							// Got idle state, send CMD8(0x1AA) CRC: 0x87, this command checks if we have a v2 card
 							spi_cmd_opcode  <= 8'h48;
 							spi_cmd_payload <= 32'h1AA;
 							spi_cmd_crc     <= 8'h87; // TODO: check this
@@ -211,7 +226,7 @@ module spisddma #(
 						end
 					end
 				
-				// process CMD8 R1, a 04h indicates an opcode error, otherwise if idle read the OCR payload
+				// process CMD8 R1, a 04h indicates an opcode error (v1 card), otherwise if idle read the OCR payload
 				STATE_INIT_CMD8_R1:
 					begin
 						if ((temp_wire_bits & 8'h04) == 8'h04) begin
@@ -229,7 +244,7 @@ module spisddma #(
 						end
 					end
 				
-				// read 32-bits from CMD8 response
+				// read 32-bits from CMD8 response, should get back voltage ok (01) and echo back of our data (AA)
 				STATE_INIT_CMD8_READ:
 					begin
 						state <= (state_step == 3) ? STATE_INIT_CMD55 : STATE_SHIFT_DATA;
@@ -242,7 +257,7 @@ module spisddma #(
 						state_step <= (state_step == 3) ? 0 : (state_step + 1'b1);
 					end
 				
-				// send CMD55
+				// send CMD55 (Application commands need a CMD55 prefix)
 				STATE_INIT_CMD55:
 					begin
 						spi_cmd_opcode  <= 8'h40 + 8'd55;
@@ -252,13 +267,13 @@ module spisddma #(
 						cmd_tag         <= STATE_INIT_CMD55_R1;
 					end
 				
-				// read CMD55 R1 response
+				// read CMD55 R1 response (should be in idle state so we expect 01 here)
 				STATE_INIT_CMD55_R1:
 					begin
 						if (temp_wire_bits != 8'h01) begin
 							state		<= STATE_INIT_SPI;
 						end else begin
-							// only command we use this with is ACMD41...
+							// Send ACMD41 to ready the card
 							spi_cmd_opcode  <= 8'h40 + 8'd41;
 							spi_cmd_payload <= 32'h40000000;
 							spi_cmd_crc     <= 8'h00;
@@ -267,7 +282,7 @@ module spisddma #(
 						end
 					end
 				
-				// process the R1 from ACMD41
+				// process the R1 from ACMD41 we're looking for R1(00) (not in idle state)
 				STATE_INIT_ACMD41_R1:
 					begin
 						if (temp_wire_bits != 8'h00) begin
@@ -326,7 +341,7 @@ module spisddma #(
 						state_step <= (state_step == 3) ? 0 : (state_step + 1'b1);
 					end
 				
-				// send CMD16
+				// send CMD16 (set block length) to 512 bytes
 				STATE_INIT_CMD16:
 					begin
 						spi_cmd_opcode  <= 8'h40 + 8'd16;
@@ -336,7 +351,7 @@ module spisddma #(
 						cmd_tag         <= STATE_INIT_CMD16_R1;
 					end
 				
-				// read R1 response from CMD16 
+				// read R1 response from CMD16 (should get 00 back)
 				STATE_INIT_CMD16_R1:
 					begin
 						if (temp_wire_bits != 8'h00) begin
@@ -367,6 +382,8 @@ module spisddma #(
 						sck_cycles     <= 0;
 					end
 
+				// R1 responses have a variable number of MISO=1 bits (not necessarily a multiple of 8)
+				// before clocking out 7 bits of R1 value
 				// wait and then read an R1 code, jumps back to cmd_tag, puts code in temp_wire_bits
 				STATE_READ_R1:
 					begin
@@ -495,7 +512,7 @@ module spisddma #(
 						end
 					end
 
-				// parse R1 and then wait for read token 0xFE
+				// parse R1 (expect 00), then shift out 0xFF, followed by 0xFE (the write block token)
 				STATE_START_WRITE_RESP:
 					begin
 						if (temp_wire_bits != 8'h00) begin
@@ -509,6 +526,7 @@ module spisddma #(
 						end
 					end
 				
+				// shift out the write block token FE letting the card know payload follows
 				STATE_WRITE_TOKEN:
 					begin
 						temp_wire_bits     <= 8'hFE;
@@ -524,9 +542,10 @@ module spisddma #(
 						host_mem_addr  <= host_mem_addr + 1'b1;
 						state          <= STATE_SHIFT_DATA;
 						tag            <= (cmd_pos == 9'd511) ? STATE_WRITE_CRC : state;
-						cmd_pos        <= cmd_pos + 1'b1;
+						cmd_pos        <= (cmd_pos == 9'd511) ? 0 : (cmd_pos + 1'b1);
 					end
 				
+				// we don't (yet?) compute the CRC so we just shift out 0xFFFF, we shift out another 0xFF to read the response back
 				STATE_WRITE_CRC:
 					begin
 						temp_wire_bits <= 8'hFF;
@@ -534,7 +553,8 @@ module spisddma #(
 						state          <= STATE_SHIFT_DATA;
 						state_step     <= (state_step == 2) ? 0 : (state_step + 1'b1);
 					end
-									
+				
+				// Read the write response back, the bottom 5 bits have the code we care about
 				STATE_WRITE_BLOCK_RESP:
 					begin
 						state <= STATE_DONE;
@@ -543,7 +563,7 @@ module spisddma #(
 								begin
 									error          <= `SPISD_ERR_OK;
 									state          <= STATE_WRITE_WAIT;
-									temp_wire_bits <= 8'h00;
+									temp_wire_bits <= 8'h00;				// next state is waiting for MISO to go high so preload low
 									sck_cycles	   <= 0;
 								end
 							8'h0B, 8'h0D: 	error <= `SPISD_ERR_WRITE;
@@ -554,7 +574,9 @@ module spisddma #(
 								end
 						endcase
 					end
-					
+				
+				// The card will hold MISO low until the write is complete so we just
+				// use SHIFT_DATA to re-use clocking
 				STATE_WRITE_WAIT:
 					begin
 						if (temp_wire_bits != 8'h00) begin
@@ -562,6 +584,8 @@ module spisddma #(
 							state      <= STATE_DONE;
 						end else begin
 							state      <= STATE_SHIFT_DATA;
+							tag        <= state;
+							// increment by 8 since we're shifting bytes here
 							sck_cycles <= sck_cycles + 8;
 							if (sck_cycles >= timeout) begin
 								error <= `SPISD_ERR_TIMEOUT;
@@ -570,12 +594,14 @@ module spisddma #(
 						end
 					end
 
+				// Read the read sector R1 (should be 00)
 				STATE_START_READ_RESP:
 					begin
 						if (temp_wire_bits != 8'h00) begin
 							error 		   <= `SPISD_ERR_READ;
 							state 		   <= STATE_DONE;
 						end else begin
+							// preload temp wire so we can jump into wait token with a known value
 							temp_wire_bits <= 8'hFF;
 							state          <= STATE_WAIT_TOKEN;
 							sck_cycles     <= 0;
@@ -583,6 +609,8 @@ module spisddma #(
 						end
 					end
 
+				// The SD card shifts out 0xFF bytes until it's ready to provide payload
+				// which start with a 0xFE token followed by the payload (512 bytes) followed by 2 bytes of CRC
 				// wait for a byte aligned 0xFE token
 				STATE_WAIT_TOKEN:
 					begin
@@ -593,8 +621,10 @@ module spisddma #(
 						end else begin
 							state      <= STATE_SHIFT_DATA;
 							if (temp_wire_bits == 8'hFE) begin
+								// proceed to shift data out of the SD card into host memory
 								tag   <= cmd_tag;
 							end else begin
+								// keep shifting until we hit the read token
 								tag   <= state;
 							end
 						end
@@ -607,19 +637,21 @@ module spisddma #(
 						host_mem_data_in  <= temp_wire_bits;
 						host_mem_wr_en    <= 1'b1;
 						host_mem_addr     <= host_mem_addr + 1'b1;
+						cmd_pos			  <= (cmd_pos == 9'd511) ? 0 : (cmd_pos + 1'b1);
 						state             <= (cmd_pos == 9'd511) ? STATE_READ_CRC : STATE_SHIFT_DATA;
 						tag			      <= state;
-						cmd_pos			  <= cmd_pos + 1'b1;
 					end
-					
+				
+				// read the 16-bit CRC from the read sector command
 				STATE_READ_CRC:
 					begin
 						host_mem_wr_en    <= 1'b0;
+						state_step		  <= (state_step == 1) ? 0 : (state_step + 1'b1);
 						state			  <= (state_step == 1) ? STATE_DONE : STATE_SHIFT_DATA;
 						tag				  <= state;
-						state_step		  <= (state_step == 1) ? 0 : (state_step + 1'b1);
 					end
-					
+				
+				// where commands go before idle, we raise CS, clock out a byte
 				STATE_DONE:
 					begin
 						cs_pin 		   	  <= 1'b1;
@@ -629,6 +661,7 @@ module spisddma #(
 						tag   		      <= STATE_WAIT_VALID_LOW;
 					end
 				
+				// here we raise valid and wait for ready to drop before returning to idle
 				STATE_WAIT_VALID_LOW:
 					begin
 						ready <= 1'b1;
