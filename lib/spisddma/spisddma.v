@@ -543,6 +543,7 @@ module spisddma #(
 						end else begin
 							temp_wire_bits <= 8'hFF;
 							state          <= STATE_WAIT_TOKEN;
+							sck_cycles     <= 0;
 							cmd_tag        <= STATE_READ_SHIFT;
 						end
 					end
@@ -550,11 +551,17 @@ module spisddma #(
 				// wait for a byte aligned 0xFE token
 				STATE_WAIT_TOKEN:
 					begin
-						state <= STATE_SHIFT_DATA;
-						if (temp_wire_bits == 8'hFE) begin
-							tag   <= cmd_tag;
+						sck_cycles <= sck_cycles + 8;					// add 8 since we're shifting 8 bits per iteration
+						if (sck_cycles >= timeout) begin
+							error <= SPISD_ERR_TIMEOUT;
+							state <= STATE_INIT_SPI;
 						end else begin
-							tag   <= state;
+							state      <= STATE_SHIFT_DATA;
+							if (temp_wire_bits == 8'hFE) begin
+								tag   <= cmd_tag;
+							end else begin
+								tag   <= state;
+							end
 						end
 					end
 
