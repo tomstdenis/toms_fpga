@@ -132,7 +132,9 @@ module spisddma #(
 		STATE_WRITE_CRC				= 24,
 		STATE_WRITE_BLOCK_RESP		= 25,
 		STATE_READ_SHIFT			= 26,
-		STATE_READ_CRC				= 27;
+		STATE_READ_CRC				= 27,
+		STATE_WRITE_TOKEN			= 28,
+		STATE_WRITE_WAIT		    = 29;
 
 	always @(posedge clk) begin
 		if (!rst_n) begin
@@ -171,12 +173,12 @@ module spisddma #(
 							// send 8 FF's with CS high
 							sck_cycles	   		<= 0;
 							cs_pin         		<= 1'b1;
-							state_step     		<= (state_step == 7) ? 0 : (state_step + 1'b1);
+							state_step     		<= (state_step == 9) ? 0 : (state_step + 1'b1);
 							temp_wire_bits 		<= 8'hFF;
 							bit_cnt 	   		<= bit_cnt_orig;
 							sck_timer 	   		<= ($clog2(SLOW_CLKDIV)+1)'(SLOW_CLKDIV);
 							state          		<= STATE_SHIFT_DATA;
-							tag            		<= (state_step == 7) ? STATE_INIT_CMD0 : STATE_INIT_SPI;
+							tag            		<= (state_step == 9) ? STATE_INIT_CMD0 : STATE_INIT_SPI;
 						end
 					end
 				
@@ -488,6 +490,8 @@ module spisddma #(
 										cmd_tag         <= STATE_START_WRITE_RESP;
 									end
 							endcase
+						end else begin
+							// TODO: every 250ms send a STATUS request
 						end
 					end
 
@@ -501,10 +505,17 @@ module spisddma #(
 							// clock out 8 bits before sending the write token
 							temp_wire_bits <= 8'hFF;
 							state          <= STATE_SHIFT_DATA;
-							tag		       <= STATE_WRITE_SHIFT;
+							tag		       <= STATE_WRITE_TOKEN;
 						end
 					end
-					
+				
+				STATE_WRITE_TOKEN:
+					begin
+						temp_wire_bits     <= 8'hFE;
+						state			   <= STATE_SHIFT_DATA;
+						tag				   <= STATE_WRITE_SHIFT;
+					end
+
 				// write 512 bytes from host memory to SD SPI
 				// by time we get here the host memory should have loaded the first byte
 				STATE_WRITE_SHIFT:
@@ -526,12 +537,33 @@ module spisddma #(
 									
 				STATE_WRITE_BLOCK_RESP:
 					begin
+						state <= STATE_DONE;
 						case (temp_wire_bits & 8'h1F)
-							8'h05: 			error <= `SPISD_ERR_OK;
+							8'h05: 
+								begin
+									error          <= `SPISD_ERR_OK;
+									state          <= STATE_WRITE_WAIT;
+									temp_wire_bits <= 8'hFF;
+									sck_cycles	   <= 0;
+								end
 							8'h0B, 8'h0D: 	error <= `SPISD_ERR_WRITE;
 							default:		error <= `SPISD_ERR_TIMEOUT;
 						endcase
-						state <= STATE_DONE;
+					end
+					
+				STATE_WRITE_WAIT:
+					begin
+						if (temp_wire_bits != 8'h00) begin
+							// write done when MISO goes high at any point
+							state      <= STATE_DONE;
+						end else begin
+							state      <= STATE_SHIFT_DATA;
+							sck_cycles <= sck_cycles + 8;
+							if (sck_cycles >= timeout) begin
+								error <= `SPISD_ERR_TIMEOUT;
+								state <= STATE_INIT_SPI;
+							end
+						end
 					end
 
 				STATE_START_READ_RESP:
