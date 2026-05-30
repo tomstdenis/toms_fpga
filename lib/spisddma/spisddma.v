@@ -135,8 +135,9 @@ module spisddma #(
             cs_pin			    <= 1'b1;									// default high
             temp_wire_bits      <= 8'h00;
             bit_cnt			    <= 4'h0;
-			error				<= 0;
+			error				<= SPISD_ERR_OK;
 			card_is_init		<= 1'b0;
+			state_step 			<= 0;
 		end else begin
 			case(state)
 			
@@ -163,7 +164,7 @@ module spisddma #(
 						state_step     		<= (state_step == 7) ? 0 : state_step + 1'b1;
 						temp_wire_bits 		<= 8'hFF;
 						bit_cnt 	   		<= bit_cnt_orig;
-						sck_timer 	   		<= sck_timer_orig;
+						sck_timer 	   		<= SLOW_CLKDIV;
 						state          		<= STATE_SHIFT_DATA;
 						tag            		<= (state_step == 7) ? STATE_INIT_CMD0 : STATE_INIT_SPI;
 					end
