@@ -547,7 +547,11 @@ module spisddma #(
 									sck_cycles	   <= 0;
 								end
 							8'h0B, 8'h0D: 	error <= `SPISD_ERR_WRITE;
-							default:		error <= `SPISD_ERR_TIMEOUT;
+							default:
+								begin
+									error <= `SPISD_ERR_TIMEOUT;
+									state <= STATE_INIT_SPI;
+								end
 						endcase
 					end
 					
