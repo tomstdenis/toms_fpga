@@ -120,7 +120,10 @@ module spisddma #(
 		STATE_INIT_DONE				= 13,		// Initialization done
 		STATE_SEND_CMD				= 14,
 		STATE_READ_R1				= 15,
-		STATE_SHIFT_DATA			= 16;
+		STATE_SHIFT_DATA			= 16,
+		STATE_IDLE					= 17,
+		STATE_DONE 					= 18,
+		STATE_WAIT_VALID_LOW        = 19;
 
 	always @(posedge clk) begin
 		if (!rst_n) begin
@@ -332,6 +335,7 @@ module spisddma #(
 				STATE_INIT_DONE:
 					begin
 						card_is_init <= 1'b1;
+						error 		 <= SPISD_ERR_OK;
 						state        <= STATE_IDLE;
 					end
 				
@@ -381,6 +385,7 @@ module spisddma #(
 													state 		   <= cmd_tag;
 												end else begin
 													state 		   <= STATE_INIT_SPI;
+													error          <= SPISD_ERR_TIMEOUT;
 												end
 											end
 										end
@@ -445,14 +450,17 @@ module spisddma #(
 							
 							// init the host memory address (this also gets the first read primed
 							host_mem_addr       <= cmd_host_address;
+							
+							// default to ok
+							error 		 		<= SPISD_ERR_OK;
 					
 							// branch to the next state
 							case(cmd_value)
-								`spidma_cmd_read:  
+								`spisd_cmd_read:  
 									begin
 										host_mem_addr  <= cmd_host_address - 1'b1;			// subtract one so we can have a simpler loop in READ loop
 									end
-								`spidma_cmd_write:
+								`spisd_cmd_write:
 									begin
 									end
 								default:
@@ -469,8 +477,17 @@ module spisddma #(
 						cs_pin 		   <= 1'b1;
 						temp_wire_bits <= 8'hFF;
 						state 		   <= STATE_SHIFT_DATA;
-						tag   		   <= STATE_IDLE;
+						tag   		   <= STATE_WAIT_VALID_LOW;
 					end
+				
+				STATE_WAIT_VALID_LOW:
+					begin
+						ready <= 1'b1;
+						if (!cmd_valid) begin
+							ready <= 1'b0;
+							state <= STATE_IDLE;
+						end
+					end 
 			endcase
 		end
 	end
