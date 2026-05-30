@@ -543,7 +543,7 @@ module spisddma #(
 								begin
 									error          <= `SPISD_ERR_OK;
 									state          <= STATE_WRITE_WAIT;
-									temp_wire_bits <= 8'hFF;
+									temp_wire_bits <= 8'h00;
 									sck_cycles	   <= 0;
 								end
 							8'h0B, 8'h0D: 	error <= `SPISD_ERR_WRITE;
