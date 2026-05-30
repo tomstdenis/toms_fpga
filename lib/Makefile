@@ -1,4 +1,6 @@
 all:
+	make -C spisddma
+	make -C cf
 	make -C spidma
 	make -C math
 	make -C vga
@@ -12,6 +14,8 @@ all:
 	make -C timer
 
 clean:
+	make -C spisddma clean
+	make -C cf clean
 	make -C spidma clean
 	make -C math clean
 	make -C vga clean
