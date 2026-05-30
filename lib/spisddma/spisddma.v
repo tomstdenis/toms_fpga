@@ -67,8 +67,8 @@ module spisddma #(
 
 	// Slow (100KHz) and Fast (24 MHz) clocks
 	localparam
-		SLOW_CLKDIV     = ((CLK_FREQ_MHZ * 5_000_000) / 100_000) - 1,			// ((clk / 2) / 100_000) - 1
-		FAST_CLKDIV     = ((CLK_FREQ_MHZ * 5_000_000) / 24_000_000) - 1;		// ((clk / 2) / 24_000_000) - 1
+		SLOW_CLKDIV     = ((CLK_FREQ_MHZ * 500_000) / 100_000) - 1,			// ((clk / 2) / 100_000) - 1
+		FAST_CLKDIV     = ((CLK_FREQ_MHZ * 500_000) / 24_000_000) - 1;		// ((clk / 2) / 24_000_000) - 1
 
 	// fsm related
 	reg [4:0] state;										// What state is our FSM in
