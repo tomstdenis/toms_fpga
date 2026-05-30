@@ -90,6 +90,7 @@ module spisddma #(
 	// Command data
 	reg 	   cmd_wr_en_l;									// what command to run (read, write, ...)
 	reg [31:0] cmd_sector_l;								// address to read/write from the SPI device
+	reg [8:0]  cmd_pos;										// position in sector we're reading
 	
 	// SPI CMD data
 	reg [7:0]   spi_cmd_opcode;
@@ -123,7 +124,15 @@ module spisddma #(
 		STATE_SHIFT_DATA			= 16,
 		STATE_IDLE					= 17,
 		STATE_DONE 					= 18,
-		STATE_WAIT_VALID_LOW        = 19;
+		STATE_WAIT_VALID_LOW        = 19,
+		STATE_START_WRITE_RESP		= 20,
+		STATE_START_READ_RESP		= 21,
+		STATE_WAIT_TOKEN			= 22,
+		STATE_WRITE_SHIFT			= 23,
+		STATE_WRITE_CRC				= 24,
+		STATE_WRITE_BLOCK_RESP		= 25,
+		STATE_READ_SHIFT			= 26,
+		STATE_READ_CRC				= 27;
 
 	always @(posedge clk) begin
 		if (!rst_n) begin
@@ -140,7 +149,6 @@ module spisddma #(
 			state_step 			<= 0;
 		end else begin
 			case(state)
-			
 				// this performs a partial reset of the module, then sends 8 'FFs with the CS pin high
 				STATE_INIT_SPI:
 					begin
@@ -448,6 +456,7 @@ module spisddma #(
 							// latch the command
 							cmd_wr_en_l         <= cmd_wr_en;
 							cmd_sector_l   		<= cmd_sector;
+							cmd_pos				<= 9'd0;
 							
 							// init the host memory address (this also gets the first read primed
 							host_mem_addr       <= cmd_host_address;
@@ -459,10 +468,20 @@ module spisddma #(
 							case(cmd_value)
 								`spisd_cmd_read:  
 									begin
-										host_mem_addr  <= cmd_host_address - 1'b1;			// subtract one so we can have a simpler loop in READ loop
+										spi_cmd_opcode <= 8'h40 + 8'd17;
+										spi_cmd_opcode <= cmd_sector;
+										spi_cmd_crc    <= 8'h00;
+										state          <= STATE_SEND_CMD;
+										cmd_tag        <= STATE_START_READ_RESP;
+										host_mem_addr  <= cmd_host_address - 1'b1;
 									end
 								`spisd_cmd_write:
 									begin
+										spi_cmd_opcode <= 8'h40 + 8'd24;
+										spi_cmd_opcode <= cmd_sector;
+										spi_cmd_crc    <= 8'h00;
+										state          <= STATE_SEND_CMD;
+										cmd_tag        <= STATE_START_WRITE_RESP;
 									end
 								default:
 									begin
@@ -472,13 +491,96 @@ module spisddma #(
 							endcase
 						end
 					end
+
+				// parse R1 and then wait for read token 0xFE
+				STATE_START_WRITE_RESP:
+					begin
+						if (temp_wire_bits != 8'h00) begin
+							error <= SPISD_ERR_READ;
+							state <= STATE_DONE;
+						end else begin
+							// clock out 8 bits before sending the write token
+							temp_wire_bits <= 8'hFF;
+							state          <= STATE_SHIFT_DATA;
+							tag		       <= STATE_WRITE_SHIFT;
+						end
+					end
+					
+				// write 512 bytes from host memory to SD SPI
+				STATE_WRITE_SHIFT:
+					begin
+						temp_wire_bits <= host_mem_data_out;
+						host_mem_addr  <= host_mem_addr + 1'b1;
+						state          <= STATE_SHIFT_DATA;
+						tag            <= (cmd_pos == 9'd511) ? STATE_WRITE_CRC : state;
+						cmd_pos        <= cmd_pos + 1'b1;
+					end
+				
+				STATE_WRITE_CRC:
+					begin
+						temp_wire_bits <= 8'hFF;
+						tag            <= (state_step == 2) ? STATE_WRITE_BLOCK_RESP : state;
+						state          <= STATE_SHIFT_DATA;
+						state_step     <= (state_step == 2) ? 0 : (state_step + 1'b1);
+					end
+									
+				STATE_WRITE_BLOCK_RESP:
+					begin
+						case (temp_wire_bits & 8'h1F) begin
+							8'h05: error <= SPISD_ERR_OK;
+							8'h0B, 8'h0D: error <= SPISD_ERR_WRITE;
+						end
+						state <= STATE_DONE;
+					end
+
+				STATE_START_READ_RESP:
+					begin
+						if (temp_wire_bits != 8'h00) begin
+							error <= SPISD_ERR_WRITE;
+							state <= STATE_DONE;
+						end else begin
+							temp_wire_bits <= 8'hFF;
+							state          <= STATE_WAIT_TOKEN;
+							cmd_tag        <= STATE_READ_SHIFT;
+						end
+					end
+
+				// wait for a byte aligned 0xFE token
+				STATE_WAIT_TOKEN:
+					begin
+						if (temp_wire_bits == 8'hFE) begin
+							state <= cmd_tag;
+						end else begin
+							tag   <= state;
+							state <= STATE_SHIFT_DATA;
+						end
+					end
+
+				// we enter this having already shifted the first byte
+				STATE_READ_SHIFT:
+					begin
+						host_mem_data_in  <= temp_wire_bits;
+						host_mem_wr_en    <= 1'b1;
+						host_mem_addr     <= host_mem_addr + 1'b1;
+						tag               <= (cmd_pos == 9'd511) ? STATE_READ_CRC : state;
+						state		      <= STATE_SHIFT_DATA;
+						cmd_pos			  <= cmd_pos + 1'b1;
+					end
+					
+				STATE_READ_CRC:
+					begin
+						state			  <= (state_step == 1) ? STATE_DONE : STATE_SHIFT_DATA;
+						tag				  <= state;
+						state_step		  <= (state_step == 1) ? 0 : (state_step + 1'b1);
+					end
 					
 				STATE_DONE:
 					begin
-						cs_pin 		   <= 1'b1;
-						temp_wire_bits <= 8'hFF;
-						state 		   <= STATE_SHIFT_DATA;
-						tag   		   <= STATE_WAIT_VALID_LOW;
+						cs_pin 		   	  <= 1'b1;
+						temp_wire_bits    <= 8'hFF;
+						host_mem_wr_en	  <= 1'b0;
+						state 		      <= STATE_SHIFT_DATA;
+						tag   		      <= STATE_WAIT_VALID_LOW;
 					end
 				
 				STATE_WAIT_VALID_LOW:
