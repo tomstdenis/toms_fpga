@@ -301,7 +301,8 @@ module spisddma #(
 							state <= STATE_INIT_SPI;
 						end else begin
 							// now we need to read the 32-bit code back
-							state <= STATE_INIT_CMD58_READ;
+							tag   <= STATE_INIT_CMD58_READ;
+							state <= STATE_SHIFT_DATA;
 						end
 					end
 				
