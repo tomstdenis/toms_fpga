@@ -134,6 +134,21 @@ module spisddma #(
         STATE_READ_SHIFT            = 28,		// store 512 bytes and shift 511 more (first was shifted in WAIT_TOKEN)
         STATE_READ_CRC              = 29;		// shift in 2 bytes of CRC to sync up cards state
 
+	task setup_spi_cmd;
+	  input  [7:0] cmd_num;
+	  input  [31:0] payload_val;
+	  input  [7:0] crc;
+	  input  [4:0] ctag;
+	  begin
+		spi_cmd_opcode  <= 8'h40 + cmd_num;
+		spi_cmd_payload <= payload_val;
+		spi_cmd_crc     <= crc;
+		state           <= STATE_SEND_CMD;
+		cmd_tag         <= ctag;
+	  end
+	endtask
+
+
     always @(posedge clk) begin
         if (!rst_n) begin
             // mandatory for proper reset
@@ -197,11 +212,7 @@ module spisddma #(
                         // send a CMD0
                         cs_pin          <= 1'b0;
                         sck_pin         <= 1'b0;
-                        spi_cmd_opcode  <= 8'h40;
-                        spi_cmd_payload <= 32'b0;
-                        spi_cmd_crc     <= 8'h95;
-                        cmd_tag         <= STATE_INIT_CMD0_R1;
-                        state           <= STATE_SEND_CMD;
+                        setup_spi_cmd(8'd0, 32'h0, 8'h95, STATE_INIT_CMD0_R1);
                     end
                     
                 // process the R1, should get 01 (in idle state) back if not we're not in SPI mode
@@ -212,11 +223,7 @@ module spisddma #(
                             state           <= STATE_INIT_SPI;
                         end else begin
                             // Got idle state, send CMD8(0x1AA) CRC: 0x87, this command checks if we have a v2 card
-                            spi_cmd_opcode  <= 8'h40 + 8'd8;
-                            spi_cmd_payload <= 32'h1AA;
-                            spi_cmd_crc     <= 8'h87; // TODO: check this
-                            state           <= STATE_SEND_CMD;
-                            cmd_tag         <= STATE_INIT_CMD8_R1;
+                            setup_spi_cmd(8'd8, 32'h1AA, 8'h87, STATE_INIT_CMD8_R1);
                         end
                     end
                 
@@ -256,11 +263,7 @@ module spisddma #(
                 // send CMD55 (Application commands need a CMD55 prefix)
                 STATE_INIT_CMD55:
                     begin
-                        spi_cmd_opcode  <= 8'h40 + 8'd55;
-                        spi_cmd_payload <= 32'h0;
-                        spi_cmd_crc     <= 8'h00;
-                        state           <= STATE_SEND_CMD;
-                        cmd_tag         <= STATE_INIT_CMD55_R1;
+						setup_spi_cmd(8'd55, 32'h0, 8'h0, STATE_INIT_CMD55_R1);
                     end
                 
                 // read CMD55 R1 response (should be in idle state so we expect 01 here)
@@ -270,11 +273,7 @@ module spisddma #(
                             state        <= STATE_INIT_SPI;
                         end else begin
                             // Send ACMD41 to ready the card
-                            spi_cmd_opcode  <= 8'h40 + 8'd41;
-                            spi_cmd_payload <= 32'h40000000;
-                            spi_cmd_crc     <= 8'h00;
-                            state           <= STATE_SEND_CMD;
-                            cmd_tag         <= STATE_INIT_ACMD41_R1;
+                            setup_spi_cmd(8'd41, 32'h40000000, 8'h0, STATE_INIT_ACMD41_R1);
                         end
                     end
                 
@@ -301,11 +300,7 @@ module spisddma #(
                 STATE_INIT_CMD58:
                     begin
                         // issue opcode 58 to see if we need to set the block length (SDSC vs SDHC)
-                        spi_cmd_opcode  <= 8'h40 + 8'd58;
-                        spi_cmd_payload <= 32'h0;
-                        spi_cmd_crc     <= 8'h00;
-                        state           <= STATE_SEND_CMD;
-                        cmd_tag         <= STATE_INIT_CMD58_R1;
+						setup_spi_cmd(8'd58, 32'h0, 8'h0, STATE_INIT_CMD58_R1);
                     end
 
                 // read R1 from CMD58
@@ -343,11 +338,7 @@ module spisddma #(
                 // send CMD16 (set block length) to 512 bytes
                 STATE_INIT_CMD16:
                     begin
-                        spi_cmd_opcode  <= 8'h40 + 8'd16;
-                        spi_cmd_payload <= 32'h200;
-                        spi_cmd_crc     <= 8'h00;
-                        state           <= STATE_SEND_CMD;
-                        cmd_tag         <= STATE_INIT_CMD16_R1;
+						setup_spi_cmd(8'd16, 32'h200, 8'h00, STATE_INIT_CMD16_R1);
                     end
                 
                 // read R1 response from CMD16 (should get 00 back)
@@ -487,21 +478,13 @@ module spisddma #(
                                 1'b0:  
                                     begin
                                         // send READ SECTOR(CMD17) command
-                                        spi_cmd_opcode  <= 8'h40 + 8'd17;
-                                        spi_cmd_payload <= cmd_sector;
-                                        spi_cmd_crc     <= 8'h00;
-                                        state           <= STATE_SEND_CMD;
-                                        cmd_tag         <= STATE_START_READ_RESP;
+                                        setup_spi_cmd(8'd17, cmd_sector, 8'h00, STATE_START_READ_RESP);
                                         host_mem_addr   <= cmd_host_address - 1'b1;
                                     end
                                 1'b1:
                                     begin
                                         // send WRITE SECTOR(CMD24) command
-                                        spi_cmd_opcode  <= 8'h40 + 8'd24;
-                                        spi_cmd_payload <= cmd_sector;
-                                        spi_cmd_crc     <= 8'h00;
-                                        state           <= STATE_SEND_CMD;
-                                        cmd_tag         <= STATE_START_WRITE_RESP;
+                                        setup_spi_cmd(8'd24, cmd_sector, 8'h00, STATE_START_WRITE_RESP);
                                     end
                             endcase
                         end else begin
