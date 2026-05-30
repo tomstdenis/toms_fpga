@@ -6,7 +6,4 @@
 `define SPISD_ERR_WRITE   2
 `define SPISD_ERR_READ    3
 
-`define spisd_cmd_read 0
-`define spisd_cmd_write 1
-
 `endif

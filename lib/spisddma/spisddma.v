@@ -33,7 +33,7 @@ module spisddma #(
 	parameter HOST_MEM_ADDR   = 11,							// default to typical 2048x8 memories common to most 18kBit DPRAM blocks
 
 	// Timing parameters
-	parameter CLK_FREQ_MHZ    = 50,							// Clock rate of module
+	parameter CLK_FREQ_MHZ    = 50							// Clock rate of module
 )(
 	input wire clk,											// clock
 	input wire rst_n,										// active low reset
@@ -62,7 +62,7 @@ module spisddma #(
 	input wire miso_pin,
 	output reg mosi_pin,
 	output reg sck_pin,
-	output reg cs_pin,
+	output reg cs_pin
 );
 
 	// Slow (100KHz) and Fast (24 MHz) clocks
@@ -78,9 +78,9 @@ module spisddma #(
 	reg [3:0] state_step;
 
 	// transfer related
-	reg [3:0]   bit_cnt;										// bit counter a variety of FSM states
+	reg [3:0]   bit_cnt;									// bit counter a variety of FSM states
 	wire [3:0]  bit_cnt_orig;
-	reg [$clog2(SLOW_CLKDIV):0]  sck_timer;									// timer used to know when to change phase
+	reg [$clog2(SLOW_CLKDIV):0]  sck_timer;					// timer used to know when to change phase
 	wire [$clog2(SLOW_CLKDIV):0] sck_timer_orig;
 	reg [25:0]  sck_cycles;
 	wire [25:0] timeout;
@@ -101,7 +101,7 @@ module spisddma #(
 	
 	assign bit_cnt_orig   = 7;
 	assign timeout        = fst_clk ? 25_000_000 : 100_000;
-	assign sck_timer_orig = fst_clk ? FAST_CLKDIV : SLOW_CLKDIV;
+	assign sck_timer_orig = ($clog2(SLOW_CLKDIV)+1)'(fst_clk ? FAST_CLKDIV : SLOW_CLKDIV);
 	assign spi_cmd_block  = { spi_cmd_opcode, spi_cmd_payload, spi_cmd_crc };
 	
 	localparam
@@ -144,7 +144,7 @@ module spisddma #(
             cs_pin			    <= 1'b1;									// default high
             temp_wire_bits      <= 8'h00;
             bit_cnt			    <= 4'h0;
-			error				<= SPISD_ERR_OK;
+			error				<= `SPISD_ERR_OK;
 			card_is_init		<= 1'b0;
 			state_step 			<= 0;
 		end else begin
@@ -169,10 +169,10 @@ module spisddma #(
 						// send 8 FF's with CS high
 						sck_cycles	   		<= 0;
 						cs_pin         		<= 1'b1;
-						state_step     		<= (state_step == 7) ? 0 : state_step + 1'b1;
+						state_step     		<= (state_step == 7) ? 0 : (state_step + 1'b1);
 						temp_wire_bits 		<= 8'hFF;
 						bit_cnt 	   		<= bit_cnt_orig;
-						sck_timer 	   		<= SLOW_CLKDIV;
+						sck_timer 	   		<= ($clog2(SLOW_CLKDIV)+1)'(SLOW_CLKDIV);
 						state          		<= STATE_SHIFT_DATA;
 						tag            		<= (state_step == 7) ? STATE_INIT_CMD0 : STATE_INIT_SPI;
 					end
@@ -209,7 +209,7 @@ module spisddma #(
 				// process CMD8 R1, a 04h indicates an opcode error, otherwise if idle read the OCR payload
 				STATE_INIT_CMD8_R1:
 					begin
-						if (temp_wire_bits & 8'h04) begin
+						if ((temp_wire_bits & 8'h04) == 8'h04) begin
 							card_is_sdsc <= 1'b1;
 							state 		 <= STATE_INIT_CMD55;
 						end else begin
@@ -244,7 +244,7 @@ module spisddma #(
 						spi_cmd_payload <= 32'h0;
 						spi_cmd_crc     <= 8'h00;
 						state           <= STATE_SEND_CMD;
-						cmd_tag         <= STATE_INIT_CMD55_R1
+						cmd_tag         <= STATE_INIT_CMD55_R1;
 					end
 				
 				// read CMD55 R1 response
@@ -344,7 +344,7 @@ module spisddma #(
 				STATE_INIT_DONE:
 					begin
 						card_is_init <= 1'b1;
-						error 		 <= SPISD_ERR_OK;
+						error 		 <= `SPISD_ERR_OK;
 						state        <= STATE_IDLE;
 					end
 				
@@ -357,7 +357,7 @@ module spisddma #(
 						sck_timer 	   <= sck_timer_orig;
 						state          <= STATE_SHIFT_DATA;
 						tag            <= (state_step == 5) ? STATE_READ_R1 : STATE_SEND_CMD;
-						state_step     <= (state_step == 5) ? 0 : state_step + 1'b1;
+						state_step     <= (state_step == 5) ? 0 : (state_step + 1'b1);
 						sck_cycles     <= 0;
 					end
 
@@ -394,7 +394,7 @@ module spisddma #(
 													state 		   <= cmd_tag;
 												end else begin
 													state 		   <= STATE_INIT_SPI;
-													error          <= SPISD_ERR_TIMEOUT;
+													error          <= `SPISD_ERR_TIMEOUT;
 												end
 											end
 										end
@@ -462,31 +462,26 @@ module spisddma #(
 							host_mem_addr       <= cmd_host_address;
 							
 							// default to ok
-							error 		 		<= SPISD_ERR_OK;
+							error 		 		<= `SPISD_ERR_OK;
 					
 							// branch to the next state
-							case(cmd_value)
-								`spisd_cmd_read:  
+							case(cmd_wr_en)
+								1'b0:  
 									begin
-										spi_cmd_opcode <= 8'h40 + 8'd17;
-										spi_cmd_opcode <= cmd_sector;
-										spi_cmd_crc    <= 8'h00;
-										state          <= STATE_SEND_CMD;
-										cmd_tag        <= STATE_START_READ_RESP;
-										host_mem_addr  <= cmd_host_address - 1'b1;
+										spi_cmd_opcode  <= 8'h40 + 8'd17;
+										spi_cmd_payload <= cmd_sector;
+										spi_cmd_crc     <= 8'h00;
+										state           <= STATE_SEND_CMD;
+										cmd_tag         <= STATE_START_READ_RESP;
+										host_mem_addr   <= cmd_host_address - 1'b1;
 									end
-								`spisd_cmd_write:
+								1'b1:
 									begin
-										spi_cmd_opcode <= 8'h40 + 8'd24;
-										spi_cmd_opcode <= cmd_sector;
-										spi_cmd_crc    <= 8'h00;
-										state          <= STATE_SEND_CMD;
-										cmd_tag        <= STATE_START_WRITE_RESP;
-									end
-								default:
-									begin
-										// invalid cmd_value so just hangup
-										state <= STATE_DONE;
+										spi_cmd_opcode  <= 8'h40 + 8'd24;
+										spi_cmd_payload <= cmd_sector;
+										spi_cmd_crc     <= 8'h00;
+										state           <= STATE_SEND_CMD;
+										cmd_tag         <= STATE_START_WRITE_RESP;
 									end
 							endcase
 						end
@@ -496,7 +491,7 @@ module spisddma #(
 				STATE_START_WRITE_RESP:
 					begin
 						if (temp_wire_bits != 8'h00) begin
-							error 		   <= SPISD_ERR_READ;
+							error 		   <= `SPISD_ERR_READ;
 							state 		   <= STATE_DONE;
 						end else begin
 							// clock out 8 bits before sending the write token
@@ -527,18 +522,18 @@ module spisddma #(
 									
 				STATE_WRITE_BLOCK_RESP:
 					begin
-						case (temp_wire_bits & 8'h1F) begin
-							8'h05: 			error <= SPISD_ERR_OK;
-							8'h0B, 8'h0D: 	error <= SPISD_ERR_WRITE;
-							default:		error <= SPISD_ERR_TIMEOUT;
-						end
+						case (temp_wire_bits & 8'h1F)
+							8'h05: 			error <= `SPISD_ERR_OK;
+							8'h0B, 8'h0D: 	error <= `SPISD_ERR_WRITE;
+							default:		error <= `SPISD_ERR_TIMEOUT;
+						endcase
 						state <= STATE_DONE;
 					end
 
 				STATE_START_READ_RESP:
 					begin
 						if (temp_wire_bits != 8'h00) begin
-							error 		   <= SPISD_ERR_READ;
+							error 		   <= `SPISD_ERR_READ;
 							state 		   <= STATE_DONE;
 						end else begin
 							temp_wire_bits <= 8'hFF;
@@ -553,7 +548,7 @@ module spisddma #(
 					begin
 						sck_cycles <= sck_cycles + 8;					// add 8 since we're shifting 8 bits per iteration
 						if (sck_cycles >= timeout) begin
-							error <= SPISD_ERR_TIMEOUT;
+							error <= `SPISD_ERR_TIMEOUT;
 							state <= STATE_INIT_SPI;
 						end else begin
 							state      <= STATE_SHIFT_DATA;
