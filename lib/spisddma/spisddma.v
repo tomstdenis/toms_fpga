@@ -529,6 +529,7 @@ module spisddma #(
                 */
                 STATE_SHIFT_DATA:                                        // shift 8 bits in/out temp_spi_bits    
                     begin
+						host_mem_wr_en <= 1'b0;                          // ensure we're not writing to memory anymore
                         case(sck_pin)
                             1'd0:                                        // SCK low phase, put data on wire
                                 begin
@@ -656,7 +657,6 @@ module spisddma #(
                         case (temp_wire_bits & 8'h1F)
                             8'h05: 
                                 begin
-                                    error          <= `SPISD_ERR_OK;
                                     state          <= STATE_WRITE_WAIT;
                                     temp_wire_bits <= 8'h00;                // next state is waiting for MISO to go high so preload low
                                     sck_cycles     <= 0;
@@ -729,8 +729,8 @@ module spisddma #(
                 // from the STATE_WRITE_SHIFT
                 STATE_READ_SHIFT:
                     begin
-                        host_mem_data_in  <= temp_wire_bits;
                         cmd_crc16		  <= next_crc16_byte(cmd_crc16, temp_wire_bits);
+                        host_mem_data_in  <= temp_wire_bits;
                         host_mem_wr_en    <= 1'b1;
                         host_mem_addr     <= host_mem_addr + 1'b1;
                         cmd_pos           <= (cmd_pos == 9'd511) ? 0 : (cmd_pos + 1'b1);
