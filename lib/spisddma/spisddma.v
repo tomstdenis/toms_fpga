@@ -476,13 +476,15 @@ module spisddma #(
                                     begin
                                         // send READ SECTOR(CMD17) command
                                         setup_spi_cmd(8'd17, cmd_sector, 8'h00, STATE_START_READ_RESP);
-                                        host_mem_addr   <= cmd_host_address - 1'b1;
+                                        // our write to host mem loop +1's the addr so we pre decrement
+                                        // so it'll be aligned for the 0'th byte back from the SD card
+                                        host_mem_addr <= cmd_host_address - 1'b1;
                                     end
                                 1'b1:
                                     begin
                                         // send WRITE SECTOR(CMD24) command
                                         setup_spi_cmd(8'd24, cmd_sector, 8'h00, STATE_START_WRITE_RESP);
-                                        host_mem_addr       <= cmd_host_address;
+                                        host_mem_addr <= cmd_host_address;
                                     end
                             endcase
                         end else begin
