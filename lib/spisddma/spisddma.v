@@ -355,7 +355,7 @@ module spisddma #(
                 STATE_INIT_DONE:
                     begin
                         card_is_init <= 1'b1;
-                        error          <= `SPISD_ERR_OK;
+                        error        <= `SPISD_ERR_OK;
                         state        <= STATE_IDLE;
                     end
                 
@@ -467,9 +467,6 @@ module spisddma #(
                             // latch the command
                             cmd_pos             <= 9'd0;
                             
-                            // init the host memory address (this also gets the first read primed
-                            host_mem_addr       <= cmd_host_address;
-                            
                             // default to ok
                             error               <= `SPISD_ERR_OK;
                     
@@ -485,6 +482,7 @@ module spisddma #(
                                     begin
                                         // send WRITE SECTOR(CMD24) command
                                         setup_spi_cmd(8'd24, cmd_sector, 8'h00, STATE_START_WRITE_RESP);
+                                        host_mem_addr       <= cmd_host_address;
                                     end
                             endcase
                         end else begin
