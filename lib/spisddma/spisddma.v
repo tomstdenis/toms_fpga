@@ -134,11 +134,13 @@ module spisddma #(
         STATE_READ_SHIFT            = 28,		// store 512 bytes and shift 511 more (first was shifted in WAIT_TOKEN)
         STATE_READ_CRC              = 29;		// shift in 2 bytes of CRC to sync up cards state
 
+
+	// program the registers necessary to start a SD SPI command
 	task setup_spi_cmd;
-	  input  [7:0] cmd_num;
-	  input  [31:0] payload_val;
-	  input  [7:0] crc;
-	  input  [4:0] ctag;
+	  input  [7:0] cmd_num;						// the command byte (without bit 7/6)
+	  input  [31:0] payload_val;				// the 32-bit payload
+	  input  [7:0] crc;							// the CRC7 with the STOP bit.
+	  input  [4:0] ctag;						// the FSM state to jump to with the R1 response in temp_wire_bits
 	  begin
 		spi_cmd_opcode  <= 8'h40 + cmd_num;
 		spi_cmd_payload <= payload_val;
@@ -147,7 +149,42 @@ module spisddma #(
 		cmd_tag         <= ctag;
 	  end
 	endtask
+	
+/* 
+	Card Init
+	
+	1.  Cards boot into SD mode, you have to send at least "74" SCK pulses with MOSI and CS high
+	    Which is what STATE_INIT_SPI does (at the slow clock speed since the cards PLLs are not initialized yet)
+	    
+	2.  To test if the card accepted this we send a CMD0 packet (STATE_INIT_CMD0) and see if we get
+	    a "in idle state" reply.  If not we go back to the start.
+	    
+	3.  After this we're in SPI mode we need to figure out if we're a v1 card (byte addressing) or a v2
+	    card (byte or block) which we do via a CMD8 which is rejected on v1 cards (either R1(04) or timeout)
+	    
+	4.  If we get timeout or R1(04) then we can jump straight to sending a ACMD41 to ready the card.
+	    If not then read back the response which indicates if the card truly supported the CMD8 data,
+	    If we get back the valid data jump to sending ACMD41 otherwise back to the start
+	    
+	5.  At this point we know if the card is v1 or v2 we need to wake the card up via the ACMD41 which requires us
+	    to send a CMD55 first then a CMD41, once the card wakes up we either jump straight to CMD16 to set the block
+	    length in v1 cards, or we jump to sending a CMD58 to determine if it's a high or low capacity v2 card.
+	    
+	6.  The CMD58 returns R1(00) and then 4 bytes where bit 31 tells us if the card is fully powered on, and bit 30 tells
+	    us if the card is high capacity or not.  From this point we either jump to done (high capacity card) or to CMD16
+	    
+	7.  CMD16 sets the block length to 512 bytes and then we jump to done.
+	
+	8.  DONE sets the card_is_init and resets the error to OK before jumping to IDLE
+	
+	To program a job you would do
 
+    1.  Wait for card_is_init to go high (or timeout)
+    2.  Program the cmd_* nets to your command
+    3.  Wait for either error != 0 or ready == 1
+    4.  Drop cmd_valid to 0
+	
+*/
 
     always @(posedge clk) begin
         if (!rst_n) begin
