@@ -34,7 +34,8 @@ module spisddma #(
     parameter HOST_MEM_ADDR   = 11,                   // Address width (default 11 matches 2048x8 / 18kBit DPRAM)
     parameter CLK_FREQ_MHZ    = 50,                   // Core module clock frequency in MHz
     parameter SLOW_CLK        = 100_000,              // SPI initialization clock rate (must be < 400kHz)
-    parameter FAST_CLK        = 25_000_000            // Operational SPI clock rate (typically <= 25MHz)
+    parameter FAST_CLK        = 25_000_000,           // Operational SPI clock rate (typically <= 25MHz)
+    parameter READ_CRC_CHK    = 1                     // 1 - CRC must match, 0 - ignore
 )(
     // =========================================================================
     // SYSTEM SIGNALS
@@ -166,7 +167,8 @@ module spisddma #(
         STATE_START_READ_RESP       = 26,       // Inspect R1 response returned from read sector command (CMD17)
         STATE_WAIT_TOKEN            = 27,       // Consume padding frames (0xFF) until block start flag (0xFE) drops on MISO
         STATE_READ_SHIFT            = 28,       // Shift in data block from SD card, writing words into host RAM registers
-        STATE_READ_CRC              = 29;       // Capture trailing 16-bit CRC framing sequence to close reading cycle
+        STATE_READ_CRC              = 29,       // Capture trailing 16-bit CRC framing sequence to close reading cycle
+        STATE_READ_CRCCHK           = 30;       // Compare the computed CRC16 to the received one
 
     // -------------------------------------------------------------------------
     // Macro Routine: setup_spi_cmd
@@ -741,11 +743,22 @@ module spisddma #(
                     begin
                         host_mem_wr_en    <= 1'b0;
                         state_step        <= (state_step == 1) ? 0 : (state_step + 1'b1);
-                        state             <= (state_step == 1) ? STATE_DONE : STATE_SHIFT_DATA;
+                        state             <= (state_step == 1) ? STATE_READ_CRCCHK : STATE_SHIFT_DATA;
                         tag               <= state;
-                        // TODO: compare CRC16 here and return errors
+                        
+                        // XOR the received CRC against the computed one
+                        cmd_crc16[8 - (state_step * 8) +: 8] <= cmd_crc16[8 - (state_step * 8) +: 8] ^ temp_wire_bits;
                     end
                 
+                // ensure CRC is valid
+                STATE_READ_CRCCHK:
+					begin
+						state <= STATE_DONE;
+						if (READ_CRC_CHK == 1 && cmd_crc16 != 16'h0) begin
+							error <= `SPISD_ERR_READCRC;
+						end
+					end
+					
                 // where commands go before idle, we raise CS, clock out a byte
                 STATE_DONE:
                     begin
