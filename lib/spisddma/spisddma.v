@@ -745,9 +745,7 @@ module spisddma #(
                         state_step        <= (state_step == 1) ? 0 : (state_step + 1'b1);
                         state             <= (state_step == 1) ? STATE_READ_CRCCHK : STATE_SHIFT_DATA;
                         tag               <= state;
-                        
-                        // XOR the received CRC against the computed one
-                        cmd_crc16[8 - (state_step * 8) +: 8] <= cmd_crc16[8 - (state_step * 8) +: 8] ^ temp_wire_bits;
+                        cmd_crc16		  <= next_crc16_byte(cmd_crc16, temp_wire_bits);
                     end
                 
                 // ensure CRC is valid
