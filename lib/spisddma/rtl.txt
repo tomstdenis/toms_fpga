@@ -46,7 +46,7 @@ module spisddma #(
     // HOST CONTROL BUS
     // =========================================================================
     output reg ready,                                 // Active-high: Module has finished processing current request
-    output reg [2:0] error,                           // Error reporting codes (`SPISD_ERR_OK == 2'b00)
+    output reg [1:0] error,                           // Error reporting codes (`SPISD_ERR_OK == 2'b00)
     
     // =========================================================================
     // SD CARD STATUS INFO
@@ -110,7 +110,6 @@ module spisddma #(
     // SD Command & Block Counters
     // -------------------------------------------------------------------------
     reg [8:0]  cmd_pos;                           // Byte tracking index inside the 512-byte payload data loop
-    reg [15:0] cmd_crc16;
     
     // -------------------------------------------------------------------------
     // Command Buffers Mapping to a 48-bit Command Word Packet
@@ -185,24 +184,6 @@ module spisddma #(
 		cmd_tag         <= ctag;
 	  end
 	endtask
-	
-	// compute a bytewise update to the CRC16
-	function automatic [15:0] next_crc16_byte;
-		input [15:0] current_crc;
-		input [7:0]  data_in;
-		integer i;
-		begin
-			next_crc16_byte = current_crc;
-			// Process MSB (bit 7) to LSB (bit 0) for SD SPI
-			for (i = 7; i >= 0; i = i - 1) begin
-				if ((data_in[i] ^ next_crc16_byte[15]) == 1'b1) begin
-					next_crc16_byte = (next_crc16_byte << 1) ^ 16'h1021;
-				end else begin
-					next_crc16_byte = (next_crc16_byte << 1);
-				end
-			end
-		end
-	endfunction	
 	
 /* 
 	============================================================================
@@ -568,7 +549,6 @@ module spisddma #(
                             
                             // latch the command
                             cmd_pos             <= 9'd0;
-                            cmd_crc16           <= 16'h0;
                             
                             // default to ok
                             error               <= `SPISD_ERR_OK;
@@ -623,7 +603,6 @@ module spisddma #(
                 // by time we get here the host memory should have loaded the first byte
                 STATE_WRITE_SHIFT:
                     begin
-						cmd_crc16      <= next_crc16_byte(cmd_crc16, host_mem_data_out);
                         temp_wire_bits <= host_mem_data_out;
                         mosi_pin       <= host_mem_data_out[7];
                         host_mem_addr  <= host_mem_addr + 1'b1;
@@ -632,16 +611,11 @@ module spisddma #(
                         cmd_pos        <= (cmd_pos == 9'd511) ? 0 : (cmd_pos + 1'b1);
                     end
                 
-                // shift out CRC16, then we shift out another 0xFF to read the response back
+                // we don't (yet?) compute the CRC so we just shift out 0xFFFF, we shift out another 0xFF to read the response back
                 STATE_WRITE_CRC:
                     begin
-						if (state_step == 2) begin
-							temp_wire_bits <= 8'hFF;
-							mosi_pin       <= 1'b1;
-						end else begin							
-							temp_wire_bits <= cmd_crc16[8 - (state_step * 8) +: 8];
-							mosi_pin       <= cmd_crc16[7 - (state_step * 8)];
-						end
+                        temp_wire_bits <= 8'hFF;
+                        mosi_pin       <= 1'b1;
                         tag            <= (state_step == 2) ? STATE_WRITE_BLOCK_RESP : state;
                         state          <= STATE_SHIFT_DATA;
                         state_step     <= (state_step == 2) ? 0 : (state_step + 1'b1);
@@ -728,7 +702,6 @@ module spisddma #(
                 STATE_READ_SHIFT:
                     begin
                         host_mem_data_in  <= temp_wire_bits;
-                        cmd_crc16		  <= next_crc16_byte(cmd_crc16, temp_wire_bits);
                         host_mem_wr_en    <= 1'b1;
                         host_mem_addr     <= host_mem_addr + 1'b1;
                         cmd_pos           <= (cmd_pos == 9'd511) ? 0 : (cmd_pos + 1'b1);
@@ -743,7 +716,6 @@ module spisddma #(
                         state_step        <= (state_step == 1) ? 0 : (state_step + 1'b1);
                         state             <= (state_step == 1) ? STATE_DONE : STATE_SHIFT_DATA;
                         tag               <= state;
-                        // TODO: compare CRC16 here and return errors
                     end
                 
                 // where commands go before idle, we raise CS, clock out a byte
