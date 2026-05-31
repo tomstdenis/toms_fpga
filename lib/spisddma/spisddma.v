@@ -1,14 +1,14 @@
 /* SPI SD DMA Block
+ 
+  Facilitates transferring memory between SPI SD cards and host synchronous memories.
 
- Faciliates transfering memory between SPI SD cards and host synchronous memories.
-
-            ┌──────────────────┐                 ┌─────────────────┐          ┌──────────────────┐
-            │                  │                 │                 │  cs/sck  │                  │
-            │                  ├────────────────►│                 ├─────────►│                  │
-            │   Host Memory    │   host_mem_*    │                 │   sio_*  │      SPI SD      │
-            │                  │◄────────────────┤                 │◄────────►┤                  │
-            │                  │                 │     SPI DMA     │          │                  │
-            └──────────┬───────┘                 │                 │          └──────────────────┘
+            ┌──────────────────┐                 ┌─────────────────┐            ┌──────────────────┐
+            │                  │                 │                 │  cs/sck    │                  │
+            │                  ├────────────────►│                 ├───────────►│                  │
+            │   Host Memory    │   host_mem_*    │                 │ miso/mosi  │      SPI SD      │
+            │                  │◄────────────────┤                 │◄──────────►┤                  │
+            │                  │                 │     SPI DMA     │            │                  │
+            └──────────┬───────┘                 │                 │            └──────────────────┘
                     ▲  │                         │                 │                              
                     │  │                         │                 │                              
                     │  │                         │                 │                              
@@ -18,9 +18,8 @@
             │                  ├───────────────────────┘    │                                     
             │  SPI DMA Driver  │                            │                                     
             │                  │◄───────────────────────────┘                                     
-            │                  │    ready                                                         
+            │                  │    ready, error, card_is_init                                                         
             └──────────────────┘                                                                  
-
 */
 
 `timescale 1ns/1ps
@@ -29,118 +28,154 @@
 `include "spisddma.vh"
 
 module spisddma #(
-    // Host Side Memory
-    parameter HOST_MEM_ADDR   = 11,                           // default to typical 2048x8 memories common to most 18kBit DPRAM blocks
-
-    // Timing parameters
-    parameter CLK_FREQ_MHZ    = 50,                           // Clock rate of module
-    parameter SLOW_CLK        = 100_000,					  // clock rate of initial spi comms (should be <400kHz)
-    parameter FAST_CLK        = 25_000_000                    // clock rate of ready spi comms (should be <= 25MHz)
+    // =========================================================================
+    // PARAMETERS
+    // =========================================================================
+    parameter HOST_MEM_ADDR   = 11,                   // Address width (default 11 matches 2048x8 / 18kBit DPRAM)
+    parameter CLK_FREQ_MHZ    = 50,                   // Core module clock frequency in MHz
+    parameter SLOW_CLK        = 100_000,              // SPI initialization clock rate (must be < 400kHz)
+    parameter FAST_CLK        = 25_000_000            // Operational SPI clock rate (typically <= 25MHz)
 )(
-    input wire clk,                                           // clock
-    input wire rst_n,                                         // active low reset
+    // =========================================================================
+    // SYSTEM SIGNALS
+    // =========================================================================
+    input wire clk,                                   // Core system clock
+    input wire rst_n,                                 // active-low reset
 
-    // BUS
-    output reg ready,                                         // active high means the module is done with a request
-    output reg [1:0] error,                                   // error codes (SPISD_ERR_OK(0) == ok)
+    // =========================================================================
+    // HOST CONTROL BUS
+    // =========================================================================
+    output reg ready,                                 // Active-high: Module has finished processing current request
+    output reg [1:0] error,                           // Error reporting codes (`SPISD_ERR_OK == 2'b00)
     
-    // CARD info
-    output reg card_is_v1,
-    output reg card_is_init,
+    // =========================================================================
+    // SD CARD STATUS INFO
+    // =========================================================================
+    output reg card_is_v1,                            // High if Legacy SD v1 (Byte addressing mode)
+    output reg card_is_init,                          // High when card initialization sequence finishes successfully
     
-    // Host side memory
-    output reg [HOST_MEM_ADDR-1:0] host_mem_addr,             // address to read/write to from host memory
-    output reg host_mem_wr_en,                                // write enable
-    output reg [7:0] host_mem_data_in,                        // data to write to host mem
-    input  wire [7:0] host_mem_data_out,                      // data read from host mem
+    // =========================================================================
+    // HOST MEMORY INTERFACE
+    // =========================================================================
+    output reg [HOST_MEM_ADDR-1:0] host_mem_addr,     // Memory byte address for host reads/writes
+    output reg host_mem_wr_en,                        // Write enable strobe to host memory
+    output reg [7:0] host_mem_data_in,                // Byte-wide data written TO host memory
+    input  wire [7:0] host_mem_data_out,              // Byte-wide data read FROM host memory
     
-    // Command data
-    input wire cmd_wr_en,                                     // what command to run (read, write, ...)
-    input wire cmd_valid,                                     // active high when all cmd signals are valid
-    input wire [31:0] cmd_sector,                             // 512-byte sector to access
-    input wire [HOST_MEM_ADDR-1:0] cmd_host_address,          // address to write/read from the host memory
+    // =========================================================================
+    // HOST OPERATION REQUESTS (COMMAND PORT)
+    // =========================================================================
+    input wire cmd_wr_en,                             // Operation type: 0 = Read Sector, 1 = Write Sector
+    input wire cmd_valid,                             // Asserted high when command wires are valid and stable
+    input wire [31:0] cmd_sector,                     // 32-bit physical 512-byte block/sector address
+    input wire [HOST_MEM_ADDR-1:0] cmd_host_address,  // Target base address in host memory
 
-    // I/O
-    input wire miso_pin,
-    output reg mosi_pin,
-    output reg sck_pin,
-    output reg cs_pin
+    // =========================================================================
+    // PHYSICAL SPI INTERFACE PINS
+    // =========================================================================
+    input  wire miso_pin,                             // Master In Slave Out (Data from SD card)
+    output reg  mosi_pin,                             // Master Out Slave In (Data to SD card)
+    output reg  sck_pin,                              // SPI Serial Clock output
+    output reg  cs_pin                                // SPI Chip Select (Active Low)
 );
-    // Slow (~100KHz) and Fast (~25 MHz) clocks
+    // -------------------------------------------------------------------------
+    // Clock Divider Math
+    // Half-cycles required to derive target clocks from the core system clock
+    // -------------------------------------------------------------------------
     localparam
-        SLOW_CLKDIV     = ((CLK_FREQ_MHZ * 500_000) / SLOW_CLK) - 1,  // core clocks to count to a half-cycle of a slow clock
-        FAST_CLKDIV     = ((CLK_FREQ_MHZ * 500_000) / FAST_CLK) - 1;  // core clocks to count to a half-cycle of a fast clock
+        SLOW_CLKDIV     = ((CLK_FREQ_MHZ * 500_000) / SLOW_CLK) - 1, 
+        FAST_CLKDIV     = ((CLK_FREQ_MHZ * 500_000) / FAST_CLK) - 1; 
 
-    // fsm related
-    reg [4:0] state;                                           // What state is our FSM in
-    reg [4:0] tag;
-    reg [4:0] cmd_tag;                                         // tag to jump to when sending an SD SPI CMD
-    reg       fst_clk;                                         // 1 == use FAST_CLKDIV
-    reg [3:0] state_step;
+    // -------------------------------------------------------------------------
+    // Finite State Machine (FSM) State & Sequence Control Registers
+    // -------------------------------------------------------------------------
+    reg [4:0] state;                              // Primary execution state pointer
+    reg [4:0] tag;                                // Callback state pointer used by generalized bit-shifters
+    reg [4:0] cmd_tag;                            // Callback state pointer designated for SD command handlers
+    reg       fst_clk;                            // Clock select flag: 0 = SLOW_CLKDIV, 1 = FAST_CLKDIV
+    reg [3:0] state_step;                         // Multi-purpose step/iteration counter for nested state tracking
 
-    // transfer related
-    reg [3:0]   bit_cnt;                                       // bit counter a variety of FSM states
+    // -------------------------------------------------------------------------
+    // SPI Bit-Level and Timing Registers
+    // -------------------------------------------------------------------------
+    reg [3:0]   bit_cnt;                          // Counter for tracking 0-to-7 serial bits inside byte phases
     wire [3:0]  bit_cnt_orig;
-    reg [$clog2(SLOW_CLKDIV):0]  sck_timer;                    // timer used to know when to change phase
+    reg [$clog2(SLOW_CLKDIV):0]  sck_timer;       // Clock divider ticker matching current active speed
     wire [$clog2(SLOW_CLKDIV):0] sck_timer_orig;
-    reg [$clog2(FAST_CLK):0]     sck_cycles;
+    reg [$clog2(FAST_CLK):0]     sck_cycles;      // Counter tracking clock cycles to enforce timeouts
     wire [$clog2(FAST_CLK):0]    timeout;
-    reg [7:0]   temp_wire_bits;
+    reg [7:0]   temp_wire_bits;                   // Shift register capturing incoming/outgoing byte slices
     
-    // Command data
-    reg [8:0]  cmd_pos;                                        // byte position in sector we're reading
+    // -------------------------------------------------------------------------
+    // SD Command & Block Counters
+    // -------------------------------------------------------------------------
+    reg [8:0]  cmd_pos;                           // Byte tracking index inside the 512-byte payload data loop
     
-    // SPI CMD data
-    reg [7:0]   spi_cmd_opcode;                                // first byte: should be 8'h40 + 6'dXX
-    reg [31:0]  spi_cmd_payload;                               // payload 4 bytes: 32'hXXXXXXXX
-    reg [7:0]   spi_cmd_crc;                                   // crc byte
-    wire [47:0] spi_cmd_block;                                 // wire that maps the above into a 48 bit group we can shift out
-    reg [7:0]   spi_cmd58_byte0;                               // save the first byte of the 4 byte response for CMD58
+    // -------------------------------------------------------------------------
+    // Command Buffers Mapping to a 48-bit Command Word Packet
+    // -------------------------------------------------------------------------
+    reg [7:0]   spi_cmd_opcode;                   // Byte 0: Start-bit, Transmission-bit, and 6-bit Command Code
+    reg [31:0]  spi_cmd_payload;                  // Bytes 1-4: 32-bit Command Arguments
+    reg [7:0]   spi_cmd_crc;                      // Byte 5: 7-bit CRC checksum value shifted with a Stop-bit (1b)
+    wire [47:0] spi_cmd_block;                    // Combined bus aggregating the structural layout above
+    reg [7:0]   spi_cmd58_byte0;                  // Register to hold the initial OCR response byte from a CMD58
     
     assign bit_cnt_orig   = 7;
     assign timeout        = fst_clk ? FAST_CLK : SLOW_CLK;
     assign sck_timer_orig = ($clog2(SLOW_CLKDIV)+1)'(fst_clk ? FAST_CLKDIV : SLOW_CLKDIV);
     assign spi_cmd_block  = { spi_cmd_opcode, spi_cmd_payload, spi_cmd_crc };
     
+    // -------------------------------------------------------------------------
+    // FSM State Encodings
+    // -------------------------------------------------------------------------
     localparam
-        STATE_INIT_SPI              = 0,        // Initial SPI init command 
-        STATE_INIT_CMD0             = 1,        // Send CMD0 to go into SPI mode
-        STATE_INIT_CMD0_R1          = 2,        // Process R1 for CMD0 (looking for 01), then send out CMD8(1AA)
-        STATE_INIT_CMD8_R1          = 3,        // process R1 for CMD8 (looking for 01)
-        STATE_INIT_CMD8_READ        = 4,        // Read 32-bits from CMD8 (looking for 32'h1AA)
-        STATE_INIT_CMD55            = 5,        // Send CMD55 to enable application CMD
-        STATE_INIT_CMD55_R1         = 6,        // Process R1 for CMD55 (looking for R1(01)), send out ACMD41(0x40000000)
-        STATE_INIT_ACMD41_R1        = 7,        // Process R1 for ACMD41 (looking for R1(00))
-        STATE_INIT_CMD58            = 8,        // Send CMD58 to get capacity flag
-        STATE_INIT_CMD58_R1         = 9,        // Process R1 from CMD58 (looking for R1(00))
-        STATE_INIT_CMD58_READ       = 10,       // Read 32-bits from CMD58 (looking for bit31==1, bit30==block/byte addressing)
-        STATE_INIT_CMD16            = 11,       // Send CMD16 to set sector size
-        STATE_INIT_CMD16_R1         = 12,       // Process R1 from CMD16 (looking for R1(00))
-        STATE_INIT_DONE             = 13,       // Initialization done (set card_is_init and jump to IDLE)
-        STATE_SEND_CMD              = 14,		// Send a 6-byte SD SPI CMD then tail call READ_R1
-        STATE_READ_R1               = 15,       // Wait for MISO to drop low, then read the 7-bit R1 code and jump to cmd_tag
-        STATE_SHIFT_DATA            = 16,       // Shift in/out data (sends out temp_wire_bits which ends up with whatever shifted in)
-        STATE_IDLE                  = 17,       // Wait for host command
-        STATE_DONE                  = 18,       // Done, raise CS and clock SCK 8 times then jump back to WAIT_VALID_LOW
-        STATE_WAIT_VALID_LOW        = 19,       // Raise ready, wait for host to drop valid so we can drop valid then jump to IDLE
-        STATE_START_WRITE_RESP      = 20,       // Process R1 from WRITE SECTOR command, then clock out FF's, jump to STATE_WRITE_TOKEN
-        STATE_WRITE_TOKEN           = 21,       // write WRITE token (8'hFE) then jump to STATE_WRITE_SHIFT to clock out 512 bytes
-        STATE_WRITE_SHIFT           = 22,       // clock out 512 bytes, jump to WRITE_CRC when done
-        STATE_WRITE_CRC             = 23,       // shift 0xFF, 0xFF, out, then another 0xFF to shift in the response block, jump to BLOCK_RESP
-        STATE_WRITE_BLOCK_RESP      = 24,       // process the response code (looking for 'h05), jump to WRITE_WAIT
-        STATE_WRITE_WAIT            = 25,       // keep shifting a byte until MISO goes non-zero
-        STATE_START_READ_RESP       = 26,       // Proess R1 from READ SECTOR command, jump to WAIT_TOKEN
-        STATE_WAIT_TOKEN            = 27,       // keep shifting bytes until you get 8'hFE, shift in the first byte on your way to READ_SHIFT
-        STATE_READ_SHIFT            = 28,		// store 512 bytes and shift 511 more (first was shifted in WAIT_TOKEN)
-        STATE_READ_CRC              = 29;		// shift in 2 bytes of CRC to sync up cards state
+        // --- Card Initialization Phases ---
+        STATE_INIT_SPI              = 0,        // Output 74+ dummy clock cycles with CS high to wake up SD logic
+        STATE_INIT_CMD0             = 1,        // Issue software reset command (CMD0) to force card into SPI mode
+        STATE_INIT_CMD0_R1          = 2,        // Validate R1 response for CMD0 (expecting 0x01: Idle), then issue CMD8
+        STATE_INIT_CMD8_R1          = 3,        // Evaluate R1 response for CMD8; checking for illegal command (v1 card)
+        STATE_INIT_CMD8_READ        = 4,        // Process trailing 32-bit payload of CMD8 to evaluate operational voltage compatibility
+        STATE_INIT_CMD55            = 5,        // Transmit App-Command Escape prefix (CMD55) required ahead of ACMD41
+        STATE_INIT_CMD55_R1         = 6,        // Process CMD55 response; if accepted, immediately transition to ACMD41
+        STATE_INIT_ACMD41_R1        = 7,        // Check ACMD41 R1; loop back if card is still busy initializing (0x01)
+        STATE_INIT_CMD58            = 8,        // Request Operating Conditions Register (CMD58) to read capacity info
+        STATE_INIT_CMD58_R1         = 9,        // Evaluate R1 status for CMD58 before attempting to parse its register structure
+        STATE_INIT_CMD58_READ       = 10,       // Process OCR data: test bit 30 to categorize High Capacity (SDHC) vs Standard (SDSC)
+        STATE_INIT_CMD16            = 11,       // Issue CMD16 to force block lengths to standard 512 bytes (Standard Capacity Only)
+        STATE_INIT_CMD16_R1         = 12,       // Confirm execution status of CMD16
+        STATE_INIT_DONE             = 13,       // Initialization sequence successfully concluded; flag module ready
+        
+        // --- Shared Core Subroutines ---
+        STATE_SEND_CMD              = 14,       // Unload a 6-byte command buffer over MOSI, then pivot to read R1 response
+        STATE_READ_R1               = 15,       // Monitor MISO for dropping edge; capture response byte then branch via `cmd_tag`
+        STATE_SHIFT_DATA            = 16,       // General-purpose 8-bit full-duplex serializer subroutine
+        STATE_IDLE                  = 17,       // Idle resting loop; listening for incoming requests from host system
+        STATE_DONE                  = 18,       // End transaction routine: release chip select and clear interface pipelines
+        STATE_WAIT_VALID_LOW        = 19,       // Handshake trap: Assert ready flag, block execution until host lowers `cmd_valid`
+        
+        // --- Write Sector Sequences ---
+        STATE_START_WRITE_RESP      = 20,       // Inspect R1 for write access, clear pipeline byte, and route to write token token
+        STATE_WRITE_TOKEN           = 21,       // Output Start Block token (0xFE) pointing card logic to data streams
+        STATE_WRITE_SHIFT           = 22,       // Sequence 512 data bytes out of host RAM onto physical SPI buses
+        STATE_WRITE_CRC             = 23,       // Stream out trailing uncalculated dummy CRC bytes (0xFFFF) and read token status
+        STATE_WRITE_BLOCK_RESP      = 24,       // Evaluate block response token; capture data errors or jump to busy checks
+        STATE_WRITE_WAIT            = 25,       // Poll MISO lines; keep processing clocks while card pulls bus low (Write Busy)
+        
+        // --- Read Sector Sequences ---
+        STATE_START_READ_RESP       = 26,       // Inspect R1 response returned from read sector command (CMD17)
+        STATE_WAIT_TOKEN            = 27,       // Consume padding frames (0xFF) until block start flag (0xFE) drops on MISO
+        STATE_READ_SHIFT            = 28,       // Shift in data block from SD card, writing words into host RAM registers
+        STATE_READ_CRC              = 29;       // Capture trailing 16-bit CRC framing sequence to close reading cycle
 
-
-	// program the registers necessary to start a SD SPI command
+    // -------------------------------------------------------------------------
+    // Macro Routine: setup_spi_cmd
+    // Configures command state tracking registers to orchestrate a 6-byte sequence
+    // -------------------------------------------------------------------------
 	task setup_spi_cmd;
-	  input  [7:0] cmd_num;						// the command byte (without bit 7/6)
-	  input  [31:0] payload_val;				// the 32-bit payload
-	  input  [7:0] crc;							// the CRC7 with the STOP bit.
-	  input  [4:0] ctag;						// the FSM state to jump to with the R1 response in temp_wire_bits
+	  input  [7:0] cmd_num;						// Command index code (automatically masks off structural bits 7 and 6)
+	  input  [31:0] payload_val;				// 32-bit payload arguments mapping into packet
+	  input  [7:0] crc;							// Valid pre-calculated CRC7 with active stop bit (Mandatory for CMD0/CMD8)
+	  input  [4:0] ctag;						// Specific FSM return tag pointing where to jump following an R1 capture
 	  begin
 		spi_cmd_opcode  <= 8'h40 + cmd_num;
 		spi_cmd_payload <= payload_val;
@@ -151,39 +186,46 @@ module spisddma #(
 	endtask
 	
 /* 
-	Card Init
+	============================================================================
+	SD CARD INITIALIZATION PROTOCOL FLOWCHART
+	============================================================================
 	
-	1.  Cards boot into SD mode, you have to send at least "74" SCK pulses with MOSI and CS high
-	    Which is what STATE_INIT_SPI does (at the slow clock speed since the cards PLLs are not initialized yet)
+	1. POWER-UP / CLOCK PRECONDITIONING:
+	   Cards boot natively in SD Native Bus Mode. Driving at least 74 SCK pulses with 
+	   MOSI and CS asserted high transitions internal states into a ready condition. 
+	   Handled during `STATE_INIT_SPI` at the slow initialization rate.
 	    
-	2.  To test if the card accepted this we send a CMD0 packet (STATE_INIT_CMD0) and see if we get
-	    a "in idle state" reply.  If not we go back to the start.
+	2. INITIAL SOFTWARE RESET (GO_IDLE_STATE):
+	   Transmitting a standard CMD0 packet forces internal card control units to map 
+	   SPI architectures. Checks for an "In Idle State" response code (0x01).
 	    
-	3.  After this we're in SPI mode we need to figure out if we're a v1 card (byte addressing) or a v2
-	    card (byte or block) which we do via a CMD8 which is rejected on v1 cards (either R1(04) or timeout)
+	3. PROTOCOL VERSION DIFFERENTIATION:
+	   A CMD8 packet is issued next. If rejected with an Illegal Opcode error (0x04) 
+	   or if a timeout occurs, the target device is classified as a Legacy SD v1 Card. 
+	   Valid acceptance and echo tracking confirms an SD v2 Standard/High Capacity device.
 	    
-	4.  If we get timeout or R1(04) then we can jump straight to sending a ACMD41 to ready the card.
-	    If not then read back the response which indicates if the card truly supported the CMD8 data,
-	    If we get back the valid data jump to sending ACMD41 otherwise back to the start
+	4. OPERATIONAL WAKE-UP SEQUENCE:
+	   The system enters a repetitive inquiry loop sending an ACMD41 sequence 
+	   (prefixed by application command escape code CMD55). Loop exits once response 
+	   flags turn 0x00, signaling structural initialization complete.
 	    
-	5.  At this point we know if the card is v1 or v2 we need to wake the card up via the ACMD41 which requires us
-	    to send a CMD55 first then a CMD41, once the card wakes up we either jump straight to CMD16 to set the block
-	    length in v1 cards, or we jump to sending a CMD58 to determine if it's a high or low capacity v2 card.
+	5. CAPACITY INTERROGATION:
+	   SD v2 branches to query configuration data via CMD58. Extracting bits inside 
+	   the Operating Conditions Register distinguishes Block Addressing (SDHC/SDXC) 
+	   from Byte Addressing (SDSC).
 	    
-	6.  The CMD58 returns R1(00) and then 4 bytes where bit 31 tells us if the card is fully powered on, and bit 30 tells
-	    us if the card is high capacity or not.  From this point we either jump to done (high capacity card) or to CMD16
-	    
-	7.  CMD16 sets the block length to 512 bytes and then we jump to done.
+	6. BLOCK REGISTRATION:
+	   Byte-addressable variants (v1 and v2 Standard Capacity) execute CMD16 to force 
+	   the system block size window exactly to 512 bytes. High-capacity variants 
+	   natively defaults here, bypassing the state completely.
 	
-	8.  DONE sets the card_is_init and resets the error to OK before jumping to IDLE
-	
-	To program a job you would do
-
-    1.  Wait for card_is_init to go high (or timeout)
-    2.  Program the cmd_* nets to your command
-    3.  Wait for either error != 0 or ready == 1
-    4.  Drop cmd_valid to 0
-	
+	============================================================================
+	HOST CONTROLLER APPLICATION INTERFACE RULES
+	============================================================================
+	1. Poll for the `card_is_init` status indicator to go high.
+	2. Configure control parameters across the `cmd_*` input wire busses.
+	3. Assert `cmd_valid` high to execute. Monitor for `ready == 1` or an `error != 0`.
+	4. De-assert `cmd_valid` once operations finish to reset handshake channels.
 */
 
     always @(posedge clk) begin
@@ -214,7 +256,7 @@ module spisddma #(
             fst_clk             <= 1'b0; //keep    
         end else begin
             case(state)
-                // this performs a partial reset of the module, then sends 8 'FFs with the CS pin high
+                // this performs a partial reset of the module, then sends 10 'FFs with the CS pin high
                 STATE_INIT_SPI:
                     begin
                         if (!cmd_valid) begin
@@ -296,8 +338,10 @@ module spisddma #(
                         endcase
                         state_step <= (state_step == 3) ? 0 : (state_step + 1'b1);
                     end
+
+				// *** at this point we know if the card is V1 or V2, now we need to ready the card ***
                 
-                // send CMD55 (Application commands need a CMD55 prefix)
+                // send CMD55 (Application commands such as ACMD41 below need a CMD55 prefix)
                 STATE_INIT_CMD55:
                     begin
 						setup_spi_cmd(8'd55, 32'h0, 8'h0, STATE_INIT_CMD55_R1);
@@ -307,6 +351,7 @@ module spisddma #(
                 STATE_INIT_CMD55_R1:
                     begin
                         if (temp_wire_bits != 8'h01) begin
+							// no need to set error since card_is_init is still 0
                             state        <= STATE_INIT_SPI;
                         end else begin
                             // Send ACMD41 to ready the card
@@ -361,8 +406,9 @@ module spisddma #(
                             // save the top bits to compare later
                             spi_cmd58_byte0 <= temp_wire_bits;
                         end else if (state_step == 3) begin
+							// bit 31 (7 of the first byte) indicates if the card is powered up full or not
                             if (spi_cmd58_byte0[7]) begin 
-                                // if bit 6 is set it's block based
+                                // if bit 30 (bit 6 of the first byte) is set it's block based
                                 state <= spi_cmd58_byte0[6] ? STATE_INIT_DONE : STATE_INIT_CMD16;
                             end else begin
                                 // read again because the v2 card isn't fully powered up yet
@@ -428,9 +474,9 @@ module spisddma #(
                             1'd1:                                        // SCK high phase, keep data steady, move to next bit at end of phase
                                 begin
                                     if (sck_timer == 0) begin
-                                        sck_cycles     <= sck_cycles + 1'b1;
-                                        sck_timer      <= sck_timer_orig;                    // reset timer in case we chain SEND_8's
-                                        sck_pin        <= ~sck_pin;                            // set SCK to low for either the next bit of this transaction or the start of the next transaction
+                                        sck_cycles     <= sck_cycles + 1'b1;        // count how many SCK cycles there have been for timeout
+                                        sck_timer      <= sck_timer_orig;           // reset timer in case we chain SEND_8's
+                                        sck_pin        <= ~sck_pin;                 // set SCK to low for either the next bit of this transaction or the start of the next transaction
                                         if (~miso_pin) begin
                                             // went low so now we should read 7 more bits 
                                             temp_wire_bits <= 0;
