@@ -1,0 +1,13 @@
+[General]
+file=test_data
+ipc_version=4
+module=test_data
+target_device=gw2ar18c-000
+type=ssram_rom16
+version=1.0
+
+[Config]
+DEPTH=512
+LANG=0
+MEM_FILE=/home/tom/nas/toms_fpga/stuff/spisddma/spidmasd.bin.mi
+WIDTH=8

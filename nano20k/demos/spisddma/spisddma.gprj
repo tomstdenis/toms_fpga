@@ -11,6 +11,8 @@
         <File path="/home/tom/nas/toms_fpga/lib/uart/blocks/tx_uart.v" type="file.verilog" enable="1"/>
         <File path="/home/tom/nas/toms_fpga/lib/uart/blocks/uart.v" type="file.verilog" enable="1"/>
         <File path="src/spi_48mhz/spi_48mhz.v" type="file.verilog" enable="1"/>
+        <File path="src/test_data/test_data.v" type="file.verilog" enable="1"/>
+        <File path="src/test_mem/test_mem.v" type="file.verilog" enable="1"/>
         <File path="src/top.v" type="file.verilog" enable="1"/>
         <File path="src/top.cst" type="file.cst" enable="1"/>
         <File path="src/top.sdc" type="file.sdc" enable="1"/>
