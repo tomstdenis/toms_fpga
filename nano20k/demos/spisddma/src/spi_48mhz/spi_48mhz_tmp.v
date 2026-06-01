@@ -1,0 +1,18 @@
+//Copyright (C)2014-2025 Gowin Semiconductor Corporation.
+//All rights reserved.
+//File Title: Template file for instantiation
+//Tool Version: V1.9.11.03 Education
+//Part Number: GW2AR-LV18QN88C8/I7
+//Device: GW2AR-18
+//Device Version: C
+//Created Time: Mon Jun  1 16:45:36 2026
+
+//Change the instance name and port connections to the signal names
+//--------Copy here to design--------
+
+    spi_48mhz your_instance_name(
+        .clkout(clkout), //output clkout
+        .clkin(clkin) //input clkin
+    );
+
+//--------Copy end-------------------
