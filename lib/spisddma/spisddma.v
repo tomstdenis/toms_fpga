@@ -124,7 +124,7 @@ module spisddma #(
     
     assign bit_cnt_orig   = 7;
     assign timeout        = fst_clk ? FAST_CLK : SLOW_CLK;
-    assign sck_timer_orig = ($clog2(SLOW_CLKDIV)+1)'(fst_clk ? FAST_CLKDIV : SLOW_CLKDIV);
+    assign sck_timer_orig = (fst_clk ? FAST_CLKDIV : SLOW_CLKDIV);
     assign spi_cmd_block  = { spi_cmd_opcode, spi_cmd_payload, spi_cmd_crc };
     
     // -------------------------------------------------------------------------
@@ -293,14 +293,14 @@ module spisddma #(
                             card_is_v1           <= 1'b0;                        // keep
                             fst_clk               <= 1'b0;                        // keep
 
-                            // send 8 FF's with CS high
+                            // send 10 FF's with CS high
                             sck_cycles             <= 0;
                             cs_pin                 <= 1'b1;
                             state_step             <= (state_step == 9) ? 0 : (state_step + 1'b1);
                             temp_wire_bits         <= 8'hFF;
                             mosi_pin               <= 1'b1;
                             bit_cnt                <= bit_cnt_orig;
-                            sck_timer              <= ($clog2(SLOW_CLKDIV)+1)'(SLOW_CLKDIV);
+                            sck_timer              <= (SLOW_CLKDIV);
                             state                  <= STATE_SHIFT_DATA;
                             tag                    <= (state_step == 9) ? STATE_INIT_CMD0 : STATE_INIT_SPI;
                         end
