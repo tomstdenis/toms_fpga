@@ -99,7 +99,7 @@ module top(
     reg [31:0] spi_cmd_sector;
     reg [10:0] spi_cmd_host_address;
 
-    spisddma #(.CLK_FREQ_MHZ(`FREQ), .READ_CRC_CHK(0), .FAST_CLK(24_000_000)) (
+    spisddma #(.CLK_FREQ_MHZ(`FREQ), .READ_CRC_CHK(0), .FAST_CLK(24_000_000)) spi_sd (
         .clk(pll_clk), .rst_n(rst_n),
         .ready(spi_ready), .error(spi_error),
         .card_is_v1(spi_card_is_v1), .card_is_init(spi_card_is_init),
@@ -119,14 +119,16 @@ module top(
 
     assign led = ~{spi_card_is_init, spi_card_is_v1, test_read_pass, test_write_pass, test_done, 1'b0 };
 
+    // once you see 00 FF you know you're back at byte 0 (bottom of wire assignment) since
+    // no other byte can be FF.
     wire [(9*8)-1:0] done_msg = {
                 8'hFF,
                 8'h00,
                 7'b0, test_read_pass,
                 7'b0, test_write_pass,
                 4'b0, test_tag,
-                7'b0, test_x[8],
-                test_x[7:0],
+                6'b0, test_x[8:7],
+                1'b0, test_x[6:0],
                 7'b0, spi_card_is_init,
                 7'b0, spi_card_is_v1
             };
@@ -152,11 +154,14 @@ module top(
             test_tag <= 0;
             test_x <= 0;
             spi_cmd_valid <= 0;
+            spi_cmd_wr_en <= 0;
+            spi_cmd_host_address <= 0;
             host_mem_wr_en <= 0;
             host_mem_addr <= 0;
             test_rom_addr <= 0;
             uart_tx_start <= 0;
             uart_rx_read <= 0;
+            uart_tx_data_in <= 0;
             test_y <= 0;
         end else begin
             case(test_state)
