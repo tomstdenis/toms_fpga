@@ -5,12 +5,14 @@
 -part_number GW2AR-LV18QN88C8/I7
 
 
--dev_type GW2AR-18C
 -mod_name test_data
 -file_name test_data
 -path /home/tom/nas/toms_fpga/nano20k/demos/spisddma/src/test_data/
--type SSRAM_ROM
+-type RAM_ROM
 -file_type vlg
--ssram_depth 512
--ssram_width 8
+-pROM true
+-depth 512
+-width 8
+-read_mode bypass
+-reset_mode sync
 -init_file /home/tom/nas/toms_fpga/stuff/spisddma/spidmasd.bin.mi

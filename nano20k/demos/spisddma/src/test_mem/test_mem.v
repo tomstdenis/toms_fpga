@@ -5,7 +5,7 @@
 //Part Number: GW2AR-LV18QN88C8/I7
 //Device: GW2AR-18
 //Device Version: C
-//Created Time: Mon Jun  1 17:07:08 2026
+//Created Time: Mon Jun  1 18:40:13 2026
 
 module test_mem (douta, doutb, clka, ocea, cea, reseta, wrea, clkb, oceb, ceb, resetb, wreb, ada, dina, adb, dinb);
 
@@ -53,8 +53,8 @@ DPB dpb_inst_0 (
     .DIB({gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,gw_gnd,dinb[7:0]})
 );
 
-defparam dpb_inst_0.READ_MODE0 = 1'b0;
-defparam dpb_inst_0.READ_MODE1 = 1'b0;
+defparam dpb_inst_0.READ_MODE0 = 1'b1;
+defparam dpb_inst_0.READ_MODE1 = 1'b1;
 defparam dpb_inst_0.WRITE_MODE0 = 2'b00;
 defparam dpb_inst_0.WRITE_MODE1 = 2'b00;
 defparam dpb_inst_0.BIT_WIDTH_0 = 8;

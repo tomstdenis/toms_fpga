@@ -12,12 +12,6 @@ module top(
     output wire sck_pin
 );
 
-    localparam
-        LED_CARD_INIT = 0,
-        LED_READ_PASS = 1,
-        LED_WRITE_PASS = 2,
-        LED_DONE = 3;
-
     // our 48MHz clock
     wire pll_clk;
 
@@ -55,8 +49,12 @@ module top(
     wire [7:0] test_rom_dout;
     reg [8:0] test_rom_addr;
 
-    test_data spi_testdata(
+    test_data spi_test_data(
         .dout(test_rom_dout), //output [7:0] dout
+        .clk(pll_clk), //input clk
+        .oce(1'b1), //input oce
+        .ce(1'b1), //input ce
+        .reset(~rst_n), //input reset
         .ad(test_rom_addr) //input [8:0] ad
     );
 
@@ -117,19 +115,33 @@ module top(
     reg [3:0] test_state;
     reg [3:0] test_tag;
     reg [8:0] test_x;
+    reg [3:0] test_y;
 
     assign led = ~{spi_card_is_init, spi_card_is_v1, test_read_pass, test_write_pass, test_done, 1'b0 };
 
+    wire [(9*8)-1:0] done_msg = {
+                8'hFF,
+                8'h00,
+                7'b0, test_read_pass,
+                7'b0, test_write_pass,
+                4'b0, test_tag,
+                7'b0, test_x[8],
+                test_x[7:0],
+                7'b0, spi_card_is_init,
+                7'b0, spi_card_is_v1
+            };
+ 
     localparam
         STATE_INIT_WAIT = 0,
         STATE_DELAY = 1,
-        STATE_READY = 2,
-        STATE_ISSUE_READ = 3,
-        STATE_TEST_READ_TOP = 4,
-        STATE_TEST_READ_CHK = 5,
-        STATE_ISSUE_WRITE = 6,
-        STATE_WRITE_DONE = 7,
-        STATE_DONE = 8;
+        STATE_DELAY2 = 2,
+        STATE_READY = 3,
+        STATE_ISSUE_READ = 4,
+        STATE_TEST_READ_TOP = 5,
+        STATE_TEST_READ_CHK = 6,
+        STATE_ISSUE_WRITE = 7,
+        STATE_WRITE_DONE = 8,
+        STATE_DONE = 9;
 
     always @(posedge pll_clk) begin
         if (!rst_n) begin
@@ -145,6 +157,7 @@ module top(
             test_rom_addr <= 0;
             uart_tx_start <= 0;
             uart_rx_read <= 0;
+            test_y <= 0;
         end else begin
             case(test_state)
                 STATE_INIT_WAIT:
@@ -199,10 +212,22 @@ module top(
                 STATE_DONE:
                     begin
                         // uart stuff later...
+                        if (!uart_tx_fifo_full) begin
+                            uart_tx_start <= 1'b1;
+                            uart_tx_data_in <= done_msg[(test_y * 8) +: 8];
+                            test_y <= (test_y == 8) ? 0 : (test_y + 1'b1);
+                            test_state <= STATE_DELAY2;
+                            test_tag   <= test_state;
+                        end
                     end
 
                 STATE_DELAY:
                     begin
+                        test_state <= STATE_DELAY2;
+                    end
+                STATE_DELAY2:
+                    begin
+                        uart_tx_start <= 0;
                         test_state <= test_tag;
                     end
                 STATE_READY:
