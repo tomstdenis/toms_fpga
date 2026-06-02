@@ -39,6 +39,8 @@ module top(
 		.uart_tx_start(uart_tx_start), .uart_tx_data_in(uart_tx_data_in), .uart_tx_pin(tx), .uart_tx_fifo_full(uart_tx_fifo_full),
 		.uart_rx_pin(rx), .uart_rx_read(uart_rx_read), .uart_rx_ready(uart_rx_ready), .uart_rx_byte(uart_rx_byte));
 
+`ifdef USE_BRAM_SP
+
 	reg [10:0] bram_w_addr;
 	reg [7:0] bram_w_data;
 	reg bram_w_en;
@@ -59,6 +61,23 @@ module top(
 		.r_addr(bram_r_addr),				// read address
 		.r_data(bram_r_data));				// read data
 
+`else
+
+	reg [10:0] bram_w_addr;
+	reg [7:0] bram_w_data;
+	reg bram_w_en;
+	reg [10:0] bram_r_addr;
+	wire [7:0] bram_r_data;
+	reg [7:0] bram_mem[2047:0];
+	
+	always @(posedge pll_clk) begin
+		if (bram_w_en) begin
+			bram_mem[bram_w_addr] <= bram_w_data;
+		end
+	end
+	assign bram_r_data = bram_mem[bram_r_addr];
+
+`endif	
 
 	reg [3:0] state;
 	reg [3:0] init;
