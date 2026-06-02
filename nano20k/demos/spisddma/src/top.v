@@ -128,8 +128,8 @@ module top(
     wire [(done_msg_bytes*8)-1:0] done_msg = {
                 8'hFF,
                 8'h00,
-                7'b0, test_read_pass,
-                7'b0, test_write_pass,
+                5'b0, test_done, test_read_pass, test_write_pass,
+                4'b0, test_state,
                 4'b0, test_tag,
                 6'b0, test_x[8:7],
                 1'b0, test_x[6:0],
@@ -174,19 +174,19 @@ module top(
 
     always @(posedge pll_clk) begin
         if (!rst_n) begin
-            test_read_pass <= 0;
-            test_write_pass <= 0;
-            test_done <= 0;
-            test_state <= 0;
-            test_tag <= 0;
-            test_x <= 0;
-            spi_cmd_valid <= 0;
-            spi_cmd_wr_en <= 0;
+            test_read_pass       <= 0;
+            test_write_pass      <= 0;
+            test_done            <= 0;
+            test_state           <= 0;
+            test_tag             <= 0;
+            test_x               <= 0;
+            spi_cmd_valid        <= 0;
+            spi_cmd_wr_en        <= 0;
             spi_cmd_host_address <= 0;
-            host_mem_wr_en <= 0;
-            host_mem_addr <= 0;
-            host_mem_data_in <= 0;
-            test_rom_addr <= 0;
+            host_mem_wr_en       <= 0;
+            host_mem_addr        <= 0;
+            host_mem_data_in     <= 0;
+            test_rom_addr        <= 0;
         end else begin
             case(test_state)
                 STATE_INIT_WAIT:
