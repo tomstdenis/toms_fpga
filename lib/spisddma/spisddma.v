@@ -129,6 +129,7 @@ module spisddma #(
                     3'b0, tag,
                     3'b0, cmd_tag,
                     2'b0, bit_cnt, temp_wire_bits[7], spi_cmd_opcode[7],
+
                     1'b0, temp_wire_bits[6:0],
                     1'b0, spi_cmd_opcode[6:0],
                     2'b0, state_step, card_is_init, card_is_v1,

@@ -36,7 +36,7 @@ module top(
     wire uart_rx_ready;
     wire [7:0] uart_rx_byte;
 
-    uart #(.FIFO_DEPTH(64), .RX_ENABLE(0), .TX_ENABLE(1)) spi_uart(
+    uart #(.FIFO_DEPTH(64), .RX_ENABLE(1), .TX_ENABLE(1)) spi_uart(
         .clk(pll_clk), .rst_n(rst_n),
         .baud_div(baud_div),
         .uart_tx_start(uart_tx_start), .uart_tx_data_in(uart_tx_data_in),
@@ -116,6 +116,7 @@ module top(
     reg [3:0] test_state;
     reg [3:0] test_tag;
     reg [8:0] test_x;
+    reg [31:0] test_sector;
 
     assign led = ~{spi_card_is_init, spi_card_is_v1, test_read_pass, test_write_pass, test_done, 1'b0 };
 
@@ -124,11 +125,13 @@ module top(
 
     // once you see 00 FF you know you're back at byte 0 (bottom of wire assignment) since
     // no other byte can be FF.
-    localparam done_msg_bytes = 7 + 8;
+    localparam done_msg_bytes = 8 + 8;
     wire [(done_msg_bytes*8)-1:0] done_msg = {
                 8'hFF,
                 8'h00,
+                1'b0, test_sector[6:0],
                 5'b0, test_done, test_read_pass, test_write_pass,
+                
                 4'b0, test_state,
                 4'b0, test_tag,
                 6'b0, test_x[8:7],
@@ -145,6 +148,14 @@ module top(
             test_y          <= 0;
             done_msg_l      <= 0;
         end else begin
+            if (uart_rx_read) begin
+                uart_rx_read <= 1'b0;
+            end else begin
+                if (uart_rx_ready) begin
+                    uart_rx_read <= 1'b1;
+                end
+            end
+
             if (uart_tx_start) begin
                 uart_tx_start <= 1'b0;
             end else begin
@@ -180,6 +191,7 @@ module top(
             test_state           <= 0;
             test_tag             <= 0;
             test_x               <= 0;
+            test_sector          <= 0;
             spi_cmd_valid        <= 0;
             spi_cmd_wr_en        <= 0;
             spi_cmd_host_address <= 0;
@@ -199,7 +211,7 @@ module top(
                     begin
                         spi_cmd_valid        <= 1;
                         spi_cmd_host_address <= 0;
-                        spi_cmd_sector       <= 0;
+                        spi_cmd_sector       <= test_sector;
                         spi_cmd_wr_en        <= 0;
                         test_state           <= STATE_READY;
                         test_tag             <= STATE_TEST_READ_TOP;
@@ -228,7 +240,7 @@ module top(
                         test_read_pass       <= 1;
                         spi_cmd_valid        <= 1;
                         spi_cmd_host_address <= 0;
-                        spi_cmd_sector       <= 1;
+                        spi_cmd_sector       <= test_sector + 1'b1;
                         spi_cmd_wr_en        <= 1;
                         test_state           <= STATE_READY;
                         test_tag             <= STATE_WRITE_DONE;
@@ -241,6 +253,11 @@ module top(
 
                 STATE_DONE:
                     begin
+                        if (uart_rx_read) begin
+                            test_sector   <= test_sector + 1'b1;
+                            test_state    <= STATE_INIT_WAIT;
+                            spi_cmd_valid <= 1'b0;
+                        end
                     end
 
                 STATE_DELAY:
