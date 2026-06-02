@@ -13,6 +13,6 @@
 -pROM true
 -depth 512
 -width 8
--read_mode bypass
+-read_mode pipeline
 -reset_mode sync
 -init_file /home/tom/nas/toms_fpga/stuff/spisddma/spidmasd.bin.mi

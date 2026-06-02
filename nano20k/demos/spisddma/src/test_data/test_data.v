@@ -5,7 +5,7 @@
 //Part Number: GW2AR-LV18QN88C8/I7
 //Device: GW2AR-18
 //Device Version: C
-//Created Time: Mon Jun  1 19:16:20 2026
+//Created Time: Mon Jun  1 22:24:17 2026
 
 module test_data (dout, clk, oce, ce, reset, ad);
 
@@ -30,7 +30,7 @@ pROM prom_inst_0 (
     .AD({gw_gnd,gw_gnd,ad[8:0],gw_gnd,gw_gnd,gw_gnd})
 );
 
-defparam prom_inst_0.READ_MODE = 1'b0;
+defparam prom_inst_0.READ_MODE = 1'b1;
 defparam prom_inst_0.BIT_WIDTH = 8;
 defparam prom_inst_0.RESET_MODE = "SYNC";
 defparam prom_inst_0.INIT_RAM_00 = 256'h130DBB55B0386EF0E64C62A5F1A5ECF893BD6ADAE9249AD1DCBFE57D65BDF7CE;
