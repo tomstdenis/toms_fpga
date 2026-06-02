@@ -27,7 +27,7 @@ module top(
     end
 
     // our uart
-    wire [15:0] baud_div = (`FREQ * 1_000_000) / 115_200;
+    wire [15:0] baud_div = (`FREQ * 1_000_000) / 230_400;
     reg uart_tx_start;
     reg [7:0] uart_tx_data_in;
     wire uart_tx_fifo_empty;
@@ -150,8 +150,8 @@ module top(
             end else begin
                 if (!uart_tx_fifo_full) begin
                     uart_tx_start    <= 1'b1;
-                    uart_tx_data_in  <= (test_y == 0) ? done_msg[7:0] : done_msg_l[(test_y * 8) +: 8];
-                    if (test_y == 0) begin
+                    uart_tx_data_in  <= done_msg_l[(test_y * 8) +: 8];
+                    if (test_y == (done_msg_bytes-1)) begin
                         done_msg_l <= done_msg;
                     end
                     test_y           <= (test_y == (done_msg_bytes-1)) ? 0 : (test_y + 1'b1);
@@ -185,6 +185,7 @@ module top(
             spi_cmd_host_address <= 0;
             host_mem_wr_en <= 0;
             host_mem_addr <= 0;
+            host_mem_data_in <= 0;
             test_rom_addr <= 0;
         end else begin
             case(test_state)
