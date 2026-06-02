@@ -36,7 +36,7 @@ module top(
     wire uart_rx_ready;
     wire [7:0] uart_rx_byte;
 
-    uart #(.FIFO_DEPTH(4), .RX_ENABLE(1), .TX_ENABLE(1)) spi_uart(
+    uart #(.FIFO_DEPTH(64), .RX_ENABLE(0), .TX_ENABLE(1)) spi_uart(
         .clk(pll_clk), .rst_n(rst_n),
         .baud_div(baud_div),
         .uart_tx_start(uart_tx_start), .uart_tx_data_in(uart_tx_data_in),
@@ -98,6 +98,7 @@ module top(
     reg  spi_cmd_valid;
     reg [31:0] spi_cmd_sector;
     reg [10:0] spi_cmd_host_address;
+    wire [63:0] spi_debug;
 
     spisddma #(.CLK_FREQ_MHZ(`FREQ), .READ_CRC_CHK(0), .FAST_CLK(24_000_000)) spi_sd (
         .clk(pll_clk), .rst_n(rst_n),
@@ -107,7 +108,7 @@ module top(
         .host_mem_data_in(spi_mem_data_in), .host_mem_data_out(spi_mem_data_out),
         .cmd_wr_en(spi_cmd_wr_en), .cmd_valid(spi_cmd_valid), .cmd_sector(spi_cmd_sector),
         .cmd_host_address(spi_cmd_host_address),
-        .miso_pin(miso_pin), .mosi_pin(mosi_pin), .sck_pin(sck_pin), .cs_pin(cs_pin));
+        .miso_pin(miso_pin), .mosi_pin(mosi_pin), .sck_pin(sck_pin), .cs_pin(cs_pin), .debug(spi_debug));
 
     reg test_read_pass;
     reg test_write_pass;
@@ -115,13 +116,16 @@ module top(
     reg [3:0] test_state;
     reg [3:0] test_tag;
     reg [8:0] test_x;
-    reg [3:0] test_y;
 
     assign led = ~{spi_card_is_init, spi_card_is_v1, test_read_pass, test_write_pass, test_done, 1'b0 };
 
+    // debugger
+    reg [7:0] test_y;
+
     // once you see 00 FF you know you're back at byte 0 (bottom of wire assignment) since
     // no other byte can be FF.
-    wire [(9*8)-1:0] done_msg = {
+    localparam done_msg_bytes = 7 + 8;
+    wire [(done_msg_bytes*8)-1:0] done_msg = {
                 8'hFF,
                 8'h00,
                 7'b0, test_read_pass,
@@ -129,10 +133,33 @@ module top(
                 4'b0, test_tag,
                 6'b0, test_x[8:7],
                 1'b0, test_x[6:0],
-                7'b0, spi_card_is_init,
-                7'b0, spi_card_is_v1
+                spi_debug                                   // 8-bytes, 64-bits
             };
+    reg [(done_msg_bytes*8)-1:0] done_msg_l;
  
+   always @(posedge pll_clk) begin
+        if (!rst_n) begin
+            uart_tx_start   <= 0;
+            uart_rx_read    <= 0;
+            uart_tx_data_in <= 0;
+            test_y          <= 0;
+            done_msg_l      <= 0;
+        end else begin
+            if (uart_tx_start) begin
+                uart_tx_start <= 1'b0;
+            end else begin
+                if (!uart_tx_fifo_full) begin
+                    uart_tx_start    <= 1'b1;
+                    uart_tx_data_in  <= (test_y == 0) ? done_msg[7:0] : done_msg_l[(test_y * 8) +: 8];
+                    if (test_y == 0) begin
+                        done_msg_l <= done_msg;
+                    end
+                    test_y           <= (test_y == (done_msg_bytes-1)) ? 0 : (test_y + 1'b1);
+                end
+            end
+        end
+    end
+
     localparam
         STATE_INIT_WAIT = 0,
         STATE_DELAY = 1,
@@ -159,10 +186,6 @@ module top(
             host_mem_wr_en <= 0;
             host_mem_addr <= 0;
             test_rom_addr <= 0;
-            uart_tx_start <= 0;
-            uart_rx_read <= 0;
-            uart_tx_data_in <= 0;
-            test_y <= 0;
         end else begin
             case(test_state)
                 STATE_INIT_WAIT:
@@ -173,20 +196,20 @@ module top(
                     end
                 STATE_ISSUE_READ:
                     begin
-                        spi_cmd_valid <= 1;
+                        spi_cmd_valid        <= 1;
                         spi_cmd_host_address <= 0;
-                        spi_cmd_sector <= 0;
-                        spi_cmd_wr_en <= 0;
-                        test_state <= STATE_READY;
-                        test_tag   <= STATE_TEST_READ_TOP;
+                        spi_cmd_sector       <= 0;
+                        spi_cmd_wr_en        <= 0;
+                        test_state           <= STATE_READY;
+                        test_tag             <= STATE_TEST_READ_TOP;
                     end
                 STATE_TEST_READ_TOP:
                     begin
                         host_mem_addr <= test_x;
                         test_rom_addr <= test_x;
-                        test_x <= test_x + 1;
-                        test_state <= STATE_DELAY;
-                        test_tag  <= STATE_TEST_READ_CHK;
+                        test_x        <= test_x + 1;
+                        test_state    <= STATE_DELAY;
+                        test_tag      <= STATE_TEST_READ_CHK;
                     end
                 STATE_TEST_READ_CHK:
                     begin
@@ -201,29 +224,22 @@ module top(
                     end
                 STATE_ISSUE_WRITE:
                     begin
-                        test_read_pass <= 1;
-                        spi_cmd_valid <= 1;
+                        test_read_pass       <= 1;
+                        spi_cmd_valid        <= 1;
                         spi_cmd_host_address <= 0;
-                        spi_cmd_sector <= 1;
-                        spi_cmd_wr_en <= 1;
-                        test_state <= STATE_READY;
-                        test_tag   <= STATE_WRITE_DONE;
+                        spi_cmd_sector       <= 1;
+                        spi_cmd_wr_en        <= 1;
+                        test_state           <= STATE_READY;
+                        test_tag             <= STATE_WRITE_DONE;
                     end
                 STATE_WRITE_DONE:
                     begin
-                        test_write_pass <= 1;
-                        test_state <= STATE_DONE;
+                        test_write_pass      <= 1;
+                        test_state           <= STATE_DONE;
                     end
+
                 STATE_DONE:
                     begin
-                        // uart stuff later...
-                        if (!uart_tx_fifo_full) begin
-                            uart_tx_start <= 1'b1;
-                            uart_tx_data_in <= done_msg[(test_y * 8) +: 8];
-                            test_y <= (test_y == 8) ? 0 : (test_y + 1'b1);
-                            test_state <= STATE_DELAY2;
-                            test_tag   <= test_state;
-                        end
                     end
 
                 STATE_DELAY:
@@ -232,17 +248,18 @@ module top(
                     end
                 STATE_DELAY2:
                     begin
-                        uart_tx_start <= 0;
-                        test_state <= test_tag;
+                        test_state    <= test_tag;
                     end
                 STATE_READY:
                     begin
-                        if (spi_error != 0) begin
+                        if (spi_error != `SPISD_ERR_OK) begin
                             test_state <= STATE_DONE;
                         end else begin
                             if (spi_ready) begin
                                 spi_cmd_valid <= 0;
-                                test_state <= test_tag;
+                            end else if (!spi_ready && !spi_cmd_valid) begin
+                                // only jump out after spisd goes idle.
+                                test_state    <= test_tag;
                             end
                         end
                     end

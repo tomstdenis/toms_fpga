@@ -77,7 +77,9 @@ module spisddma #(
     input  wire miso_pin,                             // Master In Slave Out (Data from SD card)
     output reg  mosi_pin,                             // Master Out Slave In (Data to SD card)
     output reg  sck_pin,                              // SPI Serial Clock output
-    output reg  cs_pin                                // SPI Chip Select (Active Low)
+    output reg  cs_pin,                               // SPI Chip Select (Active Low)
+
+    output wire [(8*8)-1:0] debug
 );
     // -------------------------------------------------------------------------
     // Clock Divider Math
@@ -122,6 +124,17 @@ module spisddma #(
     wire [47:0] spi_cmd_block;                    // Combined bus aggregating the structural layout above
     reg [7:0]   spi_cmd58_byte0;                  // Register to hold the initial OCR response byte from a CMD58
     
+    assign debug = {
+                    3'b0, state,
+                    3'b0, tag,
+                    3'b0, cmd_tag,
+                    bit_cnt, bit_cnt_orig,
+                    temp_wire_bits,
+                    spi_cmd_opcode,
+                    2'b0, state_step, card_is_init, card_is_v1,
+                    1'b0, cmd_wr_en, cmd_valid, ready, fst_clk, error
+                   };
+ 
     assign bit_cnt_orig   = 7;
     assign timeout        = fst_clk ? FAST_CLK : SLOW_CLK;
     assign sck_timer_orig = (fst_clk ? FAST_CLKDIV : SLOW_CLKDIV);
