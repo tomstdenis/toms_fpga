@@ -213,7 +213,7 @@ int main(int argc, char **argv)
 					log.test_sector     = logdata[13] & 0x7F;
 					
 					// now display them
-					printf(">>> SD{state=%s, tag=%s, cmd_tag=%s}, TEST{%s}\n", spi_states[log.state], spi_states[log.tag], spi_states[log.cmd_tag], tst_states[log.test_state]);
+					printf(">>> SD{state=%s, tag=%s, cmd_tag=%s}, TEST{state=%s, tag=%s}\n", spi_states[log.state], spi_states[log.tag], spi_states[log.cmd_tag], tst_states[log.test_state], tst_states[log.test_tag]);
 					printf("Test: sector: %d, done: %d, read_pass: %d, write_pass: %d, state: %d, tag: %d, x: %d\n",
 						log.test_sector, log.test_done, log.test_read_pass, log.test_write_pass, log.test_state, log.test_tag, log.test_x);
 					printf("spisd: state: %d, tag: %d, cmd_tag: %d, bit_cnt: %d, temp_wire_bits: %02x, spi_cmd_opcode: %02x, state_step: %d\n",

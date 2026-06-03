@@ -218,7 +218,7 @@ module top(
                     end
                 STATE_TEST_READ_TOP:
                     begin
-                        host_mem_addr <= test_x;
+                        host_mem_addr <= {2'b0, test_x};
                         test_rom_addr <= test_x;
                         test_x        <= test_x + 1;
                         test_state    <= STATE_DELAY;
