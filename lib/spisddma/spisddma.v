@@ -473,6 +473,7 @@ module spisddma #(
                 // card is initialized by now into 512-byte sector mode
                 STATE_INIT_DONE:
                     begin
+                        cs_pin       <= 1'b1;
                         card_is_init <= 1'b1;
                         error        <= `SPISD_ERR_OK;
                         state        <= STATE_IDLE;
@@ -592,6 +593,7 @@ module spisddma #(
                             error               <= `SPISD_ERR_OK;
                     
                             // branch to the next state
+// TODO: Do we need to shift sector 9 bits on v1/nonCCS cards?
                             case(cmd_wr_en)
                                 1'b0:  
                                     begin
@@ -620,7 +622,7 @@ module spisddma #(
                             error            <= `SPISD_ERR_WRITE;
                             state            <= STATE_DONE;
                         end else begin
-                            // clock out 8 bits before sending the write token
+                            // clock out 16 bits before sending the write token
                             temp_wire_bits   <= 8'hFF;
                             mosi_pin         <= 1'b1;
                             state            <= STATE_SHIFT_DATA;
@@ -628,13 +630,14 @@ module spisddma #(
                         end
                     end
                 
-                // shift out the write block token FE letting the card know payload follows
+                // shift out FF then the write block token FE letting the card know payload follows
                 STATE_WRITE_TOKEN:
                     begin
-                        temp_wire_bits     <= 8'hFE;
+                        state_step         <= (state_step == 1) ? 0 : 1;
+                        temp_wire_bits     <= (state_step == 1) ? 8'hFE : 8'hFF;
 						mosi_pin           <= 1'b1;
                         state              <= STATE_SHIFT_DATA;
-                        tag                <= STATE_WRITE_SHIFT;
+                        tag                <= (state_step == 1) ? STATE_WRITE_SHIFT : state;
                     end
 
                 // write 512 bytes from host memory to SD SPI
@@ -671,6 +674,14 @@ module spisddma #(
                     begin
                         state <= STATE_DONE;
                         case (temp_wire_bits & 8'h1F)
+                            8'h01:
+                                begin
+                                    tag            <= state;
+                                    state          <= STATE_SHIFT_DATA;
+                                    temp_wire_bits <= 8'hFF;                // next state is waiting for MISO to go high so preload low
+                                    mosi_pin       <= 1'b1;
+                                    sck_cycles     <= 0;
+                                end
                             8'h05: 
                                 begin
                                     tag            <= STATE_WRITE_WAIT;
