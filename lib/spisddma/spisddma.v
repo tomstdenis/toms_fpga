@@ -746,10 +746,10 @@ module spisddma #(
                         cmd_crc16		  <= next_crc16_byte(cmd_crc16, temp_wire_bits);
                         host_mem_data_in  <= temp_wire_bits;
                         host_mem_wr_en    <= 1'b1;
-                        host_mem_addr     <= host_mem_addr + 1'b1;
+                        host_mem_addr     <= host_mem_addr + 1'b1;        
                         cmd_pos           <= (cmd_pos == 9'd511) ? 0 : (cmd_pos + 1'b1);
-                        state             <= (cmd_pos == 9'd511) ? STATE_READ_CRC : STATE_SHIFT_DATA;
-                        tag               <= state;
+                        state             <= STATE_SHIFT_DATA;
+                        tag               <= (cmd_pos == 9'd511) ? STATE_READ_CRC : STATE_READ_SHIFT;
                     end
                 
                 // read the 16-bit CRC from the read sector command
@@ -758,7 +758,7 @@ module spisddma #(
                         host_mem_wr_en    <= 1'b0;
                         state_step        <= (state_step == 1) ? 0 : (state_step + 1'b1);
                         state             <= (state_step == 1) ? STATE_READ_CRCCHK : STATE_SHIFT_DATA;
-                        tag               <= state;
+                        tag               <= STATE_READ_CRC;
                         cmd_crc16		  <= next_crc16_byte(cmd_crc16, temp_wire_bits);
                     end
                 
