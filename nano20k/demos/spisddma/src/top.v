@@ -27,7 +27,7 @@ module top(
     end
 
     // our uart
-    wire [15:0] baud_div = (`FREQ * 1_000_000) / 230_400;
+    wire [15:0] baud_div = (`FREQ * 1_000_000) / 500_000;
     reg uart_tx_start;
     reg [7:0] uart_tx_data_in;
     wire uart_tx_fifo_empty;
@@ -254,9 +254,12 @@ module top(
                 STATE_DONE:
                     begin
                         if (uart_rx_read) begin
-                            test_sector   <= test_sector + 1'b1;
-                            test_state    <= STATE_INIT_WAIT;
-                            spi_cmd_valid <= 1'b0;
+                            test_sector     <= test_sector + 1'b1;
+                            test_state      <= STATE_INIT_WAIT;
+                            spi_cmd_valid   <= 1'b0;
+                            test_read_pass  <= 0;
+                            test_write_pass <= 0;
+                            test_done       <= 0;
                         end
                     end
 

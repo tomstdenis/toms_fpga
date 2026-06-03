@@ -305,7 +305,7 @@ module spisddma #(
                             spi_cmd_crc          <= 0;
                             card_is_init         <= 1'b0;                        // keep
                             card_is_v1           <= 1'b0;                        // keep
-                            fst_clk               <= 1'b0;                        // keep
+                            fst_clk              <= 1'b0;                        // keep
 
                             // send 10 FF's with CS high
                             sck_cycles             <= 0;
@@ -518,6 +518,7 @@ module spisddma #(
                                             state          <= STATE_SHIFT_DATA;
                                             tag            <= cmd_tag;
                                             bit_cnt        <= bit_cnt_orig - 1;
+                                            sck_cycles     <= 0;
                                         end else begin
                                             if (sck_cycles == timeout) begin
                                                 // no response in 1 second == card not present

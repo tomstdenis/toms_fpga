@@ -9,6 +9,63 @@
 #include <inttypes.h>
 #include <time.h>
 
+char *spi_states[32] = {
+	"INIT_SPI",
+	"INIT_CMD0",
+	"INIT_CMD0_R1",
+	"INIT_CMD8_R1",
+	"INIT_CMD8_READ",
+	"INIT_CMD55",
+	"INIT_CMD55_R1",
+	"INIT_ACMD41_R1",
+	"INIT_CMD58",
+	"INIT_CMD58_R1",
+	"INIT_CMD58_READ",
+	"INIT_CMD16",
+	"INIT_CMD16_R16",
+	"INIT_DONE",
+	
+	"SEND_CMD",
+	"READ_R1",
+	"SHIFT_DATA",
+	"IDLE",
+	"DONE",
+	"WAIT_VALID_LOW",
+	
+	"START_WRITE_RESP",
+	"WRITE_TOKEN",
+	"WRITE_SHIFT",
+	"WRITE_CRC",
+	"WRITE_BLOCK_RESP",
+	"WRITE_WAIT",
+	
+	"START_READ_RESP",
+	"WAIT_TOKEN",
+	"READ_SHIFT",
+	"READ_CRC",
+	"READ_CRCCHK",
+	"UNK31"
+};
+
+char *tst_states[16] = {
+	"INIT_WAIT",
+	"DELAY",
+	"DELAY2",
+	"READY",
+	"ISSUE_READ",
+	"TEST_READ_TOP",
+	"TEST_READ_CHK",
+	"ISSUE_WRITE",
+	"WRITE_DONE",
+	"DONE",
+	"UNK10",
+	"UNK11",
+	"UNK12",
+	"UNK13",
+	"UNK14",
+	"UNK15",
+};
+
 static int set_interface_attribs(int fd, int speed) {
     struct termios tty;
     if (tcgetattr(fd, &tty) != 0) return -1;
@@ -92,7 +149,7 @@ int main(int argc, char **argv)
 	
     int fd = open(argv[1], O_RDWR | O_NOCTTY);
     if (fd < 0) { perror("Open port"); return 1; }
-    set_interface_attribs(fd, B230400);
+    set_interface_attribs(fd, B500000);
 	tcflush(fd, TCIOFLUSH);
 	
 	memset(&log, 0, sizeof log);
@@ -156,7 +213,7 @@ int main(int argc, char **argv)
 					log.test_sector     = logdata[13] & 0x7F;
 					
 					// now display them
-					printf(">>>\n");
+					printf(">>> SD{state=%s, tag=%s, cmd_tag=%s}, TEST{%s}\n", spi_states[log.state], spi_states[log.tag], spi_states[log.cmd_tag], tst_states[log.test_state]);
 					printf("Test: sector: %d, done: %d, read_pass: %d, write_pass: %d, state: %d, tag: %d, x: %d\n",
 						log.test_sector, log.test_done, log.test_read_pass, log.test_write_pass, log.test_state, log.test_tag, log.test_x);
 					printf("spisd: state: %d, tag: %d, cmd_tag: %d, bit_cnt: %d, temp_wire_bits: %02x, spi_cmd_opcode: %02x, state_step: %d\n",
