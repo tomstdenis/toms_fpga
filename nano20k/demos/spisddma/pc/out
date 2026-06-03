@@ -1,0 +1,2000 @@
+>>> SD{state=SHIFT_DATA, tag=INIT_SPI, cmd_tag=INIT_SPI}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 0, cmd_tag: 0, bit_cnt: 7, temp_wire_bits: ff, spi_cmd_opcode: 00, state_step: 1
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=INIT_SPI, cmd_tag=INIT_SPI}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 0, cmd_tag: 0, bit_cnt: 1, temp_wire_bits: ff, spi_cmd_opcode: 00, state_step: 4
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=INIT_SPI, cmd_tag=INIT_SPI}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 0, cmd_tag: 0, bit_cnt: 1, temp_wire_bits: ff, spi_cmd_opcode: 00, state_step: 8
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_CMD0_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 2, bit_cnt: 0, temp_wire_bits: ff, spi_cmd_opcode: 40, state_step: 2
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_CMD0_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 2, bit_cnt: 0, temp_wire_bits: 7f, spi_cmd_opcode: 40, state_step: 6
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=INIT_CMD0_R1, cmd_tag=INIT_CMD0_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 2, cmd_tag: 2, bit_cnt: 0, temp_wire_bits: 00, spi_cmd_opcode: 40, state_step: 0
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_CMD8_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 3, bit_cnt: 7, temp_wire_bits: 00, spi_cmd_opcode: 48, state_step: 5
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=READ_R1, tag=READ_R1, cmd_tag=INIT_CMD8_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 15, tag: 15, cmd_tag: 3, bit_cnt: 7, temp_wire_bits: ff, spi_cmd_opcode: 48, state_step: 0
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=INIT_CMD8_READ, cmd_tag=INIT_CMD8_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 4, cmd_tag: 3, bit_cnt: 6, temp_wire_bits: 00, spi_cmd_opcode: 48, state_step: 2
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_CMD55_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 6, bit_cnt: 6, temp_wire_bits: ef, spi_cmd_opcode: 77, state_step: 3
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_CMD55_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 6, bit_cnt: 6, temp_wire_bits: 01, spi_cmd_opcode: 77, state_step: 7
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_ACMD41_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 7, bit_cnt: 5, temp_wire_bits: ff, spi_cmd_opcode: 69, state_step: 1
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_ACMD41_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 7, bit_cnt: 5, temp_wire_bits: 03, spi_cmd_opcode: 69, state_step: 5
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=READ_R1, tag=READ_R1, cmd_tag=INIT_ACMD41_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 15, tag: 15, cmd_tag: 7, bit_cnt: 7, temp_wire_bits: ff, spi_cmd_opcode: 69, state_step: 0
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_CMD55_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 6, bit_cnt: 4, temp_wire_bits: bf, spi_cmd_opcode: 77, state_step: 3
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_CMD55_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 6, bit_cnt: 4, temp_wire_bits: 07, spi_cmd_opcode: 77, state_step: 7
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_ACMD41_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 7, bit_cnt: 3, temp_wire_bits: ff, spi_cmd_opcode: 69, state_step: 1
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_ACMD41_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 7, bit_cnt: 3, temp_wire_bits: 0f, spi_cmd_opcode: 69, state_step: 5
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=READ_R1, tag=READ_R1, cmd_tag=INIT_ACMD41_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 15, tag: 15, cmd_tag: 7, bit_cnt: 7, temp_wire_bits: ff, spi_cmd_opcode: 69, state_step: 0
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_CMD55_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 6, bit_cnt: 2, temp_wire_bits: ff, spi_cmd_opcode: 77, state_step: 3
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_CMD55_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 6, bit_cnt: 2, temp_wire_bits: 1f, spi_cmd_opcode: 77, state_step: 7
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_ACMD41_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 7, bit_cnt: 1, temp_wire_bits: ff, spi_cmd_opcode: 69, state_step: 1
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_ACMD41_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 7, bit_cnt: 1, temp_wire_bits: 3f, spi_cmd_opcode: 69, state_step: 5
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=READ_R1, tag=READ_R1, cmd_tag=INIT_ACMD41_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 15, tag: 15, cmd_tag: 7, bit_cnt: 7, temp_wire_bits: ff, spi_cmd_opcode: 69, state_step: 0
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_CMD55_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 6, bit_cnt: 0, temp_wire_bits: ff, spi_cmd_opcode: 77, state_step: 3
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_CMD55_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 6, bit_cnt: 0, temp_wire_bits: 7f, spi_cmd_opcode: 77, state_step: 7
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_ACMD41_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 7, bit_cnt: 7, temp_wire_bits: ff, spi_cmd_opcode: 69, state_step: 2
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_ACMD41_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 7, bit_cnt: 7, temp_wire_bits: 00, spi_cmd_opcode: 69, state_step: 6
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=READ_R1, tag=READ_R1, cmd_tag=INIT_ACMD41_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 15, tag: 15, cmd_tag: 7, bit_cnt: 7, temp_wire_bits: ff, spi_cmd_opcode: 69, state_step: 0
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_CMD55_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 6, bit_cnt: 6, temp_wire_bits: 01, spi_cmd_opcode: 77, state_step: 4
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=READ_R1, cmd_tag=INIT_CMD55_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 15, cmd_tag: 6, bit_cnt: 6, temp_wire_bits: 01, spi_cmd_opcode: 77, state_step: 0
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_ACMD41_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 7, bit_cnt: 5, temp_wire_bits: ff, spi_cmd_opcode: 69, state_step: 2
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_ACMD41_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 7, bit_cnt: 5, temp_wire_bits: 03, spi_cmd_opcode: 69, state_step: 6
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=INIT_ACMD41_R1, cmd_tag=INIT_ACMD41_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 7, cmd_tag: 7, bit_cnt: 5, temp_wire_bits: 00, spi_cmd_opcode: 69, state_step: 0
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_CMD55_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 6, bit_cnt: 4, temp_wire_bits: 07, spi_cmd_opcode: 77, state_step: 4
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=READ_R1, cmd_tag=INIT_CMD55_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 15, cmd_tag: 6, bit_cnt: 4, temp_wire_bits: 07, spi_cmd_opcode: 77, state_step: 0
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_ACMD41_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 7, bit_cnt: 3, temp_wire_bits: ff, spi_cmd_opcode: 69, state_step: 2
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_ACMD41_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 7, bit_cnt: 3, temp_wire_bits: 0f, spi_cmd_opcode: 69, state_step: 6
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=INIT_ACMD41_R1, cmd_tag=INIT_ACMD41_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 7, cmd_tag: 7, bit_cnt: 3, temp_wire_bits: 00, spi_cmd_opcode: 69, state_step: 0
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_CMD55_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 6, bit_cnt: 2, temp_wire_bits: 1f, spi_cmd_opcode: 77, state_step: 4
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=READ_R1, cmd_tag=INIT_CMD55_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 15, cmd_tag: 6, bit_cnt: 2, temp_wire_bits: 1f, spi_cmd_opcode: 77, state_step: 0
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_ACMD41_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 7, bit_cnt: 1, temp_wire_bits: ff, spi_cmd_opcode: 69, state_step: 2
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_ACMD41_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 7, bit_cnt: 1, temp_wire_bits: 3f, spi_cmd_opcode: 69, state_step: 6
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=INIT_ACMD41_R1, cmd_tag=INIT_ACMD41_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 7, cmd_tag: 7, bit_cnt: 1, temp_wire_bits: 00, spi_cmd_opcode: 69, state_step: 0
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_CMD55_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 6, bit_cnt: 0, temp_wire_bits: 7f, spi_cmd_opcode: 77, state_step: 4
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=READ_R1, cmd_tag=INIT_CMD55_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 15, cmd_tag: 6, bit_cnt: 0, temp_wire_bits: 7f, spi_cmd_opcode: 77, state_step: 0
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_ACMD41_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 7, bit_cnt: 7, temp_wire_bits: 69, spi_cmd_opcode: 69, state_step: 3
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_ACMD41_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 7, bit_cnt: 7, temp_wire_bits: 00, spi_cmd_opcode: 69, state_step: 7
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_CMD55_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 6, bit_cnt: 7, temp_wire_bits: ff, spi_cmd_opcode: 77, state_step: 1
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_CMD55_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 6, bit_cnt: 6, temp_wire_bits: 01, spi_cmd_opcode: 77, state_step: 5
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=READ_R1, tag=READ_R1, cmd_tag=INIT_CMD55_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 15, tag: 15, cmd_tag: 6, bit_cnt: 7, temp_wire_bits: ff, spi_cmd_opcode: 77, state_step: 0
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_ACMD41_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 7, bit_cnt: 6, temp_wire_bits: d3, spi_cmd_opcode: 69, state_step: 3
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_ACMD41_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 7, bit_cnt: 5, temp_wire_bits: 03, spi_cmd_opcode: 69, state_step: 7
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_CMD55_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 6, bit_cnt: 5, temp_wire_bits: ff, spi_cmd_opcode: 77, state_step: 1
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_CMD55_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 6, bit_cnt: 4, temp_wire_bits: 07, spi_cmd_opcode: 77, state_step: 5
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=READ_R1, tag=READ_R1, cmd_tag=INIT_CMD55_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 15, tag: 15, cmd_tag: 6, bit_cnt: 7, temp_wire_bits: ff, spi_cmd_opcode: 77, state_step: 0
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_ACMD41_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 7, bit_cnt: 4, temp_wire_bits: 4f, spi_cmd_opcode: 69, state_step: 3
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_ACMD41_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 7, bit_cnt: 3, temp_wire_bits: 0f, spi_cmd_opcode: 69, state_step: 7
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_CMD55_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 6, bit_cnt: 3, temp_wire_bits: ff, spi_cmd_opcode: 77, state_step: 1
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_CMD55_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 6, bit_cnt: 2, temp_wire_bits: 1f, spi_cmd_opcode: 77, state_step: 5
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=READ_R1, tag=READ_R1, cmd_tag=INIT_CMD55_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 15, tag: 15, cmd_tag: 6, bit_cnt: 7, temp_wire_bits: ff, spi_cmd_opcode: 77, state_step: 0
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_ACMD41_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 7, bit_cnt: 2, temp_wire_bits: 3f, spi_cmd_opcode: 69, state_step: 3
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_ACMD41_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 7, bit_cnt: 1, temp_wire_bits: 3f, spi_cmd_opcode: 69, state_step: 7
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_CMD55_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 6, bit_cnt: 1, temp_wire_bits: ff, spi_cmd_opcode: 77, state_step: 1
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_CMD55_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 6, bit_cnt: 0, temp_wire_bits: 7f, spi_cmd_opcode: 77, state_step: 5
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=READ_R1, tag=READ_R1, cmd_tag=INIT_CMD55_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 15, tag: 15, cmd_tag: 6, bit_cnt: 7, temp_wire_bits: ff, spi_cmd_opcode: 77, state_step: 0
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_ACMD41_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 7, bit_cnt: 0, temp_wire_bits: ff, spi_cmd_opcode: 69, state_step: 3
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=READ_R1, cmd_tag=INIT_ACMD41_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 15, cmd_tag: 7, bit_cnt: 7, temp_wire_bits: 00, spi_cmd_opcode: 69, state_step: 0
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_CMD55_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 6, bit_cnt: 7, temp_wire_bits: ff, spi_cmd_opcode: 77, state_step: 2
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_CMD55_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 6, bit_cnt: 6, temp_wire_bits: 01, spi_cmd_opcode: 77, state_step: 6
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=INIT_CMD55_R1, cmd_tag=INIT_CMD55_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 6, cmd_tag: 6, bit_cnt: 6, temp_wire_bits: 00, spi_cmd_opcode: 77, state_step: 0
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_ACMD41_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 7, bit_cnt: 6, temp_wire_bits: 81, spi_cmd_opcode: 69, state_step: 4
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=READ_R1, cmd_tag=INIT_ACMD41_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 15, cmd_tag: 7, bit_cnt: 5, temp_wire_bits: 03, spi_cmd_opcode: 69, state_step: 0
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_CMD55_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 6, bit_cnt: 5, temp_wire_bits: ff, spi_cmd_opcode: 77, state_step: 2
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_CMD55_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 6, bit_cnt: 5, temp_wire_bits: 03, spi_cmd_opcode: 77, state_step: 6
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=INIT_CMD55_R1, cmd_tag=INIT_CMD55_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 6, cmd_tag: 6, bit_cnt: 4, temp_wire_bits: 00, spi_cmd_opcode: 77, state_step: 0
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_ACMD41_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 7, bit_cnt: 4, temp_wire_bits: 07, spi_cmd_opcode: 69, state_step: 4
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=READ_R1, cmd_tag=INIT_ACMD41_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 15, cmd_tag: 7, bit_cnt: 3, temp_wire_bits: 0f, spi_cmd_opcode: 69, state_step: 0
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_CMD55_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 6, bit_cnt: 3, temp_wire_bits: ff, spi_cmd_opcode: 77, state_step: 2
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_CMD55_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 6, bit_cnt: 3, temp_wire_bits: 0f, spi_cmd_opcode: 77, state_step: 6
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=INIT_CMD55_R1, cmd_tag=INIT_CMD55_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 6, cmd_tag: 6, bit_cnt: 2, temp_wire_bits: 00, spi_cmd_opcode: 77, state_step: 0
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_ACMD41_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 7, bit_cnt: 2, temp_wire_bits: 1f, spi_cmd_opcode: 69, state_step: 4
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=READ_R1, cmd_tag=INIT_ACMD41_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 15, cmd_tag: 7, bit_cnt: 1, temp_wire_bits: 3f, spi_cmd_opcode: 69, state_step: 0
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_CMD55_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 6, bit_cnt: 1, temp_wire_bits: ff, spi_cmd_opcode: 77, state_step: 2
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_CMD55_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 6, bit_cnt: 1, temp_wire_bits: 3f, spi_cmd_opcode: 77, state_step: 6
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=INIT_CMD55_R1, cmd_tag=INIT_CMD55_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 6, cmd_tag: 6, bit_cnt: 0, temp_wire_bits: 00, spi_cmd_opcode: 77, state_step: 0
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_ACMD41_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 7, bit_cnt: 0, temp_wire_bits: 7f, spi_cmd_opcode: 69, state_step: 4
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=READ_R1, tag=READ_R1, cmd_tag=INIT_ACMD41_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 15, tag: 15, cmd_tag: 7, bit_cnt: 7, temp_wire_bits: ff, spi_cmd_opcode: 69, state_step: 0
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_CMD55_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 6, bit_cnt: 7, temp_wire_bits: 77, spi_cmd_opcode: 77, state_step: 3
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_CMD55_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 6, bit_cnt: 7, temp_wire_bits: 00, spi_cmd_opcode: 77, state_step: 7
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_ACMD41_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 7, bit_cnt: 6, temp_wire_bits: ff, spi_cmd_opcode: 69, state_step: 1
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_ACMD41_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 7, bit_cnt: 6, temp_wire_bits: 01, spi_cmd_opcode: 69, state_step: 5
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=READ_R1, tag=READ_R1, cmd_tag=INIT_ACMD41_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 15, tag: 15, cmd_tag: 7, bit_cnt: 7, temp_wire_bits: ff, spi_cmd_opcode: 69, state_step: 0
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_CMD55_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 6, bit_cnt: 5, temp_wire_bits: df, spi_cmd_opcode: 77, state_step: 3
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_CMD55_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 6, bit_cnt: 5, temp_wire_bits: 03, spi_cmd_opcode: 77, state_step: 7
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_ACMD41_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 7, bit_cnt: 4, temp_wire_bits: ff, spi_cmd_opcode: 69, state_step: 1
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_ACMD41_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 7, bit_cnt: 4, temp_wire_bits: 07, spi_cmd_opcode: 69, state_step: 5
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=READ_R1, tag=READ_R1, cmd_tag=INIT_ACMD41_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 15, tag: 15, cmd_tag: 7, bit_cnt: 7, temp_wire_bits: ff, spi_cmd_opcode: 69, state_step: 0
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_CMD55_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 6, bit_cnt: 3, temp_wire_bits: 7f, spi_cmd_opcode: 77, state_step: 3
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_CMD55_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 6, bit_cnt: 3, temp_wire_bits: 0f, spi_cmd_opcode: 77, state_step: 7
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_ACMD41_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 7, bit_cnt: 2, temp_wire_bits: ff, spi_cmd_opcode: 69, state_step: 1
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_ACMD41_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 7, bit_cnt: 2, temp_wire_bits: 1f, spi_cmd_opcode: 69, state_step: 5
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=READ_R1, tag=READ_R1, cmd_tag=INIT_ACMD41_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 15, tag: 15, cmd_tag: 7, bit_cnt: 7, temp_wire_bits: ff, spi_cmd_opcode: 69, state_step: 0
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_CMD55_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 6, bit_cnt: 1, temp_wire_bits: ff, spi_cmd_opcode: 77, state_step: 3
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_CMD55_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 6, bit_cnt: 1, temp_wire_bits: 3f, spi_cmd_opcode: 77, state_step: 7
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_ACMD41_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 7, bit_cnt: 0, temp_wire_bits: ff, spi_cmd_opcode: 69, state_step: 1
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=SEND_CMD, cmd_tag=INIT_ACMD41_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 16, tag: 14, cmd_tag: 7, bit_cnt: 0, temp_wire_bits: 7f, spi_cmd_opcode: 69, state_step: 5
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=READ_R1, tag=READ_R1, cmd_tag=INIT_ACMD41_R1}, TEST{state=INIT_WAIT, tag=INIT_WAIT}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 0, tag: 0, x: 0
+spisd: state: 15, tag: 15, cmd_tag: 7, bit_cnt: 7, temp_wire_bits: ff, spi_cmd_opcode: 69, state_step: 0
+card: is_init: 0, is_v1: 0
+cmd: wr_en: 0, valid: 0, ready: 0, fst_clk: 0, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WAIT_TOKEN, cmd_tag=READ_SHIFT}, TEST{state=READY, tag=TEST_READ_TOP}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 3, tag: 5, x: 0
+spisd: state: 16, tag: 27, cmd_tag: 28, bit_cnt: 3, temp_wire_bits: ff, spi_cmd_opcode: 51, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 0, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WAIT_TOKEN, cmd_tag=READ_SHIFT}, TEST{state=READY, tag=TEST_READ_TOP}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 3, tag: 5, x: 0
+spisd: state: 16, tag: 27, cmd_tag: 28, bit_cnt: 5, temp_wire_bits: ff, spi_cmd_opcode: 51, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 0, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WAIT_TOKEN, cmd_tag=READ_SHIFT}, TEST{state=READY, tag=TEST_READ_TOP}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 3, tag: 5, x: 0
+spisd: state: 16, tag: 27, cmd_tag: 28, bit_cnt: 6, temp_wire_bits: ff, spi_cmd_opcode: 51, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 0, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=READ_SHIFT, tag=READ_SHIFT, cmd_tag=READ_SHIFT}, TEST{state=READY, tag=TEST_READ_TOP}
+Test: sector: 0, done: 0, read_pass: 0, write_pass: 0, state: 3, tag: 5, x: 0
+spisd: state: 28, tag: 28, cmd_tag: 28, bit_cnt: 7, temp_wire_bits: b4, spi_cmd_opcode: 51, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 0, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=WRITE_SHIFT, tag=WRITE_SHIFT, cmd_tag=START_WRITE_RESP}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 22, tag: 22, cmd_tag: 20, bit_cnt: 7, temp_wire_bits: ff, spi_cmd_opcode: 58, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 1, temp_wire_bits: c0, spi_cmd_opcode: 00, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 2, temp_wire_bits: e0, spi_cmd_opcode: 00, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 4, temp_wire_bits: f8, spi_cmd_opcode: 00, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 5, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 7, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 0, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 1, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 3, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 4, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 6, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 7, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 0, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 2, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 3, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 5, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 6, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=WRITE_BLOCK_RESP, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 24, tag: 24, cmd_tag: 31, bit_cnt: 7, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 1, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 2, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 4, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 5, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 7, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 0, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 1, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 3, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 4, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 6, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 7, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 0, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 2, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 3, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 5, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 6, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=WRITE_BLOCK_RESP, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 24, tag: 24, cmd_tag: 31, bit_cnt: 7, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 1, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 2, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 4, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 5, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 7, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 0, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 1, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 3, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 4, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 6, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 7, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 0, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 2, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 3, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 5, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 6, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=WRITE_BLOCK_RESP, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 24, tag: 24, cmd_tag: 31, bit_cnt: 7, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 1, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 2, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 4, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 5, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 7, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 0, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 1, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 3, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 4, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 6, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 7, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 0, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 2, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 3, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 5, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 6, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=WRITE_BLOCK_RESP, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 24, tag: 24, cmd_tag: 31, bit_cnt: 7, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 1, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 2, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 4, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 5, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 7, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 0, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 1, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 3, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 4, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 6, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 7, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 0, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 2, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 3, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 5, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 6, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=WRITE_BLOCK_RESP, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 24, tag: 24, cmd_tag: 31, bit_cnt: 7, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 1, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 2, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 4, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 5, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 7, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 0, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 1, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 3, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 4, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 6, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 7, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 0, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 2, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 3, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 5, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 6, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=WRITE_BLOCK_RESP, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 24, tag: 24, cmd_tag: 31, bit_cnt: 7, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 1, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 2, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 4, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 5, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 7, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 0, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 1, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 3, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 4, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 6, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 7, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 0, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 2, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 3, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 5, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 6, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=WRITE_BLOCK_RESP, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 24, tag: 24, cmd_tag: 31, bit_cnt: 7, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 1, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 2, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 4, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 5, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 7, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 0, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 1, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 3, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 4, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 6, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 7, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 0, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 2, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 3, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 5, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 6, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=WRITE_BLOCK_RESP, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 24, tag: 24, cmd_tag: 31, bit_cnt: 7, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 1, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 2, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 4, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 5, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 7, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 0, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 1, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 3, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 4, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 6, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 7, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 0, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 2, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 3, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 5, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 6, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=WRITE_BLOCK_RESP, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 24, tag: 24, cmd_tag: 31, bit_cnt: 7, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 1, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 2, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 4, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 5, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 7, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 0, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 1, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 3, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 4, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 6, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 7, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 0, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 2, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 3, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 5, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 6, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=WRITE_BLOCK_RESP, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 24, tag: 24, cmd_tag: 31, bit_cnt: 7, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 1, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 2, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 4, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 5, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 7, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 0, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 1, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 3, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 4, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 6, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 7, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 0, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 2, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 3, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 5, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 6, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=WRITE_BLOCK_RESP, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 24, tag: 24, cmd_tag: 31, bit_cnt: 7, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 1, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 2, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 4, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 5, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 7, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 0, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 1, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 3, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 4, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 6, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 7, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 0, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 2, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 3, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 5, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 6, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=WRITE_BLOCK_RESP, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 24, tag: 24, cmd_tag: 31, bit_cnt: 7, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 1, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 2, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 4, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 5, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 7, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 0, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 1, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 3, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 4, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 6, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 7, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 0, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 2, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 3, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 5, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=SHIFT_DATA, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
+spisd: state: 16, tag: 24, cmd_tag: 31, bit_cnt: 6, temp_wire_bits: ff, spi_cmd_opcode: ff, state_step: 0
+card: is_init: 1, is_v1: 0
+cmd: wr_en: 1, valid: 1, ready: 0, fst_clk: 1, error: 0
+<<<
+>>> SD{state=WRITE_BLOCK_RESP, tag=WRITE_BLOCK_RESP, cmd_tag=UNK31}, TEST{state=READY, tag=WRITE_DONE}
+Test: sector: 0, done: 0, read_pass: 1, write_pass: 0, state: 3, tag: 8, x: 0
