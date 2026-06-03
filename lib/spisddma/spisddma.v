@@ -121,7 +121,7 @@ module spisddma #(
     reg [7:0]   spi_cmd_opcode;                   // Byte 0: Start-bit, Transmission-bit, and 6-bit Command Code
     reg [31:0]  spi_cmd_payload;                  // Bytes 1-4: 32-bit Command Arguments
     reg [7:0]   spi_cmd_crc;                      // Byte 5: 7-bit CRC checksum value shifted with a Stop-bit (1b)
-    wire [47:0] spi_cmd_block;                    // Combined bus aggregating the structural layout above
+    wire [55:0] spi_cmd_block;                    // Combined bus aggregating the structural layout above
     reg [7:0]   spi_cmd58_byte0;                  // Register to hold the initial OCR response byte from a CMD58
     
     assign debug = {
@@ -139,7 +139,7 @@ module spisddma #(
     assign bit_cnt_orig   = 7;
     assign timeout        = fst_clk ? FAST_CLK : SLOW_CLK;
     assign sck_timer_orig = (fst_clk ? FAST_CLKDIV : SLOW_CLKDIV);
-    assign spi_cmd_block  = { spi_cmd_opcode, spi_cmd_payload, spi_cmd_crc };
+    assign spi_cmd_block  = { 8'hFF, spi_cmd_opcode, spi_cmd_payload, spi_cmd_crc };
     
     // -------------------------------------------------------------------------
     // FSM State Encodings
@@ -477,17 +477,16 @@ module spisddma #(
                         state        <= STATE_IDLE;
                     end
                 
-                // send the 6 byte command packet
+                // send the FF byte, then 6 bytes of the command
                 STATE_SEND_CMD:
                     begin
-                        // send the 6 bytes of the command
-                        temp_wire_bits <= spi_cmd_block[40 - (state_step * 8) +: 8];
-                        mosi_pin       <= spi_cmd_block[47 - (state_step * 8)];
+                        temp_wire_bits <= spi_cmd_block[48 - (state_step * 8) +: 8];
+                        mosi_pin       <= spi_cmd_block[54 - (state_step * 8)];
                         bit_cnt        <= bit_cnt_orig;
                         sck_timer      <= sck_timer_orig;
                         state          <= STATE_SHIFT_DATA;
-                        tag            <= (state_step == 5) ? STATE_READ_R1 : STATE_SEND_CMD;
-                        state_step     <= (state_step == 5) ? 0 : (state_step + 1'b1);
+                        tag            <= (state_step == 6) ? STATE_READ_R1 : STATE_SEND_CMD;
+                        state_step     <= (state_step == 6) ? 0 : (state_step + 1'b1);
                         sck_cycles     <= 0;
                     end
 
