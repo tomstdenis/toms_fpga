@@ -182,18 +182,17 @@ module spisddma #(
         
         // --- Write Sector Sequences ---
         STATE_START_WRITE_RESP      = 20,       // Inspect R1 for write access, clear pipeline byte, and route to write token token
-        STATE_WRITE_TOKEN           = 21,       // Output Start Block token (0xFE) pointing card logic to data streams
-        STATE_WRITE_SHIFT           = 22,       // Sequence 512 data bytes out of host RAM onto physical SPI buses
-        STATE_WRITE_CRC             = 23,       // Stream out trailing uncalculated dummy CRC bytes (0xFFFF) and read token status
-        STATE_WRITE_BLOCK_RESP      = 24,       // Evaluate block response token; capture data errors or jump to busy checks
-        STATE_WRITE_WAIT            = 25,       // Poll MISO lines; keep processing clocks while card pulls bus low (Write Busy)
+        STATE_WRITE_SHIFT           = 21,       // Sequence 512 data bytes out of host RAM onto physical SPI buses
+        STATE_WRITE_CRC             = 22,       // Stream out trailing uncalculated dummy CRC bytes (0xFFFF) and read token status
+        STATE_WRITE_BLOCK_RESP      = 23,       // Evaluate block response token; capture data errors or jump to busy checks
+        STATE_WRITE_WAIT            = 24,       // Poll MISO lines; keep processing clocks while card pulls bus low (Write Busy)
         
         // --- Read Sector Sequences ---
-        STATE_START_READ_RESP       = 26,       // Inspect R1 response returned from read sector command (CMD17)
-        STATE_WAIT_TOKEN            = 27,       // Consume padding frames (0xFF) until block start flag (0xFE) drops on MISO
-        STATE_READ_SHIFT            = 28,       // Shift in data block from SD card, writing words into host RAM registers
-        STATE_READ_CRC              = 29,       // Capture trailing 16-bit CRC framing sequence to close reading cycle
-        STATE_READ_CRCCHK           = 30;       // Compare the computed CRC16 to the received one
+        STATE_START_READ_RESP       = 25,       // Inspect R1 response returned from read sector command (CMD17)
+        STATE_WAIT_TOKEN            = 26,       // Consume padding frames (0xFF) until block start flag (0xFE) drops on MISO
+        STATE_READ_SHIFT            = 27,       // Shift in data block from SD card, writing words into host RAM registers
+        STATE_READ_CRC              = 28,       // Capture trailing 16-bit CRC framing sequence to close reading cycle
+        STATE_READ_CRCCHK           = 29;       // Compare the computed CRC16 to the received one
 
     // -------------------------------------------------------------------------
     // Macro Routine: setup_spi_cmd
@@ -602,7 +601,6 @@ module spisddma #(
                 STATE_START_WRITE_RESP:
                     begin
                         if (temp_wire_bits != 8'h00) begin
-                            cmd_tag          <= 0; //delme
                             error            <= `SPISD_ERR_WRITE_CMD;
                             state            <= STATE_DONE;
                         end else begin
@@ -612,16 +610,6 @@ module spisddma #(
                             state            <= STATE_SHIFT_DATA;
                             tag              <= STATE_WRITE_SHIFT;
                         end
-                    end
-                
-                // shift out FF then the write block token FE letting the card know payload follows
-                STATE_WRITE_TOKEN:
-                    begin
-                        state_step         <= (state_step == 1) ? 0 : 1;
-                        temp_wire_bits     <= (state_step == 1) ? 8'hFE : 8'hFF;
-						mosi_pin           <= 1'b1;
-                        state              <= STATE_SHIFT_DATA;
-                        tag                <= (state_step == 1) ? STATE_WRITE_SHIFT : state;
                     end
 
                 // write 512 bytes from host memory to SD SPI

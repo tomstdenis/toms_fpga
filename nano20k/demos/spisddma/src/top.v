@@ -100,7 +100,7 @@ module top(
     reg [10:0] spi_cmd_host_address;
     wire [63:0] spi_debug;
 
-    spisddma #(.CLK_FREQ_MHZ(`FREQ), .READ_CRC_CHK(1), .FAST_CLK(100_000)) spi_sd (
+    spisddma #(.CLK_FREQ_MHZ(`FREQ), .READ_CRC_CHK(1), .FAST_CLK(24_000_000)) spi_sd (
         .clk(pll_clk), .rst_n(rst_n),
         .ready(spi_ready), .error(spi_error),
         .card_is_v1(spi_card_is_v1), .card_is_init(spi_card_is_init),

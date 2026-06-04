@@ -33,7 +33,6 @@ char *spi_states[32] = {
 	"WAIT_VALID_LOW",
 	
 	"START_WRITE_RESP",
-	"WRITE_TOKEN",
 	"WRITE_SHIFT",
 	"WRITE_CRC",
 	"WRITE_BLOCK_RESP",
@@ -44,6 +43,7 @@ char *spi_states[32] = {
 	"READ_SHIFT",
 	"READ_CRC",
 	"READ_CRCCHK",
+	"UNK30",
 	"UNK31"
 };
 
