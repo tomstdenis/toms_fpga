@@ -123,7 +123,7 @@ module top(
     reg [8:0] test_x;
     reg [31:0] test_sector;
 
-    assign led = ~{spi_card_is_init, spi_card_is_v1, test_read_pass, test_write_pass, test_done, 1'b0 };
+    assign led = ~{spi_card_is_init, spi_card_is_v1, spi_card_is_sdhc, test_read_pass, test_write_pass, test_done };
 
     // debugger
     reg [7:0] test_y;
