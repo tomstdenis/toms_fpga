@@ -138,6 +138,7 @@ int main(int argc, char **argv)
 		state_step,
 		card_is_init,
 		card_is_v1,
+		card_is_sdhc,
 		cmd_wr_en,
 		cmd_valid,
 		ready,
@@ -183,6 +184,7 @@ int main(int argc, char **argv)
 					log.card_is_v1   = logdata[1] & 0x01;
 					log.card_is_init = (logdata[1] & 0x02) ? 1 : 0;
 					log.state_step   = (logdata[1] >> 2) & 0x0F;
+					log.card_is_sdhc = (logdata[1] >> 6) & 1;
 					// byte 2
 					log.spi_cmd_opcode = logdata[2] & 0x7F;
 					// byte 3
@@ -218,8 +220,8 @@ int main(int argc, char **argv)
 						log.test_sector, log.test_done, log.test_read_pass, log.test_write_pass, log.test_state, log.test_tag, log.test_x);
 					printf("spisd: state: %d, tag: %d, cmd_tag: %d, bit_cnt: %d, temp_wire_bits: %02x, spi_cmd_opcode: %02x, state_step: %d\n",
 						log.state, log.tag, log.cmd_tag, log.bit_cnt, log.temp_wire_bits, log.spi_cmd_opcode, log.state_step);
-					printf("card: is_init: %d, is_v1: %d\n",
-						log.card_is_init, log.card_is_v1);
+					printf("card: is_init: %d, is_v1: %d, is_sdhc: %d\n",
+						log.card_is_init, log.card_is_v1, log.card_is_sdhc);
 					printf("cmd: wr_en: %d, valid: %d, ready: %d, fst_clk: %d, error: %d\n",
 						log.cmd_wr_en, log.cmd_valid, log.ready, log.fst_clk, log.error);
 					printf("<<<\n");

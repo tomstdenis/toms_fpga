@@ -6,5 +6,5 @@
 `define SPISD_ERR_WRITE   2     // WRITE was not accpted
 `define SPISD_ERR_READ    3     // READ was not accepted
 `define SPISD_ERR_READCRC 4     // READ data failed CRC check
-
+`define SPISD_ERR_WRITE_CMD 5   // the WRITE SECTOR cmd was rejected
 `endif
