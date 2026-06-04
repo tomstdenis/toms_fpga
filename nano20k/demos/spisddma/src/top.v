@@ -259,7 +259,7 @@ module top(
                 STATE_DONE:
                     begin
                         spi_cmd_valid   <= 1'b0;
-                        test_done <= 1;
+                        test_done       <= 1;
                         if (uart_rx_read) begin
                             test_sector     <= test_sector + 1'b1;
                             test_state      <= STATE_INIT_WAIT;

@@ -225,6 +225,12 @@ int main(int argc, char **argv)
 					printf("cmd: wr_en: %d, valid: %d, ready: %d, fst_clk: %d, error: %d\n",
 						log.cmd_wr_en, log.cmd_valid, log.ready, log.fst_clk, log.error);
 					printf("<<<\n");
+
+					// loop to next sector...(if passed and IDLE)
+					if ((log.test_read_pass & log.test_write_pass & log.test_done) && (log.error == 0) && (log.r2_status == 0) && (log.state == 17)) {
+						printf("NEXT!\n");
+						write(fd, &ch, 1);
+					}
 				}
 			}
 		}
