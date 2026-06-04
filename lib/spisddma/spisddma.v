@@ -1,11 +1,3 @@
-/* Known defects/limitations
-
-  -- Write sector doesn't work, I don't get a 05h byte back ...
-  -- Probably should tail call CMD13 (READ_STATUS) and output a card_status 8-bit net.
-  -- I write out 00 as CRC bytes but they should technically be FF or 01 since the LSB needs to be a valid STOP bit (1)
-  
-*/  
-
 /* SPI SD DMA Block
  
   Facilitates transferring memory between SPI SD cards and host synchronous memories.
@@ -56,6 +48,21 @@ module spisddma #(
     // =========================================================================
     output reg ready,                                 // Active-high: Module has finished processing current request
     output reg [2:0] error,                           // Error reporting codes (`SPISD_ERR_OK == 2'b00)
+    output reg [4:0] error_read,                      // Error code from READ SECTOR command if error == `SPISD_ERR_READ
+                                                      //    bit 0 -- error
+                                                      //    bit 1 -- cc error
+                                                      //    bit 2 -- card ecc failed
+                                                      //    bit 3 -- out of range
+
+    output reg [7:0] r2_status,                       // status byte from CMD13
+                                                      //    bit 0 -- card is locked
+                                                      //    bit 1 -- wp erase skip
+                                                      //    bit 2 -- error
+                                                      //    bit 3 -- CC error
+                                                      //    bit 4 -- card ecc failed
+                                                      //    bit 5 -- wp violation
+                                                      //    bit 6 -- erase param
+                                                      //    bit 7 -- out of range
     
     // =========================================================================
     // SD CARD STATUS INFO
@@ -138,9 +145,9 @@ module spisddma #(
                     3'b0, state,
                     3'b0, tag,
                     3'b0, cmd_tag,
-                    2'b0, bit_cnt, temp_wire_bits[7], spi_cmd_opcode[7],
+                    2'b0, bit_cnt, r2_status[7], spi_cmd_opcode[7],
 
-                    1'b0, temp_wire_bits[6:0],
+                    1'b0, r2_status[6:0],
                     1'b0, spi_cmd_opcode[6:0],
                     1'b0, card_is_sdhc, state_step, card_is_init, card_is_v1,
                     1'b0, cmd_wr_en, cmd_valid, ready, fst_clk, error
@@ -192,7 +199,10 @@ module spisddma #(
         STATE_WAIT_TOKEN            = 26,       // Consume padding frames (0xFF) until block start flag (0xFE) drops on MISO
         STATE_READ_SHIFT            = 27,       // Shift in data block from SD card, writing words into host RAM registers
         STATE_READ_CRC              = 28,       // Capture trailing 16-bit CRC framing sequence to close reading cycle
-        STATE_READ_CRCCHK           = 29;       // Compare the computed CRC16 to the received one
+        STATE_READ_CRCCHK           = 29,       // Compare the computed CRC16 to the received one
+
+        // --- Status Commands ---
+        STATE_CMD13_R1              = 30;
 
     // -------------------------------------------------------------------------
     // Macro Routine: setup_spi_cmd
@@ -285,6 +295,8 @@ module spisddma #(
             temp_wire_bits      <= 8'h00;
             bit_cnt             <= 4'h0;
             error               <= `SPISD_ERR_OK;
+            error_read          <= 0;
+            r2_status           <= 0;
             card_is_init        <= 1'b0;
             state_step          <= 0;
 
@@ -510,6 +522,11 @@ module spisddma #(
                 // wait and then read an R1 code, jumps back to cmd_tag, puts code in temp_wire_bits
                 STATE_READ_R1:
                     begin
+                        sck_cycles <= sck_cycles + 8;
+                        if (sck_cycles >= timeout) begin
+                            error <= `SPISD_ERR_TIMEOUT;
+                            state <= STATE_INIT_SPI;
+                        end
                         if (temp_wire_bits[7]) begin
                             // still idle
                             state          <= STATE_SHIFT_DATA;
@@ -574,6 +591,8 @@ module spisddma #(
                             
                             // default to ok
                             error               <= `SPISD_ERR_OK;
+                            error_read          <= 0;
+                            r2_status           <= 0;
                     
                             // branch to the next state
                             case(cmd_wr_en)
@@ -682,7 +701,7 @@ module spisddma #(
                     begin
                         if (temp_wire_bits != 8'h00) begin
                             // write done when MISO goes high at any point
-                            state      <= STATE_DONE;
+                            setup_spi_cmd(8'd13, 32'd0, 8'h00, STATE_CMD13_R1);
                         end else begin
                             temp_wire_bits <= 8'hFF;
                             state          <= STATE_SHIFT_DATA;
@@ -729,8 +748,9 @@ module spisddma #(
                             end else begin
                                 if ((temp_wire_bits & 8'b11100000) == 8'h00) begin
                                     // error token (TODO copy error bits out)
-                                    error <= `SPISD_ERR_READ;
-                                    state <= STATE_DONE;
+                                    error      <= `SPISD_ERR_READ;
+                                    error_read <= temp_wire_bits[4:0];
+                                    state      <= STATE_DONE;
                                 end
                                 // keep shifting until we hit the read token
                                 tag   <= state;
@@ -766,11 +786,31 @@ module spisddma #(
                 // ensure CRC is valid
                 STATE_READ_CRCCHK:
 					begin
-						state <= STATE_DONE;
+                        setup_spi_cmd(8'd13, 32'd0, 8'h00, STATE_CMD13_R1);
 						if (READ_CRC_CHK == 1 && cmd_crc16 != 16'h0) begin
 							error <= `SPISD_ERR_READCRC;
 						end
 					end
+
+                // response to CMD13 R1+R2 bytes
+                STATE_CMD13_R1:
+                    begin
+                        state_step <= (state_step == 1) ? 0 : 1;
+                        if (state_step == 0) begin
+                            if (temp_wire_bits != 8'h00) begin
+                                error          <= `SPISD_ERR_TIMEOUT;
+                                state          <= STATE_INIT_SPI;
+                            end else begin
+                                state          <= STATE_SHIFT_DATA;
+                                tag            <= state;
+                                temp_wire_bits <= 8'hFF;
+                                mosi_pin       <= 1;
+                            end
+                        end else begin
+                            r2_status          <= temp_wire_bits;
+                            state              <= STATE_DONE;
+                        end
+                    end
 					
                 // where commands go before idle, we raise CS, clock out a byte
                 STATE_DONE:

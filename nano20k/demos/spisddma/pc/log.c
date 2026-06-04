@@ -43,7 +43,7 @@ char *spi_states[32] = {
 	"READ_SHIFT",
 	"READ_CRC",
 	"READ_CRCCHK",
-	"UNK30",
+	"CMD13_R1",
 	"UNK31"
 };
 
@@ -133,7 +133,7 @@ int main(int argc, char **argv)
 		tag, 
 		cmd_tag, 
 		bit_cnt,
-		temp_wire_bits,
+		r2_status,
 		spi_cmd_opcode,
 		state_step,
 		card_is_init,
@@ -186,12 +186,12 @@ int main(int argc, char **argv)
 					log.state_step   = (logdata[1] >> 2) & 0x0F;
 					log.card_is_sdhc = (logdata[1] >> 6) & 1;
 					// byte 2
-					log.spi_cmd_opcode = logdata[2] & 0x7F;
+					log.spi_cmd_opcode  = logdata[2] & 0x7F;
 					// byte 3
-					log.temp_wire_bits = logdata[3] & 0x7F;
+					log.r2_status       = logdata[3] & 0x7F;
 					// byte 4
 					log.spi_cmd_opcode |= (logdata[4] & 0x01) ? 0x80 : 0x00;
-					log.temp_wire_bits |= (logdata[4] & 0x02) ? 0x80 : 0x00;
+					log.r2_status      |= (logdata[4] & 0x02) ? 0x80 : 0x00;
 					log.bit_cnt         = (logdata[4] >> 2) & 0x0F;
 					// byte 5
 					log.cmd_tag = logdata[5] & 0x1F;
@@ -218,8 +218,8 @@ int main(int argc, char **argv)
 					printf(">>> SD{state=%s, tag=%s, cmd_tag=%s}, TEST{state=%s, tag=%s}\n", spi_states[log.state], spi_states[log.tag], spi_states[log.cmd_tag], tst_states[log.test_state], tst_states[log.test_tag]);
 					printf("Test: sector: %d, done: %d, read_pass: %d, write_pass: %d, state: %d, tag: %d, x: %d\n",
 						log.test_sector, log.test_done, log.test_read_pass, log.test_write_pass, log.test_state, log.test_tag, log.test_x);
-					printf("spisd: state: %d, tag: %d, cmd_tag: %d, bit_cnt: %d, temp_wire_bits: %02x, spi_cmd_opcode: %02x, state_step: %d\n",
-						log.state, log.tag, log.cmd_tag, log.bit_cnt, log.temp_wire_bits, log.spi_cmd_opcode, log.state_step);
+					printf("spisd: state: %d, tag: %d, cmd_tag: %d, bit_cnt: %d, r2_status: %02x, spi_cmd_opcode: %02x, state_step: %d\n",
+						log.state, log.tag, log.cmd_tag, log.bit_cnt, log.r2_status, log.spi_cmd_opcode, log.state_step);
 					printf("card: is_init: %d, is_v1: %d, is_sdhc: %d\n",
 						log.card_is_init, log.card_is_v1, log.card_is_sdhc);
 					printf("cmd: wr_en: %d, valid: %d, ready: %d, fst_clk: %d, error: %d\n",

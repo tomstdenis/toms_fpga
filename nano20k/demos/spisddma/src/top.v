@@ -94,6 +94,11 @@ module top(
     wire [2:0] spi_error;
     wire spi_card_is_v1;
     wire spi_card_is_init;
+    wire spi_card_is_sdhc;
+
+    wire [4:0] spi_error_read;
+    wire [7:0] spi_r2_status;
+
     reg  spi_cmd_wr_en;
     reg  spi_cmd_valid;
     reg [31:0] spi_cmd_sector;
@@ -102,8 +107,8 @@ module top(
 
     spisddma #(.CLK_FREQ_MHZ(`FREQ), .READ_CRC_CHK(1), .FAST_CLK(24_000_000)) spi_sd (
         .clk(pll_clk), .rst_n(rst_n),
-        .ready(spi_ready), .error(spi_error),
-        .card_is_v1(spi_card_is_v1), .card_is_init(spi_card_is_init),
+        .ready(spi_ready), .error(spi_error), .error_read(spi_error_read), .r2_status(spi_r2_status),
+        .card_is_v1(spi_card_is_v1), .card_is_init(spi_card_is_init), .card_is_sdhc(spi_card_is_sdhc),
         .host_mem_addr(spi_mem_addr), .host_mem_wr_en(spi_mem_wr_en),
         .host_mem_data_in(spi_mem_data_in), .host_mem_data_out(spi_mem_data_out),
         .cmd_wr_en(spi_cmd_wr_en), .cmd_valid(spi_cmd_valid), .cmd_sector(spi_cmd_sector),
