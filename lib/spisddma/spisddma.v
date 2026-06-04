@@ -511,60 +511,16 @@ module spisddma #(
                 // wait and then read an R1 code, jumps back to cmd_tag, puts code in temp_wire_bits
                 STATE_READ_R1:
                     begin
-`ifdef BITSCAN
-                        case(sck_pin)
-                            1'b0:
-                                begin
-                                    if (sck_timer == 0) begin
-                                        sck_timer   <= sck_timer_orig;                     // time to switch to SCK high
-                                        sck_pin     <= ~sck_pin;
-                                    end else begin
-                                        sck_timer   <= sck_timer - 1'b1;
-                                    end
-                                end
-                            1'd1:                                        // SCK high phase, keep data steady, move to next bit at end of phase
-                                begin
-                                    if (sck_timer == 0) begin
-                                        sck_cycles     <= sck_cycles + 1'b1;        // count how many SCK cycles there have been for timeout
-                                        sck_timer      <= sck_timer_orig;           // reset timer in case we chain SEND_8's
-                                        sck_pin        <= ~sck_pin;                 // set SCK to low for either the next bit of this transaction or the start of the next transaction
-                                        if (~miso_pin) begin
-                                            // went low so now we should read 7 more bits 
-                                            temp_wire_bits <= 0;
-                                            state          <= STATE_SHIFT_DATA;
-                                            tag            <= cmd_tag;
-                                            bit_cnt        <= bit_cnt_orig - 1;
-                                            sck_cycles     <= 0;
-                                        end else begin
-                                            if (sck_cycles == timeout) begin
-                                                // no response in 1 second == card not present
-                                                if (spi_cmd_opcode == 8'h48) begin // CMD8 may timeout on v1 cards
-                                                    temp_wire_bits <= 8'h04; // invalid opcode
-                                                    state          <= cmd_tag;
-                                                end else begin
-                                                    state          <= STATE_INIT_SPI;
-                                                    error          <= `SPISD_ERR_TIMEOUT;
-                                                end
-                                            end
-                                        end
-                                    end else begin
-                                        sck_timer <= sck_timer - 1'b1;
-                                    end
-                                end
-                        endcase
-`else
                         if (temp_wire_bits[7]) begin
                             // still idle
-                            state <= STATE_SHIFT_DATA;
-                            tag   <= state;
+                            state          <= STATE_SHIFT_DATA;
+                            tag            <= state;
                             temp_wire_bits <= 8'hFF;
-                            mosi_pin <= 1;
+                            mosi_pin       <= 1;
                         end else begin
                             // next byte is R1 code
-                            state <= cmd_tag;
+                            state          <= cmd_tag;
                         end
-`endif
-
                     end
             
                 /* STATE_SHIFT_DATA:
@@ -648,7 +604,7 @@ module spisddma #(
                         if (temp_wire_bits != 8'h00) begin
                             cmd_tag          <= 0; //delme
                             error            <= `SPISD_ERR_WRITE_CMD;
-                            state            <= state; // TODO: STATE_DONE;
+                            state            <= STATE_DONE;
                         end else begin
                             // clock out 16 bits before sending the write token
                             temp_wire_bits   <= 8'hFE;
@@ -722,14 +678,12 @@ module spisddma #(
                                 begin
                                     error          <= `SPISD_ERR_WRITE;
                                     spi_cmd_opcode <= temp_wire_bits & 8'h1F;
-                                    state <= state; // TODO: delme
                                 end
                             default:
                                 begin
                                     // valid RESP byte that we don't parse
-                                    spi_cmd_opcode <= temp_wire_bits + 1; // TODO: remove
                                     error <= `SPISD_ERR_TIMEOUT;
-                                    state <= state; // TODO: STATE_INIT_SPI;
+                                    state <= STATE_INIT_SPI;
                                 end
                         endcase
                     end
@@ -749,7 +703,7 @@ module spisddma #(
                             sck_cycles <= sck_cycles + 8;
                             if (sck_cycles >= timeout) begin
                                 error <= `SPISD_ERR_TIMEOUT;
-                                state <= state; // TODO STATE_INIT_SPI;
+                                state <=  STATE_INIT_SPI;
                             end
                         end
                     end
