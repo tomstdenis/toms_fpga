@@ -27,7 +27,7 @@ module top(
     end
 
     // our uart
-    wire [15:0] baud_div = (`FREQ * 1_000_000) / 500_000;
+    wire [15:0] baud_div = (`FREQ * 1_000_000) / 1_000_000;
     reg uart_tx_start;
     reg [7:0] uart_tx_data_in;
     wire uart_tx_fifo_empty;
@@ -130,10 +130,13 @@ module top(
 
     // once you see 00 FF you know you're back at byte 0 (bottom of wire assignment) since
     // no other byte can be FF.
-    localparam done_msg_bytes = 8 + 8;
+    localparam done_msg_bytes = 8 + 11;
     wire [(done_msg_bytes*8)-1:0] done_msg = {
                 8'hFF,
                 8'h00,
+                1'b0, test_sector[27:21],
+                1'b0, test_sector[20:14],
+                1'b0, test_sector[13:7],
                 1'b0, test_sector[6:0],
                 5'b0, test_done, test_read_pass, test_write_pass,
                 
@@ -156,7 +159,7 @@ module top(
             if (uart_rx_read) begin
                 uart_rx_read <= 1'b0;
             end else begin
-                if (uart_rx_ready) begin
+                if (uart_rx_ready & test_done) begin
                     uart_rx_read <= 1'b1;
                 end
             end
@@ -214,6 +217,9 @@ module top(
                     end
                 STATE_ISSUE_READ:
                     begin
+                        test_read_pass       <= 0;
+                        test_write_pass      <= 0;
+                        test_done            <= 0;
                         spi_cmd_valid        <= 1;
                         spi_cmd_host_address <= 0;
                         spi_cmd_sector       <= test_sector;
@@ -260,12 +266,9 @@ module top(
                     begin
                         spi_cmd_valid   <= 1'b0;
                         test_done       <= 1;
-                        if (uart_rx_read) begin
+                        if (spi_error == 0) begin
                             test_sector     <= test_sector + 1'b1;
                             test_state      <= STATE_INIT_WAIT;
-                            test_read_pass  <= 0;
-                            test_write_pass <= 0;
-                            test_done       <= 0;
                         end
                     end
 

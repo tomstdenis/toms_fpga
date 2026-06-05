@@ -145,12 +145,13 @@ int main(int argc, char **argv)
 		fst_clk,
 		error;
 	} log;
-	unsigned char logdata[14], prevlogdata[14];
+	unsigned char logdata[18], prevlogdata[18];
 	unsigned char ch, prev_ch, x;
+	uint32_t sectors = 0;
 	
     int fd = open(argv[1], O_RDWR | O_NOCTTY);
     if (fd < 0) { perror("Open port"); return 1; }
-    set_interface_attribs(fd, B500000);
+    set_interface_attribs(fd, B1000000);
 	tcflush(fd, TCIOFLUSH);
 	
 	memset(&log, 0, sizeof log);
@@ -164,7 +165,7 @@ int main(int argc, char **argv)
 		if (read(fd, &ch, 1) == 1) {
 			if (prev_ch == 0 && ch == 0xFF) {
 				// we're in a frame
-				for (x = 0; x < 14; ) {
+				for (x = 0; x < 18; ) {
 					if (read(fd, &logdata[x], 1) == 1) {
 						++x;
 					}
@@ -211,26 +212,27 @@ int main(int argc, char **argv)
 					log.test_write_pass = logdata[12] & 0x01;
 					log.test_read_pass  = (logdata[12] & 0x02) ? 1 : 0;
 					log.test_done       = (logdata[12] & 0x04) ? 1 : 0;
-					// byte 13
+					// byte 13-16 are 7 bit increments of test_sector
 					log.test_sector     = logdata[13] & 0x7F;
-					
-					// now display them
-					printf(">>> SD{state=%s, tag=%s, cmd_tag=%s}, TEST{state=%s, tag=%s}\n", spi_states[log.state], spi_states[log.tag], spi_states[log.cmd_tag], tst_states[log.test_state], tst_states[log.test_tag]);
-					printf("Test: sector: %d, done: %d, read_pass: %d, write_pass: %d, state: %d, tag: %d, x: %d\n",
-						log.test_sector, log.test_done, log.test_read_pass, log.test_write_pass, log.test_state, log.test_tag, log.test_x);
-					printf("spisd: state: %d, tag: %d, cmd_tag: %d, bit_cnt: %d, r2_status: %02x, spi_cmd_opcode: %02x, state_step: %d\n",
-						log.state, log.tag, log.cmd_tag, log.bit_cnt, log.r2_status, log.spi_cmd_opcode, log.state_step);
-					printf("card: is_init: %d, is_v1: %d, is_sdhc: %d\n",
-						log.card_is_init, log.card_is_v1, log.card_is_sdhc);
-					printf("cmd: wr_en: %d, valid: %d, ready: %d, fst_clk: %d, error: %d\n",
-						log.cmd_wr_en, log.cmd_valid, log.ready, log.fst_clk, log.error);
-					printf("<<<\n");
+					log.test_sector    |= ((unsigned)logdata[14] & 0x7F) << 7;
+					log.test_sector    |= ((unsigned)logdata[15] & 0x7F) << 14;
+					log.test_sector    |= ((unsigned)logdata[16] & 0x7F) << 21;
+					if (log.error) {
+						printf(">>> SD{state=%s, tag=%s, cmd_tag=%s}, TEST{state=%s, tag=%s}\n", spi_states[log.state], spi_states[log.tag], spi_states[log.cmd_tag], tst_states[log.test_state], tst_states[log.test_tag]);
+						printf("Test: sector: %u, done: %d, read_pass: %d, write_pass: %d, state: %d, tag: %d, x: %d\n",
+							log.test_sector, log.test_done, log.test_read_pass, log.test_write_pass, log.test_state, log.test_tag, log.test_x);
+						printf("spisd: state: %d, tag: %d, cmd_tag: %d, bit_cnt: %d, r2_status: %02x, spi_cmd_opcode: %02x, state_step: %d\n",
+							log.state, log.tag, log.cmd_tag, log.bit_cnt, log.r2_status, log.spi_cmd_opcode, log.state_step);
+						printf("card: is_init: %d, is_v1: %d, is_sdhc: %d\n",
+							log.card_is_init, log.card_is_v1, log.card_is_sdhc);
+						printf("cmd: wr_en: %d, valid: %d, ready: %d, fst_clk: %d, error: %d\n",
+							log.cmd_wr_en, log.cmd_valid, log.ready, log.fst_clk, log.error);
+						printf("<<<\n");
+					}
 
 					// loop to next sector...(if passed and IDLE)
-					if ((log.test_read_pass & log.test_write_pass & log.test_done) && (log.error == 0) && (log.r2_status == 0) && (log.state == 17)) {
-						printf("NEXT!\n");
-						write(fd, &ch, 1);
-					}
+					printf("%10u sectors written\r", log.test_sector);
+					fflush(stdout);
 				}
 			}
 		}
