@@ -667,13 +667,6 @@ module spisddma #(
                     begin
                         state <= STATE_DONE;
                         case (temp_wire_bits & 8'h1F)
-                            8'hFF:
-                                begin
-                                    tag <= state;
-                                    state <= STATE_SHIFT_DATA;
-                                    mosi_pin <= 1;
-                                    temp_wire_bits <= 8'hFF; spi_cmd_opcode <= 8'h69;
-                                end 
                             8'h05: 
                                 begin
                                     tag            <= STATE_WRITE_WAIT;
@@ -704,6 +697,7 @@ module spisddma #(
                             setup_spi_cmd(8'd13, 32'd0, 8'h00, STATE_CMD13_R1);
                         end else begin
                             temp_wire_bits <= 8'hFF;
+                            mosi_pin       <= 1'b1;
                             state          <= STATE_SHIFT_DATA;
                             tag            <= state;
                             // increment by 8 since we're shifting bytes here
@@ -724,7 +718,9 @@ module spisddma #(
                         end else begin
                             // preload temp wire so we can jump into wait token with a known value
                             temp_wire_bits <= 8'hFF;
-                            state          <= STATE_WAIT_TOKEN;
+                            mosi_pin       <= 1'b1;
+                            tag            <= STATE_WAIT_TOKEN;
+                            state          <= STATE_SHIFT_DATA;
                             sck_cycles     <= 0;
                             cmd_tag        <= STATE_READ_SHIFT;
                         end
@@ -742,6 +738,7 @@ module spisddma #(
                         end else begin
                             state          <= STATE_SHIFT_DATA;
                             temp_wire_bits <= 8'hFF;
+                            mosi_pin       <= 1'b1;
                             if (temp_wire_bits == 8'hFE) begin
                                 // proceed to shift data out of the SD card into host memory
                                 tag   <= cmd_tag;
@@ -765,6 +762,7 @@ module spisddma #(
                         cmd_crc16		  <= next_crc16_byte(cmd_crc16, temp_wire_bits);
                         host_mem_data_in  <= temp_wire_bits;
                         temp_wire_bits    <= 8'hFF;
+                        mosi_pin          <= 1'b1;
                         host_mem_wr_en    <= 1'b1;
                         host_mem_addr     <= host_mem_addr + 1'b1;        
                         cmd_pos           <= (cmd_pos == 9'd511) ? 0 : (cmd_pos + 1'b1);
