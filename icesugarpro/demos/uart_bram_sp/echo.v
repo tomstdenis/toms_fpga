@@ -67,15 +67,15 @@ module top(
 	reg [7:0] bram_w_data;
 	reg bram_w_en;
 	reg [10:0] bram_r_addr;
-	wire [7:0] bram_r_data;
+	reg [7:0] bram_r_data;
 	reg [7:0] bram_mem[2047:0];
 	
 	always @(posedge pll_clk) begin
 		if (bram_w_en) begin
 			bram_mem[bram_w_addr] <= bram_w_data;
 		end
+		bram_r_data <= bram_mem[bram_r_addr];
 	end
-	assign bram_r_data = bram_mem[bram_r_addr];
 
 `endif	
 
