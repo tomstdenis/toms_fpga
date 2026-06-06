@@ -90,3 +90,30 @@ The module is meant to support a variety of memories.  By default, it's configur
 ```
 
 Keep in mind some command bytes change behaviour, for instance, SPI read with 03h has fewer wait cycles than a SPI read with 0Bh (but 0Bh has a faster tolerable SCK rate than 03h, etc...).
+
+Hooking Up
+----------
+
+The following nets are to be hooked up to the IC itself:
+
+- **sio_din**: The input from the four SIO pins
+- **sio_dout**: The output from this module to the SIO pins
+- **sio_en**: A 4-bit mask of output enables (1 == the pin is an output from the design to the SPI memory IC)
+- **cs_pin**: The chip select CS pin
+- **sck_pin**: The SCK clock pin
+
+
+The I/O pins can be done with a typical inout buffer:
+
+```
+	inout wire [3:0] sio;
+   
+	assign sio[0] = sio_en[0] ? sio_dout[0] : 1'bz;
+	assign sio[1] = sio_en[1] ? sio_dout[1] : 1'bz;
+	assign sio[2] = sio_en[2] ? sio_dout[2] : 1'bz;
+	assign sio[3] = sio_en[3] ? sio_dout[3] : 1'bz;
+	assign sio_din = sio;
+```
+   
+The SIO and CS pins should be pulled up externally.  The SCK pin should be pulled down.  Ideally, you should impedance match things.  In practice a simple
+22R series resistor seems to work in my experience upto around 75-85MHz SCK.
