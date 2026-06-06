@@ -11,7 +11,7 @@ This module implements a hardware SPI/Quad SPI controller with host memory DMA c
 			│                  │                 │                 │  cs/sck  │                  │
 			│                  ├────────────────►│                 ├─────────►│                  │
 			│   Host Memory    │   host_mem_*    │                 │   sio_*  │    SPI Memory    │
-			│                  │◄────────────────┤                 │◄────────►┤                  │
+			│                  │◄────────────────┤                 │◄────────►┤        IC        │
 			│                  │                 │     SPI DMA     │          │                  │
 			└──────────┬───────┘                 │                 │          └──────────────────┘
 					▲  │                         │                 │                              
@@ -21,8 +21,8 @@ This module implements a hardware SPI/Quad SPI controller with host memory DMA c
 			┌───────┴──────────┐                       ▲    │                                     
 			│                  │    cmd_*              │    │                                     
 			│                  ├───────────────────────┘    │                                     
-			│  SPI DMA Driver  │                            │                                     
-			│                  │◄───────────────────────────┘                                     
+			│     SPI DMA      │                            │                                     
+			│     Driver       │◄───────────────────────────┘                                     
 			│                  │    ready                                                         
 			└──────────────────┘                                                                  
 ```

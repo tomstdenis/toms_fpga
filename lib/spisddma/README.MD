@@ -8,9 +8,9 @@ Uses a simple synchronous interface:
             ┌──────────────────┐                 ┌─────────────────┐            ┌──────────────────┐
             │                  │                 │                 │  cs/sck    │                  │
             │                  ├────────────────►│                 ├───────────►│                  │
-            │   Host Memory    │   host_mem_*    │                 │ miso/mosi  │      SPI SD      │
-            │                  │◄────────────────┤                 │◄──────────►┤                  │
-            │                  │                 │     SPI DMA     │            │                  │
+            │   Host Memory    │   host_mem_*    │                 │ miso/mosi  │      SD SPI      │
+            │                  │◄────────────────┤                 │◄──────────►┤       Card       │
+            │                  │                 │   SD SPI DMA    │            │                  │
             └──────────┬───────┘                 │                 │            └──────────────────┘
                     ▲  │                         │                 │                              
                     │  │                         │                 │                              
@@ -19,8 +19,8 @@ Uses a simple synchronous interface:
             ┌───────┴──────────┐                       ▲    │                                     
             │                  │    cmd_*              │    │                                     
             │                  ├───────────────────────┘    │                                     
-            │  SPI DMA Driver  │                            │                                     
-            │                  │◄───────────────────────────┘                                     
+            │    SD SPI DMA    │                            │                                     
+            │      Driver      │◄───────────────────────────┘                                     
             │                  │    ready, error, card_is_init                                                         
             └──────────────────┘                                                                  
 ```
