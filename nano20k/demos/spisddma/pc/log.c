@@ -8,6 +8,7 @@
 #include <errno.h>
 #include <inttypes.h>
 #include <time.h>
+#include <sys/time.h>
 
 char *spi_states[32] = {
 	"INIT_SPI",
@@ -147,7 +148,8 @@ int main(int argc, char **argv)
 	} log;
 	unsigned char logdata[18], prevlogdata[18];
 	unsigned char ch, prev_ch, x;
-	uint32_t sectors = 0;
+	uint32_t prev_sectors = 0;
+	struct timeval start, now;
 	
     int fd = open(argv[1], O_RDWR | O_NOCTTY);
     if (fd < 0) { perror("Open port"); return 1; }
@@ -158,6 +160,7 @@ int main(int argc, char **argv)
 	memset(prevlogdata, 0xFF, sizeof prevlogdata);
 	prev_ch = 0x80;
 	
+	gettimeofday(&start, NULL);
 	// loop forever
 	for (;;) {
 		// try to sync to 00 FF
@@ -231,8 +234,19 @@ int main(int argc, char **argv)
 					}
 
 					// loop to next sector...(if passed and IDLE)
-					printf("%10u sectors written\r", log.test_sector);
+					gettimeofday(&now, NULL);
 					fflush(stdout);
+					if (now.tv_sec != start.tv_sec) {
+						uint64_t delta;
+						uint32_t n;
+						delta = ((uint64_t)now.tv_sec * 1000000 + now.tv_usec) -
+								((uint64_t)start.tv_sec * 1000000 + start.tv_usec);
+						n = log.test_sector - prev_sectors;
+						prev_sectors = log.test_sector;
+						printf("Rate: %5llu usec per 512 bytes (current sector %9llu)\r", delta / n, prev_sectors);
+						start = now;
+						fflush(stdout);
+					}
 				}
 			}
 		}

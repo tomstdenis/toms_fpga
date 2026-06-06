@@ -17,7 +17,10 @@ int main(int argc, char **argv)
 	
 	memset(allzero, 0, sizeof allzero);
 	fd = open(argv[1], O_RDONLY);
-	read(fd, master, 512);
+	if (read(fd, master, 512) != 512) {
+		printf("Error reading master file\n");
+		exit(-1);
+	}
 	close(fd);
 	
 	// read the entire card

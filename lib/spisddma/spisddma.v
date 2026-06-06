@@ -744,7 +744,6 @@ module spisddma #(
                                 tag   <= cmd_tag;
                             end else begin
                                 if ((temp_wire_bits & 8'b11100000) == 8'h00) begin
-                                    // error token (TODO copy error bits out)
                                     error      <= `SPISD_ERR_READ;
                                     error_read <= temp_wire_bits[4:0];
                                     state      <= STATE_DONE;
