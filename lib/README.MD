@@ -93,6 +93,12 @@ Modules
      - sector erase
      - page program (which is really just "write" with a WEL and WIP loop)
      - read (same as SRAM)
+     
+- **spisddma**: SD SPI DMA controller for working with SDSC, SDHC, and SDXC cards
+   - Tested with SDHC and SDXC cards
+   - FSM inits the cards fetching CSD and CID info
+   - Supports single sector read/write with SEND_STATUS return codes
+   - Uses synchronous memory interface to host memory
 
 - (deprecated) **sram**: SPI PSRAM/SRAM controllers
   - Works with PSRAM and SRAM devices in Quad-IO mode
