@@ -69,6 +69,8 @@ module spisddma #(
     // =========================================================================
     output reg card_is_v1,                            // High if Legacy SD v1 (Byte addressing mode)
     output reg card_is_sdhc,                          // High if the card is a high capacity card
+    output reg [127:0] card_csd,                      // Card's CSD data
+    output reg [31:0]  card_sectors,                  // # of sectors
     output reg card_is_init,                          // High when card initialization sequence finishes successfully
     
     // =========================================================================
@@ -97,6 +99,10 @@ module spisddma #(
 
     output wire [(8*8)-1:0] debug
 );
+
+    localparam
+        TAG_BITS = 6;
+
     // -------------------------------------------------------------------------
     // Clock Divider Math
     // Half-cycles required to derive target clocks from the core system clock
@@ -108,9 +114,9 @@ module spisddma #(
     // -------------------------------------------------------------------------
     // Finite State Machine (FSM) State & Sequence Control Registers
     // -------------------------------------------------------------------------
-    reg [4:0] state;                              // Primary execution state pointer
-    reg [4:0] tag;                                // Callback state pointer used by generalized bit-shifters
-    reg [4:0] cmd_tag;                            // Callback state pointer designated for SD command handlers
+    reg [TAG_BITS-1:0] state;                     // Primary execution state pointer
+    reg [TAG_BITS-1:0] tag;                       // Callback state pointer used by generalized bit-shifters
+    reg [TAG_BITS-1:0] cmd_tag;                   // Callback state pointer designated for SD command handlers
     reg       fst_clk;                            // Clock select flag: 0 = SLOW_CLKDIV, 1 = FAST_CLKDIV
     reg [3:0] state_step;                         // Multi-purpose step/iteration counter for nested state tracking
 
@@ -142,9 +148,9 @@ module spisddma #(
     reg [7:0]   spi_cmd58_byte0;                  // Register to hold the initial OCR response byte from a CMD58
     
     assign debug = {
-                    3'b0, state,
-                    3'b0, tag,
-                    3'b0, cmd_tag,
+                    2'b0, state,
+                    2'b0, tag,
+                    2'b0, cmd_tag,
                     2'b0, bit_cnt, r2_status[7], spi_cmd_opcode[7],
 
                     1'b0, r2_status[6:0],
@@ -202,7 +208,13 @@ module spisddma #(
         STATE_READ_CRCCHK           = 29,       // Compare the computed CRC16 to the received one
 
         // --- Status Commands ---
-        STATE_CMD13_R1              = 30;
+        STATE_CMD13_R1              = 30,       // Parse the R1 and R2 bytes from CMD13 (SEND_STATUS)
+
+        STATE_INIT_CMD9             = 31,
+        STATE_INIT_CMD9_R1          = 32,
+        STATE_INIT_CMD9_RECV_CSD    = 33,
+        STATE_INIT_CMD9_CRC         = 34,
+        STATE_INIT_COMPUTE_SECTORS  = 35;
 
     // -------------------------------------------------------------------------
     // Macro Routine: setup_spi_cmd
@@ -212,7 +224,7 @@ module spisddma #(
 	  input  [7:0] cmd_num;						// Command index code (automatically masks off structural bits 7 and 6)
 	  input  [31:0] payload_val;				// 32-bit payload arguments mapping into packet
 	  input  [7:0] crc;							// Valid pre-calculated CRC7 with active stop bit (Mandatory for CMD0/CMD8)
-	  input  [4:0] ctag;						// Specific FSM return tag pointing where to jump following an R1 capture
+	  input  [TAG_BITS-1:0] ctag;				// Specific FSM return tag pointing where to jump following an R1 capture
 	  begin
 		spi_cmd_opcode  <= 8'h40 + cmd_num;
 		spi_cmd_payload <= payload_val;
@@ -327,6 +339,8 @@ module spisddma #(
                             spi_cmd_payload      <= 0;
                             spi_cmd_crc          <= 0;
                             card_is_init         <= 1'b0;                        // keep
+                            card_csd             <= 0;
+                            card_sectors         <= 0;
                             card_is_v1           <= 1'b0;                        // keep
                             card_is_sdhc         <= 1'b0; //keep
                             fst_clk              <= 1'b0;                        // keep
@@ -469,7 +483,7 @@ module spisddma #(
 							// bit 31 (7 of the first byte) indicates if the card is powered up full or not
                             if (spi_cmd58_byte0[7]) begin 
                                 // if bit 30 (bit 6 of the first byte) is set it's block based
-                                state        <= spi_cmd58_byte0[6] ? STATE_INIT_DONE : STATE_INIT_CMD16;
+                                state        <= spi_cmd58_byte0[6] ? STATE_INIT_CMD9 : STATE_INIT_CMD16;
                                 card_is_sdhc <= spi_cmd58_byte0[6] ? 1'b1 : 1'b0;
                             end else begin
                                 // read again because the v2 card isn't fully powered up yet
@@ -491,8 +505,63 @@ module spisddma #(
                         if (temp_wire_bits != 8'h00) begin
                             state <= STATE_INIT_SPI;
                         end else begin
-                            state <= STATE_INIT_DONE;
+                            state <= STATE_INIT_CMD9;
                         end
+                    end
+
+                // issue CMD09 (SEND_CSD)
+                STATE_INIT_CMD9:
+                    begin
+                        setup_spi_cmd(8'd9, 32'h0, 8'h0, STATE_INIT_CMD9_R1);
+                    end
+
+                // respond to CMD9 R1(00)
+                STATE_INIT_CMD9_R1:
+                    begin
+                        if (temp_wire_bits != 8'h00) begin
+                            state      <= STATE_INIT_SPI;
+                        end else begin
+                            // now we wait for a READ token then read 16 bytes
+                            state      <= STATE_WAIT_TOKEN;
+                            cmd_tag    <= STATE_INIT_CMD9_RECV_CSD;
+                            temp_wire_bits <= 8'hFF;
+                            mosi_pin       <= 1;
+                            sck_cycles <= 0;
+                            cmd_crc16  <= 0;
+                        end
+                    end
+
+                // receive the 16 byte CSD
+                STATE_INIT_CMD9_RECV_CSD:
+                    begin
+                        card_csd[120 - (state_step * 8) +: 8] <= temp_wire_bits;
+                        cmd_crc16                             <= next_crc16_byte(cmd_crc16, temp_wire_bits);
+                        temp_wire_bits                        <= 8'hFF;
+                        mosi_pin                              <= 1'b1;
+                        state_step                            <= (state_step == 15) ? 0 : (state_step + 1'b1);
+                        state                                 <= STATE_SHIFT_DATA;
+                        tag                                   <= (state_step == 15) ? STATE_INIT_CMD9_CRC : state;
+                    end
+
+                STATE_INIT_CMD9_CRC:
+                    begin
+                        cmd_crc16                       <= next_crc16_byte(cmd_crc16, temp_wire_bits);
+                        temp_wire_bits                  <= 8'hFF;
+                        mosi_pin                        <= 1'b1;
+                        state_step                      <= (state_step == 1) ? 0 : (state_step + 1'b1);
+                        tag                             <= state;
+                        state                           <= (state_step == 1) ? STATE_INIT_COMPUTE_SECTORS : STATE_SHIFT_DATA;
+                    end
+
+                STATE_INIT_COMPUTE_SECTORS:
+                    begin
+                        if (card_is_v1) begin
+                            // TODO: math for v1
+                        end else begin
+                            // V2 sector count
+                            card_sectors <= { card_csd[69:48], 10'b0 };
+                        end
+                        state <= STATE_INIT_DONE;
                     end
                 
                 // card is initialized by now into 512-byte sector mode

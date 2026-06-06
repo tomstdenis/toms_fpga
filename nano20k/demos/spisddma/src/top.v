@@ -95,6 +95,8 @@ module top(
     wire spi_card_is_v1;
     wire spi_card_is_init;
     wire spi_card_is_sdhc;
+    wire [127:0] spi_card_csd;
+    wire [31:0] spi_card_sectors;
 
     wire [4:0] spi_error_read;
     wire [7:0] spi_r2_status;
@@ -109,6 +111,7 @@ module top(
         .clk(pll_clk), .rst_n(rst_n),
         .ready(spi_ready), .error(spi_error), .error_read(spi_error_read), .r2_status(spi_r2_status),
         .card_is_v1(spi_card_is_v1), .card_is_init(spi_card_is_init), .card_is_sdhc(spi_card_is_sdhc),
+        .card_csd(spi_card_csd), .card_sectors(spi_card_sectors),
         .host_mem_addr(spi_mem_addr), .host_mem_wr_en(spi_mem_wr_en),
         .host_mem_data_in(spi_mem_data_in), .host_mem_data_out(spi_mem_data_out),
         .cmd_wr_en(spi_cmd_wr_en), .cmd_valid(spi_cmd_valid), .cmd_sector(spi_cmd_sector),
@@ -130,14 +133,20 @@ module top(
 
     // once you see 00 FF you know you're back at byte 0 (bottom of wire assignment) since
     // no other byte can be FF.
-    localparam done_msg_bytes = 8 + 11;
+    localparam done_msg_bytes = 8 + 15;
     wire [(done_msg_bytes*8)-1:0] done_msg = {
                 8'hFF,
                 8'h00,
+                1'b0, spi_card_sectors[27:21],
+                1'b0, spi_card_sectors[20:14],
+                1'b0, spi_card_sectors[13:7],
+                1'b0, spi_card_sectors[6:0],
+
                 1'b0, test_sector[27:21],
                 1'b0, test_sector[20:14],
                 1'b0, test_sector[13:7],
                 1'b0, test_sector[6:0],
+
                 5'b0, test_done, test_read_pass, test_write_pass,
                 
                 4'b0, test_state,

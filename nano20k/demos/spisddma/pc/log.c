@@ -10,7 +10,7 @@
 #include <time.h>
 #include <sys/time.h>
 
-char *spi_states[32] = {
+char *spi_states[] = {
 	"INIT_SPI",
 	"INIT_CMD0",
 	"INIT_CMD0_R1",
@@ -45,7 +45,12 @@ char *spi_states[32] = {
 	"READ_CRC",
 	"READ_CRCCHK",
 	"CMD13_R1",
-	"UNK31"
+	
+	"INIT_CMD9",
+	"INIT_CMD9_R1",
+	"INIT_CMD9_RECV_CSD",
+	"INIT_CMD9_CRC",
+	"INIT_COMPUTE_SECTORS",
 };
 
 char *tst_states[16] = {
@@ -123,7 +128,9 @@ static int set_interface_attribs(int fd, int speed) {
 int main(int argc, char **argv)
 {	
 	struct {
-		unsigned test_sector, 
+		unsigned 
+		test_num_sectors,
+		test_sector, 
 		test_done, 
 		test_read_pass, 
 		test_write_pass, 
@@ -146,10 +153,11 @@ int main(int argc, char **argv)
 		fst_clk,
 		error;
 	} log;
-	unsigned char logdata[18], prevlogdata[18];
+	unsigned char logdata[22], prevlogdata[22];
 	unsigned char ch, prev_ch, x;
 	uint32_t prev_sectors = 0;
 	struct timeval start, now;
+	int first = 1;
 	
     int fd = open(argv[1], O_RDWR | O_NOCTTY);
     if (fd < 0) { perror("Open port"); return 1; }
@@ -168,7 +176,7 @@ int main(int argc, char **argv)
 		if (read(fd, &ch, 1) == 1) {
 			if (prev_ch == 0 && ch == 0xFF) {
 				// we're in a frame
-				for (x = 0; x < 18; ) {
+				for (x = 0; x < 22; ) {
 					if (read(fd, &logdata[x], 1) == 1) {
 						++x;
 					}
@@ -198,11 +206,11 @@ int main(int argc, char **argv)
 					log.r2_status      |= (logdata[4] & 0x02) ? 0x80 : 0x00;
 					log.bit_cnt         = (logdata[4] >> 2) & 0x0F;
 					// byte 5
-					log.cmd_tag = logdata[5] & 0x1F;
+					log.cmd_tag = logdata[5] & 0x3F;
 					// byte 6
-					log.tag     = logdata[6] & 0x1F;
+					log.tag     = logdata[6] & 0x3F;
 					// byte 7
-					log.state   = logdata[7] & 0x1F;
+					log.state   = logdata[7] & 0x3F;
 					// byte 8
 					log.test_x  = logdata[8] & 0x7F;
 					// byte 9
@@ -220,10 +228,17 @@ int main(int argc, char **argv)
 					log.test_sector    |= ((unsigned)logdata[14] & 0x7F) << 7;
 					log.test_sector    |= ((unsigned)logdata[15] & 0x7F) << 14;
 					log.test_sector    |= ((unsigned)logdata[16] & 0x7F) << 21;
-					if (log.error) {
+
+					// byte 17-20 are 7 bit increments of test_num_sectors
+					log.test_num_sectors     = logdata[17] & 0x7F;
+					log.test_num_sectors    |= ((unsigned)logdata[18] & 0x7F) << 7;
+					log.test_num_sectors    |= ((unsigned)logdata[19] & 0x7F) << 14;
+					log.test_num_sectors    |= ((unsigned)logdata[20] & 0x7F) << 21;
+
+					if ((first && log.test_num_sectors) ||  log.error || !log.card_is_init) {
 						printf(">>> SD{state=%s, tag=%s, cmd_tag=%s}, TEST{state=%s, tag=%s}\n", spi_states[log.state], spi_states[log.tag], spi_states[log.cmd_tag], tst_states[log.test_state], tst_states[log.test_tag]);
-						printf("Test: sector: %u, done: %d, read_pass: %d, write_pass: %d, state: %d, tag: %d, x: %d\n",
-							log.test_sector, log.test_done, log.test_read_pass, log.test_write_pass, log.test_state, log.test_tag, log.test_x);
+						printf("Test: #sectors: %u, sector: %u, done: %d, read_pass: %d, write_pass: %d, state: %d, tag: %d, x: %d\n",
+							log.test_num_sectors, log.test_sector, log.test_done, log.test_read_pass, log.test_write_pass, log.test_state, log.test_tag, log.test_x);
 						printf("spisd: state: %d, tag: %d, cmd_tag: %d, bit_cnt: %d, r2_status: %02x, spi_cmd_opcode: %02x, state_step: %d\n",
 							log.state, log.tag, log.cmd_tag, log.bit_cnt, log.r2_status, log.spi_cmd_opcode, log.state_step);
 						printf("card: is_init: %d, is_v1: %d, is_sdhc: %d\n",
@@ -231,19 +246,25 @@ int main(int argc, char **argv)
 						printf("cmd: wr_en: %d, valid: %d, ready: %d, fst_clk: %d, error: %d\n",
 							log.cmd_wr_en, log.cmd_valid, log.ready, log.fst_clk, log.error);
 						printf("<<<\n");
-					}
+						first = log.test_num_sectors ? 0 : 1;
+						if (!log.card_is_init) {
+							first = 1;
+						}
+ 					}
 
 					// loop to next sector...(if passed and IDLE)
 					gettimeofday(&now, NULL);
 					fflush(stdout);
-					if (now.tv_sec != start.tv_sec) {
+					if (log.card_is_init && now.tv_sec != start.tv_sec) {
 						uint64_t delta;
 						uint32_t n;
 						delta = ((uint64_t)now.tv_sec * 1000000 + now.tv_usec) -
 								((uint64_t)start.tv_sec * 1000000 + start.tv_usec);
 						n = log.test_sector - prev_sectors;
 						prev_sectors = log.test_sector;
-						printf("Rate: %5llu usec per 512 bytes (current sector %9llu)\r", delta / n, prev_sectors);
+						if (n) {
+							printf("Rate: %5llu usec per 512 bytes (current sector %9llu)\r", delta / n, prev_sectors);
+						}
 						start = now;
 						fflush(stdout);
 					}
