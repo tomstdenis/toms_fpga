@@ -51,6 +51,10 @@ char *spi_states[] = {
 	"INIT_CMD9_RECV_CSD",
 	"INIT_CMD9_CRC",
 	"INIT_COMPUTE_SECTORS",
+	
+	"INIT_CMD10_R1",
+	"INIT_CMD10_RECV_CID",
+	"INIT_CMD10_CRC",
 };
 
 char *tst_states[16] = {
