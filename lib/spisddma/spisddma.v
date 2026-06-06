@@ -69,7 +69,8 @@ module spisddma #(
     // =========================================================================
     output reg card_is_v1,                            // High if Legacy SD v1 (Byte addressing mode)
     output reg card_is_sdhc,                          // High if the card is a high capacity card
-    output reg [127:0] card_csd,                      // Card's CSD data
+    output reg [127:0] card_csd,                      // Card CSD data
+    output reg [127:0] card_cid,                      // Card CID data
     output reg [31:0]  card_sectors,                  // # of sectors
     output reg card_is_init,                          // High when card initialization sequence finishes successfully
     
@@ -214,7 +215,11 @@ module spisddma #(
         STATE_INIT_CMD9_R1          = 32,
         STATE_INIT_CMD9_RECV_CSD    = 33,
         STATE_INIT_CMD9_CRC         = 34,
-        STATE_INIT_COMPUTE_SECTORS  = 35;
+        STATE_INIT_COMPUTE_SECTORS  = 35,
+
+        STATE_INIT_CMD10_R1          = 36,
+        STATE_INIT_CMD10_RECV_CID    = 37,
+        STATE_INIT_CMD10_CRC         = 38;
 
     // -------------------------------------------------------------------------
     // Macro Routine: setup_spi_cmd
@@ -555,22 +560,66 @@ module spisddma #(
 
                 STATE_INIT_COMPUTE_SECTORS:
                     begin
-                        if (card_is_v1) begin
-                            // TODO: math for v1
+                        if (cmd_crc16) begin
+                            state <= STATE_INIT_SPI;
                         end else begin
-                            // V2 sector count
-                            card_sectors <= { card_csd[69:48], 10'b0 };
+                            if (card_is_v1) begin
+                                // TODO: math for v1
+                            end else begin
+                                // V2 sector count
+                                card_sectors <= { card_csd[69:48], 10'b0 };
+                            end
+                            setup_spi_cmd(8'd10, 32'h0, 8'h0, STATE_INIT_CMD10_R1);
                         end
-                        state <= STATE_INIT_DONE;
+                    end
+
+                STATE_INIT_CMD10_R1:
+                    begin
+                        if (temp_wire_bits != 8'h00) begin
+                            state      <= STATE_INIT_SPI;
+                        end else begin
+                            // now we wait for a READ token then read 16 bytes
+                            state      <= STATE_WAIT_TOKEN;
+                            cmd_tag    <= STATE_INIT_CMD10_RECV_CID;
+                            temp_wire_bits <= 8'hFF;
+                            mosi_pin       <= 1;
+                            sck_cycles <= 0;
+                            cmd_crc16  <= 0;
+                        end
+                    end
+                // receive the 16 byte CID
+                STATE_INIT_CMD10_RECV_CID:
+                    begin
+                        card_cid[120 - (state_step * 8) +: 8] <= temp_wire_bits;
+                        cmd_crc16                             <= next_crc16_byte(cmd_crc16, temp_wire_bits);
+                        temp_wire_bits                        <= 8'hFF;
+                        mosi_pin                              <= 1'b1;
+                        state_step                            <= (state_step == 15) ? 0 : (state_step + 1'b1);
+                        state                                 <= STATE_SHIFT_DATA;
+                        tag                                   <= (state_step == 15) ? STATE_INIT_CMD10_CRC : state;
+                    end
+
+                STATE_INIT_CMD10_CRC:
+                    begin
+                        cmd_crc16                       <= next_crc16_byte(cmd_crc16, temp_wire_bits);
+                        temp_wire_bits                  <= 8'hFF;
+                        mosi_pin                        <= 1'b1;
+                        state_step                      <= (state_step == 1) ? 0 : (state_step + 1'b1);
+                        tag                             <= state;
+                        state                           <= (state_step == 1) ? STATE_INIT_DONE : STATE_SHIFT_DATA;
                     end
                 
                 // card is initialized by now into 512-byte sector mode
                 STATE_INIT_DONE:
                     begin
-                        cs_pin       <= 1'b1;
-                        card_is_init <= 1'b1;
-                        error        <= `SPISD_ERR_OK;
-                        state        <= STATE_IDLE;
+                        if (cmd_crc16) begin
+                            state <= STATE_INIT_SPI;
+                        end else begin
+                            cs_pin       <= 1'b1;
+                            card_is_init <= 1'b1;
+                            error        <= `SPISD_ERR_OK;
+                            state        <= STATE_IDLE;
+                        end
                     end
                 
                 // send the FF bytes, then 6 bytes of the command
