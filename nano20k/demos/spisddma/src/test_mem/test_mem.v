@@ -6,7 +6,7 @@
 //Device: GW2AR-18
 //Device Version: C
 //Created Time: Mon Jun  1 18:40:13 2026
-
+`default_nettype wire
 module test_mem (douta, doutb, clka, ocea, cea, reseta, wrea, clkb, oceb, ceb, resetb, wreb, ada, dina, adb, dinb);
 
 output [7:0] douta;

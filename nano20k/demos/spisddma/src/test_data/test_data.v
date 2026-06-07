@@ -6,6 +6,7 @@
 //Device: GW2AR-18
 //Device Version: C
 //Created Time: Tue Jun  2 22:02:00 2026
+`default_nettype wire
 
 module test_data (dout, clk, oce, ce, reset, ad);
 
