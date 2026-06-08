@@ -211,15 +211,15 @@ module spisddma #(
         // --- Status Commands ---
         STATE_CMD13_R1              = 30,       // Parse the R1 and R2 bytes from CMD13 (SEND_STATUS)
 
-        STATE_INIT_CMD9             = 31,
-        STATE_INIT_CMD9_R1          = 32,
-        STATE_INIT_CMD9_RECV_CSD    = 33,
-        STATE_INIT_CMD9_CRC         = 34,
-        STATE_INIT_COMPUTE_SECTORS  = 35,
+        STATE_INIT_CMD9             = 31,       // Send CMD9 to fetch the CSD
+        STATE_INIT_CMD9_R1          = 32,       // Parse the R1 for CMD9
+        STATE_INIT_CMD9_RECV_CSD    = 33,       // Receive the 128 bit payload
+        STATE_INIT_CMD9_CRC         = 34,       // Receive the CRC for the CSD
+        STATE_INIT_COMPUTE_SECTORS  = 35,       // Compute card_sectors from the CSD
 
-        STATE_INIT_CMD10_R1          = 36,
-        STATE_INIT_CMD10_RECV_CID    = 37,
-        STATE_INIT_CMD10_CRC         = 38;
+        STATE_INIT_CMD10_R1         = 36,       // Process the R1 from CMD10 (CID)
+        STATE_INIT_CMD10_RECV_CID   = 37,       // Receive the 16 bytes of the CID
+        STATE_INIT_CMD10_CRC        = 38;       // Process the CRC and jump to INIT_DONE
 
     // -------------------------------------------------------------------------
     // Macro Routine: setup_spi_cmd
