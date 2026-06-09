@@ -49,7 +49,6 @@ module vga_text_driver #(
 	reg [$clog2(V_VISIBLE):0] lrg_row;
 
 	// Combinatorial address calculation is much safer
-	wire [$clog2(LRG_COLS*LRG_ROWS):0] lrg_current_addr = (lrg_row * LRG_COLS) + lrg_col;
 	reg [3:0] x_cnt;
 	reg [3:0] y_cnt;
 
@@ -118,7 +117,9 @@ module vga_text_driver #(
 			end
 			// lowres graphics mode
 			if (x < (LRG_COLS * LRG_PWIDTH) && y < (LRG_ROWS * LRG_PHEIGHT)) begin
-				rd_addr <= lrg_current_addr + 1'b1;
+                if (x_cnt == (LRG_PWIDTH-3)) begin
+                    rd_addr <= rd_addr + 1;
+                end
 				if (x_cnt == (LRG_PWIDTH-1)) begin
                     if (lrg_col == (LRG_COLS-1)) begin
                         symbol <= 0;
