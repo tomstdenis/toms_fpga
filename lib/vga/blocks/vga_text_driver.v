@@ -85,9 +85,9 @@ module vga_text_driver #(
 						rd_addr <= 0;                                               // we're beyond the last row so start at 0
 					end else begin
 						if (y[$clog2(FONTHEIGHT)-1:0] == (FONTHEIGHT-1)) begin      // next row of chars
-							rd_addr <= (text_row * TEXTCOLS) + TEXTCOLS;
+							rd_addr <= rd_addr;
 						end else begin
-							rd_addr <= (text_row * TEXTCOLS);                       // next font row of same text row
+							rd_addr <= rd_addr - TEXTCOLS;                          // next font row of same text row
 						end
 					end
 				end else if (x == (H_TOTAL-1-X_FETCH_DELAY)) begin
@@ -138,9 +138,9 @@ module vga_text_driver #(
 					end else begin
 						if (y_cnt == (LRG_PHEIGHT-1)) begin
 							// last vga row of this lrg pixel
-							rd_addr <= (lrg_row * LRG_COLS) + LRG_COLS;
+							rd_addr <= rd_addr;
 						end else begin
-							rd_addr <= (lrg_row * LRG_COLS);
+							rd_addr <= rd_addr - LRG_COLS;
 						end
 					end
 				end else if (x == (H_TOTAL-1)) begin
