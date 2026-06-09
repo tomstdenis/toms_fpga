@@ -8,7 +8,6 @@ rom can produce the signal to output
 `timescale 1ns/1ps
 `default_nettype none
 
-// TODO: Currently only powers of two are supported for the Font dimensions
 module vga_text_driver #(
     parameter X_FETCH_DELAY = 1,                                    // when to fetch next symbol 1==comb, 2+ == sync
 	parameter H_VISIBLE  = 640,										// visible width		
@@ -32,7 +31,7 @@ module vga_text_driver #(
     input wire  [$clog2(V_TOTAL):0]  x,								// Pixel X coordinate
     input wire  [$clog2(H_TOTAL):0]  y,								// Pixel Y coordinate
     input wire        active_video,									// is the video active (not in blanking region)
-    input wire        lrg_mode,										// 0 == text CP437 mode, 1 == low res graphics mode
+    input wire        lrg_mode,										// 0 == text mode, 1 == low res graphics mode
 
 // Memory
 	output reg [$clog2(TEXTCOLS*TEXTROWS)-1:0] rd_addr,				// read address, assumes data is available with 1 wait state
@@ -42,14 +41,8 @@ module vga_text_driver #(
 	output reg [7:0] symbol											// symbol to feed font rom
 );	
 
-    // TODO: change text_col/row to reg and count manually
-	// variables for text mode 
-	// which character position are we at
-	wire [$clog2(H_VISIBLE):0] text_col = x / FONTWIDTH;
-	wire [$clog2(V_VISIBLE):0] text_row = y / FONTHEIGHT;
-
-	// Combinatorial address calculation is much safer
-	wire [$clog2(TEXTCOLS*TEXTROWS):0] text_current_addr = (text_row * TEXTCOLS) + text_col;
+    // text mode
+    reg [$clog2(V_VISIBLE):0] text_row;
 	
 	// variables for lrg mode
 	reg [$clog2(H_VISIBLE):0] lrg_col;
@@ -67,10 +60,18 @@ module vga_text_driver #(
 			y_cnt   <= 0;
 			lrg_col <= 0;
 			lrg_row <= 0;
+            text_row <= 0;
 		end else if (lrg_mode == 0) begin
-			// text 80x25 mode
-			if (text_row < TEXTROWS && text_col < TEXTCOLS) begin
-				rd_addr <= text_current_addr + 1'b1;
+			// text mode
+			if (y < (TEXTROWS*FONTHEIGHT) && x < (TEXTCOLS*FONTWIDTH)) begin
+                if (x_cnt >= (FONTWIDTH-1)) begin
+                    x_cnt    <= 0;
+                end else begin
+                    x_cnt    <= x_cnt + 1;
+                end
+				if (x[$clog2(FONTWIDTH)-1:0] == (FONTWIDTH-2-X_FETCH_DELAY)) begin
+					rd_addr <= rd_addr + 1;
+				end
 				// Latch symbol at the last column of font
 				if (x[$clog2(FONTWIDTH)-1:0] == (FONTWIDTH-X_FETCH_DELAY)) begin
 					symbol <= rd_data;
@@ -81,7 +82,7 @@ module vga_text_driver #(
 					// set the next address for the next scanline which is either
                     // another line of the same text char row or the first row of the next row of text...
 					if (y >= (TEXTROWS*FONTHEIGHT-1)) begin
-						rd_addr <= 0;                                               // we're beyond text row 25 so start at 0
+						rd_addr <= 0;                                               // we're beyond the last row so start at 0
 					end else begin
 						if (y[$clog2(FONTHEIGHT)-1:0] == (FONTHEIGHT-1)) begin      // next row of chars
 							rd_addr <= (text_row * TEXTCOLS) + TEXTCOLS;
@@ -90,7 +91,18 @@ module vga_text_driver #(
 						end
 					end
 				end else if (x == (H_TOTAL-1-X_FETCH_DELAY)) begin
-                    if (y < (TEXTROWS*FONTHEIGHT-1)|| y == (V_TOTAL-1)) begin            // either we're in the first 25 rows OR the last line preparing for row 0
+                    x_cnt    <= 0;
+                    if (y_cnt >= (FONTHEIGHT-1)) begin
+                        text_row <= text_row + 1;
+                        y_cnt    <= 0;
+                    end else begin
+                        y_cnt    <= y_cnt + 1;
+                    end
+                    if (y == (V_TOTAL-1)) begin
+                        text_row <= 0;
+                        y_cnt    <= 0;
+                    end
+                    if (y < (TEXTROWS*FONTHEIGHT-1)|| y == (V_TOTAL-1)) begin      // either we're in the first TEXTROWS OR the last line preparing for row 0
                         symbol <= rd_data;
                     end else begin
                         symbol <= 8'h20; // SPC
