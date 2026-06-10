@@ -41,12 +41,6 @@ module vga_text_driver #(
 	output reg [7:0] symbol											// symbol to feed font rom
 );	
 
-    // text mode
-    reg [$clog2(V_VISIBLE):0] text_row;
-	
-	// variables for lrg mode
-	reg [$clog2(V_VISIBLE):0] lrg_row;
-
 	// Combinatorial address calculation is much safer
 	reg [3:0] x_cnt;
 	reg [3:0] y_cnt;
@@ -56,8 +50,6 @@ module vga_text_driver #(
 			rd_addr <= 0;
 			x_cnt   <= 0;
 			y_cnt   <= 0;
-			lrg_row <= 0;
-            text_row <= 0;
 		end else if (lrg_mode == 0) begin
 			// text mode
 			if (y < (TEXTROWS*FONTHEIGHT) && x < (TEXTCOLS*FONTWIDTH)) begin
@@ -90,13 +82,11 @@ module vga_text_driver #(
 				end else if (x == (H_TOTAL-1-X_FETCH_DELAY)) begin
                     x_cnt    <= 0;
                     if (y_cnt >= (FONTHEIGHT-1)) begin
-                        text_row <= text_row + 1;
                         y_cnt    <= 0;
                     end else begin
                         y_cnt    <= y_cnt + 1;
                     end
                     if (y == (V_TOTAL-1)) begin
-                        text_row <= 0;
                         y_cnt    <= 0;
                     end
                     if (y < (TEXTROWS*FONTHEIGHT-1)|| y == (V_TOTAL-1)) begin      // either we're in the first TEXTROWS OR the last line preparing for row 0
@@ -144,12 +134,10 @@ module vga_text_driver #(
 					symbol <= rd_data;
 					// last column 
 					if (y == (V_TOTAL-1)) begin
-						lrg_row <= 0;
 						y_cnt   <= 0;
 					end else begin
 						if (y_cnt >= (LRG_PHEIGHT-1)) begin
 							y_cnt <= 0;
-							lrg_row <= lrg_row + 1'b1;
 						end else begin
 							y_cnt <= y_cnt + 1'b1;
 						end
