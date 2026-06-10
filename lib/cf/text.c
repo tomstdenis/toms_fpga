@@ -24,7 +24,7 @@ wait_ms(unsigned ms)
 wait_ms_top
 		IN $11			* read timer
 		CMP 2,S			* compare to ms 
-		JZ wait_ms_top  * wait till ms passes
+		SJZ wait_ms_top  * wait till ms passes
 	}
 }
 
@@ -65,7 +65,7 @@ wait_vsync(void)
 wait_vsync_top
 		IN $12
 		ANDB #2
-		JNZ wait_vsync_top
+		SJNZ wait_vsync_top
 	}
 }
 
@@ -76,7 +76,7 @@ wait_nvsync(void)
 wait_nvsync_top
 		IN $12
 		ANDB #2
-		JZ wait_vsync_top
+		SJZ wait_vsync_top
 	}
 }
 
@@ -88,7 +88,7 @@ wait_hsync(void)
 wait_hsync_top
 		IN $12
 		ANDB #4
-		JNZ wait_vsync_top
+		SJNZ wait_vsync_top
 	}
 }
 
