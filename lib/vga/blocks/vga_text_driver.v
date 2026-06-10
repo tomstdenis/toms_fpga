@@ -45,7 +45,6 @@ module vga_text_driver #(
     reg [$clog2(V_VISIBLE):0] text_row;
 	
 	// variables for lrg mode
-	reg [$clog2(H_VISIBLE):0] lrg_col;
 	reg [$clog2(V_VISIBLE):0] lrg_row;
 
 	// Combinatorial address calculation is much safer
@@ -57,7 +56,6 @@ module vga_text_driver #(
 			rd_addr <= 0;
 			x_cnt   <= 0;
 			y_cnt   <= 0;
-			lrg_col <= 0;
 			lrg_row <= 0;
             text_row <= 0;
 		end else if (lrg_mode == 0) begin
@@ -111,7 +109,6 @@ module vga_text_driver #(
 		end else begin
 			if (x_cnt >= (LRG_PWIDTH-1)) begin
 				x_cnt   <= 0;
-				lrg_col <= lrg_col + 1'b1;
 			end else begin
 				x_cnt   <= x_cnt + 1'b1;
 			end
@@ -121,7 +118,7 @@ module vga_text_driver #(
                     rd_addr <= rd_addr + 1;
                 end
 				if (x_cnt == (LRG_PWIDTH-1)) begin
-                    if (lrg_col == (LRG_COLS-1)) begin
+                    if ((x > (LRG_PWIDTH*(LRG_COLS-1))) && (x < (LRG_PWIDTH*(LRG_COLS)))) begin
                         symbol <= 0;
                     end else begin
                         symbol  <= rd_data;
@@ -129,7 +126,6 @@ module vga_text_driver #(
 				end
 			end else begin
 				symbol  <= 8'h00;
-				lrg_col <= 0;
 				x_cnt   <= 0;
 				if (x == (H_TOTAL-3)) begin
 					// set the next address a little back from end so we can program the address to read from
