@@ -1,6 +1,6 @@
 /*
 
-    C-FLEA Top for Primer 25K
+    C-FLEA Top for Primer 25K + my rev3 PMOD Hat
 
 Simple memory map of 60K of RAM followed by 2K boot ROM, and 2K video memory
 
@@ -57,7 +57,7 @@ for I/O the following ports are used
 
 module top(input wire clk, input wire s1,
 	input wire uart_rx, output wire uart_tx, 
-	inout wire [7:0] gpio,
+	inout wire [31:0] gpio,
 	output reg [3:0] vga_r, output reg [3:0] vga_g, output reg   [3:0] vga_b, output wire vga_h_pulse, output wire vga_v_pulse);
 
 
@@ -105,12 +105,12 @@ module top(input wire clk, input wire s1,
         .mdclk());          //input  mdclk
 
     // ### GPIO ###
-    reg [7:0] gpio_out;
-    wire [7:0] gpio_in;
+    reg [31:0] gpio_out;
+    wire [31:0] gpio_in;
 
     genvar i;
     generate
-        for (i = 0; i < 8; i = i + 1) begin : gpio_en
+        for (i = 0; i < 32; i = i + 1) begin : gpio_en
             assign gpio[i] = gpio_out[i] ? 1'bz : 1'b0;         // requires PULL up 
         end
     endgenerate
@@ -425,9 +425,27 @@ module top(input wire clk, input wire s1,
                         cf_bus_ready    <= 1'b1;
                     end else if (cf_bus_address[7:0] == 8'h01) begin // GPIO0
                         if (cf_bus_wr_en) begin
-                            gpio_out <= cf_bus_data_in[7:0];
+                            gpio_out[7:0] <= cf_bus_data_in[7:0];
                         end
-                        cf_bus_data_out <= { 8'h00, gpio_in };
+                        cf_bus_data_out <= { 8'h00, gpio_in[7:0] };
+                        cf_bus_ready    <= 1'b1;
+                    end else if (cf_bus_address[7:0] == 8'h02) begin // GPIO1
+                        if (cf_bus_wr_en) begin
+                            gpio_out[15:8] <= cf_bus_data_in[7:0];
+                        end
+                        cf_bus_data_out <= { 8'h00, gpio_in[15:8] };
+                        cf_bus_ready    <= 1'b1;
+                    end else if (cf_bus_address[7:0] == 8'h03) begin // GPIO2
+                        if (cf_bus_wr_en) begin
+                            gpio_out[23:16] <= cf_bus_data_in[7:0];
+                        end
+                        cf_bus_data_out <= { 8'h00, gpio_in[23:16] };
+                        cf_bus_ready    <= 1'b1;
+                    end else if (cf_bus_address[7:0] == 8'h04) begin // GPIO3
+                        if (cf_bus_wr_en) begin
+                            gpio_out[31:24] <= cf_bus_data_in[7:0];
+                        end
+                        cf_bus_data_out <= { 8'h00, gpio_in[31:24] };
                         cf_bus_ready    <= 1'b1;
                     end else begin
                         // default to just ack the bus
