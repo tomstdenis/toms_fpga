@@ -246,7 +246,7 @@ main()
 
  	memset(vidmem, 0, 2048);
 	vid_mode(1);
-	for (y = 0; y < 2 * 4; y++) {
+	for (y = 0; y < 2 * 10; y++) {
 		wait_ms(250);
 		for (x = 0; x < 2048; x++) {
 			vidmem[x] = x + (y * 13);

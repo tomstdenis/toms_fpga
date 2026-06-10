@@ -117,17 +117,36 @@ putsxy(char *s, unsigned x, unsigned y)
 		*dst++ = *s++;
 }
 
+plotxy(unsigned char col, unsigned x1, unsigned y1)
+{
+	vidmem[y1 * 48 + x1] = col;
+}
+
+
 int main() {
 	unsigned x, y;
-	clrscr();
+
+	for (;;) {
+		vid_mode(0);
+		clrscr();	
+		for (x = 0; x < 80; x++) {
+			putsxy("A", x, 0);
+			putsxy("B", x, 24);
+		}
+		for (y = 0; y < 25; y++) {
+			putsxy("C", 0, y);
+			putsxy("D", 79, y);
+		}
+		wait_xms(5000);
+		
+		vid_mode(1);
+		clrscr();
+		
+		plotxy(RGB(7,0,0),0,0);
+		plotxy(RGB(0,7,0),47,0);
+		plotxy(RGB(0,0,3),0,39);
+		plotxy(RGB(7,7,3),47,39);
+		wait_xms(5000);
+	}
 	
-	for (x = 0; x < 80; x++) {
-		putsxy("A", x, 0);
-		putsxy("B", x, 24);
-	}
-	for (y = 0; y < 25; y++) {
-		putsxy("C", 0, y);
-		putsxy("D", 79, y);
-	}
-	for (;;);
 }
