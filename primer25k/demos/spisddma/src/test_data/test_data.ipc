@@ -1,0 +1,15 @@
+[General]
+file=test_data
+ipc_version=4
+module=test_data
+target_device=gw5a25a-002
+type=ram_prom
+version=1.0
+
+[Config]
+DEPTH=512
+LANG=0
+MEM_FILE=/home/tom/nas/toms_fpga/stuff/spisddma/spidmasd.bin.mi
+READ=0
+RESET_MODE=true
+WIDTH=8

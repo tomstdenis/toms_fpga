@@ -1,0 +1,35 @@
+//Copyright (C)2014-2025 Gowin Semiconductor Corporation.
+//All rights reserved. 
+//File Title: Physical Constraints file
+//Tool Version: V1.9.11.03 Education
+//Part Number: GW5A-LV25MG121NC1/I0
+//Device: GW5A-25
+//Device Version: A
+//Created Time: Mon 03 23 17:41:30 2026
+
+IO_LOC "clk" E2;
+IO_PORT "clk" IO_TYPE=LVCMOS33 PULL_MODE=DOWN BANK_VCCIO=3.3;
+
+// using my PMOD Hat ...
+
+// uart is in the 4P data pins on the side using P10 and P9
+IO_LOC "tx_pin" L3;
+IO_PORT "tx_pin" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
+IO_LOC "rx_pin" L4;
+IO_PORT "rx_pin" IO_TYPE=LVCMOS33 PULL_MODE=UP BANK_VCCIO=3.3;
+
+// need 
+IO_LOC "sck_pin" H5;
+IO_PORT "sck_pin" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
+
+// D0 == MISO
+IO_LOC "miso_pin" H8;
+IO_PORT "miso_pin" IO_TYPE=LVCMOS33 PULL_MODE=UP BANK_VCCIO=3.3;
+
+// CMD == MOSI
+IO_LOC "mosi_pin" G7;
+IO_PORT "mosi_pin" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
+
+// D3 == CS
+IO_LOC "cs_pin" F5;
+IO_PORT "cs_pin" IO_TYPE=LVCMOS33 PULL_MODE=NONE DRIVE=8 BANK_VCCIO=3.3;
