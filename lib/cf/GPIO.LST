@@ -1,0 +1,164 @@
+DUNFIELD CFLEA ASSEMBLER: GPIO                                         PAGE: 1
+
+0000                         1  *#cpu CFLEA
+0000                         2  *
+0000                         3  * DDS MICRO-C C-FLEA Runtime Library - Prefix file
+0000                         4  *
+0000                         5  * Copyright 1991-2005 Dave Dunfield
+0000                         6  * All rights reserved.
+0000                         7  *
+1000                         8  	ORG	$1000		Place code in memory here
+1000                         9  * Begin execution here... Setup stack, zero heap & call main()
+1000  00 00 10              10  	LD	#*		Stack below here
+1003  DE                    11  	TAS			Set up stack
+1004  E0                    12  	CLR			Get zero
+1005  A9 02 00              13  	STB	?heap		Zero heap
+1008  D8 4E 10              14  	CALL	main		Run main program
+100B                        15  * Most embedded programs will never return or exit, however if they
+100B                        16  * do, this section of code should do something appropriate, either
+100B                        17  * restart the program, or stop the machine. For this system, we will
+100B                        18  * simply freeze by entering an infinite loop.
+100B  D3 FE                 19  exit	SJMP	*		Loop forever
+100D                        20  *50000 22/5/2026
+100D                        21  wait_ms EQU *
+100D  EA 11                 22  		OUT $11			* clear timer
+100F                        23  wait_ms_top
+100F  EB 11                 24  		IN $11			* read timer
+1011  84 02                 25  		CMP 2,S			* compare to ms 
+1013  D1 0F 10              26  		JZ wait_ms_top  * wait till ms passes
+1016  D9                    27   RET
+1017                        28  outport EQU *
+1017  04 04                 29   LD 4,S
+1019  90 39 10              30   LDI #?AB2
+101C  D7                    31   SWITCH
+101D                        32  ?AB3 EQU *
+101D  04 02                 33  				LD 2,S
+101F  EA 01                 34  				OUT $01
+1021  D0 4D 10              35   JMP ?AB1
+1024                        36  ?AB4 EQU *
+1024  04 02                 37  				LD 2,S
+1026  EA 02                 38  				OUT $02
+1028  D0 4D 10              39   JMP ?AB1
+102B                        40  ?AB5 EQU *
+102B  04 02                 41  				LD 2,S
+102D  EA 03                 42  				OUT $03
+102F  D0 4D 10              43   JMP ?AB1
+1032                        44  ?AB6 EQU *
+1032  04 02                 45  				LD 2,S
+1034  EA 04                 46  				OUT $04
+1036  D0 4D 10              47   JMP ?AB1
+1039                        48  ?AB2 EQU *
+1039  32 10 03 00 2B 10 +   49   FDB ?AB6,3,?AB5,2,?AB4,1,?AB3,0,0,?AB1
+104D                        50  ?AB1 EQU *
+104D  D9                    51   RET
+104E  DA 0A                 52  main ALLOC 10
+1050  E0                    53   CLR
+1051  A4 08                 54   ST 8,S
+1053                        55  ?AB7 EQU *
+1053  04 08                 56   LD 8,S
+1055  88 04                 57   CMPB #4
+1057  CC                    58   ULT
+DUNFIELD CFLEA ASSEMBLER: GPIO                                         PAGE: 2
+
+1058  D5 0A                 59   SJNZ ?AB9
+105A  D0 75 10              60   JMP ?AB8
+105D                        61  ?AB10 EQU *
+105D  04 08                 62   LD 8,S
+105F  E4                    63   INC
+1060  A4 08                 64   ST 8,S
+1062  D3 EF                 65   SJMP ?AB7
+1064                        66  ?AB9 EQU *
+1064  04 08                 67   LD 8,S
+1066  38 02                 68   MULB #2
+1068  9C 00                 69   LEAI 0,S
+106A  E8                    70   ADAI
+106B  04 08                 71   LD 8,S
+106D  38 02                 72   MULB #2
+106F  18 01                 73   ADDB #1
+1071  A2                    74   ST I
+1072  D0 5D 10              75   JMP ?AB10
+1075                        76  ?AB8 EQU *
+1075                        77  ?AB11 EQU *
+1075  08 FA                 78   LDB #250
+1077  DC                    79   PUSHA
+1078  D8 0D 10              80   CALL wait_ms
+107B  DB 02                 81   FREE 2
+107D  E0                    82   CLR
+107E  A4 08                 83   ST 8,S
+1080                        84  ?AB13 EQU *
+1080  04 08                 85   LD 8,S
+1082  88 04                 86   CMPB #4
+1084  CC                    87   ULT
+1085  D5 0A                 88   SJNZ ?AB15
+1087  D0 C6 10              89   JMP ?AB14
+108A                        90  ?AB16 EQU *
+108A  04 08                 91   LD 8,S
+108C  E4                    92   INC
+108D  A4 08                 93   ST 8,S
+108F  D3 EF                 94   SJMP ?AB13
+1091                        95  ?AB15 EQU *
+1091  04 08                 96   LD 8,S
+1093  38 02                 97   MULB #2
+1095  9C 00                 98   LEAI 0,S
+1097  E8                    99   ADAI
+1098  DD                   100   PUSHI
+1099  04 0A                101   LD 10,S
+109B  38 02                102   MULB #2
+109D  9C 02                103   LEAI 2,S
+109F  E8                   104   ADAI
+10A0  02                   105   LD I
+10A1  C0 01                106   SHL #1
+10A3  DC                   107   PUSHA
+10A4  04 0C                108   LD 12,S
+10A6  38 02                109   MULB #2
+10A8  9C 04                110   LEAI 4,S
+10AA  E8                   111   ADAI
+10AB  02                   112   LD I
+10AC  B8 07                113   SHR #7
+10AE  65                   114   OR S+
+10AF  58 FF                115   ANDB #255
+10B1  A6                   116   ST [S+]
+DUNFIELD CFLEA ASSEMBLER: GPIO                                         PAGE: 3
+
+10B2  04 08                117   LD 8,S
+10B4  DC                   118   PUSHA
+10B5  04 0A                119   LD 10,S
+10B7  38 02                120   MULB #2
+10B9  9C 02                121   LEAI 2,S
+10BB  E8                   122   ADAI
+10BC  02                   123   LD I
+10BD  DC                   124   PUSHA
+10BE  D8 17 10             125   CALL outport
+10C1  DB 04                126   FREE 4
+10C3  D0 8A 10             127   JMP ?AB16
+10C6                       128  ?AB14 EQU *
+10C6  D0 75 10             129   JMP ?AB11
+10C9                       130  ?AB12 EQU *
+10C9  DB 0A                131   FREE 10
+10CB  D9                   132   RET
+10CC                       133  *
+10CC                       134  * DDS MICRO-C C-FLEA Runtime Library - Middle file
+10CC                       135  *
+10CC                       136  * Copyright 1991-2005 Dave Dunfield
+10CC                       137  * All rights reserved.
+10CC                       138  *
+0000                       139  	ORG	$0000		Start RAM based variables here
+0000                       140  ?temp	RMB	2		Temporary location used by compiler
+0002                       141  *50000 22/5/2026
+0002                       142  *
+0002                       143  * DDS MICRO-C C-FLEA Runtime Library - Suffix file
+0002                       144  *
+0002                       145  * Copyright 1991-2005 Dave Dunfield
+0002                       146  * All rights reserved.
+0002                       147  *
+0002                       148  ?heap	EQU	*		Beginning of unused RAM
+0002                       149  *50000 22/5/2026
+DUNFIELD CFLEA ASSEMBLER: GPIO                                         PAGE: 4
+
+SYMBOL TABLE:
+
+?AB1    -104D   ?AB10   -105D   ?AB11   -1075   ?AB12   -10C9   ?AB13   -1080
+?AB14   -10C6   ?AB15   -1091   ?AB16   -108A   ?AB2    -1039   ?AB3    -101D
+?AB4    -1024   ?AB5    -102B   ?AB6    -1032   ?AB7    -1053   ?AB8    -1075
+?AB9    -1064   ?heap   -0002   ?temp   -0000   exit    -100B   main    -104E
+outport -1017   wait_ms -100D   wait_ms_top             -100F

@@ -644,16 +644,17 @@ module spisddma #(
                         if (sck_cycles >= timeout) begin
                             error <= `SPISD_ERR_TIMEOUT;
                             state <= STATE_INIT_SPI;
-                        end
-                        if (temp_wire_bits[7]) begin
-                            // still idle
-                            state          <= STATE_SHIFT_DATA;
-                            tag            <= state;
-                            temp_wire_bits <= 8'hFF;
-                            mosi_pin       <= 1;
                         end else begin
-                            // next byte is R1 code
-                            state          <= cmd_tag;
+                            if (temp_wire_bits[7]) begin
+                                // still idle
+                                state          <= STATE_SHIFT_DATA;
+                                tag            <= state;
+                                temp_wire_bits <= 8'hFF;
+                                mosi_pin       <= 1;
+                            end else begin
+                                // next byte is R1 code
+                                state          <= cmd_tag;
+                            end
                         end
                     end
             
