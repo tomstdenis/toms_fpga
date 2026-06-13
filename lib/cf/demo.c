@@ -15,32 +15,7 @@
 #define HSYNC 0x04
 #define VIDEN 0x08
 
-
-// wait upto 255 ms
-wait_ms(unsigned ms)
-{
-	asm {		
-		OUT $11			* clear timer
-wait_ms_top
-		IN $11			* read timer
-		CMP 2,S			* compare to ms 
-		JZ wait_ms_top  * wait till ms passes
-	}
-}
-
-// wait arbitrary amount of ms.
-wait_xms(unsigned ms)
-{
-	while (ms) {
-		if (ms > 255) {
-			wait_ms(255);
-			ms -= 255;
-		} else {
-			wait_ms(ms);
-			return;
-		}
-	}
-}
+#include "lib/time.c"
 
 // set the video mode (0 == text, 1 == LRG)
 vid_mode(unsigned mode)
@@ -172,7 +147,7 @@ main()
 	for (x = 0; x < 10; x++) {
 		sprintf(msg, "Lead: %d...", x);
 		putsxy(msg, 0, 0);
-		wait_xms(1000);
+		wait_ms(1000);
 		clrscr();
 	}
 	
@@ -182,40 +157,40 @@ top:
 	for (x = 0; x < 8; x++) {
 		sprintf(msg, "Testing memory: %02d KB", x);
 		putsxy(msg, 0, 2);
-		wait_xms(500);
+		wait_ms(500);
 	}
 	y = strlen(msg);
-	wait_xms(1000);
+	wait_ms(1000);
 	// fake out a block not being found...
 	for (x = 0; x < 4; x++) {
 		putsxy(".", y++, 2);
-		wait_xms(750);
+		wait_ms(750);
 	}
 	putsxy("Where the f is the 8'th KB....", 0, 3);
-	wait_xms(1500);
+	wait_ms(1500);
 	putsxy("G'damn Chinese slop....", 0, 4);
-	wait_xms(1500);
+	wait_ms(1500);
 	putsxy("Aha, off by one in the memory map, ok back to the show!", 0, 5);
-	wait_xms(2000);
+	wait_ms(2000);
 	clrscr();
 	putsxy("Booting C-FLEA Primer25K CISC Thingy...", 0, 1);	
 	for (x = 8; x < 61; x++) {
 		sprintf(msg, "Testing memory: %02d KB", x);
 		putsxy(msg, 0, 2);
-		wait_xms(100);
+		wait_ms(100);
 	}
 	putsxy("Booted, now experience the raw power of 10 MIPS.", 0, 3);
-	wait_xms(1000);
+	wait_ms(1000);
 	
 	// show impressive graphics
 	clrscr();
 	putsxy("Star field", 0, 1);
 	putsxy("*", 10, 10);
-	wait_xms(3000);
+	wait_ms(3000);
 	putsxy("Plural?", 0, 2);
-	wait_xms(1500);
+	wait_ms(1500);
 	putsxy("Fine (I had to fix a bug in the RTL...)", 0, 3);
-	wait_xms(1500);
+	wait_ms(1500);
 	
 	// actual star field?
 starsf:
@@ -359,15 +334,15 @@ starsc:
 
 	vid_mode(0);
 	clrscr();
-	putsxy("Demo by Tom St Denis", 0, 1); wait_xms(500);
-	putsxy("RTL by Tom St Denis", 0, 2);  wait_xms(500);
-	putsxy("Videography by Tom St Denis", 0, 3);  wait_xms(500);
-	putsxy("Editing by Tom St Denis", 0, 4);  wait_xms(500);
-	putsxy("Executive Producer: Larry David", 0, 5);  wait_xms(1250);
-	putsxy("                        and", 0, 6);  wait_xms(500);
-	putsxy("                    Tom St Denis", 0, 7);  wait_xms(500);
-	putsxy("That...", 0, 8);  wait_xms(1250);
-	putsxy("THAT is how you ATTENTION WHORE!!!! :-)", 0, 9);  wait_xms(5000);
+	putsxy("Demo by Tom St Denis", 0, 1); wait_ms(500);
+	putsxy("RTL by Tom St Denis", 0, 2);  wait_ms(500);
+	putsxy("Videography by Tom St Denis", 0, 3);  wait_ms(500);
+	putsxy("Editing by Tom St Denis", 0, 4);  wait_ms(500);
+	putsxy("Executive Producer: Larry David", 0, 5);  wait_ms(1250);
+	putsxy("                        and", 0, 6);  wait_ms(500);
+	putsxy("                    Tom St Denis", 0, 7);  wait_ms(500);
+	putsxy("That...", 0, 8);  wait_ms(1250);
+	putsxy("THAT is how you ATTENTION WHORE!!!! :-)", 0, 9);  wait_ms(5000);
 	goto top;
 }
 

@@ -2,12 +2,12 @@
 wait_us(unsigned us)
 {
 	asm {		
-		OUT $11			* clear timer
+		OUT $11			 * clear timer
 wait_us_top
-		IN $11			* read timer
-		CMP 2,S			* compare to us
-		ULT				* unsigned less than 
-		JNZ wait_us_top * wait till us passes
+		IN $11			 * read timer
+		CMP 2,S			 * compare to us
+		ULT				 * unsigned less than 
+		SJNZ wait_us_top * wait till us passes
 	}
 }
 
