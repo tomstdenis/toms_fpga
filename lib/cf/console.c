@@ -67,7 +67,7 @@ unsigned c_getc(void) {
 	unsigned ch;
 	do {
 		ch = c_serin();
-	} while (ch = 0xFFFF);
+	} while (ch == 0xFFFF);
 	return ch;
 }
 
@@ -88,8 +88,9 @@ c_gets(char *s, int n)
 				c_rewind();
 			}
 		} else {
-			if (ch == '\n') {
-				break;
+			if (ch == '\n' || ch == '\r') {
+				*s = 0;
+				return;
 			} else {
 				if (s != on) {
 					*s++ = ch;
@@ -98,5 +99,4 @@ c_gets(char *s, int n)
 			}
 		}
 	}
-	*s = 0;
 }

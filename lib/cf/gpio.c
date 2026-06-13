@@ -46,11 +46,15 @@ outport(int port, unsigned val)
 main(void)
 {
 	unsigned val[4], x;
-	unsigned char str[80];
+	unsigned char name[11], str[80];
 	
 	for (x = 0; x < 4; x++) val[x] = 1 + 2 * x;
 	
 	c_clrscr();
+	c_puts("Hello what's your name?\n");
+	c_gets(name, 10);
+	sprintf(str, "\nHello '%s'\n", name);
+	c_puts(str);
 	for (;;) {
 		sprintf(str, "vals: %x, %x, %x, %x\n", val[0], val[1], val[2], val[3]);
 		c_puts(str);
