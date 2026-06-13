@@ -1,36 +1,7 @@
 #include <cflea.h>
 #include "lib/console.c"
 #include "lib/time.c"
-
-outport(int port, unsigned val)
-{
-	switch (port) {
-		case 0:
-			asm {
-				LD 2,S
-				OUT $01
-			}
-			break;
-		case 1:
-			asm {
-				LD 2,S
-				OUT $02
-			}
-			break;
-		case 2:
-			asm {
-				LD 2,S
-				OUT $03
-			}
-			break;
-		case 3:
-			asm {
-				LD 2,S
-				OUT $04
-			}
-			break;
-	}
-}
+#include "lib/port.c"
 
 main(void)
 {
