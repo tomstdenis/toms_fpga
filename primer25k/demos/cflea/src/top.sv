@@ -61,7 +61,7 @@ module top(input wire clk, input wire s1,
 	output reg [3:0] vga_r, output reg [3:0] vga_g, output reg   [3:0] vga_b, output wire vga_h_pulse, output wire vga_v_pulse);
 
     localparam
-        io_port_uart = 8'h00,
+        io_port_uart  = 8'h00,
         io_port_gpio0 = 8'h01,
         io_port_gpio1 = 8'h02,
         io_port_gpio2 = 8'h03,
@@ -85,10 +85,10 @@ module top(input wire clk, input wire s1,
     reg [1:0] reset_sw;
     localparam
 		CYCLES_PER_TICK = ((`FREQ * 1_000_000) / 1000) * 1;					// tick every 1ms
-    reg [7:0] tick_counter;
+    reg [15:0] tick_counter;
     reg [$clog2(CYCLES_PER_TICK):0] cycle_counter;
 
-    reg [7:0] wdt;
+    reg [15:0] wdt;
     wire wdt_reset = ~(wdt > 0 && wdt == tick_counter);
 	wire rst_n = rst[3] & ~reset_sw[1] & wdt_reset; // s1 is pulled up by the button so we want to pull reset low when the button is pressed
 	
@@ -414,9 +414,9 @@ module top(input wire clk, input wire s1,
                         end
                     end else if (cf_bus_address[7:0] <= io_port_gpio3) begin // GPIO0..GPIO3
                         if (cf_bus_wr_en) begin
-                            gpio_out[(cf_bus_address[7:0] - 8'h1) * 8 +: 8] <= cf_bus_data_in[7:0];
+                            gpio_out[(cf_bus_address[7:0] - io_port_gpio0) * 8 +: 8] <= cf_bus_data_in[7:0];
                         end
-                        cf_bus_data_out <= { 8'h00, gpio_in[(cf_bus_address[7:0] - 8'h1) * 8 +: 8] };
+                        cf_bus_data_out <= { 8'h00, gpio_in[(cf_bus_address[7:0] - io_port_gpio0) * 8 +: 8] };
                         cf_bus_ready    <= 1'b1;
                     end else if (cf_bus_address[7:0] == io_port_uart_status) begin // uart status
                         cf_bus_data_out <= { 8'h00, 5'b0, uart_rx_ready, uart_tx_fifo_empty, uart_tx_fifo_full };
@@ -425,7 +425,7 @@ module top(input wire clk, input wire s1,
                         if (cf_bus_wr_en) begin
                             tick_counter <= 0;
                         end
-                        cf_bus_data_out <= { 8'h00, tick_counter };
+                        cf_bus_data_out <= tick_counter;
                         cf_bus_ready    <= 1'b1;
                     end else if (cf_bus_address[7:0] == io_port_video) begin // video flags 
                         if (cf_bus_wr_en) begin
@@ -435,9 +435,9 @@ module top(input wire clk, input wire s1,
                         cf_bus_ready    <= 1'b1;
                     end else if (cf_bus_address[7:0] == io_port_wdt) begin // WDT
                         if (cf_bus_wr_en) begin
-                            wdt          <= cf_bus_data_in[7:0];
+                            wdt          <= cf_bus_data_in;
                         end
-                        cf_bus_data_out <= { 8'h00, wdt }; 
+                        cf_bus_data_out <= wdt; 
                         cf_bus_ready    <= 1'b1;
                     end else begin
                         // default to just ack the bus

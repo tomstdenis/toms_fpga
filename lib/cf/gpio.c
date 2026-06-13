@@ -44,7 +44,7 @@ main(void)
 	c_boxquery(5, 3, "Hello what's your name:", name, 10);
 	sprintf(str, "Hello '%s'", name);
 	c_boxmsg(15, 15, str);
-	wait_xms(5000);
+	wait_ms(5000);
 	c_gotoxy(0, 0);
 	y = 0;
 	c_clrscr();
