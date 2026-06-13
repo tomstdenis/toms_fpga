@@ -5,12 +5,12 @@
 //Part Number: GW5A-LV25MG121NC1/I0
 //Device: GW5A-25
 //Device Version: A
-//Created Time: Fri May 15 18:43:02 2026
+//Created Time: Sat Jun 13 16:14:03 2026
 
 //Change the instance name and port connections to the signal names
 //--------Copy here to design--------
 
-    cflea_main_men your_instance_name(
+    cflea_main_mem your_instance_name(
         .douta(douta), //output [7:0] douta
         .doutb(doutb), //output [7:0] doutb
         .clka(clka), //input clka

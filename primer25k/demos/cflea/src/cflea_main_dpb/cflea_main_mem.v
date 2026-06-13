@@ -5,8 +5,7 @@
 //Part Number: GW5A-LV25MG121NC1/I0
 //Device: GW5A-25
 //Device Version: A
-//Created Time: Fri May 15 18:43:02 2026
-`default_nettype wire
+//Created Time: Sat Jun 13 16:14:03 2026
 
 module cflea_main_mem (douta, doutb, clka, ocea, cea, reseta, wrea, clkb, oceb, ceb, resetb, wreb, ada, dina, adb, dinb);
 
@@ -1583,4 +1582,4 @@ MUX2 mux_inst_191 (
   .I1(mux_o_190),
   .S0(dff_q_3)
 );
-endmodule //cflea_main_men
+endmodule //cflea_main_mem

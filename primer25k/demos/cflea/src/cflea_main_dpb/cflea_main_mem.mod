@@ -5,7 +5,7 @@
 -part_number GW5A-LV25MG121NC1/I0
 
 
--mod_name cflea_main_men
+-mod_name cflea_main_mem
 -file_name cflea_main_mem
 -path /home/tom/nas/toms_fpga/primer25k/demos/cflea/src/cflea_main_dpb/
 -type RAM_DP
@@ -20,5 +20,5 @@
 -read_mode_1 bypass
 -write_mode_0 normal
 -write_mode_1 normal
--speed false
+-speed true
 -reset_mode sync

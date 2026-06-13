@@ -50,7 +50,7 @@ for I/O the following ports are used
 `timescale 1ns/1ps
 `default_nettype none
 
-`define CF_TOP_VER 8'h01
+`define CF_TOP_VER 8'h02
 
 `define BLOCKS 30
 `define FREQ 125
@@ -59,6 +59,10 @@ module top(input wire clk, input wire s1,
 	input wire uart_rx, output wire uart_tx, 
 	inout wire [31:0] gpio,
 	output reg [3:0] vga_r, output reg [3:0] vga_g, output reg   [3:0] vga_b, output wire vga_h_pulse, output wire vga_v_pulse);
+
+    // Should the main mem be combinatorial or synchronous
+    localparam
+        MAIN_MEM_COMB = 0;
 
     localparam
         io_port_uart  = 8'h00,
@@ -154,11 +158,11 @@ module top(input wire clk, input wire s1,
 
 	// ### main memory ###  we use a dual port 8-bit memory so we can do
 	// 8 or 16 bit operations in the same amount of time
-	logic main_mem_we_a;
 	logic [7:0] main_mem_dout_a;
-	
-	logic main_mem_we_b;
 	logic [7:0] main_mem_dout_b;
+
+    // detect writes to main memory
+    wire main_mem_wr_en = (cf_bus_io_flag == 0 && cf_bus_address[15:0] <= bus_address_main_mem_top && cf_bus_wr_en);
 
     cflea_main_mem cflea_mem(
         .douta(main_mem_dout_a), //output [7:0] douta
@@ -166,7 +170,7 @@ module top(input wire clk, input wire s1,
         .ocea(1'b1), //input ocea
         .cea(1'b1), //input cea
         .reseta(~rst_n), //input reseta
-        .wrea(main_mem_we_a), //input wrea
+        .wrea(main_mem_wr_en), //input wrea
         .ada(cf_bus_address[15:0]), //input [15:0] ada
         .dina(cf_bus_data_in[7:0]), //input [7:0] dina
 
@@ -175,7 +179,7 @@ module top(input wire clk, input wire s1,
         .oceb(1'b1), //input oceb
         .ceb(1'b1), //input ceb
         .resetb(~rst_n), //input resetb
-        .wreb(main_mem_we_b), //input wreb
+        .wreb(cf_bus_burst && main_mem_wr_en), //input wreb
         .adb(cf_bus_address[15:0] + 1'b1), //input [15:0] adb
         .dinb(cf_bus_data_in[15:8]) //input [7:0] dinb
     );
@@ -325,6 +329,7 @@ module top(input wire clk, input wire s1,
     reg cf_bus_ready;
     reg [15:0] cf_bus_data_out;
     reg [1:0] bus_cycle;
+    reg [15:0] cf_bus_data_out_comb;
 
     cf_cpu #(
         .TOP_VER(`CF_TOP_VER),
@@ -338,10 +343,19 @@ module top(input wire clk, input wire s1,
         .bus_data_in(cf_bus_data_in),
         .bus_enable(cf_bus_enable),
         .bus_ready(cf_bus_ready),
-        .bus_data_out(cf_bus_data_out));
+        .bus_data_out(cf_bus_data_out_comb));
 
     always_ff @(posedge pll2clk) begin
         lrg_mode_pll2 <= {lrg_mode_pll2[0], lrg_mode};
+    end
+
+    always_comb begin
+        cf_bus_data_out_comb = cf_bus_data_out;
+        if (MAIN_MEM_COMB == 1 && cf_bus_io_flag == 0) begin
+            if (cf_bus_address[15:0] <= bus_address_main_mem_top) begin
+                cf_bus_data_out_comb = { cf_bus_burst ? main_mem_dout_b : 8'b00, main_mem_dout_a };
+            end
+        end
     end
 
     reg [1:0] vga_v_sync_cf;
@@ -354,8 +368,6 @@ module top(input wire clk, input wire s1,
             uart_tx_start       <= 0;
             uart_tx_data_in     <= 0;
             uart_rx_read        <= 0;
-            main_mem_we_a 		<= 0;
-            main_mem_we_b 		<= 0;
             bus_cycle           <= 0;
             gpio_out            <= 16'hFF;
             cf_bus_ready        <= 0;
@@ -380,6 +392,7 @@ module top(input wire clk, input wire s1,
 			end
 
             if (cf_bus_enable && !cf_bus_ready) begin
+                bus_cycle <= bus_cycle + 1'b1;
                 if (cf_bus_io_flag) begin
                     // handle I/O
                     if (cf_bus_address[7:0] == io_port_uart) begin // UART DATA
@@ -388,7 +401,8 @@ module top(input wire clk, input wire s1,
                                 if (!uart_tx_fifo_full) begin
                                     uart_tx_data_in <= cf_bus_data_in[7:0];
                                     uart_tx_start   <= 1'b1;
-                                    bus_cycle       <= 1;
+                                end else begin
+                                    bus_cycle <= bus_cycle;
                                 end
                             end else if (bus_cycle == 1) begin
                                 cf_bus_ready  <= 1'b1;
@@ -398,7 +412,6 @@ module top(input wire clk, input wire s1,
                             if (bus_cycle == 0) begin
                                 if (uart_rx_ready) begin
                                     uart_rx_read <= 1'b1;
-                                    bus_cycle    <= 1;
                                 end else begin
                                     // Dave's model returns -1 if there's no char...
                                     cf_bus_ready    <= 1'b1;
@@ -406,7 +419,6 @@ module top(input wire clk, input wire s1,
                                 end
                             end else if (bus_cycle == 1) begin
                                 uart_rx_read <= 1'b0;
-                                bus_cycle    <= 2;
                             end else if (bus_cycle == 2) begin
                                 cf_bus_ready    <= 1'b1;
                                 cf_bus_data_out <= { 8'h00, uart_rx_byte };
@@ -447,20 +459,21 @@ module top(input wire clk, input wire s1,
                     // handle memory (we fold 128K to 64K)
                     if (cf_bus_address[15:0] <= bus_address_main_mem_top) begin
                         // main mem
-                        if (bus_cycle[0] == 0) begin
-                            main_mem_we_a  <= cf_bus_wr_en;
-                            main_mem_we_b  <= cf_bus_burst ? cf_bus_wr_en : 1'b0;
-                            bus_cycle      <= 1;
-                        end else if (bus_cycle[0] == 1) begin
-                            main_mem_we_a   <= 1'b0;
-                            main_mem_we_b   <= 1'b0;
-                            cf_bus_ready    <= 1;
-                            cf_bus_data_out <= { cf_bus_burst ? main_mem_dout_b : 8'b00, main_mem_dout_a };
+                        if (MAIN_MEM_COMB == 1) begin
+                            cf_bus_ready <= 1;
+                        end else begin
+                            if (bus_cycle[0] == 0) begin
+                                if (cf_bus_wr_en) begin
+                                    cf_bus_ready <= 1'b1;
+                                end
+                            end else if (bus_cycle[0] == 1) begin
+                                cf_bus_ready    <= 1;
+                                cf_bus_data_out <= { cf_bus_burst ? main_mem_dout_b : 8'b00, main_mem_dout_a };
+                            end
                         end
                     end else if (cf_bus_address[15:0] <= bus_address_rom_mem_top) begin
                         // rom memory
                         if (bus_cycle[0] == 0) begin
-                            bus_cycle <= 1;
                         end else if (bus_cycle[0] == 1) begin
                             cf_bus_ready    <= 1;
                             cf_bus_data_out <= { cf_bus_burst ? boot_rom_dout_b : 8'b00, boot_rom_dout_a };
@@ -468,12 +481,10 @@ module top(input wire clk, input wire s1,
                     end else if (cf_bus_address[15:0] <= bus_address_text_mem_top) begin
                         // video memory
                         if (bus_cycle == 0) begin
-                            bus_cycle <= 1;
                             text_addr_a <= cf_bus_address[10:0];
                             text_din_a  <= cf_bus_data_in[7:0];
                             text_we_a   <= cf_bus_wr_en;
                         end else if (bus_cycle == 1) begin
-                            bus_cycle <= 2;
                             text_addr_a <= text_addr_a + 1'b1;
                             text_din_a  <= cf_bus_data_in[15:8];
                             if (!cf_bus_burst && cf_bus_wr_en) begin
@@ -482,7 +493,6 @@ module top(input wire clk, input wire s1,
                             end
                         end else if (bus_cycle == 2) begin
                             text_we_a <= 1'b0;
-                            bus_cycle <= 3;
                             if (cf_bus_wr_en) begin
                                 cf_bus_ready <= 1'b1;
                             end else begin

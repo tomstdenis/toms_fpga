@@ -1,4 +1,3 @@
-`default_nettype wire
 module cflea_pll(
     clkin,
     clkout0,
