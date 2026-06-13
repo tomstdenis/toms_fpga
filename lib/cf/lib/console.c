@@ -5,6 +5,8 @@
 // the app
 #define console_x ((unsigned *)(0xFFFE))
 #define console_y ((unsigned *)(0xFFFC))
+#define console_tx ((unsigned *)(0xFFFA))
+#define console_ty ((unsigned *)(0xFFF8))
 
 // clear screen and reset x/y to 0
 c_clrscr(void) {
@@ -104,6 +106,9 @@ c_gets(char *s, int n)
 c_box(unsigned x1, unsigned y1, unsigned x2, unsigned y2) {
 	unsigned x, y;
 	
+	*console_tx = *console_x;
+	*console_ty = *console_y;
+	
 	for (x = x1; x < x2; x++) {
 		for (y = y1; y < y2; y++) {
 			c_gotoxy(x, y); c_putc(' ');
@@ -125,6 +130,9 @@ c_box(unsigned x1, unsigned y1, unsigned x2, unsigned y2) {
 		c_gotoxy(x1, y); c_putc(0xBA); // vert
 		c_gotoxy(x2, y); c_putc(0xBA);
 	}
+	
+	*console_x = *console_tx;
+	*console_y = *console_ty;
 }
 
 c_boxmsg(unsigned x1, unsigned y1, char *msg) {
@@ -135,6 +143,8 @@ c_boxmsg(unsigned x1, unsigned y1, char *msg) {
 	c_box(x1, y1, x1 + n, y1 + 2);
 	c_gotoxy(x1 + 2, y1 + 1);
 	c_puts(msg);
+	*console_x = *console_tx;
+	*console_y = *console_ty;
 }
 
 c_boxquery(unsigned x1, unsigned y1, char *msg, char *dst, unsigned len) {
@@ -146,4 +156,6 @@ c_boxquery(unsigned x1, unsigned y1, char *msg, char *dst, unsigned len) {
 	c_gotoxy(x1 + 2, y1 + 1);
 	c_puts(msg);
 	c_gets(dst, len);
+	*console_x = *console_tx;
+	*console_y = *console_ty;
 }

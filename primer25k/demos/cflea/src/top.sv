@@ -60,6 +60,16 @@ module top(input wire clk, input wire s1,
 	inout wire [31:0] gpio,
 	output reg [3:0] vga_r, output reg [3:0] vga_g, output reg   [3:0] vga_b, output wire vga_h_pulse, output wire vga_v_pulse);
 
+    localparam
+        io_port_uart = 8'h00,
+        io_port_gpio0 = 8'h01,
+        io_port_gpio1 = 8'h02,
+        io_port_gpio2 = 8'h03,
+        io_port_gpio3 = 8'h04,
+        io_port_uart_status = 8'h10,
+        io_port_timer = 8'h11,
+        io_port_video = 8'h12,
+        io_port_wdt   = 8'h13;
 
     localparam
         bus_address_main_mem_top = 16'hEFFF,
@@ -372,7 +382,7 @@ module top(input wire clk, input wire s1,
             if (cf_bus_enable && !cf_bus_ready) begin
                 if (cf_bus_io_flag) begin
                     // handle I/O
-                    if (cf_bus_address[7:0] == 8'h00) begin // UART DATA
+                    if (cf_bus_address[7:0] == io_port_uart) begin // UART DATA
                         if (cf_bus_wr_en) begin // writes
                             if (bus_cycle == 0) begin
                                 if (!uart_tx_fifo_full) begin
@@ -402,50 +412,32 @@ module top(input wire clk, input wire s1,
                                 cf_bus_data_out <= { 8'h00, uart_rx_byte };
                             end
                         end
-                    end else if (cf_bus_address[7:0] == 8'h10) begin // uart status
+                    end else if (cf_bus_address[7:0] <= io_port_gpio3) begin // GPIO0..GPIO3
+                        if (cf_bus_wr_en) begin
+                            gpio_out[(cf_bus_address[7:0] - 8'h1) * 8 +: 8] <= cf_bus_data_in[7:0];
+                        end
+                        cf_bus_data_out <= { 8'h00, gpio_in[(cf_bus_address[7:0] - 8'h1) * 8 +: 8] };
+                        cf_bus_ready    <= 1'b1;
+                    end else if (cf_bus_address[7:0] == io_port_uart_status) begin // uart status
                         cf_bus_data_out <= { 8'h00, 5'b0, uart_rx_ready, uart_tx_fifo_empty, uart_tx_fifo_full };
                         cf_bus_ready    <= 1'b1;
-                    end else if (cf_bus_address[7:0] == 8'h11) begin // timer 1ms tick
+                    end else if (cf_bus_address[7:0] == io_port_timer) begin // timer 1ms tick
                         if (cf_bus_wr_en) begin
                             tick_counter <= 0;
                         end
                         cf_bus_data_out <= { 8'h00, tick_counter };
                         cf_bus_ready    <= 1'b1;
-                    end else if (cf_bus_address[7:0] == 8'h12) begin // video flags 
+                    end else if (cf_bus_address[7:0] == io_port_video) begin // video flags 
                         if (cf_bus_wr_en) begin
                             lrg_mode <= cf_bus_data_in[0];
                         end
                         cf_bus_data_out <= {12'b0, vga_active_cf[1], vga_h_sync_cf[1], vga_v_sync_cf[1], lrg_mode};
                         cf_bus_ready    <= 1'b1;
-                    end else if (cf_bus_address[7:0] == 8'h13) begin // WDT
+                    end else if (cf_bus_address[7:0] == io_port_wdt) begin // WDT
                         if (cf_bus_wr_en) begin
                             wdt          <= cf_bus_data_in[7:0];
                         end
                         cf_bus_data_out <= { 8'h00, wdt }; 
-                        cf_bus_ready    <= 1'b1;
-                    end else if (cf_bus_address[7:0] == 8'h01) begin // GPIO0
-                        if (cf_bus_wr_en) begin
-                            gpio_out[7:0] <= cf_bus_data_in[7:0];
-                        end
-                        cf_bus_data_out <= { 8'h00, gpio_in[7:0] };
-                        cf_bus_ready    <= 1'b1;
-                    end else if (cf_bus_address[7:0] == 8'h02) begin // GPIO1
-                        if (cf_bus_wr_en) begin
-                            gpio_out[15:8] <= cf_bus_data_in[7:0];
-                        end
-                        cf_bus_data_out <= { 8'h00, gpio_in[15:8] };
-                        cf_bus_ready    <= 1'b1;
-                    end else if (cf_bus_address[7:0] == 8'h03) begin // GPIO2
-                        if (cf_bus_wr_en) begin
-                            gpio_out[23:16] <= cf_bus_data_in[7:0];
-                        end
-                        cf_bus_data_out <= { 8'h00, gpio_in[23:16] };
-                        cf_bus_ready    <= 1'b1;
-                    end else if (cf_bus_address[7:0] == 8'h04) begin // GPIO3
-                        if (cf_bus_wr_en) begin
-                            gpio_out[31:24] <= cf_bus_data_in[7:0];
-                        end
-                        cf_bus_data_out <= { 8'h00, gpio_in[31:24] };
                         cf_bus_ready    <= 1'b1;
                     end else begin
                         // default to just ack the bus
