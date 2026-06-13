@@ -40,11 +40,12 @@ main(void)
 	for (x = 0; x < 4; x++) val[x] = 1 + 2 * x;
 	
 	c_clrscr();
-	c_puts("Hello what's your name?");
-	c_gotoxy(75, 0);
-	c_gets(name, 10);
-	sprintf(str, "\nHello '%s'\n", name);
-	c_puts(str);
+	c_boxmsg(10, 8, "Box text goes here eh");
+	c_boxquery(5, 3, "Hello what's your name:", name, 10);
+	sprintf(str, "Hello '%s'", name);
+	c_boxmsg(15, 15, str);
+	wait_xms(5000);
+	c_gotoxy(0, 0);
 	for (;;) {
 		sprintf(str, "vals: %x, %x, %x, %x\n", val[0], val[1], val[2], val[3]);
 		c_puts(str);

@@ -100,3 +100,50 @@ c_gets(char *s, int n)
 		}
 	}
 }
+
+c_box(unsigned x1, unsigned y1, unsigned x2, unsigned y2) {
+	unsigned x, y;
+	
+	for (x = x1; x < x2; x++) {
+		for (y = y1; y < y2; y++) {
+			c_gotoxy(x, y); c_putc(' ');
+		}
+	}
+
+	// draw corners
+	c_gotoxy(x1, y1); c_putc(0xC9); // top left
+	c_gotoxy(x1, y2); c_putc(0xC8); // bottom left
+	c_gotoxy(x2, y1); c_putc(0xBB); // top right
+	c_gotoxy(x2, y2); c_putc(0xBC); // bottom right
+	
+	for (x = x1 + 1; x < x2; x++) {
+		c_gotoxy(x, y1); c_putc(0xCD); //horiz
+		c_gotoxy(x, y2); c_putc(0xCD);
+	}
+	
+	for (y = y1 + 1; y < y2; y++) {
+		c_gotoxy(x1, y); c_putc(0xBA); // vert
+		c_gotoxy(x2, y); c_putc(0xBA);
+	}
+}
+
+c_boxmsg(unsigned x1, unsigned y1, char *msg) {
+	unsigned n;
+	
+	n = strlen(msg) + 3;
+	
+	c_box(x1, y1, x1 + n, y1 + 2);
+	c_gotoxy(x1 + 2, y1 + 1);
+	c_puts(msg);
+}
+
+c_boxquery(unsigned x1, unsigned y1, char *msg, char *dst, unsigned len) {
+	unsigned n;
+	
+	n = strlen(msg) + 3 + len;
+	
+	c_box(x1, y1, x1 + n, y1 + 2);
+	c_gotoxy(x1 + 2, y1 + 1);
+	c_puts(msg);
+	c_gets(dst, len);
+}
