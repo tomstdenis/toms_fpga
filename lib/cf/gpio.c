@@ -1,5 +1,5 @@
 #include <cflea.h>
-#include "console.c"
+#include "lib/console.c"
 
 // wait upto 255 ms
 wait_ms(unsigned ms)
@@ -51,7 +51,8 @@ main(void)
 	for (x = 0; x < 4; x++) val[x] = 1 + 2 * x;
 	
 	c_clrscr();
-	c_puts("Hello what's your name?\n");
+	c_puts("Hello what's your name?");
+	c_gotoxy(75, 0);
 	c_gets(name, 10);
 	sprintf(str, "\nHello '%s'\n", name);
 	c_puts(str);
