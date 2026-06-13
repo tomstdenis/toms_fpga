@@ -40,7 +40,7 @@ for I/O the following ports are used
           You may need external pullups to snap up, and definitely a decent pull down to snap down.
    - 02..04h: gpio1-3 same as gpio0
    - 10h: uart status (uart_rx_ready, uart_tx_fifo_empty, uart_tx_fifo_full)
-   - 11h: timer (counts 1ms ticks, writing anything to it resets to 0)
+   - 11h: timer (counts 1us ticks, writing anything to it resets to 0)
    - 12h: video mode (lsb == lrg_mode (48x40 8-bit colour mode, text mode is 1 byte per character 80x25 mode using CP437)
    - 13h: WDT, non-zero value means if the tick_counter (11h) matches it triggers a reset.  A zero value disables the WDT
           The idea is you write to 11h before the tick counter matches 
@@ -84,7 +84,7 @@ module top(input wire clk, input wire s1,
 	reg [3:0] rst = 0;
     reg [1:0] reset_sw;
     localparam
-		CYCLES_PER_TICK = ((`FREQ * 1_000_000) / 1000) * 1;					// tick every 1ms
+		CYCLES_PER_TICK = `FREQ; // ticks per uS
     reg [15:0] tick_counter;
     reg [$clog2(CYCLES_PER_TICK):0] cycle_counter;
 

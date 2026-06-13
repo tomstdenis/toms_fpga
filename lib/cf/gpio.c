@@ -11,6 +11,12 @@ main(void)
 	for (x = 0; x < 4; x++) val[x] = 1 + 2 * x;
 	
 	c_clrscr();
+	
+	// calibrate delay_count for 1ms
+	x = delay_calibrate();
+	sprintf(str, "loops per ms == %u (%u)", x, delay_loops(x));
+	c_puts(str);
+	
 	c_boxmsg(10, 8, "Box text goes here eh");
 	c_boxquery(5, 3, "Hello what's your name:", name, 10);
 	sprintf(str, "Hello '%s'", name);
@@ -22,7 +28,7 @@ main(void)
 	for (;;) {
 		sprintf(str, "vals: %2x, %2x, %2x, %2x\n", val[0], val[1], val[2], val[3]);
 		c_boxmsg(3, 0, str);
-		sprintf(str, "Loops: %d", ++y);
+		sprintf(str, "Loops: %5d", ++y);
 		c_boxmsg(40, 5, str); 
 		wait_ms(250);
 		for (x = 0; x < 4; x++) {
