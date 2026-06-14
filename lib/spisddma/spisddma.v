@@ -89,6 +89,7 @@ module spisddma #(
     input wire cmd_valid,                             // Asserted high when command wires are valid and stable
     input wire [31:0] cmd_sector,                     // 32-bit physical 512-byte block/sector address
     input wire [HOST_MEM_ADDR-1:0] cmd_host_address,  // Target base address in host memory
+    input wire [5:0] cmd_burst_len,                   // # of sectors (0..63 => 1..64 sectors)
 
     // =========================================================================
     // PHYSICAL SPI INTERFACE PINS
@@ -137,6 +138,7 @@ module spisddma #(
     // -------------------------------------------------------------------------
     reg [8:0]  cmd_pos;                           // Byte tracking index inside the 512-byte payload data loop
     reg [15:0] cmd_crc16;
+    reg [5:0]  cmd_burst_len_l;                   // latched copy of burst len we can decrement 
     wire [31:0] cmd_sector_shifted;
 
     // -------------------------------------------------------------------------
@@ -209,17 +211,18 @@ module spisddma #(
         STATE_READ_CRCCHK           = 29,       // Compare the computed CRC16 to the received one
 
         // --- Status Commands ---
-        STATE_CMD13_R1              = 30,       // Parse the R1 and R2 bytes from CMD13 (SEND_STATUS)
+        STATE_CMD12_R1              = 30,       // Issue STOP_TRANSMITTING cmd for multi sector reads
+        STATE_CMD13_R1              = 31,       // Parse the R1 and R2 bytes from CMD13 (SEND_STATUS)
+    
+        STATE_INIT_CMD9             = 32,       // Send CMD9 to fetch the CSD
+        STATE_INIT_CMD9_R1          = 33,       // Parse the R1 for CMD9
+        STATE_INIT_CMD9_RECV_CSD    = 34,       // Receive the 128 bit payload
+        STATE_INIT_CMD9_CRC         = 35,       // Receive the CRC for the CSD
+        STATE_INIT_COMPUTE_SECTORS  = 36,       // Compute card_sectors from the CSD
 
-        STATE_INIT_CMD9             = 31,       // Send CMD9 to fetch the CSD
-        STATE_INIT_CMD9_R1          = 32,       // Parse the R1 for CMD9
-        STATE_INIT_CMD9_RECV_CSD    = 33,       // Receive the 128 bit payload
-        STATE_INIT_CMD9_CRC         = 34,       // Receive the CRC for the CSD
-        STATE_INIT_COMPUTE_SECTORS  = 35,       // Compute card_sectors from the CSD
-
-        STATE_INIT_CMD10_R1         = 36,       // Process the R1 from CMD10 (CID)
-        STATE_INIT_CMD10_RECV_CID   = 37,       // Receive the 16 bytes of the CID
-        STATE_INIT_CMD10_CRC        = 38;       // Process the CRC and jump to INIT_DONE
+        STATE_INIT_CMD10_R1         = 37,       // Process the R1 from CMD10 (CID)
+        STATE_INIT_CMD10_RECV_CID   = 38,       // Receive the 16 bytes of the CID
+        STATE_INIT_CMD10_CRC        = 39;       // Process the CRC and jump to INIT_DONE
 
     // -------------------------------------------------------------------------
     // Macro Routine: setup_spi_cmd
@@ -691,7 +694,8 @@ module spisddma #(
                             // latch the command
                             cmd_pos             <= 9'd0;
                             cmd_crc16           <= 16'h0;
-                            
+                            cmd_burst_len_l     <= cmd_burst_len;
+
                             // default to ok
                             error               <= `SPISD_ERR_OK;
                             error_read          <= 0;
@@ -701,14 +705,15 @@ module spisddma #(
                             case(cmd_wr_en)
                                 1'b0:  
                                     begin
-                                        // send READ SECTOR(CMD17) command
-                                        setup_spi_cmd(8'd17, card_is_sdhc ? cmd_sector : cmd_sector_shifted, 8'h00, STATE_START_READ_RESP);
+                                        // send READ SECTOR(CMD18) command
+                                        setup_spi_cmd(8'd18, card_is_sdhc ? cmd_sector : cmd_sector_shifted, 8'h00, STATE_START_READ_RESP);
                                         // our write to host mem loop +1's the addr so we pre decrement
                                         // so it'll be aligned for the 0'th byte back from the SD card
                                         host_mem_addr <= cmd_host_address - 1'b1;
                                     end
                                 1'b1:
                                     begin
+                                        // TODO: Send ACMD23 with burst len as sectors to pre-erase, THEN send CMD25 in place of CMD24
                                         // send WRITE SECTOR(CMD24) command
                                         setup_spi_cmd(8'd24, (card_is_sdhc ? cmd_sector : cmd_sector_shifted), 8'h00, STATE_START_WRITE_RESP);
                                         host_mem_addr <= cmd_host_address;
@@ -726,7 +731,7 @@ module spisddma #(
                             error            <= `SPISD_ERR_WRITE_CMD;
                             state            <= STATE_DONE;
                         end else begin
-                            // clock out 16 bits before sending the write token
+                            // clock out the write token (TODO: Change to multi token 0xFC)
                             temp_wire_bits   <= 8'hFE;
                             mosi_pin         <= 1'b1;
                             state            <= STATE_SHIFT_DATA;
@@ -775,6 +780,7 @@ module spisddma #(
                                     tag            <= STATE_WRITE_WAIT;
                                     state          <= STATE_SHIFT_DATA;
                                     temp_wire_bits <= 8'hFF;                // next state is waiting for MISO to go high so preload low
+                                    mosi_pin       <= 1'b1;
                                     sck_cycles     <= 0;
                                 end
                             8'h0B, 8'h0D:
@@ -797,6 +803,19 @@ module spisddma #(
                     begin
                         if (temp_wire_bits != 8'h00) begin
                             // write done when MISO goes high at any point
+                            // TODO jump back to STATE_WRITE_SHIFT by first sending the write token 0xFC if there are sectors to still write
+                            // TODO: otherwise send a STOP_TRANS token 0xFD, then wait again for !busy
+/*
+TODO:
+    if (burst_left > 0) begin
+        burst_left <= burst_left - 1;
+        prepare to shift out 0xFC the write multi token
+        jump to STATE_WRITE_SHIFT via a tag from STATE_SHIFT_DATA
+    end else begin
+        send stop write token 0xFD via STATE_SHIFT_DATA and jump to another state
+            where we wait like STATE_WRITE_WAIT, then issue CMD13 etc
+    end
+*/
                             setup_spi_cmd(8'd13, 32'd0, 8'h00, STATE_CMD13_R1);
                         end else begin
                             temp_wire_bits <= 8'hFF;
@@ -886,11 +905,54 @@ module spisddma #(
                 // ensure CRC is valid
                 STATE_READ_CRCCHK:
 					begin
-                        setup_spi_cmd(8'd13, 32'd0, 8'h00, STATE_CMD13_R1);
+                        if (cmd_burst_len_l > 0) begin
+                            cmd_burst_len_l <= cmd_burst_len_l - 1'b1;
+                            temp_wire_bits  <= 8'hFF;
+                            mosi_pin        <= 1'b1;
+                            state           <= STATE_SHIFT_DATA;
+                            tag             <= STATE_WAIT_TOKEN;
+                            cmd_tag         <= STATE_READ_SHIFT;
+                            cmd_pos         <= 0; // should be zero since it's 9 bits but let's make sure
+                            sck_cycles      <= 0; // clear timeout
+                        end else begin
+                            // issue STOP_TRANSMITTING command
+                            // TODO: R1b comes back ... is that 00's then R1 or R1 then 00's?
+                            setup_spi_cmd(8'd12, 32'd0, 8'h0, STATE_CMD12_R1);
+                        end
 						if (READ_CRC_CHK == 1 && cmd_crc16 != 16'h0) begin
 							error <= `SPISD_ERR_READCRC;
+                            state <= STATE_DONE;
 						end
 					end
+
+                // response to CMD12 R1 bytes, then wait for non-zero
+                STATE_CMD12_R1:
+                    begin
+                        temp_wire_bits <= 8'hFF;
+                        mosi_pin       <= 1'b1;
+                        tag            <= state;
+                        state          <= STATE_SHIFT_DATA;
+                        state_step     <= 1'b1;
+                        if (state_step == 0) begin
+                            if (temp_wire_bits == 8'h00) begin
+                                // we're good to wait for busy
+                            end else begin
+                                error          <= `SPISD_ERR_READ;
+                                setup_spi_cmd(8'd13, 32'd0, 8'h00, STATE_CMD13_R1);
+                            end
+                        end else begin
+                            if (temp_wire_bits == 8'h00) begin
+                                // loop again while it's !00, TODO: timeout
+                                temp_wire_bits <= 8'hFF;
+                                mosi_pin       <= 1'b1;
+                                tag            <= state;
+                                state          <= STATE_SHIFT_DATA;
+                            end else begin
+                                // we're good, issue CMD13 to get status then back to DONE
+                                setup_spi_cmd(8'd13, 32'd0, 8'h00, STATE_CMD13_R1);
+                            end
+                        end
+                    end
 
                 // response to CMD13 R1+R2 bytes
                 STATE_CMD13_R1:

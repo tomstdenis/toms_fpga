@@ -102,7 +102,7 @@ module top(
     reg [10:0] spi_cmd_host_address;
     wire [63:0] spi_debug;
 
-    spisddma #(.CLK_FREQ_MHZ(`FREQ), .READ_CRC_CHK(1), .FAST_CLK(24_000_000)) spi_sd (
+    spisddma #(.CLK_FREQ_MHZ(`FREQ), .READ_CRC_CHK(1), .FAST_CLK(10_000_000)) spi_sd (
         .clk(pll_clk), .rst_n(rst_n),
         .ready(spi_ready), .error(spi_error), .error_read(spi_error_read), .r2_status(spi_r2_status),
         .card_is_v1(spi_card_is_v1), .card_is_init(spi_card_is_init), .card_is_sdhc(spi_card_is_sdhc),
@@ -266,11 +266,13 @@ module top(
 
                 STATE_DONE:
                     begin
-                        spi_cmd_valid   <= 1'b0;
                         test_done       <= 1;
                         if (spi_error == 0) begin
-                            test_sector     <= test_sector + 1'b1;
-                            test_state      <= STATE_INIT_WAIT;
+                            if (test_sector < (spi_card_sectors - 1)) begin
+                                test_sector     <= test_sector + 1'b1;
+                                spi_cmd_valid   <= 1'b0;
+                                test_state      <= STATE_INIT_WAIT;
+                            end
                         end
                     end
 
