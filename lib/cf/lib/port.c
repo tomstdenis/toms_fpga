@@ -28,29 +28,33 @@ outport(int port, unsigned val)
 	}
 }
 
-inport(int port)
+inport(int port, unsigned tgl)
 {
 	switch (port) {
 		case 0:
 			asm {
+				LD 2,S
 				IN $01
 				RET
 			}
 			break;
 		case 1:
 			asm {
+				LD 2,S
 				IN $02
 				RET
 			}
 			break;
 		case 2:
 			asm {
+				LD 2,S
 				IN $03
 				RET
 			}
 			break;
 		case 3:
 			asm {
+				LD 2,S
 				IN $04
 				RET
 			}

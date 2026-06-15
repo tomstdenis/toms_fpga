@@ -23,10 +23,8 @@ unsigned remap(unsigned v)
 	if (v & (1 << 6)) t |= (1 << 7);
 	if (v & (1 << 7)) t |= (1 << 3);
 
-	return (~t) & 0xFF;
+	return (~t) & 0xFF;					// invert since 0 == ON, 1 == OFF
 }
-
-
 
 main(void)
 {
@@ -34,9 +32,11 @@ main(void)
 	unsigned char name[11], str[80];
 	
 	c_clrscr();
+	outport(1, 0xFF); // turn off all LEDs
 	for (;;) {
 		for (x = 0; x < 256; x++) {
-			outport(0, remap(x));
+			outport(0, remap(x));				// output new count to GPIO0
+			inport(1, (0x0100<<4));				// toggle the 0th LED of GPIO1
 			sprintf(str, "x == %u\n", x);
 			c_puts(str);
 			wait_ms(250);
