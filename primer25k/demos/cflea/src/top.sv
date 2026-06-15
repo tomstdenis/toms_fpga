@@ -362,6 +362,8 @@ module top(input wire clk, input wire s1,
     reg [1:0] vga_h_sync_cf;
     reg [1:0] vga_active_cf;
 
+    wire [7:0] cur_gpio_bits = gpio_out[(cf_bus_address[7:0] - io_port_gpio0) * 8 +: 8];
+
     // bus controller
     always_ff @(posedge pllclk) begin
         if (!rst_n) begin
@@ -425,10 +427,20 @@ module top(input wire clk, input wire s1,
                             end
                         end
                     end else if (cf_bus_address[7:0] <= io_port_gpio3) begin // GPIO0..GPIO3
+                        /*
+                            GPIO ports behave diff for reads/writes
+                                Write: the lower 8 bits are the value, and upper 8 bits are the DIRSET where a 0 bit indicates to set the new value
+                                       So like 16'h1FF would only change the 1st GPIO output bit to 1
+
+                                Read:  The upper 8 bits are used to toggle GPIO bits, returning the then current value
+                        */
                         if (cf_bus_wr_en) begin
-                            gpio_out[(cf_bus_address[7:0] - io_port_gpio0) * 8 +: 8] <= cf_bus_data_in[7:0];
+                            gpio_out[(cf_bus_address[7:0] - io_port_gpio0) * 8 +: 8] <= 
+                                (cf_bus_data_in[15:8] & cur_gpio_bits) | (~cf_bus_data_in[15:8] & cf_bus_data_in[7:0]);
+                        end else begin
+                            cf_bus_data_out <= { 8'b0, cur_gpio_bits ^ cf_bus_data_in[15:8] };
+                            gpio_out[(cf_bus_address[7:0] - io_port_gpio0) * 8 +: 8] <= cur_gpio_bits ^ cf_bus_data_in[15:8];
                         end
-                        cf_bus_data_out <= { 8'h00, gpio_in[(cf_bus_address[7:0] - io_port_gpio0) * 8 +: 8] };
                         cf_bus_ready    <= 1'b1;
                     end else if (cf_bus_address[7:0] == io_port_uart_status) begin // uart status
                         cf_bus_data_out <= { 8'h00, 5'b0, uart_rx_ready, uart_tx_fifo_empty, uart_tx_fifo_full };
