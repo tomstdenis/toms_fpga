@@ -797,6 +797,7 @@ module cf_cpu #(
 							bus_enable  <= 1'b0;
 							bus_io_flag <= 1'b1;
 							bus_address <= {1'b0, bus_data_out};
+							// TODO: capture port #
 							bus_data_in <= reg_ACC;
 							bus_wr_en   <= cur_opcode[3:0] == 4'hA ? 1'b1 : 1'b0;  // EA == out
 							fsm_state   <= FSM_EXECUTE_OPERAND2_EA_EB;
@@ -809,6 +810,7 @@ module cf_cpu #(
 							bus_enable <= 1'b1;
 						end else if (bus_enable && bus_ready) begin
 							// I/O is complete deassert bus and go back to fetch
+							// TODO: capture if EB or port number >= 0xF0 for "special I/O ports"
 							if (cur_opcode == 8'hEB) begin							// EB == IN
 								reg_ACC <= bus_data_out;
 							end
