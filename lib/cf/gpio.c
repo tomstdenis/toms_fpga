@@ -1,7 +1,11 @@
+#define DEBUG
+
 #include <cflea.h>
 #include "lib/console.c"
 #include "lib/time.c"
 #include "lib/port.c"
+#include "lib/spi.c"
+#include "lib/sd.c"
 
 // pins are setup so 0..3 is the top row (starting next to VCC/GND) and 4..7 are the top row
 // PMOD LED works as bottom, top, move over
@@ -31,7 +35,17 @@ main(void)
 	unsigned val[4], x, y;
 	unsigned char name[11], str[80];
 	
+	// pinout for the PMOD SD card board;
+//sd_init(int port, int cs, int sck, int miso, int mosi)
+	sd_init(0, 3, 0, 1, 2);
+	printf("sd_reset() == %d, %02x, %04x\n", sd_reset(), inport(0,0), spi_sck_mask_ds);
+	
 	c_clrscr();
+	// calibrate delay_count for 1ms
+	x = delay_calibrate();
+	sprintf(str, "loops per ms == %u (%u)", x, delay_loops(x));
+	c_puts(str);
+
 	outport(1, 0xFF); // turn off all LEDs
 	for (;;) {
 		for (x = 0; x < 256; x++) {
