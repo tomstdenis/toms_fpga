@@ -63,6 +63,13 @@ main(void)
 		} else {
 			printf("Error reading sector#%04x%04x...%x\n", sector[1], sector[0], sd_read_error);
 		}
+		sec[0]++;
+		x = sd_write_sector(sector, sec);
+		if (!x) {
+			printf("Wrote sector #%04x%04x.\n", sector[1], sector[0]);
+		} else {
+			printf("Error writing sector #%04x%04x\n", sector[1], sector[0]);
+		}
 	}
 	asm {
 		LD #$F000

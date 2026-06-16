@@ -710,7 +710,7 @@ spi_transfer ALLOC 4
 ?72 EQU *
  LDB spi_port
  PUSHA
- LD 10,S
+ LD 8,S
  ANDB #128
  SJZ ?75
  LD spi_mosi_mask
@@ -722,9 +722,9 @@ spi_transfer ALLOC 4
  PUSHA
  CALL outport
  FREE 4
- LD 8,S
+ LD 6,S
  SHL #1
- ST 8,S
+ ST 6,S
  LD 2,S
  SHL #1
  ST 2,S
@@ -772,57 +772,41 @@ sd_init EQU *
 sd_cmd ALLOC 4
  LDB #255
  PUSHA
- LD sd_clk
- PUSHA
  CALL spi_transfer
- FREE 4
+ FREE 2
  LDB #255
  PUSHA
- LD sd_clk
- PUSHA
  CALL spi_transfer
- FREE 4
+ FREE 2
  LD 12,S
  ADDB #64
  PUSHA
- LD sd_clk
- PUSHA
  CALL spi_transfer
- FREE 4
+ FREE 2
  LD 10,S
  SHR #8
  PUSHA
- LD sd_clk
- PUSHA
  CALL spi_transfer
- FREE 4
+ FREE 2
  LD 10,S
  ANDB #255
  PUSHA
- LD sd_clk
- PUSHA
  CALL spi_transfer
- FREE 4
+ FREE 2
  LD 8,S
  SHR #8
  PUSHA
- LD sd_clk
- PUSHA
  CALL spi_transfer
- FREE 4
+ FREE 2
  LD 8,S
  ANDB #255
  PUSHA
- LD sd_clk
- PUSHA
  CALL spi_transfer
- FREE 4
+ FREE 2
  LD 6,S
  PUSHA
- LD sd_clk
- PUSHA
  CALL spi_transfer
- FREE 4
+ FREE 2
  CLR
  ST 0,S
 ?77 EQU *
@@ -839,10 +823,8 @@ sd_cmd ALLOC 4
 ?79 EQU *
  LDB #255
  PUSHA
- LD sd_clk
- PUSHA
  CALL spi_transfer
- FREE 4
+ FREE 2
  ST 2,S
  ANDB #128
  JNZ ?81
@@ -870,10 +852,8 @@ sd_cmd13_status EQU *
  JZ ?83
  LDB #255
  PUSHA
- LD sd_clk
- PUSHA
  CALL spi_transfer
- FREE 4
+ FREE 2
  JMP ?84
 ?83 EQU *
  LD #-1
@@ -897,10 +877,8 @@ sd_read_block ALLOC 4
 ?88 EQU *
  LDB #255
  PUSHA
- LD sd_clk
- PUSHA
  CALL spi_transfer
- FREE 4
+ FREE 2
  ST 2,S
  CMPB #254
  JNZ ?87
@@ -942,25 +920,19 @@ sd_read_block ALLOC 4
  PUSHI
  LDB #255
  PUSHA
- LD sd_clk
- PUSHA
  CALL spi_transfer
- FREE 4
+ FREE 2
  STB [S+]
  JMP ?97
 ?95 EQU *
  LDB #255
  PUSHA
- LD sd_clk
- PUSHA
  CALL spi_transfer
- FREE 4
+ FREE 2
  LDB #255
  PUSHA
- LD sd_clk
- PUSHA
  CALL spi_transfer
- FREE 4
+ FREE 2
  CLR
 ?92 EQU *
  FREE 4
@@ -1015,10 +987,8 @@ sd_reset ALLOC 6
 ?103 EQU *
  LDB #255
  PUSHA
- LD sd_clk
- PUSHA
  CALL spi_transfer
- FREE 4
+ FREE 2
  JMP ?104
 ?102 EQU *
  CLR
@@ -1164,29 +1134,21 @@ sd_reset ALLOC 6
 ?122 EQU *
  LDB #255
  PUSHA
- LD sd_clk
- PUSHA
  CALL spi_transfer
- FREE 4
+ FREE 2
  ST 4,S
  LDB #255
  PUSHA
- LD sd_clk
- PUSHA
  CALL spi_transfer
- FREE 4
+ FREE 2
  LDB #255
  PUSHA
- LD sd_clk
- PUSHA
  CALL spi_transfer
- FREE 4
+ FREE 2
  LDB #255
  PUSHA
- LD sd_clk
- PUSHA
  CALL spi_transfer
- FREE 4
+ FREE 2
  LD 4,S
  ANDB #128
  JZ ?123
@@ -1285,16 +1247,12 @@ sd_tail EQU *
  FREE 2
  LDB #255
  PUSHA
- LD sd_clk
- PUSHA
  CALL spi_transfer
- FREE 4
+ FREE 2
  LDB #255
  PUSHA
- LD sd_clk
- PUSHA
  CALL spi_transfer
- FREE 4
+ LDI S+
  RET
 sd_read_sector ALLOC 4
  LD #-1

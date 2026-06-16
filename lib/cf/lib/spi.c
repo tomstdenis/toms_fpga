@@ -46,7 +46,7 @@ spi_set_sck(int sck)
 }
 
 // transfer 8 bits, using loops # delay_loops per SCK half cycle
-unsigned spi_transfer(unsigned out, unsigned delay_us)
+unsigned spi_transfer(unsigned out)
 {
 	unsigned x, y;
 		
@@ -67,4 +67,9 @@ unsigned spi_transfer(unsigned out, unsigned delay_us)
 			spi_set_sck(0);
 	}
 	return y;
+}
+
+unsigned spi_recv()
+{
+	return spi_transfer(0xFF);
 }
