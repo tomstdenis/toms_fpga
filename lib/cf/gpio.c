@@ -1,4 +1,4 @@
-#define DEBUG
+//#define DEBUG
 
 #include <cflea.h>
 #include "lib/console.c"
@@ -34,85 +34,39 @@ unsigned char sec[512];
 
 main(void)
 {
-	unsigned val[4], x, y, sector[2];
-	unsigned char name[11], str[80];
+	unsigned x, y, sector[2];
 	
-	// pinout for the PMOD SD card board;
-/*
- 	spi_setup(0, 3, 0, 1, 2);
-	spi_set_cs(0);
-	spi_transfer(0xAA, 0);
-	spi_set_cs(1);
-	printf("%04x, %04x, %04x, %04x\n", spi_sck_mask_ds, spi_miso_mask_ds, spi_mosi_mask_ds, spi_cs_mask_ds);
-*/
-	
+	memset(sec, 0, sizeof(sec));
+	printf("\n\nSD Card GPIO demo\n");
+	// pinout for the PMOD SD card board;	
 //sd_init(int port, int cs, int sck, int miso, int mosi)
 	sd_init(0, 3, 0, 1, 2);
 	x = sd_reset();
-	printf("sd_reset() == %x, %04x, %04x, %04x, %04x\n", x, spi_sck_mask_ds, spi_miso_mask_ds, spi_mosi_mask_ds, spi_cs_mask_ds);
+	printf("sd_reset() == %x, %d, %d, %04x, %04x, %04x, %04x\n", x, sd_is_init, sd_is_hc, spi_sck_mask_ds, spi_miso_mask_ds, spi_mosi_mask_ds, spi_cs_mask_ds);
 	if (!x) {
+		printf("csd == ");
 		for (x = 0; x < 16; x++) {
-			printf("csd[%2d] = %02x\n", x, sd_csd[x]);
+			printf("%02x ", sd_csd[x]);
 		}
-		printf("sd_sectors[] == { %04x, %04x }\n", sd_sectors[1], sd_sectors[0]);
-		sector[0] = sector[1] = 0;
-		sd_read_sector(sector, sec);
-		for (x = 0; x < 512; x++) {
-			printf("%02x ", sec[x]);
-			if (((x+1)&15) == 0) {
-				printf("\n");
+		printf("\nsd_sectors[] == { %04x, %04x }\n", sd_sectors[1], sd_sectors[0]);
+		sector[0] = 5; sector[1] = 0;
+		x = sd_read_sector(sector, sec);
+		if (!x) {
+			printf("Read sector #%04x%04x...:\n\t", sector[1], sector[0]);
+			for (x = 0; x < 512; x++) {
+				printf("%02x ", sec[x]);
+				if (((x+1)&15) == 0) {
+					printf("\n\t");
+				}
 			}
+			printf("\n");
+		} else {
+			printf("Error reading sector...%x\n", sd_read_error);
 		}
 	}
 	asm {
 		LD #$F000
 		IJMP
-	}
-	
-	c_clrscr();
-	// calibrate delay_count for 1ms
-	x = delay_calibrate();
-	sprintf(str, "loops per ms == %u (%u)", x, delay_loops(x));
-	c_puts(str);
-
-	outport(1, 0xFF); // turn off all LEDs
-	for (;;) {
-		for (x = 0; x < 256; x++) {
-			outport(0, remap(x));				// output new count to GPIO0
-			inport(1, (0x0100<<4));				// toggle the 0th LED of GPIO1
-			sprintf(str, "x == %u\n", x);
-			c_puts(str);
-			wait_ms(250);
-		}
-	}
-	
-	for (x = 0; x < 4; x++) val[x] = 1 + 2 * x;
-	
-	c_clrscr();
-	
-	// calibrate delay_count for 1ms
-	x = delay_calibrate();
-	sprintf(str, "loops per ms == %u (%u)", x, delay_loops(x));
-	c_puts(str);
-	
-	c_boxmsg(10, 8, "Box text goes here eh");
-	c_boxquery(5, 3, "Hello what's your name:", name, 10);
-	sprintf(str, "Hello '%s'", name);
-	c_boxmsg(15, 15, str);
-	wait_ms(5000);
-	c_gotoxy(0, 0);
-	y = 0;
-	c_clrscr();
-	for (;;) {
-		sprintf(str, "vals: %2x, %2x, %2x, %2x\n", val[0], val[1], val[2], val[3]);
-		c_boxmsg(3, 0, str);
-		sprintf(str, "Loops: %5u", ++y);
-		c_boxmsg(40, 5, str); 
-		wait_ms(250);
-		for (x = 0; x < 4; x++) {
-			val[x] = ((val[x] << 1) | (val[x] >> 7)) & 0xFF;
-			outport(x, val[x]);
-		}
 	}
 }
 

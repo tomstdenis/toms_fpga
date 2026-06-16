@@ -7,7 +7,7 @@
 
 unsigned sd_is_init, sd_is_hc, sd_port, sd_cs_pin, sd_sck_pin, sd_miso_pin, sd_mosi_pin;
 unsigned sd_clk, sd_sectors[2];
-unsigned char sd_csd[18];
+unsigned char sd_csd[18], sd_read_error;
 
 sd_init(unsigned port, unsigned cs, unsigned sck, unsigned miso, unsigned mosi)
 {
@@ -49,15 +49,28 @@ unsigned sd_cmd(unsigned cmd, unsigned ph, unsigned pl, unsigned crc)
 	return 0xFFFF;							// timed out
 }
 
+unsigned sd_cmd13_status()
+{
+	if (sd_cmd(13, 0, 0, 0) == 0) {
+		return spi_transfer(0xFF, sd_clk);
+	} else {
+		return 0xFFFF;
+	}
+}
 
 // read a block, when called we're expecting a read token 0xFE coming up at some point
 int sd_read_block(unsigned char *dst, unsigned len)
 {
-	unsigned x;
+	unsigned x, t;
 	// wait for READ_TOKEN
 	for (x = 0; x < 256; x++) {
-		if (spi_transfer(0xFF, sd_clk) == 0xFE) {
+		t = spi_transfer(0xFF, sd_clk);
+		if (t == 0xFE) {
 			break;
+		}
+		if (!(t&(0x80|0x40|0x20))) {
+			sd_read_error = t & 0x1F;
+			return -1;
 		}
 	}
 	if (x == 256) { return -1; }
@@ -187,14 +200,15 @@ retry:
 	// decode # of sectors (it's bits 69:48 shifted left 10)
 	sd_sectors[0] = (unsigned)sd_csd[9] << 10;
 	sd_sectors[1] = (sd_csd[9] >> 6) | ((unsigned)sd_csd[8] << 2) | ((unsigned)(sd_csd[7] & 0x3F) << 10);
+	sd_is_init    = 1;
 	return 0;
 }
 
-int sd_read_sector(unsigned sector[2], unsigned char *dst)
+unsigned sd_read_sector(unsigned sector[2], unsigned char *dst)
 {
-	int ret;
+	unsigned ret;
 	
-	ret = -1;
+	ret = 0xFFFF;
 	
 	// set SPI to our SD port
 	spi_setup(sd_port, sd_cs_pin, sd_sck_pin, sd_miso_pin, sd_mosi_pin);
