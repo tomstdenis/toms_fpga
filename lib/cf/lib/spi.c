@@ -27,7 +27,6 @@ spi_setup(unsigned port, unsigned cs_pin, unsigned sck_pin, unsigned miso_pin, u
 	spi_sck_mask_ds  = (~spi_sck_mask) << 8;
 	spi_miso_mask_ds = (~spi_miso_mask) << 8;
 	spi_mosi_mask_ds = (~spi_mosi_mask) << 8;
-	printf("%x, %x ??\n", spi_mosi_mask_ds, spi_mosi_mask);
 	
 	// default to all pulled up inputs except sck
 	dirport(port, spi_cs_mask | spi_sck_mask | spi_mosi_mask); // set OE bits

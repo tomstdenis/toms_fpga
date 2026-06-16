@@ -30,9 +30,11 @@ unsigned remap(unsigned v)
 	return (~t) & 0xFF;					// invert since 0 == ON, 1 == OFF
 }
 
+unsigned char sec[512];
+
 main(void)
 {
-	unsigned val[4], x, y;
+	unsigned val[4], x, y, sector[2];
 	unsigned char name[11], str[80];
 	
 	// pinout for the PMOD SD card board;
@@ -53,6 +55,14 @@ main(void)
 			printf("csd[%2d] = %02x\n", x, sd_csd[x]);
 		}
 		printf("sd_sectors[] == { %04x, %04x }\n", sd_sectors[1], sd_sectors[0]);
+		sector[0] = sector[1] = 0;
+		sd_read_sector(sector, sec);
+		for (x = 0; x < 512; x++) {
+			printf("%02x ", sec[x]);
+			if (((x+1)&15) == 0) {
+				printf("\n");
+			}
+		}
 	}
 	asm {
 		LD #$F000

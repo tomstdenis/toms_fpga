@@ -11,6 +11,15 @@ wait_us_top
 	}
 }
 
+// us since last call
+since_us()
+{
+	asm {
+		IN $11			* read uS timer
+		OUT $11			* clear the uS timer
+	}
+}
+
 wait_ms(unsigned ms)
 {
 	while (ms--) {

@@ -49,6 +49,28 @@ unsigned sd_cmd(unsigned cmd, unsigned ph, unsigned pl, unsigned crc)
 	return 0xFFFF;							// timed out
 }
 
+
+// read a block, when called we're expecting a read token 0xFE coming up at some point
+int sd_read_block(unsigned char *dst, unsigned len)
+{
+	unsigned x;
+	// wait for READ_TOKEN
+	for (x = 0; x < 256; x++) {
+		if (spi_transfer(0xFF, sd_clk) == 0xFE) {
+			break;
+		}
+	}
+	if (x == 256) { return -1; }
+
+	// now payload
+	for (x = 0; x < len; x++) {
+		dst[x] = spi_transfer(0xFF, sd_clk);
+	}
+	spi_transfer(0xFF, sd_clk); // skip CRC
+	spi_transfer(0xFF, sd_clk);
+	return 0;
+}
+
 int sd_reset()
 {
 	unsigned x, y, t;
@@ -56,6 +78,7 @@ int sd_reset()
 	y        = 0;
 retry:
 #ifdef DEBUG
+	since_us();
 	printf("sd_reset()::Try %d\n", y);
 #endif
 	sd_clk   = SD_SLOW_CLK;
@@ -64,6 +87,7 @@ retry:
 	if (++y == 16) {
 		return -1;
 	}
+	
 	// set SPI to our SD port
 	spi_setup(sd_port, sd_cs_pin, sd_sck_pin, sd_miso_pin, sd_mosi_pin);
 
@@ -79,21 +103,21 @@ retry:
 	spi_set_cs(0);
 	
 #ifdef DEBUG
-	printf("sd_reset()::Sending CMD0...\n");
+	printf("%5u:sd_reset()::Sending CMD0...\n", since_us());
 #endif
 
 	// send CMD0
 	if (sd_cmd(0, 0, 0, 0x95) != 0x01) { goto retry; }
 	
 #ifdef DEBUG
-	printf("sd_reset()::Sending CMD8...\n");
+	printf("%5u:sd_reset()::Sending CMD8...\n", since_us());
 #endif
 
 	// send CMD8 (this rejects SDSC cards)
 	if (sd_cmd(8, 0, 0x01AA, 0x87) != 0x01) { goto retry; }
 	
 #ifdef DEBUG
-	printf("sd_reset()::Receiving CMD8 payload...\n");
+	printf("%5u:sd_reset()::Receiving CMD8 payload...\n", since_us());
 #endif
 
 	// recv payload 0x000001AA
@@ -103,7 +127,7 @@ retry:
 	if (spi_transfer(0xFF, sd_clk) != 0xAA) { goto retry; }
 
 #ifdef DEBUG
-	printf("sd_reset()::Sending ACMD41...\n");
+	printf("%5u:sd_reset()::Sending ACMD41...\n", since_us());
 #endif
 	
 	// loop on ACMD41 which is CMD55/CMD41(0x40000000)
@@ -119,7 +143,7 @@ retry:
 	sd_clk = SD_FAST_CLK;
 
 #ifdef DEBUG
-	printf("sd_reset()::Sending CMD58...\n");
+	printf("%5u:sd_reset()::Sending CMD58...\n", since_us());
 #endif
 
 	// loop on CMD58 until powered up
@@ -139,32 +163,48 @@ retry:
 	// if it's not SDHC then set blocklen
 	if (!sd_is_hc) {
 #ifdef DEBUG
-	printf("sd_reset()::Sending CMD16...\n");
+	printf("%5u:sd_reset()::Sending CMD16...\n", since_us());
 #endif
 		if (sd_cmd(16, 0, 0x200, 0) != 0x00) { goto retry; }
 	}
 
 #ifdef DEBUG
-	printf("sd_reset()::Sending CMD9...\n");
+	printf("%5u:sd_reset()::Sending CMD9...\n", since_us());
 #endif
 
 	// let's read the CSD
 	if (sd_cmd(9, 0, 0, 0) != 0) { goto retry; }
-	// wait for READ_TOKEN
-	for (x = 0; x < 256; x++) {
-		t = spi_transfer(0xFF, sd_clk);
-		if (t == 0xFE) {
-			break;
-		}
-	}
-	if (x == 256) { goto retry; }
-	// now payload
-	for (x = 0; x < 18; x++) {
-		sd_csd[x] = spi_transfer(0xFF, sd_clk);
-	}
-	
+#ifdef DEBUG
+	printf("%5u:sd_reset()::Reading CMD9 payload...\n", since_us());
+#endif
+	if (sd_read_block(sd_csd, 16) != 0) { goto retry; }
+#ifdef DEBUG
+	printf("%5u:sd_reset()::Init done...\n", since_us());
+#endif
+
+	spi_set_cs(1); // raise CS
+
 	// decode # of sectors (it's bits 69:48 shifted left 10)
-	sd_sectors[0] = (unsigned)sd_csd[6] << 10;
-	sd_sectors[1] = (sd_csd[6] >> 6) | ((unsigned)sd_csd[7] << 2) | ((unsigned)(sd_csd[8] & 0x3F) << 10);
+	sd_sectors[0] = (unsigned)sd_csd[9] << 10;
+	sd_sectors[1] = (sd_csd[9] >> 6) | ((unsigned)sd_csd[8] << 2) | ((unsigned)(sd_csd[7] & 0x3F) << 10);
 	return 0;
+}
+
+int sd_read_sector(unsigned sector[2], unsigned char *dst)
+{
+	int ret;
+	
+	ret = -1;
+	
+	// set SPI to our SD port
+	spi_setup(sd_port, sd_cs_pin, sd_sck_pin, sd_miso_pin, sd_mosi_pin);
+	
+	spi_set_cs(0);
+	if (sd_cmd(17, sector[1], sector[0], 0) != 0) { goto error; }
+	if (sd_read_block(dst, 512) != 0) { goto error; }
+	
+	ret = 0;
+error:
+	spi_set_cs(1);
+	return ret;
 }
