@@ -70,6 +70,10 @@ module top(input wire clk, input wire s1,
         io_port_gpio1 = 8'h02,
         io_port_gpio2 = 8'h03,
         io_port_gpio3 = 8'h04,
+        io_port_gpio0_oe = 8'h05,
+        io_port_gpio1_oe = 8'h06,
+        io_port_gpio2_oe = 8'h07,
+        io_port_gpio3_oe = 8'h08,
         io_port_uart_status = 8'h10,
         io_port_timer = 8'h11,
         io_port_video = 8'h12,
@@ -119,13 +123,14 @@ module top(input wire clk, input wire s1,
         .mdclk());          //input  mdclk
 
     // ### GPIO ###
+    reg [31:0] gpio_oe;
     reg [31:0] gpio_out;
     wire [31:0] gpio_in;
 
     genvar i;
     generate
         for (i = 0; i < 32; i = i + 1) begin : gpio_en
-            assign gpio[i] = gpio_out[i] ? 1'bz : 1'b0;         // requires PULL up 
+            assign gpio[i] = gpio_oe[i] ? gpio_out[i] : 1'bz;         // requires PULL up 
         end
     endgenerate
     assign gpio_in = gpio;
@@ -371,7 +376,8 @@ module top(input wire clk, input wire s1,
             uart_tx_data_in     <= 0;
             uart_rx_read        <= 0;
             bus_cycle           <= 0;
-            gpio_out            <= 16'hFF;
+            gpio_out            <= 32'hFFFFFFFF;
+            gpio_oe             <= 32'h00000000;
             cf_bus_ready        <= 0;
             cf_bus_data_out     <= 0;
             tick_counter        <= 0;
@@ -427,25 +433,24 @@ module top(input wire clk, input wire s1,
                             end
                         end
                     end else if (cf_bus_address[7:0] <= io_port_gpio3) begin // GPIO0..GPIO3
-                        /*
-                            GPIO ports behave diff for reads/writes
-                                Write: the lower 8 bits are the value, and upper 8 bits are the DIRSET where a 0 bit indicates to set the new value
-                                       So like 16'h1FF would only change the 1st GPIO output bit to 1
-
-                                Read:  The upper 8 bits are used to toggle GPIO bits, returning the then current value
-                        */
                         if (cf_bus_wr_en) begin
                             gpio_out[(cf_bus_address[7:0] - io_port_gpio0) * 8 +: 8] <= 
-                                (cf_bus_data_in[15:8] & cur_gpio_bits) | (~cf_bus_data_in[15:8] & cf_bus_data_in[7:0]);
+                                (cur_gpio_bits & cf_bus_address[15:8]) | (~cf_bus_address[15:8] & cf_bus_data_in[7:0]);
                         end else begin
-                            cf_bus_data_out <= { 8'b0, cur_gpio_bits ^ cf_bus_data_in[15:8] };
-                            gpio_out[(cf_bus_address[7:0] - io_port_gpio0) * 8 +: 8] <= cur_gpio_bits ^ cf_bus_data_in[15:8];
+                            cf_bus_data_out <= { 8'b0, gpio_in[(cf_bus_address[7:0] - io_port_gpio0) * 8 +: 8]};
+                        end
+                        cf_bus_ready    <= 1'b1;
+                    end else if (cf_bus_address[7:0] <= io_port_gpio3_oe) begin // GPIO0..GPIO3
+                        if (cf_bus_wr_en) begin
+                            gpio_oe[(cf_bus_address[7:0] - io_port_gpio0_oe) * 8 +: 8] <= cf_bus_data_in[7:0];
+                        end else begin
+                            cf_bus_data_out <= { 8'b0, gpio_oe[(cf_bus_address[7:0] - io_port_gpio0_oe) * 8 +: 8] };
                         end
                         cf_bus_ready    <= 1'b1;
                     end else if (cf_bus_address[7:0] == io_port_uart_status) begin // uart status
                         cf_bus_data_out <= { 8'h00, 5'b0, uart_rx_ready, uart_tx_fifo_empty, uart_tx_fifo_full };
                         cf_bus_ready    <= 1'b1;
-                    end else if (cf_bus_address[7:0] == io_port_timer) begin // timer 1ms tick
+                    end else if (cf_bus_address[7:0] == io_port_timer) begin // timer 1us tick
                         if (cf_bus_wr_en) begin
                             tick_counter <= 0;
                         end

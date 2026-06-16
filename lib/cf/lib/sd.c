@@ -3,13 +3,13 @@
 // 100 KHz = 10uS per cycle (5uS per half cycle)
 #define SD_SLOW_CLK 5
 
-#define SD_FAST_CLK 1
+#define SD_FAST_CLK 0
 
-int sd_is_init, sd_is_hc, sd_port, sd_cs_pin, sd_sck_pin, sd_miso_pin, sd_mosi_pin;
+unsigned sd_is_init, sd_is_hc, sd_port, sd_cs_pin, sd_sck_pin, sd_miso_pin, sd_mosi_pin;
 unsigned sd_clk, sd_sectors[2];
-unsigned char sd_csd[16];
+unsigned char sd_csd[18];
 
-sd_init(int port, int cs, int sck, int miso, int mosi)
+sd_init(unsigned port, unsigned cs, unsigned sck, unsigned miso, unsigned mosi)
 {
 	sd_port = port;
 	sd_cs_pin = cs;
@@ -71,11 +71,8 @@ retry:
 	spi_set_cs(1);
 	
 	// toggle SCK 80 times
-	for (x = 0; x < 80; x++) {
-		spi_set_sck(1);
-		wait_us(sd_clk);
-		spi_set_sck(0);
-		wait_us(sd_clk);
+	for (x = 0; x < 10; x++) {
+		spi_transfer(0xFF, sd_clk);
 	}
 	
 	// make CS low
@@ -162,7 +159,7 @@ retry:
 	}
 	if (x == 256) { goto retry; }
 	// now payload
-	for (x = 0; x < 16; x++) {
+	for (x = 0; x < 18; x++) {
 		sd_csd[x] = spi_transfer(0xFF, sd_clk);
 	}
 	

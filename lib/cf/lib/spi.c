@@ -12,9 +12,9 @@ unsigned spi_cs_mask_ds;
 unsigned spi_sck_mask_ds;
 unsigned spi_miso_mask_ds;
 unsigned spi_mosi_mask_ds;
-int spi_port;
+unsigned spi_port;
 
-spi_setup(int port, int cs_pin, int sck_pin, int miso_pin, int mosi_pin)
+spi_setup(unsigned port, unsigned cs_pin, unsigned sck_pin, unsigned miso_pin, unsigned mosi_pin)
 {
 	spi_port = port;
 	spi_cs_mask = (1 << cs_pin);
@@ -27,9 +27,11 @@ spi_setup(int port, int cs_pin, int sck_pin, int miso_pin, int mosi_pin)
 	spi_sck_mask_ds  = (~spi_sck_mask) << 8;
 	spi_miso_mask_ds = (~spi_miso_mask) << 8;
 	spi_mosi_mask_ds = (~spi_mosi_mask) << 8;
+	printf("%x, %x ??\n", spi_mosi_mask_ds, spi_mosi_mask);
 	
 	// default to all pulled up inputs except sck
-	outport(port, 0x00FF & ~spi_sck_mask);
+	dirport(port, spi_cs_mask | spi_sck_mask | spi_mosi_mask); // set OE bits
+	outport(port, (spi_cs_mask_ds | spi_mosi_mask_ds | spi_sck_mask_ds | spi_miso_mask_ds) | spi_cs_mask);
 }
 
 // set the cs pin to cs
@@ -56,13 +58,13 @@ unsigned spi_transfer(unsigned out, unsigned delay_us)
 			outport(spi_port, spi_mosi_mask_ds | ((out & 0x80) ? spi_mosi_mask : 0));
 			out <<= 1;
 			// delay for SCK half cycle
-			wait_us(delay_us);
+			//wait_us(delay_us);
 			// read MISO
 			y <<= 1;
 			y |= (inport(spi_port, 0) & spi_miso_mask) ? 1 : 0;
 		// SCK high phase
 			spi_set_sck(1);
-			wait_us(delay_us);
+			//wait_us(delay_us);
 			spi_set_sck(0);
 	}
 	return y;

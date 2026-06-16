@@ -1,6 +1,6 @@
 [General]
 decode_signals=0
-meta_objs=1
+meta_objs=0
 views=1
 
 [D0]
@@ -57,7 +57,7 @@ color=4285878395
 conv_options=0
 conversion_type=0
 enabled=true
-name=SCK
+name=CLK
 
 [meta_obj0]
 assoc_view=0
@@ -74,9 +74,9 @@ D4\trace_height=34
 D5\trace_height=34
 D6\trace_height=34
 D7\trace_height=34
-offset=22 serialization::archive 20 0 0 0 0 4 42703984 53130641 67776615 50575806 9033486 0 0 0 6
-scale=3.855260121904031e-06
-segment_display_mode=3
+offset=22 serialization::archive 20 0 0 0 0 1 35380661 48363749 70886498 17847183 3260633 0 0 0 6
+scale=3.8782451837530894e-07
+segment_display_mode=1
 splitter_state=@ByteArray(\0\0\0\xff\0\0\0\x1\0\0\0\x2\0\0\0S\0\0\a\"\x1\0\0\0\x1\x1\0\0\0\x1\0)
-v_offset=56
+v_offset=-121
 zero_offset=22 serialization::archive 20 0 0 0 0 0 0 0 0 0 0 0 0 0 6

@@ -36,9 +36,28 @@ main(void)
 	unsigned char name[11], str[80];
 	
 	// pinout for the PMOD SD card board;
+/*
+ 	spi_setup(0, 3, 0, 1, 2);
+	spi_set_cs(0);
+	spi_transfer(0xAA, 0);
+	spi_set_cs(1);
+	printf("%04x, %04x, %04x, %04x\n", spi_sck_mask_ds, spi_miso_mask_ds, spi_mosi_mask_ds, spi_cs_mask_ds);
+*/
+	
 //sd_init(int port, int cs, int sck, int miso, int mosi)
 	sd_init(0, 3, 0, 1, 2);
-	printf("sd_reset() == %d, %02x, %04x\n", sd_reset(), inport(0,0), spi_sck_mask_ds);
+	x = sd_reset();
+	printf("sd_reset() == %x, %04x, %04x, %04x, %04x\n", x, spi_sck_mask_ds, spi_miso_mask_ds, spi_mosi_mask_ds, spi_cs_mask_ds);
+	if (!x) {
+		for (x = 0; x < 16; x++) {
+			printf("csd[%2d] = %02x\n", x, sd_csd[x]);
+		}
+		printf("sd_sectors[] == { %04x, %04x }\n", sd_sectors[1], sd_sectors[0]);
+	}
+	asm {
+		LD #$F000
+		IJMP
+	}
 	
 	c_clrscr();
 	// calibrate delay_count for 1ms

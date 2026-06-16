@@ -28,6 +28,36 @@ outport(int port, unsigned val)
 	}
 }
 
+dirport(int port, unsigned val)
+{
+	switch (port) {
+		case 0:
+			asm {
+				LD 2,S
+				OUT $05
+			}
+			break;
+		case 1:
+			asm {
+				LD 2,S
+				OUT $06
+			}
+			break;
+		case 2:
+			asm {
+				LD 2,S
+				OUT $07
+			}
+			break;
+		case 3:
+			asm {
+				LD 2,S
+				OUT $08
+			}
+			break;
+	}
+}
+
 inport(int port, unsigned tgl)
 {
 	switch (port) {
