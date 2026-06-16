@@ -12,7 +12,7 @@ unsigned spi_cs_mask_ds;
 unsigned spi_sck_mask_ds;
 unsigned spi_miso_mask_ds;
 unsigned spi_mosi_mask_ds;
-unsigned spi_port;
+unsigned char spi_port;
 
 spi_setup(unsigned port, unsigned cs_pin, unsigned sck_pin, unsigned miso_pin, unsigned mosi_pin)
 {
@@ -60,7 +60,7 @@ unsigned spi_transfer(unsigned out, unsigned delay_us)
 			//wait_us(delay_us);
 			// read MISO
 			y <<= 1;
-			y |= (inport(spi_port, 0) & spi_miso_mask) ? 1 : 0;
+			y |= !!((inport(spi_port, 0) & spi_miso_mask));
 		// SCK high phase
 			spi_set_sck(1);
 			//wait_us(delay_us);

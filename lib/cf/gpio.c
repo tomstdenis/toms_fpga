@@ -49,7 +49,7 @@ main(void)
 			printf("%02x ", sd_csd[x]);
 		}
 		printf("\nsd_sectors[] == { %04x, %04x }\n", sd_sectors[1], sd_sectors[0]);
-		sector[0] = 5; sector[1] = 0;
+		sector[0] = 5; sector[1] = 0x0000;
 		x = sd_read_sector(sector, sec);
 		if (!x) {
 			printf("Read sector #%04x%04x...:\n\t", sector[1], sector[0]);
@@ -61,7 +61,7 @@ main(void)
 			}
 			printf("\n");
 		} else {
-			printf("Error reading sector...%x\n", sd_read_error);
+			printf("Error reading sector#%04x%04x...%x\n", sector[1], sector[0], sd_read_error);
 		}
 	}
 	asm {

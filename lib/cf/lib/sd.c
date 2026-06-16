@@ -5,9 +5,9 @@
 
 #define SD_FAST_CLK 0
 
-unsigned sd_is_init, sd_is_hc, sd_port, sd_cs_pin, sd_sck_pin, sd_miso_pin, sd_mosi_pin;
+unsigned char sd_is_init, sd_is_hc, sd_port, sd_cs_pin, sd_sck_pin, sd_miso_pin, sd_mosi_pin;
 unsigned sd_clk, sd_sectors[2];
-unsigned char sd_csd[18], sd_read_error;
+unsigned char sd_csd[16], sd_read_error;
 
 sd_init(unsigned port, unsigned cs, unsigned sck, unsigned miso, unsigned mosi)
 {
@@ -35,7 +35,7 @@ unsigned sd_cmd(unsigned cmd, unsigned ph, unsigned pl, unsigned crc)
 	
 	// wait for R1 byte
 	for (x = 0; x < 256; x++) {
-		y = spi_transfer(0xFF);
+		y = spi_transfer(0xFF, sd_clk);
 		if (!(y & 0x80)) {
 #ifdef DEBUG
 	printf("sd_cmd::%d, %04x%04x, %02x returned %02x\n", cmd, ph, pl, crc, y);
@@ -126,7 +126,7 @@ retry:
 	printf("%5u:sd_reset()::Sending CMD8...\n", since_us());
 #endif
 
-	// send CMD8 (this rejects SDSC cards)
+	// send CMD8 (this rejects SDSC v1 cards)
 	if (sd_cmd(8, 0, 0x01AA, 0x87) != 0x01) { goto retry; }
 	
 #ifdef DEBUG
@@ -198,27 +198,42 @@ retry:
 	spi_set_cs(1); // raise CS
 
 	// decode # of sectors (it's bits 69:48 shifted left 10)
+	// also recall bit 127 is transmitted first so it's bits 69:48 from sd_csd[15] downwards...
 	sd_sectors[0] = (unsigned)sd_csd[9] << 10;
 	sd_sectors[1] = (sd_csd[9] >> 6) | ((unsigned)sd_csd[8] << 2) | ((unsigned)(sd_csd[7] & 0x3F) << 10);
 	sd_is_init    = 1;
 	return 0;
 }
 
+sd_tail()
+{
+	spi_set_cs(1);
+	spi_transfer(0xFF, sd_clk);						// clock after the command
+	spi_transfer(0xFF, sd_clk);
+}
+
 unsigned sd_read_sector(unsigned sector[2], unsigned char *dst)
 {
-	unsigned ret;
+	unsigned ret, r;
 	
 	ret = 0xFFFF;
+	r = 0;
 	
 	// set SPI to our SD port
 	spi_setup(sd_port, sd_cs_pin, sd_sck_pin, sd_miso_pin, sd_mosi_pin);
 	
 	spi_set_cs(0);
+retry:	
 	if (sd_cmd(17, sector[1], sector[0], 0) != 0) { goto error; }
 	if (sd_read_block(dst, 512) != 0) { goto error; }
 	
 	ret = 0;
 error:
-	spi_set_cs(1);
+	// retry command upto 10 times before bailing
+	if (ret != 0 && r++ < 10) {
+		wait_ms(10);								// wait 10ms between tries
+		goto retry;
+	}
+	sd_tail();
 	return ret;
 }
