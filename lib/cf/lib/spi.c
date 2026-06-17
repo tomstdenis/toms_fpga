@@ -76,7 +76,7 @@ unsigned spi_transfer_in()
 		NOT
 	}
 }
-#endif	
+#endif
 
 // transfer 8 bits, using loops # delay_loops per SCK half cycle
 unsigned spi_transfer(unsigned out)
