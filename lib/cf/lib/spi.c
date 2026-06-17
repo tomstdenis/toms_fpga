@@ -85,8 +85,7 @@ unsigned spi_transfer(unsigned out)
 {
 #ifndef SPI_FIXED
 	unsigned x;
-	x = 8;
-	for (x = 8; x--;) {
+	for (x = 0; x < 8; x++) {
 #endif
 		// SCK low phase
 #ifdef SPI_FIXED
@@ -95,7 +94,7 @@ unsigned spi_transfer(unsigned out)
 			// r1 == x
 			asm {
 				LD 2,S
-				TNI TAR0				* R0 = out
+				TNI TAR0				* R0 = out (what to send)
 				LDB #8
 				TNI TAR1				* R1 = 8
 				
@@ -119,7 +118,7 @@ unsigned spi_transfer(unsigned out)
 				LD #$FE00				* SCK bit enable, write 0
 				OUT $01					* write to PMOD0
 				
-				TNI TR0A				* A = R0
+				TNI TR0A				* A = R0 (which now has MISO shifted in and MOSI in the upper 8 bits)
 				ANDB #255				* only keep bottom bits 
 				RET
 			}
@@ -138,7 +137,7 @@ unsigned spi_transfer(unsigned out)
 	// exit with clock low
 #ifndef SPI_FIXED
 	spi_set_sck(0);
-	return out;
+	return out&0xFF;
 #endif
 }
 

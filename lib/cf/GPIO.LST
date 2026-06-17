@@ -728,7 +728,7 @@ DUNFIELD CFLEA ASSEMBLER: GPIO                                         PAGE: 1
 14A5  D9                   702   RET
 14A6                       703  spi_transfer EQU *
 14A6  04 02                704  				LD 2,S
-14A8  EF                   705  				FCB $EF				* R0 = out
+14A8  EF                   705  				FCB $EF				* R0 = out (what to send)
 14A9  08 08                706  				LDB #8
 14AB  F0                   707  				FCB $F0				* R1 = 8
 14AC                       708  				
@@ -752,7 +752,7 @@ DUNFIELD CFLEA ASSEMBLER: GPIO                                         PAGE: 1
 14C4  00 00 FE             726  				LD #$FE00				* SCK bit enable, write 0
 14C7  EA 01                727  				OUT $01					* write to PMOD0
 14C9                       728  				
-14C9  F1                   729  				FCB $F1				* A = R0
+14C9  F1                   729  				FCB $F1				* A = R0 (which now has MISO shifted in and MOSI in the upper 8 bits)
 14CA  58 FF                730  				ANDB #255				* only keep bottom bits 
 14CC  D9                   731  				RET
 14CD  D9                   732   RET
