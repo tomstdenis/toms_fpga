@@ -84,7 +84,7 @@ unsigned spi_transfer(unsigned out)
 	unsigned x, y;
 		
 	y = 0;
-	for (x = 0; x < 8; x++) {
+	for (x = 8; x--;) {
 		// SCK low phase
 #ifdef SPI_FIXED
 			// write mosi

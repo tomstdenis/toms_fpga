@@ -34,7 +34,7 @@ unsigned sd_cmd(unsigned cmd, unsigned ph, unsigned pl, unsigned crc)
 	spi_transfer(crc);
 	
 	// wait for R1 byte
-	for (x = 0; x < 256; x++) {
+	for (x = 256; x; x--) {
 		y = spi_recv();
 		if (!(y & 0x80)) {
 #ifdef DEBUG
@@ -63,7 +63,7 @@ int sd_read_block(unsigned char *dst, unsigned len)
 {
 	unsigned x, t;
 	// wait for READ_TOKEN
-	for (x = 0; x < 256; x++) {
+	for (x = 256; x--;) {
 		t = spi_recv();
 		if (t == 0xFE) {
 			break;
@@ -73,11 +73,11 @@ int sd_read_block(unsigned char *dst, unsigned len)
 			return -1;
 		}
 	}
-	if (x == 256) { return -1; }
+	if (!x) { return -1; }
 
 	// now payload
-	for (x = 0; x < len; x++) {
-		dst[x] = spi_recv();
+	for (x = len; x--; ) {
+		*dst++ = spi_recv();
 	}
 	spi_recv(); // skip CRC
 	spi_recv();
@@ -149,13 +149,13 @@ retry:
 #endif
 	
 	// loop on ACMD41 which is CMD55/CMD41(0x40000000)
-	for (x = 0; x < 256; x++) {
+	for (x = 256; x; x--) {
 		if (sd_cmd(55, 0, 0, 0) != 0x01) { goto retry; }
 		if (sd_cmd(41, 0x4000, 0, 0) == 0x00) {
 			break;
 		}
 	}
-	if (x == 256) { goto retry; }
+	if (!x) { goto retry; }
 	
 	// switch clockrate
 	sd_clk = SD_FAST_CLK;
@@ -165,7 +165,7 @@ retry:
 #endif
 
 	// loop on CMD58 until powered up
-	for (x = 0; x < 256; x++) {
+	for (x = 256; x; x--) {
 		if (sd_cmd(58, 0, 0, 0) != 0) { goto retry; }
 		t = spi_recv();
 		spi_recv();
@@ -176,7 +176,7 @@ retry:
 			break;
 		}
 	}
-	if (x == 256) { goto retry; }
+	if (!x) { goto retry; }
 	
 	// if it's not SDHC then set blocklen
 	if (!sd_is_hc) {
