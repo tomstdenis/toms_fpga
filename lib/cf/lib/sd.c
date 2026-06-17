@@ -253,8 +253,8 @@ unsigned sd_write_sector(unsigned sector[2], unsigned char *dst)
 	// set SPI to our SD port
 	sd_port_setup();
 
-	spi_set_cs(0);
 retry:	
+	spi_set_cs(0);
 	if (sd_cmd(24, sector[1], sector[0], 0) != 0) { goto error; }
 	spi_transfer(0xFE);
 	for (x = 0; x < 512; x++) {
@@ -270,11 +270,11 @@ retry:
 	
 	ret = 0;
 error:
-	// retry command upto 10 times before bailing
-	if (ret != 0 && r++ < 10) {
-		wait_ms(10);								// wait 10ms between tries
+	sd_tail();
+	// retry command upto 32 times before bailing
+	if (ret != 0 && r++ < 32) {
+		wait_ms(250);								// wait 250ms between tries
 		goto retry;
 	}
-	sd_tail();
 	return ret;
 }
