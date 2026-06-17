@@ -95,10 +95,10 @@ unsigned spi_transfer(unsigned out)
 			asm {
 ?spi_transfer_top EQU *				
 				LD 6,S					* load out, we have to jump over x,y
-				TAI						* save INDEX
+				TAI						* save ACC to INDEX
 				SHR #5					* we want bit 7 at bit 2s location
 				ANDB #$04
-				OR #$FA00				* turn on write enable for bit 2 (MOSI) and bit 1 (SCK), write SCK low
+				OR #$FA00				* turn on write enable for bit 2 (MOSI) and bit 0 (SCK), write SCK low
 				OUT $01
 				TIA						* grab saved copy of out
 				ADAI					* faster than SHL #1

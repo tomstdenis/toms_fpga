@@ -29,6 +29,7 @@ module cf_cpu #(
 	// ISA state
 	reg [15:0] reg_ACC;
 	reg [15:0] reg_INDEX;
+    reg [15:0] reg_R[0:1];
 	reg [15:0] reg_SP;
 	reg [15:0] reg_PC;
 	reg [7:0]  reg_flags;  				// signed{LT, GT}, unsigned{LT, GT}, EQ
@@ -66,7 +67,7 @@ module cf_cpu #(
 
 		FSM_EXECUTE_OPERAND_DA_DF         = 9,		// directly execute or prepare DA..DF
 
-		FSM_EXECUTE_OPERAND_E0_EC         = 10,		// directly prepare or execute E0..EC
+		FSM_EXECUTE_OPERAND_E0_FF         = 10,		// directly prepare or execute E0..EC
 
 		FSM_EXECUTE_OPERAND2_EA_EB        = 11,		// handle EA and EB (I/O)
 		
@@ -99,6 +100,8 @@ module cf_cpu #(
 			bus_burst    <= 0;
 			bus_data_in  <= 0;
 			bus_enable   <= 0;
+            reg_R[0]     <= 0;
+            reg_R[1]     <= 0;
 			reg_ACC		 <= 0;
 			reg_alt      <= 0;
 			reg_INDEX    <= 0;
@@ -158,13 +161,8 @@ module cf_cpu #(
 								fsm_state <= FSM_EXECUTE_OPERAND_D0_D9;
 							end else if (bus_data_out[7:0] >= 8'hDA && bus_data_out[7:0] <= 8'hDF) begin
 								fsm_state <= FSM_EXECUTE_OPERAND_DA_DF;
-							end else if (bus_data_out[7:0] >= 8'hE0 && bus_data_out[7:0] <= 8'hEC) begin
-								fsm_state <= FSM_EXECUTE_OPERAND_E0_EC;
-							end else if (bus_data_out[7:0] == 8'hED) begin
-								reg_ACC   <= {TOP_VER, `cf_core_version};
-							end else if (bus_data_out[7:0] == 8'hEE) begin
-								reg_ACC     <= cycle_count;
-                                cycle_count <= 16'b0;
+							end else if (bus_data_out[7:0] >= 8'hE0 && bus_data_out[7:0] <= 8'hEC) begin 
+								fsm_state <= FSM_EXECUTE_OPERAND_E0_FF;
 							end else begin
 								// unhandled opcodes just make us fetch the next...
 								fsm_state <= fsm_state;
@@ -752,7 +750,7 @@ module cf_cpu #(
 						end
 					end
 
-				FSM_EXECUTE_OPERAND_E0_EC: // misc
+				FSM_EXECUTE_OPERAND_E0_FF: // misc
 					begin
 						if (!bus_enable) begin
 							// this is our first run into this FSM
@@ -762,34 +760,74 @@ module cf_cpu #(
 							bus_io_flag <= 1'b0;
 							bus_burst   <= 1'b0;
 							bus_address <= {1'b0, reg_PC};
-							case(cur_opcode[3:0])
-								4'h0: // CLR
+							case(cur_opcode[4:0])
+								5'h00: // CLR
 									reg_ACC <= 0;
-								4'h1: // COM
+								5'h01: // COM
 									reg_ACC <= ~reg_ACC;
-								4'h2: // NEG
+								5'h02: // NEG
 									reg_ACC <= -reg_ACC;
-								4'h3: // NOT
+								5'h03: // NOT
 									reg_ACC <= reg_ACC == 0 ? 16'd1 : 16'd0;
-								4'h4: // INC
+								5'h04: // INC
 									reg_ACC <= reg_ACC + 1'b1;
-								4'h5: // DEC
+								5'h05: // DEC
 									reg_ACC <= reg_ACC - 1'b1;
-								4'h6: // TAI
+								5'h06: // TAI
 									reg_INDEX <= reg_ACC;
-								4'h7: // TIA
+								5'h07: // TIA
 									reg_ACC <= reg_INDEX;
-								4'h8: // ADAI
+								5'h08: // ADAI
 									reg_INDEX <= reg_INDEX + reg_ACC;
-								4'h9: // ALT
+								5'h09: // ALT
 									reg_ACC <= reg_alt;
-								4'hA, 4'hB: // OUT/IN
+								5'h0A, 5'h0B: // OUT/IN
 									begin
 										// fetch the port number after the opcode
 										fsm_state   <= fsm_state;
 										reg_PC      <= reg_PC + 1'b1;
 									end
-								default: begin end
+                                // *** Start of Tom's New Instructions (CFLEA-TNI) *** 
+                                5'h0D: // (ED) CPUID
+                                    reg_ACC   <= {TOP_VER, `cf_core_version};
+                                5'h0E: // (EE) RDTSC
+                                    begin
+                                        reg_ACC     <= cycle_count;
+                                        cycle_count <= 16'b0;
+                                    end
+                                5'h0F: // (EF) TAR0 (R0 <= A)
+                                    reg_R[0] <= reg_ACC;
+                                5'h10: // (F0) TAR1 (R1 <= A)
+                                    reg_R[1] <= reg_ACC;
+                                5'h11: // (F1) TR0A (A <= R0)
+                                    reg_ACC <= reg_R[0];
+                                5'h12: // (F2) TR1A (A <= R1)
+                                    reg_ACC <= reg_R[1];
+                                5'h13: // (F3) SWAPR0 (A <=> R0)
+                                    begin
+                                        reg_ACC <= reg_R[0];
+                                        reg_R[0] <= reg_ACC;
+                                    end
+                                5'h14: // (F4) SWAPR1 (A <=> R1)
+                                    begin
+                                        reg_ACC <= reg_R[1];
+                                        reg_R[1] <= reg_ACC;
+                                    end
+                                5'h15: // (F5) DEC_R0_A (R0 <= R0 - 1, ACC <= R0) 
+                                    begin
+                                        reg_ACC  <= reg_R[0] - 1'b1;
+                                        reg_R[0] <= reg_R[0] - 1'b1;
+                                    end
+                                5'h16: // (F6) DEC_R1_A (R1 <= R1 - 1, ACC <= R1) 
+                                    begin
+                                        reg_ACC  <= reg_R[1] - 1'b1;
+                                        reg_R[1] <= reg_R[1] - 1'b1;
+                                    end
+                                5'h17: // (F7) R0 <= R0 + ACC
+                                    reg_R[0] <= reg_R[0] + reg_ACC;
+                                5'h18: // (F8) R1 <= R1 + ACC
+                                    reg_R[1] <= reg_R[1] + reg_ACC;
+                                default: begin end
 							endcase
 						end
 						if (bus_enable && bus_ready) begin
