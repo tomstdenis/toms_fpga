@@ -87,17 +87,12 @@ unsigned spi_transfer(unsigned out)
 	for (x = 0; x < 8; x++) {
 		// SCK low phase
 #ifdef SPI_FIXED
-			asm {
-				LD #$FE00				* enable writesel for SCK and SCK=0
-				OUT $01
-			}
-
 			// write mosi
 			asm {
 				LD 6,S					* load out, we have to jump over x,y 
 				SHR #5					* we want bit 7 at bit 2s location
 				ANDB #$04
-				OR #$FB00				* turn on write enable for bit 2
+				OR #$FA00				* turn on write enable for bit 2 and bit 1 (SCK), write SCK low
 				OUT $01
 				LD 6,S					* shift out left one
 				SHL #1
@@ -109,17 +104,13 @@ unsigned spi_transfer(unsigned out)
 				LD 2,S					* load y
 				SHL #1					* shift left
 				ST 2,S					* store it
-				CLR						* ensure ACC is cleared when inputting to avoid toggling
+				LD #$0100				* toggle the SCK pin
 				IN $01
 				ANDB #$02				* mask for MISO
 				NOT
 				NOT
 				OR 2,S					* or in y
 				ST 2,S					* store in y
-			}
-			asm {
-				LD #$FE01
-				OUT $01
 			}
 #else
 			spi_set_sck(0);
@@ -133,6 +124,8 @@ unsigned spi_transfer(unsigned out)
 			spi_set_sck(1);
 #endif
 	}
+	
+	// exit with clock low
 #ifdef SPI_FIXED
 	asm {
 		LD #$FE00

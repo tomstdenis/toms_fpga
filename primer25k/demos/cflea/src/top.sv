@@ -437,7 +437,8 @@ module top(input wire clk, input wire s1,
                             gpio_out[(cf_bus_address[7:0] - io_port_gpio0) * 8 +: 8] <= 
                                 (cur_gpio_bits & cf_bus_address[15:8]) | (~cf_bus_address[15:8] & cf_bus_data_in[7:0]);
                         end else begin
-                            cf_bus_data_out <= { 8'b0, gpio_in[(cf_bus_address[7:0] - io_port_gpio0) * 8 +: 8]};
+                            gpio_out[(cf_bus_address[7:0] - io_port_gpio0) * 8 +: 8] <= cur_gpio_bits ^ cf_bus_data_in[15:8];
+                            cf_bus_data_out <= { 8'b0, gpio_in[(cf_bus_address[7:0] - io_port_gpio0) * 8 +: 8] ^ cf_bus_data_in[15:8]};
                         end
                         cf_bus_ready    <= 1'b1;
                     end else if (cf_bus_address[7:0] <= io_port_gpio3_oe) begin // GPIO0..GPIO3
