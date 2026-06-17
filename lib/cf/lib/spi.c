@@ -84,11 +84,16 @@ unsigned spi_transfer(unsigned out)
 	unsigned x, y;
 		
 	y = 0;
+#ifdef SPI_FIXED
+	x = 8;
+#else
 	for (x = 8; x--;) {
+#endif
 		// SCK low phase
 #ifdef SPI_FIXED
 			// write mosi
 			asm {
+?spi_transfer_top EQU *				
 				LD 6,S					* load out, we have to jump over x,y
 				TAI						* save INDEX
 				SHR #5					* we want bit 7 at bit 2s location
@@ -113,6 +118,14 @@ unsigned spi_transfer(unsigned out)
 				ADAI					* add accumulate miso bit to INDEX
 				STI 2,S					* store INDEX back in y
 			}
+			
+			// loop 
+			asm {
+				LD 0,S
+				DEC
+				ST 0,S
+				SJNZ ?spi_transfer_top
+			}
 #else
 			spi_set_sck(0);
 			// load current bit
@@ -123,8 +136,8 @@ unsigned spi_transfer(unsigned out)
 			y |= !!((inport(spi_port, 0) & spi_miso_mask));
 		// SCK high phase
 			spi_set_sck(1);
-#endif
 	}
+#endif
 	
 	// exit with clock low
 #ifdef SPI_FIXED
