@@ -89,28 +89,29 @@ unsigned spi_transfer(unsigned out)
 #ifdef SPI_FIXED
 			// write mosi
 			asm {
-				LD 6,S					* load out, we have to jump over x,y 
+				LD 6,S					* load out, we have to jump over x,y
+				TAI						* save INDEX
 				SHR #5					* we want bit 7 at bit 2s location
 				ANDB #$04
 				OR #$FA00				* turn on write enable for bit 2 and bit 1 (SCK), write SCK low
 				OUT $01
-				LD 6,S					* shift out left one
-				SHL #1
-				ST 6,S
+				TIA						* grab saved copy of out
+				ADAI					* faster than SHL #1
+				STI 6,S
 			}
 
 			// load miso
 			asm {
 				LD 2,S					* load y
 				SHL #1					* shift left
-				ST 2,S					* store it
+				TAI						* save in index
 				LD #$0100				* toggle the SCK pin
 				IN $01
 				ANDB #$02				* mask for MISO
 				NOT
 				NOT
-				OR 2,S					* or in y
-				ST 2,S					* store in y
+				ADAI					* add accumulate miso bit to INDEX
+				STI 2,S					* store INDEX back in y
 			}
 #else
 			spi_set_sck(0);
