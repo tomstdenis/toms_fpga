@@ -98,7 +98,7 @@ unsigned spi_transfer(unsigned out)
 				TAI						* save INDEX
 				SHR #5					* we want bit 7 at bit 2s location
 				ANDB #$04
-				OR #$FA00				* turn on write enable for bit 2 and bit 1 (SCK), write SCK low
+				OR #$FA00				* turn on write enable for bit 2 (MOSI) and bit 1 (SCK), write SCK low
 				OUT $01
 				TIA						* grab saved copy of out
 				ADAI					* faster than SHL #1
@@ -121,7 +121,7 @@ unsigned spi_transfer(unsigned out)
 			
 			// loop 
 			asm {
-				LD 0,S
+				LD 0,S					* load x
 				DEC
 				ST 0,S
 				SJNZ ?spi_transfer_top

@@ -1,12 +1,7 @@
 // SD library
 
-// 100 KHz = 10uS per cycle (5uS per half cycle)
-#define SD_SLOW_CLK 5
-
-#define SD_FAST_CLK 0
-
 unsigned char sd_is_init, sd_is_hc, sd_port, sd_cs_pin, sd_sck_pin, sd_miso_pin, sd_mosi_pin;
-unsigned sd_clk, sd_sectors[2];
+unsigned sd_sectors[2];
 unsigned char sd_csd[16], sd_read_error;
 
 sd_init(unsigned port, unsigned cs, unsigned sck, unsigned miso, unsigned mosi)
@@ -99,7 +94,6 @@ retry:
 	since_us();
 	printf("sd_reset()::Try %d\n", y);
 #endif
-	sd_clk     = SD_SLOW_CLK;
 	sd_is_hc   = 0;
 	sd_is_init = 0;
 	if (++y == 16) {
@@ -156,9 +150,6 @@ retry:
 		}
 	}
 	if (!x) { goto retry; }
-	
-	// switch clockrate
-	sd_clk = SD_FAST_CLK;
 
 #ifdef DEBUG
 	printf("%5u:sd_reset()::Sending CMD58...\n", since_us());

@@ -1,6 +1,6 @@
 [General]
 decode_signals=0
-meta_objs=0
+meta_objs=1
 views=1
 
 [D0]
@@ -61,8 +61,8 @@ name=CLK
 
 [meta_obj0]
 assoc_view=0
-end_time=22 serialization::archive 20 0 0 0 0 4 2784687 49999998 26627572 47453555 46474456 0 0 0 6
-start_time=22 serialization::archive 20 0 0 0 0 4 2732699 99999996 57120497 43160605 43060302 0 0 0 6
+end_time=22 serialization::archive 20 0 0 0 0 1 40452162 50000001 6808784 3945825 99401473 0 0 0 6
+start_time=22 serialization::archive 20 0 0 0 0 1 40451999 99999999 90691890 16154268 75650882 0 0 0 6
 type=selection
 
 [view0]
@@ -74,9 +74,9 @@ D4\trace_height=34
 D5\trace_height=34
 D6\trace_height=34
 D7\trace_height=34
-offset=22 serialization::archive 20 0 0 0 0 1 35380661 48363749 70886498 17847183 3260633 0 0 0 6
-scale=3.8782451837530894e-07
-segment_display_mode=1
+offset=22 serialization::archive 20 0 0 0 0 1 40465723 72233641 40975503 82070015 17740164 0 0 0 6
+scale=9.815875324861357e-08
+segment_display_mode=3
 splitter_state=@ByteArray(\0\0\0\xff\0\0\0\x1\0\0\0\x2\0\0\0S\0\0\a\"\x1\0\0\0\x1\x1\0\0\0\x1\0)
 v_offset=-121
 zero_offset=22 serialization::archive 20 0 0 0 0 0 0 0 0 0 0 0 0 0 6
