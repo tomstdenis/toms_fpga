@@ -161,7 +161,7 @@ module cf_cpu #(
 								fsm_state <= FSM_EXECUTE_OPERAND_D0_D9;
 							end else if (bus_data_out[7:0] >= 8'hDA && bus_data_out[7:0] <= 8'hDF) begin
 								fsm_state <= FSM_EXECUTE_OPERAND_DA_DF;
-							end else if (bus_data_out[7:0] >= 8'hE0 && bus_data_out[7:0] <= 8'hEC) begin 
+							end else if (bus_data_out[7:0] >= 8'hE0) begin 
 								fsm_state <= FSM_EXECUTE_OPERAND_E0_FF;
 							end else begin
 								// unhandled opcodes just make us fetch the next...

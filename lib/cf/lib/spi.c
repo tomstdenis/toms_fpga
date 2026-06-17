@@ -14,6 +14,8 @@ unsigned spi_sck_mask_ds;
 unsigned spi_miso_mask_ds;
 unsigned spi_mosi_mask_ds;
 unsigned char spi_port;
+#else
+#include "lib/tni.h"
 #endif
 
 spi_setup(unsigned port, unsigned cs_pin, unsigned sck_pin, unsigned miso_pin, unsigned mosi_pin)
@@ -81,50 +83,45 @@ unsigned spi_transfer_in()
 // transfer 8 bits, using loops # delay_loops per SCK half cycle
 unsigned spi_transfer(unsigned out)
 {
-	unsigned x, y;
-		
-	y = 0;
-#ifdef SPI_FIXED
+#ifndef SPI_FIXED
+	unsigned x;
 	x = 8;
-#else
 	for (x = 8; x--;) {
 #endif
 		// SCK low phase
 #ifdef SPI_FIXED
 			// write mosi
+			// r0 == out
+			// r1 == x
 			asm {
-?spi_transfer_top EQU *				
-				LD 6,S					* load out, we have to jump over x,y
-				TAI						* save ACC to INDEX
-				SHR #5					* we want bit 7 at bit 2s location
-				ANDB #$04
-				OR #$FA00				* turn on write enable for bit 2 (MOSI) and bit 0 (SCK), write SCK low
-				OUT $01
-				TIA						* grab saved copy of out
-				ADAI					* faster than SHL #1
-				STI 6,S
-			}
-
-			// load miso
-			asm {
-				LD 2,S					* load y
-				SHL #1					* shift left
-				TAI						* save in index
-				LD #$0100				* toggle the SCK pin
-				IN $01
-				ANDB #$02				* mask for MISO
-				NOT
-				NOT
-				ADAI					* add accumulate miso bit to INDEX
-				STI 2,S					* store INDEX back in y
-			}
-			
-			// loop 
-			asm {
-				LD 0,S					* load x
-				DEC
-				ST 0,S
+				LD 2,S
+				TNI TAR0				* R0 = out
+				LDB #8
+				TNI TAR1				* R1 = 8
+				
+?spi_transfer_top EQU *
+				TNI TR0A				* A = R0
+				TNI ADAR0				* R0 = R0 << 1
+				SHR #5					* we want bit 7 of out to be in bit 2 (mosi) location
+				ANDB #4					* mask mosi bit
+				OR #$FA00				* enable SCK and MOSI output (also write SCK=0)
+				OUT $01					* write to PMOD0
+				
+				LD #$0100				* enable toggle of SCK pin
+				IN $01					* read PMOD0 and toggle SCK
+				ANDB #2					* mask MISO bit
+				SHR #1					* shift left
+				TNI ADAR0				* add MISO bit to R0 (out)
+				
+				TNI DECR1A				* DEC R1 and store copy in ACC
 				SJNZ ?spi_transfer_top
+				
+				LD #$FE00				* SCK bit enable, write 0
+				OUT $01					* write to PMOD0
+				
+				TNI TR0A				* A = R0
+				ANDB #255				* only keep bottom bits 
+				RET
 			}
 #else
 			spi_set_sck(0);
@@ -132,24 +129,17 @@ unsigned spi_transfer(unsigned out)
 			outport(spi_port, spi_mosi_mask_ds | ((out & 0x80) ? spi_mosi_mask : 0));
 			out <<= 1;
 			// read MISO
-			y <<= 1;
-			y |= !!((inport(spi_port, 0) & spi_miso_mask));
+			out |= !!((inport(spi_port, 0) & spi_miso_mask));
 		// SCK high phase
 			spi_set_sck(1);
 	}
 #endif
 	
 	// exit with clock low
-#ifdef SPI_FIXED
-	asm {
-		LD #$FE00
-		OUT $01
-	}
-#else
+#ifndef SPI_FIXED
 	spi_set_sck(0);
+	return out;
 #endif
-
-	return y;
 }
 
 unsigned spi_recv()
