@@ -229,7 +229,11 @@ unsigned sd_sector_op(unsigned sector[2], unsigned char *dst, int wr_en)
 
 retry:
 	spi_set_cs(0);
+#ifdef SD_NO_WRITE
+	if (sd_cmd(17, sector[1], sector[0], 0) != 0) { goto error; }
+#else
 	if (sd_cmd(wr_en ? 24 : 17, sector[1], sector[0], 0) != 0) { goto error; }
+#endif
 	if (wr_en) {
 #ifndef SD_NO_WRITE
 		spi_transfer(0xFE);
