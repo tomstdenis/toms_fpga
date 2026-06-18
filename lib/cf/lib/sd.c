@@ -29,8 +29,7 @@ sd_init(unsigned port, unsigned cs, unsigned sck, unsigned miso, unsigned mosi)
 	sd_miso_pin = miso;
 	sd_mosi_pin = mosi;
 #endif
-	sd_is_hc = 0;
-	sd_is_init = 0;
+	sd_is_hc = sd_is_init = 0;
 #ifdef SPI_FIXED
 	spi_setup();
 #else
@@ -105,8 +104,7 @@ retry:
 	since_us();
 	printf("sd_reset()::Try %d\n", y);
 #endif
-	sd_is_hc   = 0;
-	sd_is_init = 0;
+	sd_is_hc   = sd_is_init = 0;
 	if (++y == 16) {
 		return -1;
 	}
@@ -146,11 +144,7 @@ retry:
 #endif
 
 	// recv payload 0x000001AA
-	b = spi_recv();
-	b += spi_recv();
-	b += spi_recv();
-	b += spi_recv();
-	if (b != 0xAB) goto retry;
+	if ((spi_recv() + spi_recv() + spi_recv() + spi_recv()) != 0xAB) goto retry;
 
 #ifdef DEBUG
 	printf("%5u:sd_reset()::Sending ACMD41...\n", since_us());
@@ -234,8 +228,8 @@ retry:
 #else
 	if (sd_cmd(wr_en ? 24 : 17, sector[1], sector[0], 0) != 0) { goto error; }
 #endif
-	if (wr_en) {
 #ifndef SD_NO_WRITE
+	if (wr_en) {
 		spi_transfer(0xFE);
 		for (x = 0; x < 512; x++) {
 			spi_transfer(dst[x]);
@@ -247,10 +241,12 @@ retry:
 			if (spi_recv()) { break; }
 		}
 		if (x == 0) { goto error; }
-#endif
 	} else {
+#endif
 		if (sd_read_block(dst, 512) != 0) { goto error; }
+#ifndef SD_NO_WRITE
 	}
+#endif
 
 	ret = 0;
 error:

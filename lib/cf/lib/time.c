@@ -31,6 +31,7 @@ wait_ms(unsigned ms)
 	}
 }
 
+/*
 unsigned delay_loops(unsigned x)
 {
 	asm {
@@ -60,5 +61,5 @@ unsigned delay_calibrate()
 	} while (top != bot);
 	return x;
 }
-
+*/
 #endif
