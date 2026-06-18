@@ -5,7 +5,6 @@
 
 #include <cflea.h>
 #include "lib/memcmp.c"
-#include "lib/memset.c"
 #include "lib/console.c"
 #include "lib/time.c"
 #include "lib/port.c"
