@@ -3,6 +3,7 @@
 #define SD_C_
 
 #ifdef SD_BIOS
+// 0xFFE0..0xFFEF for BIOS based SD lib
 #define sd_is_init *((unsigned char*)0xFFEF)
 #define sd_is_hc *((unsigned char*)0xFFEE)
 #define sd_sectors ((unsigned*)0xFFEA)

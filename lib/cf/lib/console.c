@@ -6,6 +6,7 @@
 // store console variables at end of vidmem
 // this leaves the main 60K block totally free for
 // the app
+// use 0xFFF0..0xFFFF for console code
 #define console_x ((unsigned *)(0xFFFE))
 #define console_y ((unsigned *)(0xFFFC))
 #define console_tx ((unsigned *)(0xFFFA))
