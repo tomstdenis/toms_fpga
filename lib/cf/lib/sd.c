@@ -2,7 +2,7 @@
 
 unsigned char sd_is_init, sd_is_hc;
 unsigned sd_sectors[2];
-unsigned char sd_csd[16], sd_read_error;
+unsigned char sd_csd[16];
 
 #ifndef SPI_FIXED
 unsigned char sd_port, sd_cs_pin, sd_sck_pin, sd_miso_pin, sd_mosi_pin;
@@ -55,15 +55,6 @@ unsigned sd_cmd(unsigned cmd, unsigned ph, unsigned pl, unsigned crc)
 	return 0xFFFF;							// timed out
 }
 
-unsigned sd_cmd13_status()
-{
-	if (sd_cmd(13, 0, 0, 0) == 0) {
-		return spi_recv();
-	} else {
-		return 0xFFFF;
-	}
-}
-
 // read a block, when called we're expecting a read token 0xFE coming up at some point
 int sd_read_block(unsigned char *dst, unsigned len)
 {
@@ -72,22 +63,15 @@ int sd_read_block(unsigned char *dst, unsigned len)
 	for (x = 256; x--;) {
 		t = spi_recv();
 		if (t == 0xFE) {
-			break;
-		}
-		if (!(t&(0x80|0x40|0x20))) {
-			sd_read_error = t & 0x1F;
-			return -1;
+			for (x = len; x--; ) {
+				*dst++ = spi_recv();
+			}
+			spi_recv(); // skip CRC
+			spi_recv();
+			return 0;
 		}
 	}
-	if (!x) { return -1; }
-
-	// now payload
-	for (x = len; x--; ) {
-		*dst++ = spi_recv();
-	}
-	spi_recv(); // skip CRC
-	spi_recv();
-	return 0;
+	return -1;
 }
 
 #ifndef SPI_FIXED
