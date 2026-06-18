@@ -89,8 +89,11 @@ main(void)
 	
 	printf("\n\nSD Card GPIO demo\n");
 	// pinout for the PMOD SD card board;	
-//sd_init(int port, int cs, int sck, int miso, int mosi)
+#ifdef SPI_FIXED
+	sd_init()
+#else
 	sd_init(0, 3, 0, 1, 2);
+#endif
 	x = sd_reset();
 	printf("sd_reset() == %x, %d, %d\n", x, sd_is_init, sd_is_hc);
 	if (x) {

@@ -12,6 +12,7 @@ topofbios EQU *
 
 #define SPI_FIXED
 #define SD_BIOS
+#define SD_NO_WRITE
 #include <cflea.h>
 #include "lib/time.c"
 #include "lib/getc.c"
@@ -21,6 +22,22 @@ topofbios EQU *
 #include "lib/sd.c"
 
 main() {
+	unsigned sector[2];
+	sd_init();
+	if (!sd_reset()) {
+		// read first 8 sectors (4KB) at 0x0000 and jump there
+		sector[1] = 0;
+		for (sector[0] = 0; sector[0] < 8; sector[0]++) {
+			if (sd_sector_op(sector, 0x0000, 0) != 0) { goto terminal; }
+		}
+		
+		asm {
+			CLR
+			IJMP
+		}
+	}
+terminal:
+	// at this point we go interactive
 }
 
 asm {

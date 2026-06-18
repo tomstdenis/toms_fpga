@@ -16,7 +16,11 @@ unsigned sd_sectors[2];
 unsigned char sd_port, sd_cs_pin, sd_sck_pin, sd_miso_pin, sd_mosi_pin;
 #endif
 
+#ifdef SPI_FIXED
+sd_init()
+#else
 sd_init(unsigned port, unsigned cs, unsigned sck, unsigned miso, unsigned mosi)
+#endif
 {
 #ifndef SPI_FIXED
 	sd_port = port;
@@ -227,6 +231,7 @@ retry:
 	spi_set_cs(0);
 	if (sd_cmd(wr_en ? 24 : 17, sector[1], sector[0], 0) != 0) { goto error; }
 	if (wr_en) {
+#ifndef SD_NO_WRITE
 		spi_transfer(0xFE);
 		for (x = 0; x < 512; x++) {
 			spi_transfer(dst[x]);
@@ -238,6 +243,7 @@ retry:
 			if (spi_recv()) { break; }
 		}
 		if (x == 0) { goto error; }
+#endif
 	} else {
 		if (sd_read_block(dst, 512) != 0) { goto error; }
 	}
