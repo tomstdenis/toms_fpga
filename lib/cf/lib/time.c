@@ -1,3 +1,7 @@
+#ifndef TIME_C_
+#define TIME_C_
+
+
 // wait upto 65535 us
 wait_us(unsigned us)
 {
@@ -56,3 +60,5 @@ unsigned delay_calibrate()
 	} while (top != bot);
 	return x;
 }
+
+#endif

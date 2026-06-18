@@ -1,4 +1,6 @@
 // SD library
+#ifndef SD_C_
+#define SD_C_
 
 unsigned char sd_is_init, sd_is_hc;
 unsigned sd_sectors[2];
@@ -245,3 +247,5 @@ error:
 	}
 	return ret;
 }
+
+#endif

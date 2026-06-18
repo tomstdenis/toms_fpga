@@ -1,3 +1,6 @@
+#ifndef PORT_C_
+#define PORT_C_
+
 outport(int port, unsigned val)
 {
 	switch (port) {
@@ -91,3 +94,5 @@ inport(int port, unsigned tgl)
 			break;
 	}
 }
+
+#endif

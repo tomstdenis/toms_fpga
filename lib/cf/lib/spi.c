@@ -3,6 +3,8 @@
 Assumes the entire SPI interface is on one GPIO block
 
 */
+#ifndef SPI_C_
+#define SPI_C_
 
 #ifndef SPI_FIXED
 unsigned spi_cs_mask;
@@ -138,3 +140,5 @@ unsigned spi_recv()
 {
 	return spi_transfer(0xFF);
 }
+
+#endif

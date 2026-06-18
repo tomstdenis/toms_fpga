@@ -1,3 +1,6 @@
+#ifndef CONSOLE_C_
+#define CONSOLE_C_
+
 #define vidmem ((unsigned char *)0xF800)
 
 // store console variables at end of vidmem
@@ -159,3 +162,5 @@ c_boxquery(unsigned x1, unsigned y1, char *msg, char *dst, unsigned len) {
 	*console_x = *console_tx;
 	*console_y = *console_ty;
 }
+
+#endif
