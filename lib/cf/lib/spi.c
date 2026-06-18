@@ -18,12 +18,20 @@ unsigned char spi_port;
 #include "lib/tni.h"
 #endif
 
+#ifdef SPI_FIXED
+spi_setup()
+#else
 spi_setup(unsigned port, unsigned cs_pin, unsigned sck_pin, unsigned miso_pin, unsigned mosi_pin)
+#endif
 {
 	// default to all pulled up inputs except sck
 #ifdef SPI_FIXED
-	dirport(0, 0x08 | 0x01 | 0x04); // make CS, SCK, and MOSI outputs
-	outport(0, (0x08 | 0x02));				// make CS/MISO high
+	asm {
+		LDB #$0D					* CS | SCK | MOSI as outputs
+		OUT $5
+		LDB #$0A					* make CS and MISO high
+		OUT $1
+	}
 #else
 	spi_port = port;
 	spi_cs_mask = (1 << cs_pin);
@@ -58,25 +66,10 @@ spi_set_cs(int cs)
 }
 
 // set the sck pin to sck
+#ifndef SPI_FIXED
 spi_set_sck(int sck)
 {
-#ifdef SPI_FIXED
-	outport(0, (0xFF00 ^ 0x0100) | (sck ? 1 : 0));
-#else
 	outport(spi_port, spi_sck_mask_ds | (sck ? spi_sck_mask : 0));
-#endif
-}
-
-#ifdef SPI_FIXED
-unsigned spi_transfer_in()
-{
-	asm {
-		CLR
-		IN $01
-		ANDB #$02
-		NOT
-		NOT
-	}
 }
 #endif
 

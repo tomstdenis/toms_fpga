@@ -106,7 +106,7 @@ main(void)
 	for (;;) {
 		memset(sec, 0, sizeof(sec));
 		since_us();
-		x = sd_read_sector(sector, sec);
+		x = sd_sector_op(sector, sec, 0);
 		if (!x) {
 			if (!(sector[0] & 0x3F)) {
 				printf("Read sector #%04x%04x in %u uS\n", sector[1], sector[0], since_us());
@@ -126,7 +126,7 @@ main(void)
 		
 		// write to next sector
 		since_us();
-		x = sd_write_sector(sector, sec);
+		x = sd_sector_op(sector, sec, 1);
 		if (!x) {
 			if (!((sector[0] - 1) & 0x3F)) {
 				printf("Wrote sector #%04x%04x in %5u uS\n", sector[1], sector[0], since_us());

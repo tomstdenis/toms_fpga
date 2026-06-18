@@ -1,18 +1,29 @@
 // SD library
 
-unsigned char sd_is_init, sd_is_hc, sd_port, sd_cs_pin, sd_sck_pin, sd_miso_pin, sd_mosi_pin;
+unsigned char sd_is_init, sd_is_hc;
 unsigned sd_sectors[2];
 unsigned char sd_csd[16], sd_read_error;
 
+#ifndef SPI_FIXED
+unsigned char sd_port, sd_cs_pin, sd_sck_pin, sd_miso_pin, sd_mosi_pin;
+#endif
+
 sd_init(unsigned port, unsigned cs, unsigned sck, unsigned miso, unsigned mosi)
 {
+#ifndef SPI_FIXED
 	sd_port = port;
 	sd_cs_pin = cs;
 	sd_sck_pin = sck;
 	sd_miso_pin = miso;
 	sd_mosi_pin = mosi;
+#endif
 	sd_is_hc = 0;
 	sd_is_init = 0;
+#ifdef SPI_FIXED
+	spi_setup();
+#else
+	spi_setup(port, cs, sck, miso, mosi);
+#endif
 }
 
 unsigned sd_cmd(unsigned cmd, unsigned ph, unsigned pl, unsigned crc)
@@ -29,7 +40,7 @@ unsigned sd_cmd(unsigned cmd, unsigned ph, unsigned pl, unsigned crc)
 	spi_transfer(crc);
 	
 	// wait for R1 byte
-	for (x = 256; x; x--) {
+	for (x = 256; x--; ) {
 		y = spi_recv();
 		if (!(y & 0x80)) {
 #ifdef DEBUG
@@ -79,14 +90,17 @@ int sd_read_block(unsigned char *dst, unsigned len)
 	return 0;
 }
 
+#ifndef SPI_FIXED
 sd_port_setup()
 {
 	spi_setup(sd_port, sd_cs_pin, sd_sck_pin, sd_miso_pin, sd_mosi_pin);
 }
+#endif
 
 int sd_reset()
 {
 	unsigned x, y, t;
+	unsigned char b;
 
 	y        = 0;
 retry:
@@ -100,14 +114,16 @@ retry:
 		return -1;
 	}
 	
+#ifndef SPI_FIXED
 	// set SPI to our SD port
 	sd_port_setup();
+#endif
 
 	// make CS high
 	spi_set_cs(1);
 	
 	// toggle SCK 80 times
-	for (x = 0; x < 10; x++) {
+	for (x = 10; x--;) {
 		spi_recv();
 	}
 	
@@ -133,17 +149,18 @@ retry:
 #endif
 
 	// recv payload 0x000001AA
-	if (spi_recv() != 0x00) { goto retry; }
-	if (spi_recv() != 0x00) { goto retry; }
-	if (spi_recv() != 0x01) { goto retry; }
-	if (spi_recv() != 0xAA) { goto retry; }
+	b = spi_recv();
+	b += spi_recv();
+	b += spi_recv();
+	b += spi_recv();
+	if (b != 0xAB) goto retry;
 
 #ifdef DEBUG
 	printf("%5u:sd_reset()::Sending ACMD41...\n", since_us());
 #endif
 	
 	// loop on ACMD41 which is CMD55/CMD41(0x40000000)
-	for (x = 256; x; x--) {
+	for (x = 256; x--; ) {
 		if (sd_cmd(55, 0, 0, 0) != 0x01) { goto retry; }
 		if (sd_cmd(41, 0x4000, 0, 0) == 0x00) {
 			break;
@@ -156,7 +173,7 @@ retry:
 #endif
 
 	// loop on CMD58 until powered up
-	for (x = 256; x; x--) {
+	for (x = 256; x--; ) {
 		if (sd_cmd(58, 0, 0, 0) != 0) { goto retry; }
 		t = spi_recv();
 		spi_recv();
@@ -208,57 +225,37 @@ sd_tail()
 	spi_recv();
 }
 
-unsigned sd_read_sector(unsigned sector[2], unsigned char *dst)
-{
-	unsigned ret, r;
-	
-	ret = 0xFFFF;
-	r = 0;
-	
-	// set SPI to our SD port
-	sd_port_setup();
-
-	spi_set_cs(0);
-retry:	
-	if (sd_cmd(17, sector[1], sector[0], 0) != 0) { goto error; }
-	if (sd_read_block(dst, 512) != 0) { goto error; }
-	
-	ret = 0;
-error:
-	// retry command upto 10 times before bailing
-	if (ret != 0 && r++ < 10) {
-		wait_ms(10);								// wait 10ms between tries
-		goto retry;
-	}
-	sd_tail();
-	return ret;
-}
-
-unsigned sd_write_sector(unsigned sector[2], unsigned char *dst)
+unsigned sd_sector_op(unsigned sector[2], unsigned char *dst, int wr_en)
 {
 	unsigned ret, r, x;
 	
 	ret = 0xFFFF;
 	r = 0;
 	
+#ifndef SPI_FIXED
 	// set SPI to our SD port
 	sd_port_setup();
+#endif
 
-retry:	
+retry:
 	spi_set_cs(0);
-	if (sd_cmd(24, sector[1], sector[0], 0) != 0) { goto error; }
-	spi_transfer(0xFE);
-	for (x = 0; x < 512; x++) {
-		spi_transfer(dst[x]);
+	if (sd_cmd(wr_en ? 24 : 17, sector[1], sector[0], 0) != 0) { goto error; }
+	if (wr_en) {
+		spi_transfer(0xFE);
+		for (x = 0; x < 512; x++) {
+			spi_transfer(dst[x]);
+		}
+		spi_recv();
+		spi_recv();
+		if ((spi_recv() & 0x1F) != 0x05) { goto error; }
+		for (x = 8192; x--;) {
+			if (spi_recv()) { break; }
+		}
+		if (x == 0) { goto error; }
+	} else {
+		if (sd_read_block(dst, 512) != 0) { goto error; }
 	}
-	spi_transfer(0x00);
-	spi_transfer(0x00);
-	if ((spi_transfer(0xFF) & 0x1F) != 0x05) { goto error; }
-	for (x = 0; x < 256; x++) {
-		if (spi_recv()) { break; }
-	}
-	if (x == 256) { goto error; };
-	
+
 	ret = 0;
 error:
 	sd_tail();
