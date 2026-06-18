@@ -5,6 +5,7 @@
 
 #include <cflea.h>
 #include "lib/memcmp.c"
+#include "lib/memset.c"
 #include "lib/console.c"
 #include "lib/time.c"
 #include "lib/port.c"
@@ -112,7 +113,7 @@ main(void)
 				printf("Read sector #%04x%04x in %u uS\n", sector[1], sector[0], since_us());
 			}
 		} else {
-			printf("Error reading sector#%04x%04x...%x\n", sector[1], sector[0], sd_read_error);
+			printf("Error reading sector#%04x%04x...\n", sector[1], sector[0]);
 			goto end;
 		}
 		if (memcmp(sec, spidmasd_bin, 512)) {

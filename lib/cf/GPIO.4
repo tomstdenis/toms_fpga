@@ -1,10 +1,30 @@
+*#cpu CFLEA
+*
+* DDS MICRO-C C-FLEA Runtime Library - Prefix file
+*
+* Copyright 1991-2005 Dave Dunfield
+* All rights reserved.
+*
+	ORG	$1000		Place code in memory here
+* Begin execution here... Setup stack, zero heap & call main()
+	LD	#*		Stack below here
+	TAS			Set up stack
+	CLR			Get zero
+	STB	?heap		Zero heap
+	CALL	main		Run main program
+* Most embedded programs will never return or exit, however if they
+* do, this section of code should do something appropriate, either
+* restart the program, or stop the machine. For this system, we will
+* simply freeze by entering an infinite loop.
+exit	SJMP	*		Loop forever
+*50000 22/5/2026
 memcmp EQU *
-?1 EQU *
+?AB1 EQU *
  LD 2,S
  DEC
  ST 2,S
  INC
- JZ ?2
+ JZ ?AB2
  LD 6,S
  TAI ;
  INC
@@ -16,30 +36,30 @@ memcmp EQU *
  ST 4+2,S
  LDB [S+]
  CMPB I
- JNZ ?3
+ JNZ ?AB3
  LDB #1
- JMP ?4
-?3 EQU *
- JMP ?1
-?2 EQU *
+ JMP ?AB4
+?AB3 EQU *
+ JMP ?AB1
+?AB2 EQU *
  CLR
-?4 EQU *
+?AB4 EQU *
  RET
 memset EQU *
-?5 EQU *
+?AB5 EQU *
  LD 2,S
  DEC
  ST 2,S
  INC
- JZ ?6
+ JZ ?AB6
  LD 6,S
  TAI ;
  INC
  ST 6,S
  LD 4,S
  STB I
- JMP ?5
-?6 EQU *
+ JMP ?AB5
+?AB6 EQU *
  RET
 c_clrscr EQU *
  LD #-2048
@@ -73,11 +93,11 @@ c_rewind EQU *
  LDI #-2
  LD I
  CMPB #0
- JZ ?7
+ JZ ?AB7
  LDI #-4
  LD I
  CMPB #0
- JNZ ?8
+ JNZ ?AB8
  LDI #-4
  LD I
  DEC
@@ -85,14 +105,14 @@ c_rewind EQU *
  LDI #-2
  LDB #79
  ST I
-?8 EQU *
- JMP ?9
-?7 EQU *
+?AB8 EQU *
+ JMP ?AB9
+?AB7 EQU *
  LDI #-2
  LD I
  DEC
  ST I
-?9 EQU *
+?AB9 EQU *
  RET
 c_gotoxy EQU *
  LDI #-2
@@ -105,12 +125,12 @@ c_gotoxy EQU *
 c_putc EQU *
  LDB 2,S
  CMPB #10
- JZ ?10
+ JZ ?AB10
  LDI #-2
  CLR
  ST I
- JMP ?11
-?10 EQU *
+ JMP ?AB11
+?AB10 EQU *
  LDI #-4
  LD I
  MULB #80
@@ -127,11 +147,11 @@ c_putc EQU *
  LDI #-2
  LD I
  CMPB #80
- JZ ?12
+ JZ ?AB12
  LDI #-2
  CLR
  ST I
-?11 EQU *
+?AB11 EQU *
  LDI #-4
  LD I
  INC
@@ -139,19 +159,19 @@ c_putc EQU *
  LDI #-4
  LD I
  CMPB #25
- JZ ?13
+ JZ ?AB13
  CALL c_scroll
  LDI #-4
  LDB #24
  ST I
-?13 EQU *
-?12 EQU *
+?AB13 EQU *
+?AB12 EQU *
  RET
 c_puts EQU *
-?14 EQU *
+?AB14 EQU *
  LDI 2,S
  LDB I
- JZ ?15
+ JZ ?AB15
  LD 2,S
  TAI ;
  INC
@@ -160,23 +180,23 @@ c_puts EQU *
  PUSHA
  CALL c_putc
  FREE 2
- JMP ?14
-?15 EQU *
+ JMP ?AB14
+?AB15 EQU *
  RET
 c_serin EQU *
 		IN $00
  RET
 c_getc ALLOC 2
-?16 EQU *
+?AB16 EQU *
  CALL c_serin
  ST 0,S
-?17 EQU *
+?AB17 EQU *
  LD 0,S
  CMP #-1
- JNZ ?16
-?18 EQU *
+ JNZ ?AB16
+?AB18 EQU *
  LD 0,S
-?19 EQU *
+?AB19 EQU *
  LDI S+
  RET
 c_gets ALLOC 6
@@ -186,14 +206,14 @@ c_gets ALLOC 6
  ADD 8,S
  SUBB #1
  ST 2,S
-?20 EQU *
+?AB20 EQU *
  CALL c_getc
  ST 4,S
  CMPB #8
- JZ ?22
+ JZ ?AB22
  LD 10,S
  CMP 0,S
- JNZ ?23
+ JNZ ?AB23
  LD 10,S
  DEC
  ST 10,S
@@ -203,24 +223,24 @@ c_gets ALLOC 6
  CALL c_putc
  FREE 2
  CALL c_rewind
-?23 EQU *
- JMP ?24
-?22 EQU *
+?AB23 EQU *
+ JMP ?AB24
+?AB22 EQU *
  LD 4,S
  CMPB #10
- SJNZ ?26
+ SJNZ ?AB26
  LD 4,S
  CMPB #13
-?26 EQU *
- JZ ?25
+?AB26 EQU *
+ JZ ?AB25
  LDI 10,S
  CLR
  STB I
- JMP ?27
-?25 EQU *
+ JMP ?AB27
+?AB25 EQU *
  LD 10,S
  CMP 2,S
- JNZ ?29
+ JNZ ?AB29
  LD 10,S
  TAI ;
  INC
@@ -231,12 +251,12 @@ c_gets ALLOC 6
  PUSHA
  CALL c_putc
  FREE 2
-?29 EQU *
-?28 EQU *
-?24 EQU *
- JMP ?20
-?21 EQU *
-?27 EQU *
+?AB29 EQU *
+?AB28 EQU *
+?AB24 EQU *
+ JMP ?AB20
+?AB21 EQU *
+?AB27 EQU *
  FREE 6
  RET
 c_box ALLOC 4
@@ -252,32 +272,32 @@ c_box ALLOC 4
  ST [S+]
  LD 12,S
  ST 0,S
-?30 EQU *
+?AB30 EQU *
  LD 0,S
  CMP 8,S
  ULT
- SJNZ ?32
- JMP ?31
-?33 EQU *
+ SJNZ ?AB32
+ JMP ?AB31
+?AB33 EQU *
  LD 0,S
  INC
  ST 0,S
- SJMP ?30
-?32 EQU *
+ SJMP ?AB30
+?AB32 EQU *
  LD 10,S
  ST 2,S
-?34 EQU *
+?AB34 EQU *
  LD 2,S
  CMP 6,S
  ULT
- SJNZ ?36
- JMP ?35
-?37 EQU *
+ SJNZ ?AB36
+ JMP ?AB35
+?AB37 EQU *
  LD 2,S
  INC
  ST 2,S
- SJMP ?34
-?36 EQU *
+ SJMP ?AB34
+?AB36 EQU *
  LD 0,S
  PUSHA
  LD 4,S
@@ -288,10 +308,10 @@ c_box ALLOC 4
  PUSHA
  CALL c_putc
  FREE 2
- JMP ?37
-?35 EQU *
- JMP ?33
-?31 EQU *
+ JMP ?AB37
+?AB35 EQU *
+ JMP ?AB33
+?AB31 EQU *
  LD 12,S
  PUSHA ;
  LD 12,S
@@ -335,18 +355,18 @@ c_box ALLOC 4
  LD 12,S
  ADDB #1
  ST 0,S
-?38 EQU *
+?AB38 EQU *
  LD 0,S
  CMP 8,S
  ULT
- SJNZ ?40
- JMP ?39
-?41 EQU *
+ SJNZ ?AB40
+ JMP ?AB39
+?AB41 EQU *
  LD 0,S
  INC
  ST 0,S
- SJMP ?38
-?40 EQU *
+ SJMP ?AB38
+?AB40 EQU *
  LD 0,S
  PUSHA
  LD 12,S
@@ -367,23 +387,23 @@ c_box ALLOC 4
  PUSHA
  CALL c_putc
  FREE 2
- JMP ?41
-?39 EQU *
+ JMP ?AB41
+?AB39 EQU *
  LD 10,S
  ADDB #1
  ST 2,S
-?42 EQU *
+?AB42 EQU *
  LD 2,S
  CMP 6,S
  ULT
- SJNZ ?44
- JMP ?43
-?45 EQU *
+ SJNZ ?AB44
+ JMP ?AB43
+?AB45 EQU *
  LD 2,S
  INC
  ST 2,S
- SJMP ?42
-?44 EQU *
+ SJMP ?AB42
+?AB44 EQU *
  LD 12,S
  PUSHA
  LD 4,S
@@ -404,8 +424,8 @@ c_box ALLOC 4
  PUSHA
  CALL c_putc
  FREE 2
- JMP ?45
-?43 EQU *
+ JMP ?AB45
+?AB43 EQU *
  LDI #-2
  PUSHI
  LDI #-6
@@ -524,18 +544,18 @@ since_us EQU *
 		OUT $11			* clear the uS timer
  RET
 wait_ms EQU *
-?46 EQU *
+?AB46 EQU *
  LD 2,S
  DEC
  ST 2,S
  INC
- JZ ?47
+ JZ ?AB47
  LD #1000
  PUSHA
  CALL wait_us
  FREE 2
- JMP ?46
-?47 EQU *
+ JMP ?AB46
+?AB47 EQU *
  RET
 delay_loops EQU *
 		OUT $11					* clear 1us timer
@@ -550,7 +570,7 @@ delay_calibrate ALLOC 8
  ST 6,S
  LD #-1
  ST 4,S
-?48 EQU *
+?AB48 EQU *
  LD 4,S
  ADD 6,S
  SHR #1
@@ -561,98 +581,98 @@ delay_calibrate ALLOC 8
  ST 2,S
  CMP #1000
  UGT
- JZ ?51
+ JZ ?AB51
  LD 0,S
  ST 4,S
- JMP ?52
-?51 EQU *
+ JMP ?AB52
+?AB51 EQU *
  LD 0,S
  ST 6,S
-?52 EQU *
-?49 EQU *
+?AB52 EQU *
+?AB49 EQU *
  LD 4,S
  CMP 6,S
- JZ ?48
-?50 EQU *
+ JZ ?AB48
+?AB50 EQU *
  LD 0,S
-?53 EQU *
+?AB53 EQU *
  FREE 8
  RET
 outport EQU *
  LD 4,S
- LDI #?55
+ LDI #?AB55
  SWITCH
-?56 EQU *
+?AB56 EQU *
 				LD 2,S
 				OUT $01
- JMP ?54
-?57 EQU *
+ JMP ?AB54
+?AB57 EQU *
 				LD 2,S
 				OUT $02
- JMP ?54
-?58 EQU *
+ JMP ?AB54
+?AB58 EQU *
 				LD 2,S
 				OUT $03
- JMP ?54
-?59 EQU *
+ JMP ?AB54
+?AB59 EQU *
 				LD 2,S
 				OUT $04
- JMP ?54
-?55 EQU *
- FDB ?59,3,?58,2,?57,1,?56,0,0,?54
-?54 EQU *
+ JMP ?AB54
+?AB55 EQU *
+ FDB ?AB59,3,?AB58,2,?AB57,1,?AB56,0,0,?AB54
+?AB54 EQU *
  RET
 dirport EQU *
  LD 4,S
- LDI #?61
+ LDI #?AB61
  SWITCH
-?62 EQU *
+?AB62 EQU *
 				LD 2,S
 				OUT $05
- JMP ?60
-?63 EQU *
+ JMP ?AB60
+?AB63 EQU *
 				LD 2,S
 				OUT $06
- JMP ?60
-?64 EQU *
+ JMP ?AB60
+?AB64 EQU *
 				LD 2,S
 				OUT $07
- JMP ?60
-?65 EQU *
+ JMP ?AB60
+?AB65 EQU *
 				LD 2,S
 				OUT $08
- JMP ?60
-?61 EQU *
- FDB ?65,3,?64,2,?63,1,?62,0,0,?60
-?60 EQU *
+ JMP ?AB60
+?AB61 EQU *
+ FDB ?AB65,3,?AB64,2,?AB63,1,?AB62,0,0,?AB60
+?AB60 EQU *
  RET
 inport EQU *
  LD 4,S
- LDI #?67
+ LDI #?AB67
  SWITCH
-?68 EQU *
+?AB68 EQU *
 				LD 2,S
 				IN $01
 				RET
- JMP ?66
-?69 EQU *
+ JMP ?AB66
+?AB69 EQU *
 				LD 2,S
 				IN $02
 				RET
- JMP ?66
-?70 EQU *
+ JMP ?AB66
+?AB70 EQU *
 				LD 2,S
 				IN $03
 				RET
- JMP ?66
-?71 EQU *
+ JMP ?AB66
+?AB71 EQU *
 				LD 2,S
 				IN $04
 				RET
- JMP ?66
-?67 EQU *
- FDB ?71,3,?70,2,?69,1,?68,0,0,?66
-?66 EQU *
+ JMP ?AB66
+?AB67 EQU *
+ FDB ?AB71,3,?AB70,2,?AB69,1,?AB68,0,0,?AB66
+?AB66 EQU *
  RET
 spi_setup EQU *
 		LDB #$0D					* CS | SCK | MOSI as outputs
@@ -701,7 +721,7 @@ spi_recv EQU *
  PUSHA
  CALL spi_transfer
  FREE 2
-?72 EQU *
+?AB72 EQU *
  RET
 sd_init EQU *
  CLR
@@ -743,46 +763,46 @@ sd_cmd ALLOC 4
  FREE 2
  LD #256
  ST 0,S
-?73 EQU *
+?AB73 EQU *
  LD 0,S
  DEC
  ST 0,S
  INC
- JZ ?74
+ JZ ?AB74
  CALL spi_recv
  ST 2,S
  ANDB #128
- JNZ ?75
+ JNZ ?AB75
  LD 2,S
- JMP ?76
-?75 EQU *
- JMP ?73
-?74 EQU *
+ JMP ?AB76
+?AB75 EQU *
+ JMP ?AB73
+?AB74 EQU *
  LD #-1
-?76 EQU *
+?AB76 EQU *
  FREE 4
  RET
 sd_read_block ALLOC 4
  LD #256
  ST 0,S
-?77 EQU *
+?AB77 EQU *
  LD 0,S
  DEC
  ST 0,S
  INC
- JZ ?78
+ JZ ?AB78
  CALL spi_recv
  ST 2,S
  CMPB #254
- JZ ?79
+ JZ ?AB79
  LD 6,S
  ST 0,S
-?80 EQU *
+?AB80 EQU *
  LD 0,S
  DEC
  ST 0,S
  INC
- JZ ?81
+ JZ ?AB81
  LD 8,S
  TAI ;
  INC
@@ -790,23 +810,23 @@ sd_read_block ALLOC 4
  PUSHI
  CALL spi_recv
  STB [S+]
- JMP ?80
-?81 EQU *
+ JMP ?AB80
+?AB81 EQU *
  CALL spi_recv
  CALL spi_recv
  CLR
- JMP ?82
-?79 EQU *
- JMP ?77
-?78 EQU *
+ JMP ?AB82
+?AB79 EQU *
+ JMP ?AB77
+?AB78 EQU *
  LD #-1
-?82 EQU *
+?AB82 EQU *
  FREE 4
  RET
 sd_reset ALLOC 7
  CLR
  ST 2,S
-?83 EQU *
+?AB83 EQU *
  CLR
  STB sd_is_hc
  CLR
@@ -815,25 +835,25 @@ sd_reset ALLOC 7
  INC
  ST 2,S
  CMPB #16
- JZ ?84
+ JZ ?AB84
  LD #-1
- JMP ?85
-?84 EQU *
+ JMP ?AB85
+?AB84 EQU *
  LDB #1
  PUSHA
  CALL spi_set_cs
  FREE 2
  LDB #10
  ST 0,S
-?86 EQU *
+?AB86 EQU *
  LD 0,S
  DEC
  ST 0,S
  INC
- JZ ?87
+ JZ ?AB87
  CALL spi_recv
- JMP ?86
-?87 EQU *
+ JMP ?AB86
+?AB87 EQU *
  CLR
  PUSHA
  CALL spi_set_cs
@@ -849,8 +869,8 @@ sd_reset ALLOC 7
  CALL sd_cmd
  FREE 8
  CMPB #1
- JZ ?83
-?88 EQU *
+ JZ ?AB83
+?AB88 EQU *
  LDB #8
  PUSHA
  CLR
@@ -862,8 +882,8 @@ sd_reset ALLOC 7
  CALL sd_cmd
  FREE 8
  CMPB #1
- JZ ?83
-?89 EQU *
+ JZ ?AB83
+?AB89 EQU *
  CALL spi_recv
  STB 6,S
  CALL spi_recv
@@ -876,16 +896,16 @@ sd_reset ALLOC 7
  ADDB 6,S
  STB 6,S
  CMPB #171
- JZ ?83
-?90 EQU *
+ JZ ?AB83
+?AB90 EQU *
  LD #256
  ST 0,S
-?91 EQU *
+?AB91 EQU *
  LD 0,S
  DEC
  ST 0,S
  INC
- JZ ?92
+ JZ ?AB92
  LDB #55
  PUSHA
  CLR
@@ -897,8 +917,8 @@ sd_reset ALLOC 7
  CALL sd_cmd
  FREE 8
  CMPB #1
- JZ ?83
-?93 EQU *
+ JZ ?AB83
+?AB93 EQU *
  LDB #41
  PUSHA
  LD #16384
@@ -910,21 +930,21 @@ sd_reset ALLOC 7
  CALL sd_cmd
  FREE 8
  CMPB #0
- JNZ ?92
-?94 EQU *
- JMP ?91
-?92 EQU *
+ JNZ ?AB92
+?AB94 EQU *
+ JMP ?AB91
+?AB92 EQU *
  LD 0,S
- JZ ?83
-?95 EQU *
+ JZ ?AB83
+?AB95 EQU *
  LD #256
  ST 0,S
-?96 EQU *
+?AB96 EQU *
  LD 0,S
  DEC
  ST 0,S
  INC
- JZ ?97
+ JZ ?AB97
  LDB #58
  PUSHA
  CLR
@@ -936,8 +956,8 @@ sd_reset ALLOC 7
  CALL sd_cmd
  FREE 8
  CMPB #0
- JZ ?83
-?98 EQU *
+ JZ ?AB83
+?AB98 EQU *
  CALL spi_recv
  ST 4,S
  CALL spi_recv
@@ -945,25 +965,25 @@ sd_reset ALLOC 7
  CALL spi_recv
  LD 4,S
  ANDB #128
- JZ ?99
+ JZ ?AB99
  LD 4,S
  ANDB #64
- SJZ ?101
+ SJZ ?AB101
  LDB #1
- SJMP ?100
-?101 EQU *
+ SJMP ?AB100
+?AB101 EQU *
  CLR
-?100 EQU *
+?AB100 EQU *
  STB sd_is_hc
- JMP ?97
-?99 EQU *
- JMP ?96
-?97 EQU *
+ JMP ?AB97
+?AB99 EQU *
+ JMP ?AB96
+?AB97 EQU *
  LD 0,S
- JZ ?83
-?102 EQU *
+ JZ ?AB83
+?AB102 EQU *
  LDB sd_is_hc
- JNZ ?103
+ JNZ ?AB103
  LDB #16
  PUSHA
  CLR
@@ -975,9 +995,9 @@ sd_reset ALLOC 7
  CALL sd_cmd
  FREE 8
  CMPB #0
- JZ ?83
-?104 EQU *
-?103 EQU *
+ JZ ?AB83
+?AB104 EQU *
+?AB103 EQU *
  LDB #9
  PUSHA
  CLR
@@ -989,8 +1009,8 @@ sd_reset ALLOC 7
  CALL sd_cmd
  FREE 8
  CMPB #0
- JZ ?83
-?105 EQU *
+ JZ ?AB83
+?AB105 EQU *
  LD #sd_csd
  PUSHA
  LDB #16
@@ -998,8 +1018,8 @@ sd_reset ALLOC 7
  CALL sd_read_block
  FREE 4
  CMPB #0
- JZ ?83
-?106 EQU *
+ JZ ?AB83
+?AB106 EQU *
  LDB #1
  PUSHA
  CALL spi_set_cs
@@ -1030,7 +1050,7 @@ sd_reset ALLOC 7
  LDB #1
  STB sd_is_init
  CLR
-?85 EQU *
+?AB85 EQU *
  FREE 7
  RET
 sd_sector_op ALLOC 6
@@ -1038,18 +1058,18 @@ sd_sector_op ALLOC 6
  ST 0,S
  CLR
  ST 2,S
-?107 EQU *
+?AB107 EQU *
  CLR
  PUSHA
  CALL spi_set_cs
  FREE 2
  LD 8,S
- SJZ ?110
+ SJZ ?AB110
  LDB #24
- SJMP ?109
-?110 EQU *
+ SJMP ?AB109
+?AB110 EQU *
  LDB #17
-?109 EQU *
+?AB109 EQU *
  PUSHA
  LDI 14,S
  LEAI 2,I
@@ -1064,28 +1084,28 @@ sd_sector_op ALLOC 6
  CALL sd_cmd
  FREE 8
  CMPB #0
- JZ ?111
-?108 EQU *
+ JZ ?AB111
+?AB108 EQU *
  LD 8,S
- JZ ?112
+ JZ ?AB112
  LDB #254
  PUSHA
  CALL spi_transfer
  FREE 2
  CLR
  ST 4,S
-?113 EQU *
+?AB113 EQU *
  LD 4,S
  CMP #512
  ULT
- SJNZ ?115
- JMP ?114
-?116 EQU *
+ SJNZ ?AB115
+ JMP ?AB114
+?AB116 EQU *
  LD 4,S
  INC
  ST 4,S
- SJMP ?113
-?115 EQU *
+ SJMP ?AB113
+?AB115 EQU *
  LD 4,S
  LDI 10,S
  ADAI
@@ -1093,34 +1113,34 @@ sd_sector_op ALLOC 6
  PUSHA
  CALL spi_transfer
  FREE 2
- JMP ?116
-?114 EQU *
+ JMP ?AB116
+?AB114 EQU *
  CALL spi_recv
  CALL spi_recv
  CALL spi_recv
  ANDB #31
  CMPB #5
- JZ ?111
-?117 EQU *
+ JZ ?AB111
+?AB117 EQU *
  LD #8192
  ST 4,S
-?118 EQU *
+?AB118 EQU *
  LD 4,S
  DEC
  ST 4,S
  INC
- JZ ?119
+ JZ ?AB119
  CALL spi_recv
- JNZ ?119
-?120 EQU *
- JMP ?118
-?119 EQU *
+ JNZ ?AB119
+?AB120 EQU *
+ JMP ?AB118
+?AB119 EQU *
  LD 4,S
  CMPB #0
- JNZ ?111
-?121 EQU *
- JMP ?122
-?112 EQU *
+ JNZ ?AB111
+?AB121 EQU *
+ JMP ?AB122
+?AB112 EQU *
  LD 10,S
  PUSHA
  LD #512
@@ -1128,12 +1148,12 @@ sd_sector_op ALLOC 6
  CALL sd_read_block
  FREE 4
  CMPB #0
- JZ ?111
-?123 EQU *
-?122 EQU *
+ JZ ?AB111
+?AB123 EQU *
+?AB122 EQU *
  CLR
  ST 0,S
-?111 EQU *
+?AB111 EQU *
  LDB #1
  PUSHA
  CALL spi_set_cs
@@ -1143,23 +1163,23 @@ sd_sector_op ALLOC 6
  LD 0,S
  CMPB #0
  NOT
- SJZ ?125
+ SJZ ?AB125
  LD 2,S
  INC
  ST 2,S
  DEC
  CMPB #32
  ULT
-?125 EQU *
- JZ ?124
+?AB125 EQU *
+ JZ ?AB124
  LDB #250
  PUSHA
  CALL wait_ms
  FREE 2
- JMP ?107
-?124 EQU *
+ JMP ?AB107
+?AB124 EQU *
  LD 0,S
-?126 EQU *
+?AB126 EQU *
  FREE 6
  RET
 remap ALLOC 2
@@ -1167,64 +1187,64 @@ remap ALLOC 2
  ST 0,S
  LD 4,S
  ANDB #1
- JZ ?127
+ JZ ?AB127
  LD 0,S
  ORB #16
  ST 0,S
-?127 EQU *
+?AB127 EQU *
  LD 4,S
  ANDB #2
- JZ ?128
+ JZ ?AB128
  LD 0,S
  ORB #1
  ST 0,S
-?128 EQU *
+?AB128 EQU *
  LD 4,S
  ANDB #4
- JZ ?129
+ JZ ?AB129
  LD 0,S
  ORB #32
  ST 0,S
-?129 EQU *
+?AB129 EQU *
  LD 4,S
  ANDB #8
- JZ ?130
+ JZ ?AB130
  LD 0,S
  ORB #2
  ST 0,S
-?130 EQU *
+?AB130 EQU *
  LD 4,S
  ANDB #16
- JZ ?131
+ JZ ?AB131
  LD 0,S
  ORB #64
  ST 0,S
-?131 EQU *
+?AB131 EQU *
  LD 4,S
  ANDB #32
- JZ ?132
+ JZ ?AB132
  LD 0,S
  ORB #4
  ST 0,S
-?132 EQU *
+?AB132 EQU *
  LD 4,S
  ANDB #64
- JZ ?133
+ JZ ?AB133
  LD 0,S
  ORB #128
  ST 0,S
-?133 EQU *
+?AB133 EQU *
  LD 4,S
  ANDB #128
- JZ ?134
+ JZ ?AB134
  LD 0,S
  ORB #8
  ST 0,S
-?134 EQU *
+?AB134 EQU *
  LD 0,S
  COM
  ANDB #255
-?135 EQU *
+?AB135 EQU *
  LDI S+
  RET
 spidmasd_bin FCB 206,247,189,101,125,229,191,220,209,154,36
@@ -1275,7 +1295,7 @@ spidmasd_bin FCB 206,247,189,101,125,229,191,220,209,154,36
  FCB 159,117,29,108,96,45,4,51,237,177,220
  FCB 235,246,119,133,224,25
 main ALLOC 8
- LD #?0+0
+ LD #?AB0+0
  PUSHA
  LDB #1
  CALL printf
@@ -1294,7 +1314,7 @@ main ALLOC 8
  FREE 10
  CALL sd_reset
  ST 0,S
- LD #?0+21
+ LD #?AB0+21
  PUSHA
  LD 2,S
  PUSHA
@@ -1306,34 +1326,34 @@ main ALLOC 8
  CALL printf
  FREE 8
  LD 0,S
- JZ ?136
- LD #?0+47
+ JZ ?AB136
+ LD #?AB0+47
  PUSHA
  LDB #1
  CALL printf
  FREE 2
- JMP ?137
-?136 EQU *
- LD #?0+69
+ JMP ?AB137
+?AB136 EQU *
+ LD #?AB0+69
  PUSHA
  LDB #1
  CALL printf
  FREE 2
  CLR
  ST 0,S
-?138 EQU *
+?AB138 EQU *
  LD 0,S
  CMPB #16
  ULT
- SJNZ ?140
- JMP ?139
-?141 EQU *
+ SJNZ ?AB140
+ JMP ?AB139
+?AB141 EQU *
  LD 0,S
  INC
  ST 0,S
- SJMP ?138
-?140 EQU *
- LD #?0+77
+ SJMP ?AB138
+?AB140 EQU *
+ LD #?AB0+77
  PUSHA
  LD 2,S
  LDI #sd_csd
@@ -1343,9 +1363,9 @@ main ALLOC 8
  LDB #2
  CALL printf
  FREE 4
- JMP ?141
-?139 EQU *
- LD #?0+83
+ JMP ?AB141
+?AB139 EQU *
+ LD #?AB0+83
  PUSHA
  LDI #sd_sectors+2
  LD I
@@ -1362,7 +1382,7 @@ main ALLOC 8
  CLR
  ST I
  ST [S+]
-?142 EQU *
+?AB142 EQU *
  LD #sec
  PUSHA
  CLR
@@ -1381,12 +1401,12 @@ main ALLOC 8
  CALL sd_sector_op
  FREE 6
  ST 0,S
- JNZ ?144
+ JNZ ?AB144
  LEAI 4+0,S
  LD I
  ANDB #63
- JNZ ?145
- LD #?0+116
+ JNZ ?AB145
+ LD #?AB0+116
  PUSHA
  LEAI 6+2,S
  LD I
@@ -1399,10 +1419,10 @@ main ALLOC 8
  LDB #4
  CALL printf
  FREE 8
-?145 EQU *
- JMP ?146
-?144 EQU *
- LD #?0+148
+?AB145 EQU *
+ JMP ?AB146
+?AB144 EQU *
+ LD #?AB0+148
  PUSHA
  LEAI 6+2,S
  LD I
@@ -1413,8 +1433,8 @@ main ALLOC 8
  LDB #3
  CALL printf
  FREE 6
- JMP ?137
-?146 EQU *
+ JMP ?AB137
+?AB146 EQU *
  LD #sec
  PUSHA
  LD #spidmasd_bin
@@ -1423,14 +1443,14 @@ main ALLOC 8
  PUSHA
  CALL memcmp
  FREE 6
- JZ ?147
- LD #?0+182
+ JZ ?AB147
+ LD #?AB0+182
  PUSHA
  LDB #1
  CALL printf
  FREE 2
- JMP ?137
-?147 EQU *
+ JMP ?AB137
+?AB147 EQU *
  LEAI 4+0,S
  LD I
  INC
@@ -1452,13 +1472,13 @@ main ALLOC 8
  CALL sd_sector_op
  FREE 6
  ST 0,S
- JNZ ?148
+ JNZ ?AB148
  LEAI 4+0,S
  LD I
  SUBB #1
  ANDB #63
- JNZ ?149
- LD #?0+218
+ JNZ ?AB149
+ LD #?AB0+218
  PUSHA
  LEAI 6+2,S
  LD I
@@ -1471,10 +1491,10 @@ main ALLOC 8
  LDB #4
  CALL printf
  FREE 8
-?149 EQU *
- JMP ?150
-?148 EQU *
- LD #?0+252
+?AB149 EQU *
+ JMP ?AB150
+?AB148 EQU *
+ LD #?AB0+252
  PUSHA
  LEAI 6+2,S
  LD I
@@ -1485,16 +1505,16 @@ main ALLOC 8
  LDB #3
  CALL printf
  FREE 6
- JMP ?137
-?150 EQU *
- JMP ?142
-?143 EQU *
-?137 EQU *
+ JMP ?AB137
+?AB150 EQU *
+ JMP ?AB142
+?AB143 EQU *
+?AB137 EQU *
 		LD #$F000
 		IJMP
  FREE 8
  RET
-?0 FCB 10,10,83,68,32,67,97,114,100,32,71,80,73,79,32,100
+?AB0 FCB 10,10,83,68,32,67,97,114,100,32,71,80,73,79,32,100
  FCB 101,109,111,10,0,115,100,95,114,101,115,101,116,40,41,32
  FCB 61,61,32,37,120,44,32,37,100,44,32,37,100,10,0,70
  FCB 97,105,108,101,100,32,116,111,32,105,110,105,116,32,99,97
@@ -1512,11 +1532,391 @@ main ALLOC 8
  FCB 32,105,110,32,37,53,117,32,117,83,10,0,69,114,114,111
  FCB 114,32,119,114,105,116,105,110,103,32,115,101,99,116,111,114
  FCB 32,35,37,48,52,120,37,48,52,120,10,0
-$EX:printf
-$EX:memcpy
-$EX:strlen
-$DD:sd_is_init 1
-$DD:sd_is_hc 1
-$DD:sd_sectors 4
-$DD:sd_csd 16
-$DD:sec 512
+*
+* Formatted print to the console device: printf(format, args ...)
+*
+printf	MULB	#2		Word entries
+	LEAI	,S		Point to stack
+	ADAI			Point to argument
+	LD	#putch		Point to output func
+	JMP	format		Format it
+*50000 22/5/2026
+*
+* Set memory to a specified value: memset(block, value, size)
+*
+memset	LDI	6,S		Get pointer
+?AD1	LD	2,S		Get size
+	SJZ	?AD2		Zero, exit
+	DEC			Backup
+	ST	2,S		Resave
+	LD	4,S		Get value
+	STB	I		Write to memory
+	LEAI	1,I		Advance
+	SJMP	?AD1		And proceed
+*
+* Copy memory: memcpy(dest, source, size)
+*
+memcpy	LD	2,S		Get size
+	SJZ	?AD2		Zero, exit
+	DEC			Reduce count
+	ST	2,S		Resave
+	LDI	4,S		Get source
+	LDB	I		Get byte
+	LEAI	1,I		Advance
+	STI	4,S		Resave
+	LDI	6,S		Get dest
+	STB	I		Write byte
+	LEAI	1,I		Advance
+	STI	6,S		Resave
+	SJMP	memcpy		And proceed
+?AD2	RET
+*50000 22/5/2026
+*
+* Determine length of string: strlen(string)
+*
+strlen	LDI	2,S		; Get string ptr
+?AE1	LDB	I		; Get byte from string
+	JZ	?AE2		; We are at end
+	LEAI	1,I		; Skip to next
+	SJMP	?AE1		; And proceed
+?AE2	TIA			; Get pointer
+	SUB	2,S		; Compute actual length
+	RET
+*50000 22/5/2026
+*
+* Format to "printf" output: A=Output Function, I = Argument List
+*
+format	PUSHA			Save output function pointer
+	PUSHI			Save argument pointer
+	ALLOC	10		Save  flag variable
+* Local variable & argument offsets
+?AF1	EQU	12		Pointer to output function
+?AF2	EQU	10		Pointer to argument list
+?AF3	EQU	4		Buffer for number conversions (6 bytes)
+?AF4	EQU	2		Temporary locations
+?AF5	EQU	1		Character count
+?AF6	EQU	0		Formatting controls
+*
+	LDI	?AF2,S		Get arg pointer
+	LDI	I		Get format string
+?AF7	LDB	I		Get character from string
+	SJZ	?AF8		Exit if end
+	CMPB	#'%'		Format character
+	SJNZ	?AF10		Yes, handle it
+	LDB	I		Get char back
+	LEAI	1,I		Advance pointer
+	PUSHI			Save Index
+	PUSHA			Pass character
+	LD	4+?AF1,S		Get output function
+	CALL	?AF9		Output the character
+	LD	S+		Clean stack
+	LDI	S+		Get Index back
+	SJMP	?AF7		And proceed
+?AF8	FREE	14		Release stack
+	RET
+* Call output function in A
+?AF9	IJMP			Call function
+* Format character located
+?AF10	LEAI	1,I		Skip to next
+	CLR			Begin with zero
+	ST	?AF4,S		Save for later
+* Check for leading '-' = Left justify
+	STB	?AF6,S		Init. flag
+	STB	?AF5,S		Init. count
+	LDB	I		Get char
+	CMPB	#'-'		Minus?
+	SJZ	?AF11		No, try next
+	LEAI	1,I		Advance pointer
+	LDB	#%10000000	Set justify flag
+	STB	?AF6,S		Resave
+* Check for leading '0' = Zero fill
+?AF11	LDB	I		Get char back
+	CMPB	#'0'		Zero fill?
+	SJZ	?AF12		No, try next
+	LEAI	1,I		Advance
+	LDB	?AF6,S		Get value
+	ORB	#%01000000	Set zero fill flag
+	STB	?AF6,S		Resave
+* Get field width
+?AF12	LDB	I		Get character
+	SUBB	#'0'		Convert to binary
+	PUSHA			Save
+	CMPB	#10		In range?
+	ULT			Must be less than
+	SJZ	?AF13		Nope
+	LEAI	1,I		Skip digit
+	LD	2+?AF4,S		Get old value
+	MULB	#10		x10
+	ADD	S+		Include new
+	ST	?AF4,S		Resave
+	SJMP	?AF12		Do them all
+?AF13	LD	S+		Clear stack
+	LD	?AF4,S		Get value
+	ORB	?AF6,S		Include previous flags
+	STB	?AF6,S		Resave
+* Lookup character & dispatch handler
+	PUSHI			Save format pointer
+	LD	2+?AF2,S		Get argptr
+	DEC			Backup
+	DEC			Backup
+	ST	2+?AF2,S		Resave
+	TAI			Address
+	LD	I		Get value
+	ST	2+?AF4,S		Resave
+	LDB	[S]		Get next character
+	LEAI	?AF14		Point to table
+	SWITCH			Lookup & execute
+?AF14	FDB	?AF15,'o'		Octal number
+	FDB	?AF16,'d'		Decimal number
+	FDB	?AF17,'u'		Unsigned number
+	FDB	?AF18,'x'		Hexidecimal number
+	FDB	?AF26,'c'		Character output
+	FDB	?AF28,'s'		String output
+	FDB	0,?AF27		Ignore it
+* '%o' - Octal number
+?AF15	LDB	#8		Base 8
+	SJMP	?AF19		Do number
+* '%d' - signed Decimal number
+?AF16	LD	2+?AF4,S		Get value
+	AND	#$8000		Negatve?
+	SJZ	?AF17		Nothing special
+	LDB	#'-'		Minus size
+	PUSHA			Pass to function
+	LD	4+?AF1,S		Get output function
+	CALL	?AF9		Call function
+	LD	S+		Clean stack
+	LD	2+?AF4,S		Get value
+	NEG			Negate
+	ST	2+?AF4,S		And prcoeed
+	LDB	2+?AF6,S		Get length
+	ANDB	#%001111111	Free format?
+	SJZ	?AF17		Yes, ignore
+	LDB	2+?AF6,S		Get value back
+	DEC			Adjust for '-'
+	STB	2+?AF6,S		Resave
+* '%u' - Unsigned decimal number
+?AF17	LDB	#10		Base 10 output
+	SJMP	?AF19		Do number
+* '%x' - heXidecimal number
+?AF18	LDB	#16		Base 16 output
+* Output a number in the specified number base
+?AF19	STB	2+?AF3,S		Save number base
+	LEAI	6+2+?AF3,S	Point to END of buffer
+?AF20	TIA			Get index
+	DEC			Backup
+	TAI			Set index
+	LDB	2+?AF5,S		Get count
+	INC			Advance
+	STB	2+?AF5,S		Resave
+	LD	2+?AF4,S		Get value
+	DIVB	2+?AF3,S		Divide by 10
+	PUSHA			Save quotient
+	ALT			Get remainder
+	ADDB	#'0'		Convert to ASCII
+	STB	I		Write to stack
+	CMPB	#'9'		Is it HEX?
+	UGT			Complete test
+	SJZ	?AF21		Yes it is
+	LDB	I		Get char back
+	ADDB	#7		Adjust
+	STB	I		Resave char
+?AF21	LD	S+		Get quotient
+	ST	2+?AF4,S		Save new value
+	SJNZ	?AF20		Do them all
+* At this point, I = pointer, ?5=Length
+?AF22	LDB	2+?AF5,S		Get count
+	STB	3+?AF4,S		Set extra count
+	LDB	2+?AF6,S		Get flag
+	ANDB	#%10000000	Left justify?
+	SJNZ	?AF23		Yes, don't fill
+	CALL	?AF31		Do any pre-output
+?AF23	LDB	3+?AF4,S		Get count
+	SJZ	?AF24		All done, exit
+	DEC			Reduce count
+	STB	3+?AF4,S		Resave
+	LDB	I		Get character from string
+	LEAI	1,I		Advance
+	PUSHI			Save it
+	PUSHA			Pass character
+	LD	6+?AF1,S		Get output function
+	CALL	?AF9		Output character
+	LD	S+		Clean stack
+	LDI	S+		Restore I
+	SJMP	?AF23		Go again
+?AF24	LDB	2+?AF6,S		Get flag
+	ANDB	#%10000000	Left justify
+	SJZ	?AF25		No, skip it
+	CALL	?AF31		Post justify
+?AF25	LDI	S+		Restore format string
+	LEAI	1,I		Advance pointer
+	JMP	?AF7		And proceed
+* '%c' - output character
+?AF26	LDB	2+?AF4,S		Get character
+?AF27	LEAI	2+?AF3,S		Point to buffer
+	STB	I		Save it
+	LDB	#1		Get 1
+	STB	2+?AF5,S
+	SJMP	?AF22
+* '%s' - output string
+?AF28	LDI	2+?AF4,S		Get string pointer
+?AF29	LDB	I		Get character
+	SJZ	?AF30		End of string
+	LEAI	1,I		Skip to next
+	LDB	2+?AF5,S		Get count
+	INC			Advance
+	STB	2+?AF5,S		Resave count
+	SJMP	?AF29		And proceed
+?AF30	LDI	2+?AF4,S		Get pointer back
+	SJMP	?AF22		And output
+* Perform pre-output justify
+?AF31	LDB	4+?AF6,S		Get flag
+	ANDB	#%00111111	Save length only
+	SJZ	?AF35		No justify
+	STB	4+?AF4,S		Save for later
+	PUSHI			Save index
+?AF32	LDB	6+?AF5,S		Get count
+	CMPB	6+?AF4,S		Are we over
+	UGE			Complete test
+	SJNZ	?AF34		Yes, exit
+	LDB	6+?AF6,S		Get flag
+	ANDB	#%01000000	Zero fill?
+	SJZ	?AF33		No, use ' '
+	LDB	#'0'-' '	Get value
+?AF33	ADDB	#' '		Convert to char
+	PUSHA			Pass character
+	LD	8+?AF1,S		Get output function
+	CALL	?AF9		Output character
+	LD	S+		Clean stack
+	LDB	6+?AF4,S		Get remaining width
+	DEC			Reduce
+	STB	6+?AF4,S		Resave
+	SJMP	?AF32		Do next
+?AF34	LDI	S+		Restore index
+?AF35	RET
+*50000 22/5/2026
+*
+* Write a string to the console: putstr(string)
+*
+putstr	LDI	2,S		Get argument
+?putstr	LDB	I		Get char
+	SJZ	?AG2		Exit
+	LEAI	1,I		Advance
+	PUSHA			Pass parm
+	CALL	?putch		Output it
+	LD	S+		Clean stack
+	SJMP	?putstr		And proceed
+*
+* Output character to console with newline translation: putch(c)
+*
+putch	LD	2,S		Get character
+?putch	CMP	#$0A		Newline?
+	SJZ	putchr		No, don't process
+	LDB	#$0D		Get RETURN
+	CALL	?putchr		Output it
+*
+* Output 'raw' character to console: putchr(c)
+*
+putchr	LD	2,S		Get character
+?putchr	OUT	0		Write to console
+	RET
+*
+* Read a character from console with newline translation: getch()
+*
+getch	CALL	chkch		Test for character ready
+	SJZ	getch		Wait for it
+	RET
+*
+* Read 'raw' character from console: getchr()
+*
+getchr	IN	0		Read console port
+	INC			Test for character
+	SJZ	getchr		Wait for character
+	DEC			Restore proper character
+	RET
+*
+* Check for character from the console with translation: chkch()
+*
+chkch	IN	0		Read port 0
+	INC			Test for char
+	SJZ	?AG2		None, exit
+	DEC			Restore proper char
+	PUSHA			Save for later
+	CMPB	#$0D		RETURN?
+	SJZ	?AG1		No, its OK
+	LD	S+		Clean stack
+	LDB	#$0A		Get NEWLINE
+	RET
+?AG1	LD	S+		Get char back
+?AG2	RET
+*
+* Check for 'raw' character from the console: chkchr()
+*
+chkchr	IN	0		Read port 0
+	RET
+*
+* Get string from console (with editing): getstr(string, size)
+*
+getstr	CLR			Zero length
+	PUSHA			Save on stack
+?AG3	CALL	getchr		Get a character
+	LDI	#?AG4		Point to table
+	SWITCH			Dispatch
+?AG4	FDB	?AG6,$08		Backspace
+	FDB	?AG6,$7F		Delete
+	FDB	?AG7,$0D		Return
+	FDB	0,?AG5		Default
+* Normal character
+?AG5	STB	?temp		Save for later
+	LD	,S		Get current position
+	CMP	4,S		Are we OK
+	UGE			Test for over
+	SJNZ	?AG3		Ignore
+	LDI	6,S		Get pointer
+	LD	S+		Get size
+	ADAI			Adjust pointer
+	INC			Advance count
+	PUSHA			Resave
+	LDB	?temp		Get char back
+	STB	I		Save in buffer
+	CALL	?putchr		Echo it
+	SJMP	?AG3		And proceed
+* Backspace & delete
+?AG6	LD	,S		Get count
+	SJZ	?AG3		At zero, ignore
+	DEC			Backup
+	ST	,S		Resave
+	LDI	#?AG8		Point to message
+	CALL	?putstr		Output
+	SJMP	?AG3		And proceed
+* RETURN, terminate entry
+?AG7	LDI	6,S		Get buffer pointer
+	LD	S+		Get count
+	ADAI			Adjust pointer
+	CLR			Get zero
+	STB	I		Terminate buffer
+	LDB	#$0A		Newline
+	SJMP	?putchr		Output
+?AG8	FCB	$08,' ',$08,0
+*50000 22/5/2026
+*
+* DDS MICRO-C C-FLEA Runtime Library - Middle file
+*
+* Copyright 1991-2005 Dave Dunfield
+* All rights reserved.
+*
+	ORG	$0000		Start RAM based variables here
+?temp	RMB	2		Temporary location used by compiler
+*50000 22/5/2026
+sd_is_init RMB 1
+sd_is_hc RMB 1
+sd_sectors RMB 4
+sd_csd RMB 16
+sec RMB 512
+*
+* DDS MICRO-C C-FLEA Runtime Library - Suffix file
+*
+* Copyright 1991-2005 Dave Dunfield
+* All rights reserved.
+*
+?heap	EQU	*		Beginning of unused RAM
+*50000 22/5/2026

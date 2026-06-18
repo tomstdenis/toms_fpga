@@ -14,5 +14,7 @@
 #define DECR1A $F6		// dec R1, A = R1
 #define ADAR0  $F7		// R0 = R0 + A
 #define ADAR1  $F8		// R1 = R1 + A
+#define INCR0I $F9		// inc R0, INDEX = R0
+#define INCR1I $FA		// inc R1, INDEX = R1
 
 #endif

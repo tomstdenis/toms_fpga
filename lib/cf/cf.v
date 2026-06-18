@@ -827,6 +827,16 @@ module cf_cpu #(
                                     reg_R[0] <= reg_R[0] + reg_ACC;
                                 5'h18: // (F8) R1 <= R1 + ACC
                                     reg_R[1] <= reg_R[1] + reg_ACC;
+                                5'h19: // (F9) INCR0I (R0 <= R0 + 1, INDEX <= R0) 
+                                    begin
+                                        reg_INDEX <= reg_R[0] + 1'b1;
+                                        reg_R[0]  <= reg_R[0] + 1'b1;
+                                    end
+                                5'h1A: // (FA) INCR1I R1 <= R1 + 1, INDEX <= R1) 
+                                    begin
+                                        reg_INDEX <= reg_R[1] + 1'b1;
+                                        reg_R[1]  <= reg_R[1] + 1'b1;
+                                    end
                                 default: begin end
 							endcase
 						end

@@ -202,13 +202,6 @@ retry:
 	return 0;
 }
 
-sd_tail()
-{
-	spi_set_cs(1);
-	spi_recv();						// clock after the command
-	spi_recv();
-}
-
 unsigned sd_sector_op(unsigned sector[2], unsigned char *dst, int wr_en)
 {
 	unsigned ret, r, x;
@@ -242,7 +235,9 @@ retry:
 
 	ret = 0;
 error:
-	sd_tail();
+	spi_set_cs(1);
+	spi_recv();						// clock after the command
+	spi_recv();
 	// retry command upto 32 times before bailing
 	if (ret != 0 && r++ < 32) {
 		wait_ms(250);								// wait 250ms between tries
