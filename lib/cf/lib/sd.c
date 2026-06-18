@@ -70,10 +70,16 @@ unsigned sd_cmd(unsigned cmd, unsigned ph, unsigned pl, unsigned crc)
 int sd_read_block(unsigned char *dst, unsigned len)
 {
 	unsigned x, t;
+#ifdef DEBUG
+	printf("sd_read_block: Reading %u bytes to %04x\n", len, dst);
+#endif
 	// wait for READ_TOKEN
 	for (x = 256; x--;) {
 		t = spi_recv();
 		if (t == 0xFE) {
+#ifdef DEBUG
+	printf("sd_read_block: Got READ_TOKEN at x==%u\n", x);
+#endif
 			for (x = len; x--; ) {
 				*dst++ = spi_recv();
 			}

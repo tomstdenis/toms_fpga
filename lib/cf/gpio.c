@@ -1,4 +1,4 @@
-//#define DEBUG
+#define DEBUG
 
 // if you use a Digilent capable in PMOD0 define this, otherwise undefine
 #define SPI_FIXED 
@@ -17,21 +17,21 @@
 
 unsigned remap(unsigned v)
 {
-	unsigned t;
-	t = 0;
-	if (v & (1 << 0)) t |= (1 << 4);
-	if (v & (1 << 1)) t |= (1 << 0);
+   unsigned t;
+   t = 0;
+   if (v & (1 << 0)) t |= (1 << 4);
+   if (v & (1 << 1)) t |= (1 << 0);
 
-	if (v & (1 << 2)) t |= (1 << 5);
-	if (v & (1 << 3)) t |= (1 << 1);
+   if (v & (1 << 2)) t |= (1 << 5);
+   if (v & (1 << 3)) t |= (1 << 1);
 
-	if (v & (1 << 4)) t |= (1 << 6);
-	if (v & (1 << 5)) t |= (1 << 2);
+   if (v & (1 << 4)) t |= (1 << 6);
+   if (v & (1 << 5)) t |= (1 << 2);
 
-	if (v & (1 << 6)) t |= (1 << 7);
-	if (v & (1 << 7)) t |= (1 << 3);
+   if (v & (1 << 6)) t |= (1 << 7);
+   if (v & (1 << 7)) t |= (1 << 3);
 
-	return (~t) & 0xFF;					// invert since 0 == ON, 1 == OFF
+   return (~t) & 0xFF;              // invert since 0 == ON, 1 == OFF
 }
 
 unsigned char sec[512];
@@ -85,63 +85,63 @@ const unsigned char spidmasd_bin[] = {
 
 main(void)
 {
-	unsigned x, y, sector[2];
-	
-	printf("\n\nSD Card GPIO demo\n");
-	// pinout for the PMOD SD card board;	
+   unsigned x, y, sector[2];
+   
+   printf("\n\nSD Card GPIO demo\n");
+   // pinout for the PMOD SD card board;  
 #ifdef SPI_FIXED
-	sd_init();
+   sd_init();
 #else
-	sd_init(0, 3, 0, 1, 2);
+   sd_init(0, 3, 0, 1, 2);
 #endif
-	x = sd_reset();
-	printf("sd_reset() == %x, %d, %d\n", x, sd_is_init, sd_is_hc);
-	if (x) {
-		printf("Failed to init card.\n");
-		goto end;
-	}
-	printf("\nsd_sectors[] == { %04x, %04x }\n", sd_sectors[1], sd_sectors[0]);
-	sector[1] = sector[0] = 0;
-	for (;;) {
-		memset(sec, 0, sizeof(sec));
-		since_us();
-		x = sd_sector_op(sector, sec, 0);
-		if (!x) {
-			if (!(sector[0] & 0x3F)) {
-				printf("Read sector #%04x%04x in %u uS\n", sector[1], sector[0], since_us());
-			}
-		} else {
-			printf("Error reading sector#%04x%04x...\n", sector[1], sector[0]);
-			goto end;
-		}
-		if (memcmp(sec, spidmasd_bin, 512)) {
-			printf("Sector does not match golden copy.\n");
-			goto end;
-		}
-		
-		// increment sector
-		++sector[0];
-		sector[1] += !sector[0];
-		
-		// write to next sector
-		since_us();
-		x = sd_sector_op(sector, sec, 1);
-		if (!x) {
-			if (!((sector[0] - 1) & 0x3F)) {
-				printf("Wrote sector #%04x%04x in %5u uS\n", sector[1], sector[0], since_us());
-			}
-		} else {
-			printf("Error writing sector #%04x%04x\n", sector[1], sector[0]);
-			goto end;
-		}
-	}
+   x = sd_reset();
+   printf("sd_reset() == %x, %d, %d\n", x, sd_is_init, sd_is_hc);
+   if (x) {
+      printf("Failed to init card.\n");
+      goto end;
+   }
+   printf("\nsd_sectors[] == { %04x, %04x }\n", sd_sectors[1], sd_sectors[0]);
+   sector[1] = sector[0] = 0;
+   for (;;) {
+      memset(sec, 0, sizeof(sec));
+      since_us();
+      x = sd_sector_op(sector, sec, 0);
+      if (!x) {
+         if (!(sector[0] & 0x3F)) {
+            printf("Read sector #%04x%04x in %u uS\n", sector[1], sector[0], since_us());
+         }
+      } else {
+         printf("Error reading sector#%04x%04x...\n", sector[1], sector[0]);
+         goto end;
+      }
+      if (memcmp(sec, spidmasd_bin, 512)) {
+         printf("Sector #%04x%04x does not match golden copy.\n", sector[1], sector[0]);
+         goto end;
+      }
+      
+      // increment sector
+      ++sector[0];
+      sector[1] += !sector[0];
+      
+      // write to next sector
+      since_us();
+      x = sd_sector_op(sector, sec, 1);
+      if (!x) {
+         if (!((sector[0] - 1) & 0x3F)) {
+            printf("Wrote sector #%04x%04x in %5u uS\n", sector[1], sector[0], since_us());
+         }
+      } else {
+         printf("Error writing sector #%04x%04x\n", sector[1], sector[0]);
+         goto end;
+      }
+   }
 end:
 
-	asm {
-		LD #$F000
-		IJMP
-	}
+   asm {
+      LD #$F000
+      IJMP
+   }
 }
 
 
-			
+         

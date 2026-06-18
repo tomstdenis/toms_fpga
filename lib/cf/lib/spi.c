@@ -127,10 +127,7 @@ unsigned spi_transfer(unsigned out)
 		// SCK high phase
 			spi_set_sck(1);
 	}
-#endif
-	
 	// exit with clock low
-#ifndef SPI_FIXED
 	spi_set_sck(0);
 	return out&0xFF;
 #endif
@@ -138,7 +135,14 @@ unsigned spi_transfer(unsigned out)
 
 unsigned spi_recv()
 {
+#ifdef DEBUG
+	unsigned c;
+	c = spi_transfer(0xFF);
+	printf("spi_recv(): %02x\n", c);
+	return c;
+#else
 	return spi_transfer(0xFF);
+#endif
 }
 
 #endif
