@@ -3,13 +3,15 @@
 #define SD_C_
 
 #ifdef SD_BIOS
-// 0xFFE0..0xFFEF for BIOS based SD lib
+// 0xFFD0..0xFFEF for BIOS based SD lib
 #define sd_is_init *((unsigned char*)0xFFEF)
 #define sd_is_hc *((unsigned char*)0xFFEE)
 #define sd_sectors ((unsigned*)0xFFEA)
+#define sd_csd ((unsigned char*)0xFFD0)
 #else
 unsigned char sd_is_init, sd_is_hc;
 unsigned sd_sectors[2];
+unsigned char sd_csd[16];
 #endif
 
 #ifndef SPI_FIXED
@@ -17,7 +19,7 @@ unsigned char sd_port, sd_cs_pin, sd_sck_pin, sd_miso_pin, sd_mosi_pin;
 #endif
 
 #ifdef SPI_FIXED
-sd_init()
+sd_init_fixed()
 #else
 sd_init(unsigned port, unsigned cs, unsigned sck, unsigned miso, unsigned mosi)
 #endif
@@ -101,8 +103,6 @@ sd_port_setup()
 int sd_reset()
 {
 	unsigned x, y, t;
-	unsigned char b;
-	unsigned char sd_csd[16];
 
 	y        = 0;
 retry:
