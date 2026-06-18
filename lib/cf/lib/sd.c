@@ -2,9 +2,14 @@
 #ifndef SD_C_
 #define SD_C_
 
+#ifdef SD_BIOS
+#define sd_is_init *((unsigned char*)0xFFEF)
+#define sd_is_hc *((unsigned char*)0xFFEE)
+#define sd_sectors ((unsigned*)0xFFEA)
+#else
 unsigned char sd_is_init, sd_is_hc;
 unsigned sd_sectors[2];
-unsigned char sd_csd[16];
+#endif
 
 #ifndef SPI_FIXED
 unsigned char sd_port, sd_cs_pin, sd_sck_pin, sd_miso_pin, sd_mosi_pin;
@@ -87,6 +92,7 @@ int sd_reset()
 {
 	unsigned x, y, t;
 	unsigned char b;
+	unsigned char sd_csd[16];
 
 	y        = 0;
 retry:

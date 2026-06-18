@@ -97,10 +97,6 @@ main(void)
 		printf("Failed to init card.\n");
 		goto end;
 	}
-	printf("csd == ");
-	for (x = 0; x < 16; x++) {
-		printf("%02x ", sd_csd[x]);
-	}
 	printf("\nsd_sectors[] == { %04x, %04x }\n", sd_sectors[1], sd_sectors[0]);
 	sector[1] = sector[0] = 0;
 	for (;;) {
