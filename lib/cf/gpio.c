@@ -1,4 +1,4 @@
-#define DEBUG
+//#define DEBUG
 
 // if you use a Digilent capable in PMOD0 define this, otherwise undefine
 #define SPI_FIXED 
@@ -114,10 +114,12 @@ main(void)
          printf("Error reading sector#%04x%04x...\n", sector[1], sector[0]);
          goto end;
       }
-      if (memcmp(sec, spidmasd_bin, 512)) {
-         printf("Sector #%04x%04x does not match golden copy.\n", sector[1], sector[0]);
-         goto end;
-      }
+      for (y = 0; y < 512; y++) {
+		  if (sec[y] != spidmasd_bin[y]) {
+			  printf("Byte %u differs: %02x %02x %02x\n", y, sec[y], spidmasd_bin[y], sec[y] ^ spidmasd_bin[y]);
+			  goto end;
+		  }
+	  }
       
       // increment sector
       ++sector[0];
