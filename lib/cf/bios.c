@@ -18,12 +18,28 @@ topofbios EQU *
 #include "lib/getc.c"
 #include "lib/gets.c"
 #include "lib/puts.c"
+#include "lib/hex.c"
 #include "lib/spi.c"
 #include "lib/sd.c"
 
+inspect_mem()
+{
+}
+
+enter_mem()
+{
+}
+
+serial_upload()
+{
+}
+
 main() {
 	unsigned sector[2];
+	unsigned ch;
+boot_sd:
 	sd_init_fixed();
+	puts("\nAttempting to read from SD card\n");
 	if (!sd_reset()) {
 		// read first 8 sectors (4KB) at 0x0000 and jump there
 		sector[1] = 0;
@@ -36,8 +52,31 @@ main() {
 			IJMP
 		}
 	}
+	puts("Failed to init SD card.\n");
 terminal:
 	// at this point we go interactive
+	puts("Monitor:  Press H for help\n");
+	for (;;) {
+		puts("* ");
+		ch = getc();
+		switch (ch) {
+			case 'H':
+				puts("B: Boot SD\nM: Inspect memory\nE: Enter memory\nS: Serial upload\n\n");
+				break;
+			case 'B':
+				goto boot_sd;
+			case 'M':
+				inspect_mem();
+				break;
+			case 'E':
+				enter_mem();
+				break;
+			case 'S':
+				serial_upload();
+			default:
+				puts("? UNKNOWN\n");
+		}	
+	}
 }
 
 asm {
