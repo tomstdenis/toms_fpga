@@ -23,7 +23,7 @@ topofbios EQU *
 
 main() {
 	unsigned sector[2];
-	sd_init();
+	sd_init_fixed();
 	if (!sd_reset()) {
 		// read first 8 sectors (4KB) at 0x0000 and jump there
 		sector[1] = 0;

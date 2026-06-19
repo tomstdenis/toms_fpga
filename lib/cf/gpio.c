@@ -106,18 +106,23 @@ main(void)
       memset(sec, 0, sizeof(sec));
       since_us();
       x = sd_sector_op(sector, sec, 0);
+      for (y = 0; y < 512; y++) {
+		  if (sec[y] != spidmasd_bin[y]) {
+			  printf("A.Byte %u differs: %02x %02x %02x\n", y, sec[y], spidmasd_bin[y], sec[y] ^ spidmasd_bin[y]);
+		  }
+	  }
       if (!x) {
-         if (!(sector[0] & 0x3F)) {
-            printf("Read sector #%04x%04x in %u uS\n", sector[1], sector[0], since_us());
+	     if (!(sector[0] & 0x3F)) {
+            printf("Read sector #%04x%04x in %u uS\n", sector[1], sector[0], since_us()); // since_us());
          }
+
       } else {
          printf("Error reading sector#%04x%04x...\n", sector[1], sector[0]);
          goto end;
       }
       for (y = 0; y < 512; y++) {
 		  if (sec[y] != spidmasd_bin[y]) {
-			  printf("Byte %u differs: %02x %02x %02x\n", y, sec[y], spidmasd_bin[y], sec[y] ^ spidmasd_bin[y]);
-			  goto end;
+			  printf("B.Byte %u differs: %02x %02x %02x\n", y, sec[y], spidmasd_bin[y], sec[y] ^ spidmasd_bin[y]);
 		  }
 	  }
       
@@ -136,6 +141,8 @@ main(void)
          printf("Error writing sector #%04x%04x\n", sector[1], sector[0]);
          goto end;
       }
+      
+      goto end;
    }
 end:
 

@@ -21,7 +21,7 @@ unsigned char spi_port;
 #endif
 
 #ifdef SPI_FIXED
-spi_setup()
+spi_setup_fixed()
 #else
 spi_setup(unsigned port, unsigned cs_pin, unsigned sck_pin, unsigned miso_pin, unsigned mosi_pin)
 #endif
@@ -115,7 +115,6 @@ unsigned spi_transfer(unsigned out)
 				
 				TNI TR0A				* A = R0 (which now has MISO shifted in and MOSI in the upper 8 bits)
 				ANDB #255				* only keep bottom bits 
-				RET
 			}
 #else
 			spi_set_sck(0);

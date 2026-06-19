@@ -7,11 +7,9 @@
 #define sd_is_init *((unsigned char*)0xFFEF)
 #define sd_is_hc *((unsigned char*)0xFFEE)
 #define sd_sectors ((unsigned*)0xFFEA)
-#define sd_csd ((unsigned char*)0xFFD0)
 #else
 unsigned char sd_is_init, sd_is_hc;
 unsigned sd_sectors[2];
-unsigned char sd_csd[16];
 #endif
 
 #ifndef SPI_FIXED
@@ -33,7 +31,7 @@ sd_init(unsigned port, unsigned cs, unsigned sck, unsigned miso, unsigned mosi)
 #endif
 	sd_is_hc = sd_is_init = 0;
 #ifdef SPI_FIXED
-	spi_setup();
+	spi_setup_fixed();
 #else
 	spi_setup(port, cs, sck, miso, mosi);
 #endif
@@ -100,13 +98,25 @@ sd_port_setup()
 }
 #endif
 
+unsigned getSP() {
+	asm {
+		TSA
+		ADDB #2
+		LEAI 2,S
+		PUSHI
+		XOR S+
+	}
+}
+
 int sd_reset()
 {
 	unsigned x, y, t;
+	unsigned char sd_csd[16];
 
 	y        = 0;
 retry:
 #ifdef DEBUG
+	printf("SP == %04x\n", getSP());
 	since_us();
 	printf("sd_reset()::Try %d\n", y);
 #endif

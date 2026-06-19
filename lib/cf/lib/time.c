@@ -16,7 +16,7 @@ wait_us_top
 }
 
 // us since last call
-since_us()
+unsigned since_us()
 {
 	asm {
 		IN $11			* read uS timer

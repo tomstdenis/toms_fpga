@@ -683,6 +683,7 @@ module cf_cpu #(
 						end else if (bus_enable && bus_ready) begin
 							// PC was saved we can fetch the first opcode of the target.
 							bus_enable <= 1'b0;
+							bus_wr_en  <= 1'b0;
 							fsm_state  <= FSM_FETCH_OPCODE;
 						end
 					end
@@ -739,11 +740,11 @@ module cf_cpu #(
 							case(cur_opcode[3:0])
 								4'hA: // ALLOC oo
 									begin
-										reg_SP <= reg_SP - {8'b0, bus_data_out[7:0]};
+										reg_SP <= reg_SP - bus_data_out;
 									end
 								4'hB: // FREE oo
 									begin
-										reg_SP <= reg_SP + {8'b0, bus_data_out[7:0]};
+										reg_SP <= reg_SP + bus_data_out;
 									end
 								default: begin end
 							endcase
@@ -864,6 +865,7 @@ module cf_cpu #(
 							end
 							bus_enable  <= 1'b0;
 							bus_io_flag <= 1'b0;
+                            bus_wr_en   <= 1'b0;
 							fsm_state   <= FSM_FETCH_OPCODE;
 						end
 					end
