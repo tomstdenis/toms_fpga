@@ -1,16 +1,18 @@
 #ifndef CONSOLE_C_
 #define CONSOLE_C_
 
-#define vidmem ((unsigned char *)0xF800)
+#include "lib/mem.h"
+
+#define vidmem ((unsigned char *)vidmem_addr)
 
 // store console variables at end of vidmem
 // this leaves the main 60K block totally free for
 // the app
 // use 0xFFF0..0xFFFF for console code
-#define console_x ((unsigned *)(0xFFFE))
-#define console_y ((unsigned *)(0xFFFC))
-#define console_tx ((unsigned *)(0xFFFA))
-#define console_ty ((unsigned *)(0xFFF8))
+#define console_x ((unsigned *)(console_x_addr))
+#define console_y ((unsigned *)(console_y_addr))
+#define console_tx ((unsigned *)(console_tx_addr))
+#define console_ty ((unsigned *)(console_ty_addr))
 
 // clear screen and reset x/y to 0
 c_clrscr(void) {

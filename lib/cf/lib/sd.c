@@ -2,11 +2,13 @@
 #ifndef SD_C_
 #define SD_C_
 
+#include "lib/mem.h"
+
 #ifdef SD_BIOS
 // 0xFFD0..0xFFEF for BIOS based SD lib
-#define sd_is_init *((unsigned char*)0xFFEF)
-#define sd_is_hc *((unsigned char*)0xFFEE)
-#define sd_sectors ((unsigned*)0xFFEA)
+#define sd_is_init *((unsigned char*)sd_is_init_addr)
+#define sd_is_hc *((unsigned char*)sd_is_hc_addr)
+#define sd_sectors ((unsigned*)sd_sectors_addr)
 #else
 unsigned char sd_is_init, sd_is_hc;
 unsigned sd_sectors[2];
@@ -74,7 +76,7 @@ int sd_read_block(unsigned char *dst, unsigned len)
 	printf("sd_read_block: Reading %u bytes to %04x\n", len, dst);
 #endif
 	// wait for READ_TOKEN
-	for (x = 256; x--;) {
+	for (x = 8192; x--;) {
 		t = spi_recv();
 		if (t == 0xFE) {
 #ifdef DEBUG
@@ -98,16 +100,6 @@ sd_port_setup()
 }
 #endif
 
-unsigned getSP() {
-	asm {
-		TSA
-		ADDB #2
-		LEAI 2,S
-		PUSHI
-		XOR S+
-	}
-}
-
 int sd_reset()
 {
 	unsigned x, y, t;
@@ -116,7 +108,6 @@ int sd_reset()
 	y        = 0;
 retry:
 #ifdef DEBUG
-	printf("SP == %04x\n", getSP());
 	since_us();
 	printf("sd_reset()::Try %d\n", y);
 #endif

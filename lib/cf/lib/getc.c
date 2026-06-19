@@ -1,6 +1,8 @@
 #ifndef GETC_C_
 #define GETC_C_
 
+#include "lib/mem.h"
+
 int getch() {
 	asm {
 		IN $00
@@ -8,7 +10,6 @@ int getch() {
 }
 
 // borrow from the SD space
-#define getc_echo_addr 65513
 #define getc_echo *((unsigned char*)getc_echo_addr)
 
 int getc() {
