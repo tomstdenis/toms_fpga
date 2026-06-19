@@ -5,15 +5,18 @@
 #define bootrom_addr	0xF000
 #define vidmem_addr		0xF800
 
+// how much memory you can clear before hitting the lib variables
+#define vidmem_clearsize 0x7D0
+
 // using video mem (like for bios rom)
-// First entry is the getc echo (0xFF00, set to 0 to not echo or FF to echo)
-#define getc_echo_addr  65280
-#define sd_is_init_addr 0xFF01
-#define sd_is_hc_addr   0xFF02
-#define sd_sectors_addr 0xFF03 // 4 bytes
-#define console_x_addr  0xFF07
-#define console_y_addr  0xFF08
-#define console_tx_addr 0xFF09
-#define console_ty_addr 0xFF0A
+// these are all after the last byte of text space 
+#define getc_echo_addr  65488
+#define sd_is_init_addr 0xFFD1
+#define sd_is_hc_addr   0xFFD2
+#define sd_sectors_addr 0xFFD3 // 4 bytes
+#define console_x_addr  0xFFD7
+#define console_y_addr  0xFFD8
+#define console_tx_addr 0xFFD9
+#define console_ty_addr 0xFFDA
 
 #endif

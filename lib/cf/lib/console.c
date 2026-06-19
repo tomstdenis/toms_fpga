@@ -4,19 +4,15 @@
 #include "lib/mem.h"
 
 #define vidmem ((unsigned char *)vidmem_addr)
-
-// store console variables at end of vidmem
-// this leaves the main 60K block totally free for
-// the app
-// use 0xFFF0..0xFFFF for console code
-#define console_x ((unsigned *)(console_x_addr))
-#define console_y ((unsigned *)(console_y_addr))
-#define console_tx ((unsigned *)(console_tx_addr))
-#define console_ty ((unsigned *)(console_ty_addr))
+#define console_x *((unsigned *)(console_x_addr))
+#define console_y *((unsigned *)(console_y_addr))
+#define console_tx *((unsigned *)(console_tx_addr))
+#define console_ty *((unsigned *)(console_ty_addr))
 
 // clear screen and reset x/y to 0
 c_clrscr(void) {
-	memset(vidmem, 0, 2048);
+	memset(vidmem, 0, vidmem_clearsize);
+	console_x = console_y = console_tx = console_ty = 0;
 }
 
 c_scroll(void) {
@@ -26,35 +22,35 @@ c_scroll(void) {
 
 // rewind the cursor 
 c_rewind() {
-	if (*console_x == 0) {
-		if (*console_y != 0) {
-			--(*console_y);
-			*console_x = 79;
+	if (console_x == 0) {
+		if (console_y != 0) {
+			--(console_y);
+			console_x = 79;
 		}
 	} else {
-		--(*console_x);
+		--(console_x);
 	}
 }
 
 c_gotoxy(unsigned x, unsigned y) {
-	*(console_x) = x;
-	*(console_y) = y;
+	console_x = x;
+	console_y = y;
 }
 
 c_putc(char c) {
 	if (c == '\n') {
-		*(console_x) = 0;
+		console_x = 0;
 		goto newline;
 	}
-	vidmem[*console_y * 80 + *console_x] = c;
-	++(*console_x);
-	if (*console_x == 80) {
-		*console_x = 0;
+	vidmem[console_y * 80 + console_x] = c;
+	++console_x;
+	if (console_x == 80) {
+		console_x = 0;
 newline:
-		++(*console_y);
-		if (*console_y == 25) {
+		++console_y;
+		if (console_y == 25) {
 			c_scroll();
-			*console_y = 24;
+			console_y = 24;
 		}
 	}
 }
@@ -112,8 +108,8 @@ c_gets(char *s, int n)
 c_box(unsigned x1, unsigned y1, unsigned x2, unsigned y2) {
 	unsigned x, y;
 	
-	*console_tx = *console_x;
-	*console_ty = *console_y;
+	console_tx = console_x;
+	console_ty = console_y;
 	
 	for (x = x1; x < x2; x++) {
 		for (y = y1; y < y2; y++) {
@@ -137,8 +133,8 @@ c_box(unsigned x1, unsigned y1, unsigned x2, unsigned y2) {
 		c_gotoxy(x2, y); c_putc(0xBA);
 	}
 	
-	*console_x = *console_tx;
-	*console_y = *console_ty;
+	console_x = console_tx;
+	console_y = console_ty;
 }
 
 c_boxmsg(unsigned x1, unsigned y1, char *msg) {
@@ -149,8 +145,8 @@ c_boxmsg(unsigned x1, unsigned y1, char *msg) {
 	c_box(x1, y1, x1 + n, y1 + 2);
 	c_gotoxy(x1 + 2, y1 + 1);
 	c_puts(msg);
-	*console_x = *console_tx;
-	*console_y = *console_ty;
+	console_x = console_tx;
+	console_y = console_ty;
 }
 
 c_boxquery(unsigned x1, unsigned y1, char *msg, char *dst, unsigned len) {
@@ -162,8 +158,8 @@ c_boxquery(unsigned x1, unsigned y1, char *msg, char *dst, unsigned len) {
 	c_gotoxy(x1 + 2, y1 + 1);
 	c_puts(msg);
 	c_gets(dst, len);
-	*console_x = *console_tx;
-	*console_y = *console_ty;
+	console_x = console_tx;
+	console_y = console_ty;
 }
 
 #endif
