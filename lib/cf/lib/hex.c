@@ -1,7 +1,7 @@
 #ifndef HEX_C_
 #define HEX_C_
 
-const char *hexstr = "0123456789ABCDEF";
+const char hexstr[] = "0123456789ABCDEF";
 
 print_hex_byte(unsigned v) {
 	asm {
@@ -27,19 +27,22 @@ print_hex_word(unsigned v) {
 		SHR #8
 		PUSHA
 		CALL print_hex_byte
-		LDB 2,S
+		FREE 2
+		LD 2,S
+		ANDB #255
 		PUSHA
 		CALL print_hex_byte
-		FREE 4
+		FREE 2
 	}
 }
 
-unsigned read_hex()
+unsigned read_hex(unsigned nib)
 {
 	unsigned r, c, ch, x;
-	c = r = 0;
+	c = nib;
+	r = 0;
 	
-	while (c++ < 4) {
+	while (c--) {
 		ch = getc();
 		r <<= 4;
 		for (x = 0; hexstr[x]; x++) {
@@ -47,9 +50,6 @@ unsigned read_hex()
 				r |= x;
 				break;
 			}
-		}
-		if (!hexstr[x]) {
-			break;
 		}
 	}
 	return r;

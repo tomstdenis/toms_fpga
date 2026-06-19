@@ -8,7 +8,6 @@ gets(char *s)
 		TAI					* store in INDEX
 ?gets_top EQU *
 		CALL getc
-		OUT $00				* echo
 		STB I				* store character
 		CMPB #8				* compare to BS
 		SJNZ ?gets_bs

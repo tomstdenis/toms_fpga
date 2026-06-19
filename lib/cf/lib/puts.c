@@ -1,13 +1,21 @@
 #ifndef PUTS_C_
 #define PUTS_C_
 
+putc(unsigned v)
+{
+	asm {
+		LD 2,S
+		OUT $00
+	}
+}
+
 puts(char *s)
 {
 	asm {
 		LD 2,S
 		TAI
 ?puts_top EQU *
-		LD I
+		LDB I
 		SJZ ?puts_end
 		OUT $00
 		LEAI 1,I
