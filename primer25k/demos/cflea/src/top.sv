@@ -50,7 +50,7 @@ for I/O the following ports are used
 `timescale 1ns/1ps
 `default_nettype none
 
-`define CF_TOP_VER 8'h02
+`define CF_TOP_VER 8'h03
 
 `define BLOCKS 30
 `define FREQ 125
