@@ -10,7 +10,7 @@
 #include "lib/port.c"
 #include "lib/sd.c"
 
-// pins are setup so 0..3 is the top row (starting next to VCC/GND) and 4..7 are the top row
+// pins are setup so 0..3 is the top row (starting next to VCC/GND) and 4..7 are the bottom row
 // PMOD LED works as bottom, top, move over
 // so we need to map from 0..7 to 0..1, 0..3 based on the pin to led mapping
 
@@ -88,11 +88,7 @@ main(void)
    
    printf("\n\nSD Card GPIO demo\n");
    // pinout for the PMOD SD card board;  
-#ifdef SPI_FIXED
-   sd_init_fixed();
-#else
-   sd_init(0, 3, 0, 1, 2);
-#endif
+   sd_init();
    x = sd_reset();
    printf("sd_reset() == %x, %d, %d\n", x, sd_is_init, sd_is_hc);
    if (x) {

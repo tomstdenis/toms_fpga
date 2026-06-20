@@ -26,7 +26,7 @@ unsigned char sd_is_init, sd_is_hc;
 unsigned sd_sectors[2];
 #endif
 
-sd_spi_setup_fixed()
+sd_spi_setup()
 {
 	// default to all pulled up inputs except sck
 	asm {
@@ -98,10 +98,10 @@ unsigned sd_spi_recv()
 #endif
 }
 
-sd_init_fixed()
+sd_init()
 {
 	sd_is_hc = sd_is_init = 0;
-	sd_spi_setup_fixed();
+	sd_spi_setup();
 }
 
 unsigned sd_cmd(unsigned cmd, unsigned ph, unsigned pl, unsigned crc)
@@ -173,11 +173,6 @@ retry:
 	if (++y == 16) {
 		return -1;
 	}
-	
-#ifndef SPI_FIXED
-	// set SPI to our SD port
-	sd_port_setup();
-#endif
 
 	// make CS high
 	sd_spi_set_cs(1);
