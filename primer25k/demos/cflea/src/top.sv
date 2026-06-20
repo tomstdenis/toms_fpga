@@ -36,9 +36,8 @@ for I/O the following ports are used
 
    - 00h: uart data (non-blocking read => returns FFFF is no char available on read, blocking writes if FIFO is full)
           UART has an 8 byte RX and 8 byte TX FIFO and is set to 230400 baud 8N1
-   - 01h: gpio0 PCF8574 style, write a 1 bit to turn that pin into a pulled-high input (also drives the pin high), write 0 to drive it as output low
-          You may need external pullups to snap up, and definitely a decent pull down to snap down.
-   - 02..04h: gpio1-3 same as gpio0
+   - 01h...04h: gpio0-gpio4 data pins.  Bits [7:0] are the data, and bits [15:8] are writemasks (0 == write, 1 == ignore)
+   - 05h...08h: gpio0-gpio4 direction pins.  Bits [7:0] control whether the pin is output (1) or input (0)
    - 10h: uart status (uart_rx_ready, uart_tx_fifo_empty, uart_tx_fifo_full)
    - 11h: timer (counts 1us ticks, writing anything to it resets to 0)
    - 12h: video mode (lsb == lrg_mode (48x40 8-bit colour mode, text mode is 1 byte per character 80x25 mode using CP437)

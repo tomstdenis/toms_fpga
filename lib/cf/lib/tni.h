@@ -2,6 +2,7 @@
 #define TNI_H_
 
 #define TNI    FCB		// asm prefix 
+
 #define CPUID  $ED		// [15:8] = TOP version, [7:0] = CF version
 #define RDTSC  $EE		// A = cycle counter[15:0]
 #define TAR0   $EF		// R0 = A

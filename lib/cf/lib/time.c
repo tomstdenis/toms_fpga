@@ -1,14 +1,15 @@
 #ifndef TIME_C_
 #define TIME_C_
 
+#include "lib/io.h"
 
 // wait upto 65535 us
 wait_us(unsigned us)
 {
 	asm {		
-		OUT $11			 * clear timer
+		OUT PORT_TIMER	 * clear timer
 wait_us_top
-		IN $11			 * read timer
+		IN PORT_TIMER	 * read timer
 		CMP 2,S			 * compare to us
 		ULT				 * unsigned less than 
 		SJNZ wait_us_top * wait till us passes
@@ -19,8 +20,8 @@ wait_us_top
 unsigned since_us()
 {
 	asm {
-		IN $11			* read uS timer
-		OUT $11			* clear the uS timer
+		IN PORT_TIMER			* read uS timer
+		OUT PORT_TIMER			* clear the uS timer
 	}
 }
 

@@ -1,6 +1,7 @@
 #ifndef CONSOLE_C_
 #define CONSOLE_C_
 
+#include "lib/io.h"
 #include "lib/mem.h"
 
 #define vidmem ((unsigned char *)vidmem_addr)
@@ -63,7 +64,7 @@ c_puts(char *s) {
 
 unsigned c_serin(void) {
 	asm {
-		IN $00
+		IN PORT_UART_DATA
 	}
 }
 

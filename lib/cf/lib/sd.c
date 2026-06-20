@@ -1,20 +1,21 @@
-// SD library
+// SD library using a Digilent style SPI micro SD PMOD
 #ifndef SD_C_
 #define SD_C_
 
+#include "lib/io.h"
 #include "lib/mem.h"
 #include "lib/tni.h"
 
-// Which PMOD to use
+// Which PMOD to use (0..3)
 #ifndef SD_PMOD
 #define SD_PMOD 0
 #endif
 
-// PMODn + 1 (default: PMOD0)
-#define SD_SPI_PORT (SD_PMOD + 1)
+// Data Port
+#define SD_SPI_PORT (SD_PMOD + PORT_PMOD_BASE)
 
-// PMODn + 5 (default: PMOD0)
-#define SD_SPI_PORT2 (SD_PMOD + 5)
+// Direction Mode POrt
+#define SD_SPI_PORT2 (SD_PMOD + PORT_PMOD_DIR_BASE)
 
 #ifdef SD_BIOS
 // 0xFFD0..0xFFEF for BIOS based SD lib

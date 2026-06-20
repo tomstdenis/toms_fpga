@@ -9,16 +9,18 @@ or use the default PMOD0
 #ifndef SPI_C_
 #define SPI_C_
 
+#include "lib/io.h"
+
 // Which PMOD to use
 #ifndef SPI_PMOD
 #define SPI_PMOD 0
 #endif
 
-// PMODn + 1 (default: PMOD0)
-#define SPI_PORT (SPI_PMOD + 1)
+// Data Port
+#define SPI_PORT (SPI_PMOD + PORT_PMOD_BASE)
 
-// PMODn + 5 (default: PMOD0)
-#define SPI_PORT2 (SPI_PMOD + 5)
+// Direction Mode POrt
+#define SPI_PORT2 (SPI_PMOD + PORT_PMOD_DIR_BASE)
 
 #ifndef SPI_FIXED
 unsigned spi_cs_mask;
@@ -121,7 +123,7 @@ unsigned spi_transfer(unsigned out)
 	for (x = 0; x < 8; x++) {
 		outport(spi_port, (spi_mosi_mask_ds&spi_sck_mask_ds) | ((out & 0x80) ? spi_mosi_mask : 0)); // write MOSI and SCK=0
 		out <<= 1;
-		out |= !!((inport(spi_port, 0x100) & spi_miso_mask));										// read MISO and toggle SCK back to 1
+		out |= !!((inport(spi_port, spi_sck_mask << 8) & spi_miso_mask));							// read MISO and toggle SCK back to 1
 	}
 	// exit with clock low
 	spi_set_sck(0);

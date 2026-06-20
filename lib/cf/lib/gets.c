@@ -1,6 +1,8 @@
 #ifndef GETS_C_
 #define GETS_C_
 
+#include "lib/io.h"
+
 gets(char *s)
 {
 	asm {
@@ -17,9 +19,9 @@ gets(char *s)
 		SJMP ?gets_next
 ?gets_bs EQU *
 		LDB #$20			* echo a space
-		OUT $00
+		OUT PORT_UART_DATA
 		LDB #8				* and then move back
-		OUT $00
+		OUT PORT_UART_DATA
 		SJMP ?gets_top
 ?gets_next EQU *
 		LEAI 1,I			* increment I

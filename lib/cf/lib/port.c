@@ -1,31 +1,33 @@
 #ifndef PORT_C_
 #define PORT_C_
 
+#include "lib/io.h"
+
 outport(int port, unsigned val)
 {
 	switch (port) {
 		case 0:
 			asm {
 				LD 2,S
-				OUT $01
+				OUT PORT_PMOD_BASE+0
 			}
 			break;
 		case 1:
 			asm {
 				LD 2,S
-				OUT $02
+				OUT PORT_PMOD_BASE+1
 			}
 			break;
 		case 2:
 			asm {
 				LD 2,S
-				OUT $03
+				OUT PORT_PMOD_BASE+2
 			}
 			break;
 		case 3:
 			asm {
 				LD 2,S
-				OUT $04
+				OUT PORT_PMOD_BASE+3
 			}
 			break;
 	}
@@ -37,25 +39,25 @@ dirport(int port, unsigned val)
 		case 0:
 			asm {
 				LD 2,S
-				OUT $05
+				OUT PORT_PMOD_DIR_BASE+0
 			}
 			break;
 		case 1:
 			asm {
 				LD 2,S
-				OUT $06
+				OUT PORT_PMOD_DIR_BASE+1
 			}
 			break;
 		case 2:
 			asm {
 				LD 2,S
-				OUT $07
+				OUT PORT_PMOD_DIR_BASE+2
 			}
 			break;
 		case 3:
 			asm {
 				LD 2,S
-				OUT $08
+				OUT PORT_PMOD_DIR_BASE+3
 			}
 			break;
 	}
@@ -67,28 +69,28 @@ inport(int port, unsigned tgl)
 		case 0:
 			asm {
 				LD 2,S
-				IN $01
+				IN PORT_PMOD_BASE+0
 				RET
 			}
 			break;
 		case 1:
 			asm {
 				LD 2,S
-				IN $02
+				IN PORT_PMOD_BASE+1
 				RET
 			}
 			break;
 		case 2:
 			asm {
 				LD 2,S
-				IN $03
+				IN PORT_PMOD_BASE+2
 				RET
 			}
 			break;
 		case 3:
 			asm {
 				LD 2,S
-				IN $04
+				IN PORT_PMOD_BASE+3
 				RET
 			}
 			break;

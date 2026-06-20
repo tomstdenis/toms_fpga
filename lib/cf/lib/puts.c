@@ -1,11 +1,13 @@
 #ifndef PUTS_C_
 #define PUTS_C_
 
+#include "lib/io.h"
+
 putc(unsigned v)
 {
 	asm {
 		LD 2,S
-		OUT $00
+		OUT PORT_UART_DATA
 	}
 }
 
@@ -17,7 +19,7 @@ puts(char *s)
 ?puts_top EQU *
 		LDB I
 		SJZ ?puts_end
-		OUT $00
+		OUT PORT_UART_DATA
 		LEAI 1,I
 		SJMP ?puts_top
 ?puts_end EQU *

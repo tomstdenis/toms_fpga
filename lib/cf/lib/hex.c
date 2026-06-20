@@ -1,6 +1,8 @@
 #ifndef HEX_C_
 #define HEX_C_
 
+#include "lib/io.h"
+
 const char hexstr[] = "0123456789ABCDEF";
 
 print_hex_byte(unsigned v) {
@@ -10,14 +12,14 @@ print_hex_byte(unsigned v) {
 		SHR #4
 		ADAI
 		LDB I
-		OUT $00
+		OUT PORT_UART_DATA
 
 		LDI #hexstr
 		LD 2,S
 		ANDB #15
 		ADAI
 		LDB I
-		OUT $00
+		OUT PORT_UART_DATA
 	}
 }
 

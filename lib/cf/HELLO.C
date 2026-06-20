@@ -3,19 +3,8 @@
  */
 #include <cflea.h>
 
-#define vidmem ((unsigned char *)0xF800)
-
-// wait upto 255 ms
-wait_ms(unsigned ms)
-{
-	asm {		
-		OUT $11			* clear timer
-wait_ms_top
-		IN $11			* read timer
-		CMP 2,S			* compare to ms 
-		JZ wait_ms_top  * wait till ms passes
-	}
-}
+#include "lib/time.c"
+#include "lib/console.c"
 
 // benchmark various opcodes
 unsigned cpu_cycles(unsigned test)
@@ -24,7 +13,7 @@ unsigned cpu_cycles(unsigned test)
 		case 0:
 			asm {
 				FCB $EE
-				FCB $EE
+				FCB $EE					// RDTSC
 				RET
 			}
 		case 1:							// CALL
@@ -130,6 +119,20 @@ cpu_cycles_2
 				FCB $EE
 				RET
 			}
+		case 15:
+			asm {
+				FCB $EE
+				ADDB #$FF
+				FCB $EE
+				RET
+			}
+		case 16:
+			asm {
+				FCB $EE
+				SHL #5
+				FCB $EE
+				RET
+			}
 	}
 	return 0;
 }
@@ -142,21 +145,6 @@ unsigned rtl_version(void)
 	}
 }
 
-// set the video mode (0 == text, 1 == LRG)
-vid_mode(unsigned mode)
-{
-	asm {
-		LD 2,S
-		OUT $12
-	}
-}
-
-unsigned read_video_status(void)
-{
-	asm {
-		IN $12
-	}
-}
 // wait till start of VGA vsync
 wait_vsync(void)
 {
@@ -219,15 +207,15 @@ const char *tests[] = {
 	"TSA",
 	"OUT $01",
 	"DIV $FFFF/$11 (+LD 0000)",
+	"ADDB #$FF",
+	"SHL #5",
 	NULL
 };
-
-char buf[128];
 
 main()
 {
 	unsigned y, x, z;
-	void *p, *p2;
+
 	printf("\nCycle counts:\n");
 	for (z = x = 0; tests[x]; x++) {
 		y = cpu_cycles(x) - z;
@@ -237,29 +225,14 @@ main()
 		printf("\t%s: %u\n", tests[x], y);
 	}
 	y = 0;
-	
-	p = malloc(1024);
-	p2 = malloc(1024);
-	printf("p == %x, p2 == %x, &buf == %x\n", p, p2, &buf[0]);
-	free(p);
-	free(p2);
 
- 	memset(vidmem, 0, 2048);
-	vid_mode(1);
-	for (y = 0; y < 2 * 10; y++) {
-		wait_ms(250);
-		for (x = 0; x < 2048; x++) {
-			vidmem[x] = x + (y * 13);
-		}
-	}
-	vid_mode(0);
-	memset(vidmem, 0, 2048);
+	c_clrscr();
 	for (;;) {
 		wait_vsync();
 		// we're now in vsync for a bit which also includes time outside of vsync but still in blanking.
 		x = cpu_cycles(0);
 		z = rtl_version();
-		outp1(~(y>>4));				// output to LEDs ...
+		outp2(~(y>>4));				// output to LEDs ...
 		sprintf(vidmem, "Tom was here! %5u times, %5u cycles per call, top: %02x, core: %02x", ++y, x, z >> 8, z & 255);
 		memcpy(vidmem+80, vidmem, 80);
 		memcpy(vidmem+160, vidmem+80, 80);
