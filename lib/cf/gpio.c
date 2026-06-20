@@ -110,10 +110,8 @@ main(void)
          printf("Error reading sector#%04x%04x...\n", sector[1], sector[0]);
          goto end;
       }
-      for (y = 0; y < 512; y++) {
-		  if (sec[y] != spidmasd_bin[y]) {
-			  printf("B.Byte %u differs: %02x %02x %02x\n", y, sec[y], spidmasd_bin[y], sec[y] ^ spidmasd_bin[y]);
-		  }
+      if (memcmp(sec, spidmasd_bin, 512)) {
+		  printf("Read back sector differs from golden master.\n");
 	  }
       
       // increment sector

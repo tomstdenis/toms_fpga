@@ -8,11 +8,11 @@ wait_us(unsigned us)
 {
 	asm {		
 		OUT PORT_TIMER	 * clear timer
-wait_us_top
+?wait_us_top EQU *
 		IN PORT_TIMER	 * read timer
 		CMP 2,S			 * compare to us
 		ULT				 * unsigned less than 
-		SJNZ wait_us_top * wait till us passes
+		SJNZ ?wait_us_top * wait till us passes
 	}
 }
 
