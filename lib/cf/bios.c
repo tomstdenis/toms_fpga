@@ -3,14 +3,13 @@
 asm {
 	ORG $7000
 topofbios EQU *
-	LD  #$FF00				* set stack to the top of video memory - 256 to allow for temps
-	TAS
+	CLR
+	TAS				* Set stack to top of memory
 	CALL main
 ?halt EQU *
 	SJMP ?halt
 }
 
-#define SPI_FIXED
 #define SD_BIOS
 #define SD_NO_WRITE
 #include <cflea.h>

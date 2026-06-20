@@ -51,39 +51,37 @@ sd_spi_set_cs(int cs)
 // transfer 8 bits, using loops # delay_loops per SCK half cycle
 unsigned sd_spi_transfer(unsigned out)
 {
-		// SCK low phase
-			// write mosi
-			// r0 == out
-			// r1 == x
-			asm {
-				LD 2,S
-				TNI TAR0				* R0 = out (what to send)
-				LDB #8
-				TNI TAR1				* R1 = 8
-				
+	// r0 == out
+	// r1 == x
+	asm {
+		LD 2,S
+		TNI TAR0				* R0 = out (what to send)
+		LDB #8
+		TNI TAR1				* R1 = 8
+		
 ?sd_spi_transfer_top EQU *
-				TNI TR0A				* A = R0
-				TNI ADAR0				* R0 = R0 << 1
-				SHR #5					* we want bit 7 of out to be in bit 2 (mosi) location
-				ANDB #4					* mask mosi bit
-				OR #$FA00				* enable SCK and MOSI output (also write SCK=0)
-				OUT SD_SPI_PORT			* write to PMOD0
-				
-				LD #$0100				* enable toggle of SCK pin
-				IN SD_SPI_PORT			* read PMOD0 and toggle SCK
-				ANDB #2					* mask MISO bit
-				SHR #1					* shift left
-				TNI ADAR0				* add MISO bit to R0 (out)
-				
-				TNI DECR1A				* DEC R1 and store copy in ACC
-				SJNZ ?sd_spi_transfer_top
-				
-				LD #$FE00				* SCK bit enable, write 0
-				OUT SD_SPI_PORT			* write to PMOD0
-				
-				TNI TR0A				* A = R0 (which now has MISO shifted in and MOSI in the upper 8 bits)
-				ANDB #255				* only keep bottom bits 
-			}
+		TNI TR0A				* A = R0
+		TNI ADAR0				* R0 = R0 << 1
+		SHR #5					* we want bit 7 of out to be in bit 2 (mosi) location
+		ANDB #4					* mask mosi bit
+		OR #$FA00				* enable SCK and MOSI output (also write SCK=0)
+		OUT SD_SPI_PORT			* write to PMOD0
+		
+		LD #$0100				* enable toggle of SCK pin
+		IN SD_SPI_PORT			* read PMOD0 and toggle SCK
+		ANDB #2					* mask MISO bit
+		SHR #1					* shift left
+		TNI ADAR0				* add MISO bit to R0 (out)
+		
+		TNI DECR1A				* DEC R1 and store copy in ACC
+		SJNZ ?sd_spi_transfer_top
+		
+		LD #$FE00				* SCK bit enable, write 0
+		OUT SD_SPI_PORT			* write to PMOD0
+		
+		TNI TR0A				* A = R0 (which now has MISO shifted in and MOSI in the upper 8 bits)
+		ANDB #255				* only keep bottom bits 
+	}
 }
 
 unsigned sd_spi_recv()
@@ -275,11 +273,6 @@ unsigned sd_sector_op(unsigned sector[2], unsigned char *dst, int wr_en)
 	
 	ret = 0xFFFF;
 	r = 0;
-	
-#ifndef SPI_FIXED
-	// set SPI to our SD port
-	sd_port_setup();
-#endif
 
 retry:
 	sd_spi_set_cs(0);
