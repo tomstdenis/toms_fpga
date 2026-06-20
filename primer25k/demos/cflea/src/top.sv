@@ -49,10 +49,20 @@ for I/O the following ports are used
 `timescale 1ns/1ps
 `default_nettype none
 
+// version of TOP to report to the ISA
 `define CF_TOP_VER 8'h03
 
+// number of 2KB blocks in main memory
 `define BLOCKS 30
+
+// core clock frequency the PLL is tuned to 
 `define FREQ 125
+
+// UART fifo depth for both RX and TX
+`define UART_FIFO_DEPTH 8
+
+// UART baud rate
+`define UART_BAUD 230_400
 
 module top(input wire clk, input wire s1,
 	input wire uart_rx, output wire uart_tx, 
@@ -63,31 +73,33 @@ module top(input wire clk, input wire s1,
     localparam
         MAIN_MEM_COMB = 0;
 
+    // I/O space addresses for various functions
     localparam
-        io_port_uart  = 8'h00,
-        io_port_gpio0 = 8'h01,
+        io_port_uart  = 8'h00,                  // uart DATA, used to read/write serial data
+        io_port_gpio0 = 8'h01,                  // GPIO0..3 data ports
         io_port_gpio1 = 8'h02,
         io_port_gpio2 = 8'h03,
         io_port_gpio3 = 8'h04,
-        io_port_gpio0_oe = 8'h05,
+        io_port_gpio0_oe = 8'h05,               // GPIO0..3 output enables
         io_port_gpio1_oe = 8'h06,
         io_port_gpio2_oe = 8'h07,
         io_port_gpio3_oe = 8'h08,
-        io_port_uart_status = 8'h10,
-        io_port_timer = 8'h11,
-        io_port_video = 8'h12,
-        io_port_wdt   = 8'h13;
+        io_port_uart_status = 8'h10,            // UART status port
+        io_port_timer = 8'h11,                  // 1uS timer port
+        io_port_video = 8'h12,                  // video signalling/mode setting ported
+        io_port_wdt   = 8'h13;                  // uS based WDT (0==disable==default)
 
     localparam
-        bus_address_main_mem_top = 16'hEFFF,
-		bus_address_text_mem_bot = 16'hF800,
-		bus_address_text_mem_top = 16'hFFFF,
-		bus_address_rom_mem_bot  = 16'hF000,
-		bus_address_rom_mem_top  = 16'hF7FF;
+        bus_address_main_mem_top = (16'h2000 * `BLOCKS),    // top of system memory
+		bus_address_text_mem_bot = 16'hF800,                // bottom of video memory (2KB)
+		bus_address_text_mem_top = 16'hFFFF,                // top of video memory 
+		bus_address_rom_mem_bot  = 16'hF000,                // bottom of BOOT ROM space (2KB)
+		bus_address_rom_mem_top  = 16'hF7FF;                // top of BOOT ROM space
 
 	// Domain #1: CFLEA @`FREQ
     logic pllclk;
 	
+    // reset control, reset is asserted for first few cycles also if the reset_sw is held down
 	reg [3:0] rst = 0;
     reg [1:0] reset_sw;
     localparam
@@ -135,7 +147,7 @@ module top(input wire clk, input wire s1,
     assign gpio_in = gpio;
 
 	// ### UART ###
-    wire [15:0] baud_div = (`FREQ * 1_000_000) / 230_400;
+    wire [15:0] baud_div = (`FREQ * 1_000_000) / `UART_BAUD;
     logic uart_tx_start;
     logic [7:0] uart_tx_data_in;
     logic uart_tx_fifo_full;
@@ -147,7 +159,7 @@ module top(input wire clk, input wire s1,
     logic uart_prev_tx_fifo_empty;
     logic uart_prev_rx_ready;
 
-    uart #(.FIFO_DEPTH(8), .RX_ENABLE(1), .TX_ENABLE(1)) mrtalky (
+    uart #(.FIFO_DEPTH(`UART_FIFO_DEPTH), .RX_ENABLE(1), .TX_ENABLE(1)) mrtalky (
         .clk(pllclk), .rst_n(rst_n),
         .baud_div(baud_div),
         .uart_tx_start(uart_tx_start),
@@ -189,18 +201,18 @@ module top(input wire clk, input wire s1,
     );
 
     // bit widths are for 640x480 VGA
-	logic [10:0] vga_x;
-	logic [10:0] vga_y;
-	logic vga_h_sync;
-	logic vga_v_sync;
-	logic vga_v_sync_prev;
-	logic vga_active;
+	logic [10:0] vga_x;                     // VGA X position
+	logic [10:0] vga_y;                     // VGA Y position
+	logic vga_h_sync;                       // VGA H sync (active low)
+	logic vga_v_sync;                       // VGA V sync (active low)
+	logic vga_v_sync_prev;                  // previous V sync used to detect negedge of vsync
+	logic vga_active;                       // VGA in display region
 	
 	always_ff @(posedge pll2clk) begin
 		vga_v_sync_prev <= vga_v_sync;
 	end
 	
-	assign vga_h_pulse = vga_h_sync;
+	assign vga_h_pulse = vga_h_sync;        // assign syncs to I/O pins
 	assign vga_v_pulse = vga_v_sync;
 
 	// ### VGA ### this module produces the VGA timing signals other modules depend on
@@ -213,15 +225,13 @@ module top(input wire clk, input wire s1,
 		.v_sync(vga_v_sync),
 		.active_video(vga_active));
 
-	logic [7:0] text_symbol;
-	logic text_out;
+    // text rendering
+	logic [7:0] text_symbol;                // The current symbol to draw
+	logic text_out;                         // The current pixel to draw
 	
-	// ### font rom ### (note we scale y by 2 to fit the 80x25 chars onto 640x480 a bit nicer)
-	// this module takes in the symbol value and x/y pixel position relative to the top left corner of the symbol
-//	vga_8x8_font_256 font(.symbol(text_symbol), .x(vga_x[2:0]), .y(vga_y[3:1]), .out(text_out));	
-
-    // on Gowin a Shadow ROM is better as it's both faster and smaller (and faster to compile)
-
+    // for performance we're using a BRAM in pROM mode for the font
+    // this incurs the 1 cycle latency which means we need some trickery
+    // with the y position...
     // vga_y_p1 accounts for the fact we need the value of y the next cycle to account
     // for the fact the font rom is synchronous.
     wire [10:0] vga_y_p1 = (vga_y + (vga_x == 799 ? 1'b1 : 1'b0));
@@ -241,17 +251,19 @@ module top(input wire clk, input wire s1,
         .din(8'b0) //input [7:0] din
     );
 
-	logic [10:0] text_addr_a;
+    // video memory ports
+	logic [10:0] text_addr_a;                   // CPU bound port A allows SW to read/write from video memory
 	logic [7:0] text_din_a;
 	logic text_we_a;
 	logic [7:0] text_dout_a;
 
-	logic [10:0] text_addr_b;
+	logic [10:0] text_addr_b;                   // VGA bound port B allows the video to access video ram
 	logic [7:0] text_dout_b;
 	
-	logic lrg_mode;
-    logic [1:0] lrg_mode_pll2;
+	logic lrg_mode;                             // 0 == 80x25, 1 == 48x40 LRG
+    logic [1:0] lrg_mode_pll2;                  // 2-FF chain to bring signal into VGA clock domain
 
+    // The 2KB bram for video memory
     video_mem reliving_my_childhood (
         .ada(text_addr_a), //input [10:0] ada
         .cea(1'b1), //input cea
@@ -301,6 +313,8 @@ module top(input wire clk, input wire s1,
 	end
 
     // ### boot rom
+
+    // This is wire up the CF bus directly so we don't need an extra bus cycle to latch address
     wire [7:0] boot_rom_dout_a;
     wire [7:0] boot_rom_dout_b;
 
