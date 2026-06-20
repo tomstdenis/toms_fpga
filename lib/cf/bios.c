@@ -18,37 +18,40 @@ topofbios EQU *
 #include "lib/gets.c"
 #include "lib/puts.c"
 #include "lib/hex.c"
-#include "lib/spi.c"
 #include "lib/sd.c"
 
 // MADDR.LEN
 inspect_mem()
 {
 	unsigned addr, end, x;
-	addr = read_hex(4);
+	addr = read_hex(4) & 0xFFF0;
 	end = addr + 256;
 	if (getc() == '.') {
 		end = addr + read_hex(4);
 	}
-	for (x = 0; x < (end - addr); x++) {
-		if (!(x & 15)) {
-			puts("\r\n"); print_hex_word(addr + x); puts(": ");
+	for (x = end - addr; x--;) {
+		if (!(addr & 15)) {
+			puts("\r\n"); print_hex_word(addr); puts(": ");
 		}
-		print_hex_byte(((unsigned char*)addr)[x]);
+		print_hex_byte(*((unsigned char*)addr++));
 		puts(" ");
 	}
-	puts("\r\n");
 }
 
 enter_mem()
 {
+	unsigned addr, ch;
+	addr = read_hex(4);
+	while (getc() == ' ') {
+		ch = read_hex(2);
+		*((unsigned char*)addr++) = ch;
+	}
 }
 
 // load hex format: S12310000000FFDED8F413D3FEEA11EB118402CCD5F9D9EB11EA11D90402E5A402E4D12D0C
 serial_upload()
 {
 	unsigned code, ch, addr, len, olen;
-	puts("\n\rWaiting for upload...\n\r");
 	getc_echo = 0x00;
 	for (;;) {
 		ch = getc();
@@ -70,7 +73,6 @@ serial_upload()
 				do {
 					ch = getch();
 				} while (ch == '\r' || ch == '\n');
-				puts("Done uploading...\r\n");
 				return;
 			}
 		}
@@ -88,8 +90,8 @@ main() {
 	unsigned sector[2], x, y;
 	unsigned ch;
 boot_sd:
-	sd_init_fixed();
-	puts("\n\rAttempting to read from SD card\n\r");
+	sd_init();
+	puts("\n\rReading SD card\n\r");
 	if (!sd_reset()) {
 		// read first 8 sectors (4KB) at 0x0000 and jump there
 		sector[1] = 0;
@@ -102,7 +104,7 @@ boot_sd:
 			y = y + *((unsigned*)x) + 1;
 		}
 		if (y) {
-			puts("Invalid checksum, going to monitor\n\r");
+			puts("Invalid checksum\n\r");
 			goto terminal;
 		}
 		
@@ -112,10 +114,10 @@ boot_sd:
 			IJMP
 		}
 	}
-	puts("Failed to init SD card.\n\r");
+	puts("Failed to init SD card.");
 terminal:
 	// at this point we go interactive
-	puts("Monitor:  Press H for help\n\r");
+	puts("\n\rMonitor:  Press H for help\n\r");
 	for (;;) {
 		getc_echo = 0xFF;
 		puts("* ");
@@ -136,12 +138,10 @@ terminal:
 				serial_upload();
 				break;
 			case 'G':
-				x = read_hex(4);
-				puts("\n\rJumping to 0x"); print_hex_word(x); puts("\n\r");
-				jump(x);
+				jump(read_hex(4));
 				break;
 			default:
-				puts("? UNKNOWN\n\r");
+				puts("?\n\r");
 		}	
 	}
 }

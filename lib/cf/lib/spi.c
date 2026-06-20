@@ -20,7 +20,6 @@ or use the default PMOD0
 // PMODn + 5 (default: PMOD0)
 #define SPI_PORT2 (SPI_PMOD + 5)
 
-
 #ifndef SPI_FIXED
 unsigned spi_cs_mask;
 unsigned spi_sck_mask;
@@ -56,7 +55,7 @@ spi_setup(unsigned port, unsigned cs_pin, unsigned sck_pin, unsigned miso_pin, u
 	spi_miso_mask = (1 << miso_pin);
 	spi_mosi_mask = (1 << mosi_pin);
 	
-	// the DIRSET masks
+	// the WRITESEL masks
 	spi_cs_mask_ds   = (~spi_cs_mask) << 8;
 	spi_sck_mask_ds  = (~spi_sck_mask) << 8;
 	spi_miso_mask_ds = (~spi_miso_mask) << 8;
@@ -82,64 +81,47 @@ spi_set_cs(int cs)
 #endif
 }
 
-// set the sck pin to sck
-#ifndef SPI_FIXED
-spi_set_sck(int sck)
-{
-	outport(spi_port, spi_sck_mask_ds | (sck ? spi_sck_mask : 0));
-}
-#endif
-
-// transfer 8 bits, using loops # delay_loops per SCK half cycle
 unsigned spi_transfer(unsigned out)
 {
-#ifndef SPI_FIXED
+#ifdef SPI_FIXED
+	// write mosi
+	// r0 == out
+	// r1 == x
+	asm {
+		LD 2,S
+		TNI TAR0				* R0 = out (what to send)
+		LDB #8
+		TNI TAR1				* R1 = 8
+		
+?spi_transfer_top EQU *
+		TNI TR0A				* A = R0
+		TNI ADAR0				* R0 = R0 << 1
+		SHR #5					* we want bit 7 of out to be in bit 2 (mosi) location
+		ANDB #4					* mask mosi bit
+		OR #$FA00				* enable SCK and MOSI output (also write SCK=0)
+		OUT SPI_PORT			* write to PMOD0
+		
+		LD #$0100				* enable toggle of SCK pin
+		IN SPI_PORT				* read PMOD0 and toggle SCK
+		ANDB #2					* mask MISO bit
+		SHR #1					* shift left
+		TNI ADAR0				* add MISO bit to R0 (out)
+		
+		TNI DECR1A				* DEC R1 and store copy in ACC
+		SJNZ ?spi_transfer_top
+		
+		LD #$FE00				* SCK bit enable, write 0
+		OUT SPI_PORT			* write to PMOD0
+		
+		TNI TR0A				* A = R0 (which now has MISO shifted in and MOSI in the upper 8 bits)
+		ANDB #255				* only keep bottom bits 
+	}
+#else
 	unsigned x;
 	for (x = 0; x < 8; x++) {
-#endif
-		// SCK low phase
-#ifdef SPI_FIXED
-			// write mosi
-			// r0 == out
-			// r1 == x
-			asm {
-				LD 2,S
-				TNI TAR0				* R0 = out (what to send)
-				LDB #8
-				TNI TAR1				* R1 = 8
-				
-?spi_transfer_top EQU *
-				TNI TR0A				* A = R0
-				TNI ADAR0				* R0 = R0 << 1
-				SHR #5					* we want bit 7 of out to be in bit 2 (mosi) location
-				ANDB #4					* mask mosi bit
-				OR #$FA00				* enable SCK and MOSI output (also write SCK=0)
-				OUT SPI_PORT			* write to PMOD0
-				
-				LD #$0100				* enable toggle of SCK pin
-				IN SPI_PORT				* read PMOD0 and toggle SCK
-				ANDB #2					* mask MISO bit
-				SHR #1					* shift left
-				TNI ADAR0				* add MISO bit to R0 (out)
-				
-				TNI DECR1A				* DEC R1 and store copy in ACC
-				SJNZ ?spi_transfer_top
-				
-				LD #$FE00				* SCK bit enable, write 0
-				OUT SPI_PORT			* write to PMOD0
-				
-				TNI TR0A				* A = R0 (which now has MISO shifted in and MOSI in the upper 8 bits)
-				ANDB #255				* only keep bottom bits 
-			}
-#else
-			spi_set_sck(0);
-			// load current bit
-			outport(spi_port, spi_mosi_mask_ds | ((out & 0x80) ? spi_mosi_mask : 0));
-			out <<= 1;
-			// read MISO
-			out |= !!((inport(spi_port, 0) & spi_miso_mask));
-		// SCK high phase
-			spi_set_sck(1);
+		outport(spi_port, (spi_mosi_mask_ds&spi_sck_mask_ds) | ((out & 0x80) ? spi_mosi_mask : 0)); // write MOSI and SCK=0
+		out <<= 1;
+		out |= !!((inport(spi_port, 0x100) & spi_miso_mask));										// read MISO and toggle SCK back to 1
 	}
 	// exit with clock low
 	spi_set_sck(0);
