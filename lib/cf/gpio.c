@@ -8,7 +8,6 @@
 #include "lib/console.c"
 #include "lib/time.c"
 #include "lib/port.c"
-#include "lib/spi.c"
 #include "lib/sd.c"
 
 // pins are setup so 0..3 is the top row (starting next to VCC/GND) and 4..7 are the top row

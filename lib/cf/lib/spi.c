@@ -2,9 +2,24 @@
 
 Assumes the entire SPI interface is on one GPIO block
 
+define SPI_MOD before including this to change which PMOD to use
+or use the default PMOD0
+
 */
 #ifndef SPI_C_
 #define SPI_C_
+
+// Which PMOD to use
+#ifndef SPI_PMOD
+#define SPI_PMOD 0
+#endif
+
+// PMODn + 1 (default: PMOD0)
+#define SPI_PORT (SPI_PMOD + 1)
+
+// PMODn + 5 (default: PMOD0)
+#define SPI_PORT2 (SPI_PMOD + 5)
+
 
 #ifndef SPI_FIXED
 unsigned spi_cs_mask;
@@ -30,9 +45,9 @@ spi_setup(unsigned port, unsigned cs_pin, unsigned sck_pin, unsigned miso_pin, u
 #ifdef SPI_FIXED
 	asm {
 		LDB #$0D					* CS | SCK | MOSI as outputs
-		OUT $5
+		OUT SPI_PORT2
 		LDB #$0A					* make CS and MISO high
-		OUT $1
+		OUT SPI_PORT
 	}
 #else
 	spi_port = port;
@@ -60,7 +75,7 @@ spi_set_cs(int cs)
 		LD 2,S
 		SHL #3
 		OR #$F700
-		OUT $01
+		OUT SPI_PORT
 	}
 #else
 	outport(spi_port, spi_cs_mask_ds | (cs ? spi_cs_mask : 0));
@@ -99,10 +114,10 @@ unsigned spi_transfer(unsigned out)
 				SHR #5					* we want bit 7 of out to be in bit 2 (mosi) location
 				ANDB #4					* mask mosi bit
 				OR #$FA00				* enable SCK and MOSI output (also write SCK=0)
-				OUT $01					* write to PMOD0
+				OUT SPI_PORT			* write to PMOD0
 				
 				LD #$0100				* enable toggle of SCK pin
-				IN $01					* read PMOD0 and toggle SCK
+				IN SPI_PORT				* read PMOD0 and toggle SCK
 				ANDB #2					* mask MISO bit
 				SHR #1					* shift left
 				TNI ADAR0				* add MISO bit to R0 (out)
@@ -111,7 +126,7 @@ unsigned spi_transfer(unsigned out)
 				SJNZ ?spi_transfer_top
 				
 				LD #$FE00				* SCK bit enable, write 0
-				OUT $01					* write to PMOD0
+				OUT SPI_PORT			* write to PMOD0
 				
 				TNI TR0A				* A = R0 (which now has MISO shifted in and MOSI in the upper 8 bits)
 				ANDB #255				* only keep bottom bits 

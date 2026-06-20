@@ -3,6 +3,18 @@
 #define SD_C_
 
 #include "lib/mem.h"
+#include "lib/tni.h"
+
+// Which PMOD to use
+#ifndef SD_PMOD
+#define SD_PMOD 0
+#endif
+
+// PMODn + 1 (default: PMOD0)
+#define SD_SPI_PORT (SD_PMOD + 1)
+
+// PMODn + 5 (default: PMOD0)
+#define SD_SPI_PORT2 (SD_PMOD + 5)
 
 #ifdef SD_BIOS
 // 0xFFD0..0xFFEF for BIOS based SD lib
@@ -14,47 +26,100 @@ unsigned char sd_is_init, sd_is_hc;
 unsigned sd_sectors[2];
 #endif
 
-#ifndef SPI_FIXED
-unsigned char sd_port, sd_cs_pin, sd_sck_pin, sd_miso_pin, sd_mosi_pin;
-#endif
-
-#ifdef SPI_FIXED
-sd_init_fixed()
-#else
-sd_init(unsigned port, unsigned cs, unsigned sck, unsigned miso, unsigned mosi)
-#endif
+sd_spi_setup_fixed()
 {
-#ifndef SPI_FIXED
-	sd_port = port;
-	sd_cs_pin = cs;
-	sd_sck_pin = sck;
-	sd_miso_pin = miso;
-	sd_mosi_pin = mosi;
-#endif
-	sd_is_hc = sd_is_init = 0;
-#ifdef SPI_FIXED
-	spi_setup_fixed();
+	// default to all pulled up inputs except sck
+	asm {
+		LDB #$0D					* CS | SCK | MOSI as outputs
+		OUT SD_SPI_PORT2
+		LDB #$0A					* make CS and MISO high
+		OUT SD_SPI_PORT
+	}
+}
+
+// set the cs pin to cs
+sd_spi_set_cs(int cs)
+{
+	asm {
+		LD 2,S
+		SHL #3
+		OR #$F700
+		OUT SD_SPI_PORT
+	}
+}
+
+// transfer 8 bits, using loops # delay_loops per SCK half cycle
+unsigned sd_spi_transfer(unsigned out)
+{
+		// SCK low phase
+			// write mosi
+			// r0 == out
+			// r1 == x
+			asm {
+				LD 2,S
+				TNI TAR0				* R0 = out (what to send)
+				LDB #8
+				TNI TAR1				* R1 = 8
+				
+?sd_spi_transfer_top EQU *
+				TNI TR0A				* A = R0
+				TNI ADAR0				* R0 = R0 << 1
+				SHR #5					* we want bit 7 of out to be in bit 2 (mosi) location
+				ANDB #4					* mask mosi bit
+				OR #$FA00				* enable SCK and MOSI output (also write SCK=0)
+				OUT SD_SPI_PORT			* write to PMOD0
+				
+				LD #$0100				* enable toggle of SCK pin
+				IN SD_SPI_PORT			* read PMOD0 and toggle SCK
+				ANDB #2					* mask MISO bit
+				SHR #1					* shift left
+				TNI ADAR0				* add MISO bit to R0 (out)
+				
+				TNI DECR1A				* DEC R1 and store copy in ACC
+				SJNZ ?sd_spi_transfer_top
+				
+				LD #$FE00				* SCK bit enable, write 0
+				OUT SD_SPI_PORT			* write to PMOD0
+				
+				TNI TR0A				* A = R0 (which now has MISO shifted in and MOSI in the upper 8 bits)
+				ANDB #255				* only keep bottom bits 
+			}
+}
+
+unsigned sd_spi_recv()
+{
+#ifdef DEBUG
+	unsigned c;
+	c = sd_spi_transfer(0xFF);
+	printf("sd_spi_recv(): %02x\n", c);
+	return c;
 #else
-	spi_setup(port, cs, sck, miso, mosi);
+	return sd_spi_transfer(0xFF);
 #endif
+}
+
+sd_init_fixed()
+{
+	sd_is_hc = sd_is_init = 0;
+	sd_spi_setup_fixed();
 }
 
 unsigned sd_cmd(unsigned cmd, unsigned ph, unsigned pl, unsigned crc)
 {
 	unsigned x, y;
 	
-	spi_recv();
-	spi_recv();
-	spi_transfer(0x40 + cmd);
-	spi_transfer(ph>>8);
-	spi_transfer(ph&0xFF);
-	spi_transfer(pl>>8);
-	spi_transfer(pl&0xFF);
-	spi_transfer(crc);
+	sd_spi_recv();
+	sd_spi_recv();
+	sd_spi_transfer(0x40 + cmd);
+	sd_spi_transfer(ph>>8);
+	sd_spi_transfer(ph&0xFF);
+	sd_spi_transfer(pl>>8);
+	sd_spi_transfer(pl&0xFF);
+	sd_spi_transfer(crc);
 	
 	// wait for R1 byte
 	for (x = 256; x--; ) {
-		y = spi_recv();
+		y = sd_spi_recv();
 		if (!(y & 0x80)) {
 #ifdef DEBUG
 	printf("sd_cmd::%d, %04x%04x, %02x returned %02x\n", cmd, ph, pl, crc, y);
@@ -77,28 +142,21 @@ int sd_read_block(unsigned char *dst, unsigned len)
 #endif
 	// wait for READ_TOKEN
 	for (x = 8192; x--;) {
-		t = spi_recv();
+		t = sd_spi_recv();
 		if (t == 0xFE) {
 #ifdef DEBUG
 	printf("sd_read_block: Got READ_TOKEN at x==%u\n", x);
 #endif
 			for (x = len; x--; ) {
-				*dst++ = spi_recv();
+				*dst++ = sd_spi_recv();
 			}
-			spi_recv(); // skip CRC
-			spi_recv();
+			sd_spi_recv(); // skip CRC
+			sd_spi_recv();
 			return 0;
 		}
 	}
 	return -1;
 }
-
-#ifndef SPI_FIXED
-sd_port_setup()
-{
-	spi_setup(sd_port, sd_cs_pin, sd_sck_pin, sd_miso_pin, sd_mosi_pin);
-}
-#endif
 
 int sd_reset()
 {
@@ -122,15 +180,15 @@ retry:
 #endif
 
 	// make CS high
-	spi_set_cs(1);
+	sd_spi_set_cs(1);
 	
 	// toggle SCK 80 times
 	for (x = 10; x--;) {
-		spi_recv();
+		sd_spi_recv();
 	}
 	
 	// make CS low
-	spi_set_cs(0);
+	sd_spi_set_cs(0);
 	
 #ifdef DEBUG
 	printf("%5u:sd_reset()::Sending CMD0...\n", since_us());
@@ -151,7 +209,7 @@ retry:
 #endif
 
 	// recv payload 0x000001AA
-	if ((spi_recv() + spi_recv() + spi_recv() + spi_recv()) != 0xAB) goto retry;
+	if ((sd_spi_recv() + sd_spi_recv() + sd_spi_recv() + sd_spi_recv()) != 0xAB) goto retry;
 
 #ifdef DEBUG
 	printf("%5u:sd_reset()::Sending ACMD41...\n", since_us());
@@ -173,10 +231,10 @@ retry:
 	// loop on CMD58 until powered up
 	for (x = 256; x--; ) {
 		if (sd_cmd(58, 0, 0, 0) != 0) { goto retry; }
-		t = spi_recv();
-		spi_recv();
-		spi_recv();
-		spi_recv();
+		t = sd_spi_recv();
+		sd_spi_recv();
+		sd_spi_recv();
+		sd_spi_recv();
 		if (t & 0x80) { // it's ready
 			sd_is_hc = t & 0x40 ? 1 : 0;
 			break;
@@ -206,7 +264,7 @@ retry:
 	printf("%5u:sd_reset()::Init done...\n", since_us());
 #endif
 
-	spi_set_cs(1); // raise CS
+	sd_spi_set_cs(1); // raise CS
 
 	// decode # of sectors (it's bits 69:48 shifted left 10)
 	// also recall bit 127 is transmitted first so it's bits 69:48 from sd_csd[15] downwards...
@@ -229,7 +287,7 @@ unsigned sd_sector_op(unsigned sector[2], unsigned char *dst, int wr_en)
 #endif
 
 retry:
-	spi_set_cs(0);
+	sd_spi_set_cs(0);
 #ifdef SD_NO_WRITE
 	if (sd_cmd(17, sector[1], sector[0], 0) != 0) { goto error; }
 #else
@@ -237,15 +295,15 @@ retry:
 #endif
 #ifndef SD_NO_WRITE
 	if (wr_en) {
-		spi_transfer(0xFE);
+		sd_spi_transfer(0xFE);
 		for (x = 0; x < 512; x++) {
-			spi_transfer(dst[x]);
+			sd_spi_transfer(dst[x]);
 		}
-		spi_recv();
-		spi_recv();
-		if ((spi_recv() & 0x1F) != 0x05) { goto error; }
+		sd_spi_recv();
+		sd_spi_recv();
+		if ((sd_spi_recv() & 0x1F) != 0x05) { goto error; }
 		for (x = 8192; x--;) {
-			if (spi_recv()) { break; }
+			if (sd_spi_recv()) { break; }
 		}
 		if (x == 0) { goto error; }
 	} else {
@@ -257,9 +315,9 @@ retry:
 
 	ret = 0;
 error:
-	spi_set_cs(1);
-	spi_recv();						// clock after the command
-	spi_recv();
+	sd_spi_set_cs(1);
+	sd_spi_recv();						// clock after the command
+	sd_spi_recv();
 	// retry command upto 32 times before bailing
 	if (ret != 0 && r++ < 32) {
 		wait_ms(250);								// wait 250ms between tries
