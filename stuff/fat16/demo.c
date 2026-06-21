@@ -31,9 +31,9 @@ struct fat16_volinfo {
 	uint16_t sectors_per_fat;
 	uint16_t resv_sec;
 // computed from header
-	uint16_t fat_cluster;
-	uint16_t root_dir_cluster;
-	uint16_t data_cluster;
+	uint16_t fat_c;
+	uint16_t root_dir_c;
+	uint16_t data_c;
 // our buffer we can work with to do operations
 	uint8_t *secbuf;
 };
@@ -43,7 +43,7 @@ void dump_file(struct fat16_volinfo *fv, uint16_t cluster)
 {
 	do {
 		printf("File cluster: %u\n", cluster);
-		cluster = fat16_next_cluster(fv, cluster);
+		cluster = fat16_n_c(fv, cluster);
 	} while (cluster < 0xFFF8);
 }
 
@@ -58,14 +58,14 @@ void walk_directory(struct fat16_volinfo *fv, uint16_t cluster)
 		
 		memset(buf, 0, sizeof(buf)); memcpy(buf, dirent->filename, 8); printf("Filename: [%s], ", buf);
 		memset(buf, 0, sizeof(buf)); memcpy(buf, dirent->ext, 3); printf("ext: [%s], ", buf);
-		printf("starting cluster: 0x%02x%02x, ", dirent->starting_cluster[1], dirent->starting_cluster[0]);
-		printf("filesize: 0x%02x%02x%02x%02x, ", dirent->filesize[3], dirent->filesize[2], dirent->filesize[1], dirent->filesize[0]); 
+		printf("starting cluster: 0x%02x%02x, ", dirent->scluster[1], dirent->scluster[0]);
+		printf("filesz: 0x%02x%02x%02x%02x, ", dirent->filesz[3], dirent->filesz[2], dirent->filesz[1], dirent->filesz[0]); 
 		printf("attribute: 0x%02x", dirent->attrib);
 		printf("\n");
 		
 		if (!memcmp(dirent->filename, "RND     ", 8) && !memcmp(dirent->ext, "BIN", 3)) {
 			memcpy(tmpbuf, fv->secbuf, 512);
-			dump_file(fv, ((uint16_t)dirent->starting_cluster[1] << 8) | dirent->starting_cluster[0]);
+			dump_file(fv, ((uint16_t)dirent->scluster[1] << 8) | dirent->scluster[0]);
 			memcpy(fv->secbuf, tmpbuf, 512);
 		}
 		
@@ -73,7 +73,7 @@ void walk_directory(struct fat16_volinfo *fv, uint16_t cluster)
 			//directory
 			printf("Walking into directory...\n");
 			memcpy(tmpbuf, fv->secbuf, 512);
-			walk_directory(fv, fat16_sc2dc(fv, ((uint16_t)dirent->starting_cluster[1] << 8) | dirent->starting_cluster[0]));
+			walk_directory(fv, fat16_sc2dc(fv, ((uint16_t)dirent->scluster[1] << 8) | dirent->scluster[0]));
 			memcpy(fv->secbuf, tmpbuf, 512);
 		}
 	}
@@ -108,9 +108,9 @@ int main(void)
 		fv.sec_cluster, fv.byte_cluster, fv.lg2_bpc, fv.lg2_spc, fv.no_fats, fv.no_root, fv.sec_fat, fv.resv_sec);
 		
 	printf("fat sector: %u\nroot dir sector: %u\ndata sector: %5u\n",
-		fv.fat_cluster * fv.sec_cluster,
-		fv.root_dir_cluster * fv.sec_cluster,
-		fv.data_cluster * fv.sec_cluster);
+		fv.fat_c * fv.sec_cluster,
+		fv.root_dir_c * fv.sec_cluster,
+		fv.data_c * fv.sec_cluster);
 		
 	printf("dirent size: %u\n", (unsigned)sizeof(struct fat16_dirent));
 	printf("-----\n\n");
@@ -125,8 +125,8 @@ int main(void)
 		char buf[16];
 		memset(buf, 0, sizeof(buf)); memcpy(buf, dirent->filename, 8); printf("Filename: [%s], ", buf);
 		memset(buf, 0, sizeof(buf)); memcpy(buf, dirent->ext, 3); printf("ext: [%s], ", buf);
-		printf("starting cluster: 0x%02x%02x, ", dirent->starting_cluster[1], dirent->starting_cluster[0]);
-		printf("filesize: 0x%02x%02x%02x%02x, ", dirent->filesize[3], dirent->filesize[2], dirent->filesize[1], dirent->filesize[0]); 
+		printf("starting cluster: 0x%02x%02x, ", dirent->scluster[1], dirent->scluster[0]);
+		printf("filesz: 0x%02x%02x%02x%02x, ", dirent->filesz[3], dirent->filesz[2], dirent->filesz[1], dirent->filesz[0]); 
 		printf("attribute: 0x%02x", dirent->attrib);
 		printf("\n");
 	} else {
@@ -139,8 +139,8 @@ int main(void)
 		char buf[16];
 		memset(buf, 0, sizeof(buf)); memcpy(buf, dirent->filename, 8); printf("Filename: [%s], ", buf);
 		memset(buf, 0, sizeof(buf)); memcpy(buf, dirent->ext, 3); printf("ext: [%s], ", buf);
-		printf("starting cluster: 0x%02x%02x, ", dirent->starting_cluster[1], dirent->starting_cluster[0]);
-		printf("filesize: 0x%02x%02x%02x%02x, ", dirent->filesize[3], dirent->filesize[2], dirent->filesize[1], dirent->filesize[0]); 
+		printf("starting cluster: 0x%02x%02x, ", dirent->scluster[1], dirent->scluster[0]);
+		printf("filesz: 0x%02x%02x%02x%02x, ", dirent->filesz[3], dirent->filesz[2], dirent->filesz[1], dirent->filesz[0]); 
 		printf("attribute: 0x%02x", dirent->attrib);
 		printf("\n");
 	} else {

@@ -4,27 +4,27 @@
 //#define DEBUG(...)
 
 // convert a directory starting cluster to a data cluster
-uint16_t fat16_sc2dc(struct fat16_volinfo *fv, uint16_t starting_cluster)
+uint16_t fat16_sc2dc(struct fat16_volinfo *fv, uint16_t scluster)
 {
-	return fv->data_cluster + starting_cluster - 2;
+	return fv->data_c + scluster - 2;
 }
 
 // map a cluster to a disk sector
-void fat16_cluster_to_sector(struct fat16_volinfo *fv, uint16_t p[2])
+void fat16_c_to_s(struct fat16_volinfo *fv, uint16_t p[2])
 {
 	p[1] = (p[1] << fv->lg2_spc) | (p[0] >> fv->lg2_spc2);
 	p[0] = (p[0] << fv->lg2_spc);
 }
 
 // map a sector to a byte address
-void fat16_sector_to_byte(uint16_t p[2])
+void fat16_s_to_b(uint16_t p[2])
 {
 	p[1] = (p[1] << 9) | (p[0] >> 7);
 	p[0] = p[0] << 9;
 }
 
 // map a byte address back to a sector address
-void fat16_byte_to_sector(uint16_t p[2])
+void fat16_b_to_s(uint16_t p[2])
 {
 	p[0] = (p[0] >> 9) | (p[1] << 7);
 	p[1] = p[1] >> 9;
@@ -79,9 +79,9 @@ uint16_t fat16_initvol(struct fat16_volinfo *fv, uint8_t *secbuf)
 	fv->resv_sec       = ((uint16_t)secbuf[0x000F] << 8) | secbuf[0x000E];
 	
 	// cluster offsets
-	fv->fat_cluster            = (fv->resv_sec / fv->sec_cluster);
-	fv->root_dir_cluster       = fv->fat_cluster + (fv->no_fats * (fv->sec_fat / fv->sec_cluster));
-	fv->data_cluster           = fv->root_dir_cluster + (((fv->no_root * 32) / 512) / fv->sec_cluster);
+	fv->fat_c            = (fv->resv_sec / fv->sec_cluster);
+	fv->root_dir_c       = fv->fat_c + (fv->no_fats * (fv->sec_fat / fv->sec_cluster));
+	fv->data_c           = fv->root_dir_c + (((fv->no_root * 32) / 512) / fv->sec_cluster);
 	
 	// compute log2 of cluster size
 	sector[0] = fv->byte_cluster;
@@ -96,22 +96,22 @@ uint16_t fat16_initvol(struct fat16_volinfo *fv, uint8_t *secbuf)
 
 // given a cluster find the next cluster according to the FAT
 // values >= 0xFFF8 mean end of chain.
-uint16_t fat16_next_cluster(struct fat16_volinfo *fv, uint16_t cluster)
+uint16_t fat16_n_c(struct fat16_volinfo *fv, uint16_t cluster)
 {
 	uint16_t sector[2];
 	uint16_t off;
 	
 /*
- * 'cluster' is an index into a table starting at sector (fv->fat_cluster * fv->sec_cluster * 512 + cluster * 2) / 512 */
+ * 'cluster' is an index into a table starting at sector (fv->fat_c * fv->sec_cluster * 512 + cluster * 2) / 512 */
  
-	sector[0] = fv->fat_cluster;				// start at the starting of the first FAT table
-	fat16_cluster_to_sector(fv, sector);		// convert cluster to sector 
-	fat16_sector_to_byte(sector);				// convert sector byte
+	sector[0] = fv->fat_c;				// start at the starting of the first FAT table
+	fat16_c_to_s(fv, sector);			// convert cluster to sector 
+	fat16_s_to_b(sector);				// convert sector byte
 	fat16_add_16(sector, cluster);
 	fat16_add_16(sector, cluster);
 	
 	off = (sector[0] >> 1) & 0xFF;  // byte offset into sector
-	fat16_byte_to_sector(sector);
+	fat16_b_to_s(sector);
 	sector_op(sector, fv->secbuf, 0);
 	DEBUG("next cluster of 0x%04x is 0x%04x\n", cluster, ((uint16_t *)fv->secbuf)[off]);
 	return ((uint16_t *)fv->secbuf)[off];
@@ -123,13 +123,13 @@ void fat16_opendir(struct fat16_volinfo *fv, struct fat16_de *de, uint16_t clust
 {
 	uint16_t sector[2];
 	
-	cluster = cluster ? cluster : fv->root_dir_cluster;
+	cluster = cluster ? cluster : fv->root_dir_c;
 	
 	memset(de, 0, sizeof(struct fat16_de));
 	de->cur_cluster = cluster;
 
 	sector[0] = cluster;
-	fat16_cluster_to_sector(fv, sector);
+	fat16_c_to_s(fv, sector);
 	sector_op(sector, fv->secbuf, 0);		// read dirent
 }
 
@@ -159,7 +159,7 @@ top:
 	// we're at the end of the sector so we need to get the next
 	if (de->cur_sector == (fv->sec_cluster - 1)) {
 		// we're at the end of this cluster so we need to read the FAT to find the next in the chain
-		de->cur_cluster = fat16_next_cluster(fv, de->cur_cluster);
+		de->cur_cluster = fat16_n_c(fv, de->cur_cluster);
 		if (de->cur_cluster >= 0xFFF8) {
 			// end of cluster chain
 			DEBUG("de->cluser is >= 0xFFF8\n");
@@ -172,7 +172,7 @@ top:
 	
 	// read next sector
 	sector[0] = de->cur_cluster;
-	fat16_cluster_to_sector(fv, sector);
+	fat16_c_to_s(fv, sector);
 	sector[0] += de->cur_sector;
 	if (sector[0] < de->cur_sector) {
 		// carry into top 16 bits
@@ -251,7 +251,7 @@ top:
 			if (*path == '/') {
 				if (dirent->attrib & 0x10) {
 					// it's a directory so loop
-					dircluster = fat16_sc2dc(fv, ((uint16_t)dirent->starting_cluster[1] << 8) | dirent->starting_cluster[0]);
+					dircluster = fat16_sc2dc(fv, ((uint16_t)dirent->scluster[1] << 8) | dirent->scluster[0]);
 					goto top;
 				} else {
 					// it's not a directory so error
@@ -276,9 +276,9 @@ uint16_t fat16_open_file(struct fat16_volinfo *fv, struct fat16_file *file, char
 	// walk path from root
 	dirent = fat16_walk_path(fv, path);
 	if (dirent) {
-		file->starting_cluster = ((uint16_t)dirent->starting_cluster[1] << 8) | dirent->starting_cluster[0];
-		file->filesize[0] = ((uint16_t)dirent->filesize[1] << 8) | dirent->filesize[0];
-		file->filesize[1] = ((uint16_t)dirent->filesize[3] << 8) | dirent->filesize[2];
+		file->scluster = ((uint16_t)dirent->scluster[1] << 8) | dirent->scluster[0];
+		file->filesz[0] = ((uint16_t)dirent->filesz[1] << 8) | dirent->filesz[0];
+		file->filesz[1] = ((uint16_t)dirent->filesz[3] << 8) | dirent->filesz[2];
 		return 0;
 	}
 	return 0xFFFF;
@@ -296,9 +296,9 @@ uint16_t fat16_read_file(struct fat16_volinfo *fv, struct fat16_file *file, uint
 	tmp[0] = file->filepos[0];
 	tmp[1] = file->filepos[1];
 	fat16_add_16(tmp, len);
-	if (fat16_cmp_32(file->filesize, tmp) == -1) { // is the filepos+len > filesize?
+	if (fat16_cmp_32(file->filesz, tmp) == -1) { // is the filepos+len > filesz?
 		// len bytes would be past the end of the file
-		len = file->filesize[0] - file->filepos[0];
+		len = file->filesz[0] - file->filepos[0];
 	}
 
 /*
@@ -325,9 +325,9 @@ uint16_t fat16_read_file(struct fat16_volinfo *fv, struct fat16_file *file, uint
 		DEBUG("len==%x, secoff==%x, n==%x, filepos==%04x%04x, ncluster=%x\n", len, secoff, n, file->filepos[1], file->filepos[0], ncluster);
 		
 		// now walk the FAT until we find this sector 
-		cluster = file->starting_cluster;
+		cluster = file->scluster;
 		while (ncluster--) {
-			cluster = fat16_next_cluster(fv, cluster);
+			cluster = fat16_n_c(fv, cluster);
 			if (cluster >= 0xFFF8) {
 				// somehow we hit a terminal FAT cluster so return
 				return bread;
@@ -335,8 +335,8 @@ uint16_t fat16_read_file(struct fat16_volinfo *fv, struct fat16_file *file, uint
 		}
 		
 		// now we have the cluster to read let's map that to a sector
-		tmp[0] = fat16_sc2dc(fv, cluster);			// map it to the data region
-		fat16_cluster_to_sector(fv, tmp);										// convert cluster address to sector address
+		tmp[0] = fat16_sc2dc(fv, cluster);							// map it to the data region
+		fat16_c_to_s(fv, tmp);										// convert cluster address to sector address
 		
 		// now add the sector number in this cluster
 		fat16_add_16(tmp, (file->filepos[0] >> 9) & (fv->sec_cluster - 1)); // add the # of sectors into this cluster we are
