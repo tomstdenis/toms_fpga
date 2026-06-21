@@ -83,7 +83,20 @@ int main(void)
 {
 	struct fat16_volinfo fv;
 	struct fat16_dirent *dirent;
-	uint8_t secbuf[512];
+	uint8_t secbuf[512], RNDBIN[8192];
+	FILE *rnd;
+	
+	// load rnd
+	rnd = fopen("RND.BIN", "rb");
+	if (!rnd) {
+		printf("RND.BIN not there mate, try harder.\n");
+		return -1;
+	}
+	if (fread(RNDBIN, 1, 8192, rnd) != 8192) {
+		printf("RND.BIN not 8192 bytes, like I know shit's tough but like get more disk space...\n");
+		return -1;
+	}
+	fclose(rnd);
 	
 	f = fopen("test.fs", "rb");
 	
@@ -132,6 +145,27 @@ int main(void)
 		printf("\n");
 	} else {
 		printf("Path not found\n");
+	}
+	
+	// simple file test (to be replaced with stride test)
+	{
+		struct fat16_file file;
+		uint16_t r;
+		uint8_t buf[8192];
+		
+		if (fat16_open_file(&fv, &file, "/RND.BIN")) {
+			printf("Couldn't open file /RND.BIN...\n");
+			return -1;
+		}
+		 
+		r = fat16_read_file(&file, buf, 10240);
+		printf("Read %u bytes from file\n", r);
+		if (r != 8192 || memcmp(buf, RNDBIN, 8192)) {
+			printf("Read data differs from master\n");
+			return -1;
+		} else {
+			printf("File contents compare correctly.\n");
+		}
 	}
 
 }

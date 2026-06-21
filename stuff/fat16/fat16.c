@@ -113,7 +113,7 @@ uint16_t fat16_next_cluster(struct fat16_volinfo *fv, uint16_t cluster)
 	off = (sector[0] >> 1) & 0xFF;  // byte offset into sector
 	fat16_byte_to_sector(sector);
 	sector_op(sector, fv->secbuf, 0);
-	DEBUG("next cluster is 0x%04x\n", ((uint16_t *)fv->secbuf)[off]);
+	DEBUG("next cluster of 0x%04x is 0x%04x\n", cluster, ((uint16_t *)fv->secbuf)[off]);
 	return ((uint16_t *)fv->secbuf)[off];
 }
 
@@ -276,7 +276,7 @@ uint16_t fat16_open_file(struct fat16_volinfo *fv, struct fat16_file *file, char
 	// walk path from root
 	dirent = fat16_walk_path(fv, path, 0);
 	if (dirent) {
-		file->starting_cluster = fat16_starting_cluster_to_data_cluster(fv, ((uint16_t)dirent->starting_cluster[1] << 8) | dirent->starting_cluster[0]);
+		file->starting_cluster = ((uint16_t)dirent->starting_cluster[1] << 8) | dirent->starting_cluster[0];
 		file->filesize[0] = ((uint16_t)dirent->filesize[1] << 8) | dirent->filesize[0];
 		file->filesize[1] = ((uint16_t)dirent->filesize[3] << 8) | dirent->filesize[2];
 		return 0;
@@ -311,6 +311,8 @@ uint16_t fat16_read_file(struct fat16_file *file, uint8_t *dst, uint16_t len)
 		
 		// how many clusters in is file->filepos? (divided filepos by the # of bytes in a cluster or shift by log2_cluster)
 		ncluster = (file->filepos[0] >> file->fv->log2_cluster) | (file->filepos[1] << file->fv->log2_cluster2);
+
+		DEBUG("len==%x, secoff==%x, n==%x, filepos==%04x%04x, ncluster=%x\n", len, secoff, n, file->filepos[1], file->filepos[0], ncluster);
 		
 		// now walk the FAT until we find this sector 
 		cluster = file->starting_cluster;
@@ -323,11 +325,11 @@ uint16_t fat16_read_file(struct fat16_file *file, uint8_t *dst, uint16_t len)
 		}
 		
 		// now we have the cluster to read let's map that to a sector
-		tmp[0] = cluster;
-		fat16_cluster_to_sector(file->fv, tmp);
+		tmp[0] = fat16_starting_cluster_to_data_cluster(file->fv, cluster);			// map it to the data region
+		fat16_cluster_to_sector(file->fv, tmp);										// convert cluster address to sector address
 		
 		// now add the sector number in this cluster
-		fat16_add_byte_offset(tmp, (file->filepos[0] >> 9) & (file->fv->sectors_per_cluster - 1));
+		fat16_add_byte_offset(tmp, (file->filepos[0] >> 9) & (file->fv->sectors_per_cluster - 1)); // add the # of sectors into this cluster we are
 		
 		// now we have the sector on disk to read...
 		sector_op(tmp, file->fv->secbuf, 0);
@@ -335,6 +337,7 @@ uint16_t fat16_read_file(struct fat16_file *file, uint8_t *dst, uint16_t len)
 		// now copy out based on the offset inside the sector
 		memcpy(dst, file->fv->secbuf + secoff, n);
 		
+		// update pointers/counters
 		dst += n;
 		len -= n;
 		bread += n;
