@@ -120,7 +120,7 @@ int main(void)
 	
 	// try path walks
 	printf("\nTrying to walk path \"/RND.BIN\"\n");
-	dirent = fat16_walk_path(&fv, "/RND.BIN", 0);
+	dirent = fat16_walk_path(&fv, "/RND.BIN");
 	if (dirent) {
 		char buf[16];
 		memset(buf, 0, sizeof(buf)); memcpy(buf, dirent->filename, 8); printf("Filename: [%s], ", buf);
@@ -134,7 +134,7 @@ int main(void)
 	}
 	
 	printf("\nTrying to walk path \"/SUBDIR/SUBFILE.TXT\"\n");
-	dirent = fat16_walk_path(&fv, "/SUBDIR/SUBFILE.TXT", 0);
+	dirent = fat16_walk_path(&fv, "/SUBDIR/SUBFILE.TXT");
 	if (dirent) {
 		char buf[16];
 		memset(buf, 0, sizeof(buf)); memcpy(buf, dirent->filename, 8); printf("Filename: [%s], ", buf);

@@ -77,7 +77,7 @@ uint16_t fat16_next_cluster(struct fat16_volinfo *fv, uint16_t cluster);
 
 void fat16_opendir(struct fat16_volinfo *fv, struct fat16_de *de, uint16_t cluster);
 struct fat16_dirent *fat16_nextdirent(struct fat16_de *de);
-struct fat16_dirent *fat16_walk_path(struct fat16_volinfo *fv, char *path, uint16_t dircluster);
+struct fat16_dirent *fat16_walk_path(struct fat16_volinfo *fv, char *path);
 
 uint16_t fat16_open_file(struct fat16_volinfo *fv, struct fat16_file *file, char *path);
 uint16_t fat16_read_file(struct fat16_file *file, uint8_t *dst, uint16_t len);

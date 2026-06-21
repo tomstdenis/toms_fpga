@@ -185,16 +185,17 @@ top:
 	goto top;
 }
 
-
-// path must start with /
-struct fat16_dirent *fat16_walk_path(struct fat16_volinfo *fv, char *path, uint16_t dircluster)
+// walk a directory with a path, returns a dirent on success or NULL on error
+// paths start from the root and must begin with /
+struct fat16_dirent *fat16_walk_path(struct fat16_volinfo *fv, char *path)
 {
 	char pathname[13]; // 8 . 3
 	char filename[8], ext[3];
 	struct fat16_de de;
 	struct fat16_dirent *dirent;
-	uint16_t x, y;
+	uint16_t x, y, dircluster;
 
+	dircluster = 0;
 top:
 
 	DEBUG("Starting with [%s]\n", path);
@@ -266,6 +267,7 @@ top:
 	return NULL;
 }
 
+// open a file, populates 'file' with the handle, returns 0 on success
 uint16_t fat16_open_file(struct fat16_volinfo *fv, struct fat16_file *file, char *path)
 {
 	struct fat16_dirent *dirent;
@@ -274,7 +276,7 @@ uint16_t fat16_open_file(struct fat16_volinfo *fv, struct fat16_file *file, char
 	file->fv = fv;
 	
 	// walk path from root
-	dirent = fat16_walk_path(fv, path, 0);
+	dirent = fat16_walk_path(fv, path);
 	if (dirent) {
 		file->starting_cluster = ((uint16_t)dirent->starting_cluster[1] << 8) | dirent->starting_cluster[0];
 		file->filesize[0] = ((uint16_t)dirent->filesize[1] << 8) | dirent->filesize[0];
@@ -284,6 +286,8 @@ uint16_t fat16_open_file(struct fat16_volinfo *fv, struct fat16_file *file, char
 	return 0xFFFF;
 }
 
+// read from a file upto either len bytes or the end of the file whichever comes first
+// returns the # of bytes actually read
 uint16_t fat16_read_file(struct fat16_file *file, uint8_t *dst, uint16_t len)
 {
 	uint16_t bread, tmp[2], n, secoff, ncluster, cluster;
@@ -298,7 +302,15 @@ uint16_t fat16_read_file(struct fat16_file *file, uint8_t *dst, uint16_t len)
 		// len bytes would be past the end of the file
 		len = file->filesize[0] - file->filepos[0];
 	}
-		
+
+/*
+ * The loop below could be optimized by caching the current cluster address/sector contents
+ * but since this is meant for small memory environments where you could have multiple files
+ * open at once we brute force the FAT cluster walk and sector read even if you're just reading
+ * 1 byte at a time.  This allows fv->secbuf to be reused across other file accesses.
+ * Which means you really should minimize the # of calls to this function.
+ */
+
 	// now we loop reading len bytes which may span multiple sectors or clusters
 	while (len) {
 		// how many bytes can we read from a sector based on the current filepos
