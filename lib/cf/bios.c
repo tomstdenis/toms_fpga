@@ -1,7 +1,7 @@
 // CFLEA Primer25K BIOS
 
 asm {
-	ORG $7000
+	ORG $F000
 topofbios EQU *
 	CLR
 	TAS				* Set stack to top of memory
@@ -36,6 +36,7 @@ inspect_mem()
 		print_hex_byte(*((unsigned char*)addr++));
 		puts(" ");
 	}
+	puts("\r\n");
 }
 
 enter_mem()

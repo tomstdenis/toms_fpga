@@ -90,7 +90,7 @@ module top(input wire clk, input wire s1,
         io_port_wdt   = 8'h13;                  // uS based WDT (0==disable==default)
 
     localparam
-        bus_address_main_mem_top = (16'h2000 * `BLOCKS),    // top of system memory
+        bus_address_main_mem_top = (16'h0800 * `BLOCKS - 16'd1),    // top of system memory
 		bus_address_text_mem_bot = 16'hF800,                // bottom of video memory (2KB)
 		bus_address_text_mem_top = 16'hFFFF,                // top of video memory 
 		bus_address_rom_mem_bot  = 16'hF000,                // bottom of BOOT ROM space (2KB)
