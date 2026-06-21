@@ -2,6 +2,16 @@
 #define FAT16_H_
 
 // simple FAT16 library for sector==512 file systems
+// This code is intended to be used with DDS Micro-C which is an
+// almost ANSI C compliant C compiler that has several annoying limitations
+// but for reasons of nostalgia and I'm insane I'm using anyways
+// 1. Symbols can only have 15 chars, they will collide if the first 15 are the same
+// 2. Struct members are NOT it seems in their own name space so they will collide
+// 3. It only supports 16 bit data types
+
+// With that in mind ... I present you this madness that is simply meant to be able
+// to walk a FAT16 tree, find a file, and read from it.  Kinda bare bones.  No writing
+// support (yet?)
 
 #include <stdint.h>
 #include <string.h>
@@ -29,8 +39,29 @@ struct fat16_volinfo {
 	uint16_t data_c;								// starting cluster of data region
 // our buffer we can work with to do operations
 	uint8_t *secbuf;
+	
+// dirent 
+	uint8_t *dirent;
+	
+// de walker
+	uint16_t de_cluster;
+	uint8_t  de_sector;
+	uint8_t  de_entry;
+	
+// file
+	uint16_t f_cluster;
+	uint16_t f_size[2];
+	uint16_t f_pos[2];
 };
 
+#define D_FNAME(fv)   (&fv->dirent[0])
+#define D_EXT(fv)     (&fv->dirent[8])
+#define D_ATTRIB(fv)  (fv->dirent[0x0B])
+#define D_CLUSTER(fv) (((uint16_t)(fv->dirent[0x1B])<<8) | fv->dirent[0x1A])
+#define D_FZ0(fv)	  (((uint16_t)(fv->dirent[0x1D])<<8) | fv->dirent[0x1C])			
+#define D_FZ1(fv)	  (((uint16_t)(fv->dirent[0x1F])<<8) | fv->dirent[0x1E])			
+
+/*
 // a FAT16 directory entry
 struct fat16_dirent {
 	uint8_t filename[8];
@@ -61,7 +92,8 @@ struct fat16_file {
 	uint16_t filesz[2];								// file size
 	uint16_t filepos[2];							// current file position
 };
-
+*/
+// helper functions
 void fat16_c_to_s(struct fat16_volinfo *fv, uint16_t p[2]);			// cluster to sector addressing
 void fat16_s_to_b(uint16_t p[2]);									// sector to byte addressing
 void fat16_b_to_s(uint16_t p[2]);									// byte to sector addressing
@@ -69,15 +101,18 @@ void fat16_add_16(uint16_t p[2], uint16_t off);						// add 16 bits to a 32-bit 
 void fat16_add_32(uint16_t p[2], uint16_t off[2]);					// add 32 bits to a 32-bit value
 int fat16_cmp_32(uint16_t a[2], uint16_t b[2]);						// compare 32-bit a to 32-bit b
 
+// volume/FAT related
 uint16_t fat16_initvol(struct fat16_volinfo *fv, uint8_t *secbuf);		// init the volinfo structure
 uint16_t fat16_sc2dc(struct fat16_volinfo *fv, uint16_t scluster);		// convert starting cluster to data cluster
 uint16_t fat16_n_c(struct fat16_volinfo *fv, uint16_t cluster);			// find the next cluster
 
-void fat16_opendir(struct fat16_volinfo *fv, struct fat16_de *de, uint16_t cluster);		// open a directory
-struct fat16_dirent *fat16_nextdir(struct fat16_volinfo *fv, struct fat16_de *de);		// walk to next entry
-struct fat16_dirent *fat16_wpath(struct fat16_volinfo *fv, char *path);					// walk a file system path to a dirent
+// directory related
+void fat16_opendir(struct fat16_volinfo *fv, uint16_t cluster);		// open a directory
+uint16_t fat16_nextdir(struct fat16_volinfo *fv);		// walk to next entry
+uint16_t fat16_wpath(struct fat16_volinfo *fv, char *path);					// walk a file system path to a dirent
 
-uint16_t fat16_fopen(struct fat16_volinfo *fv, struct fat16_file *file, char *path);
-uint16_t fat16_fread(struct fat16_volinfo *fv, struct fat16_file *file, uint8_t *dst, uint16_t len);
+// file related
+uint16_t fat16_fopen(struct fat16_volinfo *fv, char *path);
+uint16_t fat16_fread(struct fat16_volinfo *fv, uint8_t *dst, uint16_t len);
 
 #endif
