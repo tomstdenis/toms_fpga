@@ -5,7 +5,7 @@
 #include <stdio.h>
 
 FILE *f;
-unsigned sector_op(uint16_t sector[2], uint8_t *data, unsigned wr_en)
+uint16_t sector_op(uint16_t sector[2], uint8_t *data, uint16_t wr_en)
 {
 	// here we can use 32-bit because this is just a PC demo
 	uint32_t addr = ((uint32_t)sector[1] << 16) | sector[0];
@@ -73,7 +73,7 @@ void walk_directory(struct fat16_volinfo *fv, uint16_t cluster)
 			//directory
 			printf("Walking into directory...\n");
 			memcpy(tmpbuf, fv->secbuf, 512);
-			walk_directory(fv, fat16_starting_cluster_to_data_cluster(fv, ((uint16_t)dirent->starting_cluster[1] << 8) | dirent->starting_cluster[0]));
+			walk_directory(fv, fat16_sc2dc(fv, ((uint16_t)dirent->starting_cluster[1] << 8) | dirent->starting_cluster[0]));
 			memcpy(fv->secbuf, tmpbuf, 512);
 		}
 	}

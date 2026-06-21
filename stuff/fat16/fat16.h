@@ -8,7 +8,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 
-extern unsigned sector_op(uint16_t sector[2], uint8_t *data, unsigned wr_en);
+extern uint16_t sector_op(uint16_t sector[2], uint8_t *data, uint16_t wr_en);
 
 // our structure holding info about the volume
 struct fat16_volinfo {
@@ -62,15 +62,15 @@ struct fat16_file {
 	uint16_t filepos[2];
 };
 
-void fat16_cluster_to_sector(struct fat16_volinfo *fv, uint16_t p[2]);
-void fat16_sector_to_byte(uint16_t p[2]);
-void fat16_byte_to_sector(uint16_t p[2]);
-void fat16_add_byte_offset(uint16_t p[2], uint16_t off);
-void fat16_add_byte_loffset(uint16_t p[2], uint16_t off[2]);
-int fat16_cmp_loffset(uint16_t a[2], uint16_t b[2]);
+void fat16_c_to_s(struct fat16_volinfo *fv, uint16_t p[2]);			// cluster to sector addressing
+void fat16_s_to_b(uint16_t p[2]);									// sector to byte addressing
+void fat16_b_to_s(uint16_t p[2]);									// byte to sector addressing
+void fat16_add_16(uint16_t p[2], uint16_t off);
+void fat16_add_32(uint16_t p[2], uint16_t off[2]);
+int fat16_cmp_32(uint16_t a[2], uint16_t b[2]);
 
 uint16_t fat16_initvol(struct fat16_volinfo *fv, uint8_t *secbuf);
-uint16_t fat16_starting_cluster_to_data_cluster(struct fat16_volinfo *fv, uint16_t starting_cluster);
+uint16_t fat16_sc2dc(struct fat16_volinfo *fv, uint16_t starting_cluster);		// convert starting cluster to data cluster
 uint16_t fat16_next_cluster(struct fat16_volinfo *fv, uint16_t cluster);
 
 void fat16_opendir(struct fat16_volinfo *fv, struct fat16_de *de, uint16_t cluster);
