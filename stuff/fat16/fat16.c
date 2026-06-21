@@ -129,6 +129,7 @@ void fat16_opendir(struct fat16_volinfo *fv, uint16_t cluster)
 	fv->de_entry   = 0;
 	fv->de_sector  = 0;
 
+	sector[1] = 0;
 	sector[0] = cluster;
 	fat16_c_to_s(fv, sector);
 	sector_op(sector, fv->secbuf, 0);		// read dirent
@@ -171,6 +172,7 @@ top:
 	}
 	
 	// read next sector
+	sector[1] = 0;
 	sector[0] = fv->de_cluster;
 	fat16_c_to_s(fv, sector);
 	sector[0] += fv->de_sector;
@@ -326,6 +328,7 @@ uint16_t fat16_fread(struct fat16_volinfo *fv, uint8_t *dst, uint16_t len)
 		}
 		
 		// now we have the cluster to read let's map that to a sector
+		tmp[1] = 0;
 		tmp[0] = fat16_sc2dc(fv, cluster);							// map it to the data region
 		fat16_c_to_s(fv, tmp);										// convert cluster address to sector address
 		
