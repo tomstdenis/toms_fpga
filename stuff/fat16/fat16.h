@@ -15,10 +15,10 @@ struct fat16_volinfo {
 // from the header
 	uint8_t sec_cluster;							// sectors per cluster
 	uint16_t byte_cluster;							// bytes per cluster
-	uint16_t log2_cluster;
-	uint16_t log2_cluster2;
-	uint16_t log2_cluster_sec;
-	uint16_t log2_cluster2_sec;
+	uint16_t lg2_bpc;							// log2 # of bytes per cluster
+	uint16_t lg2_bpc2;							// 16 - log2 # of bytes per cluster
+	uint16_t lg2_spc;						// log2 # of sectors per cluster
+	uint16_t lg2_spc2;						// 16 - log2 of # of sectors per cluster
 	uint8_t no_fats;								// number of FATs
 	uint16_t no_root;								// number of root entries
 	uint16_t sec_fat;								// sectors per FAT

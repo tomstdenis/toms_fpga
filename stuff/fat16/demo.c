@@ -105,7 +105,7 @@ int main(void)
 	// dump some info
 	printf("Disk Information:\n");
 	printf("Sectors per cluster: %u\nbytes per cluster: %u (%u, %u)\nnumber of fats: %u\nno_root: %u\nsectors_per_fat: %u\nresv_sec: %u\n",
-		fv.sec_cluster, fv.byte_cluster, fv.log2_cluster, fv.log2_cluster_sec, fv.no_fats, fv.no_root, fv.sec_fat, fv.resv_sec);
+		fv.sec_cluster, fv.byte_cluster, fv.lg2_bpc, fv.lg2_spc, fv.no_fats, fv.no_root, fv.sec_fat, fv.resv_sec);
 		
 	printf("fat sector: %u\nroot dir sector: %u\ndata sector: %5u\n",
 		fv.fat_cluster * fv.sec_cluster,

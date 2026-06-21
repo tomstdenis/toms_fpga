@@ -12,8 +12,8 @@ uint16_t fat16_sc2dc(struct fat16_volinfo *fv, uint16_t starting_cluster)
 // map a cluster to a disk sector
 void fat16_cluster_to_sector(struct fat16_volinfo *fv, uint16_t p[2])
 {
-	p[1] = (p[1] << fv->log2_cluster_sec) | (p[0] >> fv->log2_cluster2_sec);
-	p[0] = (p[0] << fv->log2_cluster_sec);
+	p[1] = (p[1] << fv->lg2_spc) | (p[0] >> fv->lg2_spc2);
+	p[0] = (p[0] << fv->lg2_spc);
 }
 
 // map a sector to a byte address
@@ -72,7 +72,7 @@ uint16_t fat16_initvol(struct fat16_volinfo *fv, uint8_t *secbuf)
 	// parse fields
 	fv->sec_cluster    = secbuf[0x000D];
 	fv->byte_cluster   = fv->sec_cluster << 9;
-	fv->log2_cluster   = 0;
+	fv->lg2_bpc   = 0;
 	fv->no_fats        = secbuf[0x0010];
 	fv->no_root 	   = ((uint16_t)secbuf[0x0012] << 8) | secbuf[0x0011];
 	fv->sec_fat        = ((uint16_t)secbuf[0x0017] << 8) | secbuf[0x0016];
@@ -86,12 +86,12 @@ uint16_t fat16_initvol(struct fat16_volinfo *fv, uint8_t *secbuf)
 	// compute log2 of cluster size
 	sector[0] = fv->byte_cluster;
 	while (sector[0] != 1) {
-		++(fv->log2_cluster);
+		++(fv->lg2_bpc);
 		sector[0] >>= 1;
 	}
-	fv->log2_cluster2     = 16 - fv->log2_cluster;
-	fv->log2_cluster_sec  = fv->log2_cluster - 9;
-	fv->log2_cluster2_sec = 16 - fv->log2_cluster_sec;
+	fv->lg2_bpc2     = 16 - fv->lg2_bpc;
+	fv->lg2_spc  = fv->lg2_bpc - 9;
+	fv->lg2_spc2 = 16 - fv->lg2_spc;
 }
 
 // given a cluster find the next cluster according to the FAT
@@ -319,8 +319,8 @@ uint16_t fat16_read_file(struct fat16_volinfo *fv, struct fat16_file *file, uint
 			n = len;
 		}
 		
-		// how many clusters in is file->filepos? (divided filepos by the # of bytes in a cluster or shift by log2_cluster)
-		ncluster = (file->filepos[0] >> fv->log2_cluster) | (file->filepos[1] << fv->log2_cluster2);
+		// how many clusters in is file->filepos? (divided filepos by the # of bytes in a cluster or shift by lg2_bpc)
+		ncluster = (file->filepos[0] >> fv->lg2_bpc) | (file->filepos[1] << fv->lg2_bpc2);
 
 		DEBUG("len==%x, secoff==%x, n==%x, filepos==%04x%04x, ncluster=%x\n", len, secoff, n, file->filepos[1], file->filepos[0], ncluster);
 		
