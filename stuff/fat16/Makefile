@@ -18,6 +18,7 @@ populate_fs: test.fs
 	@echo "Creating file in root directory..."
 	echo "root file content" | sudo echo "root file" >  mnt_test/ROOT.TXT 
 	dd if=/dev/urandom ibs=8192 count=1 of=mnt_test/RND.BIN
+	cp mnt_test/RND.BIN .
 	
 	@echo "Creating directory and a file inside it..."
 	sudo mkdir -p mnt_test/SUBDIR
@@ -32,4 +33,4 @@ populate_fs: test.fs
 
 .PHONY: clean
 clean:
-	rm -f demo test.fs
+	rm -f demo test.fs RND.BIN

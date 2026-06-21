@@ -298,9 +298,8 @@ uint16_t fat16_read_file(struct fat16_file *file, uint8_t *dst, uint16_t len)
 		// len bytes would be past the end of the file
 		len = file->filesize[0] - file->filepos[0];
 	}
-	
-	bread = len;
-	
+		
+	// now we loop reading len bytes which may span multiple sectors or clusters
 	while (len) {
 		// how many bytes can we read from a sector based on the current filepos
 		secoff = file->filepos[0] & 0x1FF;
@@ -310,13 +309,17 @@ uint16_t fat16_read_file(struct fat16_file *file, uint8_t *dst, uint16_t len)
 			n = len;
 		}
 		
-		// how many clusters in is file->filepos?
+		// how many clusters in is file->filepos? (divided filepos by the # of bytes in a cluster or shift by log2_cluster)
 		ncluster = (file->filepos[0] >> file->fv->log2_cluster) | (file->filepos[1] << file->fv->log2_cluster2);
 		
 		// now walk the FAT until we find this sector 
 		cluster = file->starting_cluster;
 		while (ncluster--) {
 			cluster = fat16_next_cluster(file->fv, cluster);
+			if (cluster >= 0xFFF8) {
+				// somehow we hit a terminal FAT cluster so return
+				return bread;
+			}
 		}
 		
 		// now we have the cluster to read let's map that to a sector
@@ -334,6 +337,7 @@ uint16_t fat16_read_file(struct fat16_file *file, uint8_t *dst, uint16_t len)
 		
 		dst += n;
 		len -= n;
+		bread += n;
 		fat16_add_byte_offset(file->filepos, n);
 	}
 
