@@ -89,8 +89,8 @@ uint16_t fat16_initvol(struct fat16_volinfo *fv, uint8_t *secbuf)
 		++(fv->log2_cluster);
 		sector[0] >>= 1;
 	}
-	fv->log2_cluster2 = 16 - fv->log2_cluster;
-	fv->log2_cluster_sec = fv->log2_cluster - 9;
+	fv->log2_cluster2     = 16 - fv->log2_cluster;
+	fv->log2_cluster_sec  = fv->log2_cluster - 9;
 	fv->log2_cluster2_sec = 16 - fv->log2_cluster_sec;
 }
 
@@ -126,7 +126,7 @@ void fat16_opendir(struct fat16_volinfo *fv, struct fat16_de *de, uint16_t clust
 	cluster = cluster ? cluster : fv->root_dir_cluster;
 	
 	memset(de, 0, sizeof *de);
-	de->fv = fv;
+	de->fv          = fv;
 	de->cur_cluster = cluster;
 
 	sector[0] = cluster;
