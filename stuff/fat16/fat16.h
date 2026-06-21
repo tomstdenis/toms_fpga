@@ -13,16 +13,16 @@ extern unsigned sector_op(uint16_t sector[2], uint8_t *data, unsigned wr_en);
 // our structure holding info about the volume
 struct fat16_volinfo {
 // from the header
-	uint8_t sectors_per_cluster;
-	uint16_t bytes_per_cluster;
+	uint8_t sec_cluster;							// sectors per cluster
+	uint16_t byte_cluster;							// bytes per cluster
 	uint16_t log2_cluster;
 	uint16_t log2_cluster2;
 	uint16_t log2_cluster_sec;
 	uint16_t log2_cluster2_sec;
-	uint8_t number_of_fats;
-	uint16_t number_of_root_entries;
-	uint16_t sectors_per_fat;
-	uint16_t reserved_sectors;
+	uint8_t no_fats;								// number of FATs
+	uint16_t no_root;								// number of root entries
+	uint16_t sec_fat;								// sectors per FAT
+	uint16_t resv_sec;								// reserved sectors
 // computed from header
 	uint16_t fat_cluster;
 	uint16_t root_dir_cluster;
@@ -50,7 +50,6 @@ struct fat16_dirent {
 
 // FAT16 directory walker structure
 struct fat16_de {
-	struct fat16_volinfo *fv;
 	uint16_t cur_cluster;		// current sector we're reading from
 	uint8_t cur_sector;			// current sector # in the cluster
 	uint8_t cur_entry;			// current entry in the sector
@@ -58,7 +57,6 @@ struct fat16_de {
 
 // a currently open file
 struct fat16_file {
-	struct fat16_volinfo *fv;
 	uint16_t starting_cluster;
 	uint16_t filesize[2];
 	uint16_t filepos[2];
@@ -76,10 +74,10 @@ uint16_t fat16_starting_cluster_to_data_cluster(struct fat16_volinfo *fv, uint16
 uint16_t fat16_next_cluster(struct fat16_volinfo *fv, uint16_t cluster);
 
 void fat16_opendir(struct fat16_volinfo *fv, struct fat16_de *de, uint16_t cluster);
-struct fat16_dirent *fat16_nextdirent(struct fat16_de *de);
+struct fat16_dirent *fat16_nextdirent(struct fat16_volinfo *fv, struct fat16_de *de);
 struct fat16_dirent *fat16_walk_path(struct fat16_volinfo *fv, char *path);
 
 uint16_t fat16_open_file(struct fat16_volinfo *fv, struct fat16_file *file, char *path);
-uint16_t fat16_read_file(struct fat16_file *file, uint8_t *dst, uint16_t len);
+uint16_t fat16_read_file(struct fat16_volinfo *fv, struct fat16_file *file, uint8_t *dst, uint16_t len);
 
 #endif

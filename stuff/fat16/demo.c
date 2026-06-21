@@ -25,11 +25,11 @@ unsigned sector_op(uint16_t sector[2], uint8_t *data, unsigned wr_en)
 /*
 struct fat16_volinfo {
 // from the header
-	uint8_t sectors_per_cluster;
-	uint8_t number_of_fats;
-	uint16_t number_of_root_entries;
+	uint8_t sec_cluster;
+	uint8_t no_fats;
+	uint16_t no_root;
 	uint16_t sectors_per_fat;
-	uint16_t reserved_sectors;
+	uint16_t resv_sec;
 // computed from header
 	uint16_t fat_cluster;
 	uint16_t root_dir_cluster;
@@ -53,7 +53,7 @@ void walk_directory(struct fat16_volinfo *fv, uint16_t cluster)
 	struct fat16_dirent *dirent;
 	unsigned char tmpbuf[512];
 	fat16_opendir(fv, &de, cluster);
-	while ((dirent = fat16_nextdirent(&de))) {
+	while ((dirent = fat16_nextdirent(fv, &de))) {
 		char buf[16];
 		
 		memset(buf, 0, sizeof(buf)); memcpy(buf, dirent->filename, 8); printf("Filename: [%s], ", buf);
@@ -104,13 +104,13 @@ int main(void)
 	
 	// dump some info
 	printf("Disk Information:\n");
-	printf("Sectors per cluster: %u\nbytes per cluster: %u (%u, %u)\nnumber of fats: %u\nnumber_of_root_entries: %u\nsectors_per_fat: %u\nreserved_sectors: %u\n",
-		fv.sectors_per_cluster, fv.bytes_per_cluster, fv.log2_cluster, fv.log2_cluster_sec, fv.number_of_fats, fv.number_of_root_entries, fv.sectors_per_fat, fv.reserved_sectors);
+	printf("Sectors per cluster: %u\nbytes per cluster: %u (%u, %u)\nnumber of fats: %u\nno_root: %u\nsectors_per_fat: %u\nresv_sec: %u\n",
+		fv.sec_cluster, fv.byte_cluster, fv.log2_cluster, fv.log2_cluster_sec, fv.no_fats, fv.no_root, fv.sec_fat, fv.resv_sec);
 		
 	printf("fat sector: %u\nroot dir sector: %u\ndata sector: %5u\n",
-		fv.fat_cluster * fv.sectors_per_cluster,
-		fv.root_dir_cluster * fv.sectors_per_cluster,
-		fv.data_cluster * fv.sectors_per_cluster);
+		fv.fat_cluster * fv.sec_cluster,
+		fv.root_dir_cluster * fv.sec_cluster,
+		fv.data_cluster * fv.sec_cluster);
 		
 	printf("dirent size: %u\n", (unsigned)sizeof(struct fat16_dirent));
 	printf("-----\n\n");
@@ -158,7 +158,7 @@ int main(void)
 			return -1;
 		}
 		 
-		r = fat16_read_file(&file, buf, 10240);
+		r = fat16_read_file(&fv, &file, buf, 10240);
 		printf("Read %u bytes from file\n", r);
 		if (r != 8192 || memcmp(buf, RNDBIN, 8192)) {
 			printf("Read data differs from master\n");
