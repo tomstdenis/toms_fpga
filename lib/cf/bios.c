@@ -3,7 +3,7 @@
 asm {
 	ORG $F000
 topofbios EQU *
-	LD #F900
+	LD #$F900
 	TAS				* Set stack to top of memory
 	CALL main
 ?halt EQU *
@@ -139,6 +139,7 @@ terminal:
 				break;
 			case 'G':
 				ch = read_hex(4);
+				puts("\r\n");
 				jump(ch);
 				break;
 			default:
