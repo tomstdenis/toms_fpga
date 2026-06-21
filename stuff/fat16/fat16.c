@@ -56,7 +56,7 @@ int fat16_cmp_loffset(uint16_t a[2], uint16_t b[2])
 
 // init a FAT-16 volume state
 // secbuf should point to a 512 byte buffer it can use to hold sectors
-unsigned fat16_initvol(struct fat16_volinfo *fv, uint8_t *secbuf)
+uint16_t fat16_initvol(struct fat16_volinfo *fv, uint8_t *secbuf)
 {
 	uint16_t sector[2];
 	

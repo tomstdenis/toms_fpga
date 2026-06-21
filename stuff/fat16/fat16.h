@@ -71,7 +71,7 @@ void fat16_add_byte_offset(uint16_t p[2], uint16_t off);
 void fat16_add_byte_loffset(uint16_t p[2], uint16_t off[2]);
 int fat16_cmp_loffset(uint16_t a[2], uint16_t b[2]);
 
-unsigned fat16_initvol(struct fat16_volinfo *fv, uint8_t *secbuf);
+uint16_t fat16_initvol(struct fat16_volinfo *fv, uint8_t *secbuf);
 uint16_t fat16_starting_cluster_to_data_cluster(struct fat16_volinfo *fv, uint16_t starting_cluster);
 uint16_t fat16_next_cluster(struct fat16_volinfo *fv, uint16_t cluster);
 
