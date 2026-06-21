@@ -1,0 +1,103 @@
+#include "fat16.h"
+#include <stdint.h>
+#include <string.h>
+#include <stdlib.h>
+#include <stdio.h>
+
+FILE *f;
+unsigned sector_op(uint16_t sector[2], uint8_t *data, unsigned wr_en)
+{
+	// here we can use 32-bit because this is just a PC demo
+	uint32_t addr = ((uint32_t)sector[1] << 16) | sector[0];
+	addr <<= 9;
+	printf("Reading from sector 0x%04x%04x\n", sector[1], sector[0]);
+	if (fseek(f, addr, SEEK_SET)) {
+		return 0xFFFF;
+	}
+	if (wr_en) {
+		fwrite(data, 1, 512, f);
+	} else {
+		fread(data, 1, 512, f);
+	}
+	return 0;
+}
+
+/*
+struct fat16_volinfo {
+// from the header
+	uint8_t sectors_per_cluster;
+	uint8_t number_of_fats;
+	uint16_t number_of_root_entries;
+	uint16_t sectors_per_fat;
+	uint16_t reserved_sectors;
+// computed from header
+	uint16_t fat_cluster;
+	uint16_t root_dir_cluster;
+	uint16_t data_cluster;
+// our buffer we can work with to do operations
+	uint8_t *secbuf;
+};
+*/
+
+void dump_file(struct fat16_volinfo *fv, uint16_t cluster)
+{
+	do {
+		printf("File cluster: %u\n", cluster);
+		cluster = fat16_next_cluster(fv, cluster);
+	} while (cluster < 0xFFF8);
+}
+
+void walk_directory(struct fat16_volinfo *fv, uint16_t cluster)
+{
+	struct fat16_de de;
+	struct fat16_dirent *dirent;
+	unsigned char tmpbuf[512];
+	fat16_opendir(fv, &de, cluster);
+	while ((dirent = fat16_nextdirent(&de))) {
+		char buf[16];
+		
+		memset(buf, 0, sizeof(buf)); memcpy(buf, dirent->filename, 8); printf("Filename: [%s], ", buf);
+		memset(buf, 0, sizeof(buf)); memcpy(buf, dirent->ext, 3); printf("ext: [%s], ", buf);
+		printf("starting cluster: 0x%02x%02x, ", dirent->starting_cluster[1], dirent->starting_cluster[0]);
+		printf("filesize: 0x%02x%02x%02x%02x, ", dirent->filesize[3], dirent->filesize[2], dirent->filesize[1], dirent->filesize[0]); 
+		printf("attribute: 0x%02x", dirent->attrib);
+		printf("\n");
+		
+		if (!memcmp(dirent->filename, "RND     ", 8) && !memcmp(dirent->ext, "BIN", 3)) {
+			memcpy(tmpbuf, fv->secbuf, 512);
+			dump_file(fv, ((uint16_t)dirent->starting_cluster[1] << 8) | dirent->starting_cluster[0]);
+			memcpy(fv->secbuf, tmpbuf, 512);
+		}
+		
+		if (dirent->attrib & 0x10 && dirent->filename[0] != '.') {
+			//directory
+			printf("Walking into directory...\n");
+			memcpy(tmpbuf, fv->secbuf, 512);
+			walk_directory(fv, fat16_starting_cluster_to_data_cluster(fv, ((uint16_t)dirent->starting_cluster[1] << 8) | dirent->starting_cluster[0]));
+			memcpy(fv->secbuf, tmpbuf, 512);
+		}
+	}
+}
+
+int main(void)
+{
+	struct fat16_volinfo fv;
+	uint8_t secbuf[512];
+	
+	f = fopen("test.fs", "rb");
+	
+	fat16_initvol(&fv, secbuf);
+	
+	// dump some info
+	printf("Sectors per cluster: %u\nbytes per cluster: %u\nnumber of fats: %u\nnumber_of_root_entries: %u\nsectors_per_fat: %u\nreserved_sectors: %u\n",
+		fv.sectors_per_cluster, fv.bytes_per_cluster, fv.number_of_fats, fv.number_of_root_entries, fv.sectors_per_fat, fv.reserved_sectors);
+		
+	printf("fat sector: %u\nroot dir sector: %u\ndata sector: %5u\n",
+		fv.fat_cluster * fv.sectors_per_cluster,
+		fv.root_dir_cluster * fv.sectors_per_cluster,
+		fv.data_cluster * fv.sectors_per_cluster);
+		
+	printf("dirent size: %u\n", (unsigned)sizeof(struct fat16_dirent));
+	
+	walk_directory(&fv, fv.root_dir_cluster);
+}
