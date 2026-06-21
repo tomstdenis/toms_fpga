@@ -10,10 +10,15 @@
 
 extern unsigned sector_op(uint16_t sector[2], uint8_t *data, unsigned wr_en);
 
+// our structure holding info about the volume
 struct fat16_volinfo {
 // from the header
 	uint8_t sectors_per_cluster;
 	uint16_t bytes_per_cluster;
+	uint16_t log2_cluster;
+	uint16_t log2_cluster2;
+	uint16_t log2_cluster_sec;
+	uint16_t log2_cluster2_sec;
 	uint8_t number_of_fats;
 	uint16_t number_of_root_entries;
 	uint16_t sectors_per_fat;
@@ -26,6 +31,7 @@ struct fat16_volinfo {
 	uint8_t *secbuf;
 };
 
+// a FAT16 directory entry
 struct fat16_dirent {
 	uint8_t filename[8];
 	uint8_t ext[3];
@@ -42,6 +48,7 @@ struct fat16_dirent {
 	uint8_t filesize[4];
 };
 
+// FAT16 directory walker structure
 struct fat16_de {
 	struct fat16_volinfo *fv;
 	uint16_t cur_cluster;		// current sector we're reading from
@@ -49,11 +56,22 @@ struct fat16_de {
 	uint8_t cur_entry;			// current entry in the sector
 };
 
+// a currently open file
+struct fat16_file {
+	uint16_t starting_cluster;
+	uint16_t filesize[2];
+	uint16_t filepos[2];
+};
+
 unsigned fat16_initvol(struct fat16_volinfo *fv, uint8_t *secbuf);
 uint16_t fat16_starting_cluster_to_data_cluster(struct fat16_volinfo *fv, uint16_t starting_cluster);
+uint16_t fat16_next_cluster(struct fat16_volinfo *fv, uint16_t cluster);
+
 void fat16_opendir(struct fat16_volinfo *fv, struct fat16_de *de, uint16_t cluster);
 struct fat16_dirent *fat16_nextdirent(struct fat16_de *de);
-uint16_t fat16_next_cluster(struct fat16_volinfo *fv, uint16_t cluster);
+struct fat16_dirent *fat16_walk_path(struct fat16_volinfo *fv, char *path, uint16_t dircluster);
+
+unsigned fat16_open_file(struct fat16_volinfo *fv, struct fat16_file *file, char *path);
 
 
 

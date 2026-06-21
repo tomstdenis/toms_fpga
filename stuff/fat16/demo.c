@@ -82,6 +82,7 @@ void walk_directory(struct fat16_volinfo *fv, uint16_t cluster)
 int main(void)
 {
 	struct fat16_volinfo fv;
+	struct fat16_dirent *dirent;
 	uint8_t secbuf[512];
 	
 	f = fopen("test.fs", "rb");
@@ -89,8 +90,9 @@ int main(void)
 	fat16_initvol(&fv, secbuf);
 	
 	// dump some info
-	printf("Sectors per cluster: %u\nbytes per cluster: %u\nnumber of fats: %u\nnumber_of_root_entries: %u\nsectors_per_fat: %u\nreserved_sectors: %u\n",
-		fv.sectors_per_cluster, fv.bytes_per_cluster, fv.number_of_fats, fv.number_of_root_entries, fv.sectors_per_fat, fv.reserved_sectors);
+	printf("Disk Information:\n");
+	printf("Sectors per cluster: %u\nbytes per cluster: %u (%u, %u)\nnumber of fats: %u\nnumber_of_root_entries: %u\nsectors_per_fat: %u\nreserved_sectors: %u\n",
+		fv.sectors_per_cluster, fv.bytes_per_cluster, fv.log2_cluster, fv.log2_cluster_sec, fv.number_of_fats, fv.number_of_root_entries, fv.sectors_per_fat, fv.reserved_sectors);
 		
 	printf("fat sector: %u\nroot dir sector: %u\ndata sector: %5u\n",
 		fv.fat_cluster * fv.sectors_per_cluster,
@@ -98,6 +100,38 @@ int main(void)
 		fv.data_cluster * fv.sectors_per_cluster);
 		
 	printf("dirent size: %u\n", (unsigned)sizeof(struct fat16_dirent));
+	printf("-----\n\n");
 	
-	walk_directory(&fv, fv.root_dir_cluster);
+	// walk the root directory
+	walk_directory(&fv, 0);
+	
+	// try path walks
+	printf("\nTrying to walk path \"/RND.BIN\"\n");
+	dirent = fat16_walk_path(&fv, "/RND.BIN", 0);
+	if (dirent) {
+		char buf[16];
+		memset(buf, 0, sizeof(buf)); memcpy(buf, dirent->filename, 8); printf("Filename: [%s], ", buf);
+		memset(buf, 0, sizeof(buf)); memcpy(buf, dirent->ext, 3); printf("ext: [%s], ", buf);
+		printf("starting cluster: 0x%02x%02x, ", dirent->starting_cluster[1], dirent->starting_cluster[0]);
+		printf("filesize: 0x%02x%02x%02x%02x, ", dirent->filesize[3], dirent->filesize[2], dirent->filesize[1], dirent->filesize[0]); 
+		printf("attribute: 0x%02x", dirent->attrib);
+		printf("\n");
+	} else {
+		printf("Path not found\n");
+	}
+	
+	printf("\nTrying to walk path \"/SUBDIR/SUBFILE.TXT\"\n");
+	dirent = fat16_walk_path(&fv, "/SUBDIR/SUBFILE.TXT", 0);
+	if (dirent) {
+		char buf[16];
+		memset(buf, 0, sizeof(buf)); memcpy(buf, dirent->filename, 8); printf("Filename: [%s], ", buf);
+		memset(buf, 0, sizeof(buf)); memcpy(buf, dirent->ext, 3); printf("ext: [%s], ", buf);
+		printf("starting cluster: 0x%02x%02x, ", dirent->starting_cluster[1], dirent->starting_cluster[0]);
+		printf("filesize: 0x%02x%02x%02x%02x, ", dirent->filesize[3], dirent->filesize[2], dirent->filesize[1], dirent->filesize[0]); 
+		printf("attribute: 0x%02x", dirent->attrib);
+		printf("\n");
+	} else {
+		printf("Path not found\n");
+	}
+
 }
