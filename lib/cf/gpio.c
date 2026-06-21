@@ -1,8 +1,5 @@
 //#define DEBUG
 
-// if you use a Digilent capable in PMOD0 define this, otherwise undefine
-#define SPI_FIXED 
-
 #include <cflea.h>
 #include "lib/memcmp.c"
 #include "lib/console.c"

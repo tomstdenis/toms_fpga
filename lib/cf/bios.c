@@ -3,7 +3,7 @@
 asm {
 	ORG $F000
 topofbios EQU *
-	CLR
+	LD #F900
 	TAS				* Set stack to top of memory
 	CALL main
 ?halt EQU *
@@ -36,7 +36,6 @@ inspect_mem()
 		print_hex_byte(*((unsigned char*)addr++));
 		puts(" ");
 	}
-	puts("\r\n");
 }
 
 enter_mem()
@@ -94,15 +93,15 @@ boot_sd:
 	sd_init();
 	puts("\n\rReading SD card\n\r");
 	if (!sd_reset()) {
-		// read first 8 sectors (4KB) at 0x0000 and jump there
+		// read first 8 sectors (4KB) at 0xE000 and jump there
 		sector[1] = 0;
 		for (sector[0] = 0; sector[0] < 8; sector[0]++) {
-			if (sd_sector_op(sector, 0x0000, 0) != 0) { goto terminal; }
+			if (sd_sector_op(sector, 0xE000 + (0x200 * sector[0]), 0) != 0) { goto terminal; }
 		}
 		
 		// check checksum
-		for (x = y = 0; x < 0x1000; x += 2) {
-			y = y + *((unsigned*)x) + 1;
+		for (x = y = 0; x < 0x1000; x++) {
+			y = y + ((unsigned char *)0xE000)[x];
 		}
 		if (y) {
 			puts("Invalid checksum\n\r");
@@ -111,7 +110,7 @@ boot_sd:
 		
 		// checksum ok, boot app
 		asm {
-			CLR
+			LD #$E000
 			IJMP
 		}
 	}
@@ -139,11 +138,13 @@ terminal:
 				serial_upload();
 				break;
 			case 'G':
-				jump(read_hex(4));
+				ch = read_hex(4);
+				jump(ch);
 				break;
 			default:
-				puts("?\n\r");
+				puts("?");
 		}	
+		puts("\r\n");
 	}
 }
 
