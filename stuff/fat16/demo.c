@@ -53,7 +53,7 @@ void walk_directory(struct fat16_volinfo *fv, uint16_t cluster)
 	struct fat16_dirent *dirent;
 	unsigned char tmpbuf[512];
 	fat16_opendir(fv, &de, cluster);
-	while ((dirent = fat16_nextdirent(fv, &de))) {
+	while ((dirent = fat16_nextdir(fv, &de))) {
 		char buf[16];
 		
 		memset(buf, 0, sizeof(buf)); memcpy(buf, dirent->filename, 8); printf("Filename: [%s], ", buf);
@@ -120,7 +120,7 @@ int main(void)
 	
 	// try path walks
 	printf("\nTrying to walk path \"/RND.BIN\"\n");
-	dirent = fat16_walk_path(&fv, "/RND.BIN");
+	dirent = fat16_wpath(&fv, "/RND.BIN");
 	if (dirent) {
 		char buf[16];
 		memset(buf, 0, sizeof(buf)); memcpy(buf, dirent->filename, 8); printf("Filename: [%s], ", buf);
@@ -134,7 +134,7 @@ int main(void)
 	}
 	
 	printf("\nTrying to walk path \"/SUBDIR/SUBFILE.TXT\"\n");
-	dirent = fat16_walk_path(&fv, "/SUBDIR/SUBFILE.TXT");
+	dirent = fat16_wpath(&fv, "/SUBDIR/SUBFILE.TXT");
 	if (dirent) {
 		char buf[16];
 		memset(buf, 0, sizeof(buf)); memcpy(buf, dirent->filename, 8); printf("Filename: [%s], ", buf);
@@ -153,12 +153,12 @@ int main(void)
 		uint16_t r;
 		uint8_t buf[8192];
 		
-		if (fat16_open_file(&fv, &file, "/RND.BIN")) {
+		if (fat16_fopen(&fv, &file, "/RND.BIN")) {
 			printf("Couldn't open file /RND.BIN...\n");
 			return -1;
 		}
 		 
-		r = fat16_read_file(&fv, &file, buf, 10240);
+		r = fat16_fread(&fv, &file, buf, 10240);
 		printf("Read %u bytes from file\n", r);
 		if (r != 8192 || memcmp(buf, RNDBIN, 8192)) {
 			printf("Read data differs from master\n");

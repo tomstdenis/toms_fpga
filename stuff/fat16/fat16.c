@@ -117,7 +117,7 @@ uint16_t fat16_n_c(struct fat16_volinfo *fv, uint16_t cluster)
 	return ((uint16_t *)fv->secbuf)[off];
 }
 
-// open a directory 'fat16_de' that can be used with fat16_nextdirent()
+// open a directory 'fat16_de' that can be used with fat16_nextdir()
 // cluster==0 means use the root directory
 void fat16_opendir(struct fat16_volinfo *fv, struct fat16_de *de, uint16_t cluster)
 {
@@ -135,7 +135,7 @@ void fat16_opendir(struct fat16_volinfo *fv, struct fat16_de *de, uint16_t clust
 
 // return the next directory entry for the currently open directory
 // or NULL if we hit the end
-struct fat16_dirent *fat16_nextdirent(struct fat16_volinfo *fv, struct fat16_de *de) 
+struct fat16_dirent *fat16_nextdir(struct fat16_volinfo *fv, struct fat16_de *de) 
 {
 	uint16_t sector[2];
 
@@ -186,7 +186,7 @@ top:
 
 // walk a directory with a path, returns a dirent on success or NULL on error
 // paths start from the root and must begin with /
-struct fat16_dirent *fat16_walk_path(struct fat16_volinfo *fv, char *path)
+struct fat16_dirent *fat16_wpath(struct fat16_volinfo *fv, char *path)
 {
 	char pathname[13]; // 8 . 3
 	char filename[8], ext[3];
@@ -244,7 +244,7 @@ top:
 	// now let's open the directory
 	fat16_opendir(fv, &de, dircluster);
 	
-	while ((dirent = fat16_nextdirent(fv, &de))) {
+	while ((dirent = fat16_nextdir(fv, &de))) {
 		DEBUG("dirent == %p\n", dirent);
 		if (!memcmp(filename, dirent->filename, 8) && !memcmp(ext, dirent->ext, 3)) {
 			// found it, but do we need to loop?
@@ -267,14 +267,14 @@ top:
 }
 
 // open a file, populates 'file' with the handle, returns 0 on success
-uint16_t fat16_open_file(struct fat16_volinfo *fv, struct fat16_file *file, char *path)
+uint16_t fat16_fopen(struct fat16_volinfo *fv, struct fat16_file *file, char *path)
 {
 	struct fat16_dirent *dirent;
 	
 	memset(file, 0, sizeof(struct fat16_file));
 	
 	// walk path from root
-	dirent = fat16_walk_path(fv, path);
+	dirent = fat16_wpath(fv, path);
 	if (dirent) {
 		file->scluster = ((uint16_t)dirent->scluster[1] << 8) | dirent->scluster[0];
 		file->filesz[0] = ((uint16_t)dirent->filesz[1] << 8) | dirent->filesz[0];
@@ -286,7 +286,7 @@ uint16_t fat16_open_file(struct fat16_volinfo *fv, struct fat16_file *file, char
 
 // read from a file upto either len bytes or the end of the file whichever comes first
 // returns the # of bytes actually read
-uint16_t fat16_read_file(struct fat16_volinfo *fv, struct fat16_file *file, uint8_t *dst, uint16_t len)
+uint16_t fat16_fread(struct fat16_volinfo *fv, struct fat16_file *file, uint8_t *dst, uint16_t len)
 {
 	uint16_t bread, tmp[2], n, secoff, ncluster, cluster;
 	

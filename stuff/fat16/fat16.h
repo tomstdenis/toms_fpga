@@ -74,10 +74,10 @@ uint16_t fat16_sc2dc(struct fat16_volinfo *fv, uint16_t scluster);		// convert s
 uint16_t fat16_n_c(struct fat16_volinfo *fv, uint16_t cluster);			// find the next cluster
 
 void fat16_opendir(struct fat16_volinfo *fv, struct fat16_de *de, uint16_t cluster);		// open a directory
-struct fat16_dirent *fat16_nextdirent(struct fat16_volinfo *fv, struct fat16_de *de);		// walk to next entry
-struct fat16_dirent *fat16_walk_path(struct fat16_volinfo *fv, char *path);					// walk a file system path to a dirent
+struct fat16_dirent *fat16_nextdir(struct fat16_volinfo *fv, struct fat16_de *de);		// walk to next entry
+struct fat16_dirent *fat16_wpath(struct fat16_volinfo *fv, char *path);					// walk a file system path to a dirent
 
-uint16_t fat16_open_file(struct fat16_volinfo *fv, struct fat16_file *file, char *path);
-uint16_t fat16_read_file(struct fat16_volinfo *fv, struct fat16_file *file, uint8_t *dst, uint16_t len);
+uint16_t fat16_fopen(struct fat16_volinfo *fv, struct fat16_file *file, char *path);
+uint16_t fat16_fread(struct fat16_volinfo *fv, struct fat16_file *file, uint8_t *dst, uint16_t len);
 
 #endif
