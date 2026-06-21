@@ -10,7 +10,7 @@ unsigned sector_op(uint16_t sector[2], uint8_t *data, unsigned wr_en)
 	// here we can use 32-bit because this is just a PC demo
 	uint32_t addr = ((uint32_t)sector[1] << 16) | sector[0];
 	addr <<= 9;
-	printf("Reading from sector 0x%04x%04x\n", sector[1], sector[0]);
+//	printf("Reading from sector 0x%04x%04x\n", sector[1], sector[0]);
 	if (fseek(f, addr, SEEK_SET)) {
 		return 0xFFFF;
 	}

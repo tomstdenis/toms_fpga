@@ -58,10 +58,18 @@ struct fat16_de {
 
 // a currently open file
 struct fat16_file {
+	struct fat16_volinfo *fv;
 	uint16_t starting_cluster;
 	uint16_t filesize[2];
 	uint16_t filepos[2];
 };
+
+void fat16_cluster_to_sector(struct fat16_volinfo *fv, uint16_t p[2]);
+void fat16_sector_to_byte(uint16_t p[2]);
+void fat16_byte_to_sector(uint16_t p[2]);
+void fat16_add_byte_offset(uint16_t p[2], uint16_t off);
+void fat16_add_byte_loffset(uint16_t p[2], uint16_t off[2]);
+int fat16_cmp_loffset(uint16_t a[2], uint16_t b[2]);
 
 unsigned fat16_initvol(struct fat16_volinfo *fv, uint8_t *secbuf);
 uint16_t fat16_starting_cluster_to_data_cluster(struct fat16_volinfo *fv, uint16_t starting_cluster);
@@ -71,7 +79,7 @@ void fat16_opendir(struct fat16_volinfo *fv, struct fat16_de *de, uint16_t clust
 struct fat16_dirent *fat16_nextdirent(struct fat16_de *de);
 struct fat16_dirent *fat16_walk_path(struct fat16_volinfo *fv, char *path, uint16_t dircluster);
 
-unsigned fat16_open_file(struct fat16_volinfo *fv, struct fat16_file *file, char *path);
+uint16_t fat16_open_file(struct fat16_volinfo *fv, struct fat16_file *file, char *path);
 
 
 
