@@ -103,15 +103,15 @@ boot_sd:
 		for (x = y = 0; x < 0x1000; x++) {
 			y = y + ((unsigned char *)0xE000)[x];
 		}
-		if (y) {
+		if (y & 0xFF) {
 			puts("Invalid checksum\n\r");
 			goto terminal;
 		}
 		
 		// checksum ok, boot app
+		puts("Jumping to boot loader at 0xE000");
 		asm {
-			LD #$E000
-			IJMP
+			JMP #$E000
 		}
 	}
 	puts("Failed to init SD card.");

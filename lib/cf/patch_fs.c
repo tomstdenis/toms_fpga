@@ -39,7 +39,6 @@ int main(int argc, char **argv)
 	for (x = y = 0; x < 4095; x++) {
 		y += resv_sec[x];
 	}
-	y &= 0xFF;
 	resv_sec[4095] = (-y) & 0xFF;
 	
 	// write resv_sec

@@ -1,11 +1,10 @@
 // CFLEA Primer25K Boot Loader
 asm {
 	ORG $E200		* code starts after first sector
-	LD #$F900
+	LD #$FA00       * 512 bytes of stack
 	TAS				* Set stack to top of memory
 	CALL main
-	LD #$F000
-	IJMP
+	JMP $F000
 }
 
 #define SD_BIOS
@@ -18,6 +17,8 @@ asm {
 #include "lib/puts.c"
 #include "lib/sd.c"
 #include "lib/fat16.c"
+#include "lib/hex.c"
+#include "lib/getc.c"
 
 uint16_t sector_op(uint16_t sector[2], uint8_t *data, uint16_t wr_en)
 {
@@ -28,18 +29,22 @@ main()
 {
    struct fat16_volinfo *fv;
    struct fat16_volinfo fvp;
+   unsigned x;
 
    fv = fvp;
  
    sd_init();
    if (!sd_reset()) {
-	   if (!fat16_initvol(fv, 0xF900)) {
+	   puts("BL: Initing FAT16...\n\r");
+	   if (!fat16_initvol(fv, 0xFC00)) {
+		   puts("BL: Opening /COMMAND.CF\r\n");
 		   if (!fat16_fopen(fv, "/COMMAND.CF")) {
 			   // load file memory
-			   fat16_fread(fv, 0, 57344);
+			   puts("BL: Reading contents\r\n");
+			   x = fat16_fread(fv, 0, 57344);
+			   puts("Read 0x"); print_hex_word(x); puts(" bytes\r\n");
 			   asm {
-				   CLR
-				   IJMP
+				   JMP $1000
 			   }
 		   } else {
 			   puts("COMMAND.CF not found.\n\r");
