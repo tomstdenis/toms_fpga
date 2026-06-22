@@ -44,7 +44,8 @@ main()
 			   x = fat16_fread(fv, 0, 57344);
 			   puts("Read 0x"); print_hex_word(x); puts(" bytes\r\n");
 			   asm {
-				   JMP $1000
+				   LD $0			* load entry point
+				   IJMP				* jump to it
 			   }
 		   } else {
 			   puts("COMMAND.CF not found.\n\r");

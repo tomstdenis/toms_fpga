@@ -52,6 +52,16 @@ void dump_bin(char *binf, char *start, char *end)
 	f = fopen(binf, "wb");
 	sscanf(start, "%x", &s);
 	sscanf(end, "%x", &e);
+	
+	// find end 
+	if (e == 0) {
+		printf("Scanning for end...\n");
+		e = 0xFFFF;
+		while (e && !mem[e]) {
+			--e;
+		}
+	}
+	
 	for (x = s; x <= e; x++) {
 		fputc(mem[x], f);
 	}
@@ -61,6 +71,13 @@ void dump_bin(char *binf, char *start, char *end)
 int main(int argc, char **argv)
 {
 	parse_file(argv[1]);
+	if (argc > 5) {
+		unsigned e;
+		sscanf(argv[5], "%x", &e);
+		mem[0] = e & 0xFF;
+		mem[1] = (e >> 8) & 0xFF;
+		printf("Patched to %x\n", e);
+	}
 	dump_bin(argv[2], argv[3], argv[4]);
 	return 0;
 }
