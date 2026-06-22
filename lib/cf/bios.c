@@ -109,9 +109,9 @@ boot_sd:
 		}
 		
 		// checksum ok, boot app
-		puts("Jumping to boot loader at 0xE000");
+		puts("Jumping to boot loader at 0xE000\r\n");
 		asm {
-			JMP #$E000
+			JMP $E000
 		}
 	}
 	puts("Failed to init SD card.");

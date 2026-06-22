@@ -103,6 +103,7 @@ uint16_t fat16_n_c(struct fat16_volinfo *fv, uint16_t cluster)
 /*
  * 'cluster' is an index into a table starting at sector (fv->fat_c * fv->sec_cluster * 512 + cluster * 2) / 512 */
  
+	sector[1] = 0;
 	sector[0] = fv->fat_c;				// start at the starting of the first FAT table
 	fat16_c_to_s(fv, sector);			// convert cluster to sector 
 	fat16_s_to_b(sector);				// convert sector byte
