@@ -7,8 +7,7 @@ asm {
 	JMP $F000
 }
 
-#define SD_BIOS
-#define SD_NO_WRITE
+#define USE_BIOS
 #include <cflea.h>
 #include "lib/time.c"
 #include "lib/memset.c"

@@ -6,6 +6,64 @@
 #include "lib/mem.h"
 #include "lib/tni.h"
 
+#ifdef USE_BIOS
+sd_spi_setup()
+{
+	asm {
+		JMP $F108
+	}
+}
+sd_spi_set_cs(int cs)
+{
+	asm {
+		JMP $F111
+	}
+}
+unsigned sd_spi_transfer(unsigned out)
+{
+	asm {
+		JMP $F11B
+	}
+}
+unsigned sd_spi_recv()
+{
+	asm {
+		JMP $F142
+	}
+}
+sd_init()
+{
+	asm {
+		JMP $F14B
+	}
+}
+
+unsigned sd_cmd(unsigned cmd, unsigned ph, unsigned pl, unsigned crc)
+{
+	asm {
+		JMP $F158
+	}
+}
+int sd_read_block(unsigned char *dst, unsigned len)
+{
+	asm {
+		JMP $F1C0
+	}
+}
+int sd_reset()
+{
+	asm {
+		JMP $F208
+	}
+}
+unsigned sd_sector_op(unsigned sector[2], unsigned char *dst, int wr_en)
+{
+	asm {
+		JMP $F38D
+	}
+}
+#else
+
 // Which PMOD to use (0..3)
 #ifndef SD_PMOD
 #define SD_PMOD 0
@@ -315,4 +373,5 @@ error:
 	return ret;
 }
 
+#endif
 #endif

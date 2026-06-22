@@ -1,5 +1,7 @@
 //#define DEBUG
 
+#define USE_BIOS
+
 #include <cflea.h>
 #include "lib/memcmp.c"
 #include "lib/console.c"
