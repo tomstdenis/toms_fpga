@@ -24,7 +24,7 @@ boot.bin: hex_to_cf
 populate_fs: boot.bin patch_fs
 	rm -f disk.fs
 	truncate --size 32M disk.fs
-	mkfs.fat -F 16 disk.fs
+	mkfs.fat -F 16 -R 8 disk.fs
 	mkdir -p mnt_test
 	sudo mount -o loop,uid=$$(id -u),gid=$$(id -g) disk.fs mnt_test
 	cp disk/* mnt_test/
