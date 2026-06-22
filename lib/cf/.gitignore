@@ -1,3 +1,6 @@
 *.HEX
 *.LST
 *.ASM
+cf/*.HEX
+cf/*.LST
+cf/*.ASM
