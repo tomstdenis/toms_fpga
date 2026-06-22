@@ -1,3 +1,11 @@
+# pseudo build process
+# 1. In dosbox in cf/ run M.BAT
+# 2. make hex_to_cf
+# 3. run ./hex_to_cf cf/GPIO.HEX disk/COMMAND.CF 0000 0000 1000
+# 4. make populate_fs
+# 5. dd if=disk.fs of=/dev/sdX ibs=512
+# 6. sync
+
 # Convert a motohex to Gowin EDA/verilog style hex data
 boot_hex_to_rom: tools/boot_hex_to_rom.c
 	gcc tools/boot_hex_to_rom.c -o boot_hex_to_rom

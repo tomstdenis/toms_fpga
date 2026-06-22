@@ -7,59 +7,70 @@
 #include "lib/tni.h"
 
 #ifdef USE_BIOS
+
+#define SD_SPI_SETUP    $F108
+#define SD_SPI_SET_CS   $F111
+#define SD_SPI_TRANSFER $F11B
+#define SD_SPI_RECV     $F142
+#define SD_INIT         $F14B
+#define SD_CMD			$F158
+#define SD_READ_BLOCK   $F1C0
+#define SD_RESET        $F208
+#define SD_SECTOR_OP	$F38D
+
 sd_spi_setup()
 {
 	asm {
-		JMP $F108
+		JMP SD_SPI_SETUP
 	}
 }
 sd_spi_set_cs(int cs)
 {
 	asm {
-		JMP $F111
+		JMP SD_SPI_SET_CS
 	}
 }
 unsigned sd_spi_transfer(unsigned out)
 {
 	asm {
-		JMP $F11B
+		JMP SD_SPI_TRANSFER
 	}
 }
 unsigned sd_spi_recv()
 {
 	asm {
-		JMP $F142
+		JMP SD_SPI_RECV
 	}
 }
 sd_init()
 {
 	asm {
-		JMP $F14B
+		JMP SD_INIT
 	}
 }
 
 unsigned sd_cmd(unsigned cmd, unsigned ph, unsigned pl, unsigned crc)
 {
 	asm {
-		JMP $F158
+		JMP SD_CMD
 	}
 }
 int sd_read_block(unsigned char *dst, unsigned len)
 {
 	asm {
-		JMP $F1C0
+		JMP SD_READ_BLOCK
 	}
 }
 int sd_reset()
 {
 	asm {
-		JMP $F208
+		JMP SD_RESET
 	}
 }
 unsigned sd_sector_op(unsigned sector[2], unsigned char *dst, int wr_en)
 {
 	asm {
-		JMP $F38D
+		JMP SD_SECTOR_OP
 	}
 }
 #else
