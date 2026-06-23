@@ -15,7 +15,7 @@
 #define HSYNC 0x04
 #define VIDEN 0x08
 
-#include "lib/time.c"
+#include "cf/lib/time.c"
 
 // set the video mode (0 == text, 1 == LRG)
 vid_mode(unsigned mode)

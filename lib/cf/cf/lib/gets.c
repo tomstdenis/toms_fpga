@@ -1,7 +1,7 @@
 #ifndef GETS_C_
 #define GETS_C_
 
-#include "lib/io.h"
+#include "cf/lib/io.h"
 
 gets(char *s)
 {

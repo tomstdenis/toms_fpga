@@ -9,15 +9,15 @@ asm {
 
 #define USE_BIOS
 #include <cflea.h>
-#include "lib/time.c"
-#include "lib/memset.c"
-#include "lib/memcmp.c"
-#include "lib/memcpy.c"
-#include "lib/puts.c"
-#include "lib/sd.c"
-#include "lib/fat16.c"
-#include "lib/hex.c"
-#include "lib/getc.c"
+#include "cf/lib/time.c"
+#include "cf/lib/memset.c"
+#include "cf/lib/memcmp.c"
+#include "cf/lib/memcpy.c"
+#include "cf/lib/puts.c"
+#include "cf/lib/sd.c"
+#include "cf/lib/fat16.c"
+#include "cf/lib/hex.c"
+#include "cf/lib/getc.c"
 
 uint16_t sector_op(uint16_t sector[2], uint8_t *data, uint16_t wr_en)
 {

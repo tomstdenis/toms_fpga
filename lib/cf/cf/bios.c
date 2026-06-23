@@ -13,12 +13,12 @@ topofbios EQU *
 #define SD_BIOS
 #define SD_NO_WRITE
 #include <cflea.h>
-#include "lib/time.c"
-#include "lib/getc.c"
-#include "lib/gets.c"
-#include "lib/puts.c"
-#include "lib/hex.c"
-#include "lib/sd.c"
+#include "cf/lib/time.c"
+#include "cf/lib/getc.c"
+#include "cf/lib/gets.c"
+#include "cf/lib/puts.c"
+#include "cf/lib/hex.c"
+#include "cf/lib/sd.c"
 
 // MADDR.LEN
 inspect_mem()

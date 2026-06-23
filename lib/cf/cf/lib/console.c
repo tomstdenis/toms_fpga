@@ -1,8 +1,8 @@
 #ifndef CONSOLE_C_
 #define CONSOLE_C_
 
-#include "lib/io.h"
-#include "lib/mem.h"
+#include "cf/lib/io.h"
+#include "cf/lib/mem.h"
 
 #define vidmem ((unsigned char *)vidmem_addr)
 #define console_x *((unsigned *)(console_x_addr))

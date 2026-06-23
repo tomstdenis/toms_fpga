@@ -1,4 +1,4 @@
-#include "lib/tni.h"
+#include "cf/lib/tni.h"
 
 memset(unsigned char *a, int v, unsigned len)
 { 

@@ -1,4 +1,4 @@
-#include "lib/fat16.h"
+#include "cf/lib/fat16.h"
 
 // convert a directory starting cluster to a data cluster
 uint16_t fat16_sc2dc(struct fat16_volinfo *fv, uint16_t scluster)
@@ -332,7 +332,7 @@ uint16_t fat16_fread(struct fat16_volinfo *fv, uint8_t *dst, uint16_t len)
 		tmp[0] = fat16_sc2dc(fv, cluster);							// map it to the data region
 		fat16_c_to_s(fv, tmp);										// convert cluster address to sector address
 		
-		// now add the sector number in this cluster
+		// now add the sector number in this cluster (this will work upto 16K clusters)
 		fat16_add_16(tmp, (fv->f_pos[0] >> 9) & (fv->sec_cluster - 1)); // add the # of sectors into this cluster we are
 		
 		// now we have the sector on disk to read...

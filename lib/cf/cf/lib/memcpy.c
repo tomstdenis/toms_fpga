@@ -1,4 +1,4 @@
-#include "lib/tni.h"
+#include "cf/lib/tni.h"
 
 memcpy(unsigned char *a, unsigned char *b, unsigned len)
 { 

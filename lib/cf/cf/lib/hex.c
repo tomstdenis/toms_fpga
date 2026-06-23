@@ -1,10 +1,10 @@
 #ifndef HEX_C_
 #define HEX_C_
 
-#include "lib/io.h"
+#include "cf/lib/io.h"
 
 #ifdef USE_BIOS
-#include "lib/bios.h"
+#include "cf/lib/bios.h"
 print_hex_byte(unsigned v) {
 	asm {
 		JMP PRINT_HEX_BYTE

@@ -1,4 +1,4 @@
-#include "lib/tni.h"
+#include "cf/lib/tni.h"
 
 int memcmp(unsigned char *a, unsigned char *b, unsigned len)
 { 

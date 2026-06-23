@@ -1,7 +1,7 @@
 #ifndef TIME_C_
 #define TIME_C_
 
-#include "lib/io.h"
+#include "cf/lib/io.h"
 
 // wait upto 65535 us
 wait_us(unsigned us)

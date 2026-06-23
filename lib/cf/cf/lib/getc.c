@@ -1,8 +1,8 @@
 #ifndef GETC_C_
 #define GETC_C_
 
-#include "lib/io.h"
-#include "lib/mem.h"
+#include "cf/lib/io.h"
+#include "cf/lib/mem.h"
 
 int getch() {
 	asm {

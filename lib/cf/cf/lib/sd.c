@@ -2,13 +2,13 @@
 #ifndef SD_C_
 #define SD_C_
 
-#include "lib/io.h"
-#include "lib/mem.h"
-#include "lib/tni.h"
+#include "cf/lib/io.h"
+#include "cf/lib/mem.h"
+#include "cf/lib/tni.h"
 
 #ifdef USE_BIOS
 
-#include "lib/bios.h"
+#include "cf/lib/bios.h"
 
 sd_spi_setup()
 {

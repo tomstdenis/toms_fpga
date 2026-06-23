@@ -1,7 +1,7 @@
 #ifndef PORT_C_
 #define PORT_C_
 
-#include "lib/io.h"
+#include "cf/lib/io.h"
 
 outport(int port, unsigned val)
 {

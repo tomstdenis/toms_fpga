@@ -13,6 +13,9 @@
 // to walk a FAT16 tree, find a file, and read from it.  Kinda bare bones.  No writing
 // support (yet?)
 
+// Meant to be used with <= 16K cluster devices (<= 1GB)
+// Given this is, you know, a 16-bit ISA from the 90s .... How much space do you really need?
+
 #define uint8_t unsigned char
 #define uint16_t unsigned
 

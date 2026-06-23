@@ -1,10 +1,10 @@
 #ifndef PUTS_C_
 #define PUTS_C_
 
-#include "lib/io.h"
+#include "cf/lib/io.h"
 
 #ifdef USE_BIOS
-#include "lib/bios.h"
+#include "cf/lib/bios.h"
 putc(unsigned v) {
 	asm {
 		JMP PUTC

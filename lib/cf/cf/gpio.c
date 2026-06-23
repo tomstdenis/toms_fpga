@@ -3,12 +3,12 @@
 #define USE_BIOS
 
 #include <cflea.h>
-#include "lib/memcmp.c"
-#include "lib/console.c"
-#include "lib/time.c"
-#include "lib/port.c"
-#include "lib/sd.c"
-#include "lib/fat16.c"
+#include "cf/lib/memcmp.c"
+#include "cf/lib/console.c"
+#include "cf/lib/time.c"
+#include "cf/lib/port.c"
+#include "cf/lib/sd.c"
+#include "cf/lib/fat16.c"
 
 // pins are setup so 0..3 is the top row (starting next to VCC/GND) and 4..7 are the bottom row
 // PMOD LED works as bottom, top, move over

@@ -9,7 +9,7 @@ or use the default PMOD0
 #ifndef SPI_C_
 #define SPI_C_
 
-#include "lib/io.h"
+#include "cf/lib/io.h"
 
 // Which PMOD to use
 #ifndef SPI_PMOD
@@ -33,7 +33,7 @@ unsigned spi_miso_mask_ds;
 unsigned spi_mosi_mask_ds;
 unsigned char spi_port;
 #else
-#include "lib/tni.h"
+#include "cf/lib/tni.h"
 #endif
 
 #ifdef SPI_FIXED
