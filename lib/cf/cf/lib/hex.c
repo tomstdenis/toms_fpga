@@ -2,7 +2,27 @@
 #define HEX_C_
 
 #include "lib/io.h"
+#include "lib/bios.h"
 
+#ifdef USE_BIOS
+print_hex_byte(unsigned v) {
+	asm {
+		JMP PRINT_HEX_BYTE
+	}
+}
+
+print_hex_word(unsigned v) {
+	asm {
+		JMP PRINT_HEX_WORD
+	}
+}
+
+unsigned read_hex(unsigned nib) {
+	asm {
+		JMP READ_HEX
+	}
+}
+#else
 const char hexstr[] = "0123456789ABCDEF";
 
 print_hex_byte(unsigned v) {
@@ -56,5 +76,6 @@ unsigned read_hex(unsigned nib)
 	}
 	return r;
 }
+#endif
 
 #endif

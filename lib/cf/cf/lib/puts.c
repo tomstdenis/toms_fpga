@@ -2,7 +2,21 @@
 #define PUTS_C_
 
 #include "lib/io.h"
+#include "lib/bios.h"
 
+#ifdef USE_BIOS
+putc(unsigned v) {
+	asm {
+		JMP PUTC
+	}
+}
+
+puts(char *s) {
+	asm {
+		JMP PUTS
+	}
+}
+#else
 putc(unsigned v)
 {
 	asm {
@@ -10,6 +24,7 @@ putc(unsigned v)
 		OUT PORT_UART_DATA
 	}
 }
+
 
 puts(char *s)
 {
@@ -25,5 +40,6 @@ puts(char *s)
 ?puts_end EQU *
 	}
 }
+#endif
 
 #endif

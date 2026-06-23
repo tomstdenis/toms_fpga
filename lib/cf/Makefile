@@ -24,7 +24,8 @@ hex_to_cf: tools/hex_to_cf.c
 patch_fs: tools/patch_fs.c
 	gcc tools/patch_fs.c -o patch_fs
 
-# The bootloader the loads /COMMAND.CF from a FAT-16 formatted SD card (no partition) 
+# The bootloader the loads /COMMAND.CF from a FAT-16 formatted SD card (no partition)
+.PHONY: boot.bin
 boot.bin: hex_to_cf
 	./hex_to_cf cf/BOOT.HEX boot.bin E200 EFFF
 	
