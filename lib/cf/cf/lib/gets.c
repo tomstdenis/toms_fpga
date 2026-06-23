@@ -6,8 +6,7 @@
 gets(char *s)
 {
 	asm {
-		LD 2,S				* load s
-		TAI					* store in INDEX
+		LDI 2,S				* INDEX = s
 ?gets_top EQU *
 		CALL getc
 		STB I				* store character
@@ -16,15 +15,13 @@ gets(char *s)
 		LDB I
 		CMPB #10			* newline
 		SJNZ ?gets_end
-		SJMP ?gets_next
+		LEAI 1,I			* increment I
+		SJMP ?gets_top
 ?gets_bs EQU *
 		LDB #$20			* echo a space
 		OUT PORT_UART_DATA
 		LDB #8				* and then move back
 		OUT PORT_UART_DATA
-		SJMP ?gets_top
-?gets_next EQU *
-		LEAI 1,I			* increment I
 		SJMP ?gets_top
 ?gets_end
 		LEAI 1,I
