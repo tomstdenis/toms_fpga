@@ -8,6 +8,8 @@
 # 7. dd if=disk.fs of=/dev/sdX ibs=512
 # 8. sync
 
+all: populate_fs
+
 # Convert a motohex to Gowin EDA/verilog style hex data
 boot_hex_to_rom: tools/boot_hex_to_rom.c
 	gcc tools/boot_hex_to_rom.c -o boot_hex_to_rom
@@ -52,12 +54,8 @@ populate_fs: boot.bin patch_fs cf/lib/bios.h
 	rm -f disk.fs
 	truncate --size 32M disk.fs
 	mkfs.fat -F 16 -R 8 disk.fs
-	mkdir -p mnt_test
-	sudo mount -o loop,uid=$$(id -u),gid=$$(id -g) disk.fs mnt_test
-	cp disk/* mnt_test/
-	sudo umount mnt_test
-	rmdir mnt_test
+	mcopy -i disk.fs disk/* ::/
 	./patch_fs disk.fs boot.bin
 
 clean:
-	rm -rf *.bin *.vvp *.vcd *.pass *.log lds lds.hex boot_hex_to_rom boot_test_sim.hex *.mi hex_to_cf patch_fs disk.fs sym_to_biosh cf/*.asm cf/*.hex cf/*.lst cf/lib/bios.h
+	rm -rf *.bin *.vvp *.vcd *.pass *.log lds lds.hex boot_hex_to_rom boot_test_sim.hex *.mi hex_to_cf patch_fs disk.fs sym_to_biosh cf/*.hex cf/*.lst cf/lib/bios.h
