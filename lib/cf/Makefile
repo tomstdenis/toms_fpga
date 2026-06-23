@@ -26,7 +26,7 @@ patch_fs: tools/patch_fs.c
 
 # The bootloader the loads /COMMAND.CF from a FAT-16 formatted SD card (no partition)
 .PHONY: boot.bin
-boot.bin: hex_to_cf
+boot.bin: hex_to_cf cf/BOOT.HEX
 	./hex_to_cf cf/BOOT.HEX boot.bin E200 EFFF
 	
 sym_to_biosh: tools/sym_to_biosh.c
