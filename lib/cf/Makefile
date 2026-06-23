@@ -15,8 +15,8 @@ boot_hex_to_rom: tools/boot_hex_to_rom.c
 	gcc tools/boot_hex_to_rom.c -o boot_hex_to_rom
 
 # the actual file we stuff in at F000..F7FF as the bios rom
-mon_p25.hex.mi: boot_hex_to_rom
-	./boot_hex_to_rom < cf/BIOS.HEX > mon_p25.hex.mi
+mon_p25.hex.mi: boot_hex_to_rom cf/bios.hex
+	./boot_hex_to_rom < cf/bios.hex > mon_p25.hex.mi
 
 # Converts a motohex to a .CF program we'll be able to load in CFLEA-DOS
 hex_to_cf: tools/hex_to_cf.c
@@ -28,25 +28,20 @@ patch_fs: tools/patch_fs.c
 
 # The bootloader the loads /COMMAND.CF from a FAT-16 formatted SD card (no partition)
 .PHONY: boot.bin
-boot.bin: hex_to_cf cf/boot.hex
-	./hex_to_cf cf/boot.hex boot.bin E200 EFFF
-
-cf/boot.hex: cf/boot.c cf/lib/bios.h
+boot.bin: hex_to_cf cf/boot.c cf/lib/bios.h
 	emu2 MCF/CCF.COM 'cf/boot.c' -fopa -- MCDIR='C:\MCF'
 	emu2 MCF/ASMCF.EXE 'cf/boot.asm' -fs -- MCDIR='C:\MCF'
+	./hex_to_cf cf/boot.hex boot.bin E200 EFFF
 
 sym_to_biosh: tools/sym_to_biosh.c
 	gcc tools/sym_to_biosh.c -o sym_to_biosh
 
 .PHONY: cf/lib/bios.h
-cf/lib/bios.h: sym_to_biosh cf/bios.lst
-	./sym_to_biosh < cf/bios.lst > cf/lib/bios.h
-
-cf/bios.asm: cf/bios.c	
+cf/lib/bios.h: sym_to_biosh cf/bios.c
 	emu2 MCF/CCF.COM 'cf/bios.c' -fopa -- MCDIR='C:\MCF'
-
-cf/bios.lst: cf/bios.asm
 	emu2 MCF/ASMCF.EXE 'cf/bios.asm' -fs -- MCDIR='C:\MCF'
+	./sym_to_biosh < cf/bios.lst > cf/lib/bios.h
+cf/bios.hex: cf/lib/bios.h
 
 # Build the disk.fs file system image with the bootloader any files in disk/* end up in the disk image
 .PHONY: populate_fs
