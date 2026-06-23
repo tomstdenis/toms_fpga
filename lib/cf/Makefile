@@ -1,10 +1,12 @@
 # pseudo build process
-# 1. In dosbox in cf/ run M.BAT
-# 2. make hex_to_cf
-# 3. run ./hex_to_cf cf/GPIO.HEX disk/COMMAND.CF 0000 0000 1000
-# 4. make populate_fs
-# 5. dd if=disk.fs of=/dev/sdX ibs=512
-# 6. sync
+# 1. In dosbox in cf/ run BIOS.BAT
+# 2. Run "make cf/lib/bios.h"
+# 3. In dosbox in cf/ run M.BAT
+# 4. make hex_to_cf
+# 5. run ./hex_to_cf cf/GPIO.HEX disk/COMMAND.CF 0000 0000 1000
+# 6. make populate_fs
+# 7. dd if=disk.fs of=/dev/sdX ibs=512
+# 8. sync
 
 # Convert a motohex to Gowin EDA/verilog style hex data
 boot_hex_to_rom: tools/boot_hex_to_rom.c
@@ -25,6 +27,13 @@ patch_fs: tools/patch_fs.c
 # The bootloader the loads /COMMAND.CF from a FAT-16 formatted SD card (no partition) 
 boot.bin: hex_to_cf
 	./hex_to_cf cf/BOOT.HEX boot.bin E200 EFFF
+	
+sym_to_biosh: tools/sym_to_biosh.c
+	gcc tools/sym_to_biosh.c -o sym_to_biosh
+
+.PHONY: cf/lib/bios.h
+cf/lib/bios.h: sym_to_biosh cf/BIOS.LST
+	./sym_to_biosh < cf/BIOS.LST > cf/lib/bios.h
 
 # Build the disk.fs file system image with the bootloader any files in disk/* end up in the disk image
 .PHONY: populate_fs
@@ -40,4 +49,4 @@ populate_fs: boot.bin patch_fs
 	./patch_fs disk.fs boot.bin
 
 clean:
-	rm -rf *.bin *.vvp *.vcd *.pass *.log lds lds.hex boot_hex_to_rom boot_test_sim.hex *.mi hex_to_cf patch_fs disk.fs
+	rm -rf *.bin *.vvp *.vcd *.pass *.log lds lds.hex boot_hex_to_rom boot_test_sim.hex *.mi hex_to_cf patch_fs disk.fs sym_to_biosh

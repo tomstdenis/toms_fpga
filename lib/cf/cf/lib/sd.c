@@ -8,15 +8,7 @@
 
 #ifdef USE_BIOS
 
-#define SD_SPI_SETUP    $F108
-#define SD_SPI_SET_CS   $F111
-#define SD_SPI_TRANSFER $F11B
-#define SD_SPI_RECV     $F142
-#define SD_INIT         $F14B
-#define SD_CMD			$F158
-#define SD_READ_BLOCK   $F1C0
-#define SD_RESET        $F208
-#define SD_SECTOR_OP	$F38D
+#include "lib/bios.h"
 
 sd_spi_setup()
 {
