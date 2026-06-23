@@ -38,7 +38,7 @@ cf/lib/bios.h: sym_to_biosh cf/BIOS.LST
 
 # Build the disk.fs file system image with the bootloader any files in disk/* end up in the disk image
 .PHONY: populate_fs
-populate_fs: boot.bin patch_fs
+populate_fs: boot.bin patch_fs cf/lib/bios.h
 	rm -f disk.fs
 	truncate --size 32M disk.fs
 	mkfs.fat -F 16 -R 8 disk.fs

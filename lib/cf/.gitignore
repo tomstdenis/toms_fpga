@@ -4,3 +4,5 @@
 cf/*.HEX
 cf/*.LST
 cf/*.ASM
+cf/lib/bios.h
+

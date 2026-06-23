@@ -2,9 +2,9 @@
 #define HEX_C_
 
 #include "lib/io.h"
-#include "lib/bios.h"
 
 #ifdef USE_BIOS
+#include "lib/bios.h"
 print_hex_byte(unsigned v) {
 	asm {
 		JMP PRINT_HEX_BYTE
