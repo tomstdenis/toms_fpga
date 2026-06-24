@@ -45,9 +45,15 @@ disk/COMMAND.CF: cf/gpio.c
 	emu2 MCF/CCF.COM 'cf/gpio.c' -fopl -- MCDIR='C:\MCF'
 	./hex_to_cf cf/gpio.hex disk/COMMAND.CF 0000 0000 1000
 
+disk/DEMO.CF: cf/demo.c
+	emu2 MCF/CCF.COM 'cf/demo.c' -fopl -- MCDIR='C:\MCF'
+	./hex_to_cf cf/demo.hex disk/DEMO.CF 0000 0000 1000
+
+diskfiles: disk/COMMAND.CF disk/DEMO.CF
+
 # Build the disk.fs file system image with the bootloader any files in disk/* end up in the disk image
 .PHONY: populate_fs
-populate_fs: boot.bin patch_fs disk/COMMAND.CF
+populate_fs: boot.bin patch_fs diskfiles
 	rm -f disk.fs
 	truncate --size 32M disk.fs
 	mkfs.fat -F 16 -R 136 disk.fs
@@ -55,4 +61,4 @@ populate_fs: boot.bin patch_fs disk/COMMAND.CF
 	./patch_fs disk.fs boot.bin
 
 clean:
-	rm -rf *.bin *.vvp *.vcd *.pass *.log lds lds.hex boot_hex_to_rom boot_test_sim.hex *.mi hex_to_cf patch_fs disk.fs sym_to_biosh cf/*.hex cf/*.lst cf/lib/bios.h disk/COMMAND.CF
+	rm -rf *.bin *.vvp *.vcd *.pass *.log lds lds.hex boot_hex_to_rom boot_test_sim.hex *.mi hex_to_cf patch_fs disk.fs sym_to_biosh cf/*.hex cf/*.lst cf/lib/bios.h
