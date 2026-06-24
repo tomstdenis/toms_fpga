@@ -18,12 +18,15 @@ class CFLEA:
             raise OverflowError(f"Loading past the end of CFLEA memory: {len(code) + entry}...")
         
         self.mem[base: base + len(code)] = code
+        self.PC = entry
     
     def fetch_operand(self, addr: int, word: int) -> int:
+        p = addr & 0xFFFF
+        np = (p + 1) & 0xFFFF
         if word:
-            return self.mem[addr] | (self.mem[addr+1] << 8)
+            return self.mem[p] | (self.mem[np] << 8)
         else:
-            return self.mem[addr]
+            return self.mem[p]
 
     def store_operand(self, addr: int, word: int, value: int) -> int:
         if word:
@@ -32,7 +35,7 @@ class CFLEA:
 
     def opcode_alu(self, opcode: int):
         mod = opcode & 7
-        word = 1 if (opcode & 8) else 0
+        word = 0 if (opcode & 8) else 1
 
         if mod == 0:
             # immediate (IIII)
@@ -347,44 +350,48 @@ class CFLEA:
         opcode = self.mem[self.PC]
 
         if log is True:
-            print(f"PC={self.PC:#06X} ACC={self.ACC:#06X} INDEX={self.INDEX:#06X} SP={self.SP:#06X} ALT={self.ALT:#06X} R0={self.R0:#06X} R1={self.R1:#06X}")
+            print(f"OPCODE={opcode:#04x} PC={self.PC:#06x} ACC={self.ACC:#06x} INDEX={self.INDEX:#06x} SP={self.SP:#06x} ALT={self.ALT:#06x} R0={self.R0:#06x} R1={self.R1:#06x}")
 
-        self.incrPC(1)
+        self.PC += 1
 
         if opcode <= 0x97 or (opcode >= 0xB8 and opcode <= 0xC7):
             # ALU opcodes
-            self.opcode_alu(self, opcode)
+            self.opcode_alu(opcode)
         elif opcode <= 0xB7:
             # LEAI, ST, STB, STI
-            self.opcode_mem(self, opcode)
+            self.opcode_mem(opcode)
         elif opcode <= 0xCF:
             # LT/ULT/...
-            self.opcode_compare(self, opcode)
+            self.opcode_compare(opcode)
         elif opcode <= 0xD9:
             # jumps
-            self.opcode_jumps(self, opcode)
+            self.opcode_jumps(opcode)
         elif opcode <= 0xDF:
             # stack
-            self.opcode_stack(self, opcode)
+            self.opcode_stack(opcode)
         else:
             # misc
-            self.opcode_misc(self, opcode)
+            self.opcode_misc(opcode)
 
         self.SP    &= 0xFFFF
         self.ACC   &= 0xFFFF
         self.PC    &= 0xFFFF
         self.INDEX &= 0xFFFF
+        self.R0    &= 0xFFFF
+        self.R1    &= 0xFFFF
 
-    def run(self, steps: int = 0):
+    def run(self, steps: int = 0, log: bool = False):
         step = 0
         while steps == 0 or (step < steps):
-            self.step()
+            self.step(log=log)
             step += 1
 
-    def run_till(self, targetPC: int):
+    def run_till(self, targetPC: int, log: bool = False):
         while self.PC != targetPC:
-            self.step()
+            self.step(log=log)
 
 
 if __name__ == "__main__":
-    print("Hello world!")
+    cf = CFLEA()
+    cf.load(fname="cf/bios.cf", entry=0xF000, base=0xF000)
+    cf.run(log=True, steps = 10000)

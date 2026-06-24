@@ -39,6 +39,8 @@ cf/lib/bios.h: sym_to_biosh cf/bios.c
 	emu2 MCF/CCF.COM 'cf/bios.c' -fopa -- MCDIR='C:\MCF'
 	emu2 MCF/ASMCF.EXE 'cf/bios.asm' -fs -- MCDIR='C:\MCF'
 	./sym_to_biosh < cf/bios.lst > cf/lib/bios.h
+	./hex_to_cf cf/bios.hex cf/bios.cf F000 0000 F000
+
 cf/bios.hex: cf/lib/bios.h
 
 disk/COMMAND.CF: cf/gpio.c
@@ -62,4 +64,4 @@ populate_fs: boot.bin patch_fs diskfiles
 
 clean:
 	rm -rf *.bin *.vvp *.vcd *.pass *.log lds lds.hex boot_hex_to_rom boot_test_sim.hex 
-	rm -rf *.mi hex_to_cf patch_fs disk.fs sym_to_biosh cf/*.hex cf/*.lst cf/*.asm cf/lib/bios.h
+	rm -rf *.mi hex_to_cf patch_fs disk.fs sym_to_biosh cf/*.hex cf/*.lst cf/*.asm cf/lib/bios.h cf/*.cf
