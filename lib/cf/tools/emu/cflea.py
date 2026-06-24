@@ -1,0 +1,335 @@
+class CFLEA:
+    def __init__(self):
+        self.mem = bytearray(65536)
+        self.PC = 0
+        self.SP = 0
+        self.INDEX = 0
+        self.ALT = 0
+        self.ACC = 0
+        self.R0 = 0
+        self.R1 = 0
+        self.flags = {'EQ': False, 'SLT': False, 'SGT': False, 'ULT': False, 'UGT': False}
+
+    def load(self, fname: str, entry: int, base: int):
+        with open(fname, 'rb') as f:
+            code = f.read()
+        
+        if len(code) + base > 65536:
+            raise OverflowError(f"Loading past the end of CFLEA memory: {len(code) + entry}...")
+        
+        self.mem[base: base + len(code)] = code
+    
+    def fetch_operand(self, addr: int, word: int) -> int:
+        if word:
+            return self.mem[addr] | (self.mem[addr+1] << 8)
+        else:
+            return self.mem[addr]
+
+    def store_operand(self, addr: int, word: int, value: int) -> int:
+        if word:
+            self.mem[addr + 1] = value >> 8
+        self.mem[addr] = value & 0xFF
+
+    def opcode_alu(self, opcode: int):
+        mod = opcode & 7
+        word = 1 if (opcode & 8) else 0
+
+        if mod == 0:
+            # immediate (IIII)
+            operand = self.fetch_operand(self.PC, word)
+            self.PC += (1 + word)
+        elif mod == 1:
+            # memory load (aaaa)
+            operand = self.fetch_operand(self.fetch_operand(self.PC, 1), word)
+            self.PC += (2)
+        elif mod == 2:
+            # indirect I
+            operand = self.fetch_operand(self.INDEX, word)
+        elif mod == 3:
+            # n,I
+            operand = self.fetch_operand(self.INDEX + self.fetch_operand(self.PC, 1), word)
+            self.PC += (1)
+        elif mod == 4:
+            # n,S
+            operand = self.fetch_operand(self.SP + self.fetch_operand(self.PC, 1), word)
+            self.PC += (1)
+        elif mod == 5:
+            # S+
+            operand = self.fetch_operand(self.SP, 1)
+            self.SP += 2
+        elif mod == 6:
+            # [S+]
+            operand = self.fetch_operand(self.fetch_operand(self.SP, 1), word)
+            self.SP += 2
+        elif mod == 7:
+            # [S]
+            operand = self.fetch_operand(self.fetch_operand(self.SP, 1), word)
+
+        # now deal with the instruction
+        op = opcode & ~0xF
+        if op == 0x00:
+            # LD
+            self.ACC = operand
+        elif op == 0x10:
+            # ADD
+            self.ACC += operand
+        elif op == 0x20:
+            # SUB
+            self.ACC -= operand
+        elif op == 0x30:
+            # MUL
+            self.ACC *= operand
+            self.ALT = self.ACC >> 16
+            self.ACC = self.ACC & 0xFFFF
+        elif op == 0x40:
+            # DIV
+            self.ALT = self.ACC % operand
+            self.ACC = self.ACC // operand
+        elif op == 0x50:
+            # AND
+            self.ACC &= operand
+        elif op == 0x60:
+            # OR
+            self.ACC |= operand
+        elif op == 0x70:
+            # XOR
+            self.ACC ^= operand
+        elif op == 0x80:
+            # CMP
+            self.flags['EQ'] = True if self.ACC == operand else False
+            self.flags['SLT'] = True if self.ACC < operand else False
+            self.flags['SGT'] = True if self.ACC > operand else False
+            self.flags['ULT'] = True if self.ACC > operand else False
+            self.flags['UGT'] = True if self.ACC < operand else False
+            self.ACC = 1 if self.ACC == operand else 0
+        elif op == 0x90:
+            # LDI
+            self.INDEX = operand
+        else:
+            if (opcode & ~7) == 0xB8:
+                self.ACC = self.ACC >> operand
+            elif (opcode & ~7) == 0xC0:
+                self.ACC = self.ACC << operand
+
+    def opcode_mem(self, opcode: int):
+        # LEAI, ST, STB, STI
+        mod = opcode & 7
+        word = 1 if (opcode & 8) else 0
+
+        if mod == 1:
+            # memory store (aaaa)
+            operand = self.fetch_operand(self.fetch_operand(self.PC, 1), word)
+            self.PC += (2)
+        elif mod == 2:
+            # indirect I
+            operand = self.fetch_operand(self.INDEX, word)
+        elif mod == 3:
+            # n,I
+            operand = self.fetch_operand(self.INDEX + self.fetch_operand(self.PC, 1), word)
+            self.PC += (1)
+        elif mod == 4:
+            # n,S
+            operand = self.fetch_operand(self.SP + self.fetch_operand(self.PC, 1), word)
+            self.PC += (1)
+        elif mod == 6:
+            # [S+]
+            operand = self.fetch_operand(self.fetch_operand(self.SP, 1), word)
+            self.SP += 2
+        elif mod == 7:
+            # [S]
+            operand = self.fetch_operand(self.fetch_operand(self.SP, 1), word)
+
+        op = opcode & ~7
+
+        if op == 0x98:
+            # LEAI
+            self.INDEX = operand
+        elif op == 0xA0:
+            # ST
+            self.store_operand(operand, 1, self.ACC)
+        elif op == 0xA8:
+            # STB
+            self.store_operand(operand, 0, self.ACC)
+        elif op == 0xB0:
+            # STI
+            self.store_operand(operand, 1, self.INDEX)
+
+    def opcode_compare(self, opcode: int):
+        # ULT, UGT, ...
+        if (opcode == 0xC8):
+            self.ACC = 1 if self.flags['SLT'] else 0
+        elif (opcode == 0xC9):
+            self.ACC = 1 if self.flags['SLT'] or self.flags['EQ'] else 0
+        elif (opcode == 0xCA):
+            self.ACC = 1 if self.flags['SGT'] else 0
+        elif (opcode == 0xCB):
+            self.ACC = 1 if self.flags['SGE'] or self.flags['EQ'] else 0
+        elif (opcode == 0xCC):
+            self.ACC = 1 if self.flags['ULT'] else 0
+        elif (opcode == 0xCD):
+            self.ACC = 1 if self.flags['ULE'] or self.flags['EQ'] else 0
+        elif (opcode == 0xCE):
+            self.ACC = 1 if self.flags['UGT'] else 0
+        elif (opcode == 0xCF):
+            self.ACC = 1 if self.flags['UGE'] or self.flags['EQ'] else 0
+
+    def opcode_jumps(self, opcode: int):
+        if (opcode == 0xD0):
+            # JMP
+            self.PC = self.fetch_operand(self.PC, 1) + 2
+        elif (opcode == 0xD1):
+            # JZ
+            if (self.ACC == 0):
+                self.PC = self.fetch_operand(self.PC, 1)
+            else:
+                self.PC += (2)
+        elif (opcode == 0xD2):
+            # JNZ
+            if (self.ACC != 0):
+                self.PC = self.fetch_operand(self.PC, 1)
+            else:
+                self.PC += (2)
+        elif (opcode == 0xD3):
+            # SJMP
+            sPC = self.fetch_operand(self.PC, 0)
+            if (sPC & 0x80):
+                sPC |= 0xFF00
+            self.PC += (sPC + 1)
+        elif (opcode == 0xD4):
+            # SJZ
+            sPC = self.fetch_operand(self.PC, 0)
+            if (sPC & 0x80):
+                sPC |= 0xFF00
+            if (self.ACC == 0):
+                self.PC += (sPC + 1)
+            else:
+                self.PC += (1)                
+        elif (opcode == 0xD5):
+            # SJNZ
+            sPC = self.fetch_operand(self.PC, 0)
+            if (sPC & 0x80):
+                sPC |= 0xFF00
+            if (self.ACC != 0):
+                self.PC += (sPC + 1)
+            else:
+                self.PC += (1)                
+        elif (opcode == 0xD6):
+            # IJMP
+            self.PC = self.ACC
+        elif (opcode == 0xD7):
+            # SWITCH (why Dave, why...)
+            sw = 0
+            while True:
+                if self.fetch_operand(self.INDEX + sw, 1) == 0:
+                    # default option
+                    self.PC = self.fetch_operand(self.INDEX+2, 1)
+                    break
+                elif (self.fetch_operand(self.INDEX + sw + 2, 1) == self.ACC):
+                    # matches entry
+                    self.PC = self.fetch_operand(self.INDEX + sw, 1)
+                    break
+                sw += 4
+        elif (opcode == 0xD8):
+            # CALL
+            self.SP -= 2
+            self.store_operand(self.SP, 1, self.PC + 2)
+            self.PC = self.fetch_operand(self.PC, 1)
+        elif (opcode == 0xD9):
+            # RET
+            self.PC = self.fetch_operand(self.SP, 1)
+            self.SP += 2
+
+    def opcode_stack(self, opcode: int):
+        if opcode == 0xDA:
+            # ALLOC
+            self.SP -= self.fetch_operand(self.PC, 0)
+            self.PC += (1)
+        elif opcode == 0xDB:
+            # FREE
+            self.SP += self.fetch_operand(self.PC, 0)
+            self.PC += 1
+        elif opcode == 0xDC:
+            # PUSHA
+            self.SP -= 2
+            self.store_operand(self.SP, 1, self.ACC)
+        elif opcode == 0xDD:
+            # PUSHI
+            self.SP -= 2
+            self.store_operand(self.SP, 1, self.INDEX)
+        elif opcode == 0xDE:
+            # TAS
+            self.SP = self.ACC
+        elif opcode == 0xDF:
+            # TSA
+            self.ACC = self.SP
+
+    def opcode_misc(self, opcode: int):
+        if opcode == 0xE0:
+            self.ACC = 0
+        elif opcode == 0xE2:
+            self.ACC ^= 0xFFFF
+        elif opcode == 0xE3:
+            self.ACC = 65536 - self.ACC
+        elif opcode == 0xE4:
+            self.ACC += 1
+        elif opcode == 0xE5:
+            self.ACC -= 1
+        elif opcode == 0xE6:
+            self.INDEX = self.ACC
+        elif opcode == 0xE7:
+            self.ACC = self.INDEX
+        elif opcode == 0xE8:
+            self.INDEX += self.ACC
+        elif opcode == 0xE9:
+            self.ACC = self.ALT
+        elif opcode == 0xEA:
+            port = self.fetch_operand(self.PC, 0)
+            self.PC += 1
+            if (port == 0):
+                print(chr(self.ACC & 0xFF))
+        elif opcode == 0xEB:
+            self.PC += 1
+
+    # step the cpu one instruction
+    def step(self):
+        # read opcode byte
+        opcode = self.mem[self.PC]
+        self.incrPC(1)
+
+        if opcode <= 0x97 or (opcode >= 0xB8 and opcode <= 0xC7):
+            # ALU opcodes
+            self.opcode_alu(self, opcode)
+        elif opcode <= 0xB7:
+            # LEAI, ST, STB, STI
+            self.opcode_mem(self, opcode)
+        elif opcode <= 0xCF:
+            # LT/ULT/...
+            self.opcode_compare(self, opcode)
+        elif opcode <= 0xD9:
+            # jumps
+            self.opcode_jumps(self, opcode)
+        elif opcode <= 0xDF:
+            # stack
+            self.opcode_stack(self, opcode)
+        else:
+            # misc
+            self.opcode_misc(self, opcode)
+
+        self.SP    &= 0xFFFF
+        self.ACC   &= 0xFFFF
+        self.PC    &= 0xFFFF
+        self.INDEX &= 0xFFFF
+
+    def run(self, steps: int = 0):
+        step = 0
+        while steps == 0 or (step < steps):
+            self.step()
+            step += 1
+
+    def run_till(self, targetPC: int):
+        while self.PC != targetPC:
+            self.step()
+
+
+if __name__ == "__main__":
+    print("Hello world!")
