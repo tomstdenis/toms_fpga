@@ -289,11 +289,66 @@ class CFLEA:
                 print(chr(self.ACC & 0xFF))
         elif opcode == 0xEB:
             self.PC += 1
+#TNI!
+        elif opcode == 0xED:
+            # CPUID
+            self.ACC = 0
+        elif opcode == 0xEE:
+            # RDTSC
+            self.ACC = 0
+        elif opcode == 0xEF:
+            # TAR0
+            self.R0 = self.ACC
+        elif opcode == 0xF0:
+            # TAR1
+            self.R1 = self.ACC
+        elif opcode == 0xF1:
+            # TR0A
+            self.ACC = self.R0
+        elif opcode == 0xF2:
+            # TR1A
+            self.ACC = self.R1
+        elif opcode == 0xF3:
+            # SWAPR0
+            tmp = self.ACC
+            self.ACC = self.R0
+            self.R0 = tmp
+        elif opcode == 0xF4:
+            # SWAPR1
+            tmp = self.ACC
+            self.ACC = self.R1
+            self.R1 = tmp
+        elif opcode == 0xF5:
+            # DEC_R0_A
+            self.R0 -= 1
+            self.ACC = self.R0
+        elif opcode == 0xF6:
+            # DEC_R1_A
+            self.R1 -= 1
+            self.ACC = self.R1
+        elif opcode == 0xF7:
+            # ADAR0
+            self.R0 += self.ACC
+        elif opcode == 0xF8:
+            # ADAR1
+            self.R1 += self.ACC
+        elif opcode == 0xF9:
+            # INCR0I
+            self.R0 += 1
+            self.INDEX = self.R0
+        elif opcode == 0xFA:
+            # INCR0I
+            self.R1 += 1
+            self.INDEX = self.R1
 
     # step the cpu one instruction
-    def step(self):
+    def step(self, log: bool = False):
         # read opcode byte
         opcode = self.mem[self.PC]
+
+        if log is True:
+            print(f"PC={self.PC:#06X} ACC={self.ACC:#06X} INDEX={self.INDEX:#06X} SP={self.SP:#06X} ALT={self.ALT:#06X} R0={self.R0:#06X} R1={self.R1:#06X}")
+
         self.incrPC(1)
 
         if opcode <= 0x97 or (opcode >= 0xB8 and opcode <= 0xC7):
