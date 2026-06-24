@@ -27,7 +27,6 @@ patch_fs: tools/patch_fs.c
 	gcc tools/patch_fs.c -o patch_fs
 
 # The bootloader the loads /COMMAND.CF from a FAT-16 formatted SD card (no partition)
-.PHONY: boot.bin
 boot.bin: hex_to_cf cf/boot.c cf/lib/bios.h
 	emu2 MCF/CCF.COM 'cf/boot.c' -fopa -- MCDIR='C:\MCF'
 	emu2 MCF/ASMCF.EXE 'cf/boot.asm' -fs -- MCDIR='C:\MCF'
@@ -36,21 +35,24 @@ boot.bin: hex_to_cf cf/boot.c cf/lib/bios.h
 sym_to_biosh: tools/sym_to_biosh.c
 	gcc tools/sym_to_biosh.c -o sym_to_biosh
 
-.PHONY: cf/lib/bios.h
 cf/lib/bios.h: sym_to_biosh cf/bios.c
 	emu2 MCF/CCF.COM 'cf/bios.c' -fopa -- MCDIR='C:\MCF'
 	emu2 MCF/ASMCF.EXE 'cf/bios.asm' -fs -- MCDIR='C:\MCF'
 	./sym_to_biosh < cf/bios.lst > cf/lib/bios.h
 cf/bios.hex: cf/lib/bios.h
 
+disk/COMMAND.CF: cf/gpio.c
+	emu2 MCF/CCF.COM 'cf/gpio.c' -fopl -- MCDIR='C:\MCF'
+	./hex_to_cf cf/gpio.hex disk/COMMAND.CF 0000 0000 1000
+
 # Build the disk.fs file system image with the bootloader any files in disk/* end up in the disk image
 .PHONY: populate_fs
-populate_fs: boot.bin patch_fs cf/lib/bios.h
+populate_fs: boot.bin patch_fs disk/COMMAND.CF
 	rm -f disk.fs
 	truncate --size 32M disk.fs
-	mkfs.fat -F 16 -R 8 disk.fs
+	mkfs.fat -F 16 -R 136 disk.fs
 	mcopy -i disk.fs disk/* ::/
 	./patch_fs disk.fs boot.bin
 
 clean:
-	rm -rf *.bin *.vvp *.vcd *.pass *.log lds lds.hex boot_hex_to_rom boot_test_sim.hex *.mi hex_to_cf patch_fs disk.fs sym_to_biosh cf/*.hex cf/*.lst cf/lib/bios.h
+	rm -rf *.bin *.vvp *.vcd *.pass *.log lds lds.hex boot_hex_to_rom boot_test_sim.hex *.mi hex_to_cf patch_fs disk.fs sym_to_biosh cf/*.hex cf/*.lst cf/lib/bios.h disk/COMMAND.CF
