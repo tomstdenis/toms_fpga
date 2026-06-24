@@ -11,8 +11,7 @@ topofbios EQU *
 }
 
 #define SD_BIOS
-#define SD_NO_WRITE
-#include <cflea.h>
+#include "MCF/CFLEA.H"
 #include "cf/lib/time.c"
 #include "cf/lib/getc.c"
 #include "cf/lib/gets.c"
@@ -91,7 +90,7 @@ main() {
 	unsigned ch;
 boot_sd:
 	sd_init();
-	puts("\n\rReading SD card\n\r");
+	puts("\n\rIniting SD...\n\r");
 	if (!sd_reset()) {
 		// read first 8 sectors (4KB) at 0xE000 and jump there
 		sector[1] = 0;
@@ -109,7 +108,7 @@ boot_sd:
 		}
 		
 		// checksum ok, boot app
-		puts("Jumping to boot loader at 0xE000\r\n");
+		puts("Jump to boot loader...\r\n");
 		asm {
 			JMP $E000
 		}
@@ -124,7 +123,7 @@ terminal:
 		ch = getc();
 		switch (ch) {
 			case 'H':
-				puts("\n\rB: Boot SD\n\rM: Inspect memory\n\rE: Enter memory\n\rS: Serial upload\n\rG: Go Addr\r\n");
+				puts("\n\rB: Boot\n\rM: Dump mem\n\rE: Edit mem\n\rS: Hex upload\n\rG: Go Addr\r\n");
 				break;
 			case 'B':
 				goto boot_sd;
