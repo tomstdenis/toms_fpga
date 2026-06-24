@@ -61,4 +61,5 @@ populate_fs: boot.bin patch_fs diskfiles
 	./patch_fs disk.fs boot.bin
 
 clean:
-	rm -rf *.bin *.vvp *.vcd *.pass *.log lds lds.hex boot_hex_to_rom boot_test_sim.hex *.mi hex_to_cf patch_fs disk.fs sym_to_biosh cf/*.hex cf/*.lst cf/lib/bios.h
+	rm -rf *.bin *.vvp *.vcd *.pass *.log lds lds.hex boot_hex_to_rom boot_test_sim.hex 
+	rm -rf *.mi hex_to_cf patch_fs disk.fs sym_to_biosh cf/*.hex cf/*.lst cf/*.asm cf/lib/bios.h
