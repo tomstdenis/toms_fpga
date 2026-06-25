@@ -131,9 +131,9 @@ class CFLEA:
             # LDI
             self.INDEX = operand
         else:
-            if (opcode & ~7) == 0xB8:
+            if (opcode & 0xF8) == 0xB8:
                 self.ACC = self.ACC >> operand
-            elif (opcode & ~7) == 0xC0:
+            elif (opcode & 0xF8) == 0xC0:
                 self.ACC = self.ACC << operand
 
     def opcode_mem(self, opcode: int):
@@ -245,13 +245,15 @@ class CFLEA:
             # SWITCH (why Dave, why...)
             sw = 0
             while True:
-                if self.fetch_operand(self.INDEX + sw, 1) == 0:
+                saddr = self.fetch_operand(self.INDEX + sw, 1)
+                sval  = self.fetch_operand(self.INDEX + sw + 2, 1)
+                if saddr == 0:
                     # default option
-                    self.PC = self.fetch_operand(self.INDEX+2, 1)
+                    self.PC = sval
                     break
-                elif (self.fetch_operand(self.INDEX + sw + 2, 1) == self.ACC):
+                elif sval == self.ACC:
                     # matches entry
-                    self.PC = self.fetch_operand(self.INDEX + sw, 1)
+                    self.PC = saddr
                     break
                 sw += 4
         elif (opcode == 0xD8):
