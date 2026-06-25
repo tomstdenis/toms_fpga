@@ -293,10 +293,12 @@ class CFLEA:
     def opcode_misc(self, opcode: int):
         if opcode == 0xE0:
             self.ACC = 0
-        elif opcode == 0xE2:
+        elif opcode == 0xE1:
             self.ACC ^= 0xFFFF
-        elif opcode == 0xE3:
+        elif opcode == 0xE2:
             self.ACC = 65536 - self.ACC
+        elif opcode == 0xE3:
+            self.ACC = 0 if (self.ACC > 0) else 1
         elif opcode == 0xE4:
             self.ACC += 1
         elif opcode == 0xE5:

@@ -141,8 +141,6 @@ terminal:
 				puts("\r\n");
 				jump(ch);
 				break;
-			default:
-				puts("?");
 		}	
 		puts("\r\n");
 	}
