@@ -1,21 +1,53 @@
+# -*- coding: utf-8 -*-
 import sys
-import threading, queue
+import os
+import termios
+import tty
+import fcntl
+import select
 
-key_queue = queue.Queue()
+# -------------------------------------------------
+#  Keyboard helper (Linux only)
+# -------------------------------------------------
+class LinuxKeyboard:
+    def __init__(self):
+        self.fd = sys.stdin.fileno()
+        # Save original terminal state so we can restore it later
+        self._orig_termios = termios.tcgetattr(self.fd)
+        self._orig_flags   = fcntl.fcntl(self.fd, fcntl.F_GETFL)
 
-def keyboard_thread():
-    while True:
-        try:
-            if sys.platform == "win32":
-                ch = msvcrt.getch().decode('ascii', errors='ignore')
-            else:
-                ch = sys.stdin.read(1)
-            key_queue.put_nowait(ch)
-        except Exception:
-            break
+        # ---- put terminal into cbreak mode (no line buffering,
+        #      keep ISIG so Ctrl‑C / Ctrl‑Z still work) ----
+        tty.setcbreak(self.fd)
+
+        # Make the fd non‑blocking – this isn’t strictly required
+        # because we’ll use select(), but it guarantees read() never blocks.
+        fcntl.fcntl(self.fd, fcntl.F_SETFL, self._orig_flags | os.O_NONBLOCK)
+
+    def __del__(self):
+        # Restore the terminal to exactly how it was before
+        termios.tcsetattr(self.fd, termios.TCSADRAIN, self._orig_termios)
+        fcntl.fcntl(self.fd, fcntl.F_SETFL, self._orig_flags)
+
+    def get_key(self):
+        """
+        Return:
+            - an integer 0‑255 representing the next key press, or
+            - 0xFFFF if no key is waiting (so your IN opcode can return it)
+        """
+        # select() with timeout 0 tells us instantly whether data is ready
+        rdy, _, _ = select.select([sys.stdin], [], [], 0)
+        if rdy:
+            ch = sys.stdin.read(1)          # safe – we know a byte is available
+            if not ch:                      # EOF (shouldn’t happen in normal use)
+                return 0xFFFF
+            return ord(ch)                  # or just return ch if you prefer strings
+        else:
+            return 0xFFFF
 
 class CFLEA:
     def __init__(self):
+        self.keyboard = LinuxKeyboard()
         self.mem = bytearray(65536)
         self.PC = 0
         self.SP = 0
@@ -316,16 +348,14 @@ class CFLEA:
             port = self.fetch_operand(self.PC, 0)
             self.PC += 1
             if (port == 0):
-                print(chr(self.ACC & 0xFF), end='')
+                sys.stdout.write(f"{chr(self.ACC & 0xFF)}")
+                sys.stdout.flush()
         elif opcode == 0xEB:
             # IN
             port = self.fetch_operand(self.PC, 0)
             self.PC += 1
             if (port == 0):
-                try:
-                    self.ACC = ord(key_queue.get_nowait()) & 0xFF
-                except queue.Empty:
-                    self.ACC = 0xFFFF
+                self.ACC = self.keyboard.get_key()
             else:
                 self.ACC = 0
         elif opcode == 0xED:
@@ -427,7 +457,6 @@ class CFLEA:
             self.step(log=log)
 
 if __name__ == "__main__":
-    threading.Thread(target=keyboard_thread, daemon=True).start()
     cf = CFLEA()
     cf.load(fname="cf/bios.cf", entry=0xF000, base=0xF000)
     cf.run(log=False)
