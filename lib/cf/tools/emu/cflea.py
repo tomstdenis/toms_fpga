@@ -1,3 +1,19 @@
+import sys
+import threading, queue
+
+key_queue = queue.Queue()
+
+def keyboard_thread():
+    while True:
+        try:
+            if sys.platform == "win32":
+                ch = msvcrt.getch().decode('ascii', errors='ignore')
+            else:
+                ch = sys.stdin.read(1)
+            key_queue.put_nowait(ch)
+        except Exception:
+            break
+
 class CFLEA:
     def __init__(self):
         self.mem = bytearray(65536)
@@ -29,13 +45,19 @@ class CFLEA:
             return self.mem[p]
 
     def store_operand(self, addr: int, word: int, value: int) -> int:
+        p = addr & 0xFFFF
+        np = (p + 1) & 0xFFFF
         if word:
-            self.mem[addr + 1] = value >> 8
-        self.mem[addr] = value & 0xFF
+            self.mem[np] = (value >> 8) & 0xFF
+        self.mem[p] = value & 0xFF
 
     def opcode_alu(self, opcode: int):
         mod = opcode & 7
         word = 0 if (opcode & 8) else 1
+
+        # shift operands are always bytes
+        if (opcode >= 0xB8 and opcode <= 0xC7):
+            word = 0
 
         if mod == 0:
             # immediate (IIII)
@@ -50,11 +72,11 @@ class CFLEA:
             operand = self.fetch_operand(self.INDEX, word)
         elif mod == 3:
             # n,I
-            operand = self.fetch_operand(self.INDEX + self.fetch_operand(self.PC, 1), word)
+            operand = self.fetch_operand(self.INDEX + self.fetch_operand(self.PC, 0), word)
             self.PC += (1)
         elif mod == 4:
             # n,S
-            operand = self.fetch_operand(self.SP + self.fetch_operand(self.PC, 1), word)
+            operand = self.fetch_operand(self.SP + self.fetch_operand(self.PC, 0), word)
             self.PC += (1)
         elif mod == 5:
             # S+
@@ -69,7 +91,7 @@ class CFLEA:
             operand = self.fetch_operand(self.fetch_operand(self.SP, 1), word)
 
         # now deal with the instruction
-        op = opcode & ~0xF
+        op = opcode & 0xF0
         if op == 0x00:
             # LD
             self.ACC = operand
@@ -117,33 +139,33 @@ class CFLEA:
     def opcode_mem(self, opcode: int):
         # LEAI, ST, STB, STI
         mod = opcode & 7
-        word = 1 if (opcode & 8) else 0
 
         if mod == 1:
             # memory store (aaaa)
-            operand = self.fetch_operand(self.fetch_operand(self.PC, 1), word)
+            operand = self.fetch_operand(self.PC, 1)
             self.PC += (2)
         elif mod == 2:
             # indirect I
-            operand = self.fetch_operand(self.INDEX, word)
+            operand = self.INDEX
         elif mod == 3:
             # n,I
-            operand = self.fetch_operand(self.INDEX + self.fetch_operand(self.PC, 1), word)
+            operand = self.INDEX + self.fetch_operand(self.PC, 0)
             self.PC += (1)
         elif mod == 4:
             # n,S
-            operand = self.fetch_operand(self.SP + self.fetch_operand(self.PC, 1), word)
+            operand = self.SP + self.fetch_operand(self.PC, 0)
             self.PC += (1)
         elif mod == 6:
             # [S+]
-            operand = self.fetch_operand(self.fetch_operand(self.SP, 1), word)
-            self.SP += 2
+            operand = self.SP
+            if not ((opcode & 0xF8) == 0x98):
+                self.SP += 2
         elif mod == 7:
             # [S]
-            operand = self.fetch_operand(self.fetch_operand(self.SP, 1), word)
+            operand = self.SP
 
-        op = opcode & ~7
-
+        op = opcode & 0xF8
+       
         if op == 0x98:
             # LEAI
             self.INDEX = operand
@@ -179,7 +201,7 @@ class CFLEA:
     def opcode_jumps(self, opcode: int):
         if (opcode == 0xD0):
             # JMP
-            self.PC = self.fetch_operand(self.PC, 1) + 2
+            self.PC = self.fetch_operand(self.PC, 1)
         elif (opcode == 0xD1):
             # JZ
             if (self.ACC == 0):
@@ -286,13 +308,22 @@ class CFLEA:
         elif opcode == 0xE9:
             self.ACC = self.ALT
         elif opcode == 0xEA:
+            # OUT
             port = self.fetch_operand(self.PC, 0)
             self.PC += 1
             if (port == 0):
-                print(chr(self.ACC & 0xFF))
+                print(chr(self.ACC & 0xFF), end='')
         elif opcode == 0xEB:
+            # IN
+            port = self.fetch_operand(self.PC, 0)
             self.PC += 1
-#TNI!
+            if (port == 0):
+                try:
+                    self.ACC = ord(key_queue.get_nowait()) & 0xFF
+                except queue.Empty:
+                    self.ACC = 0xFFFF
+            else:
+                self.ACC = 0
         elif opcode == 0xED:
             # CPUID
             self.ACC = 0
@@ -379,6 +410,7 @@ class CFLEA:
         self.INDEX &= 0xFFFF
         self.R0    &= 0xFFFF
         self.R1    &= 0xFFFF
+        self.ALT   &= 0xFFFF
 
     def run(self, steps: int = 0, log: bool = False):
         step = 0
@@ -390,8 +422,8 @@ class CFLEA:
         while self.PC != targetPC:
             self.step(log=log)
 
-
 if __name__ == "__main__":
+    threading.Thread(target=keyboard_thread, daemon=True).start()
     cf = CFLEA()
     cf.load(fname="cf/bios.cf", entry=0xF000, base=0xF000)
-    cf.run(log=True, steps = 10000)
+    cf.run(log=False)
