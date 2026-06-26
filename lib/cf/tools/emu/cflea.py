@@ -57,7 +57,106 @@ class CFLEA:
         self.R0 = 0
         self.R1 = 0
         self.flags = {'EQ': False, 'SLT': False, 'SGT': False, 'ULT': False, 'UGT': False}
+        self.gpio0_pins = 0
+        self.gpio0_state = 0
+        self.gpio0_count = 0
+        self.gpio0_sr = 0
+        self.gpio0_bitcnt = 0
+        self.gpio0_dirset = 0x00
+        self.sd_buffer = bytearray(1024)
 
+    def loadDisk(self, fname: str):
+        with open(fname, 'rb') as f:
+            disk = f.read()
+        self.disk = bytearray(len(disk))
+        self.disk = disk
+
+    def doSD(self):
+        if (self.gpio0_count < 6):
+            if (self.gpio0_count or not (self.gpio0_sr & 0x80)):                # 1st cmd byte has zero for msb
+                self.sd_buffer[self.gpio0_count] = self.gpio0_sr
+                self.gpio0_count += 1
+
+        if (self.gpio0_count >= 6):
+            # we received our SD command, time to dispatch based on the first byte
+            if (self.gpio0_count == 6):
+                print(f"Sent command: CMD#{self.sd_buffer[0]-0x40} {self.sd_buffer[0:self.gpio0_count]}")
+
+            if (self.sd_buffer[0] == (0x40 + 0)):
+                # CMD0 just reply with R1(01)
+                self.gpio0_sr = 0x01
+                self.gpio0_count = 0                  # be ready for next command
+            elif (self.sd_buffer[0] == (0x40 + 8)):
+                # CMD8 echo back sd_buffer with 01 in place of cmd
+                if (self.gpio0_count == 6):
+                    self.gpio0_sr = 0x01
+                else:
+                    self.gpio0_sr = self.sd_buffer[1+self.gpio0_count-7]
+                self.gpio0_count += 1
+                if (self.gpio0_count == 6 + 1 + 4):
+                    self.gpio0_count = 0
+            elif (self.sd_buffer[0] == (0x40 + 55)):
+                # CMD55 echo back 01
+                self.gpio0_sr = 0x01
+                self.gpio0_count = 0
+            elif (self.sd_buffer[0] == (0x40 + 41)):
+                # ACMD41 echo back 00
+                self.gpio0_sr = 0x00
+                self.gpio0_count = 0
+            elif (self.sd_buffer[0] == (0x40 + 58)):
+                # CMD58
+                if (self.gpio0_count == 6):
+                    self.gpio0_sr = 0x00
+                elif (self.gpio0_count == 7):
+                    self.gpio0_sr = 0x80 | 0x40
+                else:
+                    self.gpio0_sr = 0x00
+                print(f"CMD58: {self.gpio0_sr:#4x}")
+                self.gpio0_count += 1
+                if (self.gpio0_count == 6 + 1 + 4):
+                    self.gpio0_count = 0
+
+    def doGPIO0(self, port: int, IN: bool = False, OUT: bool = False):
+        if (port == 0x01):
+            if (IN):
+                # do toggle
+                self.gpio0_pins ^= (self.ACC >> 8)
+            if (OUT):
+                # do output
+                self.gpio0_pins = (self.gpio0_pins & (self.ACC >> 8)) | (self.ACC & ~(self.ACC >> 8) & self.gpio0_dirset)
+            self.gpio0_pins &= 0xFF
+        elif (port == 0x05):
+            if (OUT):
+                self.gpio0_dirset = self.ACC & 0xFF
+            if (IN):
+                self.ACC = self.gpio0_dirset & 0xFF
+
+        # now handle the state
+        if not (self.gpio0_pins & 0x08):
+            # CS is low
+            if (self.gpio0_pins & 0x01):                                # SCK high
+                # SCK is high so we copy MOSI into sr and sr into MISO
+                self.gpio0_sr <<= 1                                     # make room for MOSI
+                self.gpio0_pins &= ~2                                   # clear MISO pin
+                self.gpio0_pins |= 2 if (self.gpio0_sr & 0x100) else 0  # stuff new MISO data in
+                self.gpio0_sr |= 1 if (self.gpio0_pins & 0x04) else 0   # stuff MOSI bit in shift register
+                self.gpio0_sr &= 0xFF
+                self.gpio0_bitcnt += 1
+                if (self.gpio0_bitcnt == 8):                            # we read 8 bits so advance the SD state
+                    self.doSD()
+                    self.gpio0_bitcnt = 0
+        else:
+            # CS is high
+            self.gpio0_count = 0
+            self.gpio0_state = 0
+            self.gpio0_sr = 0
+            self.gpio_bitcnt = 0
+
+        if (IN):
+            if (port == 0x01):
+                self.ACC = self.gpio0_pins
+            else:
+                self.ACC = self.gpio0_dirset
     def load(self, fname: str, entry: int, base: int):
         with open(fname, 'rb') as f:
             code = f.read()
@@ -350,12 +449,16 @@ class CFLEA:
             if (port == 0):
                 sys.stdout.write(f"{chr(self.ACC & 0xFF)}")
                 sys.stdout.flush()
+            elif (port == 1 or port == 5):
+                self.doGPIO0(port=port,OUT=True)
         elif opcode == 0xEB:
             # IN
             port = self.fetch_operand(self.PC, 0)
             self.PC += 1
             if (port == 0):
                 self.ACC = self.keyboard.get_key()
+            elif (port == 1 or port == 5):
+                self.doGPIO0(port=port,IN=True)
             else:
                 self.ACC = 0
         elif opcode == 0xED:
@@ -459,4 +562,5 @@ class CFLEA:
 if __name__ == "__main__":
     cf = CFLEA()
     cf.load(fname="cf/bios.cf", entry=0xF000, base=0xF000)
+    cf.loadDisk("disk.fs")
     cf.run(log=False)
