@@ -393,7 +393,7 @@ module top(input wire clk, input wire s1,
     wire [7:0] cur_gpio_bits = gpio_out[(cf_bus_address[7:0] - io_port_gpio0) * 8 +: 8];
 
     reg [7:0] spi_sr;
-    reg [9:0] spi_timer;
+    reg [7:0] spi_timer;
     reg [2:0] spi_cnt;
 
     // bus controller
@@ -500,7 +500,7 @@ module top(input wire clk, input wire s1,
                         if (bus_cycle[0] == 0) begin
                             spi_cnt                                        <= 7;
                             spi_sr                                         <= cf_bus_data_in[7:0];
-                            spi_timer                                      <= {cf_bus_data_in[15:8], 2'b0};
+                            spi_timer                                      <= cf_bus_data_in[15:8];
                             gpio_out[{cf_bus_address[1:0], gpio_spi_sck}]  <= 1'b0;
                             gpio_out[{cf_bus_address[1:0], gpio_spi_mosi}] <= cf_bus_data_in[7];
                         end else if (bus_cycle[0] == 1) begin
@@ -508,7 +508,7 @@ module top(input wire clk, input wire s1,
                             bus_cycle <= bus_cycle;                         // stay on this bus cycle
                             spi_timer <= spi_timer - 1'b1;
                             if (spi_timer == 0) begin
-                                spi_timer                                     <= {cf_bus_data_in[15:8], 2'b0};
+                                spi_timer                                     <= cf_bus_data_in[15:8];
                                 gpio_out[{cf_bus_address[1:0], gpio_spi_sck}] <= ~gpio_out[{cf_bus_address[1:0], gpio_spi_sck}];
                             end
 
