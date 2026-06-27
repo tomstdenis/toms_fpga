@@ -390,7 +390,7 @@ module top(input wire clk, input wire s1,
 
     reg [7:0] spi_sr;
     reg [9:0] spi_timer;
-    reg [7:0] spi_cnt;
+    reg [2:0] spi_cnt;
 
     // bus controller
     always_ff @(posedge pllclk) begin
