@@ -96,6 +96,12 @@ module top(input wire clk, input wire s1,
 		bus_address_rom_mem_bot  = 16'hF000,                // bottom of BOOT ROM space (2KB)
 		bus_address_rom_mem_top  = 16'hF7FF;                // top of BOOT ROM space
 
+    localparam
+        gpio_spi_sck  = 3'd0,                   // SCK pin
+        gpio_spi_miso = 3'd1,                   // MISO pin
+        gpio_spi_mosi = 3'd2,                   // MOSI pin
+        gpio_spi_cs   = 3'd3;                   // CS pin
+
 	// Domain #1: CFLEA @`FREQ
     logic pllclk;
 	
@@ -382,6 +388,10 @@ module top(input wire clk, input wire s1,
 
     wire [7:0] cur_gpio_bits = gpio_out[(cf_bus_address[7:0] - io_port_gpio0) * 8 +: 8];
 
+    reg [7:0] spi_sr;
+    reg [9:0] spi_timer;
+    reg [7:0] spi_cnt;
+
     // bus controller
     always_ff @(posedge pllclk) begin
         if (!rst_n) begin
@@ -482,6 +492,41 @@ module top(input wire clk, input wire s1,
                         end
                         cf_bus_data_out <= wdt; 
                         cf_bus_ready    <= 1'b1;
+                    end else if (cf_bus_address[7:2] == 6'b111100) begin // SPI ports (0xF0..0xF3)
+                        if (bus_cycle[0] == 0) begin
+                            spi_cnt                                        <= 7;
+                            spi_sr                                         <= cf_bus_data_in[7:0];
+                            spi_timer                                      <= {cf_bus_data_in[15:8], 2'b0};
+                            gpio_out[{cf_bus_address[1:0], gpio_spi_sck}]  <= 1'b0;
+                            gpio_out[{cf_bus_address[1:0], gpio_spi_mosi}] <= cf_bus_data_in[7];
+                            bus_cycle                                      <= 1;
+                        end else if (bus_cycle[0] == 1) begin
+                            // do SPI protocol
+                            spi_timer <= spi_timer - 1'b1;
+                            if (spi_timer == 0) begin
+                                spi_timer                                     <= {cf_bus_data_in[15:8], 2'b0};
+                                gpio_out[{cf_bus_address[1:0], gpio_spi_sck}] <= ~gpio_out[{cf_bus_address[1:0], gpio_spi_sck}];
+                            end
+
+                            if (gpio_out[{cf_bus_address[1:0], gpio_spi_sck}] == 1'b0) begin
+                                // SCK low
+//                                gpio_out[{cf_bus_address[1:0], gpio_spi_mosi] <= spi_sr[7];
+                            end else begin
+                                // SCK high
+                                if (spi_timer == 0) begin
+                                    // last cycle that SCK will be high still
+                                    spi_sr <= {spi_sr[6:0], gpio[{cf_bus_address[1:0], gpio_spi_miso}]};
+                                    gpio_out[{cf_bus_address[1:0], gpio_spi_mosi}] <= spi_sr[6];
+                                    spi_cnt <= spi_cnt - 1'b1;
+                                    if (spi_cnt == 0) begin
+                                        bus_cycle <= 0;
+                                        cf_bus_data_out                               <= {8'b0, spi_sr};
+                                        cf_bus_ready                                  <= 1;
+                                        gpio_out[{cf_bus_address[1:0], gpio_spi_sck}] <= 1'b0;
+                                    end
+                                end
+                            end
+                        end
                     end else begin
                         // default to just ack the bus
                         cf_bus_ready <= 1'b1;
