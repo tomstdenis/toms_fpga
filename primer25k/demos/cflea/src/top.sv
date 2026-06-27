@@ -44,6 +44,9 @@ for I/O the following ports are used
    - 13h: WDT, non-zero value means if the tick_counter (11h) matches it triggers a reset.  A zero value disables the WDT
           The idea is you write to 11h before the tick counter matches 
    
+   - F0h..F3h: Digilent SPI PMOD optimized block, use with OUT, upper 8 bits divide core clock so you get `FREQ / (2 * (data_out[15:8] + 1))
+               For instance at the stock FREQ=125 putting [say] the value '3' in the upper 8 bits would result in an SCK frequency of
+               (125MHz / 2) / (3 + 1) == 15.625MHz
 */
 
 `timescale 1ns/1ps
@@ -96,6 +99,7 @@ module top(input wire clk, input wire s1,
 		bus_address_rom_mem_bot  = 16'hF000,                // bottom of BOOT ROM space (2KB)
 		bus_address_rom_mem_top  = 16'hF7FF;                // top of BOOT ROM space
 
+    // Digilent PMOD SPI configured devices 
     localparam
         gpio_spi_sck  = 3'd0,                   // SCK pin
         gpio_spi_miso = 3'd1,                   // MISO pin
@@ -499,9 +503,9 @@ module top(input wire clk, input wire s1,
                             spi_timer                                      <= {cf_bus_data_in[15:8], 2'b0};
                             gpio_out[{cf_bus_address[1:0], gpio_spi_sck}]  <= 1'b0;
                             gpio_out[{cf_bus_address[1:0], gpio_spi_mosi}] <= cf_bus_data_in[7];
-                            bus_cycle                                      <= 1;
                         end else if (bus_cycle[0] == 1) begin
                             // do SPI protocol
+                            bus_cycle <= bus_cycle;                         // stay on this bus cycle
                             spi_timer <= spi_timer - 1'b1;
                             if (spi_timer == 0) begin
                                 spi_timer                                     <= {cf_bus_data_in[15:8], 2'b0};
@@ -515,13 +519,12 @@ module top(input wire clk, input wire s1,
                                 // SCK high
                                 if (spi_timer == 0) begin
                                     // last cycle that SCK will be high still
-                                    spi_sr <= {spi_sr[6:0], gpio[{cf_bus_address[1:0], gpio_spi_miso}]};
+                                    spi_sr                                         <= {spi_sr[6:0], gpio[{cf_bus_address[1:0], gpio_spi_miso}]};
                                     gpio_out[{cf_bus_address[1:0], gpio_spi_mosi}] <= spi_sr[6];
-                                    spi_cnt <= spi_cnt - 1'b1;
+                                    spi_cnt                                        <= spi_cnt - 1'b1;
                                     if (spi_cnt == 0) begin
-                                        bus_cycle <= 0;
                                         cf_bus_data_out                               <= {8'b0, spi_sr};
-                                        cf_bus_ready                                  <= 1;
+                                        cf_bus_ready                                  <= 1'b1;
                                         gpio_out[{cf_bus_address[1:0], gpio_spi_sck}] <= 1'b0;
                                     end
                                 end
