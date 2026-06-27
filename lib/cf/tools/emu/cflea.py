@@ -73,14 +73,15 @@ class CFLEA:
 
     def doSD(self):
         if (self.gpio0_count < 6):
-            if (self.gpio0_count or not (self.gpio0_sr & 0x80)):                # 1st cmd byte has zero for msb
+            if (self.gpio0_count or not (self.gpio0_sr & 0x80) and (self.gpio0_sr & 0x40)):                # 1st cmd byte has zero for msb
                 self.sd_buffer[self.gpio0_count] = self.gpio0_sr
                 self.gpio0_count += 1
+                self.gpio0_sr = 0xFF
 
         if (self.gpio0_count >= 6):
             # we received our SD command, time to dispatch based on the first byte
-            if (self.gpio0_count == 6):
-                print(f"Sent command: CMD#{self.sd_buffer[0]-0x40} {self.sd_buffer[0:self.gpio0_count]}")
+#            if (self.gpio0_count == 6):
+#                print(f"Sent command: CMD#{self.sd_buffer[0]-0x40} {self.sd_buffer[0:self.gpio0_count]}")
 
             if (self.sd_buffer[0] == (0x40 + 0)):
                 # CMD0 just reply with R1(01)
@@ -105,22 +106,48 @@ class CFLEA:
                 self.gpio0_count = 0
             elif (self.sd_buffer[0] == (0x40 + 58)):
                 # CMD58
-                if (self.gpio0_count == 6):
-                    self.gpio0_sr = 0x00
-                elif (self.gpio0_count == 7):
+                if (self.gpio0_count == 7):
                     self.gpio0_sr = 0x80 | 0x40
                 else:
                     self.gpio0_sr = 0x00
-                print(f"CMD58: {self.gpio0_sr:#4x}")
                 self.gpio0_count += 1
                 if (self.gpio0_count == 6 + 1 + 4):
                     self.gpio0_count = 0
+            elif (self.sd_buffer[0] == (0x40 + 9)):
+                # CMD9 reply with 00 FE {16x00} FF FF
+                if (self.gpio0_count == 6):
+                    self.gpio0_sr = 0x00
+                elif (self.gpio0_count == 7):
+                    self.gpio0_sr = 0xFE
+                else:
+                    self.gpio0_sr = 0xFF
+                self.gpio0_count += 1
+                if (self.gpio0_count == 6 + 1 + 1 + 16 + 2):
+                    self.gpio0_count = 0
+            elif (self.sd_buffer[0] == (0x40 + 17)):
+                # CMD17 read sector
+                offset = (self.sd_buffer[1] << 24) | (self.sd_buffer[2] << 16)
+                offset |= (self.sd_buffer[3] << 8) | (self.sd_buffer[4])
+                offset *= 512
+                offset += (self.gpio0_count - 8)
 
+                if (self.gpio0_count == 6):
+                    self.gpio0_sr = 0x00
+                elif (self.gpio0_count == 7):
+                    self.gpio0_sr = 0xFE
+                elif (self.gpio0_count <= (512+8)):
+                    self.gpio0_sr = self.disk[offset]
+                else:
+                    self.gpio0_sr = 0xFF
+                self.gpio0_count += 1
+                if (self.gpio0_count == (6 + 1 + 1 + 512 + 2)):
+                    self.gpio0_count = 0
+ 
     def doGPIO0(self, port: int, IN: bool = False, OUT: bool = False):
         if (port == 0x01):
             if (IN):
                 # do toggle
-                self.gpio0_pins ^= (self.ACC >> 8)
+                self.gpio0_pins ^= ((self.ACC >> 8) & self.gpio0_dirset)
             if (OUT):
                 # do output
                 self.gpio0_pins = (self.gpio0_pins & (self.ACC >> 8)) | (self.ACC & ~(self.ACC >> 8) & self.gpio0_dirset)
@@ -128,8 +155,6 @@ class CFLEA:
         elif (port == 0x05):
             if (OUT):
                 self.gpio0_dirset = self.ACC & 0xFF
-            if (IN):
-                self.ACC = self.gpio0_dirset & 0xFF
 
         # now handle the state
         if not (self.gpio0_pins & 0x08):
@@ -255,8 +280,8 @@ class CFLEA:
             self.flags['EQ'] = True if self.ACC == operand else False
             self.flags['SLT'] = True if self.ACC < operand else False
             self.flags['SGT'] = True if self.ACC > operand else False
-            self.flags['ULT'] = True if self.ACC > operand else False
-            self.flags['UGT'] = True if self.ACC < operand else False
+            self.flags['ULT'] = True if self.ACC < operand else False
+            self.flags['UGT'] = True if self.ACC > operand else False
             self.ACC = 1 if self.ACC == operand else 0
         elif op == 0x90:
             # LDI
@@ -288,12 +313,12 @@ class CFLEA:
             self.PC += (1)
         elif mod == 6:
             # [S+]
-            operand = self.SP
+            operand = self.fetch_operand(self.SP, 1)
             if not ((opcode & 0xF8) == 0x98):
                 self.SP += 2
         elif mod == 7:
             # [S]
-            operand = self.SP
+            operand = self.fetch_operand(self.SP, 1)
 
         op = opcode & 0xF8
        
@@ -319,15 +344,15 @@ class CFLEA:
         elif (opcode == 0xCA):
             self.ACC = 1 if self.flags['SGT'] else 0
         elif (opcode == 0xCB):
-            self.ACC = 1 if self.flags['SGE'] or self.flags['EQ'] else 0
+            self.ACC = 1 if self.flags['SGT'] or self.flags['EQ'] else 0
         elif (opcode == 0xCC):
             self.ACC = 1 if self.flags['ULT'] else 0
         elif (opcode == 0xCD):
-            self.ACC = 1 if self.flags['ULE'] or self.flags['EQ'] else 0
+            self.ACC = 1 if self.flags['ULT'] or self.flags['EQ'] else 0
         elif (opcode == 0xCE):
             self.ACC = 1 if self.flags['UGT'] else 0
         elif (opcode == 0xCF):
-            self.ACC = 1 if self.flags['UGE'] or self.flags['EQ'] else 0
+            self.ACC = 1 if self.flags['UGT'] or self.flags['EQ'] else 0
 
     def opcode_jumps(self, opcode: int):
         if (opcode == 0xD0):
@@ -429,7 +454,7 @@ class CFLEA:
         elif opcode == 0xE2:
             self.ACC = 65536 - self.ACC
         elif opcode == 0xE3:
-            self.ACC = 0 if (self.ACC > 0) else 1
+            self.ACC = 1 if (self.ACC == 0) else 0
         elif opcode == 0xE4:
             self.ACC += 1
         elif opcode == 0xE5:
@@ -552,7 +577,14 @@ class CFLEA:
     def run(self, steps: int = 0, log: bool = False):
         step = 0
         while steps == 0 or (step < steps):
+            oldPC = -1
             self.step(log=log)
+            if (oldPC == 0xF118):
+                print(f"Sending: {self.ACC:#06x}")
+            elif (oldPC == 0xF13E):
+                print(f"Received: {self.ACC:#06x}")
+            elif (oldPC == 0xF2F3):
+                print(f"LD 4,S == {self.ACC:#06x}")
             step += 1
 
     def run_till(self, targetPC: int, log: bool = False):
