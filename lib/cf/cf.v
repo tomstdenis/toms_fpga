@@ -859,7 +859,7 @@ module cf_cpu #(
 						end else if (bus_enable && bus_ready) begin
 							// I/O is complete deassert bus and go back to fetch
                             // capture output if IN opcode or OUT to port >= 0xF0
-							if (cur_opcode == 8'hEB || (bus_address[7:2] == 6'b111100)) begin							// EB == IN
+							if (cur_opcode == 8'hEB || (bus_address[7:2] == 6'b111100)) begin	// EB == IN
 								reg_ACC <= bus_data_out;
 							end
 							bus_enable  <= 1'b0;

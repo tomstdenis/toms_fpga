@@ -35,13 +35,13 @@ boot.bin: hex_to_cf cf/boot.c cf/lib/bios.h
 sym_to_biosh: tools/sym_to_biosh.c
 	gcc tools/sym_to_biosh.c -o sym_to_biosh
 
-cf/lib/bios.h: sym_to_biosh cf/bios.c
+cf/lib/bios.h: sym_to_biosh cf/bios.c hex_to_cf
 	emu2 MCF/CCF.COM 'cf/bios.c' -fopa -- MCDIR='C:\MCF'
 	emu2 MCF/ASMCF.EXE 'cf/bios.asm' -fs -- MCDIR='C:\MCF'
 	./sym_to_biosh < cf/bios.lst > cf/lib/bios.h
 	./hex_to_cf cf/bios.hex cf/bios.cf F000 0000 F000
 
-cf/bios.hex: cf/lib/bios.h
+cf/bios.hex: cf/lib/bios.h 
 
 disk/COMMAND.CF: cf/gpio.c
 	emu2 MCF/CCF.COM 'cf/gpio.c' -fopl -- MCDIR='C:\MCF'
