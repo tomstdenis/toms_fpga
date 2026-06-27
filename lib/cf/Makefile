@@ -43,10 +43,12 @@ cf/lib/bios.h: sym_to_biosh cf/bios.c hex_to_cf
 
 cf/bios.hex: cf/lib/bios.h 
 
+.PHONY: disk/COMMAND.CF
 disk/COMMAND.CF: cf/gpio.c
 	emu2 MCF/CCF.COM 'cf/gpio.c' -fopl -- MCDIR='C:\MCF'
 	./hex_to_cf cf/gpio.hex disk/COMMAND.CF 0000 0000 1000
 
+.PHONY: disk/DEMO.CF
 disk/DEMO.CF: cf/demo.c
 	emu2 MCF/CCF.COM 'cf/demo.c' -fopl -- MCDIR='C:\MCF'
 	./hex_to_cf cf/demo.hex disk/DEMO.CF 0000 0000 1000

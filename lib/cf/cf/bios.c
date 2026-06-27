@@ -11,6 +11,7 @@ topofbios EQU *
 }
 
 #define SD_BIOS
+#define SPI_ACCEL
 #include "MCF/CFLEA.H"
 #include "cf/lib/time.c"
 #include "cf/lib/getc.c"

@@ -113,6 +113,14 @@ sd_spi_set_cs(int cs)
 // transfer 8 bits, using loops # delay_loops per SCK half cycle
 unsigned sd_spi_transfer(unsigned out)
 {
+#ifdef SPI_ACCEL
+	asm {
+		LDB 2,S					* load out
+		OR #$0300               * set SPI timer divider to 2 * (3 + 1)
+		OUT $F0					* use SPI GPIO0
+		RET						* OUTing to this port puts the return value in the ACC
+	}
+#else
 	// r0 == out
 	// r1 == x
 	asm {
@@ -144,6 +152,7 @@ unsigned sd_spi_transfer(unsigned out)
 		TNI TR0A				* A = R0 (which now has MISO shifted in and MOSI in the upper 8 bits)
 		ANDB #255				* only keep bottom bits 
 	}
+#endif
 }
 
 unsigned sd_spi_recv()

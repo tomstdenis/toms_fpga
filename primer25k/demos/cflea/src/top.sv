@@ -523,7 +523,7 @@ module top(input wire clk, input wire s1,
                                     gpio_out[{cf_bus_address[1:0], gpio_spi_mosi}] <= spi_sr[6];
                                     spi_cnt                                        <= spi_cnt - 1'b1;
                                     if (spi_cnt == 0) begin
-                                        cf_bus_data_out                               <= {8'b0, spi_sr};
+                                        cf_bus_data_out                               <= {8'b0, spi_sr[6:0], gpio[{cf_bus_address[1:0], gpio_spi_miso}]};
                                         cf_bus_ready                                  <= 1'b1;
                                         gpio_out[{cf_bus_address[1:0], gpio_spi_sck}] <= 1'b0;
                                     end
