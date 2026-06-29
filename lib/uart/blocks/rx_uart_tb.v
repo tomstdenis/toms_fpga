@@ -108,14 +108,15 @@ module uart_full_loopback_tb();
             // 2. Wait for RX to finish (with a Watchdog/Timeout)
             fork : wait_or_timeout
                 begin
-                    wait(rx_done == 1'b1);
-                    disable wait_or_timeout;
-                end
-                begin
                     // Calculate a generous timeout (baud * 12 bits)
+
                     repeat(BAUD_VALUE * 15) @(posedge clk);
                     $display("ERROR: Timeout waiting for rx_done at byte 0x%h", data_to_send);
                     $fatal;
+                end
+				begin
+                    wait(rx_done == 1'b1);
+                    disable wait_or_timeout;
                 end
             join
 
