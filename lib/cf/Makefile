@@ -35,6 +35,9 @@ boot.bin: hex_to_cf cf/boot.c cf/lib/bios.h
 sym_to_biosh: tools/sym_to_biosh.c
 	gcc tools/sym_to_biosh.c -o sym_to_biosh
 
+cf/lib/boot.h: sym_to_biosh boot.bin
+	./sym_to_biosh < cf/boot.lst | grep -E '(BIOS_H|BOOT_|FAT16_|endif)' >  cf/lib/boot.h
+	 
 cf/lib/bios.h: sym_to_biosh cf/bios.c hex_to_cf
 	emu2 MCF/CCF.COM 'cf/bios.c' -fopa -- MCDIR='C:\MCF'
 	emu2 MCF/ASMCF.EXE 'cf/bios.asm' -fs -- MCDIR='C:\MCF'
@@ -57,7 +60,7 @@ diskfiles: disk/COMMAND.CF disk/DEMO.CF
 
 # Build the disk.fs file system image with the bootloader any files in disk/* end up in the disk image
 .PHONY: populate_fs
-populate_fs: boot.bin patch_fs diskfiles
+populate_fs: boot.bin patch_fs diskfiles cf/lib/boot.h
 	rm -f disk.fs
 	truncate --size 32M disk.fs
 	mkfs.fat -F 16 -R 136 disk.fs
@@ -69,5 +72,5 @@ spi.vcd:
 	sigrok-cli -d fx2lafw --config samplerate=24m --samples=50M -O vcd -o spi.vcd
 
 clean:
-	rm -rf *.bin *.vvp *.vcd *.pass *.log lds lds.hex boot_hex_to_rom boot_test_sim.hex 
+	rm -rf *.bin *.vvp *.vcd *.pass *.log lds lds.hex boot_hex_to_rom boot_test_sim.hex cf/lib/boot.h
 	rm -rf *.mi hex_to_cf patch_fs disk.fs sym_to_biosh cf/*.hex cf/*.lst cf/*.asm cf/lib/bios.h cf/*.cf *.fst *.vcd

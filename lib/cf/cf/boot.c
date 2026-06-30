@@ -24,38 +24,39 @@ uint16_t sector_op(uint16_t sector[2], uint8_t *data, uint16_t wr_en)
 	sd_sector_op(sector, data, 0);
 }
 
+boot_app(char *name)
+{
+	struct fat16_volinfo *fv;
+	struct fat16_volinfo fvp;
+	unsigned x;
+
+	fv = fvp;
+	if (!fat16_initvol(fv, 0xFC00)) {
+		puts("BL: Opening "); puts(name); puts("\r\n");
+		if (!fat16_fopen(fv, "/COMMAND.CF")) {
+			// load file memory
+			puts("BL: Reading contents\r\n");
+			x = fat16_fread(fv, 0, 57344);
+			puts("Read 0x"); print_hex_word(x); puts(" bytes\r\n");
+			asm {
+				LD $0			* load entry point
+				IJMP			* jump to it
+			}
+		} else {
+			puts(name); puts(" not found.\n\r");
+		}
+	} else {
+		puts("Could not init FAT16 Volume.\r\n");
+	}
+}
+
 main()
 {
-   struct fat16_volinfo *fv;
-   struct fat16_volinfo fvp;
-   unsigned x;
-
-   fv = fvp;
- 
    sd_init();
    if (!sd_reset()) {
 	   puts("BL: Initing FAT16...\n\r");
-	   if (!fat16_initvol(fv, 0xFC00)) {
-		   puts("BL: Opening /COMMAND.CF\r\n");
-		   if (!fat16_fopen(fv, "/COMMAND.CF")) {
-			   // load file memory
-			   puts("BL: Reading contents\r\n");
-			   x = fat16_fread(fv, 0, 57344);
-			   puts("Read 0x"); print_hex_word(x); puts(" bytes\r\n");
-			   asm {
-				   LD $0			* load entry point
-				   IJMP				* jump to it
-			   }
-		   } else {
-			   puts("COMMAND.CF not found.\n\r");
-			   return;
-		   }
-	   } else {
-		   puts("Could not init FAT16 Volume.\r\n");
-		   return;
-	   }
+	   boot_app("/COMMAND.CF");
    } else {
-	   puts("Could not init SD card.\r\n");
-	   return;
+	   puts("Could not init SD card.\r\n"); 
    }
 }
