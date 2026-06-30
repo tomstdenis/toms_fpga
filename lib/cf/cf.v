@@ -479,11 +479,11 @@ module cf_cpu #(
 									end
 								3: // n,I x3 oo
 									begin
-										bus_address <= {1'b1, bus_data_out + reg_INDEX };
+										bus_address <= {1'b1, bus_data_out[7:0] + reg_INDEX };
 									end
 								4: // n,S x4 oo
 									begin
-										bus_address <= {1'b1, bus_data_out + reg_SP };
+										bus_address <= {1'b1, bus_data_out[7:0] + reg_SP };
 									end
 								6: // [S+] x6
 									begin
@@ -740,11 +740,11 @@ module cf_cpu #(
 							case(cur_opcode[3:0])
 								4'hA: // ALLOC oo
 									begin
-										reg_SP <= reg_SP - bus_data_out;
+										reg_SP <= reg_SP - bus_data_out[7:0];
 									end
 								4'hB: // FREE oo
 									begin
-										reg_SP <= reg_SP + bus_data_out;
+										reg_SP <= reg_SP + bus_data_out[7:0];
 									end
 								default: begin end
 							endcase
