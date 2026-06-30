@@ -845,7 +845,7 @@ module cf_cpu #(
 							// we got the port number, now setup the I/O request
 							bus_enable  <= 1'b0;
 							bus_io_flag <= 1'b1;
-							bus_address <= {1'b0, bus_data_out};
+							bus_address <= {1'b0, 8'b0, bus_data_out[7:0]};
 							bus_data_in <= reg_ACC;
 							bus_wr_en   <= cur_opcode[3:0] == 4'hA ? 1'b1 : 1'b0;  // EA == out
 							fsm_state   <= FSM_EXECUTE_OPERAND2_EA_EB;
