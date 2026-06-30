@@ -3,8 +3,8 @@
  */
 #include <cflea.h>
 
-#include "lib/time.c"
-#include "lib/console.c"
+#include "cf/lib/time.c"
+#include "cf/lib/console.c"
 
 // benchmark various opcodes
 unsigned cpu_cycles(unsigned test)

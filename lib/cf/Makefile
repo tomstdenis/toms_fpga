@@ -1,13 +1,3 @@
-# pseudo build process
-# 1. In dosbox in cf/ run BIOS.BAT
-# 2. Run "make cf/lib/bios.h"
-# 3. In dosbox in cf/ run M.BAT
-# 4. make hex_to_cf
-# 5. run ./hex_to_cf cf/GPIO.HEX disk/COMMAND.CF 0000 0000 1000
-# 6. make populate_fs
-# 7. dd if=disk.fs of=/dev/sdX ibs=512
-# 8. sync
-
 all: populate_fs
 
 # Convert a motohex to Gowin EDA/verilog style hex data
@@ -46,6 +36,11 @@ cf/lib/bios.h: sym_to_biosh cf/bios.c hex_to_cf
 
 cf/bios.hex: cf/lib/bios.h 
 
+.PHONY: disk/HELLO.CF
+disk/HELLO.CF: cf/hello.c
+	emu2 MCF/CCF.COM 'cf/hello.c' -fopl -- MCDIR='C:\MCF'
+	./hex_to_cf cf/hello.hex disk/HELLO.CF 0000 0000 1000
+
 .PHONY: disk/COMMAND.CF
 disk/COMMAND.CF: cf/gpio.c
 	emu2 MCF/CCF.COM 'cf/gpio.c' -fopl -- MCDIR='C:\MCF'
@@ -56,7 +51,7 @@ disk/DEMO.CF: cf/demo.c
 	emu2 MCF/CCF.COM 'cf/demo.c' -fopl -- MCDIR='C:\MCF'
 	./hex_to_cf cf/demo.hex disk/DEMO.CF 0000 0000 1000
 
-diskfiles: disk/COMMAND.CF disk/DEMO.CF
+diskfiles: disk/COMMAND.CF disk/DEMO.CF disk/HELLO.CF
 
 # Build the disk.fs file system image with the bootloader any files in disk/* end up in the disk image
 .PHONY: populate_fs
