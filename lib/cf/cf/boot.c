@@ -23,7 +23,7 @@ asm {
 uint16_t sector_op(uint16_t sector[2], uint8_t *data, uint16_t wr_en)
 {
 	uint16_t off[2];
-	off[1] = sector[1] + (((off[0] = sector[0] + 2048) < 2048) ? 1 : 0);
+	off[1] = sector[1] + (((off[0] = sector[0] + fat16_lba[0]) < fat16_lba[0]) ? 1 : 0) + fat16_lba[1];
 	sd_sector_op(off, data, 0);
 }
 

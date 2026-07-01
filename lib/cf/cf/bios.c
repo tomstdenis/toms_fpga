@@ -93,10 +93,19 @@ boot_sd:
 	sd_init();
 	puts("\n\rIniting SD...\n\r");
 	if (!sd_reset()) {
+		// read MBR to get LBA of partition 1
+		sector[0] = sector[1] = 0;
+		if (sd_sector_op(sector, 0xE000, 0) != 0) { goto terminal; }
+
+		// LBA is 32-bit LE starting at offset 0x1C6 into the MBR
+		fat16_lba[0] = sector[0] = *((unsigned *)0xE1C6);
+		fat16_lba[1] = sector[1] = *((unsigned *)0xE1C8);
+
 		// read first 8 sectors (4KB) from partition 1 (hard coded to sector 2048 onwards) at 0xE000 and jump there
-		sector[1] = 0;
-		for (sector[0] = 2048; sector[0] < (2048+8); sector[0]++) {
-			if (sd_sector_op(sector, 0xE000 + (0x200 * sector[0]), 0) != 0) { goto terminal; }
+		for (x = 0; x < 8; x++) {
+			if (sd_sector_op(sector, 0xE000 + (0x200 * x), 0) != 0) { goto terminal; }
+			// increment 32-bit sector
+			sector[1] = sector[1] + ((sector[0] = sector[0] + 1) == 0 ? 1 : 0);
 		}
 		
 		// check checksum

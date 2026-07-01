@@ -18,5 +18,5 @@
 #define console_y_addr  0xFFD8
 #define console_tx_addr 0xFFD9
 #define console_ty_addr 0xFFDA
-
+#define fat16_lba	    0xFFDB // 4 bytes!
 #endif

@@ -10,6 +10,8 @@
 
 #include "cf/lib/bios.h"
 
+#define fat16_lba ((unsigned*)fat16_lba)
+
 sd_spi_setup()
 {
 	asm {
@@ -83,6 +85,7 @@ unsigned sd_sector_op(unsigned sector[2], unsigned char *dst, int wr_en)
 #define sd_is_init *((unsigned char*)sd_is_init_addr)
 #define sd_is_hc *((unsigned char*)sd_is_hc_addr)
 #define sd_sectors ((unsigned*)sd_sectors_addr)
+#define fat16_lba ((unsigned*)fat16_lba)
 #else
 unsigned char sd_is_init, sd_is_hc;
 unsigned sd_sectors[2];
