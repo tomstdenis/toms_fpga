@@ -422,6 +422,7 @@ module cf_cpu #(
 						if (!bus_enable) begin				// fetch the destination operand
 							bus_enable  <= 1'b1;
 							bus_wr_en   <= 1'b0;
+							bus_data_in <= (cur_opcode[7:4] == 4'hA) ? reg_ACC : reg_INDEX; // ST/STB or STI
 							case(cur_opcode[2:0])
 								1: // aaaa x1 dd dd							// load from data memory		
 									begin
@@ -439,15 +440,19 @@ module cf_cpu #(
 									end
 								3: // n,I x3 oo								// load from INDEX+nn
 									begin
-										bus_address <= {1'b0, reg_PC};
+										bus_enable  <= 1'b0;
+                                        fsm_state   <= FSM_FETCH_ALU_OPERAND_98_B7_STORE;
+										bus_address <= {1'b0, reg_INDEX + cur_opcode2};
 										reg_PC 		<= reg_PC + 1'b1;
-										bus_burst   <= 0;					// offset is only 8 bits 
+										bus_burst   <= reg_operand_16;									// are we storing 16 or 8 bits
 									end
 								4: // n,S x4 oo								// load from SP+nn
 									begin
-										bus_address <= {1'b0, reg_PC};
+										bus_enable  <= 1'b0;
+                                        fsm_state   <= FSM_FETCH_ALU_OPERAND_98_B7_STORE;
+										bus_address <= {1'b0, reg_SP+ cur_opcode2};
 										reg_PC 		<= reg_PC + 1'b1;
-										bus_burst   <= 0;					// offset is only 8 bits 
+										bus_burst   <= reg_operand_16;									// are we storing 16 or 8 bits
 									end
 								6: // [S+] x6								// load from [S] then increment S
 									begin
@@ -471,20 +476,11 @@ module cf_cpu #(
 						if (bus_enable && bus_ready) begin					// back half of store operand fetching
 							bus_enable  <= 1'b0;
 							fsm_state   <= FSM_FETCH_ALU_OPERAND_98_B7_STORE;
-							bus_data_in <= (cur_opcode[7:4] == 4'hA) ? reg_ACC : reg_INDEX; // ST/STB or STI
 							bus_burst   <= reg_operand_16;									// are we storing 16 or 8 bits
 							case(cur_opcode[2:0])
 								1: // aaaa x1 dd dd
 									begin
 										bus_address <= {1'b1, bus_data_out};
-									end
-								3: // n,I x3 oo
-									begin
-										bus_address <= {1'b1, bus_data_out[7:0] + reg_INDEX };
-									end
-								4: // n,S x4 oo
-									begin
-										bus_address <= {1'b1, bus_data_out[7:0] + reg_SP };
 									end
 								6: // [S+] x6
 									begin

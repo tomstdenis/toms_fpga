@@ -133,6 +133,21 @@ cpu_cycles_2
 				FCB $EE
 				RET
 			}
+		case 17:
+			asm {
+				FCB $EE
+				ST 2,S
+				FCB $EE
+				RET
+			}
+		case 18:
+			asm {
+				FCB $EE
+				SJMP NEXT
+NEXT EQU *
+				FCB $EE
+				RET
+			}
 	}
 	return 0;
 }
@@ -209,6 +224,8 @@ const char *tests[] = {
 	"DIV $FFFF/$11 (+LD 0000)",
 	"ADDB #$FF",
 	"SHL #5",
+	"ST 2,S",
+	"SJMP NEXT",
 	NULL
 };
 
