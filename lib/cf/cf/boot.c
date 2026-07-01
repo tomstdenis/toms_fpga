@@ -27,13 +27,17 @@ asm {
 #include "cf/lib/memset.c"
 #include "cf/lib/memcmp.c"
 #include "cf/lib/memcpy.c"
+#include "cf/lib/strlen.c"
+#include "cf/lib/strcat.c"
+#include "cf/lib/strcpy.c"
 #include "cf/lib/puts.c"
 #include "cf/lib/sd.c"
 #include "cf/lib/fat16.c"
 #include "cf/lib/hex.c"
 #include "cf/lib/getc.c"
+#include "cf/lib/gets.c"
 
-// partition 1 is 2048 sectors in
+// partition 1 is FAT16_LBA sectors in
 uint16_t sector_op(uint16_t sector[2], uint8_t *data, uint16_t wr_en)
 {
 	uint16_t off[2];
@@ -71,14 +75,67 @@ boot_app(char *name)
 	}
 }
 
+shell()
+{
+	char *cp, cmdline[32];
+	char cwd[128];
+	char cpy[128];
+	
+	struct fat16_volinfo *fv;
+	struct fat16_volinfo fvp;
+
+	fv = fvp;
+	if (!fat16_initvol(fv, 0xCE00)) {
+		puts("CFLEA Shell\n\r");
+
+		// start at root
+		cwd[0] = '/';
+		cwd[1] = 0;
+		
+		for (;;) {
+			puts(cwd); puts(" $");
+			gets(cmdline);
+			
+			if (!memcmp(cmdline, "cd", 2)) {
+				// do CD
+				strcpy(cpy, cwd);
+				strcat(cpy, "/");
+				strcat(cpy, cmdline + 3);
+				// try to open new CWD
+				if (fat16_wpath(fvp, cpy)) {
+					// couldn't open
+					puts("\nPath "); puts(cpy); puts(" not found or not directory.\n\r");
+				} else {
+					strcpy(cwd, cpy);
+				}
+			} else if (!memcmp(cmdline, "dir", 3)) {
+				// do dir
+				// walk to dir
+				if (!fat16_wpath(fv, cwd)) {
+					// open dir
+					fat16_opendir(fv, D_CLUSTER(fv));
+					// walk dir ents
+					puts("\n");
+					while (!fat16_nextdir(fv)) {
+						puts(D_FNAME(fv)); putc('.'); puts(D_EXT(fv)); puts("\n\r");
+					}
+				}
+			} else if (cmdline[0] != '\n') {
+				// try to run command
+				puts("Not yet.\n\r");
+			}
+		}
+	} else { 
+		puts("Couldn't initialize FAT-16\n\r");
+	}
+}
+
 main()
 {
-   sd_init();
-   if (!sd_reset()) {
-	   puts("BL: Initing FAT16...\n\r");
-//	   boot_app("/COMMAND.CF");
-	   boot_app("/HELLO.CF");
-   } else {
-	   puts("Could not init SD card.\r\n"); 
-   }
+	sd_init();
+	if (!sd_reset()) {
+		shell();
+	} else {
+		puts("Could not init SD card.\r\n"); 
+	}
 }

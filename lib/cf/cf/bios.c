@@ -1,5 +1,15 @@
 // CFLEA Primer25K BIOS
 
+/*
+Memory map
+
+	CF00..CFFF - Stack
+	D000..EFFF - Boot loader target
+	F000..F7FF - BIOS rom
+	F800..FFFF - VRAM
+	
+*/
+
 asm {
 	ORG $F000
 topofbios EQU *

@@ -237,6 +237,7 @@ main()
 {
 	unsigned y, x, z;
 	char str[80];
+	printf("Foo bar\n");
 	printf("\nCycle counts:\n");
 	for (z = x = 0; tests[x]; x++) {
 		y = cpu_cycles(x) - z;

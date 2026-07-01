@@ -199,9 +199,9 @@ uint16_t fat16_initvol(struct fat16_volinfo *fv, uint8_t *secbuf)
 	fv->byte_cluster   = fv->sec_cluster << 9;
 	fv->lg2_bpc   = 0;
 	fv->no_fats        = secbuf[0x0010];
-	fv->no_root 	   = ((uint16_t)secbuf[0x0012] << 8) | secbuf[0x0011];
-	fv->sec_fat        = ((uint16_t)secbuf[0x0017] << 8) | secbuf[0x0016];
-	fv->resv_sec       = ((uint16_t)secbuf[0x000F] << 8) | secbuf[0x000E];
+	fv->no_root 	   = *((uint16_t*)(secbuf+0x11)); // ((uint16_t)secbuf[0x0012] << 8) | secbuf[0x0011];
+	fv->sec_fat        = *((uint16_t*)(secbuf+0x16)); // ((uint16_t)secbuf[0x0017] << 8) | secbuf[0x0016];
+	fv->resv_sec       = *((uint16_t*)(secbuf+0xE)); // ((uint16_t)secbuf[0x000F] << 8) | secbuf[0x000E];
 	
 	// cluster offsets
 	fv->fat_c            = (fv->resv_sec / fv->sec_cluster);

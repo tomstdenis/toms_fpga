@@ -24,7 +24,6 @@ gets(char *s)
 		OUT PORT_UART_DATA
 		SJMP ?gets_top
 ?gets_end
-		LEAI 1,I
 		CLR
 		STB I				* store NUL
 	}

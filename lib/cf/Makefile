@@ -74,3 +74,4 @@ spi.vcd:
 clean:
 	rm -rf *.bin *.vvp *.vcd *.pass *.log lds lds.hex boot_hex_to_rom boot_test_sim.hex cf/lib/boot.h
 	rm -rf *.mi hex_to_cf patch_fs disk.fs sym_to_biosh cf/*.hex cf/*.lst cf/*.asm cf/lib/bios.h cf/*.cf *.fst *.vcd disk/*
+	rm -rf cf/*.1 cf/*.2 cf/*.3 cf/*.4
