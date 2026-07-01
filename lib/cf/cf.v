@@ -35,6 +35,7 @@ module cf_cpu #(
 	reg [7:0]  reg_flags;  				// signed{LT, GT}, unsigned{LT, GT}, EQ
 	reg [15:0] reg_alt;
 	reg [7:0]  cur_opcode;				// opcode byte
+    reg [7:0]  cur_opcode2;
 	reg [15:0] reg_operand;				// the operand
 	reg 	   reg_operand_16;			// is it a 16-bit operand?
 	reg [15:0] switch_table_addr;		// current address of switch table
@@ -109,6 +110,7 @@ module cf_cpu #(
 			reg_PC       <= BOOT_VECTOR;
 			reg_flags    <= 0;
 			cur_opcode   <= 0;
+            cur_opcode2   <= 0;
 			reg_operand  <= 0;
 			reg_operand_16 <= 0;
 			fsm_state    <= FSM_FETCH_OPCODE;
@@ -138,6 +140,7 @@ module cf_cpu #(
 						if (bus_enable && bus_ready) begin
 							reg_PC      <= reg_PC + 1'b1;
 							cur_opcode  <= bus_data_out[7:0];
+                            cur_opcode2 <= bus_data_out[15:8];
 							bus_enable  <= 1'b0;
                             bus_burst   <= 1'b0;
 							if (bus_data_out[7:0] <= 8'h97) begin
@@ -181,9 +184,16 @@ module cf_cpu #(
 							case(cur_opcode[2:0])
 								0: // #n x0 ii(ii)							// immediate 8/16 bit
 									begin
-										bus_address <= {1'b0, reg_PC};
-										reg_PC 		<= reg_PC + 1'b1 + reg_operand_16;
-										bus_burst   <= reg_operand_16;		// 8 or 16 bit immediate
+                                        if (reg_operand_16) begin
+                                            bus_address <= {1'b0, reg_PC};
+                                            reg_PC 		<= reg_PC + 1'b1 + reg_operand_16;
+                                            bus_burst   <= reg_operand_16;		// 8 or 16 bit immediate
+                                        end else begin
+                                            bus_enable  <= 1'b0;
+                                            reg_operand <= {8'b0, cur_opcode2};
+                                            reg_PC      <= reg_PC + 1'b1;
+                                            fsm_state   <= FSM_EXECUTE_ALU_OPCODE_00_97;
+                                        end
 									end
 								1: // aaaa x1 dd dd							// load from data memory		
 									begin
@@ -198,15 +208,17 @@ module cf_cpu #(
 									end
 								3: // n,I x3 oo								// load from INDEX+nn
 									begin
-										bus_address <= {1'b0, reg_PC};
-										reg_PC 		<= reg_PC + 1'b1;
-										bus_burst   <= 0;					// offset is only 8 bits 
+										bus_address <= {1'b1, reg_INDEX + {8'b0, cur_opcode2}};
+										bus_burst   <= reg_operand_16;
+										fsm_state   <= FSM_FETCH_ALU_OPERAND2_00_97;
+                                        reg_PC      <= reg_PC + 1'b1;
 									end
 								4: // n,S x4 oo								// load from SP+nn
 									begin
-										bus_address <= {1'b0, reg_PC};
-										reg_PC 		<= reg_PC + 1'b1;
-										bus_burst   <= 0;					// offset is only 8 bits 
+										bus_address <= {1'b1, reg_SP + {8'b0, cur_opcode2}};
+										bus_burst   <= reg_operand_16;
+										fsm_state   <= FSM_FETCH_ALU_OPERAND2_00_97;
+                                        reg_PC      <= reg_PC + 1'b1;
 									end
 								5: // S+ x5									// load from S then increment S
 									begin
@@ -254,18 +266,6 @@ module cf_cpu #(
 										// we've read [INDEX]
 										reg_operand <= bus_data_out;
 										fsm_state   <= FSM_EXECUTE_ALU_OPCODE_00_97;
-									end
-								3: // n,I x3 oo
-									begin
-										bus_address <= {1'b1, reg_INDEX + bus_data_out};
-										bus_burst   <= reg_operand_16;
-										fsm_state   <= FSM_FETCH_ALU_OPERAND2_00_97;
-									end
-								4: // n,S x4 oo
-									begin
-										bus_address <= {1'b1, reg_SP + bus_data_out};
-										bus_burst   <= reg_operand_16;
-										fsm_state   <= FSM_FETCH_ALU_OPERAND2_00_97;
 									end
 								5: // S+ x5
 									begin

@@ -33,7 +33,7 @@ boot_app(char *name)
 	fv = fvp;
 	if (!fat16_initvol(fv, 0xFC00)) {
 		puts("BL: Opening "); puts(name); puts("\r\n");
-		if (!fat16_fopen(fv, "/COMMAND.CF")) {
+		if (!fat16_fopen(fv, name)) {
 			// load file memory
 			puts("BL: Reading contents\r\n");
 			x = fat16_fread(fv, 0, 57344);
@@ -55,7 +55,8 @@ main()
    sd_init();
    if (!sd_reset()) {
 	   puts("BL: Initing FAT16...\n\r");
-	   boot_app("/COMMAND.CF");
+//	   boot_app("/COMMAND.CF");
+	   boot_app("/HELLO.CF");
    } else {
 	   puts("Could not init SD card.\r\n"); 
    }
