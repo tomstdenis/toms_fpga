@@ -79,7 +79,7 @@ cpu_cycles_2
 		case 9:
 			asm {
 				FCB $EE
-				ST $F800
+				ST $FFFE
 				FCB $EE
 				RET
 			}
@@ -216,8 +216,8 @@ const char *tests[] = {
 	"LD 2,S",
 	"LT",
 	"CLR",
-	"ST $F800",
-	"LD $F800",
+	"ST $FFFE",
+	"LD $FF00",
 	"LD $F000",
 	"TSA",
 	"OUT $01",

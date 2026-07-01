@@ -51,6 +51,7 @@ disk/DEMO.CF: cf/demo.c
 	emu2 MCF/CCF.COM 'cf/demo.c' -fopl -- MCDIR='C:\MCF'
 	./hex_to_cf cf/demo.hex disk/DEMO.CF 0000 0000 1000
 
+.PHONY: diskfiles
 diskfiles: disk/COMMAND.CF disk/DEMO.CF disk/HELLO.CF
 
 # Build the disk.fs file system image with the bootloader any files in disk/* end up in the disk image
@@ -68,4 +69,4 @@ spi.vcd:
 
 clean:
 	rm -rf *.bin *.vvp *.vcd *.pass *.log lds lds.hex boot_hex_to_rom boot_test_sim.hex cf/lib/boot.h
-	rm -rf *.mi hex_to_cf patch_fs disk.fs sym_to_biosh cf/*.hex cf/*.lst cf/*.asm cf/lib/bios.h cf/*.cf *.fst *.vcd
+	rm -rf *.mi hex_to_cf patch_fs disk.fs sym_to_biosh cf/*.hex cf/*.lst cf/*.asm cf/lib/bios.h cf/*.cf *.fst *.vcd disk/*
