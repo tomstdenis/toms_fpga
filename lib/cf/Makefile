@@ -56,12 +56,18 @@ diskfiles: disk/COMMAND.CF disk/DEMO.CF disk/HELLO.CF
 
 # Build the disk.fs file system image with the bootloader any files in disk/* end up in the disk image
 .PHONY: populate_fs
-populate_fs: boot.bin patch_fs diskfiles cf/lib/boot.h
+populate_fs: clean boot.bin patch_fs diskfiles cf/lib/boot.h
 	rm -f disk.fs
 	truncate --size 32M disk.fs
 	mkfs.fat -F 16 -R 136 disk.fs
 	mcopy -i disk.fs disk/* ::/
 	./patch_fs disk.fs boot.bin
+	@echo
+	@echo
+	@echo "*** Now you can partition your SD card so partition 1 is a type 6 (FAT16), 32MiB partition starting at sector 2048 ***"
+	@echo "*** You can then dd disk.fs to /dev/sdX1 and boot your CFLEA machine ***"
+	@echo "*** E.g. (replace X with the device be careful to not wipe your PC's partitions!) ***"
+	@echo "***       sudo dd if=disk.fs of=/dev/sdX1 ibs=512 status=progress && sync "
 
 .PHONY: spi.vcd
 spi.vcd:

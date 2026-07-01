@@ -93,9 +93,9 @@ boot_sd:
 	sd_init();
 	puts("\n\rIniting SD...\n\r");
 	if (!sd_reset()) {
-		// read first 8 sectors (4KB) at 0xE000 and jump there
+		// read first 8 sectors (4KB) from partition 1 (hard coded to sector 2048 onwards) at 0xE000 and jump there
 		sector[1] = 0;
-		for (sector[0] = 0; sector[0] < 8; sector[0]++) {
+		for (sector[0] = 2048; sector[0] < (2048+8); sector[0]++) {
 			if (sd_sector_op(sector, 0xE000 + (0x200 * sector[0]), 0) != 0) { goto terminal; }
 		}
 		

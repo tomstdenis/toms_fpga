@@ -19,9 +19,12 @@ asm {
 #include "cf/lib/hex.c"
 #include "cf/lib/getc.c"
 
+// partition 1 is 2048 sectors in
 uint16_t sector_op(uint16_t sector[2], uint8_t *data, uint16_t wr_en)
 {
-	sd_sector_op(sector, data, 0);
+	uint16_t off[2];
+	off[1] = sector[1] + (((off[0] = sector[0] + 2048) < 2048) ? 1 : 0);
+	sd_sector_op(off, data, 0);
 }
 
 boot_app(char *name)
