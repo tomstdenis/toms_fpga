@@ -434,7 +434,6 @@ module cf_cpu #(
 									begin
 										bus_enable  <= 1'b0;
 										bus_address <= {1'b0, reg_INDEX};
-										bus_data_in <= (cur_opcode[7:4] == 4'hA) ? reg_ACC : reg_INDEX; // ST/STB or STI
 										fsm_state   <= FSM_FETCH_ALU_OPERAND_98_B7_STORE;
 										bus_burst   <= reg_operand_16;									// are we storing 16 or 8 bits
 									end
@@ -450,7 +449,7 @@ module cf_cpu #(
 									begin
 										bus_enable  <= 1'b0;
                                         fsm_state   <= FSM_FETCH_ALU_OPERAND_98_B7_STORE;
-										bus_address <= {1'b0, reg_SP+ cur_opcode2};
+										bus_address <= {1'b0, reg_SP + cur_opcode2};
 										reg_PC 		<= reg_PC + 1'b1;
 										bus_burst   <= reg_operand_16;									// are we storing 16 or 8 bits
 									end
