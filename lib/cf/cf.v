@@ -132,13 +132,14 @@ module cf_cpu #(
 							bus_enable  <= 1'b1;
 							bus_wr_en   <= 1'b0;
 							bus_io_flag <= 1'b0;
-							bus_burst   <= 1'b0;
+							bus_burst   <= 1'b1;
 							bus_address <= {1'b0, reg_PC};
 						end
 						if (bus_enable && bus_ready) begin
 							reg_PC      <= reg_PC + 1'b1;
 							cur_opcode  <= bus_data_out[7:0];
 							bus_enable  <= 1'b0;
+                            bus_burst   <= 1'b0;
 							if (bus_data_out[7:0] <= 8'h97) begin
 								// generic ALU ops that use one of the 8 operand formats
 								// so the goal here is to first load an "operand" to pair with
@@ -310,7 +311,7 @@ module cf_cpu #(
 						bus_enable  <= 1'b1;
 						bus_wr_en   <= 1'b0;
 						bus_io_flag <= 1'b0;
-						bus_burst   <= 1'b0;
+						bus_burst   <= 1'b1;
 						bus_address <= {1'b0, reg_PC};
 						
 						case(cur_opcode[7:4])
@@ -523,7 +524,7 @@ module cf_cpu #(
 						bus_enable  <= 1'b1;
 						bus_wr_en   <= 1'b0;
 						bus_io_flag <= 1'b0;
-						bus_burst   <= 1'b0;
+						bus_burst   <= 1'b1;
 						bus_address <= {1'b0, reg_PC };
 						case(cur_opcode[3:0])
 							4'h8: // LT
@@ -694,7 +695,7 @@ module cf_cpu #(
 							bus_enable  <= 1'b1;
 							bus_wr_en   <= 1'b0;
 							bus_io_flag <= 1'b0;
-							bus_burst   <= 1'b0;
+							bus_burst   <= 1'b1;
 							bus_address <= {1'b0, reg_PC };
 							case(cur_opcode[3:0])
 								4'hA: // ALLOC oo
@@ -708,7 +709,6 @@ module cf_cpu #(
 								4'hC: // PUSHA
 									begin
 										bus_wr_en    <= 1'b1;
-										bus_burst    <= 1'b1;
 										bus_address  <= {1'b1, reg_SP - 16'd2};
 										bus_data_in  <= reg_ACC;
 										reg_SP	     <= reg_SP - 16'd2;
@@ -716,7 +716,6 @@ module cf_cpu #(
 								4'hD: // PUSHI
 									begin
 										bus_wr_en    <= 1'b1;
-										bus_burst    <= 1'b1;
 										bus_address  <= {1'b1, reg_SP - 16'd2};
 										bus_data_in  <= reg_INDEX;
 										reg_SP	     <= reg_SP - 16'd2;
@@ -759,7 +758,7 @@ module cf_cpu #(
 							bus_enable  <= 1'b1;
 							bus_wr_en   <= 1'b0;
 							bus_io_flag <= 1'b0;
-							bus_burst   <= 1'b0;
+							bus_burst   <= 1'b1;
 							bus_address <= {1'b0, reg_PC};
 							case(cur_opcode[4:0])
 								5'h00: // CLR
