@@ -55,8 +55,8 @@ main()
    sd_init();
    if (!sd_reset()) {
 	   puts("BL: Initing FAT16...\n\r");
-//	   boot_app("/COMMAND.CF");
-	   boot_app("/HELLO.CF");
+	   boot_app("/COMMAND.CF");
+//	   boot_app("/HELLO.CF");
    } else {
 	   puts("Could not init SD card.\r\n"); 
    }

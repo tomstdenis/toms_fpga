@@ -13,20 +13,6 @@ that it's slower than main memory since it's single ported (to the cpu).
 
 Currently cycle counts as follows:
 
-Cycle counts:
-        RDTSC: 3
-        CALL: 12
-        RET: 8
-        ADD #FFFF: 8
-        LD 0000: 12
-        ST 8000: 12
-        LD 2,S: 12
-        LT: 4
-        CLR: 4
-        ST $F800: 13
-        LD $F800: 14
-        LD $F000: 12
-
 Current timing:
 Cycle counts:
         RDTSC: 3
@@ -42,11 +28,12 @@ Cycle counts:
         LD $F800: 14
         LD $F000: 12
         TSA: 4
-        OUT $01: 11
+        OUT $01: 7
         DIV $FFFF/$11 (+LD 0000): 47
         ADDB #$FF: 5
         SHL #5: 5
-
+        ST 2,S: 8
+        SJMP NEXT: 5
 
 Keep in mind ALU opcodes (LD, ADD, SUB, etc...) have all the same timing (except DIV) which means LD 0000 takes the same time as ADD 0000, etc.
 Similarly, LEI, ST/STB/STI opcodes have similar timing.
