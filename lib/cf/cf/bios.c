@@ -3,7 +3,7 @@
 asm {
 	ORG $F000
 topofbios EQU *
-	LD #$E000
+	LD #$D000
 	TAS				* Set stack to just below where we would load the boot sectors
 	CALL main
 ?halt EQU *
@@ -95,22 +95,26 @@ boot_sd:
 	if (!sd_reset()) {
 		// read MBR to get LBA of partition 1
 		sector[0] = sector[1] = 0;
-		if (sd_sector_op(sector, 0xE000, 0) != 0) { goto terminal; }
+		if (sd_sector_op(sector, 0xD000, 0) != 0) { goto terminal; }
 
 		// LBA is 32-bit LE starting at offset 0x1C6 into the MBR
-		fat16_lba[0] = sector[0] = *((unsigned *)0xE1C6);
-		fat16_lba[1] = sector[1] = *((unsigned *)0xE1C8);
+		fat16_lba[0] = sector[0] = *((unsigned *)0xD1C6);
+		fat16_lba[1] = sector[1] = *((unsigned *)0xD1C8);
+		
+		// we start reading from the 2nd reserved sector
+		sector[0] += 1;
+		sector[1] += !sector[0];
 
-		// read first 8 sectors (4KB) from partition 1 (hard coded to sector 2048 onwards) at 0xE000 and jump there
-		for (x = 0; x < 8; x++) {
-			if (sd_sector_op(sector, 0xE000 + (0x200 * x), 0) != 0) { goto terminal; }
+		// read first 16 sectors (8KB) from partition 1 (hard coded to sector 2048 onwards) at 0xD000 and jump there
+		for (x = 0; x < 16; x++) {
+			if (sd_sector_op(sector, 0xD000 + (0x200 * x), 0) != 0) { goto terminal; }
 			// increment 32-bit sector
-			sector[1] = sector[1] + ((sector[0] = sector[0] + 1) == 0 ? 1 : 0);
+			sector[1] = sector[1] + ((sector[0] += 1) == 0 ? 1 : 0);
 		}
 		
 		// check checksum
-		for (x = y = 0; x < 0x1000; x++) {
-			y = y + ((unsigned char *)0xE000)[x];
+		for (x = y = 0; x < 0x2000; x++) {
+			y = y + ((unsigned char *)0xD000)[x];
 		}
 		if (y & 0xFF) {
 			puts("Invalid checksum\n\r");
@@ -120,7 +124,7 @@ boot_sd:
 		// checksum ok, boot app
 		puts("Jump to boot loader...\r\n");
 		asm {
-			JMP $E000
+			JMP $D000
 		}
 	}
 	puts("Failed to init SD card.");

@@ -1,7 +1,21 @@
 // CFLEA Primer25K Boot Loader
+
+/* memory layout
+
+
+0000..CCFF  -- App space (51.25kByte)
+CD00..CDFF  -- Bootloader stack (can be reclaimed by app)
+CE00..CFFF  -- Sector buffer (should be left alone if you use USE_BOOT for FAT16 routines)
+D000..EFFF  -- boot loader/shell?
+F000..F7FF  -- BIOS
+F800..FFFF  -- VRAM
+
+*/
+
+
 asm {
-	ORG $E200		* code starts after first sector
-	LD #$E200       * 512 bytes of stack
+	ORG $D000		* code starts after first sector
+	LD #$CE00       * 256 bytes of stack CD00..CDFF
 	TAS				* Set stack to top of memory
 	CALL main
 	JMP $F000
@@ -34,12 +48,12 @@ boot_app(char *name)
 	unsigned x;
 
 	fv = fvp;
-	if (!fat16_initvol(fv, 0xDE00)) {
+	if (!fat16_initvol(fv, 0xCE00)) {
 		puts("BL: Opening "); puts(name); puts("\r\n");
 		if (!fat16_fopen(fv, name)) {
 			// load file memory
 			puts("BL: Reading contents\r\n");
-			x = fat16_fread(fv, 0, 56832);
+			x = fat16_fread(fv, 0, 0xCD00);
 			puts("Read 0x"); print_hex_word(x); puts(" bytes\r\n");
 			asm {
 				LD $0			* load entry point

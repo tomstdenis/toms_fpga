@@ -1,5 +1,133 @@
 #include "cf/lib/fat16.h"
 
+#ifdef USE_BOOT
+
+uint16_t sector_op(uint16_t sector[2], uint8_t *data, uint16_t wr_en)
+{
+	asm {
+		JMP SECTOR_OP
+	};
+}
+
+// convert a directory starting cluster to a data cluster
+uint16_t fat16_sc2dc(struct fat16_volinfo *fv, uint16_t scluster)
+{
+	asm {
+		JMP FAT16_SC2DC
+	};
+}
+
+// map a cluster to a disk sector
+void fat16_c_to_s(struct fat16_volinfo *fv, uint16_t p[2])
+{
+	asm {
+		JMP FAT16_C_TO_S
+	};
+}
+
+// map a sector to a byte address
+void fat16_s_to_b(uint16_t p[2])
+{
+	asm {
+		JMP FAT16_S_TO_B
+	};
+}
+
+// map a byte address back to a sector address
+void fat16_b_to_s(uint16_t p[2])
+{
+	asm {
+		JMP FAT16_B_TO_S
+	};
+}
+
+// add a 16-bit offset to a 32-bit byte offset
+void fat16_add_16(uint16_t p[2], uint16_t off)
+{
+	asm {
+		JMP FAT16_ADD_16
+	};
+}
+
+// add a 32-bit offset to a 32-bit byte offset
+void fat16_add_32(uint16_t p[2], uint16_t off[2])
+{
+	asm {
+		JMP FAT16_ADD_32
+	};
+}
+
+// compare a and b, return 1 if GT, 0 if EQ, -1 if LT
+int fat16_cmp_32(uint16_t a[2], uint16_t b[2])
+{
+	asm {
+		JMP FAT16_CMP_32
+	};
+}
+
+// init a FAT-16 volume state
+// secbuf should point to a 512 byte buffer it can use to hold sectors
+uint16_t fat16_initvol(struct fat16_volinfo *fv, uint8_t *secbuf)
+{
+	asm {
+		JMP FAT16_INITVOL
+	};
+}
+
+// given a cluster find the next cluster according to the FAT
+// values >= 0xFFF8 mean end of chain.
+uint16_t fat16_n_c(struct fat16_volinfo *fv, uint16_t cluster)
+{
+	asm {
+		JMP FAT16_N_C
+	};
+}
+
+// open a directory 'fat16_de' that can be used with fat16_nextdir()
+// cluster==0 means use the root directory
+void fat16_opendir(struct fat16_volinfo *fv, uint16_t cluster)
+{
+	asm {
+		JMP FAT16_OPENDIR
+	};
+}
+
+// return the next directory entry for the currently open directory
+// or NULL if we hit the end
+uint16_t fat16_nextdir(struct fat16_volinfo *fv) 
+{
+	asm {
+		JMP FAT16_NEXTDIR
+	};
+}
+
+// walk a directory with a path, returns a dirent on success or NULL on error
+// paths start from the root and must begin with /
+uint16_t fat16_wpath(struct fat16_volinfo *fv, char *path)
+{
+	asm {
+		JMP FAT16_WPATH
+	};
+}
+
+// open a file, populates 'file' with the handle, returns 0 on success
+uint16_t fat16_fopen(struct fat16_volinfo *fv, char *path)
+{
+	asm {
+		JMP FAT16_FOPEN
+	};
+}
+
+// read from a file upto either len bytes or the end of the file whichever comes first
+// returns the # of bytes actually read
+uint16_t fat16_fread(struct fat16_volinfo *fv, uint8_t *dst, uint16_t len)
+{
+	asm {
+		JMP FAT16_FREAD
+	};
+}
+
+#else
 // convert a directory starting cluster to a data cluster
 uint16_t fat16_sc2dc(struct fat16_volinfo *fv, uint16_t scluster)
 {
@@ -350,3 +478,4 @@ uint16_t fat16_fread(struct fat16_volinfo *fv, uint8_t *dst, uint16_t len)
 
 	return bread;
 }
+#endif

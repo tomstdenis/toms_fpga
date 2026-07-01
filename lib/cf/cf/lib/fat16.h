@@ -1,6 +1,10 @@
 #ifndef FAT16_H_
 #define FAT16_H_
 
+#ifdef USE_BOOT
+#include "cf/lib/boot.h"
+#endif
+
 // simple FAT16 library for sector==512 file systems
 // This code is intended to be used with DDS Micro-C which is an
 // almost ANSI C compliant C compiler that has several annoying limitations

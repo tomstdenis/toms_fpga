@@ -20,14 +20,12 @@ patch_fs: tools/patch_fs.c
 boot.bin: hex_to_cf cf/boot.c cf/lib/bios.h
 	emu2 MCF/CCF.COM 'cf/boot.c' -fopa -- MCDIR='C:\MCF'
 	emu2 MCF/ASMCF.EXE 'cf/boot.asm' -fs -- MCDIR='C:\MCF'
-	./hex_to_cf cf/boot.hex boot.bin E200 EFFF
+	./hex_to_cf cf/boot.hex boot.bin D000 EFFF
+	./sym_to_biosh < cf/boot.lst | grep -E '(BIOS_H|BOOT_|FAT16_|SECTOR_OP|endif)' | sed -e 's/BIOS_H/BOOT_H/g' >  cf/lib/boot.h
 
 sym_to_biosh: tools/sym_to_biosh.c
 	gcc tools/sym_to_biosh.c -o sym_to_biosh
 
-cf/lib/boot.h: sym_to_biosh boot.bin
-	./sym_to_biosh < cf/boot.lst | grep -E '(BIOS_H|BOOT_|FAT16_|endif)' >  cf/lib/boot.h
-	 
 cf/lib/bios.h: sym_to_biosh cf/bios.c hex_to_cf
 	emu2 MCF/CCF.COM 'cf/bios.c' -fopa -- MCDIR='C:\MCF'
 	emu2 MCF/ASMCF.EXE 'cf/bios.asm' -fs -- MCDIR='C:\MCF'
@@ -56,7 +54,7 @@ diskfiles: disk/COMMAND.CF disk/DEMO.CF disk/HELLO.CF
 
 # Build the disk.fs file system image with the bootloader any files in disk/* end up in the disk image
 .PHONY: populate_fs
-populate_fs: clean boot.bin patch_fs diskfiles cf/lib/boot.h
+populate_fs: clean boot.bin patch_fs cf/lib/boot.h diskfiles
 	rm -f disk.fs
 	truncate --size 32M disk.fs
 	mkfs.fat -F 16 -R 136 disk.fs

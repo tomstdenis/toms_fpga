@@ -4,9 +4,11 @@
 #include <cflea.h>
 
 #define USE_BIOS
+#define USE_BOOT
 #include "cf/lib/time.c"
 #include "cf/lib/console.c"
 #include "cf/lib/sd.c"
+#include "cf/lib/fat16.c"
 
 // benchmark various opcodes
 unsigned cpu_cycles(unsigned test)
