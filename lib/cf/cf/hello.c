@@ -232,7 +232,8 @@ const char *tests[] = {
 main()
 {
 	unsigned y, x, z;
-
+	char str[80];
+	
 	printf("\nCycle counts:\n");
 	for (z = x = 0; tests[x]; x++) {
 		y = cpu_cycles(x) - z;
@@ -244,30 +245,19 @@ main()
 	y = 0;
 
 	c_clrscr();
-	for (;;) {
-		wait_vsync();
-		// we're now in vsync for a bit which also includes time outside of vsync but still in blanking.
-		x = cpu_cycles(0);
-		z = rtl_version();
-		outp2(~(y>>4));				// output to LEDs ...
-		sprintf(vidmem, "Tom was here! %5u times, %5u cycles per call, top: %02x, core: %02x", ++y, x, z >> 8, z & 255);
-		memcpy(vidmem+80, vidmem, 80);
-		memcpy(vidmem+160, vidmem+80, 80);
-		wait_nvsync();
-/*
-		if (y == 500) { // set 250ms WDT that we don't ack (clear the tick counter first)
-			asm {
-				LDB #$FA
-				OUT $11
-				OUT $13
-			}
+	c_puts("Cycle counts:\n");
+	for (z = x = 0; tests[x]; x++) {
+		y = cpu_cycles(x) - z;
+		if (x == 0) {
+			z = y;
 		}
-		// clear the tick counter for some time then stop to trigger the WDT
-		if (y < 532) {
-			asm {
-				OUT $11
-			}
-		}
-*/
+		sprintf(str, "   %s: %u\n", tests[x], y);
+		c_puts(str);
+	}
+	y = 0;
+
+	wait_ms(2000);
+	asm {
+		JMP $F000
 	}
 }

@@ -5,10 +5,10 @@
 #include "cf/lib/mem.h"
 
 #define vidmem ((unsigned char *)vidmem_addr)
-#define console_x *((unsigned *)(console_x_addr))
-#define console_y *((unsigned *)(console_y_addr))
-#define console_tx *((unsigned *)(console_tx_addr))
-#define console_ty *((unsigned *)(console_ty_addr))
+#define console_x *((unsigned char *)(console_x_addr))
+#define console_y *((unsigned char *)(console_y_addr))
+#define console_tx *((unsigned char *)(console_tx_addr))
+#define console_ty *((unsigned char *)(console_ty_addr))
 
 // clear screen and reset x/y to 0
 c_clrscr(void) {
@@ -38,7 +38,7 @@ c_gotoxy(unsigned x, unsigned y) {
 	console_y = y;
 }
 
-c_putc(char c) {
+c_putc(unsigned char c) {
 	if (c == '\n') {
 		console_x = 0;
 		goto newline;
@@ -56,7 +56,7 @@ newline:
 	}
 }
 
-c_puts(char *s) {
+c_puts(unsigned char *s) {
 	while (*s) {
 		c_putc(*s++);
 	}

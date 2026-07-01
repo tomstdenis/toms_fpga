@@ -1,7 +1,7 @@
 // CFLEA Primer25K Boot Loader
 asm {
 	ORG $E200		* code starts after first sector
-	LD #$FA00       * 512 bytes of stack
+	LD #$E200       * 512 bytes of stack
 	TAS				* Set stack to top of memory
 	CALL main
 	JMP $F000
@@ -31,15 +31,19 @@ boot_app(char *name)
 	unsigned x;
 
 	fv = fvp;
-	if (!fat16_initvol(fv, 0xFC00)) {
+	if (!fat16_initvol(fv, 0xDE00)) {
 		puts("BL: Opening "); puts(name); puts("\r\n");
 		if (!fat16_fopen(fv, name)) {
 			// load file memory
 			puts("BL: Reading contents\r\n");
-			x = fat16_fread(fv, 0, 57344);
+			x = fat16_fread(fv, 0, 56832);
 			puts("Read 0x"); print_hex_word(x); puts(" bytes\r\n");
 			asm {
 				LD $0			* load entry point
+				TAS				* assume stack starts at app start
+				CLR
+				ST $0			* zero ?temp
+				TSA				* restore ACC
 				IJMP			* jump to it
 			}
 		} else {
@@ -55,8 +59,8 @@ main()
    sd_init();
    if (!sd_reset()) {
 	   puts("BL: Initing FAT16...\n\r");
-	   boot_app("/COMMAND.CF");
-//	   boot_app("/HELLO.CF");
+//	   boot_app("/COMMAND.CF");
+	   boot_app("/HELLO.CF");
    } else {
 	   puts("Could not init SD card.\r\n"); 
    }

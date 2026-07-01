@@ -3,8 +3,8 @@
 asm {
 	ORG $F000
 topofbios EQU *
-	LD #$F900
-	TAS				* Set stack to top of memory
+	LD #$E000
+	TAS				* Set stack to just below where we would load the boot sectors
 	CALL main
 ?halt EQU *
 	SJMP ?halt
