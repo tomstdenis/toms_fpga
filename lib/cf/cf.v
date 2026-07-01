@@ -570,21 +570,29 @@ module cf_cpu #(
 									end
 								4'h3: // SJMP rr
 									begin
-										bus_burst   <= 1'b0;
-										bus_address <= {1'b0, reg_PC};
-										reg_PC      <= reg_PC + 16'd1;
+										reg_PC <= reg_PC + 1'b1 + { {8{cur_opcode2[7]}}, cur_opcode2[7:0] };
+                                        bus_enable <= 1'b0;
+                                        fsm_state <= FSM_FETCH_OPCODE;
 									end
 								4'h4: // SJZ rr
 									begin
-										bus_burst   <= 1'b0;
-										bus_address <= {1'b0, reg_PC};
-										reg_PC      <= reg_PC + 16'd1;
+										if (reg_ACC == 0) begin
+											reg_PC <= reg_PC + 1'b1 + { {8{cur_opcode2[7]}}, cur_opcode2[7:0] };
+										end else begin
+                                            reg_PC <= reg_PC + 1'b1;
+                                        end
+                                        bus_enable <= 1'b0;
+                                        fsm_state <= FSM_FETCH_OPCODE;
 									end
 								4'h5: // SJNZ rr
 									begin
-										bus_burst   <= 1'b0;
-										bus_address <= {1'b0, reg_PC};
-										reg_PC      <= reg_PC + 16'd1;
+										if (reg_ACC != 0) begin
+											reg_PC <= reg_PC + 1'b1 + { {8{cur_opcode2[7]}}, cur_opcode2[7:0] };
+										end	else begin
+                                            reg_PC <= reg_PC + 1'b1;
+                                        end
+                                        bus_enable <= 1'b0;
+                                        fsm_state <= FSM_FETCH_OPCODE;
 									end
 								4'h6: // IJMP
 									begin
@@ -637,22 +645,6 @@ module cf_cpu #(
 											reg_PC <= bus_data_out;
 										end
 									end
-								4'h3: // SJMP rr
-									begin
-										reg_PC <= reg_PC + { {8{bus_data_out[7]}}, bus_data_out[7:0] };
-									end
-								4'h4: // SJZ rr
-									begin
-										if (reg_ACC == 0) begin
-											reg_PC <= reg_PC + { {8{bus_data_out[7]}}, bus_data_out[7:0] };
-										end					
-									end
-								4'h5: // SJNZ rr
-									begin
-										if (reg_ACC != 0) begin
-											reg_PC <= reg_PC + { {8{bus_data_out[7]}}, bus_data_out[7:0] };
-										end					
-									end
 								4'h8: // CALL aaaa
 									begin
 										fsm_state <= FSM_OPCODE_D8_1;			// jump to back half of CALL where we do the bus transaction
@@ -692,15 +684,20 @@ module cf_cpu #(
 							bus_wr_en   <= 1'b0;
 							bus_io_flag <= 1'b0;
 							bus_burst   <= 1'b1;
-							bus_address <= {1'b0, reg_PC };
 							case(cur_opcode[3:0])
 								4'hA: // ALLOC oo
 									begin
+                                        bus_address <= {1'b0, reg_PC + 1'b1 };
 										reg_PC      <= reg_PC + 1'b1;
+                                        reg_SP      <= reg_SP - cur_opcode2;
+                                        fsm_state   <= FSM_FETCH_OPCODE;
 									end
 								4'hB: // FREE oo
 									begin
+                                        bus_address <= {1'b0, reg_PC + 1'b1 };
 										reg_PC      <= reg_PC + 1'b1;
+                                        reg_SP      <= reg_SP + cur_opcode2;
+                                        fsm_state   <= FSM_FETCH_OPCODE;
 									end
 								4'hC: // PUSHA
 									begin
@@ -718,11 +715,13 @@ module cf_cpu #(
 									end
 								4'hE: // TAS
 									begin
+                                        bus_address  <= {1'b0, reg_PC};
 										reg_SP    <= reg_ACC;
 										fsm_state <= FSM_FETCH_OPCODE;
 									end
 								4'hF: // TSA
 									begin
+                                        bus_address  <= {1'b0, reg_PC};
 										reg_ACC   <= reg_SP;
 										fsm_state <= FSM_FETCH_OPCODE;
 									end
@@ -732,17 +731,6 @@ module cf_cpu #(
 						if (bus_enable && bus_ready) begin
 							bus_enable <= 1'b0;
 							fsm_state  <= FSM_FETCH_OPCODE;
-							case(cur_opcode[3:0])
-								4'hA: // ALLOC oo
-									begin
-										reg_SP <= reg_SP - bus_data_out[7:0];
-									end
-								4'hB: // FREE oo
-									begin
-										reg_SP <= reg_SP + bus_data_out[7:0];
-									end
-								default: begin end
-							endcase
 						end
 					end
 
