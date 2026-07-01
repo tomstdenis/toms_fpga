@@ -3,8 +3,10 @@
  */
 #include <cflea.h>
 
+#define USE_BIOS
 #include "cf/lib/time.c"
 #include "cf/lib/console.c"
+#include "cf/lib/sd.c"
 
 // benchmark various opcodes
 unsigned cpu_cycles(unsigned test)
@@ -233,7 +235,6 @@ main()
 {
 	unsigned y, x, z;
 	char str[80];
-	
 	printf("\nCycle counts:\n");
 	for (z = x = 0; tests[x]; x++) {
 		y = cpu_cycles(x) - z;
@@ -242,8 +243,7 @@ main()
 		}
 		printf("\t%s: %u\n", tests[x], y);
 	}
-	y = 0;
-
+	printf("FAT16 LBA: 0x%04x%04x\n", fat16_lba[1], fat16_lba[0]);
 	c_clrscr();
 	c_puts("Cycle counts:\n");
 	for (z = x = 0; tests[x]; x++) {
@@ -254,7 +254,6 @@ main()
 		sprintf(str, "   %s: %u\n", tests[x], y);
 		c_puts(str);
 	}
-	y = 0;
 
 	wait_ms(2000);
 	asm {
