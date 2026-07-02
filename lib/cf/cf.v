@@ -91,7 +91,9 @@ module cf_cpu #(
 		.rst_n(rst_n),
 		.num(sd_num), .denom(sd_denom), .valid(sd_valid),
 		.ready(sd_ready), .quotient(sd_quotient), .remainder(sd_remainder));
-		
+	
+    reg [31:0] temp_mult;
+
 	always @(posedge clk) begin
 		if (!rst_n) begin
 			// reset all registers
@@ -329,7 +331,12 @@ module cf_cpu #(
 								end
 							4'h3: // MUL/MULB
 								begin
-									{reg_alt,reg_ACC} <= reg_ACC * reg_operand;
+                                    if (bus_enable == 1'b0) begin
+                                        fsm_state <= fsm_state;
+                                        temp_mult <= {reg_ACC, reg_operand};
+                                    end else begin
+                                        {reg_alt,reg_ACC} <= temp_mult[15:0] * temp_mult[31:16];
+                                    end
 								end
 							4'h4: // DIV/DIVB
 								begin
@@ -387,7 +394,12 @@ module cf_cpu #(
 										5'h17: // SHR
 											begin
                                                 if (USE_BARREL == 1) begin
-                                                    reg_ACC <= reg_ACC >> reg_operand;
+                                                    if (bus_enable == 1'b0) begin
+                                                        fsm_state      <= fsm_state;
+                                                        temp_mult[3:0] <= reg_operand[3:0];
+                                                    end else begin
+                                                        reg_ACC <= reg_ACC >> temp_mult[3:0];
+                                                    end
                                                 end else begin
                                                     if (reg_operand != 0) begin
                                                         reg_ACC 	<= {1'b0, reg_ACC[15:1]};
@@ -399,7 +411,12 @@ module cf_cpu #(
 										5'h18: // SHL
 											begin
                                                 if (USE_BARREL == 1) begin
-                                                    reg_ACC <= reg_ACC << reg_operand;
+                                                    if (bus_enable == 1'b0) begin
+                                                        fsm_state      <= fsm_state;
+                                                        temp_mult[3:0] <= reg_operand[3:0];
+                                                    end else begin
+                                                        reg_ACC <= reg_ACC << temp_mult[3:0];
+                                                    end
                                                 end else begin
                                                     if (reg_operand != 0) begin
                                                         reg_ACC		<= {reg_ACC[14:0], 1'b0};
