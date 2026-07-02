@@ -70,7 +70,7 @@ populate_fs: clean boot.bin patch_fs cf/lib/boot.h diskfiles
 
 .PHONY: spi.vcd
 spi.vcd:
-	sigrok-cli -d fx2lafw --config samplerate=24m --samples=50M -O vcd -o spi.vcd
+	sigrok-cli -d fx2lafw --config samplerate=24m --samples=50M -O vcd -o spi.vcd -C D0,D1=CS,D2,D3=MOSI,D4,D5=MISO,D6,D7=SCK
 
 clean:
 	rm -rf *.bin *.vvp *.vcd *.pass *.log lds lds.hex boot_hex_to_rom boot_test_sim.hex cf/lib/boot.h
