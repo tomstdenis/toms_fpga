@@ -4,14 +4,13 @@
 #include "cf/lib/io.h"
 #include "cf/lib/mem.h"
 
+#define getc_echo *((unsigned char*)getc_echo_addr)
+
 int getch() {
 	asm {
 		IN PORT_UART_DATA
 	}
 }
-
-// borrow from the SD space
-#define getc_echo *((unsigned char*)getc_echo_addr)
 
 int getc() {
 	asm {

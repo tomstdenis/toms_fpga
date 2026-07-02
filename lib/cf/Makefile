@@ -58,6 +58,7 @@ populate_fs: clean boot.bin patch_fs cf/lib/boot.h diskfiles
 	rm -f disk.fs
 	truncate --size 32M disk.fs
 	mkfs.fat -F 16 -R 136 disk.fs
+	@echo -n "Hello from /ROOT.TXT!!!" > disk/ROOT.TXT
 	mcopy -i disk.fs disk/* ::/
 	./patch_fs disk.fs boot.bin
 	@echo

@@ -190,7 +190,7 @@ unsigned sd_cmd(unsigned cmd, unsigned ph, unsigned pl, unsigned crc)
 	sd_spi_transfer(crc);
 	
 	// wait for R1 byte
-	for (x = 256; x--; ) {
+	for (x = 256; --x; ) {
 		y = sd_spi_recv();
 		if (!(y & 0x80)) {
 #ifdef DEBUG
@@ -213,13 +213,13 @@ int sd_read_block(unsigned char *dst, unsigned len)
 	printf("sd_read_block: Reading %u bytes to %04x\n", len, dst);
 #endif
 	// wait for READ_TOKEN
-	for (x = 8192; x--;) {
+	for (x = 8192; --x;) {
 		t = sd_spi_recv();
 		if (t == 0xFE) {
 #ifdef DEBUG
 	printf("sd_read_block: Got READ_TOKEN at x==%u\n", x);
 #endif
-			for (x = len; x--; ) {
+			for (x = len+1; --x; ) {
 				*dst++ = sd_spi_recv();
 			}
 			sd_spi_recv(); // skip CRC
@@ -250,7 +250,7 @@ retry:
 	sd_spi_set_cs(1);
 	
 	// toggle SCK 80 times
-	for (x = 10; x--;) {
+	for (x = 11; --x;) {
 		sd_spi_recv();
 	}
 	
@@ -283,7 +283,7 @@ retry:
 #endif
 	
 	// loop on ACMD41 which is CMD55/CMD41(0x40000000)
-	for (x = 256; x--; ) {
+	for (x = 257; --x; ) {
 		if (sd_cmd(55, 0, 0, 0) != 0x01) { goto retry; }
 		if (sd_cmd(41, 0x4000, 0, 0) == 0x00) {
 			break;
@@ -296,7 +296,7 @@ retry:
 #endif
 
 	// loop on CMD58 until powered up
-	for (x = 256; x--; ) {
+	for (x = 257; --x; ) {
 		if (sd_cmd(58, 0, 0, 0) != 0) { goto retry; }
 		t = sd_spi_recv();
 		sd_spi_recv();
@@ -364,7 +364,7 @@ retry:
 		sd_spi_recv();
 		sd_spi_recv();
 		if ((sd_spi_recv() & 0x1F) != 0x05) { goto error; }
-		for (x = 8192; x--;) {
+		for (x = 8193; --x;) {
 			if (sd_spi_recv()) { break; }
 		}
 		if (x == 0) { goto error; }

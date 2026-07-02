@@ -1,6 +1,7 @@
 //#define DEBUG
 
 #define USE_BIOS
+#define USE_BOOT
 
 #include <cflea.h>
 #include "cf/lib/memcmp.c"
@@ -34,11 +35,6 @@ unsigned remap(unsigned v)
 }
 
 unsigned char sec[512];
-
-uint16_t sector_op(uint16_t sector[2], uint8_t *data, uint16_t wr_en)
-{
-	sd_sector_op(sector, data, 0);
-}
 
 main(void)
 {
@@ -80,7 +76,7 @@ main(void)
    }
 
 end:
-
+   wait_ms(500);
    asm {
       LD #$F000
       IJMP
