@@ -183,6 +183,7 @@ module cf_cpu #(
 						// first half to either read an immediate or address of the operand
 						if (!bus_enable) begin
 							bus_enable  <= 1'b1;
+                            bus_burst   <= 1'b1;
 							case(cur_opcode[2:0])
 								0: // #n x0 ii(ii)							// immediate 8/16 bit
 									begin
@@ -201,7 +202,6 @@ module cf_cpu #(
 									begin
 										bus_address <= {1'b0, reg_PC};		// load address from code memory first
 										reg_PC 		<= reg_PC + 16'd2;
-										bus_burst   <= 1'b1;
 									end
 								2: // I x2 I								// load directly from I
 									begin
@@ -225,19 +225,16 @@ module cf_cpu #(
 								5: // S+ x5									// load from S then increment S
 									begin
 										bus_address <= {1'b1, reg_SP};		// load from data memory
-										bus_burst   <= 1'b1;				// stack always works in 16-bits
 										reg_SP      <= reg_SP + 16'd2;		// increment after
 									end
 								6: // [S+] x6								// load from [S] then increment S
 									begin
 										bus_address <= {1'b1, reg_SP};		// load from data memory
-										bus_burst   <= 1'b1;				// stack always works in 16-bits
 										reg_SP      <= reg_SP + 16'd2;		// increment after
 									end
 								7: // [S] x7								// load from [S]
 									begin
 										bus_address <= {1'b1, reg_SP};		// load from data memory
-										bus_burst   <= 1'b1;				// stack always works in 16-bits
 									end
 							endcase
 						end
