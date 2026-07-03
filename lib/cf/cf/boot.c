@@ -135,7 +135,7 @@ main()
 	sd_init();
 	if (!sd_reset()) {
 		//shell();
-		boot_app("/COMMAND.CF");
+		boot_app("/HELLO.CF");
 	} else {
 		puts("Could not init SD card.\r\n"); 
 	}

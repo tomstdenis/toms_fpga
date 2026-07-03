@@ -565,22 +565,10 @@ module cf_cpu #(
 							bus_enable  <= 1'b1;
 							bus_wr_en   <= 1'b0;
 							bus_io_flag <= 1'b0;
+                            bus_burst   <= 1'b1;
 							case(cur_opcode[3:0])
-								4'h0: // JMP aaaa
+								4'h0, 4'h1, 4'h2: // JMP/JZ/JNZ aaaa
 									begin
-										bus_burst   <= 1'b1;
-										bus_address <= {1'b0, reg_PC};
-										reg_PC      <= reg_PC + 16'd2;
-									end
-								4'h1: // JZ aaaa
-									begin
-										bus_burst   <= 1'b1;
-										bus_address <= {1'b0, reg_PC};
-										reg_PC      <= reg_PC + 16'd2;
-									end
-								4'h2: // JNZ aaaa
-									begin
-										bus_burst   <= 1'b1;
 										bus_address <= {1'b0, reg_PC};
 										reg_PC      <= reg_PC + 16'd2;
 									end
@@ -620,21 +608,18 @@ module cf_cpu #(
 									begin
 										bus_enable        <= 1'b0;
 										bus_address 	  <= {1'b0, reg_INDEX};
-										bus_burst   	  <= 1'b1;
 										switch_table_addr <= reg_INDEX;
 										fsm_state   	  <= FSM_SWITCH_LOAD_ADDR;
 									end
 								4'h8: // CALL aaaa
 									begin
 										// read the call target
-										bus_burst   <= 1'b1;
 										bus_address <= {1'b0, reg_PC};
 										reg_PC      <= reg_PC + 16'd2;
 									end
 								4'h9: // RET
 									begin
 										// read PC off stack
-										bus_burst   <= 1'b1;
 										bus_address <= {1'b1, reg_SP};
 										reg_SP      <= reg_SP + 16'd2;
 									end
@@ -668,7 +653,6 @@ module cf_cpu #(
 										bus_address <= {1'b1, reg_SP - 16'd2};
 										bus_data_in <= reg_PC;
 										bus_wr_en   <= 1'b1;
-										bus_burst   <= 1'b1;
 										reg_SP      <= reg_SP - 16'd2;
 										reg_PC      <= bus_data_out;
 									end

@@ -67,7 +67,7 @@ for I/O the following ports are used
 `define BLOCKS 30
 
 // core clock frequency the PLL is tuned to 
-`define FREQ 125
+`define FREQ 130
 
 // UART fifo depth for both RX and TX
 `define UART_FIFO_DEPTH 8
@@ -279,7 +279,7 @@ module top(input wire clk, input wire s1,
 	logic [10:0] text_addr_b;                   // VGA bound port B allows the video to access video ram
 	logic [7:0] text_dout_b;
 	
-	logic lrg_mode;                             // 0 == 80x25, 1 == 48x40 LRG
+	logic lrg_mode, lrg_mode_1;                             // 0 == 80x25, 1 == 48x40 LRG
     logic [1:0] lrg_mode_pll2;                  // 2-FF chain to bring signal into VGA clock domain
 
     // The 2KB bram for video memory
@@ -383,7 +383,7 @@ module top(input wire clk, input wire s1,
         .bus_data_out(cf_bus_data_out_comb));
 
     always_ff @(posedge pll2clk) begin
-        lrg_mode_pll2 <= {lrg_mode_pll2[0], lrg_mode};
+        lrg_mode_pll2 <= {lrg_mode_pll2[0], lrg_mode_1};
     end
 
     always_comb begin
@@ -405,6 +405,15 @@ module top(input wire clk, input wire s1,
     reg [7:0] spi_timer;
     reg [2:0] spi_cnt;
 
+    reg vga_active_1;
+    reg vga_v_sync_1;
+    reg vga_h_sync_1;
+    always_ff @(posedge pll2clk) begin
+        vga_active_1 <= vga_active;
+        vga_v_sync_1 <= vga_v_sync;
+        vga_h_sync_1 <= vga_h_sync;
+    end
+
     // bus controller
     always_ff @(posedge pllclk) begin
         if (!rst_n) begin
@@ -423,9 +432,10 @@ module top(input wire clk, input wire s1,
             vga_h_sync_cf       <= 0;
             wdt                 <= 0;
         end else begin
-            vga_v_sync_cf <= {vga_v_sync_cf[0], vga_v_sync};  // 2-DFF sync the VGA V Sync into the CFLEA clock domain
-            vga_h_sync_cf <= {vga_h_sync_cf[0], vga_h_sync};  // same for hsync
-            vga_active_cf <= {vga_active_cf[0], vga_active};  // same for vga_active
+            lrg_mode_1    <= lrg_mode;
+            vga_v_sync_cf <= {vga_v_sync_cf[0], vga_v_sync_1};  // 2-DFF sync the VGA V Sync into the CFLEA clock domain
+            vga_h_sync_cf <= {vga_h_sync_cf[0], vga_h_sync_1};  // same for hsync
+            vga_active_cf <= {vga_active_cf[0], vga_active_1};  // same for vga_active
 
 			// tick counter logic
             if (cycle_counter == (CYCLES_PER_TICK-1)) begin
