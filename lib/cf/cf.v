@@ -222,12 +222,7 @@ module cf_cpu #(
 										fsm_state   <= FSM_FETCH_ALU_OPERAND2_00_97;
                                         reg_PC      <= reg_PC + 1'b1;
 									end
-								5: // S+ x5									// load from S then increment S
-									begin
-										bus_address <= {1'b1, reg_SP};		// load from data memory
-										reg_SP      <= reg_SP + 16'd2;		// increment after
-									end
-								6: // [S+] x6								// load from [S] then increment S
+								5, 6: // S+ x5 / [S+] x6					// load from S then increment S
 									begin
 										bus_address <= {1'b1, reg_SP};		// load from data memory
 										reg_SP      <= reg_SP + 16'd2;		// increment after
