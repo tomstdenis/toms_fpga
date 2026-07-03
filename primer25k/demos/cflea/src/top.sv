@@ -224,12 +224,16 @@ module top(input wire clk, input wire s1,
 	logic [10:0] vga_y;                     // VGA Y position
 	logic vga_h_sync;                       // VGA H sync (active low)
 	logic vga_v_sync;                       // VGA V sync (active low)
-	logic vga_v_sync_prev;                  // previous V sync used to detect negedge of vsync
 	logic vga_active;                       // VGA in display region
+    reg vga_active_1;
+    reg vga_v_sync_1;
+    reg vga_h_sync_1;
 	
 	always_ff @(posedge pll2clk) begin
-		vga_v_sync_prev <= vga_v_sync;
-	end
+        vga_active_1    <= vga_active;
+        vga_v_sync_1    <= vga_v_sync;
+        vga_h_sync_1    <= vga_h_sync;
+    end
 	
 	assign vga_h_pulse = vga_h_sync;        // assign syncs to I/O pins
 	assign vga_v_pulse = vga_v_sync;
@@ -404,15 +408,6 @@ module top(input wire clk, input wire s1,
     reg [7:0] spi_sr;
     reg [7:0] spi_timer;
     reg [2:0] spi_cnt;
-
-    reg vga_active_1;
-    reg vga_v_sync_1;
-    reg vga_h_sync_1;
-    always_ff @(posedge pll2clk) begin
-        vga_active_1 <= vga_active;
-        vga_v_sync_1 <= vga_v_sync;
-        vga_h_sync_1 <= vga_h_sync;
-    end
 
     // bus controller
     always_ff @(posedge pllclk) begin
