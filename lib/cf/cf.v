@@ -437,13 +437,13 @@ module cf_cpu #(
 						if (!bus_enable) begin				// fetch the destination operand
 							bus_enable  <= 1'b1;
 							bus_wr_en   <= 1'b0;
+                            bus_burst   <= 1'b1;
 							bus_data_in <= (cur_opcode[7:4] == 4'hA) ? reg_ACC : reg_INDEX; // ST/STB or STI
 							case(cur_opcode[2:0])
 								1: // aaaa x1 dd dd							// load from data memory		
 									begin
 										bus_address <= {1'b0, reg_PC};		// load address from code memory first
 										reg_PC 		<= reg_PC + 16'd2;
-										bus_burst   <= 1'b1;
 									end
 								2: // I x2 I								// load directly from I
 									begin
@@ -474,12 +474,10 @@ module cf_cpu #(
 										if (cur_opcode[7:4] != 4'h9) begin  // don't move SP for LEAI?
 											reg_SP <= reg_SP + 16'd2;
 										end
-										bus_burst   <= 1;					// 16 bits off the stack 
 									end
 								7: // [S] x7								// load from [S]
 									begin
 										bus_address <= {1'b1, reg_SP};		// load from data memory
-										bus_burst   <= 1;					// 16 bits off the stack 
 									end
 								default: // NOTE: lockup
 									begin end
@@ -491,21 +489,7 @@ module cf_cpu #(
 							bus_enable  <= 1'b0;
 							fsm_state   <= FSM_FETCH_ALU_OPERAND_98_B7_STORE;
 							bus_burst   <= reg_operand_16;									// are we storing 16 or 8 bits
-							case(cur_opcode[2:0])
-								1: // aaaa x1 dd dd
-									begin
-										bus_address <= {1'b1, bus_data_out};
-									end
-								6: // [S+] x6
-									begin
-										bus_address <= {1'b1, bus_data_out };
-									end
-								7: // [S] x7
-									begin
-										bus_address <= {1'b1, bus_data_out };
-									end
-								default: begin end // NOTE: lockup
-							endcase
+                            bus_address <= {1'b1, bus_data_out};
 						end
 					end
 				
