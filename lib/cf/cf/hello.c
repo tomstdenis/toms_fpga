@@ -119,8 +119,15 @@ cpu_cycles_2
 			asm {
 				FCB $EE
 				LD #$FFFF
+				FCB $EE
+				NEG
+				TAI
+				FCB $EE
+				LD #$FFFF
 				DIVB #$11
 				FCB $EE
+				ADAI
+				TIA
 				RET
 			}
 		case 15:
@@ -225,7 +232,7 @@ const char *tests[] = {
 	"LD $F000",
 	"TSA",
 	"OUT $01",
-	"DIV $FFFF/$11 (+LD 0000)",
+	"DIV $FFFF/$11",
 	"ADDB #$FF",
 	"SHL #5",
 	"ST 2,S",
