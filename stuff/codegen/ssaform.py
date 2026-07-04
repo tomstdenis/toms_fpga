@@ -157,6 +157,7 @@ class ssaInstruction:
             self.inst.append(toks[x])
             x += 1
             # parse rest of instruction
+            # [ "phi", ["regtype"], [[value], [block]], ...
             if (self.inst[0] == "phi"):
                 # handle phi
                 # parse phi storage type
@@ -175,6 +176,13 @@ class ssaInstruction:
                         value.append(toks[x])
                         x += 1
                     x += 1
+                    # is the value an operand
+                    y = 0
+                    while (y < (len(value) - 1)):
+                        if (value[y] == '%'):
+                            self.operand_regs.append(value[y + 1])
+                            break
+                        y += 1
                     while (toks[x] != ']'):
                         block.append(toks[x])
                         x += 1
@@ -182,6 +190,8 @@ class ssaInstruction:
                     if (x < len(toks) and toks[x] == ','):
                         x += 1
                     self.inst.append([value, block])
+            # [ "br", [muxsel], [label], ... ]
+            # [ "br", [label] ]
             elif (self.inst[0] == "br"):
 #  br i1 %5, label %19, label %6
                 # read muxsel into inst[1]
@@ -192,6 +202,12 @@ class ssaInstruction:
                         x += 1
                     x += 1
                     self.inst.append(muxsel)
+                    y = 0
+                    while (y < len(muxsel) - 1):
+                        if (muxsel[y] == '%'):
+                            self.operand_regs.append(muxsel[y+1])
+                            break
+                        y += 1
                 # labels 
                 while (x < len(toks) and toks[x] == 'label'):
                     label = []
@@ -203,7 +219,7 @@ class ssaInstruction:
                         x += 1
                 
     def render(self):
-        print(f"\t{self.line} | (inst={self.inst}, dest={self.dest_reg})")
+        print(f"\t{self.line} | (inst={self.inst}, dest={self.dest_reg}, oper={self.operand_regs})")
 
 if __name__ == "__main__":
     mod = ssaModule(tokener("ssa/shiftadd.ll"))    
