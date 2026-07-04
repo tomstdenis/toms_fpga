@@ -15,7 +15,9 @@ class tokener:
         with open(fname, "r") as f:
             self.file = f.read()
         self.lines = self.file.split("\n")
+        self.olines = []
         for i in range(len(self.lines)):
+            self.olines.append(self.lines[i])
             self.lines[i] = re.sub(r'([^\w\s])', r' \1 ', self.lines[i])
         self.linenum = 0
 
@@ -55,8 +57,8 @@ class ssaModule:
                 if (toks[0] == 'define'):
                     self.tok.rewind(1)
                     self.functions.append(ssaFunction(self.tok))
-                else:
-                    print(f"Module: [{line}]")
+                #else:
+                #    print(f"Module: [{line}]")
 
     def render(self):
         for f in self.functions:
@@ -76,7 +78,7 @@ class ssaFunction:
     def parse(self):
         # parse define line
         self.funcdef = defline = self.tok.__next__()
-        print(f"Function intro: {defline}")
+        #print(f"Function intro: {defline}")
         # parse definition until we hit a { token this may span multiple lines
 
         # parse blocks 
@@ -85,7 +87,7 @@ class ssaFunction:
             toks = line.split()
             if (toks):
                 if (toks[0] == '}'):
-                    print(f"Function: {line}")
+                    #print(f"Function: {line}")
                     break
                 else:
                     #are we parsing a new block?
@@ -111,7 +113,7 @@ class ssaBlock:
 
     def parse(self):
         # append instructions until we hit a } or num:
-        print(f"\n\n\nParsing new block %{self.blockno}:\n") 
+        #print(f"\n\n\nParsing new block %{self.blockno}:\n") 
         for line in self.tok:
             toks = line.split()
             if (toks):
@@ -136,15 +138,74 @@ class ssaInstruction:
         self.inst         = []          # list containing info about the instruction itself
         self.parse()
 
-    def parse(self):
-        print(f"Instruction: {self.line}")
-        pass
+    def expect(self, tok: str, expect: str):
+        if (tok != expect):
+            print(f"Expected {expect}, got {tok}")
 
+    def parse(self):
+        toks = self.line.split()
+        x = 0
+        if (toks):
+            # capture destination reg is any
+            if (toks[0] == '%' and re.match("[0-9]+", toks[1])):
+                self.dest_reg.append(toks[1])
+                self.expect(toks[2], "=")
+                x = 3
+            else:
+                x = 0
+            # start parsing line at token x
+            self.inst.append(toks[x])
+            x += 1
+            # parse rest of instruction
+            if (self.inst[0] == "phi"):
+                # handle phi
+                # parse phi storage type
+                phitype = []
+                while (toks[x] != '['):
+                    phitype.append(toks[x])
+                    x += 1
+                self.inst.append(phitype)
+
+                # parse source pairs [ value, block ], ...
+                while (x < len(toks) and toks[x] == '['):
+                    x += 1
+                    value = []
+                    block = []
+                    while (toks[x] != ','):
+                        value.append(toks[x])
+                        x += 1
+                    x += 1
+                    while (toks[x] != ']'):
+                        block.append(toks[x])
+                        x += 1
+                    x +=1
+                    if (x < len(toks) and toks[x] == ','):
+                        x += 1
+                    self.inst.append([value, block])
+            elif (self.inst[0] == "br"):
+#  br i1 %5, label %19, label %6
+                # read muxsel into inst[1]
+                muxsel = []
+                if (toks[x] != 'label'):
+                    while (toks[x] != ','):
+                        muxsel.append(toks[x])
+                        x += 1
+                    x += 1
+                    self.inst.append(muxsel)
+                # labels 
+                while (x < len(toks) and toks[x] == 'label'):
+                    label = []
+                    while (x < len(toks) and toks[x] != ','):
+                        label.append(toks[x])
+                        x += 1
+                    self.inst.append(label)
+                    if (x < len(toks) and toks[x] == ','):
+                        x += 1
+                
     def render(self):
-        print(f"\t{self.line}")
+        print(f"\t{self.line} | (inst={self.inst}, dest={self.dest_reg})")
 
 if __name__ == "__main__":
-    mod = ssaModule(tokener("ssa/shiftadd.ll"))
-    
-    print("\n\n\n\nmod.render():")
+    mod = ssaModule(tokener("ssa/shiftadd.ll"))    
+    print("mod.render():")
     mod.render()
