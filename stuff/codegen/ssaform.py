@@ -48,29 +48,83 @@ class ssaModule:
 
     # Parse the module fully
     def parse(self):
-        pass
+        for line in self.tok:
+            toks = line.split()
+            if toks and toks[0] != ";":
+                # not a comment
+                if (toks[0] == 'define'):
+                    self.tok.rewind(1)
+                    self.functions.append(ssaFunction(self.tok))
+                else:
+                    print(f"Module: [{line}]")
+
+    def render(self):
+        for f in self.functions:
+            f.render()
 
 # Container of a function inside a module
 class ssaFunction:
     def __init__(self, tok: tokener):
         self.tok          = tok
         self.blocks       = []
+        self.cur_block    = 0
+        self.funcname     = ""
+        self.funcdef      = ""
+
         self.parse()
 
     def parse(self):
-        pass
+        # parse define line
+        self.funcdef = defline = self.tok.__next__()
+        print(f"Function intro: {defline}")
+        # parse definition until we hit a { token this may span multiple lines
+
+        # parse blocks 
+        self.blocks.append(ssaBlock(self.tok, self.cur_block))
+        for line in self.tok:
+            toks = line.split()
+            if (toks):
+                if (toks[0] == '}'):
+                    print(f"Function: {line}")
+                    break
+                else:
+                    #are we parsing a new block?
+                    if (re.match(r"[0-9]+", toks[0]) and toks[1] == ':'):
+                        self.cur_block = int(toks[0])
+                    self.blocks.append(ssaBlock(self.tok, self.cur_block))
+
+    def render(self):
+        print(f"{self.funcdef}")
+        for b in self.blocks:
+            b.render()
+        print("}")
 
 # Container of a block inside a function
 class ssaBlock:
-    def __init__(self, tok: tokener):
+    def __init__(self, tok: tokener, blockno: int = 0):
         self.tok          = tok
+        self.blockno      = blockno
         self.instructions = []          # list of instructions in this block
         self.toblocks     = []          # list of blocks we jump to from this block
         self.fromblocks   = []          # list of blocks we jump from to this block
         self.parse()
 
     def parse(self):
-        pass
+        # append instructions until we hit a } or num:
+        print(f"\n\n\nParsing new block %{self.blockno}:\n") 
+        for line in self.tok:
+            toks = line.split()
+            if (toks):
+                if ((re.match(r"[0-9]+", toks[0]) and toks[1] == ':') or toks[0] == "}"):
+                    self.tok.rewind(1)
+                    break
+                else:
+                    self.instructions.append(ssaInstruction(line))
+
+    def render(self):
+        print(f"%{self.blockno}:")
+        for i in self.instructions:
+            i.render()
 
 # Container of an instruction in a block
 class ssaInstruction:
@@ -83,10 +137,14 @@ class ssaInstruction:
         self.parse()
 
     def parse(self):
+        print(f"Instruction: {self.line}")
         pass
 
+    def render(self):
+        print(f"\t{self.line}")
+
 if __name__ == "__main__":
-    t = tokener("ssaform.py")
-    for l in t:
-        print(f"line: [{l}]")
+    mod = ssaModule(tokener("ssa/shiftadd.ll"))
     
+    print("\n\n\n\nmod.render():")
+    mod.render()
