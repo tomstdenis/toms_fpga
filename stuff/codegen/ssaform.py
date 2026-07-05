@@ -170,8 +170,8 @@ class ssaFunction:
             for b in self.blocks:           # over all blocks
                 for t in b.toblocks:        # over all blocks it jumps to
                     bb = self.find_block(int(t))
-                    if bb and b.blockno not in bb.fromblocks:
-                        bb.fromblocks.append(b.blockno)
+                    if bb and int(b.blockno) not in bb.fromblocks:
+                        bb.fromblocks.append(int(b.blockno))
                         changed = True
 
     def render(self):
@@ -205,7 +205,7 @@ class ssaBlock:
         for i in self.instructions:
             for t in i.toblocks:
                 if not t in self.toblocks and self.blockno != int(t[1]):
-                    self.toblocks.append(t[1])
+                    self.toblocks.append(int(t[1]))
 
     def render(self):
         print(f"%{self.blockno}: ; (toblocks={self.toblocks}, fromblocks={self.fromblocks})")
@@ -233,7 +233,7 @@ class ssaInstruction:
         if (toks):
             # capture destination reg is any
             if (toks[0] == '%' and re.match("[0-9]+", toks[1])):
-                self.dest_reg.append(toks[1])
+                self.dest_reg.append(int(toks[1]))
                 self.expect(toks[2], "=")
                 x = 3
             else:
@@ -265,7 +265,7 @@ class ssaInstruction:
                     y = 0
                     while (y < (len(value) - 1)):
                         if (value[y] == '%'):
-                            self.operand_regs.append(value[y + 1])
+                            self.operand_regs.append(int(value[y + 1]))
                             break
                         y += 1
                     while (toks[x] != ']'):
@@ -289,7 +289,7 @@ class ssaInstruction:
                     y = 0
                     while (y < len(muxsel) - 1):
                         if (muxsel[y] == '%'):
-                            self.operand_regs.append(muxsel[y+1])
+                            self.operand_regs.append(int(muxsel[y+1]))
                             break
                         y += 1
                 # labels 
@@ -313,7 +313,7 @@ class ssaInstruction:
                 y = 0
                 while (y < len(muxsel) - 1):
                     if (muxsel[y] == '%'):
-                        self.operand_regs.append(muxsel[y+1])
+                        self.operand_regs.append(int(muxsel[y+1]))
                         break
                     y += 1
 
@@ -327,7 +327,7 @@ class ssaInstruction:
                     y = 0
                     while (y < (len(oper) - 1)):
                         if (oper[y] == '%'):
-                            self.operand_regs.append(oper[y+1])
+                            self.operand_regs.append(int(oper[y+1]))
                         y += 1
                     if (x < len(toks) and toks[x] == ','):
                         x += 1
@@ -342,7 +342,7 @@ class ssaInstruction:
                     y = 0
                     while (y < (len(oper) - 1)):
                         if (oper[y] == '%'):
-                            self.operand_regs.append(oper[y+1])
+                            self.operand_regs.append(int(oper[y+1]))
                         y += 1
                     if (x < len(toks) and toks[x] == ','):
                         x += 1
@@ -352,6 +352,6 @@ class ssaInstruction:
         print(f"(inst={self.inst}, dest={self.dest_reg}, oper={self.operand_regs}, toblocks={self.toblocks})")
 
 if __name__ == "__main__":
-    mod = ssaModule(tokener("ssa/strcpy.ll"))    
+    mod = ssaModule(tokener("ssa/shiftadd.ll"))    
     print("mod.render():")
     mod.render()
