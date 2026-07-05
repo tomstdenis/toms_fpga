@@ -72,6 +72,9 @@ class ssaFunction:
         self.cur_block    = 0
         self.funcname     = ""
         self.funcdef      = ""
+        self.funcargs     = []
+        self.scope        = []
+        self.addr         = []
         self.parse()
 
     def find_block(self, blockno: int) -> ssaBlock:
@@ -81,10 +84,71 @@ class ssaFunction:
         return None
 
     def parse(self):
-        # parse define line
-        self.funcdef = defline = self.tok.__next__()
-        #print(f"Function intro: {defline}")
-        # parse definition until we hit a { token this may span multiple lines
+        # parse define line starts with define and ends with a { but can span multiple lines
+        funcdef = []
+        done = False
+        toks = None
+        x = 0
+        while not done:
+            if (toks == None or x == len(toks)):
+                toks = self.tok.__next__().split()
+                x = 0
+            if (toks[x] == '{'):
+                done = True
+            else:
+                funcdef.append(toks[x])
+            x += 1
+
+        # parse from define to @
+        x = 0
+        while (x < len(funcdef) and funcdef[x] != '@'):
+            self.scope.append(funcdef[x])
+            x += 1
+        if (funcdef[x] == '@'):
+            x += 1
+
+        # next token is funcname
+        self.funcname = funcdef[x]
+        x += 1
+
+        # expect a '('
+        if (funcdef[x] != '('):
+            raise Exception("Expect (")
+        x += 1
+
+        # now we either have a ) or parameters
+        if (x < len(funcdef) and funcdef[x] == ')'):
+            x += 1
+        else:
+            param = []
+            seenreg = False
+            while (x < len(funcdef) and not (seenreg and funcdef[x] == ')')):
+                if (funcdef[x] == '%'):
+                    seenreg = True
+                if (funcdef[x] == ','):
+                    self.funcargs.append(param)
+                    param = []
+                    seenreg = False
+                else:
+                    param.append(funcdef[x])
+                x += 1
+            if (x < len(funcdef) and funcdef[x] == ')'):
+                x += 1
+            if len(param):
+                self.funcargs.append(param)
+
+            for p in self.funcargs:
+                y = 0
+                while (y < len(p)-1):
+                    if p[y] == '%':
+                        self.cur_block = str(int(p[y+1]) + 1)
+                        break
+                    y += 1
+        
+        # capture any scoping that comes after params
+        while (x < len(funcdef) and funcdef[x] != '{'):
+            self.addr.append(funcdef[x])
+            x += 1
 
         # parse blocks 
         self.blocks.append(ssaBlock(self.tok, self.cur_block))
@@ -111,7 +175,7 @@ class ssaFunction:
                         changed = True
 
     def render(self):
-        print(f"{self.funcdef}")
+        print(f"{self.scope} {self.funcname}({self.funcargs}) {self.addr} " + "{")
         for b in self.blocks:
             b.render()
         print("}")
@@ -288,6 +352,6 @@ class ssaInstruction:
         print(f"(inst={self.inst}, dest={self.dest_reg}, oper={self.operand_regs}, toblocks={self.toblocks})")
 
 if __name__ == "__main__":
-    mod = ssaModule(tokener("ssa/shiftadd.ll"))    
+    mod = ssaModule(tokener("ssa/strcpy.ll"))    
     print("mod.render():")
     mod.render()
