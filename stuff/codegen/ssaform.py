@@ -96,12 +96,11 @@ class ssaFunction:
 
         for b in self.blocks:           # over all blocks
             for t in b.toblocks:        # over all blocks it jumps to
-                tgt = t[1]              # [ '%', tgt ]
-                for bb in self.blocks:
-                    if bb.blockno == int(tgt):
-                        bb.fromblocks.append(['%', b.blockno])
+               for bb in self.blocks:
+                    if bb.blockno == int(t):
+                        if not ['%', b.blockno] in bb.fromblocks:
+                            bb.fromblocks.append(b.blockno)
                         break
-
 
     def render(self):
         print(f"{self.funcdef}")
@@ -134,7 +133,7 @@ class ssaBlock:
         for i in self.instructions:
             for t in i.toblocks:
                 if not t in self.toblocks and self.blockno != int(t[1]):
-                    self.toblocks.append(t)
+                    self.toblocks.append(t[1])
 
     def render(self):
         print(f"%{self.blockno}: ; (toblocks={self.toblocks}, fromblocks={self.fromblocks})")
@@ -277,7 +276,8 @@ class ssaInstruction:
                         x += 1
                 
     def render(self):
-        print(f"\t{self.line} | (inst={self.inst}, dest={self.dest_reg}, oper={self.operand_regs}, toblocks={self.toblocks})")
+        #print(f"\t{self.line} | ", end='')
+        print(f"(inst={self.inst}, dest={self.dest_reg}, oper={self.operand_regs}, toblocks={self.toblocks})")
 
 if __name__ == "__main__":
     mod = ssaModule(tokener("ssa/shiftadd.ll"))    
