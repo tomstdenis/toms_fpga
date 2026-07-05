@@ -48,6 +48,12 @@ class ssaModule:
         self.functions = []
         self.parse()
 
+    def find_function(self, name: str) -> ssaFunction:
+        for f in self.functions:
+            if f.funcname == name:
+                return f
+        return None
+
     # Parse the module fully
     def parse(self):
         for line in self.tok:
@@ -190,6 +196,13 @@ class ssaBlock:
         self.fromblocks   = []          # list of blocks that jump to this block
         self.parse()
 
+    def oper_slots(self, reg: int) -> []:
+        insts = []
+        for i in range(len(self.instructions)):
+            if reg in self.instructions[i].oper:
+                insts.append(i)
+        return insts
+
     def parse(self):
         # append instructions until we hit a } or num:
         #print(f"\n\n\nParsing new block %{self.blockno}:\n") 
@@ -331,7 +344,7 @@ class ssaInstruction:
                         y += 1
                     if (x < len(toks) and toks[x] == ','):
                         x += 1
-            else: # default is 2 operand instructions
+            else: # default is multi operand instructions
                 # operands
                 while (x < len(toks)):
                     oper = []
