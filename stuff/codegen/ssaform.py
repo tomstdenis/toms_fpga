@@ -74,6 +74,12 @@ class ssaFunction:
         self.funcdef      = ""
         self.parse()
 
+    def find_block(self, blockno: int) -> ssaBlock:
+        for b in self.blocks:
+            if b.blockno == blockno:
+                return b
+        return None
+
     def parse(self):
         # parse define line
         self.funcdef = defline = self.tok.__next__()
@@ -94,13 +100,15 @@ class ssaFunction:
                         self.cur_block = int(toks[0])
                     self.blocks.append(ssaBlock(self.tok, self.cur_block))
 
-        for b in self.blocks:           # over all blocks
-            for t in b.toblocks:        # over all blocks it jumps to
-               for bb in self.blocks:
-                    if bb.blockno == int(t):
-                        if not ['%', b.blockno] in bb.fromblocks:
-                            bb.fromblocks.append(b.blockno)
-                        break
+        changed = True
+        while changed:
+            changed = False
+            for b in self.blocks:           # over all blocks
+                for t in b.toblocks:        # over all blocks it jumps to
+                    bb = self.find_block(int(t))
+                    if bb and b.blockno not in bb.fromblocks:
+                        bb.fromblocks.append(b.blockno)
+                        changed = True
 
     def render(self):
         print(f"{self.funcdef}")
