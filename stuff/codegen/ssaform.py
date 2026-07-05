@@ -72,7 +72,6 @@ class ssaFunction:
         self.cur_block    = 0
         self.funcname     = ""
         self.funcdef      = ""
-
         self.parse()
 
     def parse(self):
@@ -95,6 +94,15 @@ class ssaFunction:
                         self.cur_block = int(toks[0])
                     self.blocks.append(ssaBlock(self.tok, self.cur_block))
 
+        for b in self.blocks:           # over all blocks
+            for t in b.toblocks:        # over all blocks it jumps to
+                tgt = t[1]              # [ '%', tgt ]
+                for bb in self.blocks:
+                    if bb.blockno == int(tgt):
+                        bb.fromblocks.append(['%', b.blockno])
+                        break
+
+
     def render(self):
         print(f"{self.funcdef}")
         for b in self.blocks:
@@ -108,7 +116,7 @@ class ssaBlock:
         self.blockno      = blockno
         self.instructions = []          # list of instructions in this block
         self.toblocks     = []          # list of blocks we jump to from this block
-        self.fromblocks   = []          # list of blocks we jump from to this block
+        self.fromblocks   = []          # list of blocks that jump to this block
         self.parse()
 
     def parse(self):
@@ -122,9 +130,14 @@ class ssaBlock:
                     break
                 else:
                     self.instructions.append(ssaInstruction(line))
+        # merge all the blocks this block jumps to
+        for i in self.instructions:
+            for t in i.toblocks:
+                if not t in self.toblocks and self.blockno != int(t[1]):
+                    self.toblocks.append(t)
 
     def render(self):
-        print(f"%{self.blockno}:")
+        print(f"%{self.blockno}: ; (toblocks={self.toblocks}, fromblocks={self.fromblocks})")
         for i in self.instructions:
             i.render()
 
@@ -136,6 +149,7 @@ class ssaInstruction:
         self.operand_regs = []          # list containing lists containing info about operands
         self.dead_regs    = []          # list containing dead registers at this point
         self.inst         = []          # list containing info about the instruction itself
+        self.toblocks     = []          # branch targets for this instruction
         self.parse()
 
     def expect(self, tok: str, expect: str):
@@ -214,6 +228,7 @@ class ssaInstruction:
                         label.append(toks[x])
                         x += 1
                     self.inst.append(label)
+                    self.toblocks.append(label[1:])
                     if (x < len(toks) and toks[x] == ','):
                         x += 1
             elif (self.inst[0] == "select"):
@@ -262,7 +277,7 @@ class ssaInstruction:
                         x += 1
                 
     def render(self):
-        print(f"\t{self.line} | (inst={self.inst}, dest={self.dest_reg}, oper={self.operand_regs})")
+        print(f"\t{self.line} | (inst={self.inst}, dest={self.dest_reg}, oper={self.operand_regs}, toblocks={self.toblocks})")
 
 if __name__ == "__main__":
     mod = ssaModule(tokener("ssa/shiftadd.ll"))    
