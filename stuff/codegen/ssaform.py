@@ -193,7 +193,6 @@ class ssaInstruction:
             # [ "br", [muxsel], [label], ... ]
             # [ "br", [label] ]
             elif (self.inst[0] == "br"):
-#  br i1 %5, label %19, label %6
                 # read muxsel into inst[1]
                 muxsel = []
                 if (toks[x] != 'label'):
@@ -215,6 +214,50 @@ class ssaInstruction:
                         label.append(toks[x])
                         x += 1
                     self.inst.append(label)
+                    if (x < len(toks) and toks[x] == ','):
+                        x += 1
+            elif (self.inst[0] == "select"):
+                # read muxsel into inst[1]
+                muxsel = []
+                while (toks[x] != ','):
+                    muxsel.append(toks[x])
+                    x += 1
+                x += 1
+                self.inst.append(muxsel)
+                y = 0
+                while (y < len(muxsel) - 1):
+                    if (muxsel[y] == '%'):
+                        self.operand_regs.append(muxsel[y+1])
+                        break
+                    y += 1
+
+                # operands
+                while (x < len(toks)):
+                    oper = []
+                    while (x < len(toks) and toks[x] != ','):
+                        oper.append(toks[x])
+                        x += 1
+                    self.inst.append(oper)
+                    y = 0
+                    while (y < (len(oper) - 1)):
+                        if (oper[y] == '%'):
+                            self.operand_regs.append(oper[y+1])
+                        y += 1
+                    if (x < len(toks) and toks[x] == ','):
+                        x += 1
+            else: # default is 2 operand instructions
+                # operands
+                while (x < len(toks)):
+                    oper = []
+                    while (x < len(toks) and toks[x] != ','):
+                        oper.append(toks[x])
+                        x += 1
+                    self.inst.append(oper)
+                    y = 0
+                    while (y < (len(oper) - 1)):
+                        if (oper[y] == '%'):
+                            self.operand_regs.append(oper[y+1])
+                        y += 1
                     if (x < len(toks) and toks[x] == ','):
                         x += 1
                 
