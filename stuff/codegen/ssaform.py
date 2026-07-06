@@ -217,8 +217,8 @@ class ssaBlock:
         # merge all the blocks this block jumps to
         for i in self.instructions:
             for t in i.toblocks:
-                if not t in self.toblocks and self.blockno != int(t[1]):
-                    self.toblocks.append(int(t[1]))
+                if not t in self.toblocks and self.blockno != int(t):
+                    self.toblocks.append(t)
 
     def render(self):
         print(f"%{self.blockno}: ; (toblocks={self.toblocks}, fromblocks={self.fromblocks})")
@@ -312,7 +312,7 @@ class ssaInstruction:
                         label.append(toks[x])
                         x += 1
                     self.inst.append(label)
-                    self.toblocks.append(label[1:])
+                    self.toblocks.append(int(label[2]))
                     if (x < len(toks) and toks[x] == ','):
                         x += 1
             elif (self.inst[0] == "select"):
