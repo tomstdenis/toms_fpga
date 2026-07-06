@@ -41,6 +41,81 @@ class tokener:
         else:
             self.linenum = 0
 
+# Optimizers
+
+# Track live registers and rename registers when possible due to a reg being dead
+class ssaLiveReg:
+    def __init__(self, mod: ssaModule):
+        self.mod = mod
+        self.optimize()
+
+    def optimize(self):
+        for f in self.mod.functions:
+            self.opt_func(f)
+
+    def opt_func(self, func: ssaFunction):
+        handled_regs = []
+        while True:
+            changed = False
+            while True:
+                (nextregblock, nextreg) = self.next_reg(func, handled_regs)
+                if nextreg is None:
+                    break
+                print(f"Optimizing reg {nextreg} from block {nextregblock}...")
+                if self.live_track(func, nextregblock, nextreg):
+                    changed = True
+                handled_regs.append(nextreg)
+            if not changed:
+                break
+
+    # for a given register find the last instruction where it's an oper for
+    def live_track(self, func: ssaFunction, regblock: int, reg: int):
+        # generate a list in order of any reference to this reg
+        seenblocks = [regblock]  # blocks we have scanned so we don't endlessly loop
+        toscan     = [regblock]
+        toscan.extend(func.find_block(regblock).toblocks)
+        insts      = []  # instructions that use this reg as an operand
+        while len(toscan):
+            regblock = toscan.pop(0)
+            b = func.find_block(regblock)
+            for i in b.instructions:
+                if reg in i.operand_regs:
+                    if not i in insts and len(i.dest_reg):
+                        print(f"Appending {i} for {regblock}:{reg}")
+                        insts.append(i)
+            for t in b.toblocks:
+                if not t in seenblocks and not t in toscan:
+                    toscan.append(t)
+            seenblocks.append(regblock)
+        print(f"For reg {reg} we have generated the list of {insts} where it's used")
+        if (len(insts)):
+            # remap the last instruction that touched this to use this instead
+            tgtinst = insts.pop(-1)
+
+            # now we have to remap any instruction that uses tgtinst.dest_reg as an oper to use reg
+            for bb in func.blocks:
+                for ii in bb.instructions:
+                    if ii != tgtinst:
+                        for xi in range(len(ii.operand_regs)):
+                            if ii.operand_regs[xi] == tgtinst.dest_reg[0]:
+                                # TODO in the inst[] array we should do renames too
+                                # ...
+
+                                # swap operand xi to be the new source
+                                ii.operand_regs[xi] = reg
+            
+            # now rewrite the last time reg is used instruction to store in reg
+            tgtinst.dest_reg = [reg]
+            return True
+        return False
+
+    def next_reg(self, func: ssaFunction, handled_regs: [int]) -> tuple:
+        for b in func.blocks:
+            for i in b.instructions:
+                if len(i.dest_reg) and (not i.dest_reg[0] in handled_regs):
+                    return (b.blockno, i.dest_reg[0])
+        return (None, None)
+
 # Container of a module
 class ssaModule:
     def __init__(self, tok: tokener):
@@ -365,6 +440,7 @@ class ssaInstruction:
         print(f"(inst={self.inst}, dest={self.dest_reg}, oper={self.operand_regs}, toblocks={self.toblocks})")
 
 if __name__ == "__main__":
-    mod = ssaModule(tokener("ssa/shiftadd.ll"))    
+    mod = ssaModule(tokener("ssa/shiftadd.ll"))
+    liveopt = ssaLiveReg(mod)
     print("mod.render():")
     mod.render()
