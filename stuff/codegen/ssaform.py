@@ -49,9 +49,19 @@ class ssaLiveReg:
         self.mod = mod
         self.optimize()
 
+    def countregs(self, func: ssaFunction) -> int:
+        regs = []
+        for b in func.blocks:
+            for i in b.instructions:
+                if len(i.dest_reg) and not i.dest_reg[0] in regs:
+                    regs.extend(i.dest_reg)
+        return len(regs)
+
     def optimize(self):
         for f in self.mod.functions:
+            print(f"preopt  for @{f.funcname}: {self.countregs(f)}")
             self.opt_func(f)
+            print(f"postopt for @{f.funcname}: {self.countregs(f)}")
 
     def opt_func(self, func: ssaFunction):
         handled_regs = []
@@ -81,7 +91,6 @@ class ssaLiveReg:
             for i in b.instructions:
                 if reg in i.operand_regs:
                     if not i in insts and len(i.dest_reg):
-                        print(f"Appending {i} for {regblock}:{reg}")
                         insts.append(i)
             for t in b.toblocks:
                 if not t in seenblocks and not t in toscan:
@@ -99,10 +108,7 @@ class ssaLiveReg:
                         for xi in range(len(ii.operand_regs)):
                             if ii.operand_regs[xi] == tgtinst.dest_reg[0]:
                                 # TODO in the inst[] array we should do renames too
-                                # ...
-
-                                # swap operand xi to be the new source
-                                ii.operand_regs[xi] = reg
+                                ii.remap_oper(tgtinst.dest_reg[0], reg)
             
             # now rewrite the last time reg is used instruction to store in reg
             tgtinst.dest_reg = [reg]
@@ -310,6 +316,23 @@ class ssaInstruction:
         self.inst         = []          # list containing info about the instruction itself
         self.toblocks     = []          # branch targets for this instruction
         self.parse()
+
+
+    def remap_oper(self, fromreg: int, toreg: int):
+        for xi in range(len(self.operand_regs)):
+            if (self.operand_regs[xi] == fromreg):
+                self.operand_regs[xi] = toreg
+
+        # remap inst
+        if self.inst[0] == "phi":
+            xi = 2
+            while (xi < len(self.inst)):
+                # self.inst[xi] us a [value, from] pair
+                for y in range(len(self.inst[xi][0]) - 1):
+                    if self.inst[xi][0][y] == '%':
+                        if int(self.inst[xi][0][y+1]) == fromreg:
+                            self.inst[xi][0][y+1] = str(toreg)
+                xi += 1
 
     def expect(self, tok: str, expect: str):
         if (tok != expect):
