@@ -10,7 +10,7 @@ module top(
 	assign tx = rx;
 `else
 	reg rst_n;
-	wire [15:0] bauddiv = 200_000_000 / 115_200;
+	wire [15:0] bauddiv = 240_000_000 / 115_200;
 	reg uart_tx_start;
 	reg uart_rx_read;
 	reg [7:0] uart_tx_data_in;
@@ -31,13 +31,13 @@ module top(
 		.uart_tx_start(uart_tx_start), .uart_tx_data_in(uart_tx_data_in), .uart_tx_pin(tx),
 		.uart_rx_pin(rx), .uart_rx_read(uart_rx_read), .uart_rx_ready(uart_rx_ready), .uart_rx_byte(uart_rx_byte));
 
-	reg [1:0] state;
+	reg [3:0] state;
 	
 	localparam
-		STATE_IDLE=0,
-		STATE_WAIT_READ=1,
-		STATE_WRITE_BYTE=2,
-		STATE_WAIT_WRITE=3;
+		STATE_IDLE=1,
+		STATE_WAIT_READ=2,
+		STATE_WRITE_BYTE=4,
+		STATE_WAIT_WRITE=8;
 
 	always @(posedge pll_clk) begin
 		if (!rst_n) begin
@@ -61,7 +61,7 @@ module top(
 					end
 				STATE_WRITE_BYTE:
 					begin
-						uart_tx_data_in <= uart_rx_byte + 8'h01;	// copy RX byte to TX 
+						uart_tx_data_in <= uart_rx_byte;	// copy RX byte to TX 
 						uart_tx_start <= 1'b1;				// issue write
 						state <= STATE_WAIT_WRITE;			// next cycle is waiting for the write to finish
 					end

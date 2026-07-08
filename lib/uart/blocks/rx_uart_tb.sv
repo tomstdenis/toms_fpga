@@ -4,7 +4,7 @@ module uart_full_loopback_tb();
     // Global Control
     reg clk;
     reg rst_n;
-    reg [15:0] baud_div;
+    reg [11:0] baud_div;
 
     // TX Signals
     reg start_tx;

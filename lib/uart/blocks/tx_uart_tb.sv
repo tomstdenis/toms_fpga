@@ -4,7 +4,7 @@ module tx_uart_tb();
     // Signals
     logic clk;
     logic rst_n;
-    logic [15:0] baud_div;
+    logic [11:0] baud_div;
     logic start_tx;
     logic [7:0] data_in;
     logic tx_pin;

@@ -3,7 +3,7 @@
 module uart_tb();
 	reg clk;
 	reg rst_n;
-	reg [15:0] baud_div;
+	reg [11:0] baud_div;
 	reg uart_tx_start;
 	reg [7:0] uart_tx_data_in;
 	wire uart_tx_pin;
@@ -14,26 +14,7 @@ module uart_tb();
 	wire uart_rx_ready;
 	wire [7:0] uart_rx_byte;
 	
-/*
-module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1)
-(
-    input clk,                      // main clock
-    input rst_n,                      // active low reset
-    input [15:0] baud_div,          // counter value for baud calculation (e.g. F_CLK/BAUD == baud_div)
-    input uart_tx_start,            // signal we want to load uart_tx_data_in into the TX FIFO
-    input [7:0] uart_tx_data_in,    // TX data
-    output uart_tx_pin,             // (out) pin for transmitting on
-    output uart_tx_fifo_full,       // (out) true if the FIFO is currently full
-    output uart_tx_fifo_empty,      // (out) true if the FIFO is empty
-
-    input uart_rx_pin,              // pin to RX from
-    input uart_rx_read,             // signal that we read a byte
-    output uart_rx_ready,       // (out) signal that an output byte is available
-    output [7:0] uart_rx_byte       // (out) the RX byte
-);
-*/
     localparam fd = 64;
-
 
 	uart #(.FIFO_DEPTH(fd), .TX_ENABLE(1), .RX_ENABLE(1))
 	uart_dut(.clk(clk), .rst_n(rst_n), .baud_div(baud_div), 
@@ -126,25 +107,22 @@ module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1)
     
     task send_byte(input [7:0] val);
 		begin
-			@(posedge clk);
-			#1;
+			@(posedge clk);	#1;
 			uart_tx_data_in = val;
 			uart_tx_start = 1'b1;
-			@(posedge clk);
-			#1;
+			@(posedge clk);	#1;
 			uart_tx_start = 1'b0;
 		end
 	endtask
 	
 	task recv_byte(input [7:0] expected, input ready_expected);
 		begin
-			@(posedge clk);
-			#1;
+			@(posedge clk); #1;
 			test_rx_ready(ready_expected);
 			uart_rx_read = 1'b1;
-			@(posedge clk);
-			#1;
+			@(posedge clk);	#1;
 			uart_rx_read = 1'b0;
+			#1;
 			$display("read: %2h", uart_rx_byte);
 			if (uart_rx_byte != expected) begin
 				$display("ASSERTION FAILED: uart_rx_byte (%h) not expected value (%h)\n", uart_rx_byte, expected);

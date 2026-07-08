@@ -4,11 +4,11 @@
 // This implements a UART block which is full or half duplex (RX or TX or both)
 // with a variable sized FIFO and programmable baud rate
 // uses 8N1 signalling
-module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1)
+module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1, BAUD_WIDTH=12)
 (
     input wire clk,                      // main clock
     input wire rst_n,                    // active low reset
-    input wire [15:0] baud_div,          // counter value for baud calculation (e.g. F_CLK/BAUD == baud_div)
+    input wire [BAUD_WIDTH-1:0] baud_div,          // counter value for baud calculation (e.g. F_CLK/BAUD == baud_div)
     input wire uart_tx_start,            // signal we want to load uart_tx_data_in into the TX FIFO
     input wire [7:0] uart_tx_data_in,    // TX data
     output reg uart_tx_pin,             // (out) pin for transmitting on
@@ -34,7 +34,7 @@ module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1)
             logic [$clog2(FIFO_DEPTH):0] tx_fifo_cnt;
 
             // instantiate a transmitter
-            tx_uart txuart (
+            tx_uart #(.BAUD_WIDTH(BAUD_WIDTH)) txuart (
                 .clk(clk),
                 .rst_n(rst_n),
                 .baud_div(baud_div),
@@ -98,7 +98,7 @@ module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1)
             logic prev_uart_rx_read;
 
             // instantiate the receiver
-            rx_uart rxuart (
+            rx_uart #(.BAUD_WIDTH(BAUD_WIDTH)) rxuart (
                 .clk(clk),
                 .rst_n(rst_n),
                 .baud_div(baud_div),
