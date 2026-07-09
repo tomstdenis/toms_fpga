@@ -1,12 +1,15 @@
 `timescale 1ns/1ps
 
-/* Demo program that uses a single 2048x8 semi-dual port memory
+/* Demo program that uses a single 2048x8 dual port memory
 
 This demos syncs on a 0x5A byte, then reads 2048 bytes at 115.2K, then writes them back.
 
 The test loops back to the sync byte.
 
 */
+
+// define this to use registered BRAMs, watch Fmax improve...
+`define REGMEM
 
 module top(
 	input clk,
@@ -54,7 +57,11 @@ module top(
 	reg bram_we_b;
 	wire [7:0] bram_dout_b;
 
+`ifdef REGMEM
+	bram_dp_nx2048x8 #(.N(`BLOCKS), .REGMODE_A("OUTREG"), .REGMODE_B("OUTREG")) bram (
+`else
 	bram_dp_nx2048x8 #(.N(`BLOCKS)) bram (
+`endif
 		.clk_a(pll_clk),
 		.clk_en_a(1'b1),
 		.rst_a(~rst_n),
@@ -142,12 +149,12 @@ module top(
 							state		<= 0;						// we're not at the top of memory so go back and read the next from the UART
 						end
 					end
-				4:													// delay for read to fetch byte written in previous cycle
+				4, 5:													// delay for read to fetch byte written in previous cycle
 					begin
 						state			<= state + 1;
 						uart_tx_start	<= 0;						// ensure we're not transmitting on the UART
 					end
-				5:													// transmit the byte read from bram
+				6:													// transmit the byte read from bram
 					begin
 						if (!uart_tx_fifo_full) begin				// only transmit if the FIFO is not full
 							if (test_count[1]) begin
@@ -165,7 +172,11 @@ module top(
 								init			<= 0;				// go back to waiting for sync byte
 								test_count		<= test_count + 1'b1;
 							end else begin
+`ifdef REGMEM
 								state			<= 4;				// go to next byte to write
+`else								
+								state			<= 5;				// go to next byte to write
+`endif							
 							end
 						end
 					end

@@ -48,7 +48,7 @@ module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1, BAUD_WIDTH=12)
             );
 
             // Output signals are combinatorial
-            assign uart_tx_fifo_full = (tx_fifo_cnt == (FIFO_DEPTH));
+            assign uart_tx_fifo_full = (tx_fifo_cnt == FIFO_DEPTH);
             assign uart_tx_fifo_empty = (tx_fifo_cnt == 0);
 
             always @(posedge clk) begin
@@ -69,7 +69,7 @@ module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1, BAUD_WIDTH=12)
 						if (tx_started) begin
 							tx_start			<= 1'b0;					// transmit started, deassert tx_start
 						end
-                    end else if (!tx_start && tx_done && (tx_fifo_cnt > 0)) begin
+                    end else if (!tx_start && tx_done & |tx_fifo_cnt) begin
 						// send a new byte to the uart_tx if uart_tx is idle (done==1), rptr != wptr, we didn't start a byte recently or the 
                         tx_send			<= tx_fifo[tx_fifo_rptr]; 
                         tx_fifo_rptr	<= tx_fifo_rptr + 1'd1;
@@ -97,7 +97,6 @@ module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1, BAUD_WIDTH=12)
             wire rx_done;
             wire [7:0] rx_byte;
             reg [1:0] rx_sync_pipe;
-            reg prev_uart_rx_read;
 
             // instantiate the receiver
             rx_uart #(.BAUD_WIDTH(BAUD_WIDTH)) rxuart (
@@ -117,24 +116,23 @@ module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1, BAUD_WIDTH=12)
                     rx_fifo_rptr		<= 0;
                     rx_fifo_cnt			<= 0;
                     uart_rx_byte		<= 0;
-                    prev_uart_rx_read 	<= 0;
                     uart_rx_ready 		<= 0;
                     rx_sync_pipe 		<= 2'b11;
                 end else begin
                     // ===== RX =====
                     rx_sync_pipe	<= {rx_sync_pipe[0], uart_rx_pin};
-                    uart_rx_ready	<= rx_fifo_cnt > 0 ? 1'b1 : 1'b0;
+                    uart_rx_ready	<= |rx_fifo_cnt;
                     // if the user wants something from the fifo and there is a byte advance the read pointer
-                    if (uart_rx_read && (rx_fifo_cnt > 0)) begin
+                    if (uart_rx_read & |rx_fifo_cnt) begin
                         // note the output is combinatorial above ...
                         uart_rx_byte	<= rx_fifo[rx_fifo_rptr];
                         rx_fifo_rptr	<= rx_fifo_rptr + 1'd1;
                         rx_fifo_cnt		<= rx_fifo_cnt - 1'd1;
                         rx_read			<= 0; // ensure we release the read strobe
-                    end else if (rx_done && !rx_read) begin
+                    end else if (rx_done & ~rx_read) begin
 						// if an RX finished store it in the fifo if room and then acknowledge the read
                         // read a byte if we have room
-                        if (rx_fifo_cnt != FIFO_DEPTH) begin
+                        if (rx_fifo_cnt < FIFO_DEPTH) begin
                             rx_fifo[rx_fifo_wptr]	<= rx_byte;
                             rx_fifo_wptr			<= rx_fifo_wptr + 1'd1;
                             rx_fifo_cnt				<= rx_fifo_cnt + 1'd1;

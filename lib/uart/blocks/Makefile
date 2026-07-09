@@ -3,7 +3,7 @@
 # then we test the UART against the TX and RX
 all: test_tx.pass test_rx.pass test_uart.pass
 
-test_uart.pass: uart.sv tx_uart.sv rx_uart.sv uart_tb.sv
+test_uart.pass: uart.v tx_uart.v rx_uart.v uart_tb.v
 	verilator --lint-only $^
 	iverilog -g2005-sv -Wall -o sim.vvp $^
 	(vvp sim.vvp -fst > $@.log && touch $@) || cat $@.log
