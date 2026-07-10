@@ -2,8 +2,18 @@ LOCATE      COMP "clk"    SITE "P3";
 IOBUF       PORT "clk"    IO_TYPE=LVCMOS33;
 FREQUENCY   PORT "clk"    25 MHZ;
 
-LOCATE      COMP "rx"       SITE "H18";   // iCELink-UART3-RX
-IOBUF       PORT "rx"       IO_TYPE=LVCMOS33;
+// This is using the onboard USB-ACM device
+//LOCATE      COMP "rx"       SITE "H18";   // iCELink-UART3-RX
+//IOBUF       PORT "rx"       IO_TYPE=LVCMOS33;
+//LOCATE      COMP "tx"       SITE "J17";
+//IOBUF       PORT "tx"       IO_TYPE=LVCMOS33;
 
-LOCATE      COMP "tx"       SITE "J17";
+//This is using an ESP32-C3 PMOD in P3 on the colorlight-i9 board
+
+// FROM GND (near the middle of P3) to the edge of the board (corner of P3/P4)
+// TOP: 3V3 GND E3 C2 C1 D1
+// BOT: 3V3 GND A3 B1 D2 E2
+LOCATE      COMP "rx"       SITE "E2"; // TX goes to RX eh
+IOBUF       PORT "rx"       IO_TYPE=LVCMOS33;
+LOCATE      COMP "tx"       SITE "D2"; // RX goes to TX 
 IOBUF       PORT "tx"       IO_TYPE=LVCMOS33;

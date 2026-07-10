@@ -3,7 +3,7 @@
 #include <EEPROM.h>
 
 // use GPIO pins for UART (otherwise use USB-ACM)
-//#define USE_GPIO
+#define USE_GPIO
 
 #ifdef USE_GPIO
 #define UART Serial0

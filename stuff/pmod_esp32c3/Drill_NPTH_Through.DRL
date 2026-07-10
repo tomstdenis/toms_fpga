@@ -1,0 +1,14 @@
+;TYPE=NON_PLATED
+;Layer: NPTH_Through
+;EasyEDA Pro v3.2.148, 2026-07-10 19:43:19
+;Gerber Generator version 0.3
+M48
+METRIC,LZ,0000.00000
+;Hole size 1 = 2.00000 METRIC
+T01C2.00000
+%
+G05
+G90
+T01
+X24.37575Y-29.083
+M30
