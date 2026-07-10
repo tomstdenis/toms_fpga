@@ -1,4 +1,6 @@
 `timescale 1ns/1ps
+`default_nettype none
+
 
 /* Demo program that uses a single 2048x8 dual port memory
 
@@ -10,6 +12,13 @@ The test loops back to the sync byte.
 
 // define this to use registered BRAMs, watch Fmax improve...
 `define REGMEM
+
+// Use my BRAM wrapper 
+//`define USE_MOD
+
+// if using inferred memories use a single flat region instead of tiles
+//`define FLATMEM
+
 
 module top(
 	input clk,
@@ -50,33 +59,101 @@ module top(
 	reg [10+$clog2(`BLOCKS):0] bram_addr_a;
 	reg [7:0] bram_din_a;
 	reg bram_we_a;
-	wire [7:0] bram_dout_a;
 	
 	reg [10+$clog2(`BLOCKS):0] bram_addr_b;
 	reg [7:0] bram_din_b;
 	reg bram_we_b;
-	wire [7:0] bram_dout_b;
 
-`ifdef REGMEM
-	bram_dp_nx2048x8 #(.N(`BLOCKS), .REGMODE_A("OUTREG"), .REGMODE_B("OUTREG")) bram (
+`ifdef USE_MOD
+	wire [7:0] bram_dout_a;
+	wire [7:0] bram_dout_b;
+	`ifdef REGMEM
+		bram_dp_nx2048x8 #(.N(`BLOCKS), .REGMODE_A("OUTREG"), .REGMODE_B("OUTREG")) bram (
+	`else
+		bram_dp_nx2048x8 #(.N(`BLOCKS)) bram (
+	`endif
+			.clk_a(pll_clk),
+			.clk_en_a(1'b1),
+			.rst_a(~rst_n),
+			.addr_a(bram_addr_a),
+			.din_a(bram_din_a),
+			.we_a(bram_we_a),
+			.dout_a(bram_dout_a),
+			.clk_b(pll_clk),
+			.clk_en_b(1'b1),
+			.rst_b(~rst_n),
+			.addr_b(bram_addr_b),
+			.din_b(bram_din_b),
+			.we_b(bram_we_b),
+			.dout_b(bram_dout_b)
+		);
 `else
-	bram_dp_nx2048x8 #(.N(`BLOCKS)) bram (
+	`ifdef FLATMEM
+		// inferred memory
+		reg [7:0] bram_dout_a;
+		reg [7:0] bram_dout_b;
+		reg [7:0] mem[(`BLOCKS * 2048) - 1 : 0];
+		always @(posedge pll_clk) begin
+			if (rst_n) begin
+				if (bram_we_a)
+					mem[bram_addr_a] <= bram_din_a;
+				bram_dout_a <= mem[bram_addr_a];
+			end
+		end
+	`else
+		// inferred tiled memory (hardcoded for 192 / 16 = 12 regions)
+		localparam regions = 12;
+
+		reg [7:0] bram_dout_a;
+		reg [7:0] bram_dout_b;
+		reg [7:0] tile_dout[regions-1:0];
+		
+		reg [3:0] tile_q;
+		always @(posedge pll_clk) begin
+			tile_q <= bram_addr_a[17:14];
+		end
+
+		genvar i;
+		generate
+			for (i = 0; i < regions; i++) begin : tiled_mem
+				reg [7:0] tile_mem[16383:0];
+				reg [7:0] tile_din;
+				reg [13:0] tile_addr;
+				reg tile_we;
+				always @(posedge pll_clk) begin
+					if (bram_addr_a[17:14] == i) begin
+						tile_addr    <= bram_addr_a[13:0];
+						tile_din     <= bram_din_a;
+						tile_dout[i] <= tile_mem[tile_addr];
+						tile_we      <= bram_we_a;
+						if (tile_we) begin
+							tile_mem[tile_addr] <= tile_din;
+							tile_we <= 1'b0;
+						end
+					end
+				end
+			end
+		endgenerate
+		
+		always @(*) begin
+			case (tile_q)
+				0: bram_dout_a = tile_dout[0];
+				1: bram_dout_a = tile_dout[1];
+				2: bram_dout_a = tile_dout[2];
+				3: bram_dout_a = tile_dout[3];
+				4: bram_dout_a = tile_dout[4];
+				5: bram_dout_a = tile_dout[5];
+				6: bram_dout_a = tile_dout[6];
+				7: bram_dout_a = tile_dout[7];
+				8: bram_dout_a = tile_dout[8];
+				9: bram_dout_a = tile_dout[9];
+				10: bram_dout_a = tile_dout[10];
+				11: bram_dout_a = tile_dout[11];
+				default: bram_dout_a = 0;
+			endcase
+		end
+	`endif
 `endif
-		.clk_a(pll_clk),
-		.clk_en_a(1'b1),
-		.rst_a(~rst_n),
-		.addr_a(bram_addr_a),
-		.din_a(bram_din_a),
-		.we_a(bram_we_a),
-		.dout_a(bram_dout_a),
-		.clk_b(pll_clk),
-		.clk_en_b(1'b1),
-		.rst_b(~rst_n),
-		.addr_b(bram_addr_b),
-		.din_b(bram_din_b),
-		.we_b(bram_we_b),
-		.dout_b(bram_dout_b)
-	);
 	
 	reg [3:0] state;
 	reg [3:0] init;
@@ -125,7 +202,7 @@ module top(
 							bram_addr_b	<= 0;						// ensure we're at byte 0
 							state		<= 0;						// wait for next byte
 						end else begin
-							if (test_count[0]) begin
+							if (1 | test_count[0]) begin
 								bram_we_a 	<= 1;					// write byte using port A
 							end else begin
 								bram_we_b	<= 1;					// write byte using port B
@@ -135,29 +212,35 @@ module top(
 							state		<= state + 1;
 						end
 					end
-				3:													// advance write pointer and stop writing
+// todo you need to wait longer than 1 cycle for writes...
+				3: 
 					begin
-						bram_we_a		<= 0;
-						bram_we_b		<= 0;
+						bram_we_a <= 0;
+						state <= state + 1;							// advance write pointer and stop writing
+					end
+				4: state <= state + 1;
+				5:
+					begin
 						bram_addr_a 	<= bram_addr_a + 1;			// advance write address to next address
 						bram_addr_b 	<= bram_addr_b + 1;			// advance write address to next address
 						if (bram_addr_a == STRIDE) begin
-							state		<= 4;						// Switch to reading back since we hit the top of memory
+							state		<= state + 1;				// Switch to reading back since we hit the top of memory
 							bram_addr_a <= 0;						// ensure the write address is reset
 							bram_addr_b <= 0;						// ensure the write address is reset
 						end else begin
 							state		<= 0;						// we're not at the top of memory so go back and read the next from the UART
 						end
 					end
-				4, 5:													// delay for read to fetch byte written in previous cycle
+				   
+				6, 7, 8:													// delay for read to fetch byte written in previous cycle
 					begin
-						state			<= state + 1;
 						uart_tx_start	<= 0;						// ensure we're not transmitting on the UART
+						state			<= state + 1;
 					end
-				6:													// transmit the byte read from bram
+				9:													// transmit the byte read from bram
 					begin
 						if (!uart_tx_fifo_full) begin				// only transmit if the FIFO is not full
-							if (test_count[1]) begin
+							if (1 | test_count[1]) begin
 								uart_tx_data_in <= bram_dout_a;
 							end else begin
 								uart_tx_data_in <= bram_dout_b;			// read from memory
@@ -172,11 +255,7 @@ module top(
 								init			<= 0;				// go back to waiting for sync byte
 								test_count		<= test_count + 1'b1;
 							end else begin
-`ifdef REGMEM
-								state			<= 4;				// go to next byte to write
-`else								
-								state			<= 5;				// go to next byte to write
-`endif							
+								state			<= 6;				// go to next byte to write
 							end
 						end
 					end
