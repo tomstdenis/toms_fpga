@@ -10,7 +10,13 @@ module top(
 	assign tx = rx;
 `else
 	reg rst_n;
-	wire [15:0] bauddiv = 250_000_000 / 1_000_000;
+
+	localparam
+		freq = 250_000_000,
+		baud = 1_000_000,
+		baudwidth = $clog2(freq / baud);
+		
+	wire [baudwidth-1:0] bauddiv = freq / baud;
 	reg uart_tx_start;
 	reg uart_rx_read;
 	reg [7:0] uart_tx_data_in;
@@ -25,7 +31,7 @@ module top(
 	
 	pll mypll(.clkin(clk), .clkout0(pll_clk), .locked(plllock));
 		
-	uart #(.FIFO_DEPTH(4), .RX_ENABLE(1), .TX_ENABLE(1)) myuart(
+	uart #(.BAUD_WIDTH(baudwidth), .FIFO_DEPTH(4), .RX_ENABLE(1), .TX_ENABLE(1)) myuart(
 		.clk(pll_clk), .rst_n(rst_n),
 		.baud_div(bauddiv), 
 		.uart_tx_start(uart_tx_start), .uart_tx_data_in(uart_tx_data_in), .uart_tx_pin(tx),
