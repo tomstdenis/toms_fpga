@@ -29,17 +29,17 @@ module rx_uart
 	
     always @(posedge clk) begin
         if (!rst_n | rx_read) begin
-            state		<= IDLE;
-            rx_data		<= 0;
+            state	<= IDLE;
+            rx_data	<= 0;
         end else begin
 			if (~state) begin
-				state     <= ~rx_pin;
+				state  <= ~rx_pin;
 			end else if (state) begin
 				if (bit_timer == 0) begin
-					rx_data    <= {rx_pin, rx_data[9:1]};
+					rx_data <= {rx_pin, rx_data[9:1]};
 					// if we have more bits increment the index and loop
 					if (bit_index == 9) begin
-						state     <= IDLE;								// otherwise transition to waiting for the STOP bit
+						state <= IDLE;								// otherwise transition to waiting for the STOP bit
 					end 
 				end 
 			end

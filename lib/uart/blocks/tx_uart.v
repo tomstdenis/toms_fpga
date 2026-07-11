@@ -14,51 +14,34 @@ module tx_uart
     output reg tx_started,              // (out) Indicates transmission started
     output reg tx_done                  // (out) indicates TX done
 );
-    localparam
-        IDLE      = 1'd0, // waiting for a byte
-        DATA_BITS = 1'd1; // reading in data bits
-
-    reg state;
     reg [BAUD_WIDTH-1:0] bit_timer;
-    reg [3:0] bit_index;
     reg [9:0] data_latch;
+	reg state;
+
     always @(*) begin
-		tx_pin     = (state == IDLE) ? 1'b1 : data_latch[0];
-		tx_done    = (state == IDLE && bit_index == 9) ? 1'b1 : 1'b0;
+		tx_pin     = (state == 0) ? 1'b1 : data_latch[0];
+		tx_done    = (state == 0) ? 1'b1 : 1'b0;
 		tx_started = state;
 	end
-
+	
     always @(posedge clk) begin
         if (~rst_n) begin
-            state 	   <= IDLE;
 			bit_timer  <= baud_div;							// and the current baud_div
-            bit_index  <= 9;
+            data_latch <= 0;
+            state      <= 0;
         end else begin
 			if (~state) begin
-				bit_index  <= {~start_tx, 1'b0, 1'b0, ~start_tx};
+				data_latch <= { start_tx, data_in, 1'b0 };	// latch the data being transmitted
 				state      <= start_tx;
 			end else if (state) begin
 				if (bit_timer == 0) begin
 					bit_timer  <= baud_div;
-					if (bit_index == 9) begin
-						state  <= IDLE;
-					end else begin
-						bit_index <= bit_index + 1'b1;
-					end
+					data_latch <= { 1'b0, data_latch[9:1] };
+					state      <= |data_latch[9:1];
 				end else begin
 					bit_timer <= bit_timer - 1'b1;
 				end
 			end
 		end
 	end
-
-    always @(posedge clk) begin
-		if (~state) begin
-			data_latch <= { 1'b1, data_in, 1'b0 };	// latch the data being transmitted
-		end else if (state) begin 
-			if (bit_timer == 0) begin
-				data_latch <= { 1'b0, data_latch[9:1] };
-			end
-		end
-    end
 endmodule
