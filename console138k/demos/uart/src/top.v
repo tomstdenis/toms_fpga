@@ -44,7 +44,7 @@ module top
         WRITE_ECHO       = 8'd10,
         CLEAR_INT        = 8'd11;
 
-    uart_mem uartmem(
+    uart_mem #(.FIFO_DEPTH(8))  uartmem(
         .clk(clk), .rst_n(rst_n), .irq(irq), .bus_err(bus_err), .be(4'b0001),
         .enable(enable), .wr_en(wr_en), .addr(addr), .i_data(i_data), .ready(ready), .o_data(o_data),
         .tx_pin(tx_pin), .rx_pin(rx_pin));

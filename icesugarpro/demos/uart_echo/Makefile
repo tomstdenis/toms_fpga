@@ -1,6 +1,6 @@
 TARGET=echo
 TOP=top
-FREQ=200
+FREQ=250
 
 OBJS+=${TARGET}.v pll.v \
 ../../../lib/uart/blocks/tx_uart.v ../../../lib/uart/blocks/rx_uart.v ../../../lib/uart/blocks/uart.v

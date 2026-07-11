@@ -10,7 +10,7 @@ module top(
 	assign tx = rx;
 `else
 	reg rst_n;
-	wire [15:0] bauddiv = 200_000_000 / 1_000_000;
+	wire [15:0] bauddiv = 250_000_000 / 1_000_000;
 	reg uart_tx_start;
 	reg uart_rx_read;
 	reg [7:0] uart_tx_data_in;
