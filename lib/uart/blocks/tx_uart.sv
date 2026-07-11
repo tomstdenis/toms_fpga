@@ -22,45 +22,43 @@ module tx_uart
     logic [BAUD_WIDTH-1:0] bit_timer;
     logic [3:0] bit_index;
     logic [9:0] data_latch;
-
     always @(*) begin
 		tx_pin     = (state == IDLE) ? 1'b1 : data_latch[0];
 		tx_done    = (state == IDLE && bit_index == 9) ? 1'b1 : 1'b0;
 		tx_started = state;
 	end
 
-    always_ff @(posedge clk) begin
-        if (!rst_n) begin
-            state 		<= IDLE;
-            data_latch 	<= 0;
-            bit_timer 	<= 0;
-            bit_index 	<= 9;
+    always @(posedge clk) begin
+        if (~rst_n) begin
+            state 	   <= IDLE;
+			bit_timer  <= baud_div;							// and the current baud_div
+            bit_index  <= 9;
         end else begin
-            case (state)
-                IDLE: begin									// IDLE state waiting for start_tx to go high
-                    if (start_tx) begin
-                        data_latch <= { 1'b1, data_in, 1'b0 };	// latch the data being transmitted
-                        bit_timer  <= baud_div;				// and the current baud_div
-                        bit_index  <= 0;
-                        state      <= DATA_BITS;
-                    end
-                end
+			if (~state) begin
+				bit_index  <= {~start_tx, 1'b0, 1'b0, ~start_tx};
+				state      <= start_tx;
+			end else if (state) begin
+				if (bit_timer == 0) begin
+					bit_timer  <= baud_div;
+					if (bit_index == 9) begin
+						state  <= IDLE;
+					end else begin
+						bit_index <= bit_index + 1'b1;
+					end
+				end else begin
+					bit_timer <= bit_timer - 1'b1;
+				end
+			end
+		end
+	end
 
-                DATA_BITS: begin							// Send data bits as pulse width signals
-                    if (bit_timer == 0) begin
-						data_latch <= { 1'b0, data_latch[9:1] };
-                        bit_timer <= baud_div;
-                        if (bit_index == 9) begin
-                            state      <= IDLE;
-                        end else begin
-                            bit_index <= bit_index + 1'b1;
-                        end
-                    end else begin
-                        bit_timer <= bit_timer - 1'b1;
-                    end
-                end
-                default: state <= IDLE;
-            endcase
-        end
+    always @(posedge clk) begin
+		if (~state) begin
+			data_latch <= { 1'b1, data_in, 1'b0 };	// latch the data being transmitted
+		end else if (state) begin 
+			if (bit_timer == 0) begin
+				data_latch <= { 1'b0, data_latch[9:1] };
+			end
+		end
     end
 endmodule

@@ -53,7 +53,6 @@ module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1, BAUD_WIDTH=12)
 
             always @(posedge clk) begin
                 if (!rst_n) begin
-					tx_send 		<= 0;
                     tx_start 		<= 0;
                     tx_fifo_wptr 	<= 0;
                     tx_fifo_rptr 	<= 0;
@@ -70,7 +69,6 @@ module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1, BAUD_WIDTH=12)
 						end
                     end else if (!tx_start && tx_done & |tx_fifo_cnt) begin
 						// send a new byte to the uart_tx if uart_tx is idle (done==1), rptr != wptr, we didn't start a byte recently or the 
-                        tx_send			<= tx_fifo[tx_fifo_rptr]; 
                         tx_fifo_rptr	<= tx_fifo_rptr + 1'd1;
                         tx_start		<= 1'b1;						// we read a byte out of the fifo to transmit 
                         tx_fifo_cnt		<= tx_fifo_cnt - 1'd1;
@@ -86,6 +84,9 @@ module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1, BAUD_WIDTH=12)
 				if (uart_tx_start && !uart_tx_fifo_full) begin
 					// user wants to transmit a byte and the fifo isn't full so store it in the fifo
 					tx_fifo[tx_fifo_wptr]	<= uart_tx_data_in;
+				end else if (!tx_start && tx_done & |tx_fifo_cnt) begin
+					// send a new byte to the uart_tx if uart_tx is idle (done==1), rptr != wptr, we didn't start a byte recently or the 
+					tx_send	<= tx_fifo[tx_fifo_rptr]; 
 				end
 			end
 
