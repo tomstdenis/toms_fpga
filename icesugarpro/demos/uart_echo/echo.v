@@ -12,7 +12,7 @@ module top(
 	reg rst_n;
 
 	localparam
-		freq = 250_000_000,
+		freq = 200_000_000,
 		baud = 1_000_000,
 		baudwidth = $clog2(freq / baud);
 		

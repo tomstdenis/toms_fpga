@@ -39,7 +39,7 @@ module tx_uart
 					data_latch <= { 1'b0, data_latch[9:1] };
 					state      <= |data_latch[9:1];
 				end else begin
-					bit_timer <= bit_timer - 1'b1;
+					bit_timer  <= bit_timer - 1'b1;
 				end
 			end
 		end

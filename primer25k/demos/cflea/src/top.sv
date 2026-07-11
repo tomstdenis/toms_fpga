@@ -166,7 +166,10 @@ module top(input wire clk, input wire s1,
     assign mon = gpio[7:0];
 
 	// ### UART ###
-    wire [15:0] baud_div = (`FREQ * 1_000_000) / `UART_BAUD;
+    localparam
+        baud_width = $clog2((`FREQ * 1_000_000) / `UART_BAUD);
+
+    wire [baud_width-1:0] baud_div = (`FREQ * 1_000_000) / `UART_BAUD;
     logic uart_tx_start;
     logic [7:0] uart_tx_data_in;
     logic uart_tx_fifo_full;
@@ -178,7 +181,7 @@ module top(input wire clk, input wire s1,
     logic uart_prev_tx_fifo_empty;
     logic uart_prev_rx_ready;
 
-    uart #(.FIFO_DEPTH(`UART_FIFO_DEPTH), .RX_ENABLE(1), .TX_ENABLE(1)) mrtalky (
+    uart #(.BAUD_WIDTH(baud_width), .FIFO_DEPTH(`UART_FIFO_DEPTH), .RX_ENABLE(1), .TX_ENABLE(1)) mrtalky (
         .clk(pllclk), .rst_n(rst_n),
         .baud_div(baud_div),
         .uart_tx_start(uart_tx_start),

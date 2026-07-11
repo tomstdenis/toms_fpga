@@ -1,3 +1,4 @@
+`default_nettype none
 `timescale 1ns/1ps
 
 module top(
@@ -7,7 +8,9 @@ module top(
 	output led);
 	
 	reg rst_n;
-	wire [15:0] bauddiv = 12_000_000 / 115_200;
+	localparam
+		baudwidth = $clog2(12_000_000 / 1_000_000);
+	wire [baudwidth-1:0] bauddiv = 12_000_000 / 1_000_000;
 	reg uart_tx_start;
 	reg uart_rx_read;
 	reg [7:0] uart_tx_data_in;
@@ -17,69 +20,35 @@ module top(
 	assign led = ledv;
 	
 	reg [23:0] counter;
-	reg [7:0] memory[0:4095]; // messing around inferring RAM4K blocks
-	reg [11:0] wptr;
-	reg [11:0] rptr;
 	
 	initial begin
 		rst_n = 0;
 	end
 		
-	uart #(.FIFO_DEPTH(32), .RX_ENABLE(1), .TX_ENABLE(1)) myuart(
+	uart #(.BAUD_WIDTH(baudwidth), .FIFO_DEPTH(4), .RX_ENABLE(1), .TX_ENABLE(1)) myuart(
 		.clk(clk), .rst_n(rst_n),
 		.baud_div(bauddiv), 
 		.uart_tx_start(uart_tx_start), .uart_tx_data_in(uart_tx_data_in), .uart_tx_pin(tx),
 		.uart_rx_pin(rx), .uart_rx_read(uart_rx_read), .uart_rx_ready(uart_rx_ready), .uart_rx_byte(uart_rx_byte));
 	
-	reg [2:0] state;
+	reg [3:0] state;
 	
-	localparam
-		STATE_IDLE=0,
-		STATE_WAIT_READ=1,
-		STATE_WRITE_BYTE=2,
-		STATE_WAIT_WRITE=3;
-
 	always @(posedge clk) begin
 		if (!rst_n) begin
-			rst_n <= 1;
-			state <= STATE_IDLE;
-			counter <= 0;
-			wptr <= 1;
-			rptr <= 0;
+			rst_n           <= 1;
+			state           <= 1;
+			uart_rx_read    <= 0;
+			uart_tx_start   <= 0;
 		end else begin
-			counter <= counter + 1;
-			ledv <= counter[23];
-			case(state)
-				STATE_IDLE:
-					begin
-						if (uart_rx_ready) begin
-							// there's a byte to read
-							uart_rx_read <= 1'b1;
-							state <= STATE_WAIT_READ;
-						end
-					end
-				STATE_WAIT_READ:
-					begin
-						// waiting for read to ack byte
-						uart_rx_read <= 1'b0;				// only want 1 byte from the RX fifo
-						state <= STATE_WRITE_BYTE;			// next cycle we'll have the byte
-					end
-				STATE_WRITE_BYTE:
-					begin
-						memory[wptr] <= uart_rx_byte;
-						wptr <= wptr + 1;
-						uart_tx_data_in <= memory[rptr];
-						rptr <= rptr + 1;
-//						uart_tx_data_in <= uart_rx_byte;	// copy RX byte to TX
-						uart_tx_start <= 1'b1;				// issue write
-						state <= STATE_WAIT_WRITE;			// next cycle is waiting for the write to finish
-					end
-				STATE_WAIT_WRITE:
-					begin
-						uart_tx_start <= 1'b0;				// only want to write 1 byte
-						state <= STATE_IDLE;				// back to idle
-					end
-			endcase
+			uart_rx_read    <= uart_rx_ready;
+			uart_tx_start   <= state[2];
+			state           <= (state[0] & ~uart_rx_ready) ? state : {state[2:0], state[3]};
 		end
+	end
+
+	always @(posedge clk) begin
+		counter <= counter + 1'b1;
+		ledv    <= counter[23];
+		uart_tx_data_in <= uart_rx_byte;
 	end
 endmodule

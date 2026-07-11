@@ -121,12 +121,12 @@ module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1, BAUD_WIDTH=12)
 
             always @(posedge clk) begin
                 if (!rst_n) begin
-                    rx_read				<= 0;
-                    rx_fifo_wptr		<= 0;
-                    rx_fifo_rptr		<= 0;
-                    rx_fifo_cnt			<= 0;
-                    uart_rx_ready 		<= 0;
-                    rx_sync_pipe 		<= 2'b11;
+                    rx_read		  <= 0;
+                    rx_fifo_wptr  <= 0;
+                    rx_fifo_rptr  <= 0;
+                    rx_fifo_cnt	  <= 0;
+                    uart_rx_ready <= 0;
+                    rx_sync_pipe  <= 2'b11;
                 end else begin
                     // ===== RX =====
                     rx_sync_pipe	<= {rx_sync_pipe[0], uart_rx_pin};
@@ -134,15 +134,15 @@ module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1, BAUD_WIDTH=12)
                     // if the user wants something from the fifo and there is a byte advance the read pointer
                     if (uart_rx_read & |rx_fifo_cnt) begin
                         // note the output is combinatorial above ...
-                        rx_fifo_rptr	<= rx_fifo_rptr + 1'd1;
-                        rx_fifo_cnt		<= rx_fifo_cnt - 1'd1;
-                        rx_read			<= 0; // ensure we release the read strobe
+                        rx_fifo_rptr <= rx_fifo_rptr + 1'd1;
+                        rx_fifo_cnt	 <= rx_fifo_cnt - 1'd1;
+                        rx_read		 <= 0; // ensure we release the read strobe
                     end else if (rx_done & ~rx_read) begin
 						// if an RX finished store it in the fifo if room and then acknowledge the read
                         // read a byte if we have room
                         if (rx_fifo_cnt < FIFO_DEPTH) begin
-                            rx_fifo_wptr			<= rx_fifo_wptr + 1'd1;
-                            rx_fifo_cnt				<= rx_fifo_cnt + 1'd1;
+                            rx_fifo_wptr <= rx_fifo_wptr + 1'd1;
+                            rx_fifo_cnt	 <= rx_fifo_cnt + 1'd1;
                         end
 						rx_read <= 1; // discard bytes that overflow the device
                     end else begin
@@ -158,20 +158,20 @@ module uart#(parameter FIFO_DEPTH=64, RX_ENABLE=1, TX_ENABLE=1, BAUD_WIDTH=12)
 				// if the user wants something from the fifo and there is a byte advance the read pointer
 				if (uart_rx_read & |rx_fifo_cnt) begin
 					// note the output is combinatorial above ...
-					uart_rx_byte	<= rx_fifo[rx_fifo_rptr];
+					uart_rx_byte <= rx_fifo[rx_fifo_rptr];
 				end else if (rx_done & ~rx_read) begin
 					// if an RX finished store it in the fifo if room and then acknowledge the read
 					// read a byte if we have room
 					if (rx_fifo_cnt < FIFO_DEPTH) begin
-						rx_fifo[rx_fifo_wptr]	<= rx_byte;
+						rx_fifo[rx_fifo_wptr] <= rx_byte;
 					end
 				end
 			end
 
         end else begin : rx_stub
             always @(posedge clk) begin
-                uart_rx_ready	<= 1'b0;
-                uart_rx_byte	<= 8'h00;
+                uart_rx_ready <= 1'b0;
+                uart_rx_byte  <= 8'h00;
             end
         end
     endgenerate

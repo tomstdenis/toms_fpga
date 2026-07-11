@@ -19,8 +19,9 @@ $(PROJ).asc: $(PROJ).json pins.pcf
 $(PROJ).bin: $(PROJ).asc
 	icepack $< $@
 
+# hacky because I don't automount things so I manually mount it to ~/ice but you need to run this as root
 prog_icelink: ${PROJ}.bin
-	cp ${PROJ}.bin /media/${USER}/iCELink/ -vf
+	cp ${PROJ}.bin /home/tom/ice/ -vf
 
 prog_sram: $(PROJ).bin
 	icesprog -S $<
