@@ -34,24 +34,34 @@ module rx_uart
         end else begin
 			if (~state) begin
 				state     <= ~rx_pin;
-				bit_timer <= (baud_div >> 1); 	// wait half for a LOW START pulse
-				bit_index <= 0;
 			end else if (state) begin
 				if (bit_timer == 0) begin
 					rx_data    <= {rx_pin, rx_data[9:1]};
-					bit_timer  <= baud_div;								// reset the timer
 					// if we have more bits increment the index and loop
 					if (bit_index == 9) begin
 						state     <= IDLE;								// otherwise transition to waiting for the STOP bit
-						bit_index <= 0;
-					end else begin
-						bit_index <= bit_index + 1'b1;
-					end
-				end else begin
-					bit_timer <= bit_timer - 1'b1;
-				end
+					end 
+				end 
 			end
 		end
-		
-    end
+	end
+
+    always @(posedge clk) begin
+		if (~state) begin
+			bit_timer <= (baud_div >> 1); 	// wait half for a LOW START pulse
+			bit_index <= 0;
+		end else if (state) begin
+			if (bit_timer == 0) begin
+				bit_timer  <= baud_div;								// reset the timer
+				// if we have more bits increment the index and loop
+				if (bit_index == 9) begin
+					bit_index <= 0;
+				end else begin
+					bit_index <= bit_index + 1'b1;
+				end
+			end else begin
+				bit_timer <= bit_timer - 1'b1;
+			end
+		end
+	end
 endmodule

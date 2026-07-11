@@ -54,9 +54,7 @@ module tx_uart
 
     always @(posedge clk) begin
 		if (~state) begin
-			if (start_tx) begin
-				data_latch <= { 1'b1, data_in, 1'b0 };	// latch the data being transmitted
-			end
+			data_latch <= { 1'b1, data_in, 1'b0 };	// latch the data being transmitted
 		end else if (state) begin 
 			if (bit_timer == 0) begin
 				data_latch <= { 1'b0, data_latch[9:1] };
