@@ -10,7 +10,7 @@ module top(
 	assign tx = rx;
 `else
 	reg rst_n;
-	wire [15:0] bauddiv = 50_000_000 / 1_000_000;
+	wire [15:0] bauddiv = 200_000_000 / 1_000_000;
 	reg uart_tx_start;
 	reg uart_rx_read;
 	reg [7:0] uart_tx_data_in;
@@ -35,14 +35,19 @@ module top(
 	
 	always @(posedge pll_clk) begin
 		if (!rst_n) begin
-			rst_n <= 1;
-			state <= 1;
+			rst_n           <= 1;
+			state           <= 1;
+			uart_rx_read    <= 0;
+			uart_tx_start   <= 0;
 		end else begin
 			uart_rx_read    <= uart_rx_ready;
 			uart_tx_start   <= state[2];
-			uart_tx_data_in <= uart_rx_byte;
 			state           <= (state[0] & ~uart_rx_ready) ? state : {state[2:0], state[3]};
 		end
+	end
+
+	always @(posedge pll_clk) begin
+		uart_tx_data_in <= uart_rx_byte;
 	end
 `endif
 endmodule
