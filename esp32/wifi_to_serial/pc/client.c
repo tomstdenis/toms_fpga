@@ -33,13 +33,14 @@ static int set_interface_attribs(int fd, int speed) {
     return 0;
 }
 
+// ./client /dev/ttyXXX ssid psk baud
 int main(int argc, char **argv)
 {
 	unsigned char buf[256];
 	uint32_t baud;
     int fd = open(argv[1], O_RDWR | O_NOCTTY);
     if (fd < 0) { perror("Open port"); return 1; }
-    set_interface_attribs(fd, B9600);
+    set_interface_attribs(fd, B1000000);
 	tcflush(fd, TCIOFLUSH);
 	
 	// program SSID

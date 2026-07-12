@@ -234,6 +234,8 @@ void loop()
       // note you may want to avoid writing more at any time than your device Serial FIFO
       // if we write 128 bytes here but your Serial FIFO is only 16 bytes it could drop
       // a lot if the device is busy doing something else.
+      // also if you write more than 1 byte at a time you may want to check if there's 
+      // Serial to read in the same loop
       if (tcp_rb.left != RB_SIZE) {
         Serial0.write(tcp_rb.rb[tcp_rb.rptr]);
         tcp_rb.rptr++;
@@ -271,7 +273,34 @@ void loop()
       digitalWrite(BUILTIN_LED, !digitalRead(BUILTIN_LED));
     }
 
-    /* TODO: put listening to Serial here ... */
+    // handle configuration commands
+    if (Serial.available()) {
+      switch (Serial.read()) {
+        case CFG_COMMAND_SET_PSK:
+          Serial.print("Received CFG_COMMAND_SET_PSK: [");
+          read_string(password);
+          Serial.print(password);
+          Serial.println("]");
+          break;
+        case CFG_COMMAND_SET_SSID:
+          Serial.print("Received CFG_COMMAND_SET_SSID: [");
+          read_string(ssid);
+          Serial.print(ssid);
+          Serial.println("]");
+          break;
+        case CFG_COMMAND_SET_BAUD:
+          Serial.print("Received CFG_COMMAND_SET_BAUD: ");
+          Serial.readBytes((char *)&baud, 4);
+          Serial.println(baud);
+          break;
+        case CFG_COMMAND_SET_STORE:
+          Serial.println("Received CFG_COMMAND_SET_STORE command.");
+          Serial.write(0xAA); // sync byte
+          save_eeprom();
+          ESP.restart();
+          break;
+      }
+    }
   }
 /* TODO: drop the setup pin and just parse setup commands if we receive on Serial ...
    else {
@@ -288,33 +317,6 @@ void loop()
       blink = millis();
       digitalWrite(BUILTIN_LED, !digitalRead(BUILTIN_LED));
     }
-    // handle configuration commands
-    if (UART.available()) {
-      switch (UART.read()) {
-        case CFG_COMMAND_SET_PSK:
-          UART.print("Received CFG_COMMAND_SET_PSK: [");
-          read_string(password);
-          UART.print(password);
-          UART.println("]");
-          break;
-        case CFG_COMMAND_SET_SSID:
-          UART.print("Received CFG_COMMAND_SET_SSID: [");
-          read_string(ssid);
-          UART.print(ssid);
-          UART.println("]");
-          break;
-        case CFG_COMMAND_SET_BAUD:
-          UART.print("Received CFG_COMMAND_SET_BAUD: ");
-          UART.readBytes((char *)&baud, 4);
-          UART.println(baud);
-          break;
-        case CFG_COMMAND_SET_STORE:
-          UART.println("Received CFG_COMMAND_SET_STORE command.");
-          UART.write(0xAA); // sync byte
-          save_eeprom();
-          ESP.restart();
-          break;
-      }
     }
   }
 */    
