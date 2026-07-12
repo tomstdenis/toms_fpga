@@ -277,21 +277,16 @@ void loop()
     if (Serial.available()) {
       switch (Serial.read()) {
         case CFG_COMMAND_SET_PSK:
-          Serial.print("Received CFG_COMMAND_SET_PSK: [");
           read_string(password);
-          Serial.print(password);
-          Serial.println("]");
+          Serial.printf("Received CFG_COMMAND_SET_PSK: [%s]\n", password);
           break;
         case CFG_COMMAND_SET_SSID:
-          Serial.print("Received CFG_COMMAND_SET_SSID: [");
           read_string(ssid);
-          Serial.print(ssid);
-          Serial.println("]");
+          Serial.printf("Received CFG_COMMAND_SET_SSID: [%s]\n", ssid);
           break;
         case CFG_COMMAND_SET_BAUD:
-          Serial.print("Received CFG_COMMAND_SET_BAUD: ");
           Serial.readBytes((char *)&baud, 4);
-          Serial.println(baud);
+          Serial.printf("Received CFG_COMMAND_SET_BAUD: %lu\n", (unsigned long)baud);
           break;
         case CFG_COMMAND_SET_STORE:
           Serial.println("Received CFG_COMMAND_SET_STORE command.");
@@ -302,22 +297,4 @@ void loop()
       }
     }
   }
-/* TODO: drop the setup pin and just parse setup commands if we receive on Serial ...
-   else {
-    if (first_cfg) {
-      UART.end();
-#ifdef USE_GPIO
-      Serial0.begin(9600, SERIAL_8N1, 20, 21);
-#else
-      Serial.begin(9600);
-#endif  
-      first_cfg = 0;
-    }
-    if ((millis() - blink) > 1000) {
-      blink = millis();
-      digitalWrite(BUILTIN_LED, !digitalRead(BUILTIN_LED));
-    }
-    }
-  }
-*/    
 }
