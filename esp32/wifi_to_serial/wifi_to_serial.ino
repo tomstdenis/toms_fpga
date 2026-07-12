@@ -174,8 +174,10 @@ void loop()
     while(client.connected()){
       yield(); // since loop() doesn't exit we need to yield to background tasks
 
+      if (debug) Serial.printf("line: %d\n", __LINE__);
+
       // fill from TCP into local buffer
-      while (tcp_rb.left && (x = client.available())) {
+      while ((x = client.available())) {
         if (debug) Serial.printf("%d bytes avaialble from TCP\n", x);
         // we can fill at most the least of x, left, sizeof buf bytes
         if (x > tcp_rb.left) {
@@ -201,6 +203,8 @@ void loop()
         }
       }
 
+      if (debug) Serial.printf("line: %d\n", __LINE__);
+
       // read from device serial to relay out over wifi and CDC
       while((x = Serial0.available())>0)
       {
@@ -220,11 +224,17 @@ void loop()
           if (ser_rb.wptr == RB_SIZE) {
             ser_rb.wptr = 0;
           }
+          ser_rb.left--;
         }
       }
 
+      if (debug) Serial.printf("line: %d, tcpleft == %d\n", __LINE__, tcp_rb.left);
+
       // write one TCP byte per loop since this might block and take time
-      if (tcp_rb.rptr != tcp_rb.wptr) {
+      // note you may want to avoid writing more at any time than your device Serial FIFO
+      // if we write 128 bytes here but your Serial FIFO is only 16 bytes it could drop
+      // a lot if the device is busy doing something else.
+      if (tcp_rb.left != RB_SIZE) {
         Serial0.write(tcp_rb.rb[tcp_rb.rptr]);
         tcp_rb.rptr++;
         if (tcp_rb.rptr == RB_SIZE) {
@@ -233,8 +243,11 @@ void loop()
         tcp_rb.left++;
       }
 
-      // write upto linebuf per loop since this should be faster
-      if (ser_rb.rptr != ser_rb.wptr) {
+      if (debug) Serial.printf("line: %d, serleft == %d\n", __LINE__, ser_rb.left);
+
+      // write upto linebuf at a time
+      // the TCP stack should have reasonable ability to buffer things
+      if (ser_rb.left != RB_SIZE) {
         y = 0;
         while (y < LB_SIZE && ser_rb.rptr != ser_rb.wptr) {
           linebuf[y++] = ser_rb.rb[ser_rb.rptr];
@@ -246,6 +259,9 @@ void loop()
         }
         client.write(linebuf, y);
       }
+
+      if (debug) Serial.printf("line: %d\n", __LINE__);
+
     }
     client.stop();
   } else {
