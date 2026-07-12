@@ -2,16 +2,29 @@
 #include <WiFi.h>
 #include <EEPROM.h>
 
-int port = 8888;  //Port number
-WiFiServer server(port);
+// size of the local buffer
+#define LB_SIZE 64
+static unsigned char linebuf[LB_SIZE];
+
+// size of TCP ring buffer
+#define RB_SIZE 4096
+static struct {
+  unsigned char rb[RB_SIZE];
+  unsigned wptr, rptr, left;
+} tcp_rb, ser_rb;
+
+#define debug 0
+
+static int port = 8888;  //Port number
+static WiFiServer server(port);
 
 //Server connect to WiFi Network
 #define STRLEN 128
-char ssid[STRLEN];  //Enter your wifi SSID
-char password[STRLEN];  //Enter your wifi Password
-char server_loaded;
-unsigned long blink, baud = 1000000;
-int first_cfg = 1;
+static char ssid[STRLEN];  //Enter your wifi SSID
+static char password[STRLEN];  //Enter your wifi Password
+static int server_loaded, serial_input = 0;
+static unsigned long blink, baud = 1000000;
+static int first_cfg = 1;
 
 #define EEPROM_MAGIC          0xAA
 #define EEPROM_SSID_OFFSET    1
@@ -28,7 +41,7 @@ enum cfg_commands {
 #define PIN_SETUP 0
 
 // try to load settings from EEPROM
-int load_eeprom(void)
+static int load_eeprom(void)
 {
   EEPROM.begin(512);
   if (EEPROM.read(0) == EEPROM_MAGIC) {
@@ -44,7 +57,7 @@ int load_eeprom(void)
 }
 
 // store settings in eeprom
-void save_eeprom(void)
+static void save_eeprom(void)
 {
   EEPROM.begin(512);
   Serial.println("Storing EEPROM...");
@@ -56,7 +69,7 @@ void save_eeprom(void)
 }
 
 // read a string upto STRLEN-1 bytes (can terminate early with NUL)
-void read_string(char *p)
+static void read_string(char *p)
 {
   int x = 0;
   memset(p, 0, STRLEN);
@@ -137,7 +150,6 @@ void setup()
 
 void loop() 
 {
-  unsigned char buf[64];
   int x, y;
 
   if (server_loaded == 0) {
@@ -149,29 +161,90 @@ void loop()
     if(client.connected())
     {
       digitalWrite(BUILTIN_LED, LOW);
+      // reset tcp ring buffer
+      memset(&tcp_rb, 0, sizeof tcp_rb);
+      tcp_rb.left = sizeof tcp_rb.rb;
+
+      // reset serial ring buffer
+      memset(&ser_rb, 0, sizeof ser_rb);
+      ser_rb.left = sizeof ser_rb.rb;
+
+      client.flush();
     }
     while(client.connected()){
       yield(); // since loop() doesn't exit we need to yield to background tasks
-      while((x = client.available())>0){
-        if (x > sizeof(buf)) {
-          x = sizeof(buf);
+
+      // fill from TCP into local buffer
+      while (tcp_rb.left && (x = client.available())) {
+        if (debug) Serial.printf("%d bytes avaialble from TCP\n", x);
+        // we can fill at most the least of x, left, sizeof buf bytes
+        if (x > tcp_rb.left) {
+          x = tcp_rb.left;
         }
-        // read data from the connected client
-        client.read(buf, x);
-        Serial0.write(buf, x);
-        yield();
+        if (x > sizeof(linebuf)) {
+          x = sizeof(linebuf);
+        }
+        if (!x) {
+          if (debug) Serial.printf("TCP ring buffer is full!\n");
+          break;
+        }
+        if (debug) Serial.printf("Reading %d bytes\n", x);
+        x = client.read(linebuf, x);
+        if (debug) Serial.printf("Read %d bytes\n", x);
+        y = 0;
+        while (x--) {
+          tcp_rb.rb[tcp_rb.wptr++] = linebuf[y++];
+          if (tcp_rb.wptr == RB_SIZE) {
+            tcp_rb.wptr = 0;
+          }
+          tcp_rb.left--;
+        }
       }
-      //Send Data to connected client
+
+      // read from device serial to relay out over wifi and CDC
       while((x = Serial0.available())>0)
       {
-        if (x > sizeof(buf)) {
-          x = sizeof(buf);
+        x = sizeof(linebuf);
+        if (x > ser_rb.left) {
+          x = ser_rb.left;
+        }
+        if (!x) {
+          break;
         }
         // if service mode is disabled just copy from one to the other in bulk
-        Serial0.read(buf, x);
-        Serial.write(buf, x);
-        client.write(buf, x);
-        yield();
+        x = Serial0.read(linebuf, x);
+        if (debug) Serial.printf("%d bytes read from device serial\n", x);
+        y = 0;
+        while (x--) {
+          ser_rb.rb[ser_rb.wptr++] = linebuf[y++];
+          if (ser_rb.wptr == RB_SIZE) {
+            ser_rb.wptr = 0;
+          }
+        }
+      }
+
+      // write one TCP byte per loop since this might block and take time
+      if (tcp_rb.rptr != tcp_rb.wptr) {
+        Serial0.write(tcp_rb.rb[tcp_rb.rptr]);
+        tcp_rb.rptr++;
+        if (tcp_rb.rptr == RB_SIZE) {
+          tcp_rb.rptr = 0;
+        }
+        tcp_rb.left++;
+      }
+
+      // write upto linebuf per loop since this should be faster
+      if (ser_rb.rptr != ser_rb.wptr) {
+        y = 0;
+        while (y < LB_SIZE && ser_rb.rptr != ser_rb.wptr) {
+          linebuf[y++] = ser_rb.rb[ser_rb.rptr];
+          ser_rb.rptr++;
+          if (ser_rb.rptr == RB_SIZE) {
+            ser_rb.rptr = 0;
+          }
+          ser_rb.left++;
+        }
+        client.write(linebuf, y);
       }
     }
     client.stop();
