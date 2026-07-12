@@ -2,15 +2,6 @@
 #include <WiFi.h>
 #include <EEPROM.h>
 
-// use GPIO pins for UART (otherwise use USB-ACM)
-#define USE_GPIO
-
-#ifdef USE_GPIO
-#define UART Serial0
-#else
-#define UART Serial
-#endif
-
 int port = 8888;  //Port number
 WiFiServer server(port);
 
@@ -41,14 +32,14 @@ int load_eeprom(void)
 {
   EEPROM.begin(512);
   if (EEPROM.read(0) == EEPROM_MAGIC) {
-    UART.println("Valid EEPROM magic in load...");
+    Serial.println("Valid EEPROM magic in load...");
     EEPROM.readBytes(EEPROM_SSID_OFFSET, ssid, STRLEN);
     EEPROM.readBytes(EEPROM_PSK_OFFSET, password, STRLEN);
     EEPROM.readBytes(EEPROM_BAUD_OFFSET, &baud, 4);
     EEPROM.end();
     return 0;
   }
-  UART.println("no valid EEPROM magic in load...");
+  Serial.println("no valid EEPROM magic in load...");
   return -1;
 }
 
@@ -56,7 +47,7 @@ int load_eeprom(void)
 void save_eeprom(void)
 {
   EEPROM.begin(512);
-  UART.println("Storing EEPROM...");
+  Serial.println("Storing EEPROM...");
   EEPROM.write(0, EEPROM_MAGIC);
   EEPROM.writeBytes(EEPROM_SSID_OFFSET, ssid, STRLEN);
   EEPROM.writeBytes(EEPROM_PSK_OFFSET, password, STRLEN);
@@ -71,8 +62,8 @@ void read_string(char *p)
   memset(p, 0, STRLEN);
   while (x < STRLEN-1) {
     char ch;
-    while (!UART.available());
-    ch = UART.read();
+    while (!Serial.available());
+    ch = Serial.read();
     if (!ch) {
       return;
     }
@@ -89,14 +80,12 @@ void setup()
   memset(password, 0, sizeof password);
 
   int loaded = load_eeprom();
-//  Serial0.begin(1000000);
-  UART.setTxBufferSize(256);
-  UART.setRxBufferSize(256);
-#ifdef USE_GPIO
-  Serial0.begin(baud, SERIAL_8N1, 20, 21);
-#else
+  Serial.setTxBufferSize(256);
+  Serial.setRxBufferSize(256);
+  Serial0.setTxBufferSize(256);
+  Serial0.setRxBufferSize(256);
   Serial.begin(baud);
-#endif  
+  Serial0.begin(baud, SERIAL_8N1, 20, 21);
 
   WiFi.mode(WIFI_STA);
   WiFi.setTxPower(WIFI_POWER_8_5dBm);
@@ -106,17 +95,17 @@ void setup()
   server_loaded = 0;
 
   // try to load from EEPROM
-  UART.println("Booting...");
+  Serial.println("Booting...");
   if (digitalRead(PIN_SETUP) == HIGH && loaded == 0) {
-    UART.println("Read settings from EERPOM trying to connect...");
-    UART.print("SSID: [");
-    UART.print(ssid);
-    UART.println("]");
-    UART.print("Password: [");
-    UART.print(password);
-    UART.println("]");
-    UART.print("Baud: ");
-    UART.println(baud);
+    Serial.println("Read settings from EERPOM trying to connect...");
+    Serial.print("SSID: [");
+    Serial.print(ssid);
+    Serial.println("]");
+    Serial.print("Password: [");
+    Serial.print(password);
+    Serial.println("]");
+    Serial.print("Baud: ");
+    Serial.println(baud);
     int tries = 30;
     WiFi.begin(ssid, password); //Connect to wifi
   
@@ -126,18 +115,18 @@ void setup()
       delay(250); yield();
       delay(250); yield();
       delay(250); yield();
-      UART.write('.');
+      Serial.write('.');
       if (!--tries) {
         break;
       }
     }
 
     if (WiFi.status() == WL_CONNECTED) {
-      UART.println("Connected.");
+      Serial.println("Connected.");
       server.begin();
       server_loaded = 1;
     } else {
-      UART.println("Not connected.");
+      Serial.println("Not connected.");
     }
   }
   blink = millis();
@@ -151,60 +140,52 @@ void loop()
   unsigned char buf[64];
   int x, y;
 
-  if (digitalRead(PIN_SETUP) == HIGH) {
-    if (server_loaded == 0) {
-      ESP.restart();
+  if (server_loaded == 0) {
+    ESP.restart();
+  }
+
+  WiFiClient client = server.accept();
+  if (client) {
+    if(client.connected())
+    {
+      digitalWrite(BUILTIN_LED, LOW);
     }
-    if (first_cfg == 0) {
-      UART.end();
-      UART.setTxBufferSize(256);
-      UART.setRxBufferSize(256);
-#ifdef USE_GPIO
-      Serial0.begin(baud, SERIAL_8N1, 20, 21);
-#else
-      Serial.begin(baud);
-#endif  
-      first_cfg = 1;
-    }
-    WiFiClient client = server.accept();
-    
-    if (client) {
-      if(client.connected())
+    while(client.connected()){
+      yield(); // since loop() doesn't exit we need to yield to background tasks
+      while((x = client.available())>0){
+        if (x > sizeof(buf)) {
+          x = sizeof(buf);
+        }
+        // read data from the connected client
+        client.read(buf, x);
+        Serial0.write(buf, x);
+        yield();
+      }
+      //Send Data to connected client
+      while((x = Serial0.available())>0)
       {
-        digitalWrite(BUILTIN_LED, LOW);
-      }
-      while(client.connected()){
-        yield(); // since loop() doesn't exit we need to yield to background tasks
-        while((x = client.available())>0){
-          if (x > sizeof(buf)) {
-            x = sizeof(buf);
-          }
-          // read data from the connected client
-          client.read(buf, x);
-          UART.write(buf, x);
-          yield();
+        if (x > sizeof(buf)) {
+          x = sizeof(buf);
         }
-        //Send Data to connected client
-        while((x = UART.available())>0)
-        {
-          if (x > sizeof(buf)) {
-            x = sizeof(buf);
-          }
-          // if service mode is disabled just copy from one to the other in bulk
-          UART.read(buf, x);
-          client.write(buf, x);
-          yield();
-        }
-      }
-      client.stop();
-    } else {
-      yield();
-      if ((millis() - blink) > 250) {
-        blink = millis();
-        digitalWrite(BUILTIN_LED, !digitalRead(BUILTIN_LED));
+        // if service mode is disabled just copy from one to the other in bulk
+        Serial0.read(buf, x);
+        Serial.write(buf, x);
+        client.write(buf, x);
+        yield();
       }
     }
+    client.stop();
   } else {
+    yield();
+    if ((millis() - blink) > 250) {
+      blink = millis();
+      digitalWrite(BUILTIN_LED, !digitalRead(BUILTIN_LED));
+    }
+
+    /* TODO: put listening to Serial here ... */
+  }
+/* TODO: drop the setup pin and just parse setup commands if we receive on Serial ...
+   else {
     if (first_cfg) {
       UART.end();
 #ifdef USE_GPIO
@@ -247,5 +228,5 @@ void loop()
       }
     }
   }
+*/    
 }
-//=======================================================================
