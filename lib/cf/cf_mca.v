@@ -227,7 +227,7 @@ module cf_cpu #(
 				end
 
 				// wait for bus_ready
-				if (fetch_busy && bus_ready) begin
+				if (fetch_busy & bus_ready) begin
 					// handle bus
 					fetch_busy 		  <= 0;
 					fetch_bus_enable  <= 0;
@@ -303,7 +303,7 @@ module cf_cpu #(
 				alu_busy        <= 0;
 				sd_valid        <= 0;
 			end else begin
-				if (alu_in_valid && alu_fsm[0]) begin
+				if ((alu_in_valid | alu_busy) & alu_fsm[0]) begin
 					// busy
 					alu_busy  <= 1;
 
@@ -369,7 +369,7 @@ module cf_cpu #(
 								end
 						endcase
 					end
-					if (alu_bus_enable && bus_ready) begin
+					if (alu_bus_enable & bus_ready) begin
 						// respond to bus response
 						alu_bus_enable <= 0;
 						case(fetch_cur_opcode[2:0])
@@ -414,7 +414,7 @@ module cf_cpu #(
 						// start bus
 						alu_bus_enable <= 1;
 					end
-					if (alu_bus_enable && bus_ready) begin
+					if (alu_bus_enable & bus_ready) begin
 						// respond to bus response
 						alu_bus_enable <= 0;
 						alu_operand    <= bus_data_out;					// finally have the operand 
@@ -452,12 +452,12 @@ module cf_cpu #(
 									alu_fsm       <= alu_fsm_execute;
 								end
 								
-								if (!sd_valid && !sd_ready) begin
+								if (!sd_valid & !sd_ready) begin
 									sd_num   <= alu_ACC;
 									sd_denom <= alu_operand;
 									sd_valid <= 1'b1;
 								end
-								if (sd_valid && sd_ready) begin
+								if (sd_valid & sd_ready) begin
 									fsm_state <= FSM_FETCH_OPCODE;
 									alu_ACC   <= sd_quotient;						// ACC gets quotient and we put remainder in ALT location
 									alu_alt   <= sd_remainder;
@@ -549,7 +549,7 @@ module cf_cpu #(
 				store_fsm         <= store_fsm_decode;
 				store_busy        <= 0;
 			end else begin
-				if (store_in_valid && store_fsm[0]) begin
+				if ((store_in_valid | store_busy) & store_fsm[0]) begin
 					if (~store_bus_enable) begin
 						store_INDEX <= fetch_INDEX;
 						store_SP    <= fetch_SP;
@@ -604,7 +604,7 @@ module cf_cpu #(
 								begin end
 						endcase
 					end
-					if (store_bus_enable && bus_ready) begin
+					if (store_bus_enable & bus_ready) begin
 						store_bus_enable  <= 1'b0;
 						store_bus_burst   <= fetch_operand_16;									// are we storing 16 or 8 bits
 						store_bus_address <= {1'b1, bus_data_out};
@@ -623,7 +623,7 @@ module cf_cpu #(
 							store_bus_enable <= 1'b1;
 						end
 					end
-					if (store_bus_enable && bus_ready) begin
+					if (store_bus_enable & bus_ready) begin
 						store_out_valid  <= 1;
 						store_busy       <= 0;
 						store_fsm        <= store_fsm_decode;
@@ -709,7 +709,7 @@ module cf_cpu #(
 				branch_fsm         <= branch_fsm_decode;
 				branch_busy        <= 0;
 			end else begin
-				if (branch_in_valid && branch_fsm[0]) begin
+				if ((branch_in_valid | branch_busy) & branch_fsm[0]) begin
 					if (~branch_bus_enable) begin
 						// init state
 						branch_busy        <= 1;
@@ -787,7 +787,7 @@ module cf_cpu #(
 							default: begin end
 						endcase
 					end
-					if (branch_bus_enable && bus_ready) begin
+					if (branch_bus_enable & bus_ready) begin
 						branch_bus_enable <= 1'b0;
 						branch_out_valid  <= 1;
 						branch_busy       <= 0;
@@ -834,7 +834,7 @@ module cf_cpu #(
 					if (~branch_bus_enable) begin
 						// enable write to stack of PC
 						branch_bus_enable <= 1'b1;
-					end else if (branch_bus_enable && bus_ready) begin
+					end else if (branch_bus_enable & bus_ready) begin
 						// PC was saved we can fetch the first opcode of the target.
 						branch_bus_enable <= 1'b0;
 						branch_bus_wr_en  <= 1'b0;
@@ -849,7 +849,7 @@ module cf_cpu #(
 						branch_bus_enable        <= 1'b1;
 						branch_switch_table_addr <= branch_switch_table_addr + 16'd2;
 					end
-					if (branch_bus_enable && bus_ready) begin
+					if (branch_bus_enable & bus_ready) begin
 						branch_switch_addr       <= bus_data_out;
 						branch_bus_enable        <= 1'b0;
 						branch_bus_address       <= {1'b0, branch_switch_table_addr};
@@ -862,7 +862,7 @@ module cf_cpu #(
 						branch_bus_enable        <= 1'b1;
 						branch_switch_table_addr <= branch_switch_table_addr + 16'd2;
 					end
-					if (branch_bus_enable && bus_ready) begin
+					if (branch_bus_enable & bus_ready) begin
 						branch_bus_enable <= 1'b0;
 						if (switch_addr == 0) begin				// are we at the default?
 							branch_PC        <= bus_data_out;
@@ -900,16 +900,16 @@ module cf_cpu #(
 				retire_PC      <= BOOT_VECTOR;
 				fetch_in_valid <= 1;
 			end begin
-				retire_ACC   <= fetch_ACC;
-				retire_INDEX <= fetch_INDEX;
-				retire_R[0]  <= fetch_R[0];
-				retire_R[1]  <= fetch_R[1];
-				retire_SP    <= fetch_SP;
-				retire_PC    <= fetch_PC;
-				retire_flags <= fetch_flags;
-				retire_alt   <= fetch_alt;
+				retire_ACC     <= fetch_ACC;
+				retire_INDEX   <= fetch_INDEX;
+				retire_R[0]    <= fetch_R[0];
+				retire_R[1]    <= fetch_R[1];
+				retire_SP      <= fetch_SP;
+				retire_PC      <= fetch_PC;
+				retire_flags   <= fetch_flags;
+				retire_alt     <= fetch_alt;
+				fetch_in_valid <= alu_out_valid | store_out_valid | flags_out_valid | branch_out_valid | stack_out_valid | misc_out_valid;
 				if (alu_out_valid) begin
-					fetch_in_valid <= 1;
 					retire_ACC     <= alu_ACC;
 					retire_INDEX   <= alu_INDEX;
 					retire_SP      <= alu_SP;
@@ -917,21 +917,16 @@ module cf_cpu #(
 					retire_flags   <= alu_flags;
 					retire_alt     <= alu_alt;
 				end else if (store_out_valid) begin
-					fetch_in_valid <= 1;
 					retire_INDEX   <= store_INDEX;
 					retire_SP      <= store_SP;
 					retire_PC      <= store_PC;
 				end else if (flags_out_valid) begin
-					fetch_in_valid <= 1;
 					retire_ACC     <= flags_ACC;
 				end else if (branch_out_valid) begin
-					fetch_in_valid <= 1;
 					retire_SP      <= branch_SP;
 					retire_PC      <= branch_PC;
 				end else if (stack_out_valid) begin
-					fetch_in_valid <= 1;
 				end else if (misc_out_valid) begin
-					fetch_in_valid <= 1;
 				end
 			end
 		end // end of retire ff
