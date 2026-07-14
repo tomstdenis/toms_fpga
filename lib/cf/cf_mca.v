@@ -698,6 +698,9 @@ module cf_cpu #(
 		reg		   branch_bus_io_flag;
 		reg		   branch_bus_burst;
 		
+		wire [15:0] branch_next_PC_short;
+		assign branch_next_PC_short = fetch_PC + 1'b1 + { {8{fetch_cur_opcode2[7]}}, fetch_cur_opcode2[7:0] };
+		
 		always @(posedge clk) begin
 			branch_out_valid <= 0;
 			if (!rst_n) begin
@@ -726,7 +729,7 @@ module cf_cpu #(
 								end
 							4'h3: // SJMP rr
 								begin
-									branch_PC <= fetch_PC + 1'b1 + { {8{fetch_cur_opcode2[7]}}, fetch_cur_opcode2[7:0] };
+									branch_PC         <= branch_next_PC_short;
 									branch_bus_enable <= 1'b0;
 									branch_out_valid  <= 1;
 									branch_busy       <= 0;
@@ -735,7 +738,7 @@ module cf_cpu #(
 							4'h4: // SJZ rr
 								begin
 									if (fetch_ACC == 0) begin
-										branch_PC <= fetch_PC + 1'b1 + { {8{fetch_cur_opcode2[7]}}, fetch_cur_opcode2[7:0] };
+										branch_PC <= branch_next_PC_short;
 									end else begin
 										branch_PC <= fetch_PC + 1'b1;
 									end
@@ -747,7 +750,7 @@ module cf_cpu #(
 							4'h5: // SJNZ rr
 								begin
 									if (fetch_ACC != 0) begin
-										branch_PC <= fetch_PC + 1'b1 + { {8{fetch_cur_opcode2[7]}}, fetch_cur_opcode2[7:0] };
+										branch_PC <= branch_next_PC_short;
 									end	else begin
 										branch_PC <= fetch_PC + 1'b1;
 									end
@@ -817,8 +820,8 @@ module cf_cpu #(
 									branch_bus_address <= {1'b1, branch_SP - 16'd2};
 									branch_bus_data_in <= branch_PC;
 									branch_bus_wr_en   <= 1'b1;
-									branch_reg_SP      <= branch_reg_SP - 16'd2;
-									branch_reg_PC      <= bus_data_out;
+									branch_SP          <= branch_SP - 16'd2;
+									branch_PC          <= bus_data_out;
 								end
 							4'h9: // RET
 								begin
@@ -909,12 +912,12 @@ module cf_cpu #(
 				retire_alt   <= fetch_alt;
 				if (alu_out_valid) begin
 					fetch_in_valid <= 1;
-					retire_ACC   <= alu_ACC;
-					retire_INDEX <= alu_INDEX;
-					retire_SP    <= alu_SP;
-					retire_PC    <= alu_PC;
-					retire_flags <= alu_flags;
-					retire_alt   <= alu_alt;
+					retire_ACC     <= alu_ACC;
+					retire_INDEX   <= alu_INDEX;
+					retire_SP      <= alu_SP;
+					retire_PC      <= alu_PC;
+					retire_flags   <= alu_flags;
+					retire_alt     <= alu_alt;
 				end else if (store_out_valid) begin
 					fetch_in_valid <= 1;
 					retire_INDEX   <= store_INDEX;
