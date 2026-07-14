@@ -591,7 +591,7 @@ module cf_cpu #(
 								end
 							6: // [S+] x6								// load from [S] then increment S
 								begin
-									store_bus_address <= {1'b1, fetch_reg_SP};	// load from data memory
+									store_bus_address <= {1'b1, fetch_SP};	// load from data memory
 									if (fetch_cur_opcode[7:4] != 4'h9) begin	// don't move SP for LEAI?
 										store_SP <= fetch_SP + 16'd2;
 									end
@@ -606,7 +606,7 @@ module cf_cpu #(
 					end
 					if (store_bus_enable && bus_ready) begin
 						store_bus_enable  <= 1'b0;
-						store_bus_burst   <= reg_operand_16;									// are we storing 16 or 8 bits
+						store_bus_burst   <= fetch_operand_16;									// are we storing 16 or 8 bits
 						store_bus_address <= {1'b1, bus_data_out};
 						store_fsm         <= store_fsm_store;
 					end
@@ -639,7 +639,6 @@ module cf_cpu #(
 		
 		// ISA 
 		reg [15:0] flags_ACC;
-		reg [7:0]  flags_flags;
 		
 		always @(posedge clk) begin
 			flags_out_valid <= 0;
@@ -647,7 +646,6 @@ module cf_cpu #(
 			end else begin
 				if (flags_in_valid) begin
 					flags_ACC       <= fetch_ACC;
-					flags_flags     <= fetch_flags;
 					flags_out_valid <= 1;
 					case(fetch_cur_opcode[3:0])
 						4'h8: // LT
@@ -926,7 +924,6 @@ module cf_cpu #(
 				end else if (flags_out_valid) begin
 					fetch_in_valid <= 1;
 					retire_ACC     <= flags_ACC;
-					retire_flags   <= flags_flags;
 				end else if (branch_out_valid) begin
 					fetch_in_valid <= 1;
 					retire_SP      <= branch_SP;
