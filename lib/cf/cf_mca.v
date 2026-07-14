@@ -1,3 +1,4 @@
+/* verilator lint_off WIDTHEXPAND */
 /* C-FLEA CPU Design (MCA Edition)
 
 This is a port of cf.v from a monolith FSM to a series of independent FSMs that chain together to form the
@@ -154,6 +155,13 @@ module cf_cpu #(
 				bus_enable  = stack_bus_enable;
 				bus_io_flag = stack_bus_io_flag;
 				bus_burst   = stack_bus_burst;
+			end else if (misc_in_valid | misc_busy) begin
+				bus_address = misc_bus_address;
+				bus_wr_en   = misc_bus_wr_en;
+				bus_data_in = misc_bus_data_in;
+				bus_enable  = misc_bus_enable;
+				bus_io_flag = misc_bus_io_flag;
+				bus_burst   = misc_bus_burst;
 			end
 		end
 
@@ -214,7 +222,7 @@ module cf_cpu #(
 					fetch_ACC   <= retire_ACC;
 					fetch_INDEX <= retire_INDEX;
 					fetch_R[0]  <= retire_R[0];
-					fetch_R[1]  <= retire_R[1]
+					fetch_R[1]  <= retire_R[1];
 					fetch_SP    <= retire_SP;
 					fetch_PC    <= retire_PC;
 					fetch_flags <= retire_flags;
@@ -320,7 +328,7 @@ module cf_cpu #(
 						// decode opcode 
 						alu_bus_enable  <= 1'b1;
 						alu_bus_burst   <= 1'b1;
-						case(cur_opcode[2:0])
+						case(fetch_cur_opcode[2:0])
 							0: // #n x0 ii(ii)							// immediate 8/16 bit
 								begin
 									if (fetch_operand_16) begin
@@ -458,7 +466,6 @@ module cf_cpu #(
 									sd_valid <= 1'b1;
 								end
 								if (sd_valid & sd_ready) begin
-									fsm_state <= FSM_FETCH_OPCODE;
 									alu_ACC   <= sd_quotient;						// ACC gets quotient and we put remainder in ALT location
 									alu_alt   <= sd_remainder;
 									sd_valid  <= 1'b0;
@@ -480,7 +487,7 @@ module cf_cpu #(
 							begin
 								alu_flags[FLAG_EQ]  <= (alu_ACC == alu_operand) ? 1'b1 : 1'b0;
 								alu_ACC             <= (alu_ACC == alu_operand) ? 16'd1 : 16'd0;
-								if (alu_operand_16) begin
+								if (fetch_operand_16) begin
 									// compare full 16 bits
 									alu_flags[FLAG_SLT] <= ($signed(alu_ACC) < $signed(alu_operand)) ? 1'b1 : 1'b0;
 									alu_flags[FLAG_SGT] <= ($signed(alu_ACC) > $signed(alu_operand)) ? 1'b1 : 1'b0;
@@ -499,7 +506,7 @@ module cf_cpu #(
 						default:
 							begin
 								// SHR/SHL opcodes
-								case(cur_opcode[7:3])
+								case(fetch_cur_opcode[7:3])
 									5'h17: // SHR
 										begin
 											alu_ACC <= alu_ACC >> alu_operand[3:0];
@@ -792,7 +799,7 @@ module cf_cpu #(
 						branch_out_valid  <= 1;
 						branch_busy       <= 0;
 						branch_fsm        <= branch_fsm_decode;
-						case(cur_opcode[3:0])
+						case(fetch_cur_opcode[3:0])
 							4'h0: // JMP aaaa
 								begin
 									branch_PC <= bus_data_out;
@@ -864,13 +871,13 @@ module cf_cpu #(
 					end
 					if (branch_bus_enable & bus_ready) begin
 						branch_bus_enable <= 1'b0;
-						if (switch_addr == 0) begin				// are we at the default?
+						if (branch_switch_addr == 0) begin				// are we at the default?
 							branch_PC        <= bus_data_out;
 							branch_out_valid <= 1;
 							branch_busy      <= 0;
 							branch_fsm       <= branch_fsm_decode;
 						end else if (bus_data_out == fetch_ACC) begin		// compare against value
-							branch_PC        <= switch_addr;
+							branch_PC        <= branch_switch_addr;
 							branch_out_valid <= 1;
 							branch_busy      <= 0;
 							branch_fsm       <= branch_fsm_decode;
@@ -881,6 +888,236 @@ module cf_cpu #(
 					end
 				end
 			end
+		end // branch ff
+
+	// *** stack ***
+		// state
+		reg        stack_busy;
+		reg        stack_out_valid;
+		
+		// ISA 
+		reg [15:0] stack_ACC;
+		reg [15:0] stack_SP;
+		reg [15:0] stack_PC;
+	
+		// BUS
+		reg [16:0] stack_bus_address;
+		reg [15:0] stack_bus_data_in;
+		reg        stack_bus_wr_en;
+		reg        stack_bus_enable;
+		reg		   stack_bus_io_flag;
+		reg		   stack_bus_burst;
+		
+		always @(posedge clk) begin
+			stack_out_valid <= 0;
+			if (!rst_n) begin
+				stack_bus_wr_en   <= 0;
+				stack_bus_enable  <= 0;
+				stack_bus_io_flag <= 0;
+				stack_bus_burst   <= 0;
+				stack_busy        <= 0;
+			end else begin
+				if (stack_in_valid | stack_busy) begin
+					// busy
+					if (!stack_bus_enable) begin
+						stack_SP          <= fetch_SP;
+						stack_PC          <= fetch_PC;
+						stack_ACC         <= fetch_ACC;
+						stack_bus_enable  <= 1'b1;
+						stack_bus_wr_en   <= 1'b0;
+						stack_bus_io_flag <= 1'b0;
+						stack_bus_burst   <= 1'b1;
+						
+						// default to no bus transaction
+						stack_busy      <= 0;
+						stack_out_valid <= 1;
+						
+						case(fetch_cur_opcode[3:0])
+							4'hA: // ALLOC oo
+								begin
+									stack_PC      <= fetch_PC + 1'b1;
+									stack_SP      <= fetch_SP - fetch_cur_opcode2;
+								end
+							4'hB: // FREE oo
+								begin
+									stack_PC      <= fetch_PC + 1'b1;
+									stack_SP      <= fetch_SP + fetch_cur_opcode2;
+								end
+							4'hC: // PUSHA
+								begin
+									stack_bus_wr_en    <= 1'b1;
+									stack_bus_address  <= {1'b1, fetch_SP - 16'd2};
+									stack_bus_data_in  <= fetch_ACC;
+									stack_SP	       <= fetch_SP - 16'd2;
+									
+									// need to stick around
+									stack_busy         <= 1;
+									stack_out_valid    <= 0;
+								end
+							4'hD: // PUSHI
+								begin
+									stack_bus_wr_en    <= 1'b1;
+									stack_bus_address  <= {1'b1, fetch_SP - 16'd2};
+									stack_bus_data_in  <= fetch_INDEX;
+									stack_SP	       <= fetch_SP - 16'd2;
+
+									// need to stick around
+									stack_busy         <= 1;
+									stack_out_valid    <= 0;
+								end
+							4'hE: // TAS
+								begin
+									stack_SP           <= fetch_ACC;
+								end
+							4'hF: // TSA
+								begin
+									stack_ACC          <= fetch_SP;
+								end
+							default: begin end // note: lockup
+						endcase
+					end
+					if (stack_bus_enable & bus_ready) begin
+						stack_bus_enable <= 1'b0;
+						stack_out_valid  <= 1;
+						stack_busy       <= 0;
+					end
+				end
+			end
+		end
+
+	// *** Misc ***
+		// state
+		reg        misc_out_valid;
+		reg        misc_busy;
+		
+		// ISA 
+		reg [15:0] misc_ACC;
+		reg [15:0] misc_INDEX;
+		reg [15:0] misc_R[0:1];
+		reg [15:0] misc_SP;
+		reg [15:0] misc_PC;
+
+		// BUS
+		reg [16:0] misc_bus_address;
+		reg [15:0] misc_bus_data_in;
+		reg        misc_bus_wr_en;
+		reg        misc_bus_enable;
+		reg		   misc_bus_io_flag;
+		reg		   misc_bus_burst;
+	
+		always @(posedge clk) begin
+			misc_out_valid <= misc_in_valid;
+
+			if (!rst_n) begin
+				misc_bus_wr_en   <= 0;
+				misc_bus_enable  <= 0;
+				misc_bus_burst   <= 0;
+				misc_bus_io_flag <= 1;
+				misc_busy        <= 0;
+				misc_out_valid   <= 0;
+			end else begin
+				if (misc_in_valid) begin
+					misc_busy  <= 0;
+					misc_ACC   <= fetch_ACC;
+					misc_INDEX <= fetch_INDEX;
+					misc_R[0]  <= fetch_R[0];
+					misc_R[1]  <= fetch_R[1];
+					misc_PC    <= fetch_PC;
+					case(fetch_cur_opcode[4:0])
+						5'h00: // CLR
+							misc_ACC <= 0;
+						5'h01: // COM
+							misc_ACC <= ~fetch_ACC;
+						5'h02: // NEG
+							misc_ACC <= -fetch_ACC;
+						5'h03: // NOT
+							misc_ACC <= fetch_ACC == 0 ? 16'd1 : 16'd0;
+						5'h04: // INC
+							misc_ACC <= fetch_ACC + 1'b1;
+						5'h05: // DEC
+							misc_ACC <= fetch_ACC - 1'b1;
+						5'h06: // TAI
+							misc_INDEX <= fetch_ACC;
+						5'h07: // TIA
+							misc_ACC <= fetch_INDEX;
+						5'h08: // ADAI
+							misc_INDEX <= fetch_INDEX + fetch_ACC;
+						5'h09: // ALT
+							misc_ACC <= fetch_alt;
+						5'h0A, 5'h0B: // OUT/IN
+							begin
+								misc_busy        <= 1;
+								misc_bus_io_flag <= 1'b1;
+								misc_bus_address <= {1'b0, 8'b0, fetch_cur_opcode2};
+								misc_bus_data_in <= fetch_ACC;
+								misc_bus_wr_en   <= fetch_cur_opcode[3:0] == 4'hA ? 1'b1 : 1'b0;  // EA == out
+								misc_bus_enable  <= 1;
+								misc_PC          <= fetch_PC + 1'b1;
+							end
+						// *** Start of Tom's New Instructions (CFLEA-TNI) *** 
+						5'h0D: // (ED) CPUID
+							misc_ACC  <= {TOP_VER, `cf_core_version};
+						5'h0E: // (EE) RDTSC
+							misc_ACC  <= cycle_count;
+						5'h0F: // (EF) TAR0 (R0 <= A)
+							misc_R[0] <= fetch_ACC;
+						5'h10: // (F0) TAR1 (R1 <= A)
+							misc_R[1] <= fetch_ACC;
+						5'h11: // (F1) TR0A (A <= R0)
+							misc_ACC <= fetch_R[0];
+						5'h12: // (F2) TR1A (A <= R1)
+							misc_ACC <= fetch_R[1];
+						5'h13: // (F3) SWAPR0 (A <=> R0)
+							begin
+								misc_ACC  <= fetch_R[0];
+								misc_R[0] <= fetch_ACC;
+							end
+						5'h14: // (F4) SWAPR1 (A <=> R1)
+							begin
+								misc_ACC  <= fetch_R[1];
+								misc_R[1] <= fetch_ACC;
+							end
+						5'h15: // (F5) DEC_R0_A (R0 <= R0 - 1, ACC <= R0) 
+							begin
+								misc_ACC  <= fetch_R[0] - 1'b1;
+								misc_R[0] <= fetch_R[0] - 1'b1;
+							end
+						5'h16: // (F6) DEC_R1_A (R1 <= R1 - 1, ACC <= R1) 
+							begin
+								misc_ACC  <= fetch_R[1] - 1'b1;
+								misc_R[1] <= fetch_R[1] - 1'b1;
+							end
+						5'h17: // (F7) R0 <= R0 + ACC
+							misc_R[0] <= fetch_R[0] + fetch_ACC;
+						5'h18: // (F8) R1 <= R1 + ACC
+							misc_R[1] <= fetch_R[1] + fetch_ACC;
+						5'h19: // (F9) INCR0I (R0 <= R0 + 1, INDEX <= R0) 
+							begin
+								misc_INDEX <= fetch_R[0] + 1'b1;
+								misc_R[0]  <= fetch_R[0] + 1'b1;
+							end
+						5'h1A: // (FA) INCR1I R1 <= R1 + 1, INDEX <= R1) 
+							begin
+								misc_INDEX <= fetch_R[1] + 1'b1;
+								misc_R[1]  <= fetch_R[1] + 1'b1;
+							end
+						default: begin end
+					endcase
+				end
+				if (misc_bus_enable & bus_ready) begin
+					misc_busy       <= 0;
+					misc_out_valid  <= 1;
+					misc_bus_enable <= 0;
+					misc_bus_wr_en  <= 0;
+					// IO stuff
+					// I/O is complete deassert bus and go back to fetch
+					// capture output if IN opcode or OUT to port >= 0xF0
+					if (fetch_cur_opcode == 8'hEB || (misc_bus_address[7:2] == 6'b111100)) begin	// EB == IN
+						misc_ACC <= bus_data_out;
+					end
+				end
+			end
+		end
 
 	// *** Retire ***
 		// ISA 
@@ -926,9 +1163,16 @@ module cf_cpu #(
 					retire_SP      <= branch_SP;
 					retire_PC      <= branch_PC;
 				end else if (stack_out_valid) begin
+					retire_SP      <= stack_SP;
+					retire_PC      <= stack_PC;
+					retire_ACC     <= stack_ACC;
 				end else if (misc_out_valid) begin
+					retire_ACC   <= misc_ACC;
+					retire_INDEX <= misc_INDEX;
+					retire_R[0]  <= misc_R[0];
+					retire_R[1]  <= misc_R[1];
+					retire_PC    <= misc_PC;
 				end
 			end
 		end // end of retire ff
-
 endmodule
