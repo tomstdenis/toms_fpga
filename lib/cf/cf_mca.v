@@ -389,14 +389,14 @@ module cf_cpu #(
 							2: // I x2 I
 								begin
 									// we've read [INDEX]
-									alu_operand <= bus_data_out;
-									alu_fsm     <= alu_fsm_execute;
+									alu_operand     <= bus_data_out;
+									alu_fsm         <= alu_fsm_execute;
 								end
 							5: // S+ x5
 								begin
 									// popped the operand off the stack
-									alu_operand <= bus_data_out;
-									alu_fsm     <= alu_fsm_execute;
+									alu_operand     <= bus_data_out;
+									alu_fsm         <= alu_fsm_execute;
 								end
 							6, 7: // [S+] x6, [S] x7
 								begin
@@ -530,7 +530,6 @@ module cf_cpu #(
 		reg [15:0] store_INDEX;
 		reg [15:0] store_SP;
 		reg [15:0] store_PC;
-		reg [15:0] store_operand;
 	
 		// BUS
 		reg [16:0] store_bus_address;
@@ -673,6 +672,214 @@ module cf_cpu #(
 			end
 		end
 
+	// *** branch ***
+		// state
+		localparam
+			branch_fsm_decode     = 4'b0001,
+			branch_fsm_call       = 4'b0010,
+			branch_fsm_load_addr  = 4'b0100,
+			branch_fsm_load_value = 4'b1000;
+			
+		reg        branch_busy;
+		reg [3:0]  branch_fsm;
+		reg        branch_out_valid;
+		reg [15:0] branch_switch_table_addr;
+		reg [15:0] branch_switch_addr;
+		
+		// ISA 
+		reg [15:0] branch_SP;
+		reg [15:0] branch_PC;
+	
+		// BUS
+		reg [16:0] branch_bus_address;
+		reg [15:0] branch_bus_data_in;
+		reg        branch_bus_wr_en;
+		reg        branch_bus_enable;
+		reg		   branch_bus_io_flag;
+		reg		   branch_bus_burst;
+		
+		always @(posedge clk) begin
+			branch_out_valid <= 0;
+			if (!rst_n) begin
+				branch_bus_wr_en   <= 0;
+				branch_bus_enable  <= 0;
+				branch_bus_io_flag <= 0;
+				branch_bus_burst   <= 0;
+				branch_fsm         <= branch_fsm_decode;
+				branch_busy        <= 0;
+			end else begin
+				if (branch_in_valid && branch_fsm[0]) begin
+					if (~branch_bus_enable) begin
+						// init state
+						branch_busy        <= 1;
+						branch_SP          <= fetch_SP;
+						branch_PC          <= fetch_PC;
+						// bus
+						branch_bus_enable  <= 1'b1;
+						branch_bus_wr_en   <= 1'b0;
+						branch_bus_burst   <= 1'b1;
+						case(fetch_cur_opcode[3:0])
+							4'h0, 4'h1, 4'h2: // JMP/JZ/JNZ aaaa
+								begin
+									branch_bus_address <= {1'b0, fetch_PC};
+									branch_PC          <= fetch_PC + 16'd2;
+								end
+							4'h3: // SJMP rr
+								begin
+									branch_PC <= fetch_PC + 1'b1 + { {8{fetch_cur_opcode2[7]}}, fetch_cur_opcode2[7:0] };
+									branch_bus_enable <= 1'b0;
+									branch_out_valid  <= 1;
+									branch_busy       <= 0;
+									branch_fsm        <= branch_fsm_decode;
+								end
+							4'h4: // SJZ rr
+								begin
+									if (fetch_ACC == 0) begin
+										branch_PC <= fetch_PC + 1'b1 + { {8{fetch_cur_opcode2[7]}}, fetch_cur_opcode2[7:0] };
+									end else begin
+										branch_PC <= fetch_PC + 1'b1;
+									end
+									branch_bus_enable <= 1'b0;
+									branch_out_valid  <= 1;
+									branch_busy       <= 0;
+									branch_fsm        <= branch_fsm_decode;
+								end
+							4'h5: // SJNZ rr
+								begin
+									if (fetch_ACC != 0) begin
+										branch_PC <= fetch_PC + 1'b1 + { {8{fetch_cur_opcode2[7]}}, fetch_cur_opcode2[7:0] };
+									end	else begin
+										branch_PC <= fetch_PC + 1'b1;
+									end
+									branch_bus_enable <= 1'b0;
+									branch_out_valid  <= 1;
+									branch_busy       <= 0;
+									branch_fsm        <= branch_fsm_decode;
+								end
+							4'h6: // IJMP
+								begin
+									branch_bus_enable <= 1'b0;
+									branch_PC         <= fetch_ACC;
+									branch_out_valid  <= 1;
+									branch_busy       <= 0;
+									branch_fsm        <= branch_fsm_decode;
+								end
+							4'h7: // SWITCH (ACC == value to test, INDEX == address of switch table (addr,value,addr2,value2,...,0,addrdefault)
+								begin
+									branch_bus_enable        <= 1'b0;
+									branch_bus_address       <= {1'b0, fetch_INDEX};
+									branch_switch_table_addr <= fetch_INDEX;
+									branch_fsm               <= branch_fsm_load_addr;
+								end
+							4'h8: // CALL aaaa
+								begin
+									// read the call target
+									branch_bus_address <= {1'b0, fetch_PC};
+									branch_PC          <= fetch_PC + 16'd2;
+								end
+							4'h9: // RET
+								begin
+									// read PC off stack
+									branch_bus_address <= {1'b1, fetch_SP};
+									branch_SP          <= fetch_SP + 16'd2;
+								end
+							default: begin end
+						endcase
+					end
+					if (branch_bus_enable && bus_ready) begin
+						branch_bus_enable <= 1'b0;
+						branch_out_valid  <= 1;
+						branch_busy       <= 0;
+						branch_fsm        <= branch_fsm_decode;
+						case(cur_opcode[3:0])
+							4'h0: // JMP aaaa
+								begin
+									branch_PC <= bus_data_out;
+								end
+							4'h1: // JZ aaaa
+								begin
+									if (fetch_ACC == 0) begin
+										branch_PC <= bus_data_out;
+									end
+								end
+							4'h2: // JNZ aaaa
+								begin
+									if (fetch_ACC != 0) begin
+										branch_PC <= bus_data_out;
+									end
+								end
+							4'h8: // CALL aaaa
+								begin
+									branch_out_valid   <= 0;
+									branch_busy        <= 1;
+									branch_fsm         <= branch_fsm_call;
+									// push PC onto stack
+									branch_bus_address <= {1'b1, branch_SP - 16'd2};
+									branch_bus_data_in <= branch_PC;
+									branch_bus_wr_en   <= 1'b1;
+									branch_reg_SP      <= branch_reg_SP - 16'd2;
+									branch_reg_PC      <= bus_data_out;
+								end
+							4'h9: // RET
+								begin
+									branch_PC          <= bus_data_out;
+								end
+							default: begin end // NOTE: lockup
+						endcase
+					end
+				end
+				if (branch_fsm[1]) begin
+					// back half of CALL
+					if (~branch_bus_enable) begin
+						// enable write to stack of PC
+						branch_bus_enable <= 1'b1;
+					end else if (branch_bus_enable && bus_ready) begin
+						// PC was saved we can fetch the first opcode of the target.
+						branch_bus_enable <= 1'b0;
+						branch_bus_wr_en  <= 1'b0;
+						branch_out_valid  <= 1;
+						branch_busy       <= 0;
+						branch_fsm        <= branch_fsm_decode;
+					end
+				end
+				if (branch_fsm[2]) begin
+					// SWITCH: load addr
+					if (~branch_bus_enable) begin
+						branch_bus_enable        <= 1'b1;
+						branch_switch_table_addr <= branch_switch_table_addr + 16'd2;
+					end
+					if (branch_bus_enable && bus_ready) begin
+						branch_switch_addr       <= bus_data_out;
+						branch_bus_enable        <= 1'b0;
+						branch_bus_address       <= {1'b0, branch_switch_table_addr};
+						branch_fsm               <= branch_fsm_load_value;
+					end
+				end
+				if (branch_fsm[3]) begin
+					// SWITCH: load value
+					if (!branch_bus_enable) begin
+						branch_bus_enable        <= 1'b1;
+						branch_switch_table_addr <= branch_switch_table_addr + 16'd2;
+					end
+					if (branch_bus_enable && bus_ready) begin
+						branch_bus_enable <= 1'b0;
+						if (switch_addr == 0) begin				// are we at the default?
+							branch_PC        <= bus_data_out;
+							branch_out_valid <= 1;
+							branch_busy      <= 0;
+							branch_fsm       <= branch_fsm_decode;
+						end else if (bus_data_out == fetch_ACC) begin		// compare against value
+							branch_PC        <= switch_addr;
+							branch_out_valid <= 1;
+							branch_busy      <= 0;
+							branch_fsm       <= branch_fsm_decode;
+						end else begin										// fetch the next tuple
+							branch_bus_address <= {1'b0, branch_switch_table_addr};
+							branch_fsm         <= branch_fsm_load_addr;
+						end
+					end
+				end
+			end
 
 	// *** Retire ***
 		// ISA 
@@ -710,15 +917,20 @@ module cf_cpu #(
 					retire_alt   <= alu_alt;
 				end else if (store_out_valid) begin
 					fetch_in_valid <= 1;
-					retire_INDEX <= store_INDEX;
-					retire_SP    <= store_SP;
-					retire_PC    <= store_PC;
+					retire_INDEX   <= store_INDEX;
+					retire_SP      <= store_SP;
+					retire_PC      <= store_PC;
 				end else if (flags_out_valid) begin
-					retire_ACC   <= flags_ACC;
-					retire_flags <= flags_flags;
+					fetch_in_valid <= 1;
+					retire_ACC     <= flags_ACC;
+					retire_flags   <= flags_flags;
 				end else if (branch_out_valid) begin
 					fetch_in_valid <= 1;
+					retire_SP      <= branch_SP;
+					retire_PC      <= branch_PC;
 				end else if (stack_out_valid) begin
+					fetch_in_valid <= 1;
+				end else if (misc_out_valid) begin
 					fetch_in_valid <= 1;
 				end
 			end
