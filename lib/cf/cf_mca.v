@@ -634,6 +634,46 @@ module cf_cpu #(
 			end
 		end // end of store ff
 
+	// *** flags ***
+		// state
+		reg        flags_out_valid;
+		
+		// ISA 
+		reg [15:0] flags_ACC;
+		reg [7:0]  flags_flags;
+		
+		always @(posedge clk) begin
+			flags_out_valid <= 0;
+			if (!rst_n) begin
+			end else begin
+				if (flags_in_valid) begin
+					flags_ACC       <= fetch_ACC;
+					flags_flags     <= fetch_flags;
+					flags_out_valid <= 1;
+					case(fetch_cur_opcode[3:0])
+						4'h8: // LT
+							flags_ACC <= { 15'b0, fetch_flags[FLAG_SLT] };
+						4'h9: // LE
+							flags_ACC <= { 15'b0, fetch_flags[FLAG_SLT] | fetch_flags[FLAG_EQ] };
+						4'hA: // GT
+							flags_ACC <= { 15'b0, fetch_flags[FLAG_SGT] };
+						4'hB: // GE
+							flags_ACC <= { 15'b0, fetch_flags[FLAG_SGT] | fetch_flags[FLAG_EQ] };
+						4'hC: // ULT
+							flags_ACC <= { 15'b0, fetch_flags[FLAG_ULT] };
+						4'hD: // ULE
+							flags_ACC <= { 15'b0, fetch_flags[FLAG_ULT] | fetch_flags[FLAG_EQ] };
+						4'hE: // UGT
+							flags_ACC <= { 15'b0, fetch_flags[FLAG_UGT] };
+						4'hF: // UGE
+							flags_ACC <= { 15'b0, fetch_flags[FLAG_UGT] | fetch_flags[FLAG_EQ] };
+						default: begin end
+					endcase
+				end
+			end
+		end
+
+
 	// *** Retire ***
 		// ISA 
 		reg [15:0] retire_ACC;
@@ -673,6 +713,9 @@ module cf_cpu #(
 					retire_INDEX <= store_INDEX;
 					retire_SP    <= store_SP;
 					retire_PC    <= store_PC;
+				end else if (flags_out_valid) begin
+					retire_ACC   <= flags_ACC;
+					retire_flags <= flags_flags;
 				end else if (branch_out_valid) begin
 					fetch_in_valid <= 1;
 				end else if (stack_out_valid) begin
