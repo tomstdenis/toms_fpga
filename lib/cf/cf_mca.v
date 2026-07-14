@@ -126,28 +126,28 @@ module cf_cpu #(
 			bus_enable  = fetch_bus_enable;
 			bus_io_flag = fetch_bus_io_flag;
 			bus_burst   = fetch_bus_burst;
-			if (alu_busy) begin
+			if (alu_in_valid | alu_busy) begin
 				bus_address = alu_bus_address;
 				bus_wr_en   = alu_bus_wr_en;
 				bus_data_in = alu_bus_data_in;
 				bus_enable  = alu_bus_enable;
 				bus_io_flag = alu_bus_io_flag;
 				bus_burst   = alu_bus_burst;
-			end else if (store_busy) begin
+			end else if (store_in_valid | store_busy) begin
 				bus_address = store_bus_address;
 				bus_wr_en   = store_bus_wr_en;
 				bus_data_in = store_bus_data_in;
 				bus_enable  = store_bus_enable;
 				bus_io_flag = store_bus_io_flag;
 				bus_burst   = store_bus_burst;
-			end else if (branch_busy) begin
+			end else if (branch_in_valid | branch_busy) begin
 				bus_address = branch_bus_address;
 				bus_wr_en   = branch_bus_wr_en;
 				bus_data_in = branch_bus_data_in;
 				bus_enable  = branch_bus_enable;
 				bus_io_flag = branch_bus_io_flag;
 				bus_burst   = branch_bus_burst;
-			end else if (stack_busy) begin
+			end else if (stack_in_valid | stack_busy) begin
 				bus_address = stack_bus_address;
 				bus_wr_en   = stack_bus_wr_en;
 				bus_data_in = stack_bus_data_in;
@@ -201,7 +201,6 @@ module cf_cpu #(
 			misc_in_valid     <= 0;
 
 			if (!rst_n) begin
-				fetch_PC          <= BOOT_VECTOR;
 				cycle_count       <= 0;
 				fetch_busy        <= 0;
 				fetch_bus_wr_en   <= 0;
@@ -264,7 +263,6 @@ module cf_cpu #(
 				end
 			end
 		end // end of fetch ff block
-
 
 	// *** alu ***
 		// state
@@ -356,7 +354,7 @@ module cf_cpu #(
 							4: // n,S x4 oo								// load from SP+nn
 								begin
 									alu_bus_address <= {1'b1, fetch_SP + {8'b0, fetch_cur_opcode2}};
-									alu_bus_burst   <= reg_operand_16;
+									alu_bus_burst   <= fetch_operand_16;
 									alu_fsm			<= alu_fsm_fetch;
 									alu_PC          <= fetch_PC + 1'b1;
 								end
@@ -518,6 +516,169 @@ module cf_cpu #(
 			end
 		end // end of alu ff block
 		
+	// *** store ***
+		// state
+		localparam
+			store_fsm_decode  = 2'b01,
+			store_fsm_store   = 2'b10;
+			
+		reg        store_busy;
+		reg [1:0]  store_fsm;
+		reg        store_out_valid;
+		
+		// ISA 
+		reg [15:0] store_INDEX;
+		reg [15:0] store_SP;
+		reg [15:0] store_PC;
+		reg [15:0] store_operand;
+	
+		// BUS
+		reg [16:0] store_bus_address;
+		reg [15:0] store_bus_data_in;
+		reg        store_bus_wr_en;
+		reg        store_bus_enable;
+		reg		   store_bus_io_flag;
+		reg		   store_bus_burst;
+		
+		always @(posedge clk) begin
+			store_out_valid <= 0;
+			if (!rst_n) begin
+				store_bus_wr_en   <= 0;
+				store_bus_enable  <= 0;
+				store_bus_io_flag <= 0;
+				store_bus_burst   <= 0;
+				store_fsm         <= store_fsm_decode;
+				store_busy        <= 0;
+			end else begin
+				if (store_in_valid && store_fsm[0]) begin
+					if (~store_bus_enable) begin
+						store_INDEX <= fetch_INDEX;
+						store_SP    <= fetch_SP;
+						store_PC    <= fetch_PC;
+						store_busy  <= 1;
+						// initial load of operand as needed
+						store_bus_enable  <= 1'b1;
+						store_bus_wr_en   <= 1'b0;
+						store_bus_burst   <= 1'b1;
+						store_bus_data_in <= (fetch_cur_opcode[7:4] == 4'hA) ? fetch_ACC : fetch_INDEX; // ST/STB or STI
+						case(fetch_cur_opcode[2:0])
+							1: // aaaa x1 dd dd							// load from data memory		
+								begin
+									store_bus_address <= {1'b0, fetch_PC};		// load address from code memory first
+									store_PC          <= fetch_PC + 16'd2;
+								end
+							2: // I x2 I								// load directly from I
+								begin
+									store_bus_enable  <= 1'b0;
+									store_bus_address <= {1'b0, fetch_INDEX};
+									store_bus_burst   <= fetch_operand_16;			// are we storing 16 or 8 bits
+									store_fsm         <= store_fsm_store;
+								end
+							3: // n,I x3 oo								// load from INDEX+nn
+								begin
+									store_bus_enable  <= 1'b0;
+									store_bus_address <= {1'b0, fetch_INDEX + fetch_cur_opcode2};
+									store_bus_burst   <= fetch_operand_16;									// are we storing 16 or 8 bits
+									store_PC 		  <= fetch_PC + 1'b1;
+									store_fsm         <= store_fsm_store;
+								end
+							4: // n,S x4 oo								// load from SP+nn
+								begin
+									store_bus_enable  <= 1'b0;
+									store_bus_address <= {1'b0, fetch_SP + fetch_cur_opcode2};
+									store_bus_burst   <= fetch_operand_16;									// are we storing 16 or 8 bits
+									store_PC          <= fetch_PC + 1'b1;
+									store_fsm         <= store_fsm_store;
+								end
+							6: // [S+] x6								// load from [S] then increment S
+								begin
+									store_bus_address <= {1'b1, fetch_reg_SP};	// load from data memory
+									if (fetch_cur_opcode[7:4] != 4'h9) begin	// don't move SP for LEAI?
+										store_SP <= fetch_SP + 16'd2;
+									end
+								end
+							7: // [S] x7								// load from [S]
+								begin
+									store_bus_address <= {1'b1, fetch_SP};		// load from data memory
+								end
+							default: // NOTE: lockup
+								begin end
+						endcase
+					end
+					if (store_bus_enable && bus_ready) begin
+						store_bus_enable  <= 1'b0;
+						store_bus_burst   <= reg_operand_16;									// are we storing 16 or 8 bits
+						store_bus_address <= {1'b1, bus_data_out};
+						store_fsm         <= store_fsm_store;
+					end
+				end
+				if (store_fsm[1]) begin
+					if (~store_bus_enable) begin
+						if (fetch_cur_opcode[7:3] == 5'h13) begin // LEAI
+							store_INDEX     <= bus_address[15:0];
+							store_out_valid <= 1;
+							store_fsm       <= store_fsm_decode;
+							store_busy      <= 0;
+						end else begin						// ST/STB/STI
+							store_bus_wr_en  <= 1'b1;
+							store_bus_enable <= 1'b1;
+						end
+					end
+					if (store_bus_enable && bus_ready) begin
+						store_out_valid  <= 1;
+						store_busy       <= 0;
+						store_fsm        <= store_fsm_decode;
+						store_bus_enable <= 0;
+					end
+				end
+			end
+		end // end of store ff
 
+	// *** Retire ***
+		// ISA 
+		reg [15:0] retire_ACC;
+		reg [15:0] retire_INDEX;
+		reg [15:0] retire_R[0:1];
+		reg [15:0] retire_SP;
+		reg [15:0] retire_PC;
+		reg [7:0]  retire_flags;  			// signed{LT, GT}, unsigned{LT, GT}, EQ
+		reg [15:0] retire_alt;
+		reg 	   fetch_in_valid;
+
+		always @(posedge clk) begin
+			fetch_in_valid <= 0;
+			if (!rst_n) begin
+				// come out of reset triggering fetch
+				retire_PC      <= BOOT_VECTOR;
+				fetch_in_valid <= 1;
+			end begin
+				retire_ACC   <= fetch_ACC;
+				retire_INDEX <= fetch_INDEX;
+				retire_R[0]  <= fetch_R[0];
+				retire_R[1]  <= fetch_R[1];
+				retire_SP    <= fetch_SP;
+				retire_PC    <= fetch_PC;
+				retire_flags <= fetch_flags;
+				retire_alt   <= fetch_alt;
+				if (alu_out_valid) begin
+					fetch_in_valid <= 1;
+					retire_ACC   <= alu_ACC;
+					retire_INDEX <= alu_INDEX;
+					retire_SP    <= alu_SP;
+					retire_PC    <= alu_PC;
+					retire_flags <= alu_flags;
+					retire_alt   <= alu_alt;
+				end else if (store_out_valid) begin
+					fetch_in_valid <= 1;
+					retire_INDEX <= store_INDEX;
+					retire_SP    <= store_SP;
+					retire_PC    <= store_PC;
+				end else if (branch_out_valid) begin
+					fetch_in_valid <= 1;
+				end else if (stack_out_valid) begin
+					fetch_in_valid <= 1;
+				end
+			end
+		end // end of retire ff
 
 endmodule
