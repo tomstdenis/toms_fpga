@@ -290,7 +290,7 @@ module cf_cpu #(
 					fetch_bus_enable  <= 1;
 					fetch_bus_address <= {1'b0, retire_PC};
 					fetch_bus_burst   <= 1;
-				end else if (bus_ready) begin
+				end else if (fetch_bus_enable && bus_ready) begin
 					// handle bus
 					fetch_busy 		  <= 0;
 					fetch_bus_enable  <= 0;
@@ -473,7 +473,7 @@ module cf_cpu #(
 						if (~alu_bus_enable) begin
 							// start bus
 							alu_bus_enable <= 1;
-						end else if (bus_ready) begin
+						end else if (alu_bus_enable && bus_ready) begin
 							// respond to bus response
 							alu_bus_enable <= 0;
 							alu_operand    <= bus_data_out;					// finally have the operand 
@@ -662,7 +662,7 @@ module cf_cpu #(
 					endcase
 				end else if (store_busy) begin
 					if (store_fsm[0]) begin
-						if (bus_ready) begin
+						if (store_bus_enable && bus_ready) begin
 							store_bus_enable  <= 1'b0;
 							store_bus_burst   <= fetch_operand_16;									// are we storing 16 or 8 bits
 							store_bus_address <= {1'b1, bus_data_out};
@@ -679,7 +679,7 @@ module cf_cpu #(
 								store_bus_wr_en  <= 1'b1;
 								store_bus_enable <= 1'b1;
 							end
-						end else if (bus_ready) begin
+						end else if (store_bus_enable && bus_ready) begin
 							store_out_valid  <= 1;
 							store_busy       <= 0;
 							store_fsm        <= store_fsm_decode;
@@ -844,7 +844,7 @@ module cf_cpu #(
 					endcase
 				end else if (branch_busy) begin
 					if (branch_fsm[0]) begin
-						if (bus_ready) begin
+						if (branch_bus_enable && bus_ready) begin
 							branch_bus_enable <= 1'b0;
 							branch_out_valid  <= 1;
 							branch_busy       <= 0;
@@ -889,7 +889,7 @@ module cf_cpu #(
 						if (~branch_bus_enable) begin
 							// enable write to stack of PC
 							branch_bus_enable <= 1'b1;
-						end else if (bus_ready) begin
+						end else if (branch_bus_enable && bus_ready) begin
 							// PC was saved we can fetch the first opcode of the target.
 							branch_bus_enable <= 1'b0;
 							branch_bus_wr_en  <= 1'b0;
@@ -902,7 +902,7 @@ module cf_cpu #(
 						if (~branch_bus_enable) begin
 							branch_bus_enable        <= 1'b1;
 							branch_switch_table_addr <= branch_switch_table_addr + 16'd2;
-						end else if (bus_ready) begin
+						end else if (branch_bus_enable && bus_ready) begin
 							branch_switch_addr       <= bus_data_out;
 							branch_bus_enable        <= 1'b0;
 							branch_bus_address       <= {1'b0, branch_switch_table_addr};
@@ -913,7 +913,7 @@ module cf_cpu #(
 						if (!branch_bus_enable) begin
 							branch_bus_enable        <= 1'b1;
 							branch_switch_table_addr <= branch_switch_table_addr + 16'd2;
-						end else if (bus_ready) begin
+						end else if (branch_bus_enable && bus_ready) begin
 							branch_bus_enable <= 1'b0;
 							if (branch_switch_addr == 0) begin				// are we at the default?
 								branch_PC        <= bus_data_out;
@@ -1021,7 +1021,7 @@ module cf_cpu #(
 							default: begin end // note: lockup
 						endcase
 					end
-					if (bus_ready) begin
+					if (stack_bus_enable && bus_ready) begin
 						stack_bus_enable <= 1'b0;
 						stack_out_valid  <= 1;
 						stack_busy       <= 0;
@@ -1150,7 +1150,7 @@ module cf_cpu #(
 						default: begin end
 					endcase
 				end
-				if (bus_ready) begin
+				if (misc_bus_enable && bus_ready) begin
 					misc_busy       <= 0;
 					misc_out_valid  <= 1;
 					misc_bus_enable <= 0;
