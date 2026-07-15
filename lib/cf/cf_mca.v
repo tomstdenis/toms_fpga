@@ -134,28 +134,32 @@ module cf_cpu #(
 				bus_enable  = alu_bus_enable;
 				bus_io_flag = alu_bus_io_flag;
 				bus_burst   = alu_bus_burst;
-			end else if (store_in_valid | store_busy) begin
+			end
+			if (store_in_valid | store_busy) begin
 				bus_address = store_bus_address;
 				bus_wr_en   = store_bus_wr_en;
 				bus_data_in = store_bus_data_in;
 				bus_enable  = store_bus_enable;
 				bus_io_flag = store_bus_io_flag;
 				bus_burst   = store_bus_burst;
-			end else if (branch_in_valid | branch_busy) begin
+			end
+			if (branch_in_valid | branch_busy) begin
 				bus_address = branch_bus_address;
 				bus_wr_en   = branch_bus_wr_en;
 				bus_data_in = branch_bus_data_in;
 				bus_enable  = branch_bus_enable;
 				bus_io_flag = branch_bus_io_flag;
 				bus_burst   = branch_bus_burst;
-			end else if (stack_in_valid | stack_busy) begin
+			end
+			if (stack_in_valid | stack_busy) begin
 				bus_address = stack_bus_address;
 				bus_wr_en   = stack_bus_wr_en;
 				bus_data_in = stack_bus_data_in;
 				bus_enable  = stack_bus_enable;
 				bus_io_flag = stack_bus_io_flag;
 				bus_burst   = stack_bus_burst;
-			end else if (misc_in_valid | misc_busy) begin
+			end
+			if (misc_in_valid | misc_busy) begin
 				bus_address = misc_bus_address;
 				bus_wr_en   = misc_bus_wr_en;
 				bus_data_in = misc_bus_data_in;
@@ -1017,12 +1021,13 @@ module cf_cpu #(
 				misc_out_valid   <= 0;
 			end else begin
 				if (misc_in_valid) begin
-					misc_busy  <= 0;
-					misc_ACC   <= fetch_ACC;
-					misc_INDEX <= fetch_INDEX;
-					misc_R[0]  <= fetch_R[0];
-					misc_R[1]  <= fetch_R[1];
-					misc_PC    <= fetch_PC;
+					misc_busy      <= 0;
+					misc_out_valid <= 1;
+					misc_ACC       <= fetch_ACC;
+					misc_INDEX     <= fetch_INDEX;
+					misc_R[0]      <= fetch_R[0];
+					misc_R[1]      <= fetch_R[1];
+					misc_PC        <= fetch_PC;
 					case(fetch_cur_opcode[4:0])
 						5'h00: // CLR
 							misc_ACC <= 0;
@@ -1047,7 +1052,7 @@ module cf_cpu #(
 						5'h0A, 5'h0B: // OUT/IN
 							begin
 								misc_busy        <= 1;
-								misc_bus_io_flag <= 1'b1;
+								misc_out_valid   <= 0;
 								misc_bus_address <= {1'b0, 8'b0, fetch_cur_opcode2};
 								misc_bus_data_in <= fetch_ACC;
 								misc_bus_wr_en   <= fetch_cur_opcode[3:0] == 4'hA ? 1'b1 : 1'b0;  // EA == out
@@ -1167,11 +1172,11 @@ module cf_cpu #(
 					retire_PC      <= stack_PC;
 					retire_ACC     <= stack_ACC;
 				end else if (misc_out_valid) begin
-					retire_ACC   <= misc_ACC;
-					retire_INDEX <= misc_INDEX;
-					retire_R[0]  <= misc_R[0];
-					retire_R[1]  <= misc_R[1];
-					retire_PC    <= misc_PC;
+					retire_ACC     <= misc_ACC;
+					retire_INDEX   <= misc_INDEX;
+					retire_R[0]    <= misc_R[0];
+					retire_R[1]    <= misc_R[1];
+					retire_PC      <= misc_PC;
 				end
 			end
 		end // end of retire ff
