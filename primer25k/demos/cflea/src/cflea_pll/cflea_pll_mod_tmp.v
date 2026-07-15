@@ -5,7 +5,7 @@
 //Part Number: GW5A-LV25MG121NC1/I0
 //Device: GW5A-25
 //Device Version: A
-//Created Time: Thu Jul  2 19:34:02 2026
+//Created Time: Wed Jul 15 17:09:05 2026
 
 //Change the instance name and port connections to the signal names
 //--------Copy here to design--------

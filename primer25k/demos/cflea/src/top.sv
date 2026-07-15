@@ -67,7 +67,7 @@ for I/O the following ports are used
 `define BLOCKS 30
 
 // core clock frequency the PLL is tuned to 
-`define FREQ 130
+`define FREQ 125
 
 // UART fifo depth for both RX and TX
 `define UART_FIFO_DEPTH 8
@@ -77,8 +77,7 @@ for I/O the following ports are used
 
 module top(input wire clk, input wire s1,
 	input wire uart_rx, output wire uart_tx, 
-	inout wire [31:0] gpio, output wire [7:0] mon,
-	output reg [3:0] vga_r, output reg [3:0] vga_g, output reg   [3:0] vga_b, output wire vga_h_pulse, output wire vga_v_pulse);
+	inout wire [31:0] gpio, output reg [3:0] vga_r, output reg [3:0] vga_g, output reg   [3:0] vga_b, output wire vga_h_pulse, output wire vga_v_pulse);
 
     // Should the main mem be combinatorial or synchronous
     localparam
@@ -163,7 +162,6 @@ module top(input wire clk, input wire s1,
         end
     endgenerate
     assign gpio_in = gpio;
-    assign mon = gpio[7:0];
 
 	// ### UART ###
     localparam
