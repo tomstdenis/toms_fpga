@@ -138,41 +138,46 @@ module cf_cpu #(
 							bus_io_flag <= 1'b0;
 							bus_burst   <= 1'b1;
 							bus_address <= {1'b0, reg_PC};
-						end
+						end else
 						if (bus_enable && bus_ready) begin
 							reg_PC      <= reg_PC + 1'b1;
 							cur_opcode  <= bus_data_out[7:0];
                             cur_opcode2 <= bus_data_out[15:8];
 							bus_enable  <= 1'b0;
                             bus_burst   <= 1'b0;
-							if (bus_data_out[7:0] <= 8'h97) begin
-								// generic ALU ops that use one of the 8 operand formats
-								// so the goal here is to first load an "operand" to pair with
-								// an ALU op like ADD, SUB, etc...
-								fsm_state      <= FSM_FETCH_ALU_OPERAND_00_97;
-								reg_operand_16 <= ~bus_data_out[3];
-							end else if (bus_data_out[7:0] >= 8'h98 && bus_data_out[7:0] <= 8'hB7) begin
-								// ST (store) ops (LEAI, ST, STB, STI)
-								// the goal here is to load an operand which says where to store ACC or INC
-								fsm_state 		<= FSM_FETCH_ALU_OPERAND_98_B7;
-								reg_operand_16 	<= (bus_data_out[7:4] == 4'hB) ? 1'b1 : ~bus_data_out[3]; // 16-bit if STI or ST, 8-bit for STB
-							end else if (bus_data_out[7:0] >= 8'hB8 && bus_data_out[7:0] <= 8'hC7) begin
-								// SHR and SHL: fall back to generic ops but force operand to 8 bit
-								fsm_state		<= FSM_FETCH_ALU_OPERAND_00_97;
-								reg_operand_16  <= 0;
-							end else if (bus_data_out[7:0] >= 8'hC8 && bus_data_out[7:0] <= 8'hCF) begin
-								// LT/LE...UGT/UGE
-								fsm_state <= FSM_EXECUTE_OPCODE_C8_CF;
-							end else if (bus_data_out[7:0] >= 8'hD0 && bus_data_out[7:0] <= 8'hD9) begin
-								fsm_state <= FSM_EXECUTE_OPERAND_D0_D9;
-							end else if (bus_data_out[7:0] >= 8'hDA && bus_data_out[7:0] <= 8'hDF) begin
-								fsm_state <= FSM_EXECUTE_OPERAND_DA_DF;
-							end else if (bus_data_out[7:0] >= 8'hE0) begin 
-								fsm_state <= FSM_EXECUTE_OPERAND_E0_FF;
-							end else begin
-								// unhandled opcodes just make us fetch the next...
-								fsm_state <= fsm_state;
-							end
+                            case (1'b1)
+                                (bus_data_out[7:0] <= 8'h97): begin
+                                    // generic ALU ops that use one of the 8 operand formats
+                                    // so the goal here is to first load an "operand" to pair with
+                                    // an ALU op like ADD, SUB, etc...
+                                    fsm_state      <= FSM_FETCH_ALU_OPERAND_00_97;
+                                    reg_operand_16 <= ~bus_data_out[3];
+                                end
+                                (bus_data_out[7:0] >= 8'h98 && bus_data_out[7:0] <= 8'hB7): begin
+                                    // ST (store) ops (LEAI, ST, STB, STI)
+                                    // the goal here is to load an operand which says where to store ACC or INC
+                                    fsm_state 		<= FSM_FETCH_ALU_OPERAND_98_B7;
+                                    reg_operand_16 	<= (bus_data_out[7:4] == 4'hB) ? 1'b1 : ~bus_data_out[3]; // 16-bit if STI or ST, 8-bit for STB
+                                end
+                                (bus_data_out[7:0] >= 8'hB8 && bus_data_out[7:0] <= 8'hC7): begin
+                                    // SHR and SHL: fall back to generic ops but force operand to 8 bit
+                                    fsm_state		<= FSM_FETCH_ALU_OPERAND_00_97;
+                                    reg_operand_16  <= 0;
+                                end
+                                (bus_data_out[7:0] >= 8'hC8 && bus_data_out[7:0] <= 8'hCF): begin
+                                    // LT/LE...UGT/UGE
+                                    fsm_state <= FSM_EXECUTE_OPCODE_C8_CF;
+                                end
+                                (bus_data_out[7:0] >= 8'hD0 && bus_data_out[7:0] <= 8'hD9): begin
+                                    fsm_state <= FSM_EXECUTE_OPERAND_D0_D9;
+                                end
+                                (bus_data_out[7:0] >= 8'hDA && bus_data_out[7:0] <= 8'hDF): begin
+                                    fsm_state <= FSM_EXECUTE_OPERAND_DA_DF;
+                                end
+                                (bus_data_out[7:0] >= 8'hE0): begin
+                                    fsm_state <= FSM_EXECUTE_OPERAND_E0_FF;
+                                end 
+							endcase
 						end
 					end
 					
@@ -496,7 +501,7 @@ module cf_cpu #(
 								bus_wr_en  <= 1'b1;
 								bus_enable <= 1'b1;
 							end
-						end
+						end else
 						if (bus_enable && bus_ready) begin
 							bus_wr_en  <= 1'b0;
 							bus_enable <= 1'b0;
@@ -599,7 +604,7 @@ module cf_cpu #(
 									end
 								default: begin end
 							endcase
-						end
+						end else
 						if (bus_enable && bus_ready) begin							// back half of jumps
 							bus_enable <= 1'b0;
 							fsm_state  <= FSM_FETCH_OPCODE;
@@ -701,7 +706,7 @@ module cf_cpu #(
 									end
 								default: begin end // note: lockup
 							endcase
-						end
+						end else
 						if (bus_enable && bus_ready) begin
 							bus_enable <= 1'b0;
 							fsm_state  <= FSM_FETCH_OPCODE;
@@ -822,7 +827,7 @@ module cf_cpu #(
 						if (!bus_enable) begin
 							bus_enable 		  <= 1'b1;
 							switch_table_addr <= switch_table_addr + 16'd2;
-						end
+						end else
 						if (bus_enable && bus_ready) begin
 							switch_addr <= bus_data_out;
 							bus_enable  <= 1'b0;
@@ -835,7 +840,7 @@ module cf_cpu #(
 						if (!bus_enable) begin
 							bus_enable 		  <= 1'b1;
 							switch_table_addr <= switch_table_addr + 16'd2;
-						end
+						end else
 						if (bus_enable && bus_ready) begin
 							bus_enable <= 1'b0;
 							if (switch_addr == 0) begin				// are we at the default?
