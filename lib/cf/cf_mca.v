@@ -119,14 +119,64 @@ module cf_cpu #(
 		.ready(sd_ready), .quotient(sd_quotient), .remainder(sd_remainder));
 
 	// bus driver
+`ifdef BUS_SEQ	
+		always @(posedge clk) begin
+            if (!rst_n) begin
+                bus_address <= 0;
+                bus_wr_en   <= 0;
+                bus_data_in <= 0;
+                bus_enable  <= 0;
+                bus_io_flag <= 0;
+                bus_burst   <= 0;
+            end else begin
+                if (alu_in_valid | alu_busy) begin
+                    bus_address <= alu_bus_address;
+                    bus_wr_en   <= alu_bus_wr_en;
+                    bus_data_in <= alu_bus_data_in;
+                    bus_enable  <= alu_bus_enable;
+                    bus_io_flag <= alu_bus_io_flag;
+                    bus_burst   <= alu_bus_burst;
+                end else if (store_in_valid | store_busy) begin
+                    bus_address <= store_bus_address;
+                    bus_wr_en   <= store_bus_wr_en;
+                    bus_data_in <= store_bus_data_in;
+                    bus_enable  <= store_bus_enable;
+                    bus_io_flag <= store_bus_io_flag;
+                    bus_burst   <= store_bus_burst;
+                end else if (branch_in_valid | branch_busy) begin
+                    bus_address <= branch_bus_address;
+                    bus_wr_en   <= branch_bus_wr_en;
+                    bus_data_in <= branch_bus_data_in;
+                    bus_enable  <= branch_bus_enable;
+                    bus_io_flag <= branch_bus_io_flag;
+                    bus_burst   <= branch_bus_burst;
+                end else if (stack_in_valid | stack_busy) begin
+                    bus_address <= stack_bus_address;
+                    bus_wr_en   <= stack_bus_wr_en;
+                    bus_data_in <= stack_bus_data_in;
+                    bus_enable  <= stack_bus_enable;
+                    bus_io_flag <= stack_bus_io_flag;
+                    bus_burst   <= stack_bus_burst;
+                end else if (misc_in_valid | misc_busy) begin
+                    bus_address <= misc_bus_address;
+                    bus_wr_en   <= misc_bus_wr_en;
+                    bus_data_in <= misc_bus_data_in;
+                    bus_enable  <= misc_bus_enable;
+                    bus_io_flag <= misc_bus_io_flag;
+                    bus_burst   <= misc_bus_burst;
+                end else begin
+					// default
+					bus_address <= fetch_bus_address;
+					bus_wr_en   <= fetch_bus_wr_en;
+					bus_data_in <= fetch_bus_data_in;
+					bus_enable  <= fetch_bus_enable;
+					bus_io_flag <= fetch_bus_io_flag;
+					bus_burst   <= fetch_bus_burst;
+				end                
+            end
+        end
+`else
 		always @(*) begin
-			// default
-			bus_address = fetch_bus_address;
-			bus_wr_en   = fetch_bus_wr_en;
-			bus_data_in = fetch_bus_data_in;
-			bus_enable  = fetch_bus_enable;
-			bus_io_flag = fetch_bus_io_flag;
-			bus_burst   = fetch_bus_burst;
 			if (alu_in_valid | alu_busy) begin
 				bus_address = alu_bus_address;
 				bus_wr_en   = alu_bus_wr_en;
@@ -134,41 +184,45 @@ module cf_cpu #(
 				bus_enable  = alu_bus_enable;
 				bus_io_flag = alu_bus_io_flag;
 				bus_burst   = alu_bus_burst;
-			end
-			if (store_in_valid | store_busy) begin
+			end else if (store_in_valid | store_busy) begin
 				bus_address = store_bus_address;
 				bus_wr_en   = store_bus_wr_en;
 				bus_data_in = store_bus_data_in;
 				bus_enable  = store_bus_enable;
 				bus_io_flag = store_bus_io_flag;
 				bus_burst   = store_bus_burst;
-			end
-			if (branch_in_valid | branch_busy) begin
+			end else if (branch_in_valid | branch_busy) begin
 				bus_address = branch_bus_address;
 				bus_wr_en   = branch_bus_wr_en;
 				bus_data_in = branch_bus_data_in;
 				bus_enable  = branch_bus_enable;
 				bus_io_flag = branch_bus_io_flag;
 				bus_burst   = branch_bus_burst;
-			end
-			if (stack_in_valid | stack_busy) begin
+			end else if (stack_in_valid | stack_busy) begin
 				bus_address = stack_bus_address;
 				bus_wr_en   = stack_bus_wr_en;
 				bus_data_in = stack_bus_data_in;
 				bus_enable  = stack_bus_enable;
 				bus_io_flag = stack_bus_io_flag;
 				bus_burst   = stack_bus_burst;
-			end
-			if (misc_in_valid | misc_busy) begin
+			end else if (misc_in_valid | misc_busy) begin
 				bus_address = misc_bus_address;
 				bus_wr_en   = misc_bus_wr_en;
 				bus_data_in = misc_bus_data_in;
 				bus_enable  = misc_bus_enable;
 				bus_io_flag = misc_bus_io_flag;
 				bus_burst   = misc_bus_burst;
-			end
-		end
-
+			end else begin
+				// default
+				bus_address = fetch_bus_address;
+				bus_wr_en   = fetch_bus_wr_en;
+				bus_data_in = fetch_bus_data_in;
+				bus_enable  = fetch_bus_enable;
+				bus_io_flag = fetch_bus_io_flag;
+				bus_burst   = fetch_bus_burst;
+			end                
+        end
+`endif
 	// *** Fetch ***
 		// state
 		reg        fetch_busy;
@@ -236,10 +290,7 @@ module cf_cpu #(
 					fetch_bus_enable  <= 1;
 					fetch_bus_address <= {1'b0, retire_PC};
 					fetch_bus_burst   <= 1;
-				end
-
-				// wait for bus_ready
-				if (fetch_busy & bus_ready) begin
+				end else if (bus_ready) begin
 					// handle bus
 					fetch_busy 		  <= 0;
 					fetch_bus_enable  <= 0;
@@ -315,214 +366,210 @@ module cf_cpu #(
 				alu_busy        <= 0;
 				sd_valid        <= 0;
 			end else begin
-				if ((alu_in_valid | alu_busy) & alu_fsm[0]) begin
-					// busy
+				// fetch operand as needed
+				if (alu_in_valid) begin
 					alu_busy  <= 1;
-
-					// fetch operand as needed
-					if (~alu_bus_enable) begin
-						// forward ISA registers
-						alu_ACC   <= fetch_ACC;
-						alu_INDEX <= fetch_INDEX;
-						alu_SP    <= fetch_SP;
-						alu_PC    <= fetch_PC;
-						alu_alt   <= fetch_alt;
-						alu_flags <= fetch_flags;
-						
-						// decode opcode 
-						alu_bus_enable  <= 1'b1;
-						alu_bus_burst   <= 1'b1;
-						case(fetch_cur_opcode[2:0])
-							0: // #n x0 ii(ii)							// immediate 8/16 bit
-								begin
-									if (fetch_operand_16) begin
-										alu_bus_address <= {1'b0, fetch_PC};
-										alu_PC 		    <= fetch_PC + 1'b1 + fetch_operand_16;
-										alu_bus_burst   <= fetch_operand_16;		// 8 or 16 bit immediate
-									end else begin
-										alu_bus_enable  <= 1'b0;
-										alu_operand     <= {8'b0, fetch_cur_opcode2};
-										alu_PC          <= fetch_PC + 1'b1;
-										alu_fsm         <= alu_fsm_execute;
-									end
-								end
-							1: // aaaa x1 dd dd							// load from data memory		
-								begin
-									alu_bus_address <= {1'b0, fetch_PC};		// load address from code memory first
-									alu_PC 		    <= fetch_PC + 16'd2;
-								end
-							2: // I x2 I								// load directly from I
-								begin
-									alu_bus_address <= {1'b1, fetch_INDEX};	// load from data memory
-									alu_bus_burst   <= fetch_operand_16;	// load 8 or 16 bit from [I]
-								end
-							3: // n,I x3 oo								// load from INDEX+nn
-								begin
-									alu_bus_address <= {1'b1, fetch_INDEX + {8'b0, fetch_cur_opcode2}};
-									alu_bus_burst   <= fetch_operand_16;
-									alu_fsm         <= alu_fsm_fetch;
-									alu_PC          <= fetch_PC + 1'b1;
-								end
-							4: // n,S x4 oo								// load from SP+nn
-								begin
-									alu_bus_address <= {1'b1, fetch_SP + {8'b0, fetch_cur_opcode2}};
-									alu_bus_burst   <= fetch_operand_16;
-									alu_fsm			<= alu_fsm_fetch;
-									alu_PC          <= fetch_PC + 1'b1;
-								end
-							5, 6: // S+ x5 / [S+] x6					// load from S then increment S
-								begin
-									alu_bus_address <= {1'b1, fetch_SP};		// load from data memory
-									alu_SP          <= fetch_SP + 16'd2;		// increment after
-								end
-							7: // [S] x7								// load from [S]
-								begin
-									alu_bus_address <= {1'b1, fetch_SP};		// load from data memory
-								end
-						endcase
-					end
-					if (alu_bus_enable & bus_ready) begin
-						// respond to bus response
-						alu_bus_enable <= 0;
-						case(fetch_cur_opcode[2:0])
-							0: // #n x0 ii(ii)
-								begin
-									// immediate we have the operand
-									alu_operand <= bus_data_out;
-									alu_fsm     <= alu_fsm_execute;
-								end
-							1: // aaaa x1 dd dd
-								begin
-									// we read the address to read from now we have to actually read it 
-									alu_bus_address <= {1'b1, bus_data_out};
-									alu_bus_burst   <= fetch_operand_16;
-									alu_fsm         <= alu_fsm_fetch;
-								end
-							2: // I x2 I
-								begin
-									// we've read [INDEX]
-									alu_operand     <= bus_data_out;
-									alu_fsm         <= alu_fsm_execute;
-								end
-							5: // S+ x5
-								begin
-									// popped the operand off the stack
-									alu_operand     <= bus_data_out;
-									alu_fsm         <= alu_fsm_execute;
-								end
-							6, 7: // [S+] x6, [S] x7
-								begin
-									alu_bus_address <= {1'b1, bus_data_out};
-									alu_bus_burst   <= fetch_operand_16;
-									alu_fsm         <= alu_fsm_fetch;
-								end
-						endcase
-					end
-				end
-				// indirect operand fetching
-				if (alu_fsm[1]) begin
-					// fetch operand as needed indirectly
-					if (~alu_bus_enable) begin
-						// start bus
-						alu_bus_enable <= 1;
-					end
-					if (alu_bus_enable & bus_ready) begin
-						// respond to bus response
-						alu_bus_enable <= 0;
-						alu_operand    <= bus_data_out;					// finally have the operand 
-						alu_fsm        <= alu_fsm_execute;
-					end
-				end
-				// execute the opcode finally
-				if (alu_fsm[2]) begin
-					alu_out_valid <= 1;
-					alu_busy      <= 0;
-					alu_fsm       <= alu_fsm_decode;
-					case(fetch_cur_opcode[7:4])
-						4'h0: // LD/LDB
+					// forward ISA registers
+					alu_ACC   <= fetch_ACC;
+					alu_INDEX <= fetch_INDEX;
+					alu_SP    <= fetch_SP;
+					alu_PC    <= fetch_PC;
+					alu_alt   <= fetch_alt;
+					alu_flags <= fetch_flags;
+					
+					// decode opcode 
+					alu_bus_enable  <= 1'b1;
+					alu_bus_burst   <= 1'b1;
+					case(fetch_cur_opcode[2:0])
+						0: // #n x0 ii(ii)							// immediate 8/16 bit
 							begin
-								alu_ACC <= alu_operand;
-							end
-						4'h1: // ADD/ADDB
-							begin
-								alu_ACC <= alu_ACC + alu_operand;
-							end
-						4'h2: // SUB/SUBB
-							begin
-								alu_ACC <= alu_ACC - alu_operand;
-							end
-						4'h3: // MUL/MULB
-							begin
-								{alu_alt,alu_ACC} <= alu_ACC * alu_operand;
-							end
-						4'h4: // DIV/DIVB
-							begin
-								if (!sd_ready) begin
-									// stay put
-									alu_out_valid <= 0;
-									alu_busy      <= 1;
-									alu_fsm       <= alu_fsm_execute;
-								end
-								
-								if (!sd_valid & !sd_ready) begin
-									sd_num   <= alu_ACC;
-									sd_denom <= alu_operand;
-									sd_valid <= 1'b1;
-								end
-								if (sd_valid & sd_ready) begin
-									alu_ACC   <= sd_quotient;						// ACC gets quotient and we put remainder in ALT location
-									alu_alt   <= sd_remainder;
-									sd_valid  <= 1'b0;
-								end
-							end
-						4'h5: // AND/ANDB
-							begin
-								alu_ACC <= alu_ACC & alu_operand;
-							end
-						4'h6: // OR/ORB
-							begin
-								alu_ACC <= alu_ACC | alu_operand;
-							end
-						4'h7: // XOR/XORB
-							begin
-								alu_ACC <= alu_ACC ^ alu_operand;
-							end
-						4'h8: // CMP/CMPB
-							begin
-								alu_flags[FLAG_EQ]  <= (alu_ACC == alu_operand) ? 1'b1 : 1'b0;
-								alu_ACC             <= (alu_ACC == alu_operand) ? 16'd1 : 16'd0;
 								if (fetch_operand_16) begin
-									// compare full 16 bits
-									alu_flags[FLAG_SLT] <= ($signed(alu_ACC) < $signed(alu_operand)) ? 1'b1 : 1'b0;
-									alu_flags[FLAG_SGT] <= ($signed(alu_ACC) > $signed(alu_operand)) ? 1'b1 : 1'b0;
+									alu_bus_address <= {1'b0, fetch_PC};
+									alu_PC 		    <= fetch_PC + 1'b1 + fetch_operand_16;
+									alu_bus_burst   <= fetch_operand_16;		// 8 or 16 bit immediate
 								end else begin
-									// compare only bottom 8 bits for CMPB
-									alu_flags[FLAG_SLT] <= ($signed(alu_ACC[7:0]) < $signed(alu_operand[7:0])) ? 1'b1 : 1'b0;
-									alu_flags[FLAG_SGT] <= ($signed(alu_ACC[7:0]) > $signed(alu_operand[7:0])) ? 1'b1 : 1'b0;
+									alu_bus_enable  <= 1'b0;
+									alu_operand     <= {8'b0, fetch_cur_opcode2};
+									alu_PC          <= fetch_PC + 1'b1;
+									alu_fsm         <= alu_fsm_execute;
 								end
-								alu_flags[FLAG_ULT] <= (alu_ACC < alu_operand) ? 1'b1 : 1'b0;
-								alu_flags[FLAG_UGT] <= (alu_ACC > alu_operand) ? 1'b1 : 1'b0;
 							end
-						4'h9: // LDI
+						1: // aaaa x1 dd dd							// load from data memory		
 							begin
-								alu_INDEX <= alu_operand;
+								alu_bus_address <= {1'b0, fetch_PC};		// load address from code memory first
+								alu_PC 		    <= fetch_PC + 16'd2;
 							end
-						default:
+						2: // I x2 I								// load directly from I
 							begin
-								// SHR/SHL opcodes
-								case(fetch_cur_opcode[7:3])
-									5'h17: // SHR
-										begin
-											alu_ACC <= alu_ACC >> alu_operand[3:0];
-										end
-									5'h18: // SHL
-										begin
-											alu_ACC <= alu_ACC << alu_operand[3:0];
-										end
-									default: begin end
-								endcase
+								alu_bus_address <= {1'b1, fetch_INDEX};	// load from data memory
+								alu_bus_burst   <= fetch_operand_16;	// load 8 or 16 bit from [I]
+							end
+						3: // n,I x3 oo								// load from INDEX+nn
+							begin
+								alu_bus_address <= {1'b1, fetch_INDEX + {8'b0, fetch_cur_opcode2}};
+								alu_bus_burst   <= fetch_operand_16;
+								alu_fsm         <= alu_fsm_fetch;
+								alu_PC          <= fetch_PC + 1'b1;
+							end
+						4: // n,S x4 oo								// load from SP+nn
+							begin
+								alu_bus_address <= {1'b1, fetch_SP + {8'b0, fetch_cur_opcode2}};
+								alu_bus_burst   <= fetch_operand_16;
+								alu_fsm			<= alu_fsm_fetch;
+								alu_PC          <= fetch_PC + 1'b1;
+							end
+						5, 6: // S+ x5 / [S+] x6					// load from S then increment S
+							begin
+								alu_bus_address <= {1'b1, fetch_SP};		// load from data memory
+								alu_SP          <= fetch_SP + 16'd2;		// increment after
+							end
+						7: // [S] x7								// load from [S]
+							begin
+								alu_bus_address <= {1'b1, fetch_SP};		// load from data memory
 							end
 					endcase
+				end else if (alu_busy) begin
+					if (alu_fsm[0]) begin
+						if (bus_ready) begin
+							// respond to bus response
+							alu_bus_enable <= 0;
+							case(fetch_cur_opcode[2:0])
+								0: // #n x0 ii(ii)
+									begin
+										// immediate we have the operand
+										alu_operand <= bus_data_out;
+										alu_fsm     <= alu_fsm_execute;
+									end
+								1: // aaaa x1 dd dd
+									begin
+										// we read the address to read from now we have to actually read it 
+										alu_bus_address <= {1'b1, bus_data_out};
+										alu_bus_burst   <= fetch_operand_16;
+										alu_fsm         <= alu_fsm_fetch;
+									end
+								2: // I x2 I
+									begin
+										// we've read [INDEX]
+										alu_operand     <= bus_data_out;
+										alu_fsm         <= alu_fsm_execute;
+									end
+								5: // S+ x5
+									begin
+										// popped the operand off the stack
+										alu_operand     <= bus_data_out;
+										alu_fsm         <= alu_fsm_execute;
+									end
+								6, 7: // [S+] x6, [S] x7
+									begin
+										alu_bus_address <= {1'b1, bus_data_out};
+										alu_bus_burst   <= fetch_operand_16;
+										alu_fsm         <= alu_fsm_fetch;
+									end
+							endcase
+						end
+					end else if (alu_fsm[1]) begin
+						// indirect operand fetching
+						// fetch operand as needed indirectly
+						if (~alu_bus_enable) begin
+							// start bus
+							alu_bus_enable <= 1;
+						end else if (bus_ready) begin
+							// respond to bus response
+							alu_bus_enable <= 0;
+							alu_operand    <= bus_data_out;					// finally have the operand 
+							alu_fsm        <= alu_fsm_execute;
+						end
+					end if (alu_fsm[2]) begin
+						// execute the opcode finally
+						alu_out_valid <= 1;
+						alu_busy      <= 0;
+						alu_fsm       <= alu_fsm_decode;
+						case(fetch_cur_opcode[7:4])
+							4'h0: // LD/LDB
+								begin
+									alu_ACC <= alu_operand;
+								end
+							4'h1: // ADD/ADDB
+								begin
+									alu_ACC <= alu_ACC + alu_operand;
+								end
+							4'h2: // SUB/SUBB
+								begin
+									alu_ACC <= alu_ACC - alu_operand;
+								end
+							4'h3: // MUL/MULB
+								begin
+									{alu_alt,alu_ACC} <= alu_ACC * alu_operand;
+								end
+							4'h4: // DIV/DIVB
+								begin
+									if (!sd_ready) begin
+										// stay put
+										alu_out_valid <= 0;
+										alu_busy      <= 1;
+										alu_fsm       <= alu_fsm_execute;
+									end
+									
+									if (!sd_valid & !sd_ready) begin
+										sd_num   <= alu_ACC;
+										sd_denom <= alu_operand;
+										sd_valid <= 1'b1;
+									end
+									if (sd_valid & sd_ready) begin
+										alu_ACC   <= sd_quotient;						// ACC gets quotient and we put remainder in ALT location
+										alu_alt   <= sd_remainder;
+										sd_valid  <= 1'b0;
+									end
+								end
+							4'h5: // AND/ANDB
+								begin
+									alu_ACC <= alu_ACC & alu_operand;
+								end
+							4'h6: // OR/ORB
+								begin
+									alu_ACC <= alu_ACC | alu_operand;
+								end
+							4'h7: // XOR/XORB
+								begin
+									alu_ACC <= alu_ACC ^ alu_operand;
+								end
+							4'h8: // CMP/CMPB
+								begin
+									alu_flags[FLAG_EQ]  <= (alu_ACC == alu_operand) ? 1'b1 : 1'b0;
+									alu_ACC             <= (alu_ACC == alu_operand) ? 16'd1 : 16'd0;
+									if (fetch_operand_16) begin
+										// compare full 16 bits
+										alu_flags[FLAG_SLT] <= ($signed(alu_ACC) < $signed(alu_operand)) ? 1'b1 : 1'b0;
+										alu_flags[FLAG_SGT] <= ($signed(alu_ACC) > $signed(alu_operand)) ? 1'b1 : 1'b0;
+									end else begin
+										// compare only bottom 8 bits for CMPB
+										alu_flags[FLAG_SLT] <= ($signed(alu_ACC[7:0]) < $signed(alu_operand[7:0])) ? 1'b1 : 1'b0;
+										alu_flags[FLAG_SGT] <= ($signed(alu_ACC[7:0]) > $signed(alu_operand[7:0])) ? 1'b1 : 1'b0;
+									end
+									alu_flags[FLAG_ULT] <= (alu_ACC < alu_operand) ? 1'b1 : 1'b0;
+									alu_flags[FLAG_UGT] <= (alu_ACC > alu_operand) ? 1'b1 : 1'b0;
+								end
+							4'h9: // LDI
+								begin
+									alu_INDEX <= alu_operand;
+								end
+							default:
+								begin
+									// SHR/SHL opcodes
+									case(fetch_cur_opcode[7:3])
+										5'h17: // SHR
+											begin
+												alu_ACC <= alu_ACC >> alu_operand[3:0];
+											end
+										5'h18: // SHL
+											begin
+												alu_ACC <= alu_ACC << alu_operand[3:0];
+											end
+										default: begin end
+									endcase
+								end
+						endcase
+					end
 				end
 			end
 		end // end of alu ff block
@@ -560,85 +607,84 @@ module cf_cpu #(
 				store_fsm         <= store_fsm_decode;
 				store_busy        <= 0;
 			end else begin
-				if ((store_in_valid | store_busy) & store_fsm[0]) begin
-					if (~store_bus_enable) begin
-						store_INDEX <= fetch_INDEX;
-						store_SP    <= fetch_SP;
-						store_PC    <= fetch_PC;
-						store_busy  <= 1;
-						// initial load of operand as needed
-						store_bus_enable  <= 1'b1;
-						store_bus_wr_en   <= 1'b0;
-						store_bus_burst   <= 1'b1;
-						store_bus_data_in <= (fetch_cur_opcode[7:4] == 4'hA) ? fetch_ACC : fetch_INDEX; // ST/STB or STI
-						case(fetch_cur_opcode[2:0])
-							1: // aaaa x1 dd dd							// load from data memory		
-								begin
-									store_bus_address <= {1'b0, fetch_PC};		// load address from code memory first
-									store_PC          <= fetch_PC + 16'd2;
+				if (store_in_valid) begin
+					store_INDEX <= fetch_INDEX;
+					store_SP    <= fetch_SP;
+					store_PC    <= fetch_PC;
+					store_busy  <= 1;
+					// initial load of operand as needed
+					store_bus_enable  <= 1'b1;
+					store_bus_wr_en   <= 1'b0;
+					store_bus_burst   <= 1'b1;
+					store_bus_data_in <= (fetch_cur_opcode[7:4] == 4'hA) ? fetch_ACC : fetch_INDEX; // ST/STB or STI
+					case(fetch_cur_opcode[2:0])
+						1: // aaaa x1 dd dd							// load from data memory		
+							begin
+								store_bus_address <= {1'b0, fetch_PC};		// load address from code memory first
+								store_PC          <= fetch_PC + 16'd2;
+							end
+						2: // I x2 I								// load directly from I
+							begin
+								store_bus_enable  <= 1'b0;
+								store_bus_address <= {1'b0, fetch_INDEX};
+								store_bus_burst   <= fetch_operand_16;			// are we storing 16 or 8 bits
+								store_fsm         <= store_fsm_store;
+							end
+						3: // n,I x3 oo								// load from INDEX+nn
+							begin
+								store_bus_enable  <= 1'b0;
+								store_bus_address <= {1'b0, fetch_INDEX + fetch_cur_opcode2};
+								store_bus_burst   <= fetch_operand_16;									// are we storing 16 or 8 bits
+								store_PC 		  <= fetch_PC + 1'b1;
+								store_fsm         <= store_fsm_store;
+							end
+						4: // n,S x4 oo								// load from SP+nn
+							begin
+								store_bus_enable  <= 1'b0;
+								store_bus_address <= {1'b0, fetch_SP + fetch_cur_opcode2};
+								store_bus_burst   <= fetch_operand_16;									// are we storing 16 or 8 bits
+								store_PC          <= fetch_PC + 1'b1;
+								store_fsm         <= store_fsm_store;
+							end
+						6: // [S+] x6								// load from [S] then increment S
+							begin
+								store_bus_address <= {1'b1, fetch_SP};	// load from data memory
+								if (fetch_cur_opcode[7:4] != 4'h9) begin	// don't move SP for LEAI?
+									store_SP <= fetch_SP + 16'd2;
 								end
-							2: // I x2 I								// load directly from I
-								begin
-									store_bus_enable  <= 1'b0;
-									store_bus_address <= {1'b0, fetch_INDEX};
-									store_bus_burst   <= fetch_operand_16;			// are we storing 16 or 8 bits
-									store_fsm         <= store_fsm_store;
-								end
-							3: // n,I x3 oo								// load from INDEX+nn
-								begin
-									store_bus_enable  <= 1'b0;
-									store_bus_address <= {1'b0, fetch_INDEX + fetch_cur_opcode2};
-									store_bus_burst   <= fetch_operand_16;									// are we storing 16 or 8 bits
-									store_PC 		  <= fetch_PC + 1'b1;
-									store_fsm         <= store_fsm_store;
-								end
-							4: // n,S x4 oo								// load from SP+nn
-								begin
-									store_bus_enable  <= 1'b0;
-									store_bus_address <= {1'b0, fetch_SP + fetch_cur_opcode2};
-									store_bus_burst   <= fetch_operand_16;									// are we storing 16 or 8 bits
-									store_PC          <= fetch_PC + 1'b1;
-									store_fsm         <= store_fsm_store;
-								end
-							6: // [S+] x6								// load from [S] then increment S
-								begin
-									store_bus_address <= {1'b1, fetch_SP};	// load from data memory
-									if (fetch_cur_opcode[7:4] != 4'h9) begin	// don't move SP for LEAI?
-										store_SP <= fetch_SP + 16'd2;
-									end
-								end
-							7: // [S] x7								// load from [S]
-								begin
-									store_bus_address <= {1'b1, fetch_SP};		// load from data memory
-								end
-							default: // NOTE: lockup
-								begin end
-						endcase
-					end
-					if (store_bus_enable & bus_ready) begin
-						store_bus_enable  <= 1'b0;
-						store_bus_burst   <= fetch_operand_16;									// are we storing 16 or 8 bits
-						store_bus_address <= {1'b1, bus_data_out};
-						store_fsm         <= store_fsm_store;
-					end
-				end
-				if (store_fsm[1]) begin
-					if (~store_bus_enable) begin
-						if (fetch_cur_opcode[7:3] == 5'h13) begin // LEAI
-							store_INDEX     <= bus_address[15:0];
-							store_out_valid <= 1;
-							store_fsm       <= store_fsm_decode;
-							store_busy      <= 0;
-						end else begin						// ST/STB/STI
-							store_bus_wr_en  <= 1'b1;
-							store_bus_enable <= 1'b1;
+							end
+						7: // [S] x7								// load from [S]
+							begin
+								store_bus_address <= {1'b1, fetch_SP};		// load from data memory
+							end
+						default: // NOTE: lockup
+							begin end
+					endcase
+				end else if (store_busy) begin
+					if (store_fsm[0]) begin
+						if (bus_ready) begin
+							store_bus_enable  <= 1'b0;
+							store_bus_burst   <= fetch_operand_16;									// are we storing 16 or 8 bits
+							store_bus_address <= {1'b1, bus_data_out};
+							store_fsm         <= store_fsm_store;
 						end
-					end
-					if (store_bus_enable & bus_ready) begin
-						store_out_valid  <= 1;
-						store_busy       <= 0;
-						store_fsm        <= store_fsm_decode;
-						store_bus_enable <= 0;
+					end else if (store_fsm[1]) begin
+						if (~store_bus_enable) begin
+							if (fetch_cur_opcode[7:3] == 5'h13) begin // LEAI
+								store_INDEX     <= bus_address[15:0];
+								store_out_valid <= 1;
+								store_fsm       <= store_fsm_decode;
+								store_busy      <= 0;
+							end else begin						// ST/STB/STI
+								store_bus_wr_en  <= 1'b1;
+								store_bus_enable <= 1'b1;
+							end
+						end else if (bus_ready) begin
+							store_out_valid  <= 1;
+							store_busy       <= 0;
+							store_fsm        <= store_fsm_decode;
+							store_bus_enable <= 0;
+						end
 					end
 				end
 			end
@@ -720,174 +766,169 @@ module cf_cpu #(
 				branch_fsm         <= branch_fsm_decode;
 				branch_busy        <= 0;
 			end else begin
-				if ((branch_in_valid | branch_busy) & branch_fsm[0]) begin
-					if (~branch_bus_enable) begin
-						// init state
-						branch_busy        <= 1;
-						branch_SP          <= fetch_SP;
-						branch_PC          <= fetch_PC;
-						// bus
-						branch_bus_enable  <= 1'b1;
-						branch_bus_wr_en   <= 1'b0;
-						branch_bus_burst   <= 1'b1;
-						case(fetch_cur_opcode[3:0])
-							4'h0, 4'h1, 4'h2: // JMP/JZ/JNZ aaaa
-								begin
-									branch_bus_address <= {1'b0, fetch_PC};
-									branch_PC          <= fetch_PC + 16'd2;
+				if (branch_in_valid) begin
+					// init state
+					branch_busy        <= 1;
+					branch_SP          <= fetch_SP;
+					branch_PC          <= fetch_PC;
+					// bus
+					branch_bus_enable  <= 1'b1;
+					branch_bus_wr_en   <= 1'b0;
+					branch_bus_burst   <= 1'b1;
+					case(fetch_cur_opcode[3:0])
+						4'h0, 4'h1, 4'h2: // JMP/JZ/JNZ aaaa
+							begin
+								branch_bus_address <= {1'b0, fetch_PC};
+								branch_PC          <= fetch_PC + 16'd2;
+							end
+						4'h3: // SJMP rr
+							begin
+								branch_PC         <= branch_next_PC_short;
+								branch_bus_enable <= 1'b0;
+								branch_out_valid  <= 1;
+								branch_busy       <= 0;
+								branch_fsm        <= branch_fsm_decode;
+							end
+						4'h4: // SJZ rr
+							begin
+								if (fetch_ACC == 0) begin
+									branch_PC <= branch_next_PC_short;
+								end else begin
+									branch_PC <= fetch_PC + 1'b1;
 								end
-							4'h3: // SJMP rr
-								begin
-									branch_PC         <= branch_next_PC_short;
-									branch_bus_enable <= 1'b0;
-									branch_out_valid  <= 1;
-									branch_busy       <= 0;
-									branch_fsm        <= branch_fsm_decode;
+								branch_bus_enable <= 1'b0;
+								branch_out_valid  <= 1;
+								branch_busy       <= 0;
+								branch_fsm        <= branch_fsm_decode;
+							end
+						4'h5: // SJNZ rr
+							begin
+								if (fetch_ACC != 0) begin
+									branch_PC <= branch_next_PC_short;
+								end	else begin
+									branch_PC <= fetch_PC + 1'b1;
 								end
-							4'h4: // SJZ rr
-								begin
-									if (fetch_ACC == 0) begin
-										branch_PC <= branch_next_PC_short;
-									end else begin
-										branch_PC <= fetch_PC + 1'b1;
-									end
-									branch_bus_enable <= 1'b0;
-									branch_out_valid  <= 1;
-									branch_busy       <= 0;
-									branch_fsm        <= branch_fsm_decode;
-								end
-							4'h5: // SJNZ rr
-								begin
-									if (fetch_ACC != 0) begin
-										branch_PC <= branch_next_PC_short;
-									end	else begin
-										branch_PC <= fetch_PC + 1'b1;
-									end
-									branch_bus_enable <= 1'b0;
-									branch_out_valid  <= 1;
-									branch_busy       <= 0;
-									branch_fsm        <= branch_fsm_decode;
-								end
-							4'h6: // IJMP
-								begin
-									branch_bus_enable <= 1'b0;
-									branch_PC         <= fetch_ACC;
-									branch_out_valid  <= 1;
-									branch_busy       <= 0;
-									branch_fsm        <= branch_fsm_decode;
-								end
-							4'h7: // SWITCH (ACC == value to test, INDEX == address of switch table (addr,value,addr2,value2,...,0,addrdefault)
-								begin
-									branch_bus_enable        <= 1'b0;
-									branch_bus_address       <= {1'b0, fetch_INDEX};
-									branch_switch_table_addr <= fetch_INDEX;
-									branch_fsm               <= branch_fsm_load_addr;
-								end
-							4'h8: // CALL aaaa
-								begin
-									// read the call target
-									branch_bus_address <= {1'b0, fetch_PC};
-									branch_PC          <= fetch_PC + 16'd2;
-								end
-							4'h9: // RET
-								begin
-									// read PC off stack
-									branch_bus_address <= {1'b1, fetch_SP};
-									branch_SP          <= fetch_SP + 16'd2;
-								end
-							default: begin end
-						endcase
-					end
-					if (branch_bus_enable & bus_ready) begin
-						branch_bus_enable <= 1'b0;
-						branch_out_valid  <= 1;
-						branch_busy       <= 0;
-						branch_fsm        <= branch_fsm_decode;
-						case(fetch_cur_opcode[3:0])
-							4'h0: // JMP aaaa
-								begin
-									branch_PC <= bus_data_out;
-								end
-							4'h1: // JZ aaaa
-								begin
-									if (fetch_ACC == 0) begin
+								branch_bus_enable <= 1'b0;
+								branch_out_valid  <= 1;
+								branch_busy       <= 0;
+								branch_fsm        <= branch_fsm_decode;
+							end
+						4'h6: // IJMP
+							begin
+								branch_bus_enable <= 1'b0;
+								branch_PC         <= fetch_ACC;
+								branch_out_valid  <= 1;
+								branch_busy       <= 0;
+								branch_fsm        <= branch_fsm_decode;
+							end
+						4'h7: // SWITCH (ACC == value to test, INDEX == address of switch table (addr,value,addr2,value2,...,0,addrdefault)
+							begin
+								branch_bus_enable        <= 1'b0;
+								branch_bus_address       <= {1'b0, fetch_INDEX};
+								branch_switch_table_addr <= fetch_INDEX;
+								branch_fsm               <= branch_fsm_load_addr;
+							end
+						4'h8: // CALL aaaa
+							begin
+								// read the call target
+								branch_bus_address <= {1'b0, fetch_PC};
+								branch_PC          <= fetch_PC + 16'd2;
+							end
+						4'h9: // RET
+							begin
+								// read PC off stack
+								branch_bus_address <= {1'b1, fetch_SP};
+								branch_SP          <= fetch_SP + 16'd2;
+							end
+						default: begin end
+					endcase
+				end else if (branch_busy) begin
+					if (branch_fsm[0]) begin
+						if (bus_ready) begin
+							branch_bus_enable <= 1'b0;
+							branch_out_valid  <= 1;
+							branch_busy       <= 0;
+							case(fetch_cur_opcode[3:0])
+								4'h0: // JMP aaaa
+									begin
 										branch_PC <= bus_data_out;
 									end
-								end
-							4'h2: // JNZ aaaa
-								begin
-									if (fetch_ACC != 0) begin
-										branch_PC <= bus_data_out;
+								4'h1: // JZ aaaa
+									begin
+										if (fetch_ACC == 0) begin
+											branch_PC <= bus_data_out;
+										end
 									end
-								end
-							4'h8: // CALL aaaa
-								begin
-									branch_out_valid   <= 0;
-									branch_busy        <= 1;
-									branch_fsm         <= branch_fsm_call;
-									// push PC onto stack
-									branch_bus_address <= {1'b1, branch_SP - 16'd2};
-									branch_bus_data_in <= branch_PC;
-									branch_bus_wr_en   <= 1'b1;
-									branch_SP          <= branch_SP - 16'd2;
-									branch_PC          <= bus_data_out;
-								end
-							4'h9: // RET
-								begin
-									branch_PC          <= bus_data_out;
-								end
-							default: begin end // NOTE: lockup
-						endcase
-					end
-				end
-				if (branch_fsm[1]) begin
-					// back half of CALL
-					if (~branch_bus_enable) begin
-						// enable write to stack of PC
-						branch_bus_enable <= 1'b1;
-					end else if (branch_bus_enable & bus_ready) begin
-						// PC was saved we can fetch the first opcode of the target.
-						branch_bus_enable <= 1'b0;
-						branch_bus_wr_en  <= 1'b0;
-						branch_out_valid  <= 1;
-						branch_busy       <= 0;
-						branch_fsm        <= branch_fsm_decode;
-					end
-				end
-				if (branch_fsm[2]) begin
-					// SWITCH: load addr
-					if (~branch_bus_enable) begin
-						branch_bus_enable        <= 1'b1;
-						branch_switch_table_addr <= branch_switch_table_addr + 16'd2;
-					end
-					if (branch_bus_enable & bus_ready) begin
-						branch_switch_addr       <= bus_data_out;
-						branch_bus_enable        <= 1'b0;
-						branch_bus_address       <= {1'b0, branch_switch_table_addr};
-						branch_fsm               <= branch_fsm_load_value;
-					end
-				end
-				if (branch_fsm[3]) begin
-					// SWITCH: load value
-					if (!branch_bus_enable) begin
-						branch_bus_enable        <= 1'b1;
-						branch_switch_table_addr <= branch_switch_table_addr + 16'd2;
-					end
-					if (branch_bus_enable & bus_ready) begin
-						branch_bus_enable <= 1'b0;
-						if (branch_switch_addr == 0) begin				// are we at the default?
-							branch_PC        <= bus_data_out;
-							branch_out_valid <= 1;
-							branch_busy      <= 0;
-							branch_fsm       <= branch_fsm_decode;
-						end else if (bus_data_out == fetch_ACC) begin		// compare against value
-							branch_PC        <= branch_switch_addr;
-							branch_out_valid <= 1;
-							branch_busy      <= 0;
-							branch_fsm       <= branch_fsm_decode;
-						end else begin										// fetch the next tuple
-							branch_bus_address <= {1'b0, branch_switch_table_addr};
-							branch_fsm         <= branch_fsm_load_addr;
+								4'h2: // JNZ aaaa
+									begin
+										if (fetch_ACC != 0) begin
+											branch_PC <= bus_data_out;
+										end
+									end
+								4'h8: // CALL aaaa
+									begin
+										branch_out_valid   <= 0;
+										branch_busy        <= 1;
+										branch_fsm         <= branch_fsm_call;
+										// push PC onto stack
+										branch_bus_address <= {1'b1, branch_SP - 16'd2};
+										branch_bus_data_in <= branch_PC;
+										branch_bus_wr_en   <= 1'b1;
+										branch_SP          <= branch_SP - 16'd2;
+										branch_PC          <= bus_data_out;
+									end
+								4'h9: // RET
+									begin
+										branch_PC          <= bus_data_out;
+									end
+								default: begin end // NOTE: lockup
+							endcase
+						end
+					end else if (branch_fsm[1]) begin
+						// back half of CALL
+						if (~branch_bus_enable) begin
+							// enable write to stack of PC
+							branch_bus_enable <= 1'b1;
+						end else if (bus_ready) begin
+							// PC was saved we can fetch the first opcode of the target.
+							branch_bus_enable <= 1'b0;
+							branch_bus_wr_en  <= 1'b0;
+							branch_out_valid  <= 1;
+							branch_busy       <= 0;
+							branch_fsm        <= branch_fsm_decode;
+						end
+					end else if (branch_fsm[2]) begin
+						// SWITCH: load addr
+						if (~branch_bus_enable) begin
+							branch_bus_enable        <= 1'b1;
+							branch_switch_table_addr <= branch_switch_table_addr + 16'd2;
+						end else if (bus_ready) begin
+							branch_switch_addr       <= bus_data_out;
+							branch_bus_enable        <= 1'b0;
+							branch_bus_address       <= {1'b0, branch_switch_table_addr};
+							branch_fsm               <= branch_fsm_load_value;
+						end
+					end else if (branch_fsm[3]) begin
+						// SWITCH: load value
+						if (!branch_bus_enable) begin
+							branch_bus_enable        <= 1'b1;
+							branch_switch_table_addr <= branch_switch_table_addr + 16'd2;
+						end else if (bus_ready) begin
+							branch_bus_enable <= 1'b0;
+							if (branch_switch_addr == 0) begin				// are we at the default?
+								branch_PC        <= bus_data_out;
+								branch_out_valid <= 1;
+								branch_busy      <= 0;
+								branch_fsm       <= branch_fsm_decode;
+							end else if (bus_data_out == fetch_ACC) begin		// compare against value
+								branch_PC        <= branch_switch_addr;
+								branch_out_valid <= 1;
+								branch_busy      <= 0;
+								branch_fsm       <= branch_fsm_decode;
+							end else begin										// fetch the next tuple
+								branch_bus_address <= {1'b0, branch_switch_table_addr};
+								branch_fsm         <= branch_fsm_load_addr;
+							end
 						end
 					end
 				end
@@ -980,7 +1021,7 @@ module cf_cpu #(
 							default: begin end // note: lockup
 						endcase
 					end
-					if (stack_bus_enable & bus_ready) begin
+					if (bus_ready) begin
 						stack_bus_enable <= 1'b0;
 						stack_out_valid  <= 1;
 						stack_busy       <= 0;
@@ -1109,7 +1150,7 @@ module cf_cpu #(
 						default: begin end
 					endcase
 				end
-				if (misc_bus_enable & bus_ready) begin
+				if (bus_ready) begin
 					misc_busy       <= 0;
 					misc_out_valid  <= 1;
 					misc_bus_enable <= 0;
