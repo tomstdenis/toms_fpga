@@ -479,7 +479,7 @@ module cf_cpu #(
 								default: // NOTE: lockup
 									begin end
 							endcase
-						end
+						end else 
 						
 						// we've loaded the address from memory 
 						if (bus_enable && bus_ready) begin					// back half of store operand fetching

@@ -67,7 +67,7 @@ for I/O the following ports are used
 `define BLOCKS 30
 
 // core clock frequency the PLL is tuned to 
-`define FREQ 125
+`define FREQ 130
 
 // UART fifo depth for both RX and TX
 `define UART_FIFO_DEPTH 8
