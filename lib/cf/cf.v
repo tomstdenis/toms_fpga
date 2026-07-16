@@ -338,16 +338,14 @@ module cf_cpu #(
 							4'h4: // DIV/DIVB
 								begin
 									fsm_state <= fsm_state;			// loop here until division is done
-									if (!sd_valid && !sd_ready) begin
+                                    sd_valid  <= ~sd_ready;
+									if (!sd_valid) begin
 										sd_num   <= reg_ACC;
 										sd_denom <= reg_operand;
-										sd_valid <= 1'b1;
-									end
-									if (sd_valid && sd_ready) begin
+									end else if (sd_ready) begin
 										fsm_state <= FSM_FETCH_OPCODE;
 										reg_ACC   <= sd_quotient;						// ACC gets quotient and we put remainder in ALT location
 										reg_alt   <= sd_remainder;
-										sd_valid  <= 1'b0;
 									end
 								end
 							4'h5: // AND/ANDB
@@ -479,8 +477,7 @@ module cf_cpu #(
 								default: // NOTE: lockup
 									begin end
 							endcase
-						end else 
-						
+						end else 						
 						// we've loaded the address from memory 
 						if (bus_enable && bus_ready) begin					// back half of store operand fetching
 							bus_enable  <= 1'b0;
