@@ -70,10 +70,8 @@ module cf_cpu #(
 
 		FSM_EXECUTE_OPERAND_E0_FF         = 10,		// directly prepare or execute E0..EC
 
-		FSM_EXECUTE_OPERAND2_EA_EB        = 11,		// handle EA and EB (I/O)
-		
-		FSM_SWITCH_LOAD_ADDR              = 12,		// load current 
-		FSM_SWITCH_LOAD_VALUE		      = 13;
+		FSM_SWITCH_LOAD_ADDR              = 11,		// load current 
+		FSM_SWITCH_LOAD_VALUE		      = 12;
 
 	// used to detect when we're starting a new opcode
 	reg cf_start_fetch;
@@ -465,7 +463,7 @@ module cf_cpu #(
 				FSM_FETCH_ALU_OPERAND_98_B7_STORE:
 					begin
 						if (!bus_enable) begin
-							if (cur_opcode[7:3] == 5'h13) begin // LEAI
+							if (cur_opcode[7:4] == 4'h9) begin // LEAI
 								reg_INDEX <= bus_address[15:0];
 								fsm_state <= FSM_FETCH_OPCODE;
 							end else begin						// ST/STB/STI
@@ -574,8 +572,7 @@ module cf_cpu #(
 									end
 								default: begin end
 							endcase
-						end else
-						if (bus_enable && bus_ready) begin							// back half of jumps
+						end else if (bus_enable && bus_ready) begin							// back half of jumps
 							bus_enable <= 1'b0;
 							fsm_state  <= FSM_FETCH_OPCODE;
 							case(cur_opcode[3:0])
@@ -715,11 +712,11 @@ module cf_cpu #(
 									reg_ACC <= reg_alt;
 								5'h0A, 5'h0B: // OUT/IN
 									begin
+                                        fsm_state   <= fsm_state;
                                         bus_io_flag <= 1'b1;
                                         bus_address <= {1'b0, 8'b0, cur_opcode2};
                                         bus_data_in <= reg_ACC;
                                         bus_wr_en   <= cur_opcode[3:0] == 4'hA ? 1'b1 : 1'b0;  // EA == out
-                                        fsm_state   <= FSM_EXECUTE_OPERAND2_EA_EB;
                                         reg_PC      <= reg_PC + 1'b1;
 									end
                                 // *** Start of Tom's New Instructions (CFLEA-TNI) *** 
@@ -774,11 +771,7 @@ module cf_cpu #(
                                     end
                                 default: begin end
 							endcase
-						end
-				end
-				FSM_EXECUTE_OPERAND2_EA_EB:										   // issue I/O
-					begin
-                        if (bus_enable && bus_ready) begin
+						end else if (bus_enable && bus_ready) begin
 							// I/O is complete deassert bus and go back to fetch
                             // capture output if IN opcode or OUT to port >= 0xF0
 							if (cur_opcode == 8'hEB || (bus_address[7:2] == 6'b111100)) begin	// EB == IN
@@ -789,7 +782,7 @@ module cf_cpu #(
                             bus_wr_en   <= 1'b0;
 							fsm_state   <= FSM_FETCH_OPCODE;
 						end
-					end
+                    end
 
 				FSM_SWITCH_LOAD_ADDR: // load the address part of a switch table tuple
 					begin
@@ -810,12 +803,11 @@ module cf_cpu #(
 							switch_table_addr <= switch_table_addr + 16'd2;
 						end else if (bus_enable && bus_ready) begin
 							bus_enable <= 1'b0;
+                            fsm_state  <= FSM_FETCH_OPCODE;
 							if (switch_addr == 0) begin				// are we at the default?
 								reg_PC    <= bus_data_out;
-								fsm_state <= FSM_FETCH_OPCODE;
 							end else if (bus_data_out == reg_ACC) begin					// compare against value
 								reg_PC    <= switch_addr;
-								fsm_state <= FSM_FETCH_OPCODE;
 							end else begin										// fetch the next tuple
 								bus_address <= {1'b0, switch_table_addr};
 								fsm_state   <= FSM_SWITCH_LOAD_ADDR;
