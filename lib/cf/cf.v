@@ -97,30 +97,10 @@ module cf_cpu #(
 	always @(posedge clk) begin
 		if (!rst_n) begin
 			// reset all registers
-			bus_address  <= 0;
-			bus_wr_en    <= 0;
-			bus_io_flag  <= 0;
-			bus_burst    <= 0;
-			bus_data_in  <= 0;
 			bus_enable   <= 0;
-            reg_R[0]     <= 0;
-            reg_R[1]     <= 0;
-			reg_ACC		 <= 0;
-			reg_alt      <= 0;
-			reg_INDEX    <= 0;
-			reg_SP       <= 0;
 			reg_PC       <= BOOT_VECTOR;
-			reg_flags    <= 0;
-			cur_opcode   <= 0;
-            cur_opcode2   <= 0;
-			reg_operand  <= 0;
-			reg_operand_16 <= 0;
 			fsm_state    <= FSM_FETCH_OPCODE;
 			sd_valid	 <= 0;
-			sd_num       <= 0;
-			sd_denom     <= 0;
-			switch_addr  <= 0;
-			switch_table_addr <= 0;
 			cf_start_fetch <= 0;
             cycle_count  <= 0;
 		end else begin
@@ -138,8 +118,7 @@ module cf_cpu #(
 							bus_io_flag <= 1'b0;
 							bus_burst   <= 1'b1;
 							bus_address <= {1'b0, reg_PC};
-						end else
-						if (bus_enable && bus_ready) begin
+						end else if (bus_enable && bus_ready) begin
 							reg_PC      <= reg_PC + 1'b1;
 							cur_opcode  <= bus_data_out[7:0];
                             cur_opcode2 <= bus_data_out[15:8];
@@ -237,11 +216,7 @@ module cf_cpu #(
 										bus_address <= {1'b1, reg_SP};		// load from data memory
 									end
 							endcase
-						end
-						
-						// second half we either have the operand (immediate/index)
-						// or we have the address to load the operand from
-						if (bus_enable && bus_ready) begin					// back half of FETCH for 00..97
+						end else if (bus_enable && bus_ready) begin					// back half of FETCH for 00..97
 							// second half of initial operand fetch.  In some cases we're done
 							// in other cases what we've loaded so far is the address we need
 							// to actually fetch the operand.
@@ -477,9 +452,8 @@ module cf_cpu #(
 								default: // NOTE: lockup
 									begin end
 							endcase
-						end else 						
-						// we've loaded the address from memory 
-						if (bus_enable && bus_ready) begin					// back half of store operand fetching
+						end else if (bus_enable && bus_ready) begin					// back half of store operand fetching
+                            // we've loaded the address from memory 
 							bus_enable  <= 1'b0;
 							fsm_state   <= FSM_FETCH_ALU_OPERAND_98_B7_STORE;
 							bus_burst   <= reg_operand_16;									// are we storing 16 or 8 bits
@@ -498,8 +472,7 @@ module cf_cpu #(
 								bus_wr_en  <= 1'b1;
 								bus_enable <= 1'b1;
 							end
-						end else
-						if (bus_enable && bus_ready) begin
+						end else if (bus_enable && bus_ready) begin
 							bus_wr_en  <= 1'b0;
 							bus_enable <= 1'b0;
 							fsm_state  <= FSM_FETCH_OPCODE;
@@ -703,8 +676,7 @@ module cf_cpu #(
 									end
 								default: begin end // note: lockup
 							endcase
-						end else
-						if (bus_enable && bus_ready) begin
+						end else if (bus_enable && bus_ready) begin
 							bus_enable <= 1'b0;
 							fsm_state  <= FSM_FETCH_OPCODE;
 						end
@@ -824,8 +796,7 @@ module cf_cpu #(
 						if (!bus_enable) begin
 							bus_enable 		  <= 1'b1;
 							switch_table_addr <= switch_table_addr + 16'd2;
-						end else
-						if (bus_enable && bus_ready) begin
+						end else if (bus_enable && bus_ready) begin
 							switch_addr <= bus_data_out;
 							bus_enable  <= 1'b0;
 							bus_address <= {1'b0, switch_table_addr};
@@ -837,8 +808,7 @@ module cf_cpu #(
 						if (!bus_enable) begin
 							bus_enable 		  <= 1'b1;
 							switch_table_addr <= switch_table_addr + 16'd2;
-						end else
-						if (bus_enable && bus_ready) begin
+						end else if (bus_enable && bus_ready) begin
 							bus_enable <= 1'b0;
 							if (switch_addr == 0) begin				// are we at the default?
 								reg_PC    <= bus_data_out;
