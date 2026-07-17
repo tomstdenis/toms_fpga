@@ -39,10 +39,10 @@ disk/HELLO.CF: cf/hello.c
 	emu2 MCF/CCF.COM 'cf/hello.c' -fopl -- MCDIR='C:\MCF'
 	./hex_to_cf cf/hello.hex disk/HELLO.CF 0000 0000 1000
 
-.PHONY: disk/COMMAND.CF
-disk/COMMAND.CF: cf/gpio.c
+.PHONY: disk/GPIO.CF
+disk/GPIO.CF: cf/gpio.c
 	emu2 MCF/CCF.COM 'cf/gpio.c' -fopl -- MCDIR='C:\MCF'
-	./hex_to_cf cf/gpio.hex disk/COMMAND.CF 0000 0000 1000
+	./hex_to_cf cf/gpio.hex disk/GPIO.CF 0000 0000 1000
 
 .PHONY: disk/DEMO.CF
 disk/DEMO.CF: cf/demo.c
@@ -50,7 +50,7 @@ disk/DEMO.CF: cf/demo.c
 	./hex_to_cf cf/demo.hex disk/DEMO.CF 0000 0000 1000
 
 .PHONY: diskfiles
-diskfiles: disk/COMMAND.CF disk/DEMO.CF disk/HELLO.CF
+diskfiles: disk/GPIO.CF disk/DEMO.CF disk/HELLO.CF
 
 # Build the disk.fs file system image with the bootloader any files in disk/* end up in the disk image
 .PHONY: populate_fs

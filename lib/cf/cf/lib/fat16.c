@@ -158,15 +158,13 @@ void fat16_b_to_s(uint16_t p[2])
 // add a 16-bit offset to a 32-bit byte offset
 void fat16_add_16(uint16_t p[2], uint16_t off)
 {
-	p[0] += off;
-	p[1] += (p[0] < off);
+	p[1] += ((p[0] += off) < off);
 }
 
 // add a 32-bit offset to a 32-bit byte offset
 void fat16_add_32(uint16_t p[2], uint16_t off[2])
 {
-	p[0] += off[0];
-	p[1] += off[1] + (p[0] < off[0]);
+	p[1] += off[1] + ((p[0] += off[0]) < off[0]);
 }
 
 // compare a and b, return 1 if GT, 0 if EQ, -1 if LT
@@ -197,7 +195,7 @@ uint16_t fat16_initvol(struct fat16_volinfo *fv, uint8_t *secbuf)
 	// parse fields
 	fv->sec_cluster    = secbuf[0x000D];
 	fv->byte_cluster   = fv->sec_cluster << 9;
-	fv->lg2_bpc   = 0;
+	fv->lg2_bpc        = 0;
 	fv->no_fats        = secbuf[0x0010];
 	fv->no_root 	   = *((uint16_t*)(secbuf+0x11)); // ((uint16_t)secbuf[0x0012] << 8) | secbuf[0x0011];
 	fv->sec_fat        = *((uint16_t*)(secbuf+0x16)); // ((uint16_t)secbuf[0x0017] << 8) | secbuf[0x0016];
@@ -214,7 +212,7 @@ uint16_t fat16_initvol(struct fat16_volinfo *fv, uint8_t *secbuf)
 		++(fv->lg2_bpc);
 		sector[0] >>= 1;
 	}
-	fv->lg2_bpc2     = 16 - fv->lg2_bpc;
+	fv->lg2_bpc2 = 16 - fv->lg2_bpc;
 	fv->lg2_spc  = fv->lg2_bpc - 9;
 	fv->lg2_spc2 = 16 - fv->lg2_spc;
 	
@@ -319,7 +317,7 @@ top:
 uint16_t fat16_wpath(struct fat16_volinfo *fv, char *path)
 {
 	char pathname[13]; // 8 . 3
-	char filename[8], ext[3];
+	char filename[11];
 	uint16_t x, y, dircluster;
 
 	dircluster = 0;
@@ -332,10 +330,10 @@ top:
 
 	// extract fname
 	x = 0;
-	memset(pathname, 0, sizeof pathname);
 	while (*path != '/' && *path && x < 12) {
 		pathname[x++] = *path++;
 	}
+	pathname[x] = 0;
 	
 	//DEBUG("remaining path == [%s]\n", path);
 	//DEBUG("pathname == [%s]\n", pathname);
@@ -347,8 +345,7 @@ top:
 	}
 	
 	// format filename/ext
-	memset(filename, ' ', 8);
-	memset(ext, ' ', 3);
+	memset(filename, ' ', 11);
 	
 	// scan out pathname to filename+ext
 	x = y = 0;
@@ -359,7 +356,7 @@ top:
 		x = 0;
 		++y;
 		while (x < 3 && pathname[y]) {
-			ext[x++] = pathname[y++];
+			filename[8 + x++] = pathname[y++];
 		}
 	}
 	
@@ -370,7 +367,7 @@ top:
 	fat16_opendir(fv, dircluster);
 	
 	while (!fat16_nextdir(fv)) {
-		if (!memcmp(filename, D_FNAME(fv), 8) && !memcmp(ext, D_EXT(fv), 3)) {
+		if (!memcmp(filename, D_FNAME(fv), 11)) {
 			// found it, but do we need to loop?
 			if (*path == '/') {
 				if (D_ATTRIB(fv) & 0x10) {

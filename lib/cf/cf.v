@@ -312,10 +312,9 @@ module cf_cpu #(
 								begin
 									fsm_state <= fsm_state;			// loop here until division is done
                                     sd_valid  <= ~sd_ready;
-									if (!sd_valid) begin
-										sd_num   <= reg_ACC;
-										sd_denom <= reg_operand;
-									end else if (sd_ready) begin
+                                    sd_num   <= reg_ACC;
+                                    sd_denom <= reg_operand;
+									if (sd_ready) begin
 										fsm_state <= FSM_FETCH_OPCODE;
 										reg_ACC   <= sd_quotient;						// ACC gets quotient and we put remainder in ALT location
 										reg_alt   <= sd_remainder;
