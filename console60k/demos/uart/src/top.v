@@ -4,7 +4,7 @@ module top
     input rx_pin,
     output tx_pin
 );
-    wire [15:0] uart_baud_div = 50_000_000 / 115_200; // 115,200 baud @ 50MHz
+    wire [15:0] uart_baud_div = 50_000_000 / 230_400; // 230K baud @ 50MHz
     wire rst_n;
     reg [3:0] rstcnt = 4'b0;
 
