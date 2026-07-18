@@ -148,12 +148,45 @@ void setup()
 //                    Loop
 //=======================================================================
 
+void uart_config()
+{
+  if ((millis() - blink) > 250) {
+    blink = millis();
+    digitalWrite(BUILTIN_LED, !digitalRead(BUILTIN_LED));
+  }
+
+  // handle configuration commands
+  if (Serial.available()) {
+    switch (Serial.read()) {
+      case CFG_COMMAND_SET_PSK:
+        read_string(password);
+        Serial.printf("Received CFG_COMMAND_SET_PSK: [%s]\n", password);
+        break;
+      case CFG_COMMAND_SET_SSID:
+        read_string(ssid);
+        Serial.printf("Received CFG_COMMAND_SET_SSID: [%s]\n", ssid);
+        break;
+      case CFG_COMMAND_SET_BAUD:
+        Serial.readBytes((char *)&baud, 4);
+        Serial.printf("Received CFG_COMMAND_SET_BAUD: %lu\n", (unsigned long)baud);
+        break;
+      case CFG_COMMAND_SET_STORE:
+        Serial.println("Received CFG_COMMAND_SET_STORE command.");
+        Serial.write(0xAA); // sync byte
+        save_eeprom();
+        ESP.restart();
+        break;
+    }
+  }
+}
+
+
 void loop() 
 {
   int x, y;
 
   if (server_loaded == 0) {
-    ESP.restart();
+    uart_config();
   }
 
   WiFiClient client = server.accept();
@@ -268,33 +301,6 @@ void loop()
     client.stop();
   } else {
     yield();
-    if ((millis() - blink) > 250) {
-      blink = millis();
-      digitalWrite(BUILTIN_LED, !digitalRead(BUILTIN_LED));
-    }
-
-    // handle configuration commands
-    if (Serial.available()) {
-      switch (Serial.read()) {
-        case CFG_COMMAND_SET_PSK:
-          read_string(password);
-          Serial.printf("Received CFG_COMMAND_SET_PSK: [%s]\n", password);
-          break;
-        case CFG_COMMAND_SET_SSID:
-          read_string(ssid);
-          Serial.printf("Received CFG_COMMAND_SET_SSID: [%s]\n", ssid);
-          break;
-        case CFG_COMMAND_SET_BAUD:
-          Serial.readBytes((char *)&baud, 4);
-          Serial.printf("Received CFG_COMMAND_SET_BAUD: %lu\n", (unsigned long)baud);
-          break;
-        case CFG_COMMAND_SET_STORE:
-          Serial.println("Received CFG_COMMAND_SET_STORE command.");
-          Serial.write(0xAA); // sync byte
-          save_eeprom();
-          ESP.restart();
-          break;
-      }
-    }
+    uart_config();
   }
 }
