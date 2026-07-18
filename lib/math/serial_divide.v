@@ -30,9 +30,6 @@ module serial_divide
 	
 	always @(posedge clk) begin
 		if (!rst_n) begin
-			tmp       <= 0;
-			quotient  <= 0;
-			remainder <= 0;
 			ready     <= 0;
 			fsm_state <= FSM_IDLE;
 		end else begin

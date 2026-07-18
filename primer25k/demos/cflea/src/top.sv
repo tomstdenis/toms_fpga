@@ -67,7 +67,7 @@ for I/O the following ports are used
 `define BLOCKS 30
 
 // core clock frequency the PLL is tuned to 
-`define FREQ 130
+`define FREQ 135
 
 // UART fifo depth for both RX and TX
 `define UART_FIFO_DEPTH 8
@@ -512,13 +512,13 @@ module top(input wire clk, input wire s1,
                         cf_bus_data_out <= wdt; 
                         cf_bus_ready    <= 1'b1;
                     end else if (cf_bus_address[7:2] == 6'b111100) begin // SPI ports (0xF0..0xF3)
-                        if (bus_cycle[0] == 0) begin
+                        if (bus_cycle == 0) begin
                             spi_cnt                                        <= 7;
                             spi_sr                                         <= cf_bus_data_in[7:0];
                             spi_timer                                      <= cf_bus_data_in[15:8];
                             gpio_out[{cf_bus_address[1:0], gpio_spi_sck}]  <= 1'b0;
                             gpio_out[{cf_bus_address[1:0], gpio_spi_mosi}] <= cf_bus_data_in[7];
-                        end else if (bus_cycle[0] == 1) begin
+                        end else if (bus_cycle == 1) begin
                             // do SPI protocol
                             bus_cycle <= bus_cycle;                         // stay on this bus cycle
                             spi_timer <= spi_timer - 1'b1;
@@ -556,19 +556,19 @@ module top(input wire clk, input wire s1,
                         if (MAIN_MEM_COMB == 1) begin
                             cf_bus_ready <= 1;
                         end else begin
-                            if (bus_cycle[0] == 0) begin
+                            if (bus_cycle == 0) begin
                                 if (cf_bus_wr_en) begin
                                     cf_bus_ready <= 1'b1;
                                 end
-                            end else if (bus_cycle[0] == 1) begin
+                            end else if (bus_cycle == 1) begin
                                 cf_bus_ready    <= 1;
                                 cf_bus_data_out <= { cf_bus_burst ? main_mem_dout_b : 8'b00, main_mem_dout_a };
                             end
                         end
                     end else if (cf_bus_address[15:0] <= bus_address_rom_mem_top) begin
                         // rom memory
-                        if (bus_cycle[0] == 0) begin
-                        end else if (bus_cycle[0] == 1) begin
+                        if (bus_cycle == 0) begin
+                        end else if (bus_cycle == 1) begin
                             cf_bus_ready    <= 1;
                             cf_bus_data_out <= { cf_bus_burst ? boot_rom_dout_b : 8'b00, boot_rom_dout_a };
                         end
@@ -604,8 +604,7 @@ module top(input wire clk, input wire s1,
                         cf_bus_ready <= 1'b1;
                     end
                 end
-            end
-            if (!cf_bus_enable && cf_bus_ready) begin
+            end else if (!cf_bus_enable && cf_bus_ready) begin
                 cf_bus_ready <= 1'b0;
                 bus_cycle <= 0;
             end

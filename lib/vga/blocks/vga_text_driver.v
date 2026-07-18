@@ -48,6 +48,7 @@ module vga_text_driver #(
 	always @(posedge clk) begin
 		if (!rst_n) begin
 			rd_addr <= 0;
+            symbol  <= 0;
 			x_cnt   <= 0;
 			y_cnt   <= 0;
 		end else if (lrg_mode == 0) begin
