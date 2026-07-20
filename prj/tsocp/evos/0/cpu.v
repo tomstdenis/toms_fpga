@@ -25,7 +25,7 @@ module toy_isa(
     input wire [7:0] bus_data_out_b,
     output reg bus_wr_en_b,
     output reg bus_valid_b,
-    input wire bus_ready_b,
+    input wire bus_ready_b;
 )
     // ISA
     reg [7:0] PC;
@@ -35,8 +35,9 @@ module toy_isa(
     // FSM
     localparam
         FSM_FETCH = 0,
-        FSM_EXECUTE = 1;
-    reg        fsm_state;
+        FSM_EXECUTE = 1,
+        FSM_RETIRE  = 2;
+    reg [1:0]  fsm_state;
     reg [7:0]  opcode;
     wire [2:0] insn;
     wire [1:0] rs;
@@ -94,12 +95,12 @@ module toy_isa(
                                 0: // add
                                     begin
                                         R[rs]         <= R[rs] + R[rd];
-                                        ZF            <= (R[rs] + R[rd]) & 255 == 0 ? 1 : 0;
+                                        fsm_state     <= FSM_RETIRE;
                                     end
                                 1: // sub
                                     begin
                                         R[rs]         <= R[rs] - R[rd];
-                                        ZF            <= (R[rs] - R[rd]) & 255 == 0 ? 1 : 0;
+                                        fsm_state     <= FSM_RETIRE;
                                     end
                                 2: // ldi
                                     begin
@@ -125,7 +126,7 @@ module toy_isa(
                                 6: // jz
                                     begin
                                         if (ZF) begin
-                                            PC <= PC - 1 + simm5;
+                                            PC        <= PC - 1 + simm5;
                                         end
                                     end
                                 7: // halt
@@ -140,11 +141,16 @@ module toy_isa(
                             case (insn)
                                 3: // ld
                                     begin
-                                        R[rs] <= bus_data_out_b;
-                                        ZF    <= bus_data_out_b == 0 ? 1 : 0;
+                                        R[rs]     <= bus_data_out_b;
+                                        fsm_state <= FSM_RETIRE;
                                     end
                             endcase
                         end
+                    end
+                FSM_RETIRE:
+                    begin
+                        ZF        <= R[rs] == 0 ? 1 : 0;
+                        fsm_state <= FSM_FETCH;
                     end
             endcase
         end
