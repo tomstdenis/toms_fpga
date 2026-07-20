@@ -84,7 +84,12 @@ module toy_isa_tb();
         clk   = 0;
         rst_n = 0;
 
-        wait(is_halted == 1);
+        wait(is_halted == 1 || (cycles == 1_000_000));
+
+        if (!is_halted) begin
+            $display("Core did not halt.");
+            $fatal;
+        end
 
         // compare memory
         for (x = 0; x < 256; x++) begin
