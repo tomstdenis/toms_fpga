@@ -18,23 +18,19 @@ setup:
 
     ; Step 2: Initialize our loop counter
     LDi  block_count   ; R0 <= address of block_count (1)
-    LD   R1, R0        ; R1 <= mem[R0] (R1 now holds the loop count: 10)
+    LD   R1, R0        ; R1 <= mem[R0] (R1 now holds the loop count: 0x33)
 
+    LDi  1             ; R0 <= 1
 fill_loop:
-    ; Step 3: Check if count (R1) has hit 0
-    LDi  0             ; R0 <= 0
-    ADD  R0, R1        ; Force flags to update based on R1 (ZF = !R1)
-    JZ   done          ; If R1 == 0, we are finished!
-
-    ; Step 4: Write the pattern (using the current count in R1 as the data)
+    ; Step 3: Write the pattern (using the current count in R1 as the data)
     ST   R1, R3        
 
-    ; Step 5: Advance pointer (R3++) and decrement counter (R1--)
-    LDi  1             ; R0 <= 1
+    ; Step 4: Advance pointer (R3++) and decrement counter (R1--)
     ADD  R3, R0        ; R3 <= R3 + 1 (Move to next memory location)
     SUB  R1, R0        ; R1 <= R1 - 1 (Decrement loop counter, updates ZF)
 
-    JMP  fill_loop     ; Loop back
+    JZ done
+    JMP fill_loop     ; Loop back
 
 done:
     HALT               ; Stop execution. External flag raised.
