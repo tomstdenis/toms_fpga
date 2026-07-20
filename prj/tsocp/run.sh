@@ -57,6 +57,7 @@ echo "Fmax"  >> run.log
 for core in evos/*/cpu.v; do
     echo "Testing core: ${core}..." >&2
     echo -n "${core},"  >> run.log
+    FAIL=""
     for demo in data/*.asm; do
         make -C sim clean test_cpu HEX=${demo}.hex STATE=${demo}.state CPU=../${core}
         p=`grep PASSED sim/test_cpu.log`
@@ -65,10 +66,15 @@ for core in evos/*/cpu.v; do
             echo -n "${cycles},"  >> run.log
         else
             echo -n "failed,"  >> run.log
+            FAIL="1"
         fi
     done
-    FMAX=$(find_fmax "../evos/0/cpu.v")
-    echo "${FMAX} MHz" >> run.log
+    if [ "${FAIL}" != "1" ]; then
+        FMAX=$(find_fmax "../${core}")
+        echo "${FMAX} MHz" >> run.log
+    else
+        echo "skipped" >> run.log
+    fi
 done
 
 echo

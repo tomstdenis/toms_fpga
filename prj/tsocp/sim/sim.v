@@ -98,9 +98,11 @@ module toy_isa_tb();
             $display("PC reg differs (expected %x got %x)", state[x], cpu_dut.PC);
             $fatal;
         end
-        if (state[257+x] != cpu_dut.R[x]) begin
-            $display("R[%d] reg differs (expected %x got %x)", x, state[257+x], cpu_dut.R[x]);
-            $fatal;
+        for (x = 0; x < 256; x++) begin
+            if (state[257+x] != cpu_dut.R[x]) begin
+                $display("R[%d] reg differs (expected %x got %x)", x, state[257+x], cpu_dut.R[x]);
+                $fatal;
+            end
         end
         if (state[261][0] != cpu_dut.ZF) begin
             $display("ZF reg differs (expected %x got %x)", state[261], cpu_dut.ZF);
