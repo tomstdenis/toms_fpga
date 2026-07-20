@@ -25,8 +25,8 @@ module toy_isa(
     input wire [7:0] bus_data_out_b,
     output reg bus_wr_en_b,
     output reg bus_valid_b,
-    input wire bus_ready_b;
-)
+    input wire bus_ready_b
+);
     // ISA
     reg [7:0] PC;
     reg [7:0] R[3:0];
@@ -54,11 +54,11 @@ module toy_isa(
     always @(posedge clk) begin
         if (!rst_n) begin
             PC   <= 32;
-            R[0] <= 0     
-            R[1] <= 0     
-            R[2] <= 0     
-            R[3] <= 0     
-            ZF   <= 0
+            R[0] <= 0;
+            R[1] <= 0;
+            R[2] <= 0;
+            R[3] <= 0;
+            ZF   <= 0;
 
             fsm_state        <= FSM_FETCH;
             is_halted        <= 0;
