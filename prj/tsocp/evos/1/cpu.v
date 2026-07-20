@@ -73,8 +73,11 @@ module toy_isa(
             bus_valid_b      <= 0;
         end else begin
             case (fsm_state)
-                FSM_FETCH:
+                FSM_FETCH, FSM_RETIRE:
                     begin
+                        if (fsm_state == FSM_RETIRE) begin
+                            ZF        <= R[rs] == 0 ? 1 : 0;
+                        end
                         if (!bus_valid_a && !is_halted) begin
                             // initiate read of PC
                             bus_addr_a  <= PC;
@@ -151,11 +154,6 @@ module toy_isa(
                                     end
                             endcase
                         end
-                    end
-                FSM_RETIRE:
-                    begin
-                        ZF        <= R[rs] == 0 ? 1 : 0;
-                        fsm_state <= FSM_FETCH;
                     end
             endcase
         end
