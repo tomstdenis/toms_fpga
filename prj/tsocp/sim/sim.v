@@ -117,4 +117,3 @@ module toy_isa_tb();
         $finish;
     end
 endmodule
-
