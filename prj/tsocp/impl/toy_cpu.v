@@ -25,14 +25,8 @@ module top(
 
     pll mypll(.clkin(clk), .clkout0(pll_clk), .locked(plllock));
 
-    reg rst_n = 0;
-
-    always @(posedge pllclk) begin
-        rst_n <= 1;
-    end
-
     toy_isa cpu(
-        .clk(clk), .rst_n(rst_n), .is_halted(is_halted),
+        .clk(pll_clk), .rst_n(rst_n), .is_halted(is_halted),
 
         .bus_addr_a(bus_addr_a), .bus_data_in_a(bus_data_in_a),
         .bus_data_out_a(bus_data_out_a), .bus_wr_en_a(bus_wr_en_a),
