@@ -14,7 +14,7 @@ $(TARGET)_out.config: $(TARGET).json
 $(TARGET).bit: $(TARGET)_out.config
 		ecppack --compress --svf ${TARGET}.svf $< $@
 pll.v:
-	ecppll -i 25 -o ${FREQ} -f pll.v
+	ecppll --highres -i 25 -o ${FREQ} -f pll.v
 
 clean:
 	@rm -f *.svf *.bit *.config *.ys pll.v *.asc *.json
