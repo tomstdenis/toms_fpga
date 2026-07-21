@@ -92,9 +92,9 @@ module toy_isa(
                     end
                 FSM_EXECUTE:
                     begin
-                        bus_valid_a <= 1;                      
-                        bus_addr_a  <= PC;
                         if (!bus_valid_b) begin
+                            bus_valid_a <= 1;                      
+                            bus_addr_a  <= PC;
                             fsm_state  <= FSM_FETCH;
                             bus_addr_b <= R[rd];
                             case (insn)

@@ -14,7 +14,7 @@ find_fmax() {
         echo "   Attempting Fmax ${MID}..." >&2 
         
         # Retry loop: attempt the build up to 3 times
-        for attempt in {1..3}; do
+        for attempt in {1..5}; do
             make -C impl FREQ=${MID} CPU="$1" clean toy_cpu.bit >/dev/null 2>/dev/null
             if [ $? -eq 0 ]; then
                 SUCCESS=1
@@ -54,7 +54,13 @@ done
 echo "Fmax"  >> run.log
 
 # now run each core against each demo
-for core in evos/*/cpu.v; do
+if [ "$1" == "" ]; then
+    CORES="evos/*/cpu.v"
+else
+    CORES="$1"
+fi
+
+for core in ${CORES}; do
     echo "Testing core: ${core}..." >&2
     echo -n "${core},"  >> run.log
     FAIL=""

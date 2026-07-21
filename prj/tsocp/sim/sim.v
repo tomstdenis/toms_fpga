@@ -27,6 +27,11 @@ module toy_isa_tb();
     reg [7:0] mem[0:255];
     reg [7:0] state[0:261];
     reg [31:0] cycles;
+    reg [3:0] wait_a;
+    reg [3:0] wait_b;
+
+    localparam
+        WAIT_STATES = 2;
 
     always @(posedge clk) begin
         if (!rst_n) begin
@@ -35,19 +40,33 @@ module toy_isa_tb();
             bus_ready_b <= 0;
             bus_data_out_a <= 0;
             bus_data_out_b <= 0;
+            wait_a <= 0;
+            wait_b <= 0;
         end else begin
-            bus_data_out_a <= mem[bus_addr_a];
-            bus_ready_a <= bus_valid_a;
-            if (bus_valid_a) begin
-                if (bus_wr_en_a)
+            if (bus_valid_a && !bus_ready_a) begin
+                wait_a         <= wait_a + 1;
+                bus_ready_a    <= wait_a == WAIT_STATES;
+                if (bus_wr_en_a) begin
                     mem[bus_addr_a] <= bus_data_in_a;
+                end else begin
+                    bus_data_out_a <= mem[bus_addr_a];
+                end
+            end else if (bus_ready_a) begin
+                bus_ready_a <= bus_valid_a;
+                wait_a      <= 0;
             end
 
-            bus_data_out_b <= mem[bus_addr_b];
-            bus_ready_b <= bus_valid_b;
-            if (bus_valid_b) begin
-                if (bus_wr_en_b)
+            if (bus_valid_b && !bus_ready_b) begin
+                wait_b         <= wait_b + 1;
+                bus_ready_b    <= wait_b == WAIT_STATES;
+                if (bus_wr_en_b) begin
                     mem[bus_addr_b] <= bus_data_in_b;
+                end else begin
+                    bus_data_out_b <= mem[bus_addr_b];
+                end
+            end else if (bus_ready_b) begin
+                bus_ready_b <= bus_valid_b;
+                wait_b      <= 0;
             end
 
             if (!is_halted) begin
