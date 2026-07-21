@@ -6,7 +6,7 @@ class Sim:
     def __init__(self, hexname: str):
         self.mem = bytearray(256)
         self.R = [0, 0, 0, 0]
-        self.PC = 32
+        self.PC = 0
         self.ZF = 0
         self.HALT = 0
         self.trace = 0
@@ -29,34 +29,55 @@ class Sim:
         if self.trace == 1:
             print(f"PC={self.PC:02X} R=[{self.R[0]:02X}, {self.R[1]:02X}, {self.R[2]:02X}, {self.R[3]:02X}], ZF={self.ZF:02X}")
         self.PC = self.PC + 1
-        insn = opcode >> 5
+        insn = opcode >> 4
         rs = (opcode >> 2) & 3
         rd = opcode & 3
-        simm5 = opcode & 0x1F
-        if (simm5 & 0x10):
-            simm5 = simm5 | 0xF0 # sign extend
-        uimm5 = opcode & 0x1F
+
         if (insn == 0): # add
             self.R[rs] = (self.R[rs] + self.R[rd]) & 0xFF
             self.ZF = 1 if self.R[rs] == 0 else 0
         elif (insn == 1): # sub
             self.R[rs] = (self.R[rs] - self.R[rd]) & 0xFF
             self.ZF = 1 if self.R[rs] == 0 else 0
-        elif (insn == 2): # LDi
-            self.R[0] = uimm5
-            self.ZF = 1 if self.R[0] == 0 else 0
-        elif (insn == 3): # LD
+        elif (insn == 2): # xor
+            self.R[rs] = (self.R[rs] ^ self.R[rd]) & 0xFF
+            self.ZF = 1 if self.R[rs] == 0 else 0
+        elif (insn == 3): # or
+            self.R[rs] = (self.R[rs] | self.R[rd]) & 0xFF
+            self.ZF = 1 if self.R[rs] == 0 else 0
+        elif (insn == 4): # and
+            self.R[rs] = (self.R[rs] & self.R[rd]) & 0xFF
+            self.ZF = 1 if self.R[rs] == 0 else 0
+        elif (insn == 5): # LDi
+            self.R[rs] = self.mem[self.PC]
+            self.PC = self.PC + 1
+            self.ZF = 1 if self.R[rs] == 0 else 0
+        elif (insn == 6): # LD
             self.R[rs] = self.mem[self.R[rd]]
             self.ZF = 1 if self.R[rs] == 0 else 0
-        elif (insn == 4): # ST
+        elif (insn == 7): # ST
             self.mem[self.R[rd]] = self.R[rs]
-        elif (insn == 5): # JMP
-            self.PC = (self.PC - 1 + simm5) & 0xFF
-        elif (insn == 6): # JZ
+        elif (insn == 8): # JMP
+            self.PC = self.mem[self.PC]
+        elif (insn == 9): # JZ
             if self.ZF:
-                self.PC = (self.PC - 1 + simm5) & 0xFF
-        elif (insn == 7): # halt
+                self.PC = self.mem[self.PC]
+            else:
+                self.PC = self.PC + 1
+        elif (insn == 10): # jalr imm
+            self.R[3] = self.PC + 1
+            self.PC   = self.mem[self.PC]
+        elif (insn == 11): # ret
+            self.PC   = self.R[3]
+        elif (insn == 12): # SILT
+            self.ZF = 1 if (self.R[rs] < self.R[rd]) else 0
+        elif (insn == 13): # SIEQ
+            self.ZF = 1 if (self.R[rs] == self.R[rd]) else 0
+        elif (insn == 14): # SIGT
+            self.ZF = 1 if (self.R[rs] > self.R[rd]) else 0
+        elif (insn == 15): # halt
             self.HALT = 1
+        self.PC = self.PC & 0xFF
         
     def emitstate(self, sfname: str):
         with open(sfname, "w") as f:
@@ -89,7 +110,7 @@ if __name__ == "__main__":
     sname   = args.filename + ".state"
 
     sim = Sim(hexname)
-#    sim.trace = 1
+    sim.trace = 1
     sim.runTillHalt()
     sim.emitstate(sname)
     print(f"Simulation of {hexname} done in {sim.opcodes} instructions.")
