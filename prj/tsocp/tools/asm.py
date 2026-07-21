@@ -1,29 +1,32 @@
+import argparse
 import sys
 import re
-import argparse
 
 class Assembler:
     def __init__(self):
         self.labels = {}
         self.memory = [0] * 256
         self.opcodes = {
-            'ADD': 0, 'SUB': 1, 'LDI': 2, 
-            'LD': 3,  'ST': 4,  'JMP': 5, 
-            'JZ': 6,  'HALT': 7
+            'ADD': 0,  'SUB': 1,  'XOR': 2,  'OR': 3,
+            'AND': 4,  'LDI': 5,  'LD': 6,   'ST': 7,
+            'JMP': 8,  'JZ': 9,   'JALR': 10,'RET': 11,
+            'SILT': 12,'SIEQ': 13,'SIGT': 14,'HALT': 15
         }
+        # 2-byte instructions that consume an immediate byte at PC+1
+        self.two_byte_ops = {'LDI', 'JMP', 'JZ', 'JALR'}
         self.regs = {'R0': 0, 'R1': 1, 'R2': 2, 'R3': 3}
 
     def clean_line(self, line):
         """Remove comments and strip whitespace."""
-        line = re.sub(r';.*', '', line) # strip semi-colon comments
-        line = re.sub(r'//.*', '', line) # strip double-slash comments
+        line = re.sub(r';.*', '', line)  # Strip semi-colon comments
+        line = re.sub(r'//.*', '', line) # Strip double-slash comments
         return line.strip()
 
-    def parse_imm(self, val_str, bits, signed=False):
-        """Parse integers, hex, or symbols into a bounded bit-width immediate."""
+    def parse_imm(self, val_str, bits=8, signed=False):
+        """Parse integers, hex, or symbol labels into a bounded bit-width immediate."""
         val_str = val_str.strip()
         
-        # If it's a known label/symbol, resolve its address
+        # Resolve symbol if known
         if val_str in self.labels:
             val = self.labels[val_str]
         else:
@@ -35,7 +38,7 @@ class Assembler:
             except ValueError:
                 raise ValueError(f"Unknown symbol or invalid integer: '{val_str}'")
 
-        # Masking and bounds checks
+        # Bounds checks
         if signed:
             min_val = -(1 << (bits - 1))
             max_val = (1 << (bits - 1)) - 1
@@ -51,7 +54,11 @@ class Assembler:
     def assemble(self, source_code):
         lines = source_code.splitlines()
         
-        # --- PASS 1: Identify Label Positions and ORG directives ---
+        # Reset internal state
+        self.labels = {}
+        self.memory = [0] * 256
+        
+        # --- PASS 1: Calculate PC offsets and record Label addresses ---
         pc = 0
         cleaned_lines = []
         
@@ -60,7 +67,7 @@ class Assembler:
             if not line:
                 continue
                 
-            # Check for label declaration (e.g., "my_loop:")
+            # Check for label declaration (e.g., "my_loop:" or "data_table:")
             label_match = re.match(r'^([a-zA-Z_][a-zA-Z0-9_]*):(.*)', line)
             if label_match:
                 label_name = label_match.group(1)
@@ -69,81 +76,93 @@ class Assembler:
                 self.labels[label_name] = pc
                 line = label_match.group(2).strip()
                 if not line:
-                    continue # Label-only line
+                    continue  # Label-only line
             
             # Check for ORG directive
             org_match = re.match(r'^\.ORG\s+(.+)', line, re.IGNORECASE)
             if org_match:
-                # We temporarily parse the ORG expression assuming no forward label symbols are used for ORG
                 pc = self.parse_imm(org_match.group(1), 8, signed=False)
                 continue
-                
-            # It's an instruction
-            cleaned_lines.append((line_num, pc, line))
-            pc += 1
-            if pc > 256:
-                raise MemoryError("Program size exceeded the 256-byte memory limits!")
 
-        # --- PASS 2: Generate Binary Opcodes ---
+            cleaned_lines.append((line_num, pc, line))
+            
+            # Determine byte size for PC advancement
+            tokens = [t.strip() for t in re.split(r'[\s,]+', line) if t.strip()]
+            first_token = tokens[0].upper()
+
+            if first_token in self.two_byte_ops:
+                pc += 2
+            elif first_token in ('.DB', '.BYTE'):
+                pc += len(tokens[1:])
+            else:
+                # 1-byte opcode or raw data byte/symbol
+                pc += 1
+
+            if pc > 256:
+                raise MemoryError("Program size exceeded the 256-byte memory limit!")
+
+        # --- PASS 2: Encode Instructions and Data Bytes ---
         for line_num, instr_pc, line in cleaned_lines:
-            # Tokenize by space, commas
             tokens = [t.strip() for t in re.split(r'[\s,]+', line) if t.strip()]
             if not tokens:
                 continue
                 
             op = tokens[0].upper()
-#            if op not in self.opcodes:
-#                raise SyntaxError(f"Line {line_num}: Unknown opcode '{op}'")
-            if op in self.opcodes:
-                opcode_bits = self.opcodes[op]
-            else:
-                opcode_bits = 0;
-            byte_val = 0
             
             try:
-                if op in ['ADD', 'SUB', 'LD', 'ST']:
-                    # Target layout: Ins[7:5], Rs[3:2], Rd[1:0]
+                # 1. Two-Register ALU / Memory Ops (1 Byte: Ins[7:4], Rs[3:2], Rd[1:0])
+                if op in ['ADD', 'SUB', 'XOR', 'OR', 'AND', 'LD', 'ST', 'SILT', 'SIEQ', 'SIGT']:
                     if len(tokens) < 3:
                         raise SyntaxError(f"Opcode {op} expects Rs and Rd registers")
-                    rs = tokens[1].upper()
-                    rd = tokens[2].upper()
-                    
+                    rs, rd = tokens[1].upper(), tokens[2].upper()
                     if rs not in self.regs or rd not in self.regs:
                         raise SyntaxError(f"Invalid registers: {rs}, {rd}")
                         
-                    byte_val = (opcode_bits << 5) | (self.regs[rs] << 2) | self.regs[rd]
-                    
+                    opcode_bits = self.opcodes[op]
+                    byte_val = (opcode_bits << 4) | (self.regs[rs] << 2) | self.regs[rd]
+                    self.memory[instr_pc] = byte_val
+
+                # 2. LDI Instruction (2 Bytes: Byte0 = Ins[7:4] | Rs[3:2], Byte1 = imm)
                 elif op == 'LDI':
-                    # Target layout: Ins[7:5], uimm5[4:0] (Hardcoded R0 destination)
-                    if len(tokens) < 2:
-                        raise SyntaxError("LDI expects an immediate value or symbol")
-                    uimm5 = self.parse_imm(tokens[1], 5, signed=False)
-                    byte_val = (opcode_bits << 5) | uimm5
+                    if len(tokens) < 3:
+                        raise SyntaxError("LDI expects a register and an immediate/symbol value")
+                    rs = tokens[1].upper()
+                    if rs not in self.regs:
+                        raise SyntaxError(f"Invalid register: {rs}")
+                        
+                    imm = self.parse_imm(tokens[2], 8, signed=False)
+                    opcode_bits = self.opcodes['LDI']
                     
-                elif op in ['JMP', 'JZ']:
-                    # Target layout: Ins[7:5], simm5[4:0] (PC relative)
+                    self.memory[instr_pc]     = (opcode_bits << 4) | (self.regs[rs] << 2)
+                    self.memory[instr_pc + 1] = imm
+
+                # 3. Control Flow Jumps (2 Bytes: Byte0 = Ins[7:4], Byte1 = target imm/label)
+                elif op in ['JMP', 'JZ', 'JALR']:
                     if len(tokens) < 2:
                         raise SyntaxError(f"{op} expects a target address or symbol")
                     
-                    # Target can be a literal or a label
-                    target_str = tokens[1]
-                    if target_str in self.labels:
-                        # Calculate PC-relative offset: target - current_instruction_pc
-                        target_pc = self.labels[target_str]
-                        offset = target_pc - instr_pc
-                    else:
-                        offset = self.parse_imm(target_str, 5, signed=True)
-                        
-                    simm5 = self.parse_imm(str(offset), 5, signed=True)
-                    byte_val = (opcode_bits << 5) | simm5
+                    target_addr = self.parse_imm(tokens[1], 8, signed=False)
+                    opcode_bits = self.opcodes[op]
                     
+                    self.memory[instr_pc]     = (opcode_bits << 4)
+                    self.memory[instr_pc + 1] = target_addr
+
+                # 4. Single-Byte Control Ops (1 Byte: Ins[7:4])
+                elif op == 'RET':
+                    self.memory[instr_pc] = (self.opcodes['RET'] << 4)
                 elif op == 'HALT':
-                    # Target layout: Ins[7:5], all other bits 0
-                    byte_val = (opcode_bits << 5)
+                    self.memory[instr_pc] = (self.opcodes['HALT'] << 4)
+
+                # 5. Data Directives (.DB / .BYTE)
+                elif op in ('.DB', '.BYTE'):
+                    for idx, data_token in enumerate(tokens[1:]):
+                        val = self.parse_imm(data_token, 8, signed=False)
+                        self.memory[instr_pc + idx] = val
+
+                # 6. Raw Data / Symbol Literals (e.g. "0xFF", "42", or "my_label")
                 else:
-                    byte_val = int(tokens[0], base=16)
-                    
-                self.memory[instr_pc] = byte_val
+                    byte_val = self.parse_imm(tokens[0], 8, signed=False)
+                    self.memory[instr_pc] = byte_val
 
             except Exception as e:
                 print(f"Assembly Error on Line {line_num} (PC={instr_pc}): {e}")
@@ -156,7 +175,6 @@ class Assembler:
         with open(filename, 'w') as f:
             for byte in self.memory:
                 f.write(f"{byte:02X}\n")
-
 
 # --- Example Execution Usage ---
 if __name__ == "__main__":
