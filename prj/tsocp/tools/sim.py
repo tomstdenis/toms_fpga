@@ -110,7 +110,7 @@ if __name__ == "__main__":
     sname   = args.filename + ".state"
 
     sim = Sim(hexname)
-    sim.trace = 1
+#    sim.trace = 1
     sim.runTillHalt()
     sim.emitstate(sname)
     print(f"Simulation of {hexname} done in {sim.opcodes} instructions.")

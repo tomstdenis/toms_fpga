@@ -31,6 +31,7 @@ module toy_isa(
     reg [7:0] PC;
     reg [7:0] R[3:0];
     reg       ZF;
+    reg [7:0] aluout;
 
     // FSM
     localparam
@@ -39,21 +40,17 @@ module toy_isa(
         FSM_RETIRE  = 2;
     reg [1:0]  fsm_state;
     reg [7:0]  opcode;
-    wire [2:0] insn;
+    wire [3:0] insn;
     wire [1:0] rs;
     wire [1:0] rd;
-    wire [7:0] simm5;
-    wire [7:0] uimm5;
 
-    assign insn  = opcode[7:5];
+    assign insn  = opcode[7:4];
     assign rs    = opcode[3:2];
     assign rd    = opcode[1:0];
-    assign simm5 = {opcode[4], opcode[4], opcode[4], opcode[4:0]};
-    assign uimm5 = {3'b0, opcode[4:0]};
 
     always @(posedge clk) begin
         if (!rst_n) begin
-            PC   <= 32;
+            PC   <= 0;
             R[0] <= 0;
             R[1] <= 0;
             R[2] <= 0;
@@ -70,6 +67,7 @@ module toy_isa(
             bus_data_in_b    <= 0;
             bus_wr_en_b      <= 0;
             bus_valid_b      <= 0;
+            aluout           <= 0;
         end else begin
             case (fsm_state)
                 FSM_FETCH:
@@ -95,41 +93,95 @@ module toy_isa(
                                 0: // add
                                     begin
                                         R[rs]         <= R[rs] + R[rd];
+                                        aluout        <= R[rs] + R[rd];
                                         fsm_state     <= FSM_RETIRE;
                                     end
                                 1: // sub
                                     begin
                                         R[rs]         <= R[rs] - R[rd];
+                                        aluout        <= R[rs] - R[rd];
                                         fsm_state     <= FSM_RETIRE;
                                     end
-                                2: // ldi
+                                2: // xor
                                     begin
-                                        R[0]          <= uimm5;
-                                        ZF            <= uimm5 == 0 ? 1 : 0;
+                                        R[rs]         <= R[rs] ^ R[rd];
+                                        aluout        <= R[rs] ^ R[rd];
+                                        fsm_state     <= FSM_RETIRE;
                                     end
-                                3: // ld
+                                3: // or
+                                    begin
+                                        R[rs]         <= R[rs] | R[rd];
+                                        aluout        <= R[rs] | R[rd];
+                                        fsm_state     <= FSM_RETIRE;
+                                    end
+                                4: // and
+                                    begin
+                                        R[rs]         <= R[rs] & R[rd];
+                                        aluout        <= R[rs] & R[rd];
+                                        fsm_state     <= FSM_RETIRE;
+                                    end
+                                5: // ldi
+                                    begin
+                                        fsm_state     <= fsm_state;
+                                        bus_valid_b   <= 1;
+                                        bus_addr_b    <= PC;
+                                        PC            <= PC + 1;
+                                    end
+                                6: // ld
                                     begin
                                         bus_valid_b   <= 1;
                                         fsm_state     <= fsm_state;
                                     end
-                                4: // st
+                                7: // st
                                     begin
                                         bus_valid_b   <= 1;
                                         bus_data_in_b <= R[rs];
                                         bus_wr_en_b   <= 1;
                                         fsm_state     <= fsm_state;
                                     end
-                                5: // jmp
+                                8: // jmp
                                     begin
-                                        PC            <= PC - 1 + simm5;
+                                        fsm_state     <= fsm_state;
+                                        bus_valid_b   <= 1;
+                                        bus_addr_b    <= PC;
                                     end
-                                6: // jz
+                                9: // jz
                                     begin
                                         if (ZF) begin
-                                            PC        <= PC - 1 + simm5;
+                                            fsm_state     <= fsm_state;
+                                            bus_valid_b   <= 1;
+                                            bus_addr_b    <= PC;
+                                        end else begin
+                                            PC            <= PC + 1;
                                         end
                                     end
-                                7: // halt
+                                10: // jalr
+                                    begin
+                                        fsm_state     <= fsm_state;
+                                        bus_valid_b   <= 1;
+                                        bus_addr_b    <= PC;
+                                        R[3]          <= PC + 1;
+                                    end
+                                11: // ret
+                                    begin
+                                        PC            <= R[3];
+                                    end
+                                12: // SILT
+                                    begin
+                                        aluout    <= R[rs] < R[rd] ? 1 : 0;
+                                        fsm_state <= FSM_RETIRE;
+                                    end
+                                13: // SIEQ
+                                    begin
+                                        aluout    <= R[rs] == R[rd] ? 1 : 0;
+                                        fsm_state <= FSM_RETIRE;
+                                    end
+                                14: // SIGT
+                                    begin
+                                        aluout    <= R[rs] > R[rd] ? 1 : 0;
+                                        fsm_state <= FSM_RETIRE;
+                                    end
+                                15: // halt
                                     begin
                                         is_halted     <= 1;
                                     end
@@ -139,17 +191,20 @@ module toy_isa(
                             bus_wr_en_b <= 0;
                             fsm_state   <= FSM_FETCH;
                             case (insn)
-                                3: // ld
+                                5, 6: // ldi, ld
                                     begin
                                         R[rs]     <= bus_data_out_b;
+                                        aluout    <= bus_data_out_b;
                                         fsm_state <= FSM_RETIRE;
                                     end
+                                8, 9, 10: // JMP, JZ, JALR
+                                    PC <= bus_data_out_b;
                             endcase
                         end
                     end
                 FSM_RETIRE:
                     begin
-                        ZF        <= R[rs] == 0 ? 1 : 0;
+                        ZF        <= aluout == 0 ? 1 : 0;
                         fsm_state <= FSM_FETCH;
                     end
             endcase
