@@ -7,8 +7,7 @@ start:
     JMP  exit
     
 loop:
-    LDi  R0, 1       ; Load 1 into R0
-    SUB  R1, R0      ; Decrement R1 loop counter
+    DEC  R1          ; Decrement R1 loop counter
     JZ   done        ; If counter hit 0, branch out
     JMP  loop        ; Else loop back
 done:

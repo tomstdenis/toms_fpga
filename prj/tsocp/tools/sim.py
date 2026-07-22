@@ -69,10 +69,18 @@ class Sim:
             self.PC   = self.mem[self.PC]
         elif (insn == 11): # ret
             self.PC   = self.R[3]
-        elif (insn == 12): # SILT
-            self.ZF = 1 if (self.R[rs] < self.R[rd]) else 0
-        elif (insn == 13): # SIEQ
-            self.ZF = 1 if (self.R[rs] == self.R[rd]) else 0
+        elif (insn == 12): # SILT/INC
+            if rs == rd:
+                self.R[rs] = (self.R[rs] + 1) & 0xFF
+                self.ZF = 1 if self.R[rs] == 0 else 0
+            else:
+                self.ZF = 1 if (self.R[rs] < self.R[rd]) else 0
+        elif (insn == 13): # SIEQ/DEC
+            if rs == rd:
+                self.R[rs] = (self.R[rs] - 1) & 0xFF
+                self.ZF = 1 if self.R[rs] == 0 else 0
+            else:
+                self.ZF = 1 if (self.R[rs] == self.R[rd]) else 0
         elif (insn == 14): # SIGT
             self.ZF = 1 if (self.R[rs] > self.R[rd]) else 0
         elif (insn == 15): # halt

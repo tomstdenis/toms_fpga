@@ -10,7 +10,8 @@ class Assembler:
             'ADD': 0,  'SUB': 1,  'XOR': 2,  'OR': 3,
             'AND': 4,  'LDI': 5,  'LD': 6,   'ST': 7,
             'JMP': 8,  'JZ': 9,   'JALR': 10,'RET': 11,
-            'SILT': 12,'SIEQ': 13,'SIGT': 14,'HALT': 15
+            'SILT': 12,'SIEQ': 13,'SIGT': 14,'HALT': 15,
+            'INC': 12, 'DEC': 13  # Aliased opcodes using Rs == Rd encoding
         }
         # 2-byte instructions that consume an immediate byte at PC+1
         self.two_byte_ops = {'LDI', 'JMP', 'JZ', 'JALR'}
@@ -110,8 +111,22 @@ class Assembler:
             op = tokens[0].upper()
             
             try:
-                # 1. Two-Register ALU / Memory Ops (1 Byte: Ins[7:4], Rs[3:2], Rd[1:0])
-                if op in ['ADD', 'SUB', 'XOR', 'OR', 'AND', 'LD', 'ST', 'SILT', 'SIEQ', 'SIGT']:
+                # 1. Single-Register Ops: INC / DEC (Overloaded Rs == Rd)
+                if op in ['INC', 'DEC']:
+                    if len(tokens) < 2:
+                        raise SyntaxError(f"Opcode {op} expects a target register")
+                    reg = tokens[1].upper()
+                    if reg not in self.regs:
+                        raise SyntaxError(f"Invalid register: {reg}")
+                    
+                    reg_idx = self.regs[reg]
+                    opcode_bits = self.opcodes[op]
+                    # Encode as opcode_bits | Rs=reg | Rd=reg
+                    byte_val = (opcode_bits << 4) | (reg_idx << 2) | reg_idx
+                    self.memory[instr_pc] = byte_val
+
+                # 2. Two-Register ALU / Memory Ops (1 Byte: Ins[7:4], Rs[3:2], Rd[1:0])
+                elif op in ['ADD', 'SUB', 'XOR', 'OR', 'AND', 'LD', 'ST', 'SILT', 'SIEQ', 'SIGT']:
                     if len(tokens) < 3:
                         raise SyntaxError(f"Opcode {op} expects Rs and Rd registers")
                     rs, rd = tokens[1].upper(), tokens[2].upper()
@@ -122,7 +137,7 @@ class Assembler:
                     byte_val = (opcode_bits << 4) | (self.regs[rs] << 2) | self.regs[rd]
                     self.memory[instr_pc] = byte_val
 
-                # 2. LDI Instruction (2 Bytes: Byte0 = Ins[7:4] | Rs[3:2], Byte1 = imm)
+                # 3. LDI Instruction (2 Bytes: Byte0 = Ins[7:4] | Rs[3:2], Byte1 = imm)
                 elif op == 'LDI':
                     if len(tokens) < 3:
                         raise SyntaxError("LDI expects a register and an immediate/symbol value")
@@ -136,7 +151,7 @@ class Assembler:
                     self.memory[instr_pc]     = (opcode_bits << 4) | (self.regs[rs] << 2)
                     self.memory[instr_pc + 1] = imm
 
-                # 3. Control Flow Jumps (2 Bytes: Byte0 = Ins[7:4], Byte1 = target imm/label)
+                # 4. Control Flow Jumps (2 Bytes: Byte0 = Ins[7:4], Byte1 = target imm/label)
                 elif op in ['JMP', 'JZ', 'JALR']:
                     if len(tokens) < 2:
                         raise SyntaxError(f"{op} expects a target address or symbol")
@@ -147,19 +162,19 @@ class Assembler:
                     self.memory[instr_pc]     = (opcode_bits << 4)
                     self.memory[instr_pc + 1] = target_addr
 
-                # 4. Single-Byte Control Ops (1 Byte: Ins[7:4])
+                # 5. Single-Byte Control Ops (1 Byte: Ins[7:4])
                 elif op == 'RET':
                     self.memory[instr_pc] = (self.opcodes['RET'] << 4)
                 elif op == 'HALT':
                     self.memory[instr_pc] = (self.opcodes['HALT'] << 4)
 
-                # 5. Data Directives (.DB / .BYTE)
+                # 6. Data Directives (.DB / .BYTE)
                 elif op in ('.DB', '.BYTE'):
                     for idx, data_token in enumerate(tokens[1:]):
                         val = self.parse_imm(data_token, 8, signed=False)
                         self.memory[instr_pc + idx] = val
 
-                # 6. Raw Data / Symbol Literals (e.g. "0xFF", "42", or "my_label")
+                # 7. Raw Data / Symbol Literals (e.g. "0xFF", "42", or "my_label")
                 else:
                     byte_val = self.parse_imm(tokens[0], 8, signed=False)
                     self.memory[instr_pc] = byte_val
@@ -175,7 +190,6 @@ class Assembler:
         with open(filename, 'w') as f:
             for byte in self.memory:
                 f.write(f"{byte:02X}\n")
-
 # --- Example Execution Usage ---
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(

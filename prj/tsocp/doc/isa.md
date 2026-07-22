@@ -31,6 +31,8 @@ Opcodes:
 		-10: JALR imm      ; R3 = PC + 2, PC = mem[PC+1]
 		-11: RET           ; PC = R3
 		-12: SILT Rs, Rd   ; ZF = Rs < Rd ? 1 : 0
+						   ; if Rs == Rd, then it is INC Rs, ZF = !Rs
 		-13: SIEQ Rs, Rd   ; ZF = Rs == Rd ? 1 : 0
+						   ; if Rs == Rd, then it is DEC Rs, ZF = !Rs
 		-14: SIGT Rs, Rd   ; ZF = Rs > Rd ? 1 : 0
 		-15: HALT          : Halt cpu and raise external flag
