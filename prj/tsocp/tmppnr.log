@@ -1,0 +1,284 @@
+Info: Generated random seed: 2635293363059230693
+Info: constraining clock net 'clk' to 25.00 MHz
+
+Info: Logic utilisation before packing:
+Info:     Total LUT4s:       290/43848     0%
+Info:         logic LUTs:    250/43848     0%
+Info:         carry LUTs:     40/43848     0%
+Info:           RAM LUTs:      0/ 5481     0%
+Info:          RAMW LUTs:      0/10962     0%
+
+Info:      Total DFFs:       106/43848     0%
+
+Info: Packing IOs..
+Info: pin 'rst_n$tr_io' constrained to Bel 'X78/Y0/PIOB'.
+Info: pin 'is_halted$tr_io' constrained to Bel 'X90/Y23/PIOC'.
+Info: pin 'clk$tr_io' constrained to Bel 'X0/Y68/PIOC'.
+Info: pin 'bus_wr_en_b$tr_io' constrained to Bel 'X90/Y26/PIOC'.
+Info: pin 'bus_wr_en_a$tr_io' constrained to Bel 'X83/Y0/PIOB'.
+Info: pin 'bus_valid_b$tr_io' constrained to Bel 'X85/Y0/PIOB'.
+Info: pin 'bus_valid_a$tr_io' constrained to Bel 'X85/Y0/PIOA'.
+Info: pin 'bus_ready_b$tr_io' constrained to Bel 'X80/Y0/PIOB'.
+Info: pin 'bus_ready_a$tr_io' constrained to Bel 'X83/Y0/PIOA'.
+Info: pin 'bus_data_out_b[7]$tr_io' constrained to Bel 'X0/Y26/PIOB'.
+Info: pin 'bus_data_out_b[6]$tr_io' constrained to Bel 'X0/Y26/PIOA'.
+Info: pin 'bus_data_out_b[5]$tr_io' constrained to Bel 'X0/Y23/PIOD'.
+Info: pin 'bus_data_out_b[4]$tr_io' constrained to Bel 'X0/Y20/PIOB'.
+Info: pin 'bus_data_out_b[3]$tr_io' constrained to Bel 'X0/Y32/PIOD'.
+Info: pin 'bus_data_out_b[2]$tr_io' constrained to Bel 'X0/Y26/PIOC'.
+Info: pin 'bus_data_out_b[1]$tr_io' constrained to Bel 'X0/Y23/PIOB'.
+Info: pin 'bus_data_out_b[0]$tr_io' constrained to Bel 'X0/Y14/PIOC'.
+Info: pin 'bus_data_out_a[7]$tr_io' constrained to Bel 'X90/Y20/PIOA'.
+Info: pin 'bus_data_out_a[6]$tr_io' constrained to Bel 'X90/Y17/PIOB'.
+Info: pin 'bus_data_out_a[5]$tr_io' constrained to Bel 'X90/Y14/PIOD'.
+Info: pin 'bus_data_out_a[4]$tr_io' constrained to Bel 'X90/Y14/PIOC'.
+Info: pin 'bus_data_out_a[3]$tr_io' constrained to Bel 'X90/Y20/PIOC'.
+Info: pin 'bus_data_out_a[2]$tr_io' constrained to Bel 'X90/Y20/PIOB'.
+Info: pin 'bus_data_out_a[1]$tr_io' constrained to Bel 'X90/Y17/PIOD'.
+Info: pin 'bus_data_out_a[0]$tr_io' constrained to Bel 'X90/Y17/PIOC'.
+Info: pin 'bus_data_in_b[7]$tr_io' constrained to Bel 'X0/Y29/PIOA'.
+Info: pin 'bus_data_in_b[6]$tr_io' constrained to Bel 'X0/Y32/PIOA'.
+Info: pin 'bus_data_in_b[5]$tr_io' constrained to Bel 'X0/Y35/PIOB'.
+Info: pin 'bus_data_in_b[4]$tr_io' constrained to Bel 'X0/Y32/PIOC'.
+Info: pin 'bus_data_in_b[3]$tr_io' constrained to Bel 'X0/Y29/PIOD'.
+Info: pin 'bus_data_in_b[2]$tr_io' constrained to Bel 'X0/Y32/PIOB'.
+Info: pin 'bus_data_in_b[1]$tr_io' constrained to Bel 'X0/Y17/PIOA'.
+Info: pin 'bus_data_in_b[0]$tr_io' constrained to Bel 'X0/Y26/PIOD'.
+Info: pin 'bus_data_in_a[7]$tr_io' constrained to Bel 'X0/Y59/PIOC'.
+Info: pin 'bus_data_in_a[6]$tr_io' constrained to Bel 'X0/Y44/PIOC'.
+Info: pin 'bus_data_in_a[5]$tr_io' constrained to Bel 'X90/Y44/PIOB'.
+Info: pin 'bus_data_in_a[4]$tr_io' constrained to Bel 'X90/Y29/PIOC'.
+Info: pin 'bus_data_in_a[3]$tr_io' constrained to Bel 'X15/Y71/PIOB'.
+Info: pin 'bus_data_in_a[2]$tr_io' constrained to Bel 'X0/Y59/PIOA'.
+Info: pin 'bus_data_in_a[1]$tr_io' constrained to Bel 'X0/Y44/PIOD'.
+Info: pin 'bus_data_in_a[0]$tr_io' constrained to Bel 'X90/Y20/PIOD'.
+Info: pin 'bus_addr_b[7]$tr_io' constrained to Bel 'X90/Y11/PIOB'.
+Info: pin 'bus_addr_b[6]$tr_io' constrained to Bel 'X76/Y0/PIOB'.
+Info: pin 'bus_addr_b[5]$tr_io' constrained to Bel 'X6/Y0/PIOA'.
+Info: pin 'bus_addr_b[4]$tr_io' constrained to Bel 'X0/Y20/PIOA'.
+Info: pin 'bus_addr_b[3]$tr_io' constrained to Bel 'X90/Y14/PIOA'.
+Info: pin 'bus_addr_b[2]$tr_io' constrained to Bel 'X0/Y29/PIOB'.
+Info: pin 'bus_addr_b[1]$tr_io' constrained to Bel 'X0/Y20/PIOD'.
+Info: pin 'bus_addr_b[0]$tr_io' constrained to Bel 'X0/Y20/PIOC'.
+Info: pin 'bus_addr_a[7]$tr_io' constrained to Bel 'X4/Y71/PIOB'.
+Info: pin 'bus_addr_a[6]$tr_io' constrained to Bel 'X9/Y71/PIOB'.
+Info: pin 'bus_addr_a[5]$tr_io' constrained to Bel 'X6/Y71/PIOB'.
+Info: pin 'bus_addr_a[4]$tr_io' constrained to Bel 'X0/Y65/PIOA'.
+Info: pin 'bus_addr_a[3]$tr_io' constrained to Bel 'X4/Y71/PIOA'.
+Info: pin 'bus_addr_a[2]$tr_io' constrained to Bel 'X6/Y71/PIOA'.
+Info: pin 'bus_addr_a[1]$tr_io' constrained to Bel 'X9/Y71/PIOA'.
+Info: pin 'bus_addr_a[0]$tr_io' constrained to Bel 'X0/Y65/PIOB'.
+Info: Packing constants..
+Info: Packing carries...
+Info: Packing LUTs...
+Info: Packing LUT5-7s...
+Info: Packing FFs...
+Info:     25 FFs paired with LUTs.
+Info: Generating derived timing constraints...
+Info:     Input frequency of PLL 'mypll.pll_i' is constrained to 25.0 MHz
+Info:     Derived frequency constraint of 10.0 MHz for net mypll.clkfb
+Info:     Derived frequency constraint of 116.0 MHz for net pll_clk
+Info: Promoting globals...
+Info:     promoting clock net pll_clk to global network
+Info: Checksum: 0x5101ee1c
+
+Info: Device utilisation:
+Info: 	          TRELLIS_IO:      57/    245    23%
+Info: 	                DCCA:       1/     56     1%
+Info: 	              DP16KD:       0/    108     0%
+Info: 	          MULT18X18D:       0/     72     0%
+Info: 	              ALU54B:       0/     36     0%
+Info: 	             EHXPLLL:       1/      4    25%
+Info: 	             EXTREFB:       0/      2     0%
+Info: 	                DCUA:       0/      2     0%
+Info: 	           PCSCLKDIV:       0/      2     0%
+Info: 	             IOLOGIC:       0/    160     0%
+Info: 	            SIOLOGIC:       0/     85     0%
+Info: 	                 GSR:       0/      1     0%
+Info: 	               JTAGG:       0/      1     0%
+Info: 	                OSCG:       0/      1     0%
+Info: 	               SEDGA:       0/      1     0%
+Info: 	                 DTR:       0/      1     0%
+Info: 	             USRMCLK:       0/      1     0%
+Info: 	             CLKDIVF:       0/      4     0%
+Info: 	           ECLKSYNCB:       0/     10     0%
+Info: 	             DLLDELD:       0/      8     0%
+Info: 	              DDRDLL:       0/      4     0%
+Info: 	             DQSBUFM:       0/     10     0%
+Info: 	     TRELLIS_ECLKBUF:       0/      8     0%
+Info: 	        ECLKBRIDGECS:       0/      2     0%
+Info: 	                DCSC:       0/      2     0%
+Info: 	          TRELLIS_FF:     106/  43848     0%
+Info: 	        TRELLIS_COMB:     312/  43848     0%
+Info: 	        TRELLIS_RAMW:       0/   5481     0%
+
+Info: Placed 58 cells based on constraints.
+Info: Creating initial analytic placement for 259 cells, random placement wirelen = 24699.
+Info:     at initial placer iter 0, wirelen = 3534
+Info:     at initial placer iter 1, wirelen = 2999
+Info:     at initial placer iter 2, wirelen = 2865
+Info:     at initial placer iter 3, wirelen = 2774
+Info: Running main analytical placer, max placement attempts per cell = 28441.
+Info:     at iteration #1, type ALL: wirelen solved = 2759, spread = 3685, legal = 3763; time = 0.01s
+Info:     at iteration #2, type ALL: wirelen solved = 2823, spread = 3604, legal = 3642; time = 0.01s
+Info:     at iteration #3, type ALL: wirelen solved = 2790, spread = 3462, legal = 3521; time = 0.01s
+Info:     at iteration #4, type ALL: wirelen solved = 2819, spread = 3396, legal = 3443; time = 0.01s
+Info: HeAP Placer Time: 0.07s
+Info:   of which solving equations: 0.03s
+Info:   of which spreading cells: 0.00s
+Info:   of which strict legalisation: 0.00s
+
+Info: Running simulated annealing placer for refinement.
+Info:   at iteration #1: temp = 0.000000, timing cost = 120, wirelen = 3443
+Info:   at iteration #2: temp = 0.000000, timing cost = 72, wirelen = 3467 
+Info: SA placement time 0.02s
+
+Info: Max frequency for clock '$glbnet$pll_clk': 144.82 MHz (PASS at 116.01 MHz)
+
+Info: Max delay <async>                 -> posedge $glbnet$pll_clk: 12.47 ns
+Info: Max delay posedge $glbnet$pll_clk -> <async>                : 9.40 ns
+
+Info: Slack histogram:
+Info:  legend: * represents 1 endpoint(s)
+Info:          + represents [1,1) endpoint(s)
+Info: [  1715,   2003) |** 
+Info: [  2003,   2291) |*** 
+Info: [  2291,   2579) |**** 
+Info: [  2579,   2867) |**** 
+Info: [  2867,   3155) |**************** 
+Info: [  3155,   3443) |************** 
+Info: [  3443,   3731) |******************** 
+Info: [  3731,   4019) |******************* 
+Info: [  4019,   4307) |************* 
+Info: [  4307,   4595) |************** 
+Info: [  4595,   4883) |******* 
+Info: [  4883,   5171) |***************** 
+Info: [  5171,   5459) |************** 
+Info: [  5459,   5747) |***** 
+Info: [  5747,   6035) |*** 
+Info: [  6035,   6323) |***** 
+Info: [  6323,   6611) |********** 
+Info: [  6611,   6899) |******* 
+Info: [  6899,   7187) |************** 
+Info: [  7187,   7475) |******** 
+Info: Checksum: 0x347e458f
+Info: Routing globals...
+Info:     routing clock net $glbnet$pll_clk using global 0
+
+Info: Routing..
+Info: Setting up routing queue.
+Info: Routing 1432 arcs.
+Info:            |   (re-)routed arcs  |   delta    | remaining|       time spent     |
+Info:    IterCnt |  w/ripup   wo/ripup |  w/r  wo/r |      arcs| batch(sec) total(sec)|
+Info:       1000 |      314        683 |  314   683 |       763|       0.18       0.18|
+Info:       2000 |      548       1357 |  234   674 |        45|       0.20       0.37|
+Info:     0 arcs ripped up due to negative slack WNS=0.00ns TNS=0.00ns.
+Info:          0 |      549       1401 |    1    44 |         0|       0.02       0.40|
+Info: Routing complete.
+Info: Router1 time 0.40s
+Info: Checksum: 0xfc6a981f
+
+Info: Critical path report for clock '$glbnet$pll_clk' (posedge -> posedge):
+Info:       type curr  total name
+Info:   clk-to-q  0.52  0.52 Source cpu.reg_rs_TRELLIS_FF_Q_5.Q
+Info:    routing  1.32  1.85 Net cpu.aluout_TRELLIS_FF_Q_DI_PFUMX_Z_1_C0_LUT4_Z_D_L6MUX21_Z_SD_CCU2C_S0_COUT_CCU2C_CIN_COUT[0] (2,19) -> (4,17)
+Info:                          Sink cpu.aluout_TRELLIS_FF_Q_DI_PFUMX_Z_1_C0_LUT4_Z_D_L6MUX21_Z_SD_CCU2C_S0_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB0.A
+Info:                          Defined in:
+Info:                               ../evos/0/cpu.v:33.15-33.21
+Info:      logic  0.45  2.30 Source cpu.aluout_TRELLIS_FF_Q_DI_PFUMX_Z_1_C0_LUT4_Z_D_L6MUX21_Z_SD_CCU2C_S0_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB0.FCO
+Info:    routing  0.00  2.30 Net cpu.aluout_TRELLIS_FF_Q_DI_PFUMX_Z_1_C0_LUT4_Z_D_L6MUX21_Z_SD_CCU2C_S0_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_FCI_INT (4,17) -> (4,17)
+Info:                          Sink cpu.aluout_TRELLIS_FF_Q_DI_PFUMX_Z_1_C0_LUT4_Z_D_L6MUX21_Z_SD_CCU2C_S0_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB1.FCI
+Info:      logic  0.00  2.30 Source cpu.aluout_TRELLIS_FF_Q_DI_PFUMX_Z_1_C0_LUT4_Z_D_L6MUX21_Z_SD_CCU2C_S0_CIN_CCU2C_COUT_CIN_CCU2C_COUT$CCU2_COMB1.FCO
+Info:    routing  0.00  2.30 Net cpu.aluout_TRELLIS_FF_Q_DI_PFUMX_Z_1_C0_LUT4_Z_D_L6MUX21_Z_SD_CCU2C_S0_CIN_CCU2C_COUT_CIN (4,17) -> (4,17)
+Info:                          Sink cpu.aluout_TRELLIS_FF_Q_DI_PFUMX_Z_1_C0_LUT4_Z_D_L6MUX21_Z_SD_CCU2C_S0_CIN_CCU2C_COUT$CCU2_COMB0.FCI
+Info:                          Defined in:
+Info:                               ../evos/0/cpu.v:116.58-116.73
+Info:                               /home/tom/nas/oss-cad-suite/lib/../share/yosys/lattice/arith_map_ccu2c.v:74.7-80.4
+Info:                               /home/tom/nas/oss-cad-suite/lib/../share/yosys/lattice/ccu2c_sim.vh:9.9-9.13
+Info:      logic  0.07  2.37 Source cpu.aluout_TRELLIS_FF_Q_DI_PFUMX_Z_1_C0_LUT4_Z_D_L6MUX21_Z_SD_CCU2C_S0_CIN_CCU2C_COUT$CCU2_COMB0.FCO
+Info:    routing  0.00  2.37 Net cpu.aluout_TRELLIS_FF_Q_DI_PFUMX_Z_1_C0_LUT4_Z_D_L6MUX21_Z_SD_CCU2C_S0_CIN_CCU2C_COUT$CCU2_FCI_INT (4,17) -> (4,17)
+Info:                          Sink cpu.aluout_TRELLIS_FF_Q_DI_PFUMX_Z_1_C0_LUT4_Z_D_L6MUX21_Z_SD_CCU2C_S0_CIN_CCU2C_COUT$CCU2_COMB1.FCI
+Info:      logic  0.40  2.77 Source cpu.aluout_TRELLIS_FF_Q_DI_PFUMX_Z_1_C0_LUT4_Z_D_L6MUX21_Z_SD_CCU2C_S0_CIN_CCU2C_COUT$CCU2_COMB1.F
+Info:    routing  0.67  3.44 Net cpu.aluout_TRELLIS_FF_Q_DI_PFUMX_Z_1_C0_LUT4_Z_D_L6MUX21_Z_SD_CCU2C_S0_CIN_CCU2C_COUT_S1[6] (4,17) -> (5,15)
+Info:                          Sink cpu.aluout_TRELLIS_FF_Q_DI_PFUMX_Z_1_C0_LUT4_Z_D_CCU2C_S0_CIN_CCU2C_COUT_S1_LUT4_D_Z_L6MUX21_Z_D1_L6MUX21_Z_D0_PFUMX_Z_ALUT_LUT4_Z.M
+Info:                          Defined in:
+Info:                               /home/tom/nas/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.26  3.69 Source cpu.aluout_TRELLIS_FF_Q_DI_PFUMX_Z_1_C0_LUT4_Z_D_CCU2C_S0_CIN_CCU2C_COUT_S1_LUT4_D_Z_L6MUX21_Z_D1_L6MUX21_Z_D0_PFUMX_Z_ALUT_LUT4_Z.OFX
+Info:    routing  1.43  5.13 Net cpu.aluout_TRELLIS_FF_Q_DI_PFUMX_Z_1_C0_LUT4_Z_D_CCU2C_S0_CIN_CCU2C_COUT_S1_LUT4_D_Z[3] (5,15) -> (2,21)
+Info:                          Sink cpu.aluout_TRELLIS_FF_Q_DI_L6MUX21_Z_D1_PFUMX_Z_BLUT_LUT4_Z.D
+Info:                          Defined in:
+Info:                               /home/tom/nas/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.40  5.53 Source cpu.aluout_TRELLIS_FF_Q_DI_L6MUX21_Z_D1_PFUMX_Z_BLUT_LUT4_Z.OFX
+Info:    routing  0.00  5.53 Net cpu.aluout_TRELLIS_FF_Q_DI_L6MUX21_Z_D1 (2,21) -> (2,21)
+Info:                          Sink cpu.aluout_TRELLIS_FF_Q_DI_L6MUX21_Z_D1_PFUMX_Z_ALUT_LUT4_Z.FXB
+Info:                          Defined in:
+Info:                               /home/tom/nas/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:141.38-141.40
+Info:      logic  0.24  5.77 Source cpu.aluout_TRELLIS_FF_Q_DI_L6MUX21_Z_D1_PFUMX_Z_ALUT_LUT4_Z.OFX
+Info:    routing  0.69  6.46 Net cpu.aluout_TRELLIS_FF_Q_DI[3] (2,21) -> (3,21)
+Info:                          Sink cpu.aluout_TRELLIS_FF_Q_5.M
+Info:      setup  0.00  6.46 Source cpu.aluout_TRELLIS_FF_Q_5.M
+Info: 2.35 ns logic, 4.12 ns routing
+
+Info: Critical path report for cross-domain path '<async>' -> 'posedge $glbnet$pll_clk':
+Info:       type curr  total name
+Info:     source  0.00  0.00 Source bus_ready_b$tr_io.O
+Info:    routing  5.62  5.62 Net bus_ready_b$TRELLIS_IO_IN (80,0) -> (7,18)
+Info:                          Sink bus_ready_b_LUT4_B.B
+Info:                          Defined in:
+Info:                               ../evos/0/cpu.v:28.16-28.27
+Info:      logic  0.24  5.85 Source bus_ready_b_LUT4_B.F
+Info:    routing  0.61  6.46 Net bus_ready_b_LUT4_B_Z[1] (7,18) -> (8,18)
+Info:                          Sink cpu.ZF_PFUMX_C0_1_Z_LUT4_Z_1.D
+Info:                          Defined in:
+Info:                               /home/tom/nas/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.24  6.70 Source cpu.ZF_PFUMX_C0_1_Z_LUT4_Z_1.F
+Info:    routing  0.88  7.57 Net cpu.ZF_PFUMX_C0_1_Z[2] (8,18) -> (8,20)
+Info:                          Sink cpu.ZF_PFUMX_C0_1_Z_LUT4_D.C
+Info:                          Defined in:
+Info:                               /home/tom/nas/oss-cad-suite/lib/../share/yosys/lattice/cells_map_trellis.v:108.23-108.24
+Info:      logic  0.24  7.81 Source cpu.ZF_PFUMX_C0_1_Z_LUT4_D.F
+Info:    routing  1.00  8.82 Net cpu.PC_TRELLIS_FF_Q_CE (8,20) -> (4,17)
+Info:                          Sink cpu.PC_TRELLIS_FF_Q_7.CE
+Info:      setup  0.00  8.82 Source cpu.PC_TRELLIS_FF_Q_7.CE
+Info: 0.71 ns logic, 8.11 ns routing
+
+Info: Critical path report for cross-domain path 'posedge $glbnet$pll_clk' -> '<async>':
+Info:       type curr  total name
+Info:   clk-to-q  0.52  0.52 Source cpu.bus_valid_b_TRELLIS_FF_Q.Q
+Info:    routing  5.85  6.38 Net bus_valid_b$TRELLIS_IO_OUT (7,16) -> (85,0)
+Info:                          Sink bus_valid_b$tr_io.I
+Info:                          Defined in:
+Info:                               ../evos/0/cpu.v:27.16-27.27
+Info: 0.52 ns logic, 5.85 ns routing
+
+Info: Max frequency for clock '$glbnet$pll_clk': 154.73 MHz (PASS at 116.01 MHz)
+
+Info: Max delay <async>                 -> posedge $glbnet$pll_clk: 8.82 ns
+Info: Max delay posedge $glbnet$pll_clk -> <async>                : 6.38 ns
+
+Info: Slack histogram:
+Info:  legend: * represents 1 endpoint(s)
+Info:          + represents [1,1) endpoint(s)
+Info: [  2157,   2420) |** 
+Info: [  2420,   2683) |** 
+Info: [  2683,   2946) |*** 
+Info: [  2946,   3209) |*** 
+Info: [  3209,   3472) |**** 
+Info: [  3472,   3735) |******* 
+Info: [  3735,   3998) |**************** 
+Info: [  3998,   4261) |************** 
+Info: [  4261,   4524) |******************* 
+Info: [  4524,   4787) |********************** 
+Info: [  4787,   5050) |**************************** 
+Info: [  5050,   5313) |******************* 
+Info: [  5313,   5576) |************* 
+Info: [  5576,   5839) |** 
+Info: [  5839,   6102) |***** 
+Info: [  6102,   6365) | 
+Info: [  6365,   6628) |*** 
+Info: [  6628,   6891) |************* 
+Info: [  6891,   7154) |********* 
+Info: [  7154,   7417) |*************** 
+
+Info: Program finished normally.
+make: *** [Makefile:15: toy_cpu.bit] Interrupt
