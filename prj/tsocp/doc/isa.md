@@ -36,8 +36,12 @@ Opcodes:
 			1: JZ imm      : if ZF then PC <= mem[PC+1] else PC <= PC + 2
 			2: JNZ imm     : if !ZF then PC <= mem[PC+1] else PC <= PC + 2
 			3: JALR imm    ; R3 = PC + 2, PC = mem[PC+1]
+		- 9:
+			0: INC  Rs     ; INC Rs, ZF = !Rs
+			1: DEC  Rs     ; DEC Rs, ZF = !Rs
+			2: SHR  Rs     ; SHR Rs, 1, ZF = !Rs
 
-; this frees up group 9 and 10 for more opcodes
+; this frees up group 10 for more opcodes
 
 		-11: (Rd = subop) 
 			0: RET         ; PC = R3
@@ -45,14 +49,11 @@ Opcodes:
 			2: NEG Rs      ; Rs <= -Rs                 (ZF=!Rs)
 			3: SWAP Rs     ; Rs <= {Rs[3:0], Rs[7:4]}  (ZF=!Rs)
 		-12:
-			- SILT Rs, Rd   ; if Rs != Rd, ZF = Rs < Rd ? 1 : 0
-			- INC  Rs[, Rs] ; if Rs == Rd, then it is INC Rs, ZF = !Rs
+			- SILT Rs, Rd  ; ZF = Rs < Rd ? 1 : 0
 		-13:
-			- SIEQ Rs, Rd   ; if Rs != Rd, ZF = Rs == Rd ? 1 : 0
-			- DEC  Rs[, Rs] ; if Rs == Rd, then it is DEC Rs, ZF = !Rs
+			- SIEQ Rs, Rd  ; ZF = Rs == Rd ? 1 : 0
 		-14: 
-			- SIGT Rs, Rd  ; if Rs != Rd, ZF = Rs > Rd ? 1 : 0
-			- SHR  Rs      ; if Rs == Rd, SHR Rs, 1, ZF = !Rs
+			- SIGT Rs, Rd  ; ZF = Rs > Rd ? 1 : 0
 		-15: (Rd = subop)
 			0: HALT        : Halt cpu and raise external flag
 			1: MSB Rs      ; ZF = Rs[7]

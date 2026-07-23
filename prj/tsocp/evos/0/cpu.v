@@ -157,44 +157,49 @@ module toy_isa(
                                     end
                                 8: // jmps
                                     begin
+										fsm_state     <= fsm_state;
+										bus_valid_b   <= 1;
+										bus_addr_b    <= PC;
 										case (rd)
 											0: // JMP
 												begin
-													fsm_state     <= fsm_state;
-													bus_valid_b   <= 1;
-													bus_addr_b    <= PC;
 												end
 											1: // JZ
 												begin
 													if (ZF) begin
-														fsm_state     <= fsm_state;
-														bus_valid_b   <= 1;
-														bus_addr_b    <= PC;
 													end else begin
+														fsm_state     <= FSM_FETCH;
+														bus_valid_b   <= 0;
 														PC            <= PC + 1;
 													end
 												end
 											2: // JNZ
 												begin
 													if (!ZF) begin
-														fsm_state     <= fsm_state;
-														bus_valid_b   <= 1;
-														bus_addr_b    <= PC;
 													end else begin
+														fsm_state     <= FSM_FETCH;
+														bus_valid_b   <= 0;
 														PC            <= PC + 1;
 													end
 												end
 											3: // JALR
 												begin
-													fsm_state     <= fsm_state;
-													bus_valid_b   <= 1;
-													bus_addr_b    <= PC;
-													R[3]          <= PC + 1;
+													R[3]              <= PC + 1;
 												end
 										endcase
                                     end
-                                9: // XXXX
+                                9: // inc/dec/shr
                                     begin
+										fsm_state <= FSM_RETIRE;
+										reg_wr_en <= 1;
+										case (rd)
+											0: // INC
+												aluout <= reg_rs + 1;
+											1: // DEC
+												aluout <= reg_rs - 1;
+											2: // SHR
+												aluout <= {1'b0, reg_rs[7:1]};
+										endcase
                                     end
                                 10: // XXXX
                                     begin
@@ -229,32 +234,17 @@ module toy_isa(
                                 12: // SILT
                                     begin
                                         fsm_state <= FSM_RETIRE;
-                                        if (rs == rd) begin
-                                            reg_wr_en <= 1;
-                                            aluout    <= reg_rs + 1;
-                                        end else begin
-                                            aluout <= (reg_rs < reg_rd) ? 0 : 1;
-                                        end
+										aluout    <= (reg_rs < reg_rd) ? 0 : 1;
                                     end
                                 13: // SIEQ
                                     begin
                                         fsm_state <= FSM_RETIRE;
-                                        if (rs == rd) begin
-                                            reg_wr_en <= 1;
-                                            aluout <= reg_rs - 1;
-                                        end else begin
-                                            aluout <= (reg_rs == reg_rd) ? 0 : 1;
-                                        end
+										aluout    <= (reg_rs == reg_rd) ? 0 : 1;
                                     end
                                 14: // SIGT
                                     begin
                                         fsm_state <= FSM_RETIRE;
-                                        if (rs == rd) begin
-                                            reg_wr_en <= 1;
-                                            aluout <= reg_rs >> 1;
-                                        end else begin
-                                            aluout <= (reg_rs > reg_rd) ? 0 : 1;
-                                        end
+										aluout    <= (reg_rs > reg_rd) ? 0 : 1;
                                     end
                                 15: // halt
                                     begin

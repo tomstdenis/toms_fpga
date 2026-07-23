@@ -5,12 +5,12 @@ ADDR   BYTES          LINE   SOURCE
 00                    3      start:
 00     58 80          4          LDi  R2, my_data ; Load the address of 'my_data' (symbol resolving) into R0
 02     66             5          LD   R1, R2      ; R1 <= mem[R2] (reads 0x1F)
-03     E5             6          SHR  R1          ; R1 >>= 1
+03     96             6          SHR  R1          ; R1 >>= 1
 04     83 08          7          JALR loop
 06     80 0E          8          JMP  exit
                       9          
 08                    10     loop:
-08     D5             11         DEC  R1          ; Decrement R1 loop counter
+08     95             11         DEC  R1          ; Decrement R1 loop counter
 09     81 0D          12         JZ   done        ; If counter hit 0, branch out
 0B     80 08          13         JMP  loop        ; Else loop back
 0D                    14     done:

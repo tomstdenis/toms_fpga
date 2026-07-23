@@ -26,7 +26,7 @@ ADDR   BYTES          LINE   SOURCE
                       24         ; Step 4: Advance pointer (R3++) and decrement counter (R1--)
 05     5D 01          25         ADDI R3,1
                       26         ;INC  R3
-07     D5             27         DEC  R1
+07     95             27         DEC  R1
                       28     
 08     81 0C          29         JZ done
 0A     80 04          30         JMP fill_loop     ; Loop back

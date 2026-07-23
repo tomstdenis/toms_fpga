@@ -18,9 +18,9 @@ ADDR   BYTES          LINE   SOURCE
 06                    16     loop:
 06     63             17         LD R0,R3
 07     72             18         ST R0,R2
-08     CA             19         INC R2
-09     CF             20         INC R3
-0A     D5             21         DEC R1
+08     98             19         INC R2
+09     9C             20         INC R3
+0A     95             21         DEC R1
 0B     81 0F          22         JZ done
 0D     80 06          23         JMP loop
                       24     
