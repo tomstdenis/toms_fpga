@@ -40,21 +40,16 @@ Opcodes:
 			0: INC  Rs     ; INC Rs, ZF = !Rs
 			1: DEC  Rs     ; DEC Rs, ZF = !Rs
 			2: SHR  Rs     ; SHR Rs, 1, ZF = !Rs
-			3: XXXX        ; free slot for 1OP or 0OP opcode
-
-; this frees up group 10 for more opcodes
-
+			3: SZF  Rs     ; Rs <= {7'b0, ZF}
+		-10: MOV Rs,Rd     ; Rs <= Rd (ZF=!Rs)
 		-11: (Rd = subop) 
 			0: RET         ; PC = R3
 			1: NOT Rs      ; Rs <= ~Rs                 (ZF=!Rs)
 			2: NEG Rs      ; Rs <= -Rs                 (ZF=!Rs)
 			3: SWAP Rs     ; Rs <= {Rs[3:0], Rs[7:4]}  (ZF=!Rs)
-		-12:
-			- SILT Rs, Rd  ; ZF = Rs < Rd ? 1 : 0
-		-13:
-			- SIEQ Rs, Rd  ; ZF = Rs == Rd ? 1 : 0
-		-14: 
-			- SIGT Rs, Rd  ; ZF = Rs > Rd ? 1 : 0
+		-12: SILT Rs, Rd   ; ZF = Rs < Rd ? 1 : 0
+		-13: SIEQ Rs, Rd   ; ZF = Rs == Rd ? 1 : 0
+		-14: SIGT Rs, Rd   ; ZF = Rs > Rd ? 1 : 0
 		-15: (Rd = subop)
 			0: HALT        : Halt cpu and raise external flag
 			1: MSB Rs      ; ZF = Rs[7]

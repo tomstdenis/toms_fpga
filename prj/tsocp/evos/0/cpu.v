@@ -188,7 +188,7 @@ module toy_isa(
 												end
 										endcase
                                     end
-                                9: // inc/dec/shr
+                                9: // inc/dec/shr/szf
                                     begin
 										fsm_state <= FSM_RETIRE;
 										reg_wr_en <= 1;
@@ -205,10 +205,17 @@ module toy_isa(
 												begin
 													aluout <= {1'b0, reg_rs[7:1]};
 												end
+											3: // SZF
+												begin
+													aluout <= {7'b0, ZF};
+												end
 										endcase
                                     end
-                                10: // XXXX
+                                10: // MOV
                                     begin
+                                        fsm_state <= FSM_RETIRE;
+                                        reg_wr_en <= 1;
+                                        aluout    <= reg_rd;
                                     end
                                 11: // ret
                                     begin

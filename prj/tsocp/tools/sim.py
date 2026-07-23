@@ -87,8 +87,12 @@ class Sim:
                 self.R[rs] = (self.R[rs] - 1) & 0xFF
             elif (rd == 2): #shr
                 self.R[rs] = (self.R[rs] >> 1) & 0xFF
+            elif (rd == 3): #szf
+                self.R[rs] = 1 if self.ZF != 0 else 0
             self.ZF = 1 if self.R[rs] == 0 else 0
-#todo: opcode group 10
+        elif (insn == 10): #mov
+            self.R[rs] = self.R[rd]
+            self.ZF = 1 if self.R[rs] == 0 else 0
         elif (insn == 11): # ret
             if (rd == 0): # ret
                 self.PC   = self.R[3]

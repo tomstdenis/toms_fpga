@@ -11,14 +11,14 @@ class Assembler:
         self.opcodes = {
             'ADD': 0,  'SUB': 1,  'XOR': 2,  'OR': 3,
             'AND': 4,  'LDI': 5,  'LD': 6,   'ST': 7,
-            'JMP': 8,  'RET': 11,
+            'JMP': 8,  'MOV': 10, 'RET': 11,
             'SILT': 12,'SIEQ': 13,'SIGT': 14,'HALT': 15,
             
-            'INC': 9, 'DEC': 9, 'SHR': 9,      # inc/dec/shr use group 9
-            'NOT': 11, 'NEG': 11, 'SWAP': 11,  # opcodes that use the RET group
-            'MSB': 15, 'LSB': 15,              # opcodes that use the HALT group
-            "ADDI": 5, "XORI": 5, "ANDI": 5,   # imm opcodes use the LDI group
-            'JZ': 8,   "JNZ": 8, 'JALR': 8,    # Jumps use the JMP group
+            'INC': 9, 'DEC': 9, 'SHR': 9, 'SZF': 9, # inc/dec/shr use group 9
+            'NOT': 11, 'NEG': 11, 'SWAP': 11,       # opcodes that use the RET group
+            'MSB': 15, 'LSB': 15,                   # opcodes that use the HALT group
+            "ADDI": 5, "XORI": 5, "ANDI": 5,        # imm opcodes use the LDI group
+            'JZ': 8,   "JNZ": 8, 'JALR': 8,         # Jumps use the JMP group
         }
 
         self.subopcodes = {
@@ -26,7 +26,7 @@ class Assembler:
             "HALT": 0, "MSB": 1, "LSB": 2,
             "LDI": 0, "ADDI": 1, "XORI": 2, "ANDI": 3,
             "JMP": 0, "JZ": 1, "JNZ": 2, "JALR": 3,
-            "INC": 0, "DEC": 1, "SHR": 2
+            "INC": 0, "DEC": 1, "SHR": 2, 'SZF': 3
         };
         # 2-byte instructions that consume an immediate byte at PC+1
         self.two_byte_ops = {'LDI', 'ADDI', 'XORI', 'ANDI', 'JMP', 'JZ', 'JALR'}
@@ -132,7 +132,7 @@ class Assembler:
             
             try:
                 # 1. Single-Register Ops: INC / DEC / SHR (group 9)
-                if op in ['INC', 'DEC', 'SHR']:
+                if op in ['INC', 'DEC', 'SHR', 'SZF']:
                     if len(tokens) < 2:
                         raise SyntaxError(f"Opcode {op} expects a target register")
                     reg = tokens[1].upper()
@@ -144,7 +144,7 @@ class Assembler:
                     emitted_bytes.append(byte_val)
 
                 # 2. Two-Register ALU / Memory Ops
-                elif op in ['ADD', 'SUB', 'XOR', 'OR', 'AND', 'LD', 'ST', 'SILT', 'SIEQ', 'SIGT']:
+                elif op in ['ADD', 'SUB', 'XOR', 'OR', 'AND', 'LD', 'ST', 'SILT', 'SIEQ', 'SIGT', 'MOV']:
                     if len(tokens) < 3:
                         raise SyntaxError(f"Opcode {op} expects Rs and Rd registers")
                     rs, rd = tokens[1].upper(), tokens[2].upper()
