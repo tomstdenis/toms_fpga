@@ -1,0 +1,36 @@
+ADDR   BYTES          LINE   SOURCE
+----------------------------------------------------------------------
+                      1      ; program begins at PC == 0
+00                    2      .ORG 0
+00                    3      start:
+00     58 80          4          LDi  R2, my_data ; Load the address of 'my_data' (symbol resolving) into R0
+02     66             5          LD   R1, R2      ; R1 <= mem[R2] (reads 0x1F)
+03     E5             6          SHR  R1          ; R1 >>= 1
+04     A0 08          7          JALR loop
+06     80 0E          8          JMP  exit
+                      9          
+08                    10     loop:
+08     D5             11         DEC  R1          ; Decrement R1 loop counter
+09     90 0D          12         JZ   done        ; If counter hit 0, branch out
+0B     80 08          13         JMP  loop        ; Else loop back
+0D                    14     done:
+0D     B0             15         RET    
+                      16         
+0E                    17     exit:
+0E     F0             18         HALT             ; Stop execution 
+                      19     
+                      20     ; data 
+80                    21     .ORG 128
+80                    22     my_data:
+80     1F             23     .DB 0x1F               ; Constant data stored in memory location 128
+81     80             24     .DB my_data
+82     01 02 03 04    25     .DB 1, 2, 3, 4
+
+======================================================================
+SYMBOL TABLE:
+----------------------------------------------------------------------
+done                     : 0x0D (13)
+exit                     : 0x0E (14)
+loop                     : 0x08 (8)
+my_data                  : 0x80 (128)
+start                    : 0x00 (0)

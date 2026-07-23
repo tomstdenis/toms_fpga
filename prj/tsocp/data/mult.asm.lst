@@ -1,0 +1,66 @@
+ADDR   BYTES          LINE   SOURCE
+----------------------------------------------------------------------
+00                    1      .ORG 0
+00                    2      main:
+00     58 24          3          LDi R2,operands     ; R2 = pointer to operands
+02     A0 08          4          JALR mult           ; call multiply routine
+04     54 26          5          LDi R1,product      ; R1 = pointer to where to store product
+06     71             6          ST  R0,R1           ; store product
+07     F0             7          HALT
+                      8      
+                      9      ; mult(p) R2 => [operands], product => R0
+08                    10     mult:
+08     50 23          11         LDi R0,multtemp
+0A     7C             12         ST  R3,R0           ; save return address
+0B     62             13         LD  R0, R2          ; R0 = Multiplier (A)
+0C     CA             14         INC R2
+0D     66             15         LD  R1, R2          ; R1 = Multiplicand (B)
+0E     5C 00          16         LDi R3, 0           ; R3 = Accumulator (Product)
+                      17     
+10                    18     mult_loop:
+                      19         ; Check if Multiplier (R0) is 0
+10     40             20         AND R0,R0           ; in reality this is easier for "is zero"
+11     90 1D          21         JZ  mult_done       ; Exit loop if R0 is zero
+                      22     
+                      23         ; Check if LSB of R0 is set using temporary AND logic
+                      24         ; (Since we need a copy of R0 to mask bit 0 without losing R0)
+                      25         ; In this ISA, we can test odd/even by shifting right and back,
+                      26         ; or by keeping a 1 in R2 to test bit 0:
+13     58 01          27         LDi R2, 1
+15     48             28         AND R2, R0          ; R2 = R0 & 1 (ZF = !R2)
+16     90 19          29         JZ  skip_add        ; If LSB was 0, skip adding Multiplicand
+                      30     
+18     0D             31         ADD R3, R1          ; Accumulator += Multiplicand
+                      32     
+19                    33     skip_add:
+19     E0             34         SHR R0              ; Multiplier >>= 1
+                      35         
+                      36         ; Shift Multiplicand left: R1 = R1 + R1
+1A     05             37         ADD R1, R1          ; Multiplicand <<= 1
+1B     80 10          38         JMP mult_loop
+                      39     
+1D                    40     mult_done:
+1D     20             41         XOR R0,R0
+1E     03             42         ADD R0,R3           ; R0 = R3
+1F     5C 23          43         LDi R3,multtemp
+21     6F             44         LD  R3,R3           ; restore return address (LDi/LD using same reg is handy for not destroying a pointless reg)
+22     B0             45         RET
+23                    46     multtemp:
+23     00             47     .DB 0
+                      48     
+24                    49     operands:
+24     07 06          50     .DB 7, 6                ; Inputs: 7, 6. Output placeholder: 0
+26                    51     product:
+26     00             52     .DB 0                   ; Output placeholder: 0
+
+======================================================================
+SYMBOL TABLE:
+----------------------------------------------------------------------
+main                     : 0x00 (0)
+mult                     : 0x08 (8)
+mult_done                : 0x1D (29)
+mult_loop                : 0x10 (16)
+multtemp                 : 0x23 (35)
+operands                 : 0x24 (36)
+product                  : 0x26 (38)
+skip_add                 : 0x19 (25)

@@ -6,12 +6,14 @@ class Assembler:
     def __init__(self):
         self.labels = {}
         self.memory = [0] * 256
+        self.raw_lines = []
+        self.line_info = {}  # Map line_num -> (pc, [bytes])
         self.opcodes = {
             'ADD': 0,  'SUB': 1,  'XOR': 2,  'OR': 3,
             'AND': 4,  'LDI': 5,  'LD': 6,   'ST': 7,
             'JMP': 8,  'JZ': 9,   'JALR': 10,'RET': 11,
             'SILT': 12,'SIEQ': 13,'SIGT': 14,'HALT': 15,
-            'INC': 12, 'DEC': 13, "SHR": 14  # Aliased opcodes using Rs == Rd encoding
+            'INC': 12, 'DEC': 13, 'SHR': 14  # Aliased opcodes using Rs == Rd encoding
         }
         # 2-byte instructions that consume an immediate byte at PC+1
         self.two_byte_ops = {'LDI', 'JMP', 'JZ', 'JALR'}
@@ -53,17 +55,18 @@ class Assembler:
             return val
 
     def assemble(self, source_code):
-        lines = source_code.splitlines()
+        self.raw_lines = source_code.splitlines()
         
         # Reset internal state
         self.labels = {}
         self.memory = [0] * 256
+        self.line_info = {}
         
         # --- PASS 1: Calculate PC offsets and record Label addresses ---
         pc = 0
         cleaned_lines = []
         
-        for line_num, raw_line in enumerate(lines, 1):
+        for line_num, raw_line in enumerate(self.raw_lines, 1):
             line = self.clean_line(raw_line)
             if not line:
                 continue
@@ -77,12 +80,15 @@ class Assembler:
                 self.labels[label_name] = pc
                 line = label_match.group(2).strip()
                 if not line:
-                    continue  # Label-only line
+                    # Label-only line: store PC for listing
+                    self.line_info[line_num] = (pc, [])
+                    continue
             
             # Check for ORG directive
             org_match = re.match(r'^\.ORG\s+(.+)', line, re.IGNORECASE)
             if org_match:
                 pc = self.parse_imm(org_match.group(1), 8, signed=False)
+                self.line_info[line_num] = (pc, [])
                 continue
 
             cleaned_lines.append((line_num, pc, line))
@@ -109,6 +115,7 @@ class Assembler:
                 continue
                 
             op = tokens[0].upper()
+            emitted_bytes = []
             
             try:
                 # 1. Single-Register Ops: INC / DEC / SHR (Overloaded Rs == Rd)
@@ -121,11 +128,11 @@ class Assembler:
                     
                     reg_idx = self.regs[reg]
                     opcode_bits = self.opcodes[op]
-                    # Encode as opcode_bits | Rs=reg | Rd=reg
                     byte_val = (opcode_bits << 4) | (reg_idx << 2) | reg_idx
                     self.memory[instr_pc] = byte_val
+                    emitted_bytes.append(byte_val)
 
-                # 2. Two-Register ALU / Memory Ops (1 Byte: Ins[7:4], Rs[3:2], Rd[1:0])
+                # 2. Two-Register ALU / Memory Ops
                 elif op in ['ADD', 'SUB', 'XOR', 'OR', 'AND', 'LD', 'ST', 'SILT', 'SIEQ', 'SIGT']:
                     if len(tokens) < 3:
                         raise SyntaxError(f"Opcode {op} expects Rs and Rd registers")
@@ -136,8 +143,9 @@ class Assembler:
                     opcode_bits = self.opcodes[op]
                     byte_val = (opcode_bits << 4) | (self.regs[rs] << 2) | self.regs[rd]
                     self.memory[instr_pc] = byte_val
+                    emitted_bytes.append(byte_val)
 
-                # 3. LDI Instruction (2 Bytes: Byte0 = Ins[7:4] | Rs[3:2], Byte1 = imm)
+                # 3. LDI Instruction
                 elif op == 'LDI':
                     if len(tokens) < 3:
                         raise SyntaxError("LDI expects a register and an immediate/symbol value")
@@ -148,10 +156,13 @@ class Assembler:
                     imm = self.parse_imm(tokens[2], 8, signed=False)
                     opcode_bits = self.opcodes['LDI']
                     
-                    self.memory[instr_pc]     = (opcode_bits << 4) | (self.regs[rs] << 2)
-                    self.memory[instr_pc + 1] = imm
+                    b0 = (opcode_bits << 4) | (self.regs[rs] << 2)
+                    b1 = imm
+                    self.memory[instr_pc]     = b0
+                    self.memory[instr_pc + 1] = b1
+                    emitted_bytes.extend([b0, b1])
 
-                # 4. Control Flow Jumps (2 Bytes: Byte0 = Ins[7:4], Byte1 = target imm/label)
+                # 4. Control Flow Jumps
                 elif op in ['JMP', 'JZ', 'JALR']:
                     if len(tokens) < 2:
                         raise SyntaxError(f"{op} expects a target address or symbol")
@@ -159,25 +170,32 @@ class Assembler:
                     target_addr = self.parse_imm(tokens[1], 8, signed=False)
                     opcode_bits = self.opcodes[op]
                     
-                    self.memory[instr_pc]     = (opcode_bits << 4)
-                    self.memory[instr_pc + 1] = target_addr
+                    b0 = (opcode_bits << 4)
+                    b1 = target_addr
+                    self.memory[instr_pc]     = b0
+                    self.memory[instr_pc + 1] = b1
+                    emitted_bytes.extend([b0, b1])
 
-                # 5. Single-Byte Control Ops (1 Byte: Ins[7:4])
-                elif op == 'RET':
-                    self.memory[instr_pc] = (self.opcodes['RET'] << 4)
-                elif op == 'HALT':
-                    self.memory[instr_pc] = (self.opcodes['HALT'] << 4)
+                # 5. Single-Byte Control Ops
+                elif op in ['RET', 'HALT']:
+                    b0 = (self.opcodes[op] << 4)
+                    self.memory[instr_pc] = b0
+                    emitted_bytes.append(b0)
 
                 # 6. Data Directives (.DB / .BYTE)
                 elif op in ('.DB', '.BYTE'):
                     for idx, data_token in enumerate(tokens[1:]):
                         val = self.parse_imm(data_token, 8, signed=False)
                         self.memory[instr_pc + idx] = val
+                        emitted_bytes.append(val)
 
-                # 7. Raw Data / Symbol Literals (e.g. "0xFF", "42", or "my_label")
+                # 7. Raw Data / Symbol Literals
                 else:
                     byte_val = self.parse_imm(tokens[0], 8, signed=False)
                     self.memory[instr_pc] = byte_val
+                    emitted_bytes.append(byte_val)
+
+                self.line_info[line_num] = (instr_pc, emitted_bytes)
 
             except Exception as e:
                 print(f"Assembly Error on Line {line_num} (PC={instr_pc}): {e}")
@@ -190,7 +208,35 @@ class Assembler:
         with open(filename, 'w') as f:
             for byte in self.memory:
                 f.write(f"{byte:02X}\n")
-# --- Example Execution Usage ---
+
+    def write_lst(self, filename):
+        """Writes an assembly listing file with addresses, hex bytes, source code, and symbol table."""
+        with open(filename, 'w') as f:
+            # Header
+            f.write(f"{'ADDR':<6} {'BYTES':<14} {'LINE':<6} SOURCE\n")
+            f.write("-" * 70 + "\n")
+            
+            for line_num, raw_line in enumerate(self.raw_lines, 1):
+                if line_num in self.line_info:
+                    pc, bytes_emitted = self.line_info[line_num]
+                    pc_str = f"{pc:02X}"
+                    hex_bytes = " ".join(f"{b:02X}" for b in bytes_emitted)
+                else:
+                    pc_str = "  "
+                    hex_bytes = ""
+                
+                f.write(f"{pc_str:<6} {hex_bytes:<14} {line_num:<6} {raw_line}\n")
+            
+            # Symbol Table Section
+            f.write("\n" + "=" * 70 + "\n")
+            f.write("SYMBOL TABLE:\n")
+            f.write("-" * 70 + "\n")
+            if self.labels:
+                for label, addr in sorted(self.labels.items()):
+                    f.write(f"{label:<24} : 0x{addr:02X} ({addr})\n")
+            else:
+                f.write("(No symbols defined)\n")
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(
         description="Assemble Toy ISA to Hex format"
@@ -207,5 +253,7 @@ if __name__ == "__main__":
     compiler = Assembler();
     mem_dump = compiler.assemble(program);
     hexname = args.filename + ".hex"
+    lstname = args.filename + ".lst"
     compiler.write_hex(hexname)
+    compiler.write_lst(lstname)
     print(f"Assembly complete! '{hexname}' generated successfully.")

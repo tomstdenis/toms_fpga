@@ -1,0 +1,44 @@
+ADDR   BYTES          LINE   SOURCE
+----------------------------------------------------------------------
+                      1      ; -------------------------------------------------------------
+                      2      ; Toy ISA Program: Block Memory Fill
+                      3      ; Purpose: Fills a block of memory with a pattern. 
+                      4      ; Tests: LD, ST, ADD, SUB, JZ, JMP, LDi, and indirect addressing
+                      5      ; -------------------------------------------------------------
+20                    6      .ORG 32
+20                    7      dest_ptr:
+20     80             8          .DB 0x80                 ; Target memory block starts at address 80
+21                    9      block_count:
+21     33             10         .DB 0x33                 ; Fill 0x33 bytes of memory
+                      11     
+00                    12     .ORG 0
+                      13     
+00                    14     setup:
+                      15         ; Step 1: Initialize our target pointer
+00     5C 20          16         LDi  R3, dest_ptr  ; R3 <= dest_ptr
+                      17     
+                      18         ; Step 2: Initialize our loop counter
+02     54 21          19         LDi  R1, block_count   ; R1 <= block_count
+04                    20     fill_loop:
+                      21         ; Step 3: Write the pattern (using the current count in R1 as the data)
+04     77             22         ST   R1, R3        
+                      23     
+                      24         ; Step 4: Advance pointer (R3++) and decrement counter (R1--)
+05     CF             25         INC  R3
+06     D5             26         DEC  R1
+                      27     
+07     90 0B          28         JZ done
+09     80 04          29         JMP fill_loop     ; Loop back
+                      30     
+0B                    31     done:
+0B     F0             32         HALT               ; Stop execution. External flag raised.
+                      33     
+
+======================================================================
+SYMBOL TABLE:
+----------------------------------------------------------------------
+block_count              : 0x21 (33)
+dest_ptr                 : 0x20 (32)
+done                     : 0x0B (11)
+fill_loop                : 0x04 (4)
+setup                    : 0x00 (0)
