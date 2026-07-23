@@ -49,9 +49,16 @@ class Sim:
             self.R[rs] = (self.R[rs] & self.R[rd]) & 0xFF
             self.ZF = 1 if self.R[rs] == 0 else 0
         elif (insn == 5): # LDi
-            self.R[rs] = self.mem[self.PC]
-            self.PC = self.PC + 1
+            if (rd == 0):
+                self.R[rs] = self.mem[self.PC]
+            elif (rd == 1): # ADDi
+                self.R[rs] = (self.R[rs] + self.mem[self.PC]) & 0xFF
+            elif (rd == 2): # SUBi
+                self.R[rs] = (self.R[rs] - self.mem[self.PC]) & 0xFF
+            elif (rd == 3): # ANDi
+                self.R[rs] = (self.R[rs] & self.mem[self.PC]) & 0xFF
             self.ZF = 1 if self.R[rs] == 0 else 0
+            self.PC = self.PC + 1
         elif (insn == 6): # LD
             self.R[rs] = self.mem[self.R[rd]]
             self.ZF = 1 if self.R[rs] == 0 else 0
@@ -68,7 +75,17 @@ class Sim:
             self.R[3] = self.PC + 1
             self.PC   = self.mem[self.PC]
         elif (insn == 11): # ret
-            self.PC   = self.R[3]
+            if (rd == 0): # ret
+                self.PC   = self.R[3]
+            elif (rd == 1): #not
+                self.R[rs] = (~self.R[rs]) & 0xFF
+                self.ZF = 1 if self.R[rs] == 0 else 0
+            elif (rd == 2): #neg
+                self.R[rs] = (-self.R[rs]) & 0xFF
+                self.ZF = 1 if self.R[rs] == 0 else 0
+            elif (rd == 3): #swap
+                self.R[rs] = ((self.R[rs] << 4) | (self.R[rs] >> 4)) & 0xFF
+                self.ZF = 1 if self.R[rs] == 0 else 0
         elif (insn == 12): # SILT/INC
             if rs == rd:
                 self.R[rs] = (self.R[rs] + 1) & 0xFF
@@ -88,7 +105,12 @@ class Sim:
             else:
                 self.ZF = 1 if (self.R[rs] > self.R[rd]) else 0
         elif (insn == 15): # halt
-            self.HALT = 1
+            if (rd == 0): # halt
+                self.HALT = 1
+            elif (rd == 1): # msb
+                self.ZF = 1 ^ ((self.R[rs] >> 7) & 1)
+            elif (rd == 2): # lsb
+                self.ZF = 1 ^ (self.R[rs] & 1)
         self.PC = self.PC & 0xFF
         
     def emitstate(self, sfname: str):

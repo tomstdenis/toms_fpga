@@ -23,17 +23,36 @@ Opcodes:
 		- 2: XOR Rs, Rd    ; Rs <= Rs ^ Rd   (ZF=!Rs)
 		- 3:  OR Rs, Rd    ; Rs <= Rs | Rd   (ZF=!Rs)
 		- 4: AND Rs, Rd    ; Rs <= Rs & Rd   (ZF=!Rs)
-		- 5: LDi Rs, imm   : Rs <= mem[PC+1] (ZF=!Rs)
+		- 5:
+			0: LDi Rs, imm   : Rs <= mem[PC+1] (ZF=!Rs)
+			1: ADDi Rs, imm   : Rs <= Rs + mem[PC+1] (ZF=!Rs)
+			2: SUBi Rs, imm   : Rs <= Rs - mem[PC+1] (ZF=!Rs)
+			3: ANDi Rs, imm   : Rs <= Rs & mem[PC+1] (ZF=!Rs)
 		- 6: LD Rs, Rd     : Rs <= mem[Rd]   (ZF=!Rs)
 		- 7: ST Rs, Rd     : mem[Rd] <= Rs
+
+; todo: merge JMP/JZ/JALR into group 8, possibly add JNZ for fun
 		- 8: JMP imm       : PC <= mem[PC+1]
 		- 9: JZ imm        : if ZF then PC <= mem[PC+1] else PC <= PC + 2
 		-10: JALR imm      ; R3 = PC + 2, PC = mem[PC+1]
-		-11: RET           ; PC = R3
-		-12: SILT Rs, Rd   ; ZF = Rs < Rd ? 1 : 0
-		-12: INC  Rs[, Rs] ; if Rs == Rd, then it is INC Rs, ZF = !Rs
-		-13: SIEQ Rs, Rd   ; ZF = Rs == Rd ? 1 : 0
-		-13: DEC  Rs[, Rs] ; if Rs == Rd, then it is DEC Rs, ZF = !Rs
-		-14: SIGT Rs, Rd   ; ZF = Rs > Rd ? 1 : 0
-		-14: SHR  Rs       ; if Rs == Rd, then it's SHR Rs, 1, ZF = !Rs
-		-15: HALT          : Halt cpu and raise external flag
+
+; this frees up group 9 and 10 for more opcodes
+
+		-11: (Rd = subop) 
+			0: RET         ; PC = R3
+			1: NOT Rs      ; Rs <= ~Rs                 (ZF=!Rs)
+			2: NEG Rs      ; Rs <= -Rs                 (ZF=!Rs)
+			3: SWAP Rs     ; Rs <= {Rs[3:0], Rs[7:4]}  (ZF=!Rs)
+		-12:
+			- SILT Rs, Rd   ; if Rs != Rd, ZF = Rs < Rd ? 1 : 0
+			- INC  Rs[, Rs] ; if Rs == Rd, then it is INC Rs, ZF = !Rs
+		-13:
+			- SIEQ Rs, Rd   ; if Rs != Rd, ZF = Rs == Rd ? 1 : 0
+			- DEC  Rs[, Rs] ; if Rs == Rd, then it is DEC Rs, ZF = !Rs
+		-14: 
+			- SIGT Rs, Rd  ; if Rs != Rd, ZF = Rs > Rd ? 1 : 0
+			- SHR  Rs      ; if Rs == Rd, SHR Rs, 1, ZF = !Rs
+		-15: (Rd = subop)
+			0: HALT        : Halt cpu and raise external flag
+			1: MSB Rs      ; ZF = Rs[7]
+			2: LSB Rs      ; ZF = Rs[0]

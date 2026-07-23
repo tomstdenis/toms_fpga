@@ -22,7 +22,8 @@ fill_loop:
     ST   R1, R3        
 
     ; Step 4: Advance pointer (R3++) and decrement counter (R1--)
-    INC  R3
+    ADDI R3,1
+    ;INC  R3
     DEC  R1
 
     JZ done

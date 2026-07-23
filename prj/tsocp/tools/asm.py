@@ -13,10 +13,18 @@ class Assembler:
             'AND': 4,  'LDI': 5,  'LD': 6,   'ST': 7,
             'JMP': 8,  'JZ': 9,   'JALR': 10,'RET': 11,
             'SILT': 12,'SIEQ': 13,'SIGT': 14,'HALT': 15,
-            'INC': 12, 'DEC': 13, 'SHR': 14  # Aliased opcodes using Rs == Rd encoding
+            'INC': 12, 'DEC': 13, 'SHR': 14,   # Aliased opcodes using Rs == Rd encoding
+            'NOT': 11, 'NEG': 11, 'SWAP': 11,  # opcodes that use the RET group
+            'MSB': 15, 'LSB': 15,              # opcodes that use the HALT group
+            "ADDI": 5, "SUBI": 5, "ANDI": 5    # imm opcodes use the LDI group
         }
+        self.subopcodes = {
+            "RET": 0, "NOT": 1, "NEG": 2, "SWAP": 3,
+            "HALT": 0, "MSB": 1, "LSB": 2,
+            "LDI": 0, "ADDI": 1, "SUBI": 2, "ANDI": 3
+        };
         # 2-byte instructions that consume an immediate byte at PC+1
-        self.two_byte_ops = {'LDI', 'JMP', 'JZ', 'JALR'}
+        self.two_byte_ops = {'LDI', 'ADDI', 'SUBI', 'ANDI', 'JMP', 'JZ', 'JALR'}
         self.regs = {'R0': 0, 'R1': 1, 'R2': 2, 'R3': 3}
 
     def clean_line(self, line):
@@ -146,7 +154,7 @@ class Assembler:
                     emitted_bytes.append(byte_val)
 
                 # 3. LDI Instruction
-                elif op == 'LDI':
+                elif op in ['LDI', "ADDI", "SUBI", "ANDI"]:
                     if len(tokens) < 3:
                         raise SyntaxError("LDI expects a register and an immediate/symbol value")
                     rs = tokens[1].upper()
@@ -154,9 +162,8 @@ class Assembler:
                         raise SyntaxError(f"Invalid register: {rs}")
                         
                     imm = self.parse_imm(tokens[2], 8, signed=False)
-                    opcode_bits = self.opcodes['LDI']
-                    
-                    b0 = (opcode_bits << 4) | (self.regs[rs] << 2)
+                    opcode_bits = self.opcodes[op] 
+                    b0 = (opcode_bits << 4) | (self.regs[rs] << 2) | self.subopcodes[op];
                     b1 = imm
                     self.memory[instr_pc]     = b0
                     self.memory[instr_pc + 1] = b1
@@ -177,8 +184,18 @@ class Assembler:
                     emitted_bytes.extend([b0, b1])
 
                 # 5. Single-Byte Control Ops
-                elif op in ['RET', 'HALT']:
+                elif op in ['RET', 'HALT', 'NEG', 'NOT', 'SWAP', 'LSB', 'MSB']:
                     b0 = (self.opcodes[op] << 4)
+                    b0 |= self.subopcodes[op]
+                    if (b0 & 3):
+                        # expect an opregister
+                        if len(tokens) < 2:
+                            raise SyntaxError(f"Opcode {op} expects a target register")
+                        reg = tokens[1].upper()
+                        if reg not in self.regs:
+                            raise SyntaxError(f"Invalid register: {reg}")
+                        b0 = b0 | (self.regs[reg] << 2)
+
                     self.memory[instr_pc] = b0
                     emitted_bytes.append(b0)
 

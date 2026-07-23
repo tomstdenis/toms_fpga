@@ -180,7 +180,30 @@ module toy_isa(
                                     end
                                 11: // ret
                                     begin
-                                        PC            <= R[3];
+                                        case (rd)
+                                            0:
+                                                begin
+                                                    PC        <= R[3];
+                                                end
+                                            1: // not
+                                                begin
+                                                    aluout    <= ~reg_rs;
+                                                    reg_wr_en <= 1;
+                                                    fsm_state <= FSM_RETIRE;
+                                                end
+                                            2: // neg
+                                                begin
+                                                    aluout    <= -reg_rs;
+                                                    reg_wr_en <= 1;
+                                                    fsm_state <= FSM_RETIRE;
+                                                end
+                                            3: // swap
+                                                begin
+                                                    aluout    <= {reg_rs[3:0], reg_rs[7:4]};
+                                                    reg_wr_en <= 1;
+                                                    fsm_state <= FSM_RETIRE;
+                                                end
+                                        endcase
                                     end
                                 12: // SILT
                                     begin
@@ -214,7 +237,22 @@ module toy_isa(
                                     end
                                 15: // halt
                                     begin
-                                        is_halted     <= 1;
+                                        case (rd)
+                                            0:
+                                                begin
+                                                    is_halted     <= 1;
+                                                end
+                                            1: // MSB
+                                                begin
+                                                    aluout    <= {7'b0, reg_rs[7]};
+                                                    fsm_state <= FSM_RETIRE;
+                                                end
+                                            2: // LSB
+                                                begin
+                                                    aluout    <= {7'b0, reg_rs[0]};
+                                                    fsm_state <= FSM_RETIRE;
+                                                end
+                                        endcase
                                     end
                             endcase
                         end else if (bus_valid_b && bus_ready_b) begin
@@ -222,7 +260,18 @@ module toy_isa(
                             bus_wr_en_b <= 0;
                             fsm_state   <= FSM_FETCH;
                             case (insn)
-                                5, 6: // ldi, ld
+                                5: // ldi
+                                    begin
+                                        reg_wr_en <= 1;
+                                        fsm_state <= FSM_RETIRE;
+                                        case (rd)
+                                            0: aluout <= bus_data_out_b;
+                                            1: aluout <= reg_rs + bus_data_out_b;
+                                            2: aluout <= reg_rs - bus_data_out_b;
+                                            3: aluout <= reg_rs & bus_data_out_b;
+                                        endcase
+                                    end
+                                6: // ld
                                     begin
                                         reg_wr_en <= 1;
                                         aluout    <= bus_data_out_b;

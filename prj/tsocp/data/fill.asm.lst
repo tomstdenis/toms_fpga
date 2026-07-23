@@ -24,21 +24,22 @@ ADDR   BYTES          LINE   SOURCE
 04     77             22         ST   R1, R3        
                       23     
                       24         ; Step 4: Advance pointer (R3++) and decrement counter (R1--)
-05     CF             25         INC  R3
-06     D5             26         DEC  R1
-                      27     
-07     90 0B          28         JZ done
-09     80 04          29         JMP fill_loop     ; Loop back
-                      30     
-0B                    31     done:
-0B     F0             32         HALT               ; Stop execution. External flag raised.
-                      33     
+05     5D 01          25         ADDI R3,1
+                      26         ;INC  R3
+07     D5             27         DEC  R1
+                      28     
+08     90 0C          29         JZ done
+0A     80 04          30         JMP fill_loop     ; Loop back
+                      31     
+0C                    32     done:
+0C     F0             33         HALT               ; Stop execution. External flag raised.
+                      34     
 
 ======================================================================
 SYMBOL TABLE:
 ----------------------------------------------------------------------
 block_count              : 0x21 (33)
 dest_ptr                 : 0x20 (32)
-done                     : 0x0B (11)
+done                     : 0x0C (12)
 fill_loop                : 0x04 (4)
 setup                    : 0x00 (0)

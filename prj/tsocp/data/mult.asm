@@ -24,8 +24,7 @@ mult_loop:
     ; (Since we need a copy of R0 to mask bit 0 without losing R0)
     ; In this ISA, we can test odd/even by shifting right and back,
     ; or by keeping a 1 in R2 to test bit 0:
-    LDi R2, 1
-    AND R2, R0          ; R2 = R0 & 1 (ZF = !R2)
+    LSB R0
     JZ  skip_add        ; If LSB was 0, skip adding Multiplicand
 
     ADD R3, R1          ; Accumulator += Multiplicand
