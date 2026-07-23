@@ -53,8 +53,8 @@ class Sim:
                 self.R[rs] = self.mem[self.PC]
             elif (rd == 1): # ADDi
                 self.R[rs] = (self.R[rs] + self.mem[self.PC]) & 0xFF
-            elif (rd == 2): # SUBi
-                self.R[rs] = (self.R[rs] - self.mem[self.PC]) & 0xFF
+            elif (rd == 2): # XORi
+                self.R[rs] = (self.R[rs] ^ self.mem[self.PC]) & 0xFF
             elif (rd == 3): # ANDi
                 self.R[rs] = (self.R[rs] & self.mem[self.PC]) & 0xFF
             self.ZF = 1 if self.R[rs] == 0 else 0
@@ -80,14 +80,14 @@ class Sim:
             elif (rd == 3): # JALR
                 self.R[3] = self.PC + 1
                 self.PC   = self.mem[self.PC]
-		elif (insn == 9): # inc/dec/shr
-			if (rd == 0): #inc
-				self.R[rs] = (self.R[rs] + 1) & 0xFF
-			elif (rd == 1): #dec
-				self.R[rs] = (self.R[rs] - 1) & 0xFF
-			elif (rd == 2): #shr
-				self.R[rs] = (self.R[rs] >> 1) & 0xFF
-			self.ZF = 1 if self.R[rs] == 0 else 0
+        elif (insn == 9): # inc/dec/shr
+            if (rd == 0): #inc
+                self.R[rs] = (self.R[rs] + 1) & 0xFF
+            elif (rd == 1): #dec
+                self.R[rs] = (self.R[rs] - 1) & 0xFF
+            elif (rd == 2): #shr
+                self.R[rs] = (self.R[rs] >> 1) & 0xFF
+            self.ZF = 1 if self.R[rs] == 0 else 0
 #todo: opcode group 10
         elif (insn == 11): # ret
             if (rd == 0): # ret
@@ -102,11 +102,11 @@ class Sim:
                 self.R[rs] = ((self.R[rs] << 4) | (self.R[rs] >> 4)) & 0xFF
                 self.ZF = 1 if self.R[rs] == 0 else 0
         elif (insn == 12): # SILT
-			self.ZF = 1 if (self.R[rs] < self.R[rd]) else 0
+            self.ZF = 1 if (self.R[rs] < self.R[rd]) else 0
         elif (insn == 13): # SIEQ
-			self.ZF = 1 if (self.R[rs] == self.R[rd]) else 0
+            self.ZF = 1 if (self.R[rs] == self.R[rd]) else 0
         elif (insn == 14): # SIGT
-			self.ZF = 1 if (self.R[rs] > self.R[rd]) else 0
+            self.ZF = 1 if (self.R[rs] > self.R[rd]) else 0
         elif (insn == 15): # halt
             if (rd == 0): # halt
                 self.HALT = 1

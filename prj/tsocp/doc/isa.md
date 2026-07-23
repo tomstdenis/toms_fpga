@@ -18,7 +18,7 @@ Opcodes:
         - Rd: [1:0] (also used to pick sub groups for various groups like LDi, JMP, RET, and HALT)
         - imm is the next byte
 
-    - Instructions
+    - Instructions (upper 4 bits of 8-bit opcode, some 1 or 0 OP opcodes use bits [1:0] as a sub-opcode)
 		- 0: ADD Rs, Rd    : Rs <= Rs + Rd   (ZF=!Rs)
 		- 1: SUB Rs, Rd    : Rs <= Rs - Rd   (ZF=!Rs)
 		- 2: XOR Rs, Rd    ; Rs <= Rs ^ Rd   (ZF=!Rs)
@@ -26,8 +26,8 @@ Opcodes:
 		- 4: AND Rs, Rd    ; Rs <= Rs & Rd   (ZF=!Rs)
 		- 5:
 			0: LDi Rs, imm   : Rs <= mem[PC+1] (ZF=!Rs)
-			1: ADDi Rs, imm   : Rs <= Rs + mem[PC+1] (ZF=!Rs)
-			2: SUBi Rs, imm   : Rs <= Rs - mem[PC+1] (ZF=!Rs)
+			1: ADDi Rs, imm   : Rs <= Rs + mem[PC+1] (ZF=!Rs)  (note SUBi is just 256 - imm)
+			2: XORi Rs, imm   : Rs <= Rs ^ mem[PC+1] (ZF=!Rs)
 			3: ANDi Rs, imm   : Rs <= Rs & mem[PC+1] (ZF=!Rs)
 		- 6: LD Rs, Rd     : Rs <= mem[Rd]   (ZF=!Rs)
 		- 7: ST Rs, Rd     : mem[Rd] <= Rs
@@ -40,6 +40,7 @@ Opcodes:
 			0: INC  Rs     ; INC Rs, ZF = !Rs
 			1: DEC  Rs     ; DEC Rs, ZF = !Rs
 			2: SHR  Rs     ; SHR Rs, 1, ZF = !Rs
+			3: XXXX        ; free slot for 1OP or 0OP opcode
 
 ; this frees up group 10 for more opcodes
 
@@ -58,3 +59,4 @@ Opcodes:
 			0: HALT        : Halt cpu and raise external flag
 			1: MSB Rs      ; ZF = Rs[7]
 			2: LSB Rs      ; ZF = Rs[0]
+			3: XXXX        ; free slot for a 1OP or 0OP opcode

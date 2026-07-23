@@ -194,11 +194,17 @@ module toy_isa(
 										reg_wr_en <= 1;
 										case (rd)
 											0: // INC
-												aluout <= reg_rs + 1;
+												begin
+													aluout <= reg_rs + 1;
+												end
 											1: // DEC
-												aluout <= reg_rs - 1;
+												begin
+													aluout <= reg_rs - 1;
+												end
 											2: // SHR
-												aluout <= {1'b0, reg_rs[7:1]};
+												begin
+													aluout <= {1'b0, reg_rs[7:1]};
+												end
 										endcase
                                     end
                                 10: // XXXX
@@ -276,10 +282,10 @@ module toy_isa(
                                         reg_wr_en <= 1;
                                         fsm_state <= FSM_RETIRE;
                                         case (rd)
-                                            0: aluout <= bus_data_out_b;
-                                            1: aluout <= reg_rs + bus_data_out_b;
-                                            2: aluout <= reg_rs - bus_data_out_b;
-                                            3: aluout <= reg_rs & bus_data_out_b;
+                                            0: aluout <= bus_data_out_b;			// LDi
+                                            1: aluout <= reg_rs + bus_data_out_b;	// ADDi
+                                            2: aluout <= reg_rs ^ bus_data_out_b;	// XORi
+                                            3: aluout <= reg_rs & bus_data_out_b;	// ANDi
                                         endcase
                                     end
                                 6: // ld
@@ -298,7 +304,7 @@ module toy_isa(
                         if (reg_wr_en) begin
                             R[rs] <= aluout;
                         end
-                        ZF        <= aluout == 0 ? 1 : 0;
+                        ZF        <= (aluout == 0) ? 1 : 0;
                         fsm_state <= FSM_FETCH;
                     end
             endcase

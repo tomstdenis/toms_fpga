@@ -17,19 +17,19 @@ class Assembler:
             'INC': 9, 'DEC': 9, 'SHR': 9,      # inc/dec/shr use group 9
             'NOT': 11, 'NEG': 11, 'SWAP': 11,  # opcodes that use the RET group
             'MSB': 15, 'LSB': 15,              # opcodes that use the HALT group
-            "ADDI": 5, "SUBI": 5, "ANDI": 5,   # imm opcodes use the LDI group
+            "ADDI": 5, "XORI": 5, "ANDI": 5,   # imm opcodes use the LDI group
             'JZ': 8,   "JNZ": 8, 'JALR': 8,    # Jumps use the JMP group
         }
 
         self.subopcodes = {
             "RET": 0, "NOT": 1, "NEG": 2, "SWAP": 3,
             "HALT": 0, "MSB": 1, "LSB": 2,
-            "LDI": 0, "ADDI": 1, "SUBI": 2, "ANDI": 3,
+            "LDI": 0, "ADDI": 1, "XORI": 2, "ANDI": 3,
             "JMP": 0, "JZ": 1, "JNZ": 2, "JALR": 3,
             "INC": 0, "DEC": 1, "SHR": 2
         };
         # 2-byte instructions that consume an immediate byte at PC+1
-        self.two_byte_ops = {'LDI', 'ADDI', 'SUBI', 'ANDI', 'JMP', 'JZ', 'JALR'}
+        self.two_byte_ops = {'LDI', 'ADDI', 'XORI', 'ANDI', 'JMP', 'JZ', 'JALR'}
         self.regs = {'R0': 0, 'R1': 1, 'R2': 2, 'R3': 3}
 
     def clean_line(self, line):
@@ -157,7 +157,7 @@ class Assembler:
                     emitted_bytes.append(byte_val)
 
                 # 3. LDI Instruction
-                elif op in ['LDI', "ADDI", "SUBI", "ANDI"]:
+                elif op in ['LDI', "ADDI", "XORI", "ANDI"]:
                     if len(tokens) < 3:
                         raise SyntaxError("LDI expects a register and an immediate/symbol value")
                     rs = tokens[1].upper()
