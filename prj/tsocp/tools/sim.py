@@ -82,7 +82,11 @@ class Sim:
             else:
                 self.ZF = 1 if (self.R[rs] == self.R[rd]) else 0
         elif (insn == 14): # SIGT
-            self.ZF = 1 if (self.R[rs] > self.R[rd]) else 0
+            if rs == rd:
+                self.R[rs] = self.R[rs] >> 1
+                self.ZF = 1 if self.R[rs] == 0 else 0
+            else:
+                self.ZF = 1 if (self.R[rs] > self.R[rd]) else 0
         elif (insn == 15): # halt
             self.HALT = 1
         self.PC = self.PC & 0xFF

@@ -3,6 +3,7 @@
 start:
     LDi  R2, my_data ; Load the address of 'my_data' (symbol resolving) into R0
     LD   R1, R2      ; R1 <= mem[R2] (reads 0x1F)
+    SHR  R1          ; R1 >>= 1
     JALR loop
     JMP  exit
     

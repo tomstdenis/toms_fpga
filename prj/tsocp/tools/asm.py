@@ -11,7 +11,7 @@ class Assembler:
             'AND': 4,  'LDI': 5,  'LD': 6,   'ST': 7,
             'JMP': 8,  'JZ': 9,   'JALR': 10,'RET': 11,
             'SILT': 12,'SIEQ': 13,'SIGT': 14,'HALT': 15,
-            'INC': 12, 'DEC': 13  # Aliased opcodes using Rs == Rd encoding
+            'INC': 12, 'DEC': 13, "SHR": 14  # Aliased opcodes using Rs == Rd encoding
         }
         # 2-byte instructions that consume an immediate byte at PC+1
         self.two_byte_ops = {'LDI', 'JMP', 'JZ', 'JALR'}
@@ -111,8 +111,8 @@ class Assembler:
             op = tokens[0].upper()
             
             try:
-                # 1. Single-Register Ops: INC / DEC (Overloaded Rs == Rd)
-                if op in ['INC', 'DEC']:
+                # 1. Single-Register Ops: INC / DEC / SHR (Overloaded Rs == Rd)
+                if op in ['INC', 'DEC', 'SHR']:
                     if len(tokens) < 2:
                         raise SyntaxError(f"Opcode {op} expects a target register")
                     reg = tokens[1].upper()

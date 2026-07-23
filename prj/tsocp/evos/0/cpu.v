@@ -30,14 +30,19 @@ module toy_isa(
     // ISA
     reg [7:0] PC;
     reg [7:0] R[3:0];
+    reg [7:0] reg_rs;
+    reg [7:0] reg_rd;
     reg       ZF;
+    reg       reg_wr_en;
     reg [7:0] aluout;
 
     // FSM
     localparam
-        FSM_FETCH = 0,
-        FSM_EXECUTE = 1,
-        FSM_RETIRE  = 2;
+        FSM_FETCH    = 0,
+        FSM_OPERANDS = 1,
+        FSM_EXECUTE  = 2,
+        FSM_RETIRE   = 3;
+
     reg [1:0]  fsm_state;
     reg [7:0]  opcode;
     wire [3:0] insn;
@@ -68,6 +73,9 @@ module toy_isa(
             bus_wr_en_b      <= 0;
             bus_valid_b      <= 0;
             aluout           <= 0;
+            reg_rd           <= 0;
+            reg_rs           <= 0;
+            reg_wr_en        <= 0;
         end else begin
             case (fsm_state)
                 FSM_FETCH:
@@ -81,43 +89,49 @@ module toy_isa(
                         end else if (bus_valid_a && bus_ready_a) begin
                             bus_valid_a <= 0;
                             opcode      <= bus_data_out_a;
-                            fsm_state   <= FSM_EXECUTE;
+                            fsm_state   <= FSM_OPERANDS;
                         end
+                    end
+                FSM_OPERANDS:
+                    begin
+                        reg_rs    <= R[rs];
+                        reg_rd    <= R[rd];
+                        reg_wr_en <= 0;
+                        fsm_state <= FSM_EXECUTE;
                     end
                 FSM_EXECUTE:
                     begin
                         if (!bus_valid_b) begin
                             fsm_state  <= FSM_FETCH;
-                            bus_addr_b <= R[rd];
                             case (insn)
                                 0: // add
                                     begin
-                                        R[rs]         <= R[rs] + R[rd];
-                                        aluout        <= R[rs] + R[rd];
+                                        reg_wr_en     <= 1;
+                                        aluout        <= reg_rs + reg_rd;
                                         fsm_state     <= FSM_RETIRE;
                                     end
                                 1: // sub
                                     begin
-                                        R[rs]         <= R[rs] - R[rd];
-                                        aluout        <= R[rs] - R[rd];
+                                        reg_wr_en     <= 1;
+                                        aluout        <= reg_rs - reg_rd;
                                         fsm_state     <= FSM_RETIRE;
                                     end
                                 2: // xor
                                     begin
-                                        R[rs]         <= R[rs] ^ R[rd];
-                                        aluout        <= R[rs] ^ R[rd];
+                                        reg_wr_en     <= 1;
+                                        aluout        <= reg_rs ^ reg_rd;
                                         fsm_state     <= FSM_RETIRE;
                                     end
                                 3: // or
                                     begin
-                                        R[rs]         <= R[rs] | R[rd];
-                                        aluout        <= R[rs] | R[rd];
+                                        reg_wr_en     <= 1;
+                                        aluout        <= reg_rs | reg_rd;
                                         fsm_state     <= FSM_RETIRE;
                                     end
                                 4: // and
                                     begin
-                                        R[rs]         <= R[rs] & R[rd];
-                                        aluout        <= R[rs] & R[rd];
+                                        reg_wr_en     <= 1;
+                                        aluout        <= reg_rs & reg_rd;
                                         fsm_state     <= FSM_RETIRE;
                                     end
                                 5: // ldi
@@ -130,12 +144,14 @@ module toy_isa(
                                 6: // ld
                                     begin
                                         bus_valid_b   <= 1;
+                                        bus_addr_b    <= reg_rd;
                                         fsm_state     <= fsm_state;
                                     end
                                 7: // st
                                     begin
                                         bus_valid_b   <= 1;
-                                        bus_data_in_b <= R[rs];
+                                        bus_data_in_b <= reg_rs;
+                                        bus_addr_b    <= reg_rd;
                                         bus_wr_en_b   <= 1;
                                         fsm_state     <= fsm_state;
                                     end
@@ -168,18 +184,33 @@ module toy_isa(
                                     end
                                 12: // SILT
                                     begin
-                                        aluout    <= R[rs] < R[rd] ? 1 : 0;
                                         fsm_state <= FSM_RETIRE;
+                                        if (rs == rd) begin
+                                            reg_wr_en <= 1;
+                                            aluout    <= reg_rs + 1;
+                                        end else begin
+                                            aluout <= (reg_rs < reg_rd) ? 0 : 1;
+                                        end
                                     end
                                 13: // SIEQ
                                     begin
-                                        aluout    <= R[rs] == R[rd] ? 1 : 0;
                                         fsm_state <= FSM_RETIRE;
+                                        if (rs == rd) begin
+                                            reg_wr_en <= 1;
+                                            aluout <= reg_rs - 1;
+                                        end else begin
+                                            aluout <= (reg_rs == reg_rd) ? 0 : 1;
+                                        end
                                     end
                                 14: // SIGT
                                     begin
-                                        aluout    <= R[rs] > R[rd] ? 1 : 0;
                                         fsm_state <= FSM_RETIRE;
+                                        if (rs == rd) begin
+                                            reg_wr_en <= 1;
+                                            aluout <= reg_rs >> 1;
+                                        end else begin
+                                            aluout <= (reg_rs > reg_rd) ? 0 : 1;
+                                        end
                                     end
                                 15: // halt
                                     begin
@@ -193,7 +224,7 @@ module toy_isa(
                             case (insn)
                                 5, 6: // ldi, ld
                                     begin
-                                        R[rs]     <= bus_data_out_b;
+                                        reg_wr_en <= 1;
                                         aluout    <= bus_data_out_b;
                                         fsm_state <= FSM_RETIRE;
                                     end
@@ -204,6 +235,9 @@ module toy_isa(
                     end
                 FSM_RETIRE:
                     begin
+                        if (reg_wr_en) begin
+                            R[rs] <= aluout;
+                        end
                         ZF        <= aluout == 0 ? 1 : 0;
                         fsm_state <= FSM_FETCH;
                     end

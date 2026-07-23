@@ -16,10 +16,9 @@ setup:
 loop:
     LD R0,R3
     ST R0,R2
-    LDi R0, 1           ; our inc counter
-    ADD R2,R0
-    ADD R3,R0
-    SUB R1,R0
+    INC R2
+    INC R3
+    DEC R1
     JZ done
     JMP loop
 

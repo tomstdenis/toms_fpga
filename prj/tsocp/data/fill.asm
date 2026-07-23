@@ -17,14 +17,13 @@ setup:
 
     ; Step 2: Initialize our loop counter
     LDi  R1, block_count   ; R1 <= block_count
-    LDi  R0, 1             ; R0 <= 1
 fill_loop:
     ; Step 3: Write the pattern (using the current count in R1 as the data)
     ST   R1, R3        
 
     ; Step 4: Advance pointer (R3++) and decrement counter (R1--)
-    ADD  R3, R0        ; R3 <= R3 + 1 (Move to next memory location)
-    SUB  R1, R0        ; R1 <= R1 - 1 (Decrement loop counter, updates ZF)
+    INC  R3
+    DEC  R1
 
     JZ done
     JMP fill_loop     ; Loop back
