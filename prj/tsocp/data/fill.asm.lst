@@ -28,7 +28,7 @@ ADDR   BYTES          LINE   SOURCE
                       26         ;INC  R3
 07     D5             27         DEC  R1
                       28     
-08     90 0C          29         JZ done
+08     81 0C          29         JZ done
 0A     80 04          30         JMP fill_loop     ; Loop back
                       31     
 0C                    32     done:

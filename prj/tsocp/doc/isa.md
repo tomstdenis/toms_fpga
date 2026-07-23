@@ -15,8 +15,9 @@ Opcodes:
     - 8 bits long (* some opcodes are two)
         - Ins: [7:4] 
         - Rs: [3:2]
-        - Rd: [1:0]
+        - Rd: [1:0] (also used to pick sub groups for various groups like LDi, JMP, RET, and HALT)
         - imm is the next byte
+
     - Instructions
 		- 0: ADD Rs, Rd    : Rs <= Rs + Rd   (ZF=!Rs)
 		- 1: SUB Rs, Rd    : Rs <= Rs - Rd   (ZF=!Rs)
@@ -30,11 +31,11 @@ Opcodes:
 			3: ANDi Rs, imm   : Rs <= Rs & mem[PC+1] (ZF=!Rs)
 		- 6: LD Rs, Rd     : Rs <= mem[Rd]   (ZF=!Rs)
 		- 7: ST Rs, Rd     : mem[Rd] <= Rs
-
-; todo: merge JMP/JZ/JALR into group 8, possibly add JNZ for fun
-		- 8: JMP imm       : PC <= mem[PC+1]
-		- 9: JZ imm        : if ZF then PC <= mem[PC+1] else PC <= PC + 2
-		-10: JALR imm      ; R3 = PC + 2, PC = mem[PC+1]
+		- 8: 
+			0: JMP imm     : PC <= mem[PC+1]
+			1: JZ imm      : if ZF then PC <= mem[PC+1] else PC <= PC + 2
+			2: JNZ imm     : if !ZF then PC <= mem[PC+1] else PC <= PC + 2
+			3: JALR imm    ; R3 = PC + 2, PC = mem[PC+1]
 
 ; this frees up group 9 and 10 for more opcodes
 

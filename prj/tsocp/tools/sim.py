@@ -65,15 +65,22 @@ class Sim:
         elif (insn == 7): # ST
             self.mem[self.R[rd]] = self.R[rs]
         elif (insn == 8): # JMP
-            self.PC = self.mem[self.PC]
-        elif (insn == 9): # JZ
-            if self.ZF:
+            if (rd == 0):
                 self.PC = self.mem[self.PC]
-            else:
-                self.PC = self.PC + 1
-        elif (insn == 10): # jalr imm
-            self.R[3] = self.PC + 1
-            self.PC   = self.mem[self.PC]
+            elif (rd == 1): # JZ
+                if self.ZF == 1:
+                    self.PC = self.mem[self.PC]
+                else:
+                    self.PC = self.PC + 1
+            elif (rd == 2): # JNZ
+                if self.ZF == 0:
+                    self.PC = self.mem[self.PC]
+                else:
+                    self.PC = self.PC + 1
+            elif (rd == 3): # JALR
+                self.R[3] = self.PC + 1
+                self.PC   = self.mem[self.PC]
+#todo: opcode groups 9 and 10
         elif (insn == 11): # ret
             if (rd == 0): # ret
                 self.PC   = self.R[3]

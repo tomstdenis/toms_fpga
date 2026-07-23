@@ -21,7 +21,7 @@ ADDR   BYTES          LINE   SOURCE
 08     CA             19         INC R2
 09     CF             20         INC R3
 0A     D5             21         DEC R1
-0B     90 0F          22         JZ done
+0B     81 0F          22         JZ done
 0D     80 06          23         JMP loop
                       24     
 0F                    25     done:

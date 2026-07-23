@@ -155,28 +155,49 @@ module toy_isa(
                                         bus_wr_en_b   <= 1;
                                         fsm_state     <= fsm_state;
                                     end
-                                8: // jmp
+                                8: // jmps
                                     begin
-                                        fsm_state     <= fsm_state;
-                                        bus_valid_b   <= 1;
-                                        bus_addr_b    <= PC;
+										case (rd)
+											0: // JMP
+												begin
+													fsm_state     <= fsm_state;
+													bus_valid_b   <= 1;
+													bus_addr_b    <= PC;
+												end
+											1: // JZ
+												begin
+													if (ZF) begin
+														fsm_state     <= fsm_state;
+														bus_valid_b   <= 1;
+														bus_addr_b    <= PC;
+													end else begin
+														PC            <= PC + 1;
+													end
+												end
+											2: // JNZ
+												begin
+													if (!ZF) begin
+														fsm_state     <= fsm_state;
+														bus_valid_b   <= 1;
+														bus_addr_b    <= PC;
+													end else begin
+														PC            <= PC + 1;
+													end
+												end
+											3: // JALR
+												begin
+													fsm_state     <= fsm_state;
+													bus_valid_b   <= 1;
+													bus_addr_b    <= PC;
+													R[3]          <= PC + 1;
+												end
+										endcase
                                     end
-                                9: // jz
+                                9: // XXXX
                                     begin
-                                        if (ZF) begin
-                                            fsm_state     <= fsm_state;
-                                            bus_valid_b   <= 1;
-                                            bus_addr_b    <= PC;
-                                        end else begin
-                                            PC            <= PC + 1;
-                                        end
                                     end
-                                10: // jalr
+                                10: // XXXX
                                     begin
-                                        fsm_state     <= fsm_state;
-                                        bus_valid_b   <= 1;
-                                        bus_addr_b    <= PC;
-                                        R[3]          <= PC + 1;
                                     end
                                 11: // ret
                                     begin
@@ -277,7 +298,7 @@ module toy_isa(
                                         aluout    <= bus_data_out_b;
                                         fsm_state <= FSM_RETIRE;
                                     end
-                                8, 9, 10: // JMP, JZ, JALR
+                                8: // JMPs
                                     PC <= bus_data_out_b;
                             endcase
                         end

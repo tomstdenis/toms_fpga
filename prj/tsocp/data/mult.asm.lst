@@ -3,7 +3,7 @@ ADDR   BYTES          LINE   SOURCE
 00                    1      .ORG 0
 00                    2      main:
 00     58 22          3          LDi R2,operands     ; R2 = pointer to operands
-02     A0 08          4          JALR mult           ; call multiply routine
+02     83 08          4          JALR mult           ; call multiply routine
 04     54 24          5          LDi R1,product      ; R1 = pointer to where to store product
 06     71             6          ST  R0,R1           ; store product
 07     F0             7          HALT
@@ -20,14 +20,14 @@ ADDR   BYTES          LINE   SOURCE
 10                    18     mult_loop:
                       19         ; Check if Multiplier (R0) is 0
 10     40             20         AND R0,R0           ; in reality this is easier for "is zero"
-11     90 1B          21         JZ  mult_done       ; Exit loop if R0 is zero
+11     81 1B          21         JZ  mult_done       ; Exit loop if R0 is zero
                       22     
                       23         ; Check if LSB of R0 is set using temporary AND logic
                       24         ; (Since we need a copy of R0 to mask bit 0 without losing R0)
                       25         ; In this ISA, we can test odd/even by shifting right and back,
                       26         ; or by keeping a 1 in R2 to test bit 0:
 13     F2             27         LSB R0
-14     90 17          28         JZ  skip_add        ; If LSB was 0, skip adding Multiplicand
+14     81 17          28         JZ  skip_add        ; If LSB was 0, skip adding Multiplicand
                       29     
 16     0D             30         ADD R3, R1          ; Accumulator += Multiplicand
                       31     

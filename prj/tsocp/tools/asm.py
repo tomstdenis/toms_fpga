@@ -11,17 +11,19 @@ class Assembler:
         self.opcodes = {
             'ADD': 0,  'SUB': 1,  'XOR': 2,  'OR': 3,
             'AND': 4,  'LDI': 5,  'LD': 6,   'ST': 7,
-            'JMP': 8,  'JZ': 9,   'JALR': 10,'RET': 11,
+            'JMP': 8,  'RET': 11,
             'SILT': 12,'SIEQ': 13,'SIGT': 14,'HALT': 15,
             'INC': 12, 'DEC': 13, 'SHR': 14,   # Aliased opcodes using Rs == Rd encoding
             'NOT': 11, 'NEG': 11, 'SWAP': 11,  # opcodes that use the RET group
             'MSB': 15, 'LSB': 15,              # opcodes that use the HALT group
-            "ADDI": 5, "SUBI": 5, "ANDI": 5    # imm opcodes use the LDI group
+            "ADDI": 5, "SUBI": 5, "ANDI": 5,   # imm opcodes use the LDI group
+            'JZ': 8,   "JNZ": 8, 'JALR': 8,    # Jumps use the JMP group
         }
         self.subopcodes = {
             "RET": 0, "NOT": 1, "NEG": 2, "SWAP": 3,
             "HALT": 0, "MSB": 1, "LSB": 2,
-            "LDI": 0, "ADDI": 1, "SUBI": 2, "ANDI": 3
+            "LDI": 0, "ADDI": 1, "SUBI": 2, "ANDI": 3,
+            "JMP": 0, "JZ": 1, "JNZ": 2, "JALR": 3
         };
         # 2-byte instructions that consume an immediate byte at PC+1
         self.two_byte_ops = {'LDI', 'ADDI', 'SUBI', 'ANDI', 'JMP', 'JZ', 'JALR'}
@@ -170,14 +172,12 @@ class Assembler:
                     emitted_bytes.extend([b0, b1])
 
                 # 4. Control Flow Jumps
-                elif op in ['JMP', 'JZ', 'JALR']:
+                elif op in ['JMP', 'JNZ', 'JZ', 'JALR']:
                     if len(tokens) < 2:
                         raise SyntaxError(f"{op} expects a target address or symbol")
                     
                     target_addr = self.parse_imm(tokens[1], 8, signed=False)
-                    opcode_bits = self.opcodes[op]
-                    
-                    b0 = (opcode_bits << 4)
+                    b0 = (self.opcodes[op] << 4) | self.subopcodes[op];
                     b1 = target_addr
                     self.memory[instr_pc]     = b0
                     self.memory[instr_pc + 1] = b1
