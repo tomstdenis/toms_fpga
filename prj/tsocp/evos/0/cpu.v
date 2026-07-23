@@ -134,7 +134,7 @@ module toy_isa(
                                         aluout        <= reg_rs & reg_rd;
                                         fsm_state     <= FSM_RETIRE;
                                     end
-                                5: // ldi
+                                5: // ldi/addi/xori/andi
                                     begin
                                         fsm_state     <= fsm_state;
                                         bus_valid_b   <= 1;

@@ -29,7 +29,7 @@ class Assembler:
             "INC": 0, "DEC": 1, "SHR": 2, 'SZF': 3
         };
         # 2-byte instructions that consume an immediate byte at PC+1
-        self.two_byte_ops = {'LDI', 'ADDI', 'XORI', 'ANDI', 'JMP', 'JZ', 'JALR'}
+        self.two_byte_ops = {'LDI', 'ADDI', 'XORI', 'ANDI', 'JMP', 'JZ', 'JNZ', 'JALR'}
         self.regs = {'R0': 0, 'R1': 1, 'R2': 2, 'R3': 3}
 
     def clean_line(self, line):

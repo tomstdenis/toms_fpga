@@ -1,4 +1,4 @@
-.ORG 32
+.ORG 0
 src_ptr:
     .DB 0x80
 dst_ptr:
@@ -19,8 +19,7 @@ loop:
     INC R2
     INC R3
     DEC R1
-    JZ done
-    JMP loop
+    JNZ loop
 
 done:
     HALT               ; Stop execution. External flag raised.

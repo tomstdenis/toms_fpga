@@ -3,7 +3,7 @@
 ; Purpose: Fills a block of memory with a pattern. 
 ; Tests: LD, ST, ADD, SUB, JZ, JMP, LDi, and indirect addressing
 ; -------------------------------------------------------------
-.ORG 32
+.ORG 0
 dest_ptr:
     .DB 0x80                 ; Target memory block starts at address 80
 block_count:
@@ -23,11 +23,8 @@ fill_loop:
 
     ; Step 4: Advance pointer (R3++) and decrement counter (R1--)
     ADDI R3,1
-    ;INC  R3
     DEC  R1
-
-    JZ done
-    JMP fill_loop     ; Loop back
+    JNZ fill_loop     ; Loop back
 
 done:
     HALT               ; Stop execution. External flag raised.
