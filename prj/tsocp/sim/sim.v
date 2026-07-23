@@ -31,7 +31,7 @@ module toy_isa_tb();
     reg [3:0] wait_b;
 
     localparam
-        WAIT_STATES = 0;
+        WAIT_STATES = 2;
 
     always @(posedge clk) begin
         if (!rst_n) begin

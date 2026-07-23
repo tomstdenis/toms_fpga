@@ -8,6 +8,7 @@ find_fmax() {
     echo "Profiling core: $1" >&2
 
     FMAX=""
+    rm -f pnr.log tmppnr.log
     while [ "${LOW}" -lt "${HIGH}" ]; do
         local SUCCESS=0
 
@@ -15,11 +16,13 @@ find_fmax() {
         
         # Retry loop: attempt the build up to 3 times
         for attempt in {1..5}; do
-            make -C impl FREQ=${MID} CPU="$1" clean toy_cpu.bit >/dev/null 2>/dev/null
+            make -C impl FREQ=${MID} CPU="$1" clean toy_cpu.bit 2>tmppnr.log >/dev/null
             if [ $? -eq 0 ]; then
                 SUCCESS=1
+                mv -f tmppnr.log  pnr.log
                 break # Succeeded! Skip remaining retries
             fi
+            rm -f tmppnr.log
             #echo "Attempt $attempt failed for FREQ=${MID}. Retrying..." >&2
         done
         
@@ -51,7 +54,7 @@ for demo in data/*.asm; do
     echo "sw simulating ${demo}..." >&2
     python3 tools/sim.py "${demo}"
 done
-echo "Fmax"  >> run.log
+echo "Fmax,FF,COMB (LUT4),RAMW"  >> run.log
 
 # now run each core against each demo
 if [ "$1" == "" ]; then
@@ -77,7 +80,11 @@ for core in ${CORES}; do
     done
     if [ "${FAIL}" != "1" ]; then
         FMAX=$(find_fmax "../${core}")
-        echo "${FMAX} MHz" >> run.log
+        echo -n "${FMAX} MHz," >> run.log
+        FF=`grep "^Info:" pnr.log | grep TRELLIS_FF | grep "\/" | tr "/" " " | awk '{print $3;}'`
+        COMB=`grep "^Info:" pnr.log | grep TRELLIS_COMB | grep "\/" | tr "/" " " | awk '{print $3;}'`
+        RAMW=`grep "^Info:" pnr.log | grep TRELLIS_RAMW | grep "\/" | tr "/" " " | awk '{print $3;}'`
+        echo "${FF},${COMB},${RAMW}" >> run.log
     else
         echo "skipped" >> run.log
     fi
