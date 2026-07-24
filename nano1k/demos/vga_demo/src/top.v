@@ -3,6 +3,7 @@ module top(input wire clk, output reg [7:0] gpio, output reg [3:0] vga_r, output
     wire rst_n;
     assign rst_n = rstcnt[3];
 
+    // dropped the PLL for this demo since it native runs at 27MHz and the PLL can't target 25MHz anyways...
     wire pll_clk = clk;
 	wire pll_locked = 1'b1;
 
@@ -41,7 +42,7 @@ module top(input wire clk, output reg [7:0] gpio, output reg [3:0] vga_r, output
 	vga_8x8_font_256 font(.symbol(symbol), .x(vga_x[2:0]), .y(vga_y[3:1]), .out(text_out));	
 */
 
-    // on Gowin a Shadow ROM is better as it's both faster and smaller (and faster to compile)
+    // here we're using a BRAM in rom mode ...
     wire [7:0] font_dout;                           // output of rom
     wire [10:0] font_ad = {symbol, vga_y[3:1]};     // address into the rom, it's 11 bits of which the top 8 are the symbol and bottom 3 are the row
     assign text_out = font_dout[7 - vga_x[2:0]];    // bit of output indexed from the ROM output
@@ -53,7 +54,6 @@ module top(input wire clk, output reg [7:0] gpio, output reg [3:0] vga_r, output
         .clk(pll_clk), //input clk
         .oce(1'b1), //input oce
         .ce(1'b1) //input ce
-//        .reset(~rst_n) //input reset
     );
 
 	reg [10:0] wr_addr;			// our write port to fill it
@@ -120,21 +120,6 @@ module top(input wire clk, output reg [7:0] gpio, output reg [3:0] vga_r, output
 				80*5 + 14: wr_data <= 8'h65; // e
 				80*5 + 15: wr_data <= 8'h72; // r
 				80*5 + 16: wr_data <= 8'h65; // e
-				// space 
-				80*5 + 18: wr_data <= 8'h61; // a
-				80*5 + 19: wr_data <= 8'h6e; // n
-				80*5 + 20: wr_data <= 8'h64; // d
-				// space
-				80*5 + 22: wr_data <= 8'h6d; // m
-				80*5 + 23: wr_data <= 8'h6f; // o
-				// space
-				80*5 + 25: wr_data <= 8'h69; // i
-				80*5 + 26: wr_data <= 8'h73; // s
-				//space				
-				80*5 + 28: wr_data <= 8'h63; // c
-				80*5 + 29: wr_data <= 8'h6f; // o
-				80*5 + 30: wr_data <= 8'h6f; // o
-				80*5 + 31: wr_data <= 8'h6c; // l			
 			endcase
 
 			// put random data on lines 7 down
@@ -152,6 +137,8 @@ module top(input wire clk, output reg [7:0] gpio, output reg [3:0] vga_r, output
 		if (vga_active) begin
 			{vga_r, vga_g, vga_b} = text_out ? 12'b1111_1111_1111 : 12'b0;
 //			{vga_r, vga_g, vga_b} = text_out ? 12'b1111_0000_0000 : 12'b0;
+//			{vga_r, vga_g, vga_b} = text_out ? 12'b0000_1111_0000 : 12'b0;
+//			{vga_r, vga_g, vga_b} = text_out ? 12'b0000_0000_1111 : 12'b0;
 		end
 	end
 
