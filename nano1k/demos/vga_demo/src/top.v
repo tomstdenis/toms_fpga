@@ -33,7 +33,7 @@ module top(input wire clk, output reg [7:0] gpio, output reg [3:0] vga_r, output
 		.v_sync(vga_v_sync),
 		.active_video(vga_active));
 
-	wire [7:0] symbol;
+	wire [15:0] symbol;
 	wire text_out;
 	
 /*
@@ -43,9 +43,9 @@ module top(input wire clk, output reg [7:0] gpio, output reg [3:0] vga_r, output
 */
 
     // here we're using a BRAM in rom mode ...
-    wire [7:0] font_dout;                           // output of rom
-    wire [10:0] font_ad = {symbol, vga_y[3:1]};     // address into the rom, it's 11 bits of which the top 8 are the symbol and bottom 3 are the row
-    assign text_out = font_dout[7 - vga_x[2:0]];    // bit of output indexed from the ROM output
+    wire [7:0] font_dout;                            // output of rom
+    wire [10:0] font_ad = {symbol[7:0], vga_y[3:1]}; // address into the rom, it's 11 bits of which the top 8 are the symbol and bottom 3 are the row
+    assign text_out = font_dout[7 - vga_x[2:0]];     // bit of output indexed from the ROM output
 
     // our 256 symbol 8x8 CP437 font
     Gowin_pROM madamme_font(
@@ -57,11 +57,11 @@ module top(input wire clk, output reg [7:0] gpio, output reg [3:0] vga_r, output
     );
 
 	reg [10:0] wr_addr;			// our write port to fill it
-	reg [7:0] wr_data;
+	reg [15:0] wr_data;
 	reg wr_en;
 	
 	wire [10:0] rd_addr;		// the read port the vga_text_driver reads from
-	wire [7:0] rd_data;
+	wire [15:0] rd_data;
 	
     // A semi dual ported memory which we can write(portA) and the VGA can read(portB)
     Gowin_SDPB mr_memory(
@@ -79,7 +79,7 @@ module top(input wire clk, output reg [7:0] gpio, output reg [3:0] vga_r, output
 
 	// VGA text mode driver, defaults to 80x25 using an 8x8 font
 	// notice we're scaling the font by 2 so we change the height to 16 here
-	vga_text_driver #(.FONTHEIGHT(16), .X_FETCH_DELAY(2)) textdrv(
+	vga_text_driver #(.FONTHEIGHT(16), .X_FETCH_DELAY(2), .SYMBOL_BITS(16)) textdrv(
 		.clk(pll_clk), .rst_n(rst_n),
 		.x(vga_x), .y(vga_y), .active_video(vga_active),
 		.rd_addr(rd_addr), .rd_data(rd_data),
@@ -90,6 +90,8 @@ module top(input wire clk, output reg [7:0] gpio, output reg [3:0] vga_r, output
 	// font() uses to produce the next black/white signal fed to the VGA RGB output
 	
 	reg [31:0] counter;
+    wire [7:0] colour;
+    assign colour = counter[31:24] + wr_addr[7:0];          // use colours for characters
 	always @(posedge pll_clk) begin
 		if (!rst_n) begin
 			wr_addr <= -1;
@@ -109,31 +111,52 @@ module top(input wire clk, output reg [7:0] gpio, output reg [3:0] vga_r, output
 			// what value to write in the next cycle
 			case (wr_addr + 1)				
 				// first row (start on row 6/col 6)
-				80*5 + 5: wr_data <= 8'h54; // T			//80 * 5 + 5 is TEXTCOLS * vga_y/FONTHEIGHT + vga_x/FONTWIDTH
-				80*5 + 6: wr_data <= 8'h6F; // o
-				80*5 + 7: wr_data <= 8'h6d; // m
+				80*5 + 5: wr_data <= 16'hFF54; // T			//80 * 5 + 5 is TEXTCOLS * vga_y/FONTHEIGHT + vga_x/FONTWIDTH
+				80*5 + 6: wr_data <= 16'hFF6F; // o
+				80*5 + 7: wr_data <= 16'hFF6d; // m
 				// space
-				80*5 + 9: wr_data <= 8'h77; // w
-				80*5 + 10: wr_data <= 8'h61; // a
-				80*5 + 11: wr_data <= 8'h73; // s
+				80*5 + 9: wr_data <= 16'hFF77; // w
+				80*5 + 10: wr_data <= 16'hFF61; // a
+				80*5 + 11: wr_data <= 16'hFF73; // s
 				// space
-				80*5 + 13: wr_data <= 8'h68; // h
-				80*5 + 14: wr_data <= 8'h65; // e
-				80*5 + 15: wr_data <= 8'h72; // r
-				80*5 + 16: wr_data <= 8'h65; // e
-                default:   wr_data <= counter[31:24] + wr_addr + 1;
+				80*5 + 13: wr_data <= 16'hFF68; // h
+				80*5 + 14: wr_data <= 16'hFF65; // e
+				80*5 + 15: wr_data <= 16'hFF72; // r
+				80*5 + 16: wr_data <= 16'hFF65; // e
+                default: 
+                    begin
+                        wr_data[15:8] <= colour * (colour + colour + 1); // rc6 permutation polynomial because why not
+                        wr_data[7:0]  <= wr_addr[7:0] + counter[31:24];
+                    end
 			endcase
 		end
 	end
 	
+    wire [2:0] text_r;
+    wire [2:0] text_g;
+    wire [1:0] text_b;
+    reg [3:0] text_r_out;
+    reg [3:0] text_g_out;
+    reg [3:0] text_b_out;
+
+    assign text_r = symbol[15:13];
+    assign text_g = symbol[12:10];
+    assign text_b = symbol[9:8];
+    always @(posedge pll_clk) begin
+        text_r_out <= text_r * 2;
+        text_g_out <= text_g * 2;
+        text_b_out <= text_b * 5;
+    end
+
 	always @(*) begin
 		vga_r = 0;
 		vga_g = 0;
 		vga_b = 0;
 		
 		if (vga_active) begin
+            {vga_r, vga_g, vga_b} = text_out ? {text_r_out, text_g_out, text_b_out} : 12'b0;
 //			{vga_r, vga_g, vga_b} = text_out ? 12'b1111_1111_1111 : 12'b0;
-			{vga_r, vga_g, vga_b} = text_out ? 12'b0011_0011_0011 : 12'b0;
+//			{vga_r, vga_g, vga_b} = text_out ? 12'b0011_0011_0011 : 12'b0;
 //			{vga_r, vga_g, vga_b} = text_out ? 12'b1111_0000_0000 : 12'b0;
 //			{vga_r, vga_g, vga_b} = text_out ? 12'b0000_1111_0000 : 12'b0;
 //			{vga_r, vga_g, vga_b} = text_out ? 12'b0000_0000_1111 : 12'b0;

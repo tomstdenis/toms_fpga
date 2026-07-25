@@ -13,7 +13,7 @@
 -bram_b true
 -depth_0 2048
 -depth_1 2048
--width_0 8
--width_1 8
+-width_0 16
+-width_1 16
 -read_mode bypass
 -reset_mode sync

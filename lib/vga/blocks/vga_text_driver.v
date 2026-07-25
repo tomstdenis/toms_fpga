@@ -21,7 +21,8 @@ module vga_text_driver #(
 	parameter LRG_COLS   = 48,
 	parameter LRG_ROWS   = 40,
 	parameter LRG_PWIDTH = 13,										// width of "pixels" in LRG mode
-	parameter LRG_PHEIGHT = 12										// height of "pixels" in LRG mode
+	parameter LRG_PHEIGHT = 12, 									// height of "pixels" in LRG mode
+    parameter SYMBOL_BITS = 8                                       // how many bits per text char
 )
 (
 	input wire		   clk,											// Pixel clock
@@ -34,11 +35,11 @@ module vga_text_driver #(
     input wire        lrg_mode,										// 0 == text mode, 1 == low res graphics mode
 
 // Memory
-	output reg [$clog2(LRG_COLS*LRG_ROWS | TEXTCOLS*TEXTROWS)-1:0] rd_addr,				// read address, assumes data is available with 1 wait state
-	input wire [7:0] rd_data,										// read data
+	output reg [$clog2(LRG_COLS*LRG_ROWS | TEXTCOLS*TEXTROWS)-1:0] rd_addr,		// read address, assumes data is available with 1 wait state
+	input wire [SYMBOL_BITS-1:0] rd_data,										// read data
 	
 // symbol for font driver
-	output reg [7:0] symbol											// symbol to feed font rom
+	output reg [SYMBOL_BITS-1:0] symbol											// symbol to feed font rom
 );	
 
 	// Combinatorial address calculation is much safer
@@ -88,7 +89,7 @@ module vga_text_driver #(
                     if (y < (TEXTROWS*FONTHEIGHT-1) || y == (V_TOTAL-1)) begin      // either we're in the first TEXTROWS OR the last line preparing for row 0
                         symbol <= rd_data;
                     end else begin
-                        symbol <= 8'h20; // SPC
+                        symbol <= 16'h20; // SPC
                     end
 				end
 			end
@@ -111,7 +112,7 @@ module vga_text_driver #(
                     end
 				end
 			end else begin
-				symbol  <= 8'h00;
+				symbol  <= 16'h00;
 				x_cnt   <= 0;
 				if (x == (H_TOTAL-3)) begin
 					// set the next address a little back from end so we can program the address to read from
