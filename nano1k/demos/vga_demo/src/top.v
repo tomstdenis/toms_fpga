@@ -89,20 +89,21 @@ module top(input wire clk, output reg [7:0] gpio, output reg [3:0] vga_r, output
 	// textdrv() uses produces the next 'symbol' that
 	// font() uses to produce the next black/white signal fed to the VGA RGB output
 	
-	reg [23:0] counter = 0;
+	reg [31:0] counter;
 	always @(posedge pll_clk) begin
 		if (!rst_n) begin
 			wr_addr <= -1;
 			wr_data <= 0;
-			wr_en <= 1;
+			wr_en   <= 1;
+            counter <= 0;
 		end else begin
 			counter <= counter + 1;
 			// advance to next address
-			wr_addr <= wr_addr + 1;
+			wr_addr <= counter[10:0];
 			wr_data <= 8'h20; // default space
 			if (wr_addr == 2000) begin
 				// we hit the end of the text buffer turn writes off
-				wr_en <= 0;
+//				wr_en <= 0;
 			end
 			
 			// what value to write in the next cycle
@@ -120,12 +121,8 @@ module top(input wire clk, output reg [7:0] gpio, output reg [3:0] vga_r, output
 				80*5 + 14: wr_data <= 8'h65; // e
 				80*5 + 15: wr_data <= 8'h72; // r
 				80*5 + 16: wr_data <= 8'h65; // e
+                default:   wr_data <= counter[31:24] + wr_addr + 1;
 			endcase
-
-			// put random data on lines 7 down
-			if (wr_addr + 1 > 7*80) begin
-				wr_data <= counter[7:0];
-			end
 		end
 	end
 	
@@ -135,7 +132,8 @@ module top(input wire clk, output reg [7:0] gpio, output reg [3:0] vga_r, output
 		vga_b = 0;
 		
 		if (vga_active) begin
-			{vga_r, vga_g, vga_b} = text_out ? 12'b1111_1111_1111 : 12'b0;
+//			{vga_r, vga_g, vga_b} = text_out ? 12'b1111_1111_1111 : 12'b0;
+			{vga_r, vga_g, vga_b} = text_out ? 12'b0011_0011_0011 : 12'b0;
 //			{vga_r, vga_g, vga_b} = text_out ? 12'b1111_0000_0000 : 12'b0;
 //			{vga_r, vga_g, vga_b} = text_out ? 12'b0000_1111_0000 : 12'b0;
 //			{vga_r, vga_g, vga_b} = text_out ? 12'b0000_0000_1111 : 12'b0;
