@@ -10,21 +10,19 @@ main:
 mult:
     LDi R0,multtemp
     ST  R3,R0           ; save return address
-    LD  R0, R2          ; R0 = Multiplier (A)
+    LD  R0,R2           ; R0 = Multiplier (A)
     INC R2
-    LD  R1, R2          ; R1 = Multiplicand (B)
-    LDi R3, 0           ; R3 = Accumulator (Product)
+    LD  R1,R2           ; R1 = Multiplicand (B)
+    XOR R3,R3           ; R3 = Accumulator (zero it out)
 
 mult_loop:              ; Multiply R0 by R1 => R3
-    ; Check if Multiplier (R0) is 0
-    AND R0,R0           ; in reality this is easier for "is zero"
-    JZ  mult_done       ; Exit loop if R0 is zero
     LSB R0              ; ZF = LSB of R0
     JZ  skip_add        ; If LSB was 0, skip adding Multiplicand
-    ADD R3, R1          ; Accumulator += Multiplicand
+    ADD R3,R1           ; Accumulator += Multiplicand
 skip_add:
     SHR R0              ; Multiplier >>= 1
-    ADD R1, R1          ; Multiplicand <<= 1
+    JZ  mult_done       ; Exit loop if R0 is zero
+    ADD R1,R1           ; Multiplicand <<= 1
     JMP mult_loop
 
 mult_done:

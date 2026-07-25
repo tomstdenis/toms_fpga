@@ -54,4 +54,4 @@ Opcodes:
 			0: HALT        : Halt cpu and raise external flag
 			1: MSB Rs      : ZF = Rs[7]
 			2: LSB Rs      : ZF = Rs[0]
-			3: XXXX        : free slot for a 1OP or 0OP opcode
+			3: RISCV       : Switch CPU into full RISCV32-IMC mode :-)

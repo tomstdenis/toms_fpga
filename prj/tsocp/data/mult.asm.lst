@@ -2,54 +2,52 @@ ADDR   BYTES          LINE   SOURCE
 ----------------------------------------------------------------------
 00                    1      .ORG 0
 00                    2      main:
-00     58 21          3          LDi R2,operands     ; R2 = pointer to operands
+00     58 1F          3          LDi R2,operands     ; R2 = pointer to operands
 02     83 08          4          JALR mult           ; call multiply routine
-04     54 23          5          LDi R1,product      ; R1 = pointer to where to store product
+04     54 21          5          LDi R1,product      ; R1 = pointer to where to store product
 06     71             6          ST  R0,R1           ; store product
 07     F0             7          HALT
                       8      
                       9      ; mult(p) R2 => [operands], product => R0
 08                    10     mult:
-08     50 20          11         LDi R0,multtemp
+08     50 1E          11         LDi R0,multtemp
 0A     7C             12         ST  R3,R0           ; save return address
-0B     62             13         LD  R0, R2          ; R0 = Multiplier (A)
+0B     62             13         LD  R0,R2           ; R0 = Multiplier (A)
 0C     98             14         INC R2
-0D     66             15         LD  R1, R2          ; R1 = Multiplicand (B)
-0E     5C 00          16         LDi R3, 0           ; R3 = Accumulator (Product)
+0D     66             15         LD  R1,R2           ; R1 = Multiplicand (B)
+0E     2F             16         XOR R3,R3           ; R3 = Accumulator (zero it out)
                       17     
-10                    18     mult_loop:
-                      19         ; Check if Multiplier (R0) is 0
-10     40             20         AND R0,R0           ; in reality this is easier for "is zero"
-11     81 1B          21         JZ  mult_done       ; Exit loop if R0 is zero
-13     F2             22         LSB R0              ; ZF = LSB of R0
-14     81 17          23         JZ  skip_add        ; If LSB was 0, skip adding Multiplicand
-16     0D             24         ADD R3, R1          ; Accumulator += Multiplicand
-17                    25     skip_add:
-17     92             26         SHR R0              ; Multiplier >>= 1
-18     05             27         ADD R1, R1          ; Multiplicand <<= 1
-19     80 10          28         JMP mult_loop
-                      29     
-1B                    30     mult_done:
-1B     A3             31         MOV R0,R3           ; R0 = R3
-1C     5C 20          32         LDi R3,multtemp
-1E     6F             33         LD  R3,R3           ; restore return address (LDi/LD using same reg is handy for not destroying a pointless reg)
-1F     B0             34         RET
-20                    35     multtemp:
-20     00             36     .DB 0
-                      37     
-21                    38     operands:
-21     07 06          39     .DB 7, 6                ; Inputs: 7, 6. Output placeholder: 0
-23                    40     product:
-23     00             41     .DB 0                   ; Output placeholder: 0
+0F                    18     mult_loop:              ; Multiply R0 by R1 => R3
+0F     F2             19         LSB R0              ; ZF = LSB of R0
+10     81 13          20         JZ  skip_add        ; If LSB was 0, skip adding Multiplicand
+12     0D             21         ADD R3,R1           ; Accumulator += Multiplicand
+13                    22     skip_add:
+13     92             23         SHR R0              ; Multiplier >>= 1
+14     81 19          24         JZ  mult_done       ; Exit loop if R0 is zero
+16     05             25         ADD R1,R1           ; Multiplicand <<= 1
+17     80 0F          26         JMP mult_loop
+                      27     
+19                    28     mult_done:
+19     A3             29         MOV R0,R3           ; R0 = R3
+1A     5C 1E          30         LDi R3,multtemp
+1C     6F             31         LD  R3,R3           ; restore return address (LDi/LD using same reg is handy for not destroying a pointless reg)
+1D     B0             32         RET
+1E                    33     multtemp:
+1E     00             34     .DB 0
+                      35     
+1F                    36     operands:
+1F     07 06          37     .DB 7, 6                ; Inputs: 7, 6. Output placeholder: 0
+21                    38     product:
+21     00             39     .DB 0                   ; Output placeholder: 0
 
 ======================================================================
 SYMBOL TABLE:
 ----------------------------------------------------------------------
 main                     : 0x00 (0)
 mult                     : 0x08 (8)
-mult_done                : 0x1B (27)
-mult_loop                : 0x10 (16)
-multtemp                 : 0x20 (32)
-operands                 : 0x21 (33)
-product                  : 0x23 (35)
-skip_add                 : 0x17 (23)
+mult_done                : 0x19 (25)
+mult_loop                : 0x0F (15)
+multtemp                 : 0x1E (30)
+operands                 : 0x1F (31)
+product                  : 0x21 (33)
+skip_add                 : 0x13 (19)
