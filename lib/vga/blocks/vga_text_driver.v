@@ -54,10 +54,9 @@ module vga_text_driver #(
 		end else if (lrg_mode == 0) begin
 			// text mode
 			if (y < (TEXTROWS*FONTHEIGHT) && x < (TEXTCOLS*FONTWIDTH)) begin
-                if (x_cnt >= (FONTWIDTH-1)) begin
-                    x_cnt    <= 0;
-                end else begin
-                    x_cnt    <= x_cnt + 1;
+                x_cnt <= x_cnt + 1;
+                if (x_cnt == (FONTWIDTH-1)) begin
+                    x_cnt   <= 0;
                 end
 				if (x[$clog2(FONTWIDTH)-1:0] == (FONTWIDTH-2-X_FETCH_DELAY)) begin
 					rd_addr <= rd_addr + 1;
@@ -68,6 +67,7 @@ module vga_text_driver #(
 				end
 			end else begin
                 // we're either just entering HBLANK or VBLANK
+                x_cnt <= 0;
 				if (x == (H_TOTAL-3-X_FETCH_DELAY)) begin
 					// set the next address for the next scanline which is either
                     // another line of the same text char row or the first row of the next row of text...
@@ -81,16 +81,11 @@ module vga_text_driver #(
 						end
 					end
 				end else if (x == (H_TOTAL-1-X_FETCH_DELAY)) begin
-                    x_cnt    <= 0;
-                    if (y_cnt >= (FONTHEIGHT-1)) begin
-                        y_cnt    <= 0;
-                    end else begin
-                        y_cnt    <= y_cnt + 1;
+                    y_cnt <= y_cnt + 1;
+                    if ((y_cnt == (FONTHEIGHT-1)) || (y == (V_TOTAL-1))) begin
+                        y_cnt <= 0;
                     end
-                    if (y == (V_TOTAL-1)) begin
-                        y_cnt    <= 0;
-                    end
-                    if (y < (TEXTROWS*FONTHEIGHT-1)|| y == (V_TOTAL-1)) begin      // either we're in the first TEXTROWS OR the last line preparing for row 0
+                    if (y < (TEXTROWS*FONTHEIGHT-1) || y == (V_TOTAL-1)) begin      // either we're in the first TEXTROWS OR the last line preparing for row 0
                         symbol <= rd_data;
                     end else begin
                         symbol <= 8'h20; // SPC

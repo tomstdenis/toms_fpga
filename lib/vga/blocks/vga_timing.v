@@ -34,20 +34,19 @@ module vga_timing #(
 
     always @(posedge clk) begin
         if (!rst_n) begin
-            x <= 0;
-            y <= 0;
+            x      <= 0;
+            y      <= 0;
             h_sync <= 1;
             v_sync <= 1;
         end else begin
             // X and Y Counter Logic
+            x <= x + 1'b1;
             if (x == (H_TOTAL - 1)) begin
                 x <= 0;
-                if (y == (V_TOTAL - 1))
+                y <= y + 1'b1;
+                if (y == (V_TOTAL - 1)) begin
                     y <= 0;
-                else
-                    y <= y + 1'b1;
-            end else begin
-                x <= x + 1'b1;
+                end
             end
 
             // Horizontal Sync (Active Low for 640x480)
