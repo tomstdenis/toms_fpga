@@ -1,4 +1,5 @@
-module top(input wire clk, output reg [7:0] gpio, output reg [3:0] vga_r, output reg [3:0] vga_g, output reg [3:0] vga_b, output wire  vga_h_pulse, output wire vga_v_pulse);
+`default_nettype none
+module top(input wire clk, input wire uart_rx, output wire uart_tx, output reg [3:0] vga_r, output reg [3:0] vga_g, output reg [3:0] vga_b, output wire  vga_h_pulse, output wire vga_v_pulse);
     reg [3:0] rstcnt = 4'b0000;
     wire rst_n;
     assign rst_n = rstcnt[3];
@@ -12,6 +13,28 @@ module top(input wire clk, output reg [7:0] gpio, output reg [3:0] vga_r, output
 			rstcnt <= {rstcnt[2:0], 1'b1};
 		end
     end
+
+    reg uart_tx_start;
+    reg [7:0] uart_tx_data_in;
+    wire uart_tx_fifo_empty;
+    wire uart_tx_fifo_full;
+    reg uart_rx_read;
+    wire uart_rx_ready;
+    wire [7:0] uart_rx_byte;
+
+
+    localparam 
+        freq = 27_000_000,
+        baud = 230_400, // 1_000_000,
+        bauddiv = freq / baud,
+        baudwidth = $clog2(bauddiv);
+    wire [baudwidth-1:0] baud_div = bauddiv;
+
+    uart #(.FIFO_DEPTH(8), .RX_ENABLE(1), .TX_ENABLE(1), .BAUD_WIDTH(baudwidth)) mrtalky (
+        .clk(pll_clk), .rst_n(rst_n), .baud_div(baud_div),
+        .uart_tx_start(uart_tx_start), .uart_tx_data_in(uart_tx_data_in),
+        .uart_tx_pin(uart_tx), .uart_tx_fifo_empty(uart_tx_fifo_empty), .uart_tx_fifo_full(uart_tx_fifo_full),
+        .uart_rx_pin(uart_rx), .uart_rx_read(uart_rx_read), .uart_rx_ready(uart_rx_ready), .uart_rx_byte(uart_rx_byte));
 
 	// bit widths are for 640x480 VGA
 	wire [10:0] vga_x;
@@ -56,79 +79,186 @@ module top(input wire clk, output reg [7:0] gpio, output reg [3:0] vga_r, output
         .ce(1'b1) //input ce
     );
 
-	reg [10:0] wr_addr;			// our write port to fill it
-	reg [15:0] wr_data;
-	reg wr_en;
+    wire [15:0] mem_dout_a;
+    reg mem_wr_en_a;
+    reg [10:0] mem_addr_a;
+    reg [15:0] mem_din_a;
+
+    wire [15:0] mem_dout_b;
+    wire [10:0] mem_addr_b;
 	
-	wire [10:0] rd_addr;		// the read port the vga_text_driver reads from
-	wire [15:0] rd_data;
-	
-    // A semi dual ported memory which we can write(portA) and the VGA can read(portB)
-    Gowin_SDPB mr_memory(
-        .dout(rd_data), //output [7:0] dout
+    // video memory
+    Gowin_DPB vt100_mem(
+        // VT100
+        .douta(mem_dout_a), //output [15:0] douta
         .clka(pll_clk), //input clka
-        .cea(wr_en), //input cea                    // write enable is clock enable A (cea)
+        .ocea(1'b1), //input ocea
+        .cea(1'b1), //input cea
+        .reseta(~rst_n), //input reseta
+        .wrea(mem_wr_en_a), //input wrea
+        .ada(mem_addr_a), //input [10:0] ada
+        .dina(mem_din_a), //input [15:0] dina
+
+        // text driver
+        .doutb(mem_dout_b), //output [15:0] doutb
         .clkb(pll_clk), //input clkb
+        .oceb(1'b1), //input oceb
         .ceb(1'b1), //input ceb
-        .oce(1'b1), //input oce // (leave this as 1 if not pipelining)
-//        .reset(~rst_n), //input reset
-        .ada(wr_addr), //input [10:0] ada
-        .din(wr_data), //input [7:0] din
-        .adb(rd_addr) //input [10:0] adb
+        .resetb(~rst_n), //input resetb
+        .wreb(1'b0), //input wreb
+        .adb(mem_addr_b), //input [10:0] adb
+        .dinb(16'b0) //input [15:0] dinb
     );
+
 
 	// VGA text mode driver, defaults to 80x25 using an 8x8 font
 	// notice we're scaling the font by 2 so we change the height to 16 here
 	vga_text_driver #(.FONTHEIGHT(16), .X_FETCH_DELAY(2), .SYMBOL_BITS(16)) textdrv(
 		.clk(pll_clk), .rst_n(rst_n),
 		.x(vga_x), .y(vga_y), .active_video(vga_active),
-		.rd_addr(rd_addr), .rd_data(rd_data),
+		.rd_addr(mem_addr_b), .rd_data(mem_dout_b),
 		.symbol(symbol), .lrg_mode(1'b0));
 
 	// So the pipe is vga() produces the timing that
 	// textdrv() uses produces the next 'symbol' that
 	// font() uses to produce the next black/white signal fed to the VGA RGB output
+
+    // this should be a module but I want to just hack stuff so leave me be hehehehe
+
+    reg [6:0] vt100_x;
+    reg [6:0] vt100_y;
+    reg [7:0] vt100_colour;
+    reg [3:0] vt100_fsm_state;
+    reg [3:0] vt100_fsm_tag;
+    reg [10:0] vt100_scroll;
+
+    localparam
+        vt100_state_idle         = 0,
+        vt100_state_rx_char      = 1,
+        vt100_state_write_colour = 2,
+        vt100_state_scroll       = 3,
+        vt100_state_scroll2      = 4,
+        vt100_state_scroll3      = 5,
+        vt100_state_delay        = 6;
 	
-	reg [31:0] counter;
-    wire [7:0] colour;
-    assign colour = counter[31:24] + wr_addr[7:0];          // use colours for characters
 	always @(posedge pll_clk) begin
 		if (!rst_n) begin
-			wr_addr <= -1;
-			wr_data <= 0;
-			wr_en   <= 1;
-            counter <= 0;
+			mem_wr_en_a      <= 0;
+            vt100_x          <= 0;
+            vt100_y          <= 0;
+            vt100_colour     <= 8'hFF;
+            vt100_fsm_state  <= vt100_state_idle;
+            uart_rx_read     <= 0;
+            uart_tx_start    <= 0;
 		end else begin
-			counter <= counter + 1;
-			// advance to next address
-			wr_addr <= counter[10:0];
-			wr_data <= 8'h20; // default space
-			if (wr_addr == 2000) begin
-				// we hit the end of the text buffer turn writes off
-//				wr_en <= 0;
-			end
-			
-			// what value to write in the next cycle
-			case (wr_addr + 1)				
-				// first row (start on row 6/col 6)
-				80*5 + 5: wr_data <= 16'hFF54; // T			//80 * 5 + 5 is TEXTCOLS * vga_y/FONTHEIGHT + vga_x/FONTWIDTH
-				80*5 + 6: wr_data <= 16'hFF6F; // o
-				80*5 + 7: wr_data <= 16'hFF6d; // m
-				// space
-				80*5 + 9: wr_data <= 16'hFF77; // w
-				80*5 + 10: wr_data <= 16'hFF61; // a
-				80*5 + 11: wr_data <= 16'hFF73; // s
-				// space
-				80*5 + 13: wr_data <= 16'hFF68; // h
-				80*5 + 14: wr_data <= 16'hFF65; // e
-				80*5 + 15: wr_data <= 16'hFF72; // r
-				80*5 + 16: wr_data <= 16'hFF65; // e
-                default: 
+            case (vt100_fsm_state)
+                vt100_state_idle:
                     begin
-                        wr_data[15:8] <= colour * (colour + colour + 1); // rc6 permutation polynomial because why not
-                        wr_data[7:0]  <= wr_addr[7:0] + counter[31:24];
+                        if (vt100_y == 25) begin
+                            // initiate screen scroll fsm state
+                            vt100_y         <= 24;
+                            vt100_scroll    <= 0;  // read from scroll+80 and write to scroll 
+                            vt100_fsm_state <= vt100_state_scroll;
+                        end
+                        if (uart_rx_ready) begin
+                            uart_rx_read    <= 1;
+                            vt100_fsm_tag   <= vt100_state_rx_char;
+                            vt100_fsm_state <= vt100_state_delay;
+                        end
                     end
-			endcase
+                vt100_state_rx_char:
+                    begin
+                        uart_tx_start   <= 1;
+                        uart_tx_data_in <= uart_rx_byte;
+                        mem_addr_a      <= vt100_y * 80 + vt100_x;          // address for colour/symbol pair
+                        mem_din_a       <= {vt100_colour, uart_rx_byte};
+                        mem_wr_en_a     <= 1;
+                        vt100_fsm_tag   <= vt100_state_idle;
+                        vt100_fsm_state <= vt100_state_delay;
+
+                        case (uart_rx_byte)
+                            10: // line feed
+                                begin
+                                    vt100_y     <= vt100_y + 1;
+                                    vt100_x     <= 0;               // linux default
+                                    mem_wr_en_a <= 0;
+                                end
+                            13: // carriage return
+                                begin
+                                    vt100_x     <= 0;
+                                    mem_wr_en_a <= 0;
+                                end
+                            9: // tab
+                                begin
+                                    mem_din_a <= 0;
+                                    if (vt100_x + 4 >= 80) begin
+                                        vt100_x <= 79;
+                                    end else begin
+                                        vt100_x <= vt100_x + 4;
+                                    end
+                                end
+                            8: // bs
+                                begin
+                                    if (vt100_x > 0) begin
+                                        vt100_x     <= vt100_x - 1;
+                                        mem_addr_a  <= mem_addr_a - 1;
+                                        mem_din_a   <= 0;
+                                    end else begin
+                                        mem_wr_en_a <= 0;
+                                    end
+                                end
+                            default:
+                                begin
+                                    // advance x/y
+                                    if (vt100_x == 79) begin
+                                        vt100_x <= 0;
+                                        vt100_y <= vt100_y + 1;
+                                    end else begin
+                                        vt100_x <= vt100_x + 1;
+                                    end
+                                end
+                        endcase
+                    end
+                vt100_state_scroll: // start read unless done
+                    begin
+                        if (vt100_scroll == (24 * 80)) begin
+                            vt100_fsm_state <= vt100_state_scroll3;
+                        end else begin
+                            mem_addr_a      <= vt100_scroll + 80;
+                            vt100_fsm_state <= vt100_state_delay;
+                            vt100_fsm_tag   <= vt100_state_scroll2;
+                        end
+                    end
+                vt100_state_scroll2: // start writee
+                    begin
+                        mem_addr_a   <= vt100_scroll;
+                        mem_din_a    <= mem_dout_a;
+                        mem_wr_en_a  <= 1;
+                        vt100_scroll <= vt100_scroll + 1;
+                        vt100_fsm_state <= vt100_state_delay;
+                        vt100_fsm_tag   <= vt100_state_scroll;
+                    end
+                vt100_state_scroll3: // clear last row
+                    begin
+                        if (vt100_scroll == (25 * 80)) begin
+                            vt100_fsm_state <= vt100_state_idle;
+                        end else begin
+                            mem_addr_a      <= vt100_scroll;
+                            mem_din_a       <= 0;
+                            mem_wr_en_a     <= 1;
+                            vt100_scroll    <= vt100_scroll + 1;
+                            vt100_fsm_state <= vt100_state_delay;
+                            vt100_fsm_tag   <= vt100_fsm_state;
+                        end
+                    end
+                vt100_state_delay:
+                    begin
+                        mem_wr_en_a     <= 0;
+                        uart_rx_read    <= 0;
+                        uart_tx_start   <= 0;
+                        vt100_fsm_state <= vt100_fsm_tag;
+                    end
+            endcase
 		end
 	end
 	
