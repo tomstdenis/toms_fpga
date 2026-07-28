@@ -66,9 +66,11 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, output reg [
 */
 
     // here we're using a BRAM in rom mode ...
-    wire [7:0] font_dout;                            // output of rom
-    wire [10:0] font_ad = {symbol[7:0], vga_y[3:1]}; // address into the rom, it's 11 bits of which the top 8 are the symbol and bottom 3 are the row
-    assign text_out = font_dout[7 - vga_x[2:0]];     // bit of output indexed from the ROM output
+    wire [10:0] vga_y_p1 = (vga_y + (vga_x == 799 ? 1'b1 : 1'b0));
+    wire [7:0] font_dout;                           // output of rom
+    wire [10:0] font_ad = {symbol, vga_y_p1[3:1]};     // address into the rom, it's 11 bits of which the top 8 are the symbol and bottom 3 are the row
+    assign text_out = font_dout[7 - vga_x[2:0]];    // bit of output indexed from the ROM output
+
 
     // our 256 symbol 8x8 CP437 font
     Gowin_pROM madamme_font(
