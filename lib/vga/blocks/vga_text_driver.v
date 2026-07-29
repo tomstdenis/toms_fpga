@@ -55,12 +55,12 @@ module vga_text_driver #(
 		end else if (lrg_mode == 0) begin
 			// text mode
 			if (y < (TEXTROWS*FONTHEIGHT) && x < (TEXTCOLS*FONTWIDTH)) begin
-                x_cnt <= x_cnt + 1;
+                x_cnt <= x_cnt + 1'b1;
                 if (x_cnt == (FONTWIDTH-1)) begin
-                    x_cnt   <= 0;
+                    x_cnt   <= 1'b0;
                 end
 				if (x[$clog2(FONTWIDTH)-1:0] == (FONTWIDTH-2-X_FETCH_DELAY)) begin
-					rd_addr <= rd_addr + 1;
+					rd_addr <= rd_addr + 1'b1;
 				end
 				// Latch symbol at the last column of font
 				if (x[$clog2(FONTWIDTH)-1:0] == (FONTWIDTH-X_FETCH_DELAY)) begin
@@ -68,12 +68,12 @@ module vga_text_driver #(
 				end
 			end else begin
                 // we're either just entering HBLANK or VBLANK
-                x_cnt <= 0;
+                x_cnt <= 1'b0;
 				if (x == (H_TOTAL-3-X_FETCH_DELAY)) begin
 					// set the next address for the next scanline which is either
                     // another line of the same text char row or the first row of the next row of text...
 					if (y >= (TEXTROWS*FONTHEIGHT-1)) begin
-						rd_addr <= 0;                                               // we're beyond the last row so start at 0
+						rd_addr <= 1'b0;                                               // we're beyond the last row so start at 0
 					end else begin
 						if (y[$clog2(FONTHEIGHT)-1:0] == (FONTHEIGHT-1)) begin      // next row of chars
 							rd_addr <= rd_addr;
@@ -82,9 +82,9 @@ module vga_text_driver #(
 						end
 					end
 				end else if (x == (H_TOTAL-1-X_FETCH_DELAY)) begin
-                    y_cnt <= y_cnt + 1;
+                    y_cnt <= y_cnt + 1'b1;
                     if ((y_cnt == (FONTHEIGHT-1)) || (y == (V_TOTAL-1))) begin
-                        y_cnt <= 0;
+                        y_cnt <= 1'b0;
                     end
                     if (y < (TEXTROWS*FONTHEIGHT-1) || y == (V_TOTAL-1)) begin      // either we're in the first TEXTROWS OR the last line preparing for row 0
                         symbol <= rd_data;
@@ -95,30 +95,30 @@ module vga_text_driver #(
 			end
 		end else begin
 			if (x_cnt >= (LRG_PWIDTH-1)) begin
-				x_cnt   <= 0;
+				x_cnt   <= 1'b0;
 			end else begin
 				x_cnt   <= x_cnt + 1'b1;
 			end
 			// lowres graphics mode
 			if (x < (LRG_COLS * LRG_PWIDTH) && y < (LRG_ROWS * LRG_PHEIGHT)) begin
                 if (x_cnt == (LRG_PWIDTH-3)) begin
-                    rd_addr <= rd_addr + 1;
+                    rd_addr <= rd_addr + 1'b1;
                 end
 				if (x_cnt == (LRG_PWIDTH-1)) begin
                     if ((x > (LRG_PWIDTH*(LRG_COLS-1))) && (x < (LRG_PWIDTH*(LRG_COLS)))) begin
-                        symbol <= 0;
+                        symbol <= 1'b0;
                     end else begin
                         symbol  <= rd_data;
                     end
 				end
 			end else begin
 				symbol  <= 16'h00;
-				x_cnt   <= 0;
+				x_cnt   <= 1'b0;
 				if (x == (H_TOTAL-3)) begin
 					// set the next address a little back from end so we can program the address to read from
 					if (y >= (V_TOTAL-1)) begin
 						// last row so we're starting over
-						rd_addr <= 0;
+						rd_addr <= 1'b0;
 					end else begin
 						if (y_cnt == (LRG_PHEIGHT-1)) begin
 							// last vga row of this lrg pixel
@@ -131,10 +131,10 @@ module vga_text_driver #(
 					symbol <= rd_data;
 					// last column 
 					if (y == (V_TOTAL-1)) begin
-						y_cnt   <= 0;
+						y_cnt   <= 1'b0;
 					end else begin
 						if (y_cnt >= (LRG_PHEIGHT-1)) begin
-							y_cnt <= 0;
+							y_cnt <= 1'b0;
 						end else begin
 							y_cnt <= y_cnt + 1'b1;
 						end

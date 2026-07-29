@@ -38,7 +38,7 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, output reg [
 
 	// bit widths are for 640x480 VGA
 	wire [10:0] vga_x;
-	wire [9:0] vga_y;
+	wire [10:0] vga_y;
 	wire vga_h_sync;
 	wire vga_v_sync;
 	wire vga_active;
@@ -68,7 +68,7 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, output reg [
     // here we're using a BRAM in rom mode ...
     wire [10:0] vga_y_p1 = (vga_y + (vga_x == 799 ? 1'b1 : 1'b0));
     wire [7:0] font_dout;                           // output of rom
-    wire [10:0] font_ad = {symbol, vga_y_p1[3:1]};     // address into the rom, it's 11 bits of which the top 8 are the symbol and bottom 3 are the row
+    wire [10:0] font_ad = {symbol[7:0], vga_y_p1[3:1]};     // address into the rom, it's 11 bits of which the top 8 are the symbol and bottom 3 are the row
     assign text_out = font_dout[7 - vga_x[2:0]];    // bit of output indexed from the ROM output
 
     // our 256 symbol 8x8 CP437 font
@@ -77,7 +77,8 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, output reg [
         .ad(font_ad), //input [10:0] ad
         .clk(pll_clk), //input clk
         .oce(1'b1), //input oce
-        .ce(1'b1) //input ce
+        .ce(1'b1), //input ce
+        .reset(~rst_n)
     );
 
     wire [15:0] mem_dout_a;
@@ -126,8 +127,8 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, output reg [
 
     // this should be a module but I want to just hack stuff so leave me be hehehehe
 
-    reg [6:0] vt100_x;
-    reg [6:0] vt100_y;
+    reg [10:0] vt100_x;
+    reg [10:0] vt100_y;
     reg [7:0] vt100_colour;
     reg [3:0] vt100_fsm_state;
     reg [3:0] vt100_fsm_tag;
@@ -150,6 +151,7 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, output reg [
         vt100_state_csi_terms      = 6,
         vt100_state_csi_term_parse = 7,
         vt100_state_erase_cells    = 8,
+        vt100_state_attributes     = 8,
         vt100_state_delay          = 9;
 	
 	always @(posedge pll_clk) begin
@@ -186,7 +188,7 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, output reg [
                         vt100_prev_char <= uart_rx_byte;
                         uart_tx_start   <= 1;
                         uart_tx_data_in <= uart_rx_byte;
-                        mem_addr_a      <= vt100_y * 80 + vt100_x;          // address for colour/symbol pair
+                        mem_addr_a      <= vt100_y * 11'd80 + vt100_x;          // address for colour/symbol pair
                         mem_din_a       <= {vt100_colour, uart_rx_byte};
                         mem_wr_en_a     <= 1;
                         vt100_fsm_tag   <= vt100_state_idle;
@@ -211,7 +213,7 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, output reg [
                                 end
                             10: // line feed
                                 begin
-                                    vt100_y     <= vt100_y + 1;
+                                    vt100_y     <= vt100_y + 1'b1;
                                     vt100_x     <= 0;               // linux default
                                     mem_wr_en_a <= 0;
                                 end
@@ -226,14 +228,14 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, output reg [
                                     if (vt100_x + 4 >= 80) begin
                                         vt100_x <= 79;
                                     end else begin
-                                        vt100_x <= vt100_x + 4;
+                                        vt100_x <= vt100_x + 7'd4;
                                     end
                                 end
                             8: // bs
                                 begin
                                     if (vt100_x > 0) begin
-                                        vt100_x     <= vt100_x - 1;
-                                        mem_addr_a  <= mem_addr_a - 1;
+                                        vt100_x     <= vt100_x - 1'b1;
+                                        mem_addr_a  <= mem_addr_a - 1'b1;
                                         mem_din_a   <= 0;
                                     end else begin
                                         mem_wr_en_a <= 0;
@@ -244,9 +246,9 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, output reg [
                                     // advance x/y
                                     if (vt100_x == 79) begin
                                         vt100_x <= 0;
-                                        vt100_y <= vt100_y + 1;
+                                        vt100_y <= vt100_y + 1'b1;
                                     end else begin
-                                        vt100_x <= vt100_x + 1;
+                                        vt100_x <= vt100_x + 1'b1;
                                     end
                                 end
                         endcase
@@ -256,7 +258,7 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, output reg [
                         if (vt100_scroll == (24 * 80)) begin
                             vt100_fsm_state <= vt100_state_scroll3;
                         end else begin
-                            mem_addr_a      <= vt100_scroll + 80;
+                            mem_addr_a      <= vt100_scroll + 11'd80;
                             vt100_fsm_state <= vt100_state_delay;
                             vt100_fsm_tag   <= vt100_state_scroll2;
                         end
@@ -266,7 +268,7 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, output reg [
                         mem_addr_a   <= vt100_scroll;
                         mem_din_a    <= mem_dout_a;
                         mem_wr_en_a  <= 1;
-                        vt100_scroll <= vt100_scroll + 1;
+                        vt100_scroll <= vt100_scroll + 1'b1;
                         vt100_fsm_state <= vt100_state_delay;
                         vt100_fsm_tag   <= vt100_state_scroll;
                     end
@@ -276,9 +278,9 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, output reg [
                             vt100_fsm_state <= vt100_state_idle;
                         end else begin
                             mem_addr_a      <= vt100_scroll;
-                            mem_din_a       <= 0;
-                            mem_wr_en_a     <= 1;
-                            vt100_scroll    <= vt100_scroll + 1;
+                            mem_din_a       <= 1'b0;
+                            mem_wr_en_a     <= 1'b1;
+                            vt100_scroll    <= vt100_scroll + 1'b1;
                             vt100_fsm_state <= vt100_state_delay;
                             vt100_fsm_tag   <= vt100_fsm_state;
                         end
@@ -286,7 +288,7 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, output reg [
                 vt100_state_csi_terms:
                     begin
                         if (uart_rx_ready) begin
-                            uart_rx_read    <= 1;
+                            uart_rx_read    <= 1'b1;
                             vt100_fsm_state <= vt100_state_delay;
                             vt100_fsm_tag   <= vt100_state_csi_term_parse;
                         end
@@ -295,22 +297,22 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, output reg [
                     begin
                         vt100_fsm_state <= vt100_state_csi_terms;
                         if (uart_rx_byte >= 48 && uart_rx_byte <= 57) begin
-                            vt100_term[vt100_terms] <= vt100_term[vt100_terms] * 10 + uart_rx_byte - 48;
-                            vt100_term_default      <= 0;
+                            vt100_term[vt100_terms] <= vt100_term[vt100_terms] * 8'd10 + uart_rx_byte - 8'd48;
+                            vt100_term_default      <= 1'b0;
                         end else if (uart_rx_byte == 59) begin // ;
-                            vt100_terms                 <= vt100_terms + 1;
-                            vt100_term[vt100_terms + 1] <= 0;
+                            vt100_terms                 <= vt100_terms + 1'b1;
+                            vt100_term[vt100_terms + 1] <= 1'b0;
                         end else begin
                             vt100_fsm_state <= vt100_state_idle;
                             case (uart_rx_byte)
                                 102, 72: // f or H
                                     begin
-                                        if (vt100_term_default || vt100_terms == 0) begin
-                                            vt100_x <= 0;
-                                            vt100_y <= 0;
+                                        if (vt100_term_default) begin
+                                            vt100_x <= 1'b0;
+                                            vt100_y <= 1'b0;
                                         end else if (vt100_terms != 0) begin
-                                            vt100_y <= vt100_term[0] - 1;
-                                            vt100_x <= vt100_term[1] - 1;
+                                            vt100_y <= vt100_term[0] - 1'b1;
+                                            vt100_x <= vt100_term[1] - 1'b1;
                                         end
                                     end
                                 65: // A (move up X lines)
@@ -368,26 +370,31 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, output reg [
                                         vt100_fsm_state <= vt100_state_idle;
                                         if (vt100_term[0] == 0 || vt100_term_default) begin // cursor to end of screen
                                             vt100_fsm_state <= vt100_state_erase_cells;
-                                            vt100_i         <= vt100_y * 80 + vt100_x;
-                                            vt100_j         <= 25 * 80;
+                                            vt100_i         <= vt100_y * 11'd80 + vt100_x;
+                                            vt100_j         <= 11'd25 * 11'd80;
                                         end else if (vt100_term[0] == 1) begin // from cursor to start of screen
                                             vt100_fsm_state <= vt100_state_erase_cells;
-                                            vt100_j         <= vt100_y * 80 + vt100_x;
-                                            vt100_i         <= 0;
+                                            vt100_j         <= vt100_y * 11'd80 + vt100_x;
+                                            vt100_i         <= 11'd0;
                                         end else if (vt100_term[0] == 2) begin // entire screen
                                             vt100_fsm_state <= vt100_state_erase_cells;
-                                            vt100_i         <= 0;
-                                            vt100_j         <= 25 * 80;
+                                            vt100_i         <= 11'd0;
+                                            vt100_j         <= 11'd25 * 11'd80;
                                         end
-                                    end                                        
+                                    end
+                                109: // m (attributes)
+                                    begin
+                                        vt100_fsm_state     <= vt100_state_attributes;
+                                        vt100_j             <= {3'b0, vt100_term[vt100_i]};
+                                    end
                             endcase
                         end
                     end
                 vt100_state_erase_cells:
                     begin
                         if (vt100_i != vt100_j) begin
-                            vt100_i         <= vt100_i + 1;
-                            mem_wr_en_a     <= 1;
+                            vt100_i         <= vt100_i + 1'b1;
+                            mem_wr_en_a     <= 1'b1;
                             mem_din_a       <= {vt100_colour, 8'h20};
                             mem_addr_a      <= vt100_i;
                             vt100_fsm_state <= vt100_state_delay;
@@ -396,11 +403,31 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, output reg [
                             vt100_fsm_state <= vt100_state_idle;
                         end
                     end
+                vt100_state_attributes:
+                    begin
+                        // handle attribute vt100_term[vt100_i]
+                        vt100_i <= vt100_i + 1'b1;
+                        vt100_j <= {3'b0, vt100_term[vt100_i + 1'b1]};
+                        if (vt100_j == 0) begin
+                            vt100_colour <= {1'b0, 1'b0, 3'b0, 3'b111};
+                        end else if (vt100_j >= 30 && vt100_j <= 37) begin  // foreground
+                            vt100_colour[2:0] <= vt100_j - 8'd30;
+                        end else if (vt100_j >= 40 && vt100_j <= 47) begin //background
+                            vt100_colour[5:3] <= vt100_j - 8'd40;
+                        end else if (vt100_j == 39) begin //default foreground
+                            vt100_colour[2:0] <= 8'd7;
+                        end else if (vt100_j == 49) begin //default background
+                            vt100_colour[5:3] <= 8'd0;
+                        end
+                        if (vt100_i == vt100_terms) begin
+                            vt100_fsm_state <= vt100_state_idle;
+                        end
+                    end
                 vt100_state_delay:
                     begin
-                        mem_wr_en_a     <= 0;
-                        uart_rx_read    <= 0;
-                        uart_tx_start   <= 0;
+                        mem_wr_en_a     <= 1'b0;
+                        uart_rx_read    <= 1'b0;
+                        uart_tx_start   <= 1'b0;
                         vt100_fsm_state <= vt100_fsm_tag;
                     end
             endcase
