@@ -149,7 +149,8 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, output reg [
         vt100_state_scroll3        = 5,
         vt100_state_csi_terms      = 6,
         vt100_state_csi_term_parse = 7,
-        vt100_state_delay          = 8;
+        vt100_state_erase_cells    = 8,
+        vt100_state_delay          = 9;
 	
 	always @(posedge pll_clk) begin
 		if (!rst_n) begin
@@ -297,21 +298,101 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, output reg [
                             vt100_term[vt100_terms] <= vt100_term[vt100_terms] * 10 + uart_rx_byte - 48;
                             vt100_term_default      <= 0;
                         end else if (uart_rx_byte == 59) begin // ;
-                            vt100_terms <= vt100_terms + 1;
+                            vt100_terms                 <= vt100_terms + 1;
                             vt100_term[vt100_terms + 1] <= 0;
                         end else begin
+                            vt100_fsm_state <= vt100_state_idle;
                             case (uart_rx_byte)
                                 102, 72: // f or H
                                     begin
-                                        if (vt100_term_default || vt100_terms != 2) begin
+                                        if (vt100_term_default || vt100_terms == 0) begin
                                             vt100_x <= 0;
                                             vt100_y <= 0;
-                                        end else if (vt100_terms == 2) begin
-                                            vt100_x <= vt100_term[1];
-                                            vt100_y <= vt100_term[0];
+                                        end else if (vt100_terms != 0) begin
+                                            vt100_y <= vt100_term[0] - 1;
+                                            vt100_x <= vt100_term[1] - 1;
                                         end
                                     end
+                                65: // A (move up X lines)
+                                    begin
+                                        if (vt100_y >= vt100_term[0]) begin
+                                            vt100_y <= vt100_y - vt100_term[0];
+                                        end else begin
+                                            vt100_y <= 0;
+                                        end
+                                    end
+                                66: // B (move down X lines)
+                                    begin
+                                        if ((vt100_y + vt100_term[0]) > 25) begin
+                                            vt100_y <= 25;
+                                        end else begin
+                                            vt100_y <= vt100_y + vt100_term[0];
+                                        end
+                                    end
+                                67: // C (move left X columns)
+                                    begin
+                                        if (vt100_x >= vt100_term[0]) begin
+                                            vt100_x <= vt100_x - vt100_term[0];
+                                        end else begin
+                                            vt100_x <= 0;
+                                        end
+                                    end
+                                68: // D (move right X columns)
+                                    begin
+                                        if ((vt100_x + vt100_term[0]) > 79) begin
+                                            vt100_x <= 79;
+                                        end else begin
+                                            vt100_x <= vt100_x + vt100_term[0];
+                                        end
+                                    end
+                                69: // E (reset x, move down X lines)
+                                    begin
+                                        vt100_x <= 0;
+                                        if ((vt100_y + vt100_term[0]) > 25) begin
+                                            vt100_y <= 25;
+                                        end else begin
+                                            vt100_y <= vt100_y + vt100_term[0];
+                                        end
+                                    end
+                                70: // F (reset x, move up X lines)
+                                    begin
+                                        vt100_x <= 0;
+                                        if (vt100_y >= vt100_term[0]) begin
+                                            vt100_y <= vt100_y - vt100_term[0];
+                                        end else begin
+                                            vt100_y <= 0;
+                                        end
+                                    end
+                                74: // J (erase)
+                                    begin
+                                        vt100_fsm_state <= vt100_state_idle;
+                                        if (vt100_term[0] == 0 || vt100_term_default) begin // cursor to end of screen
+                                            vt100_fsm_state <= vt100_state_erase_cells;
+                                            vt100_i         <= vt100_y * 80 + vt100_x;
+                                            vt100_j         <= 25 * 80;
+                                        end else if (vt100_term[0] == 1) begin // from cursor to start of screen
+                                            vt100_fsm_state <= vt100_state_erase_cells;
+                                            vt100_j         <= vt100_y * 80 + vt100_x;
+                                            vt100_i         <= 0;
+                                        end else if (vt100_term[0] == 2) begin // entire screen
+                                            vt100_fsm_state <= vt100_state_erase_cells;
+                                            vt100_i         <= 0;
+                                            vt100_j         <= 25 * 80;
+                                        end
+                                    end                                        
                             endcase
+                        end
+                    end
+                vt100_state_erase_cells:
+                    begin
+                        if (vt100_i != vt100_j) begin
+                            vt100_i         <= vt100_i + 1;
+                            mem_wr_en_a     <= 1;
+                            mem_din_a       <= {vt100_colour, 8'h20};
+                            mem_addr_a      <= vt100_i;
+                            vt100_fsm_state <= vt100_state_delay;
+                            vt100_fsm_tag   <= vt100_fsm_state;
+                        end else begin
                             vt100_fsm_state <= vt100_state_idle;
                         end
                     end
