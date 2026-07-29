@@ -71,7 +71,6 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, output reg [
     wire [10:0] font_ad = {symbol, vga_y_p1[3:1]};     // address into the rom, it's 11 bits of which the top 8 are the symbol and bottom 3 are the row
     assign text_out = font_dout[7 - vga_x[2:0]];    // bit of output indexed from the ROM output
 
-
     // our 256 symbol 8x8 CP437 font
     Gowin_pROM madamme_font(
         .dout(font_dout), //output [7:0] dout
@@ -134,14 +133,23 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, output reg [
     reg [3:0] vt100_fsm_tag;
     reg [10:0] vt100_scroll;
 
+    reg [7:0] vt100_term[7:0];
+    reg [2:0] vt100_terms;
+    reg vt100_term_default;
+    reg [10:0] vt100_i;
+    reg [10:0] vt100_j;
+    reg [7:0] vt100_prev_char;
+
     localparam
-        vt100_state_idle         = 0,
-        vt100_state_rx_char      = 1,
-        vt100_state_write_colour = 2,
-        vt100_state_scroll       = 3,
-        vt100_state_scroll2      = 4,
-        vt100_state_scroll3      = 5,
-        vt100_state_delay        = 6;
+        vt100_state_idle           = 0,
+        vt100_state_rx_char        = 1,
+        vt100_state_write_colour   = 2,
+        vt100_state_scroll         = 3,
+        vt100_state_scroll2        = 4,
+        vt100_state_scroll3        = 5,
+        vt100_state_csi_terms      = 6,
+        vt100_state_csi_term_parse = 7,
+        vt100_state_delay          = 8;
 	
 	always @(posedge pll_clk) begin
 		if (!rst_n) begin
@@ -150,6 +158,10 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, output reg [
             vt100_y          <= 0;
             vt100_colour     <= 8'hFF;
             vt100_fsm_state  <= vt100_state_idle;
+            vt100_terms      <= 0;
+            vt100_i          <= 0;
+            vt100_j          <= 0;
+            vt100_prev_char  <= 0;
             uart_rx_read     <= 0;
             uart_tx_start    <= 0;
 		end else begin
@@ -170,6 +182,7 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, output reg [
                     end
                 vt100_state_rx_char:
                     begin
+                        vt100_prev_char <= uart_rx_byte;
                         uart_tx_start   <= 1;
                         uart_tx_data_in <= uart_rx_byte;
                         mem_addr_a      <= vt100_y * 80 + vt100_x;          // address for colour/symbol pair
@@ -177,8 +190,24 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, output reg [
                         mem_wr_en_a     <= 1;
                         vt100_fsm_tag   <= vt100_state_idle;
                         vt100_fsm_state <= vt100_state_delay;
-
                         case (uart_rx_byte)
+                            27: // ESC
+                                begin
+                                    mem_wr_en_a <= 0;
+                                end
+                            91: // [
+                                begin
+                                    if (vt100_prev_char == 27) begin
+                                        // starting a CSI
+                                        vt100_term[0]      <= 0;
+                                        vt100_terms        <= 0;
+                                        vt100_term_default <= 1;
+                                        vt100_i            <= 0;
+                                        vt100_j            <= 0;
+                                        vt100_fsm_state    <= vt100_state_csi_terms;
+                                        mem_wr_en_a        <= 0;
+                                    end
+                                end
                             10: // line feed
                                 begin
                                     vt100_y     <= vt100_y + 1;
@@ -251,6 +280,39 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, output reg [
                             vt100_scroll    <= vt100_scroll + 1;
                             vt100_fsm_state <= vt100_state_delay;
                             vt100_fsm_tag   <= vt100_fsm_state;
+                        end
+                    end
+                vt100_state_csi_terms:
+                    begin
+                        if (uart_rx_ready) begin
+                            uart_rx_read    <= 1;
+                            vt100_fsm_state <= vt100_state_delay;
+                            vt100_fsm_tag   <= vt100_state_csi_term_parse;
+                        end
+                    end
+                vt100_state_csi_term_parse:
+                    begin
+                        vt100_fsm_state <= vt100_state_csi_terms;
+                        if (uart_rx_byte >= 48 && uart_rx_byte <= 57) begin
+                            vt100_term[vt100_terms] <= vt100_term[vt100_terms] * 10 + uart_rx_byte - 48;
+                            vt100_term_default      <= 0;
+                        end else if (uart_rx_byte == 59) begin // ;
+                            vt100_terms <= vt100_terms + 1;
+                            vt100_term[vt100_terms + 1] <= 0;
+                        end else begin
+                            case (uart_rx_byte)
+                                102, 72: // f or H
+                                    begin
+                                        if (vt100_term_default || vt100_terms != 2) begin
+                                            vt100_x <= 0;
+                                            vt100_y <= 0;
+                                        end else if (vt100_terms == 2) begin
+                                            vt100_x <= vt100_term[1];
+                                            vt100_y <= vt100_term[0];
+                                        end
+                                    end
+                            endcase
+                            vt100_fsm_state <= vt100_state_idle;
                         end
                     end
                 vt100_state_delay:
