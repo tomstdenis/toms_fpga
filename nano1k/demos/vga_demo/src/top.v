@@ -186,7 +186,7 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, output reg [
                 vt100_state_rx_char:
                     begin
                         vt100_prev_char <= uart_rx_byte;
-                        uart_tx_start   <= 1;
+                        uart_tx_start   <= 0;
                         uart_tx_data_in <= uart_rx_byte;
                         mem_addr_a      <= vt100_y * 11'd80 + vt100_x;          // address for colour/symbol pair
                         mem_din_a       <= {vt100_colour, uart_rx_byte};
