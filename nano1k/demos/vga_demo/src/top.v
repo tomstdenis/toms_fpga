@@ -160,7 +160,7 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, output reg [
 			mem_wr_en_a      <= 0;
             vt100_x          <= 0;
             vt100_y          <= 0;
-            vt100_colour     <= 8'hFF;
+            vt100_colour     <= {1'b0, 1'b0, 3'b0, 3'b111};
             vt100_fsm_state  <= vt100_state_idle;
             vt100_terms      <= 0;
             vt100_i          <= 0;
