@@ -30,7 +30,7 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, output reg [
         baudwidth = $clog2(bauddiv);
     wire [baudwidth-1:0] baud_div = bauddiv;
 
-    uart #(.FIFO_DEPTH(8), .RX_ENABLE(1), .TX_ENABLE(1), .BAUD_WIDTH(baudwidth)) mrtalky (
+    uart #(.FIFO_DEPTH(16), .RX_ENABLE(1), .TX_ENABLE(0), .BAUD_WIDTH(baudwidth)) mrtalky (
         .clk(pll_clk), .rst_n(rst_n), .baud_div(baud_div),
         .uart_tx_start(uart_tx_start), .uart_tx_data_in(uart_tx_data_in),
         .uart_tx_pin(uart_tx), .uart_tx_fifo_empty(uart_tx_fifo_empty), .uart_tx_fifo_full(uart_tx_fifo_full),
@@ -129,17 +129,18 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, output reg [
 
     reg [10:0] vt100_x;
     reg [10:0] vt100_y;
-    reg [7:0] vt100_colour;
-    reg [3:0] vt100_fsm_state;
-    reg [3:0] vt100_fsm_tag;
+    reg [7:0]  vt100_colour;
+    reg [3:0]  vt100_fsm_state;
+    reg [3:0]  vt100_fsm_tag;
     reg [10:0] vt100_scroll;
 
-    reg [7:0] vt100_term[7:0];
-    reg [2:0] vt100_terms;
-    reg vt100_term_default;
+    reg [7:0]  vt100_term[7:0];
+    reg [2:0]  vt100_terms;
+    reg        vt100_term_default;
     reg [10:0] vt100_i;
     reg [10:0] vt100_j;
-    reg [7:0] vt100_prev_char;
+    reg [7:0]  vt100_prev_char;
+    reg        vt100_bold_mode;
 
     localparam
         vt100_state_idle           = 0,
@@ -165,6 +166,7 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, output reg [
             vt100_i          <= 0;
             vt100_j          <= 0;
             vt100_prev_char  <= 0;
+            vt100_bold_mode  <= 0;
             uart_rx_read     <= 0;
             uart_tx_start    <= 0;
 		end else begin
@@ -224,7 +226,7 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, output reg [
                                 end
                             9: // tab
                                 begin
-                                    mem_din_a <= 0;
+                                    mem_din_a   <= 0;
                                     if (vt100_x + 4 >= 80) begin
                                         vt100_x <= 79;
                                     end else begin
@@ -263,12 +265,12 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, output reg [
                             vt100_fsm_tag   <= vt100_state_scroll2;
                         end
                     end
-                vt100_state_scroll2: // start writee
+                vt100_state_scroll2: // start write
                     begin
-                        mem_addr_a   <= vt100_scroll;
-                        mem_din_a    <= mem_dout_a;
-                        mem_wr_en_a  <= 1;
-                        vt100_scroll <= vt100_scroll + 1'b1;
+                        mem_addr_a      <= vt100_scroll;
+                        mem_din_a       <= mem_dout_a;
+                        mem_wr_en_a     <= 1;
+                        vt100_scroll    <= vt100_scroll + 1'b1;
                         vt100_fsm_state <= vt100_state_delay;
                         vt100_fsm_tag   <= vt100_state_scroll;
                     end
@@ -365,6 +367,14 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, output reg [
                                             vt100_y <= 0;
                                         end
                                     end
+                                71: // G (move to column X)
+                                    begin
+                                        if (vt100_term[0] > 80) begin
+                                            vt100_x <= 79;
+                                        end else begin
+                                            vt100_x <= vt100_term[0] - 1;
+                                        end
+                                    end
                                 74: // J (erase)
                                     begin
                                         vt100_fsm_state <= vt100_state_idle;
@@ -380,6 +390,23 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, output reg [
                                             vt100_fsm_state <= vt100_state_erase_cells;
                                             vt100_i         <= 11'd0;
                                             vt100_j         <= 11'd25 * 11'd80;
+                                        end
+                                    end
+                                75: // K (erase row)
+                                    begin
+                                        vt100_fsm_state <= vt100_state_idle;
+                                        if (vt100_term[0] == 0 || vt100_term_default) begin // cursor to end of line
+                                            vt100_fsm_state <= vt100_state_erase_cells;
+                                            vt100_i         <= vt100_y * 11'd80 + vt100_x;
+                                            vt100_j         <= vt100_y * 11'd80 + 11'd80 - vt100_x;
+                                        end else if (vt100_term[0] == 1) begin // from start of line to cursor
+                                            vt100_fsm_state <= vt100_state_erase_cells;
+                                            vt100_i         <= vt100_y * 11'd80;
+                                            vt100_j         <= vt100_y * 11'd80 + vt100_x;
+                                        end else if (vt100_term[0] == 2) begin // erase current line
+                                            vt100_fsm_state <= vt100_state_erase_cells;
+                                            vt100_i         <= vt100_y * 11'd80;
+                                            vt100_j         <= vt100_y * 11'd80 + 11'd80;
                                         end
                                     end
                                 109: // m (attributes)
@@ -411,17 +438,27 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, output reg [
                         if (vt100_j == 0) begin
                             vt100_colour <= {1'b0, 1'b0, 3'b0, 3'b111};
                         end else if (vt100_j == 1) begin // set bold
-                            vt100_colour[6] <= 1'b1;
+                            vt100_bold_mode <= 1'b1;
                         end else if (vt100_j == 2) begin // set dim
-                            vt100_colour[6] <= 1'b0;
+                            vt100_bold_mode <= 1'b0;
                         end else if (vt100_j >= 30 && vt100_j <= 37) begin  // foreground
                             vt100_colour[2:0] <= vt100_j - 8'd30;
+                            vt100_colour[7]   <= vt100_bold_mode;
                         end else if (vt100_j >= 40 && vt100_j <= 47) begin //background
                             vt100_colour[5:3] <= vt100_j - 8'd40;
+                            vt100_colour[6]   <= vt100_bold_mode;
                         end else if (vt100_j == 39) begin //default foreground
+                            vt100_colour[7]   <= vt100_bold_mode;
                             vt100_colour[2:0] <= 8'd7;
                         end else if (vt100_j == 49) begin //default background
                             vt100_colour[5:3] <= 8'd0;
+                            vt100_colour[6]   <= vt100_bold_mode;
+                        end else if (vt100_j >= 90 && vt100_j <= 97) begin // bright foreground
+                            vt100_colour[7]   <= 1;
+                            vt100_colour[2:0] <= vt100_j - 8'd90;
+                        end else if (vt100_j >= 100 && vt100_j <= 107) begin // bright background
+                            vt100_colour[6]   <= 1;
+                            vt100_colour[5:3] <= vt100_j - 8'd100;
                         end
                         if (vt100_i == vt100_terms) begin
                             vt100_fsm_state <= vt100_state_idle;
@@ -464,19 +501,19 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, output reg [
                 0: // black
                     {vga_r, vga_g, vga_b} <= 12'b0000_0000_0000;
                 1: // red
-                    {vga_r, vga_g, vga_b} <= {text_at_out[0], 3'b111, 4'b0000, 4'b0000};
+                    {vga_r, vga_g, vga_b} <= {text_at_out[text_out], 3'b111, 4'b0000, 4'b0000};
                 2: // green
-                    {vga_r, vga_g, vga_b} <= {4'b0000, text_at_out[0], 3'b111, 4'b0000};
+                    {vga_r, vga_g, vga_b} <= {4'b0000, text_at_out[text_out], 3'b111, 4'b0000};
                 3: // yellow
-                    {vga_r, vga_g, vga_b} <= {text_at_out[0], 3'b111, text_at_out[0], 3'b111, 4'b0000};
+                    {vga_r, vga_g, vga_b} <= {text_at_out[text_out], 3'b111, text_at_out[text_out], 3'b111, 4'b0000};
                 4: // blue
-                    {vga_r, vga_g, vga_b} <= {4'b0000, 4'b0000, text_at_out[0], 3'b111};
+                    {vga_r, vga_g, vga_b} <= {4'b0000, 4'b0000, text_at_out[text_out], 3'b111};
                 5: // magenta
-                    {vga_r, vga_g, vga_b} <= {text_at_out[0], 3'b111, 4'b0000, text_at_out[0], 3'b111};
+                    {vga_r, vga_g, vga_b} <= {text_at_out[text_out], 3'b111, 4'b0000, text_at_out[text_out], 3'b111};
                 6: // cyan
-                    {vga_r, vga_g, vga_b} <= {4'b0000, text_at_out[0], 3'b111, text_at_out[0], 3'b111};
+                    {vga_r, vga_g, vga_b} <= {4'b0000, text_at_out[text_out], 3'b111, text_at_out[text_out], 3'b111};
                 7: // white
-                    {vga_r, vga_g, vga_b} <= {text_at_out[0], 3'b111, text_at_out[0], 3'b111, text_at_out[0], 3'b111};
+                    {vga_r, vga_g, vga_b} <= {text_at_out[text_out], 3'b111, text_at_out[text_out], 3'b111, text_at_out[text_out], 3'b111};
             endcase
 		end
 	end
