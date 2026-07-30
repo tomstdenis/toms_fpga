@@ -151,8 +151,8 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, output reg [
         vt100_state_csi_terms      = 6,
         vt100_state_csi_term_parse = 7,
         vt100_state_erase_cells    = 8,
-        vt100_state_attributes     = 8,
-        vt100_state_delay          = 9;
+        vt100_state_attributes     = 9,
+        vt100_state_delay          = 10;
 	
 	always @(posedge pll_clk) begin
 		if (!rst_n) begin
@@ -410,6 +410,10 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, output reg [
                         vt100_j <= {3'b0, vt100_term[vt100_i + 1'b1]};
                         if (vt100_j == 0) begin
                             vt100_colour <= {1'b0, 1'b0, 3'b0, 3'b111};
+                        end else if (vt100_j == 1) begin // set bold
+                            vt100_colour[6] <= 1'b1;
+                        end else if (vt100_j == 2) begin // set dim
+                            vt100_colour[6] <= 1'b0;
                         end else if (vt100_j >= 30 && vt100_j <= 37) begin  // foreground
                             vt100_colour[2:0] <= vt100_j - 8'd30;
                         end else if (vt100_j >= 40 && vt100_j <= 47) begin //background
@@ -434,20 +438,20 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, output reg [
 		end
 	end
 	
-    wire [2:0] text_r;
-    wire [2:0] text_g;
-    wire [1:0] text_b;
-    reg [3:0] text_r_out;
-    reg [3:0] text_g_out;
-    reg [3:0] text_b_out;
+    wire [1:0] text_at;
+    wire [2:0] text_fg;
+    wire [2:0] text_bg;
+    reg [1:0] text_at_out;
+    reg [2:0] text_fg_out;
+    reg [2:0] text_bg_out;
 
-    assign text_r = symbol[15:13];
-    assign text_g = symbol[12:10];
-    assign text_b = symbol[9:8];
+    assign text_at = symbol[15:14];
+    assign text_bg = symbol[13:11];
+    assign text_fg = symbol[10:8];
     always @(posedge pll_clk) begin
-        text_r_out <= text_r * 2;
-        text_g_out <= text_g * 2;
-        text_b_out <= text_b * 5;
+        text_at_out <= text_at;
+        text_bg_out <= text_bg;
+        text_fg_out <= text_fg;
     end
 
 	always @(*) begin
@@ -456,13 +460,24 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, output reg [
 		vga_b = 0;
 		
 		if (vga_active) begin
-            {vga_r, vga_g, vga_b} = text_out ? {text_r_out, text_g_out, text_b_out} : 12'b0;
-//			{vga_r, vga_g, vga_b} = text_out ? 12'b1111_1111_1111 : 12'b0;
-//			{vga_r, vga_g, vga_b} = text_out ? 12'b0011_0011_0011 : 12'b0;
-//			{vga_r, vga_g, vga_b} = text_out ? 12'b1111_0000_0000 : 12'b0;
-//			{vga_r, vga_g, vga_b} = text_out ? 12'b0000_1111_0000 : 12'b0;
-//			{vga_r, vga_g, vga_b} = text_out ? 12'b0000_0000_1111 : 12'b0;
+            case (text_out ? text_fg_out : text_bg_out)
+                0: // black
+                    {vga_r, vga_g, vga_b} <= 12'b0000_0000_0000;
+                1: // red
+                    {vga_r, vga_g, vga_b} <= {text_at_out[0], 3'b111, 4'b0000, 4'b0000};
+                2: // green
+                    {vga_r, vga_g, vga_b} <= {4'b0000, text_at_out[0], 3'b111, 4'b0000};
+                3: // yellow
+                    {vga_r, vga_g, vga_b} <= {text_at_out[0], 3'b111, text_at_out[0], 3'b111, 4'b0000};
+                4: // blue
+                    {vga_r, vga_g, vga_b} <= {4'b0000, 4'b0000, text_at_out[0], 3'b111};
+                5: // magenta
+                    {vga_r, vga_g, vga_b} <= {text_at_out[0], 3'b111, 4'b0000, text_at_out[0], 3'b111};
+                6: // cyan
+                    {vga_r, vga_g, vga_b} <= {4'b0000, text_at_out[0], 3'b111, text_at_out[0], 3'b111};
+                7: // white
+                    {vga_r, vga_g, vga_b} <= {text_at_out[0], 3'b111, text_at_out[0], 3'b111, text_at_out[0], 3'b111};
+            endcase
 		end
 	end
-
 endmodule
