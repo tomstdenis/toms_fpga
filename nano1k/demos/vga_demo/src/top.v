@@ -231,7 +231,7 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, output reg [
                                 end
                             9: // tab
                                 begin
-                                    mem_din_a   <= 0;
+                                    mem_din_a   <= {vt100_colour, 8'h20};
                                     if (vt100_x + 4 >= 80) begin
                                         vt100_x <= 79;
                                     end else begin
@@ -243,7 +243,7 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, output reg [
                                     if (vt100_x > 0) begin
                                         vt100_x     <= vt100_x - 1'b1;
                                         mem_addr_a  <= mem_addr_a - 1'b1;
-                                        mem_din_a   <= 0;
+                                        mem_din_a   <= {vt100_colour, 8'h20};
                                     end else begin
                                         mem_wr_en_a <= 0;
                                     end
@@ -285,7 +285,7 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, output reg [
                             vt100_fsm_state <= vt100_state_idle;
                         end else begin
                             mem_addr_a      <= vt100_scroll;
-                            mem_din_a       <= 1'b0;
+                            mem_din_a       <= {vt100_colour, 8'h20};
                             mem_wr_en_a     <= 1'b1;
                             vt100_scroll    <= vt100_scroll + 1'b1;
                             vt100_fsm_state <= vt100_state_delay;
@@ -317,7 +317,7 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, output reg [
                                         if (vt100_term_default) begin
                                             vt100_x <= 1'b0;
                                             vt100_y <= 1'b0;
-                                        end else if (vt100_terms != 0) begin
+                                        end else begin
                                             vt100_y <= vt100_term[0] - 1'b1;
                                             vt100_x <= vt100_term[1] - 1'b1;
                                         end
