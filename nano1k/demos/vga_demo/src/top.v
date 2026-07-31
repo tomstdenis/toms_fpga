@@ -134,13 +134,18 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, output reg [
     reg [3:0]  vt100_fsm_tag;
     reg [10:0] vt100_scroll;
 
-    reg [7:0]  vt100_term[7:0];
+    reg [7:0]  vt100_term[3:0];
     reg [2:0]  vt100_terms;
     reg        vt100_term_default;
     reg [10:0] vt100_i;
     reg [10:0] vt100_j;
     reg [7:0]  vt100_prev_char;
     reg        vt100_bold_mode;
+
+    wire [10:0] vt100_row_addr;
+    wire [10:0] vt100_cursor_addr;
+    assign vt100_row_addr    = vt100_y * 11'd80;
+    assign vt100_cursor_addr = vt100_row_addr + vt100_x;
 
     localparam
         vt100_state_idle           = 0,
@@ -190,7 +195,7 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, output reg [
                         vt100_prev_char <= uart_rx_byte;
                         uart_tx_start   <= 0;
                         uart_tx_data_in <= uart_rx_byte;
-                        mem_addr_a      <= vt100_y * 11'd80 + vt100_x;          // address for colour/symbol pair
+                        mem_addr_a      <= vt100_cursor_addr;          // address for colour/symbol pair
                         mem_din_a       <= {vt100_colour, uart_rx_byte};
                         mem_wr_en_a     <= 1;
                         vt100_fsm_tag   <= vt100_state_idle;
@@ -298,13 +303,13 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, output reg [
                 vt100_state_csi_term_parse:
                     begin
                         vt100_fsm_state <= vt100_state_csi_terms;
-                        if (uart_rx_byte >= 48 && uart_rx_byte <= 57) begin
+                        if (uart_rx_byte >= 48 && uart_rx_byte <= 57) begin // 0 - 9
                             vt100_term[vt100_terms] <= vt100_term[vt100_terms] * 8'd10 + uart_rx_byte - 8'd48;
                             vt100_term_default      <= 1'b0;
-                        end else if (uart_rx_byte == 59) begin // ;
+                        end else if (uart_rx_byte == 59) begin              // ;
                             vt100_terms                 <= vt100_terms + 1'b1;
                             vt100_term[vt100_terms + 1] <= 1'b0;
-                        end else begin
+                        end else begin                                      // command character
                             vt100_fsm_state <= vt100_state_idle;
                             case (uart_rx_byte)
                                 102, 72: // f or H
@@ -380,11 +385,11 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, output reg [
                                         vt100_fsm_state <= vt100_state_idle;
                                         if (vt100_term[0] == 0 || vt100_term_default) begin // cursor to end of screen
                                             vt100_fsm_state <= vt100_state_erase_cells;
-                                            vt100_i         <= vt100_y * 11'd80 + vt100_x;
+                                            vt100_i         <= vt100_cursor_addr;
                                             vt100_j         <= 11'd25 * 11'd80;
                                         end else if (vt100_term[0] == 1) begin // from cursor to start of screen
                                             vt100_fsm_state <= vt100_state_erase_cells;
-                                            vt100_j         <= vt100_y * 11'd80 + vt100_x;
+                                            vt100_j         <= vt100_cursor_addr;
                                             vt100_i         <= 11'd0;
                                         end else if (vt100_term[0] == 2) begin // entire screen
                                             vt100_fsm_state <= vt100_state_erase_cells;
@@ -397,16 +402,16 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, output reg [
                                         vt100_fsm_state <= vt100_state_idle;
                                         if (vt100_term[0] == 0 || vt100_term_default) begin // cursor to end of line
                                             vt100_fsm_state <= vt100_state_erase_cells;
-                                            vt100_i         <= vt100_y * 11'd80 + vt100_x;
-                                            vt100_j         <= vt100_y * 11'd80 + 11'd80 - vt100_x;
+                                            vt100_i         <= vt100_cursor_addr;
+                                            vt100_j         <= vt100_row_addr + 11'd80 - vt100_x;
                                         end else if (vt100_term[0] == 1) begin // from start of line to cursor
                                             vt100_fsm_state <= vt100_state_erase_cells;
-                                            vt100_i         <= vt100_y * 11'd80;
-                                            vt100_j         <= vt100_y * 11'd80 + vt100_x;
+                                            vt100_i         <= vt100_row_addr;
+                                            vt100_j         <= vt100_cursor_addr;
                                         end else if (vt100_term[0] == 2) begin // erase current line
                                             vt100_fsm_state <= vt100_state_erase_cells;
-                                            vt100_i         <= vt100_y * 11'd80;
-                                            vt100_j         <= vt100_y * 11'd80 + 11'd80;
+                                            vt100_i         <= vt100_row_addr;
+                                            vt100_j         <= vt100_row_addr + 11'd80;
                                         end
                                     end
                                 109: // m (attributes)
