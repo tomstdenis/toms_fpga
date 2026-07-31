@@ -10,6 +10,7 @@
         <File path="/home/tom/nas/toms_fpga/lib/uart/blocks/uart.v" type="file.verilog" enable="1"/>
         <File path="/home/tom/nas/toms_fpga/lib/vga/blocks/vga_text_driver.v" type="file.verilog" enable="1"/>
         <File path="/home/tom/nas/toms_fpga/lib/vga/blocks/vga_timing.v" type="file.verilog" enable="1"/>
+        <File path="/home/tom/nas/toms_fpga/lib/vt100/vt100.v" type="file.verilog" enable="1"/>
         <File path="src/gowin_dpb/gowin_dpb.v" type="file.verilog" enable="1"/>
         <File path="src/gowin_prom/gowin_prom.v" type="file.verilog" enable="1"/>
         <File path="src/top.v" type="file.verilog" enable="1"/>
