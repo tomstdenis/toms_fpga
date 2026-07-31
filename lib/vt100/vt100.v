@@ -13,7 +13,9 @@ Assumes a 80x25 display for now.
 module vt100
 #(
     parameter VT100_WIDTH=80,
-    parameter VT100_HEIGHT=25
+    parameter VT100_HEIGHT=25,
+    parameter VT100_FREQ=27_000_000,    // default clock for a Tang Nano 1K
+    parameter VT100_BAUD=230_400
 )
 (
     input wire clk,
@@ -38,8 +40,8 @@ module vt100
     wire [7:0] uart_rx_byte;
 
     localparam 
-        freq = 27_000_000,
-        baud = 230_400, // 1_000_000,
+        freq = VT100_FREQ,
+        baud = VT100_BAUD,
         bauddiv = freq / baud,
         baudwidth = $clog2(bauddiv);
     wire [baudwidth-1:0] baud_div = bauddiv;
