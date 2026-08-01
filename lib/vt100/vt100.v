@@ -40,9 +40,7 @@ module vt100
     wire [7:0] uart_rx_byte;
 
     localparam 
-        freq = VT100_FREQ,
-        baud = VT100_BAUD,
-        bauddiv = freq / baud,
+        bauddiv = VT100_FREQ / VT100_BAUD,
         baudwidth = $clog2(bauddiv);
     wire [baudwidth-1:0] baud_div = bauddiv;
 
@@ -51,7 +49,6 @@ module vt100
         .uart_tx_start(uart_tx_start), .uart_tx_data_in(uart_tx_data_in),
         .uart_tx_pin(uart_tx), .uart_tx_fifo_empty(uart_tx_fifo_empty), .uart_tx_fifo_full(uart_tx_fifo_full),
         .uart_rx_pin(uart_rx), .uart_rx_read(uart_rx_read), .uart_rx_ready(uart_rx_ready), .uart_rx_byte(uart_rx_byte));
-
 
     reg [10:0] vt100_x;
     reg [10:0] vt100_y;
@@ -168,7 +165,7 @@ module vt100
                                 begin
                                     if (vt100_x > 0) begin
                                         vt100_x     <= vt100_x - 1'b1;
-                                        mem_addr_a  <= mem_addr_a - 1'b1;
+                                        mem_addr_a  <= vt100_cursor_addr - 1'b1;
                                         mem_din_a   <= {vt100_colour, 8'h20};
                                     end else begin
                                         mem_wr_en_a <= 0;
