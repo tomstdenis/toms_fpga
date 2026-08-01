@@ -55,7 +55,6 @@ module vt100
     reg [7:0]  vt100_colour;
     reg [3:0]  vt100_fsm_state;
     reg [3:0]  vt100_fsm_tag;
-    reg [10:0] vt100_scroll;
 
     reg [7:0]  vt100_term[3:0];
     reg [2:0]  vt100_terms;
@@ -100,16 +99,17 @@ module vt100
                 vt100_state_idle:
                     begin
                         vt100_terms <= 0;
-                        if (vt100_y == 25) begin
-                            // initiate screen scroll fsm state
-                            vt100_y         <= 24;
-                            vt100_scroll    <= 0;  // read from scroll+80 and write to scroll 
-                            vt100_fsm_state <= vt100_state_scroll;
-                        end
                         if (uart_rx_ready) begin
                             uart_rx_read    <= 1;
                             vt100_fsm_tag   <= vt100_state_rx_char;
                             vt100_fsm_state <= vt100_state_delay;
+                        end
+                        if (vt100_y == 25) begin
+                            // initiate screen scroll fsm state
+                            vt100_y         <= 24;
+                            vt100_i         <= 0;  // read from scroll+80 and write to scroll 
+                            vt100_fsm_state <= vt100_state_scroll;
+                            uart_rx_read    <= 0;
                         end
                     end
                 vt100_state_rx_char:
@@ -184,32 +184,32 @@ module vt100
                     end
                 vt100_state_scroll: // start read unless done
                     begin
-                        if (vt100_scroll == (24 * 80)) begin
+                        if (vt100_i == (24 * 80)) begin
                             vt100_fsm_state <= vt100_state_scroll3;
                         end else begin
-                            mem_addr_a      <= vt100_scroll + 11'd80;
+                            mem_addr_a      <= vt100_i + 11'd80;
                             vt100_fsm_state <= vt100_state_delay;
                             vt100_fsm_tag   <= vt100_state_scroll2;
                         end
                     end
                 vt100_state_scroll2: // start write
                     begin
-                        mem_addr_a      <= vt100_scroll;
+                        mem_addr_a      <= vt100_i;
                         mem_din_a       <= mem_dout_a;
                         mem_wr_en_a     <= 1;
-                        vt100_scroll    <= vt100_scroll + 1'b1;
+                        vt100_i         <= vt100_i + 1'b1;
                         vt100_fsm_state <= vt100_state_delay;
                         vt100_fsm_tag   <= vt100_state_scroll;
                     end
                 vt100_state_scroll3: // clear last row
                     begin
-                        if (vt100_scroll == (25 * 80)) begin
+                        if (vt100_i == (25 * 80)) begin
                             vt100_fsm_state <= vt100_state_idle;
                         end else begin
-                            mem_addr_a      <= vt100_scroll;
+                            mem_addr_a      <= vt100_i;
                             mem_din_a       <= {vt100_colour, 8'h20};
                             mem_wr_en_a     <= 1'b1;
-                            vt100_scroll    <= vt100_scroll + 1'b1;
+                            vt100_i         <= vt100_i + 1'b1;
                             vt100_fsm_state <= vt100_state_delay;
                             vt100_fsm_tag   <= vt100_fsm_state;
                         end
@@ -234,8 +234,8 @@ module vt100
                             vt100_term[vt100_terms] <= vt100_term[vt100_terms] * 8'd10 + uart_rx_byte - 8'd48;
                             vt100_term_default      <= 1'b0;
                         end else if (uart_rx_byte == 59) begin              // ;
-                            vt100_terms                 <= vt100_terms + 1'b1;
-                            vt100_fsm_state             <= vt100_state_zero_term;
+                            vt100_terms             <= vt100_terms + 1'b1;
+                            vt100_fsm_state         <= vt100_state_zero_term;
                         end else begin                                      // command character
                             vt100_fsm_state <= vt100_state_idle;
                             case (uart_rx_byte)
