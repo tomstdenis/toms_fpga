@@ -63,7 +63,6 @@ module vt100
     reg [10:0] vt100_i;
     reg [10:0] vt100_j;
     reg [7:0]  vt100_prev_char;
-    reg        vt100_bold_mode;
 
     wire [10:0] vt100_row_addr;
     wire [10:0] vt100_cursor_addr;
@@ -78,10 +77,11 @@ module vt100
         vt100_state_scroll2        = 4,
         vt100_state_scroll3        = 5,
         vt100_state_csi_terms      = 6,
-        vt100_state_csi_term_parse = 7,
-        vt100_state_erase_cells    = 8,
-        vt100_state_attributes     = 9,
-        vt100_state_delay          = 10;
+        vt100_state_zero_term      = 7,
+        vt100_state_csi_term_parse = 8,
+        vt100_state_erase_cells    = 9,
+        vt100_state_attributes     = 10,
+        vt100_state_delay          = 11;
 	
 	always @(posedge clk) begin
 		if (!rst_n) begin
@@ -90,17 +90,16 @@ module vt100
             vt100_y          <= 0;
             vt100_colour     <= {1'b0, 1'b0, 3'b0, 3'b111};
             vt100_fsm_state  <= vt100_state_idle;
-            vt100_terms      <= 0;
             vt100_i          <= 0;
             vt100_j          <= 0;
             vt100_prev_char  <= 0;
-            vt100_bold_mode  <= 0;
             uart_rx_read     <= 0;
             uart_tx_start    <= 0;
 		end else begin
             case (vt100_fsm_state)
                 vt100_state_idle:
                     begin
+                        vt100_terms <= 0;
                         if (vt100_y == 25) begin
                             // initiate screen scroll fsm state
                             vt100_y         <= 24;
@@ -132,7 +131,7 @@ module vt100
                                 begin
                                     if (vt100_prev_char == 27) begin
                                         // starting a CSI
-                                        vt100_term[0]      <= 0;
+                                        vt100_term[vt100_terms] <= 0;
                                         vt100_terms        <= 0;
                                         vt100_term_default <= 1;
                                         vt100_i            <= 0;
@@ -215,6 +214,11 @@ module vt100
                             vt100_fsm_tag   <= vt100_fsm_state;
                         end
                     end
+                vt100_state_zero_term:
+                    begin
+                        vt100_term[vt100_terms] <= 0;
+                        vt100_fsm_state         <= vt100_state_csi_terms;
+                    end
                 vt100_state_csi_terms:
                     begin
                         if (uart_rx_ready) begin
@@ -231,7 +235,7 @@ module vt100
                             vt100_term_default      <= 1'b0;
                         end else if (uart_rx_byte == 59) begin              // ;
                             vt100_terms                 <= vt100_terms + 1'b1;
-                            vt100_term[vt100_terms + 1] <= 1'b0;
+                            vt100_fsm_state             <= vt100_state_zero_term;
                         end else begin                                      // command character
                             vt100_fsm_state <= vt100_state_idle;
                             case (uart_rx_byte)
@@ -305,7 +309,6 @@ module vt100
                                     end
                                 74: // J (erase)
                                     begin
-                                        vt100_fsm_state <= vt100_state_idle;
                                         if (vt100_term[0] == 0 || vt100_term_default) begin // cursor to end of screen
                                             vt100_fsm_state <= vt100_state_erase_cells;
                                             vt100_i         <= vt100_cursor_addr;
@@ -322,7 +325,6 @@ module vt100
                                     end
                                 75: // K (erase row)
                                     begin
-                                        vt100_fsm_state <= vt100_state_idle;
                                         if (vt100_term[0] == 0 || vt100_term_default) begin // cursor to end of line
                                             vt100_fsm_state <= vt100_state_erase_cells;
                                             vt100_i         <= vt100_cursor_addr;
@@ -340,7 +342,8 @@ module vt100
                                 109: // m (attributes)
                                     begin
                                         vt100_fsm_state     <= vt100_state_attributes;
-                                        vt100_j             <= {3'b0, vt100_term[vt100_i]};
+                                        vt100_j             <= vt100_terms;
+                                        vt100_terms         <= 0;
                                     end
                             endcase
                         end
@@ -361,34 +364,29 @@ module vt100
                 vt100_state_attributes:
                     begin
                         // handle attribute vt100_term[vt100_i]
-                        vt100_i <= vt100_i + 1'b1;
-                        vt100_j <= {3'b0, vt100_term[vt100_i + 1'b1]};
-                        if (vt100_j == 0) begin
+                        vt100_terms <= vt100_terms + 1'b1;
+                        if (vt100_term[vt100_terms] == 0) begin
                             vt100_colour <= {1'b0, 1'b0, 3'b0, 3'b111};
-                        end else if (vt100_j == 1) begin // set bold
-                            vt100_bold_mode <= 1'b1;
-                        end else if (vt100_j == 2) begin // set dim
-                            vt100_bold_mode <= 1'b0;
-                        end else if (vt100_j >= 30 && vt100_j <= 37) begin  // foreground
-                            vt100_colour[2:0] <= vt100_j - 8'd30;
-                            vt100_colour[7]   <= vt100_bold_mode;
-                        end else if (vt100_j >= 40 && vt100_j <= 47) begin //background
-                            vt100_colour[5:3] <= vt100_j - 8'd40;
-                            vt100_colour[6]   <= vt100_bold_mode;
-                        end else if (vt100_j == 39) begin //default foreground
-                            vt100_colour[7]   <= vt100_bold_mode;
+                        end else if (vt100_term[vt100_terms] == 1) begin // set bold
+                            vt100_colour[7:6] <= 2'b11;
+                        end else if (vt100_term[vt100_terms] == 2) begin // set dim
+                            vt100_colour[7:6] <= 2'b00;
+                        end else if (vt100_term[vt100_terms] >= 30 && vt100_term[vt100_terms] <= 37) begin  // foreground
+                            vt100_colour[2:0] <= vt100_term[vt100_terms] - 8'd30;
+                        end else if (vt100_term[vt100_terms] >= 40 && vt100_term[vt100_terms] <= 47) begin //background
+                            vt100_colour[5:3] <= vt100_term[vt100_terms] - 8'd40;
+                        end else if (vt100_term[vt100_terms] == 39) begin //default foreground
                             vt100_colour[2:0] <= 8'd7;
-                        end else if (vt100_j == 49) begin //default background
+                        end else if (vt100_term[vt100_terms] == 49) begin //default background
                             vt100_colour[5:3] <= 8'd0;
-                            vt100_colour[6]   <= vt100_bold_mode;
-                        end else if (vt100_j >= 90 && vt100_j <= 97) begin // bright foreground
+                        end else if (vt100_term[vt100_terms] >= 90 && vt100_term[vt100_terms] <= 97) begin // bright foreground
                             vt100_colour[7]   <= 1;
-                            vt100_colour[2:0] <= vt100_j - 8'd90;
-                        end else if (vt100_j >= 100 && vt100_j <= 107) begin // bright background
+                            vt100_colour[2:0] <= vt100_term[vt100_terms] - 8'd90;
+                        end else if (vt100_term[vt100_terms] >= 100 && vt100_term[vt100_terms] <= 107) begin // bright background
                             vt100_colour[6]   <= 1;
-                            vt100_colour[5:3] <= vt100_j - 8'd100;
+                            vt100_colour[5:3] <= vt100_term[vt100_terms] - 8'd100;
                         end
-                        if (vt100_i == vt100_terms) begin
+                        if (vt100_j == vt100_terms) begin
                             vt100_fsm_state <= vt100_state_idle;
                         end
                     end
