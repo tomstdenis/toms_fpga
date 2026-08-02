@@ -15,7 +15,8 @@ module vt100
     parameter VT100_WIDTH=11'd80,
     parameter VT100_HEIGHT=11'd25,
     parameter VT100_FREQ=27_000_000,    // default clock for a Tang Nano 1K
-    parameter VT100_BAUD=230_400
+    parameter VT100_BAUD=230_400,
+    parameter INDEX_BITS=$clog2(VT100_WIDTH*VT100_HEIGHT)
 )
 (
     input wire clk,
@@ -24,7 +25,7 @@ module vt100
     input wire uart_rx,
     output wire uart_tx,
 
-    output reg [10:0] mem_addr_a,       // video memory in 80x25 format with 16 bits per symbol ([15:8] == attribute, [7:0] == symbol)
+    output reg [INDEX_BITS-1:0] mem_addr_a,       // video memory in 80x25 format with 16 bits per symbol ([15:8] == attribute, [7:0] == symbol)
     output reg [15:0] mem_din_a,
     input wire [15:0] mem_dout_a,
     output reg        mem_wr_en_a,
@@ -57,10 +58,10 @@ module vt100
         .uart_tx_pin(uart_tx), .uart_tx_fifo_empty(uart_tx_fifo_empty), .uart_tx_fifo_full(uart_tx_fifo_full),
         .uart_rx_pin(uart_rx), .uart_rx_read(uart_rx_read), .uart_rx_ready(uart_rx_ready), .uart_rx_byte(uart_rx_byte));
 
-    reg [10:0] vt100_x;
-    reg [10:0] vt100_y;
-    reg [10:0] vt100_sx;
-    reg [10:0] vt100_sy;
+    reg [INDEX_BITS-1:0] vt100_x;
+    reg [INDEX_BITS-1:0] vt100_y;
+    reg [INDEX_BITS-1:0] vt100_sx;
+    reg [INDEX_BITS-1:0] vt100_sy;
     reg [7:0]  vt100_colour;
     reg        vt100_linewrap;
     reg [3:0]  vt100_fsm_state;
@@ -69,12 +70,12 @@ module vt100
     reg [7:0]  vt100_term[3:0];
     reg [2:0]  vt100_terms;
     reg        vt100_term_default;
-    reg [10:0] vt100_i;
-    reg [10:0] vt100_j;
+    reg [INDEX_BITS-1:0] vt100_i;
+    reg [INDEX_BITS-1:0] vt100_j;
     reg [7:0]  vt100_prev_char;
 
-    wire [10:0] vt100_row_addr;
-    wire [10:0] vt100_cursor_addr;
+    wire [INDEX_BITS-1:0] vt100_row_addr;
+    wire [INDEX_BITS-1:0] vt100_cursor_addr;
     assign vt100_row_addr    = vt100_y * VT100_WIDTH;
     assign vt100_cursor_addr = vt100_row_addr + vt100_x;
 
@@ -120,7 +121,7 @@ module vt100
                             vt100_x         <= VT100_WIDTH - 1;
                         end else if (vt100_y >= VT100_HEIGHT) begin
                             // initiate screen scroll fsm state
-                            vt100_y         <= vt100_y - 1;
+                            vt100_y         <= vt100_y - 1'b1;
                             vt100_i         <= 0;  // read from scroll+80 and write to scroll 
                             vt100_fsm_state <= vt100_state_scroll;
                         end else if (uart_rx_ready) begin
@@ -289,7 +290,7 @@ module vt100
                                     end
                                 71: // G (move to column X)
                                     begin
-                                        vt100_x <= vt100_term[0] - 1;
+                                        vt100_x <= vt100_term[0] - 1'b1;
                                     end
                                 74: // J (erase)
                                     begin
@@ -380,21 +381,21 @@ module vt100
                         end else if (vt100_term[vt100_terms] == 2) begin // set dim
                             vt100_colour[7:6] <= 2'b00;
                         end else if (vt100_term[vt100_terms] >= 30 && vt100_term[vt100_terms] <= 37) begin  // foreground
-                            vt100_colour[2:0] <= vt100_term[vt100_terms] - 8'd30;
+                            vt100_colour[2:0] <= vt100_term[vt100_terms][2:0] - 3'd30;
                         end else if (vt100_term[vt100_terms] >= 40 && vt100_term[vt100_terms] <= 47) begin //background
-                            vt100_colour[5:3] <= vt100_term[vt100_terms] - 8'd40;
+                            vt100_colour[5:3] <= vt100_term[vt100_terms][2:0] - 3'd40;
                         end else if (vt100_term[vt100_terms] == 39) begin //default foreground
-                            vt100_colour[2:0] <= 8'd7;
+                            vt100_colour[2:0] <= 3'd7;
                             vt100_colour[7]   <= 1'b0;
                         end else if (vt100_term[vt100_terms] == 49) begin //default background
-                            vt100_colour[5:3] <= 8'd0;
+                            vt100_colour[5:3] <= 3'd0;
                             vt100_colour[6]   <= 1'b0;
                         end else if (vt100_term[vt100_terms] >= 90 && vt100_term[vt100_terms] <= 97) begin // bright foreground
                             vt100_colour[7]   <= 1;
-                            vt100_colour[2:0] <= vt100_term[vt100_terms] - 8'd90;
+                            vt100_colour[2:0] <= vt100_term[vt100_terms][2:0] - 3'd90;
                         end else if (vt100_term[vt100_terms] >= 100 && vt100_term[vt100_terms] <= 107) begin // bright background
                             vt100_colour[6]   <= 1;
-                            vt100_colour[5:3] <= vt100_term[vt100_terms] - 8'd100;
+                            vt100_colour[5:3] <= vt100_term[vt100_terms][2:0] - 3'd100;
                         end
                         if (vt100_j == vt100_terms) begin
                             vt100_fsm_state <= vt100_state_idle;
