@@ -12,8 +12,8 @@ Assumes a 80x25 display for now.
 
 module vt100
 #(
-    parameter VT100_WIDTH=80,
-    parameter VT100_HEIGHT=25,
+    parameter VT100_WIDTH=11'd80,
+    parameter VT100_HEIGHT=11'd25,
     parameter VT100_FREQ=27_000_000,    // default clock for a Tang Nano 1K
     parameter VT100_BAUD=230_400
 )
@@ -72,7 +72,7 @@ module vt100
 
     wire [10:0] vt100_row_addr;
     wire [10:0] vt100_cursor_addr;
-    assign vt100_row_addr    = vt100_y * 11'd80;
+    assign vt100_row_addr    = vt100_y * VT100_WIDTH;
     assign vt100_cursor_addr = vt100_row_addr + vt100_x;
 
     localparam
@@ -106,18 +106,23 @@ module vt100
                 vt100_state_idle:
                     begin
                         vt100_terms <= 0;
-                        if (uart_rx_ready) begin
+                        if (vt100_y[10]) begin          // went negative
+                            vt100_y         <= 0;
+                        end else if (vt100_x[10]) begin // x went negative
+                            vt100_x         <= 0;
+                        end else if (vt100_x >= VT100_WIDTH) begin
+                            vt100_x         <= VT100_WIDTH - 1;
+                        end else if (vt100_y >= VT100_HEIGHT) begin
+                            // initiate screen scroll fsm state
+                            vt100_y         <= vt100_y - 1;
+                            vt100_i         <= 0;  // read from scroll+80 and write to scroll 
+                            vt100_fsm_state <= vt100_state_scroll;
+                        end else if (uart_rx_ready) begin
                             uart_rx_read    <= 1;
                             vt100_fsm_tag   <= vt100_state_rx_char;
                             vt100_fsm_state <= vt100_state_delay;
                         end
-                        if (vt100_y == 25) begin
-                            // initiate screen scroll fsm state
-                            vt100_y         <= 24;
-                            vt100_i         <= 0;  // read from scroll+80 and write to scroll 
-                            vt100_fsm_state <= vt100_state_scroll;
-                            uart_rx_read    <= 0;
-                        end
+
                     end
                 vt100_state_rx_char:
                     begin
@@ -157,15 +162,6 @@ module vt100
                                     vt100_x     <= 0;
                                     mem_wr_en_a <= 0;
                                 end
-                            9: // tab
-                                begin
-                                    mem_din_a   <= {vt100_colour, 8'h20};
-                                    if (vt100_x + 4 >= 80) begin
-                                        vt100_x <= 79;
-                                    end else begin
-                                        vt100_x <= vt100_x + 11'd4;
-                                    end
-                                end
                             8: // bs
                                 begin
                                     if (vt100_x > 0) begin
@@ -179,7 +175,7 @@ module vt100
                             default:
                                 begin
                                     // advance x/y
-                                    if (vt100_x == 79) begin
+                                    if (vt100_x == VT100_WIDTH - 1) begin
                                         vt100_x <= 0;
                                         vt100_y <= vt100_y + 1'b1;
                                     end else begin
@@ -190,10 +186,10 @@ module vt100
                     end
                 vt100_state_scroll: // start read unless done
                     begin
-                        if (vt100_i == (24 * 80)) begin
+                        if (vt100_i == (VT100_HEIGHT * VT100_WIDTH - VT100_WIDTH)) begin
                             vt100_fsm_state <= vt100_state_scroll3;
                         end else begin
-                            mem_addr_a      <= vt100_i + 11'd80;
+                            mem_addr_a      <= vt100_i + VT100_WIDTH;
                             vt100_fsm_state <= vt100_state_delay;
                             vt100_fsm_tag   <= vt100_state_scroll2;
                         end
@@ -209,7 +205,7 @@ module vt100
                     end
                 vt100_state_scroll3: // clear last row
                     begin
-                        if (vt100_i == (25 * 80)) begin
+                        if (vt100_i == (VT100_HEIGHT * VT100_WIDTH)) begin
                             vt100_fsm_state <= vt100_state_idle;
                         end else begin
                             mem_addr_a      <= vt100_i;
@@ -257,68 +253,40 @@ module vt100
                                     end
                                 65: // A (move up X lines)
                                     begin
-                                        if (vt100_y >= vt100_term[0]) begin
-                                            vt100_y <= vt100_y - vt100_term[0];
-                                        end else begin
-                                            vt100_y <= 0;
-                                        end
+                                        vt100_y <= vt100_y - vt100_term[0];
                                     end
                                 66: // B (move down X lines)
                                     begin
-                                        if ((vt100_y + vt100_term[0]) > 25) begin
-                                            vt100_y <= 25;
-                                        end else begin
-                                            vt100_y <= vt100_y + vt100_term[0];
-                                        end
+                                        vt100_y <= vt100_y + vt100_term[0];
                                     end
                                 67: // C (move left X columns)
                                     begin
-                                        if (vt100_x >= vt100_term[0]) begin
-                                            vt100_x <= vt100_x - vt100_term[0];
-                                        end else begin
-                                            vt100_x <= 0;
-                                        end
+                                        vt100_x <= vt100_x - vt100_term[0];
                                     end
                                 68: // D (move right X columns)
                                     begin
-                                        if ((vt100_x + vt100_term[0]) > 79) begin
-                                            vt100_x <= 79;
-                                        end else begin
-                                            vt100_x <= vt100_x + vt100_term[0];
-                                        end
+                                        vt100_x <= vt100_x + vt100_term[0];
                                     end
                                 69: // E (reset x, move down X lines)
                                     begin
                                         vt100_x <= 0;
-                                        if ((vt100_y + vt100_term[0]) > 25) begin
-                                            vt100_y <= 25;
-                                        end else begin
-                                            vt100_y <= vt100_y + vt100_term[0];
-                                        end
+                                        vt100_y <= vt100_y + vt100_term[0];
                                     end
                                 70: // F (reset x, move up X lines)
                                     begin
                                         vt100_x <= 0;
-                                        if (vt100_y >= vt100_term[0]) begin
-                                            vt100_y <= vt100_y - vt100_term[0];
-                                        end else begin
-                                            vt100_y <= 0;
-                                        end
+                                        vt100_y <= vt100_y - vt100_term[0];
                                     end
                                 71: // G (move to column X)
                                     begin
-                                        if (vt100_term[0] > 80) begin
-                                            vt100_x <= 79;
-                                        end else begin
-                                            vt100_x <= vt100_term[0] - 1;
-                                        end
+                                        vt100_x <= vt100_term[0] - 1;
                                     end
                                 74: // J (erase)
                                     begin
                                         if (vt100_term[0] == 0 || vt100_term_default) begin // cursor to end of screen
                                             vt100_fsm_state <= vt100_state_erase_cells;
                                             vt100_i         <= vt100_cursor_addr;
-                                            vt100_j         <= 11'd25 * 11'd80;
+                                            vt100_j         <= VT100_HEIGHT * VT100_WIDTH;
                                         end else if (vt100_term[0] == 1) begin // from cursor to start of screen
                                             vt100_fsm_state <= vt100_state_erase_cells;
                                             vt100_j         <= vt100_cursor_addr;
@@ -326,7 +294,7 @@ module vt100
                                         end else if (vt100_term[0] == 2) begin // entire screen
                                             vt100_fsm_state <= vt100_state_erase_cells;
                                             vt100_i         <= 11'd0;
-                                            vt100_j         <= 11'd25 * 11'd80;
+                                            vt100_j         <= VT100_HEIGHT * VT100_WIDTH;
                                         end
                                     end
                                 75: // K (erase row)
@@ -334,7 +302,7 @@ module vt100
                                         if (vt100_term[0] == 0 || vt100_term_default) begin // cursor to end of line
                                             vt100_fsm_state <= vt100_state_erase_cells;
                                             vt100_i         <= vt100_cursor_addr;
-                                            vt100_j         <= vt100_row_addr + 11'd80 - vt100_x;
+                                            vt100_j         <= vt100_row_addr + VT100_WIDTH - vt100_x;
                                         end else if (vt100_term[0] == 1) begin // from start of line to cursor
                                             vt100_fsm_state <= vt100_state_erase_cells;
                                             vt100_i         <= vt100_row_addr;
@@ -342,7 +310,7 @@ module vt100
                                         end else if (vt100_term[0] == 2) begin // erase current line
                                             vt100_fsm_state <= vt100_state_erase_cells;
                                             vt100_i         <= vt100_row_addr;
-                                            vt100_j         <= vt100_row_addr + 11'd80;
+                                            vt100_j         <= vt100_row_addr + VT100_WIDTH;
                                         end
                                     end
                                 109: // m (attributes)
