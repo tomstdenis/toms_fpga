@@ -59,7 +59,10 @@ module vt100
 
     reg [10:0] vt100_x;
     reg [10:0] vt100_y;
+    reg [10:0] vt100_sx;
+    reg [10:0] vt100_sy;
     reg [7:0]  vt100_colour;
+    reg        vt100_linewrap;
     reg [3:0]  vt100_fsm_state;
     reg [3:0]  vt100_fsm_tag;
 
@@ -94,7 +97,10 @@ module vt100
 			mem_wr_en_a      <= 0;
             vt100_x          <= 0;
             vt100_y          <= 0;
+            vt100_sx         <= 0;
+            vt100_sy         <= 0;
             vt100_colour     <= {1'b0, 1'b0, 3'b0, 3'b111};
+            vt100_linewrap   <= 1'b0;
             vt100_fsm_state  <= vt100_state_idle;
             vt100_i          <= 0;
             vt100_j          <= 0;
@@ -176,8 +182,10 @@ module vt100
                                 begin
                                     // advance x/y
                                     if (vt100_x == VT100_WIDTH - 1) begin
-                                        vt100_x <= 0;
-                                        vt100_y <= vt100_y + 1'b1;
+                                        if (vt100_linewrap) begin
+                                            vt100_x <= 0;
+                                            vt100_y <= vt100_y + 1'b1;
+                                        end
                                     end else begin
                                         vt100_x <= vt100_x + 1'b1;
                                     end
@@ -235,6 +243,8 @@ module vt100
                         if (uart_rx_byte >= 48 && uart_rx_byte <= 57) begin // 0 - 9
                             vt100_term[vt100_terms] <= vt100_term[vt100_terms] * 8'd10 + uart_rx_byte - 8'd48;
                             vt100_term_default      <= 1'b0;
+                        end else if (uart_rx_byte == 61 || uart_rx_byte == 63) begin              // =, ?
+                            // for now just skip over this byte
                         end else if (uart_rx_byte == 59) begin              // ;
                             vt100_terms             <= vt100_terms + 1'b1;
                             vt100_fsm_state         <= vt100_state_zero_term;
@@ -313,11 +323,35 @@ module vt100
                                             vt100_j         <= vt100_row_addr + VT100_WIDTH;
                                         end
                                     end
+                                104: // h (set mode bit)
+                                    begin
+                                        case (vt100_term[0])
+                                            7: // linewrap
+                                                vt100_linewrap <= 1'b1;
+                                        endcase
+                                    end
+                                108: // l (clear mode bit)
+                                    begin
+                                        case (vt100_term[0])
+                                            7: // linewrap
+                                                vt100_linewrap <= 1'b0;
+                                        endcase
+                                    end
                                 109: // m (attributes)
                                     begin
                                         vt100_fsm_state     <= vt100_state_attributes;
                                         vt100_j             <= vt100_terms;
                                         vt100_terms         <= 0;
+                                    end
+                                115: // s (save cursor position)
+                                    begin
+                                        vt100_sx            <= vt100_x;
+                                        vt100_sy            <= vt100_y;
+                                    end
+                                117: // u (restore cursor)
+                                    begin
+                                        vt100_x             <= vt100_sx;
+                                        vt100_y             <= vt100_sy;
                                     end
                             endcase
                         end
