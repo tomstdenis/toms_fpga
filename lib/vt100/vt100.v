@@ -351,8 +351,10 @@ module vt100
                             vt100_colour[5:3] <= vt100_term[vt100_terms] - 8'd40;
                         end else if (vt100_term[vt100_terms] == 39) begin //default foreground
                             vt100_colour[2:0] <= 8'd7;
+                            vt100_colour[7]   <= 1'b0;
                         end else if (vt100_term[vt100_terms] == 49) begin //default background
                             vt100_colour[5:3] <= 8'd0;
+                            vt100_colour[6]   <= 1'b0;
                         end else if (vt100_term[vt100_terms] >= 90 && vt100_term[vt100_terms] <= 97) begin // bright foreground
                             vt100_colour[7]   <= 1;
                             vt100_colour[2:0] <= vt100_term[vt100_terms] - 8'd90;
