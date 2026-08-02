@@ -382,6 +382,8 @@ module vt100
     reg [1:0] text_at_out;
     reg [2:0] text_fg_out;
     reg [2:0] text_bg_out;
+    wire [3:0] rgbon;
+
     assign text_at = symbol[15:14];
     assign text_bg = symbol[13:11];
     assign text_fg = symbol[10:8];
@@ -390,6 +392,7 @@ module vt100
         text_bg_out <= text_bg;
         text_fg_out <= text_fg;
     end
+    assign rgbon = {text_at_out[text_out], 3'b111};
 
     // drive the VGA R/G/B pins
 	always @(*) begin
@@ -404,19 +407,19 @@ module vt100
                 0: // black
                     {vga_r, vga_g, vga_b} <= 12'b0000_0000_0000;
                 1: // red
-                    {vga_r, vga_g, vga_b} <= {text_at_out[text_out], 3'b111, 4'b0000, 4'b0000};
+                    {vga_r, vga_g, vga_b} <= {rgbon, 4'b0000, 4'b0000};
                 2: // green
-                    {vga_r, vga_g, vga_b} <= {4'b0000, text_at_out[text_out], 3'b111, 4'b0000};
+                    {vga_r, vga_g, vga_b} <= {4'b0000, rgbon, 4'b0000};
                 3: // yellow
-                    {vga_r, vga_g, vga_b} <= {text_at_out[text_out], 3'b111, text_at_out[text_out], 3'b111, 4'b0000};
+                    {vga_r, vga_g, vga_b} <= {rgbon, rgbon, 4'b0000};
                 4: // blue
-                    {vga_r, vga_g, vga_b} <= {4'b0000, 4'b0000, text_at_out[text_out], 3'b111};
+                    {vga_r, vga_g, vga_b} <= {4'b0000, 4'b0000, rgbon};
                 5: // magenta
-                    {vga_r, vga_g, vga_b} <= {text_at_out[text_out], 3'b111, 4'b0000, text_at_out[text_out], 3'b111};
+                    {vga_r, vga_g, vga_b} <= {rgbon, 4'b0000, rgbon};
                 6: // cyan
-                    {vga_r, vga_g, vga_b} <= {4'b0000, text_at_out[text_out], 3'b111, text_at_out[text_out], 3'b111};
+                    {vga_r, vga_g, vga_b} <= {4'b0000, rgbon, rgbon};
                 7: // white
-                    {vga_r, vga_g, vga_b} <= {text_at_out[text_out], 3'b111, text_at_out[text_out], 3'b111, text_at_out[text_out], 3'b111};
+                    {vga_r, vga_g, vga_b} <= {rgbon, rgbon, rgbon};
             endcase
 		end
 	end
