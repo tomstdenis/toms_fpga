@@ -1,5 +1,14 @@
 `default_nettype none
-module top(input wire clk, input wire uart_rx, output wire uart_tx, output reg [3:0] vga_r, output reg [3:0] vga_g, output reg [3:0] vga_b, output wire  vga_h_pulse, output wire vga_v_pulse);
+module top(
+    input wire clk,
+    input wire uart_rx,
+    output wire uart_tx,
+    output wire [3:0] vga_r,
+    output wire [3:0] vga_g,
+    output wire [3:0] vga_b,
+    output wire vga_h_pulse,
+    output wire vga_v_pulse
+);
     reg [3:0] rstcnt = 4'b0000;
     wire rst_n;
     assign rst_n = rstcnt[3];
@@ -92,57 +101,13 @@ module top(input wire clk, input wire uart_rx, output wire uart_tx, output reg [
 		.rd_addr(mem_addr_b), .rd_data(mem_dout_b),
 		.symbol(symbol), .lrg_mode(1'b0));
 
-    // grab the current symbol attribute and latch it so it's valid for the entire width of the font
-    wire [1:0] text_at;
-    wire [2:0] text_fg;
-    wire [2:0] text_bg;
-    reg [1:0] text_at_out;
-    reg [2:0] text_fg_out;
-    reg [2:0] text_bg_out;
-    assign text_at = symbol[15:14];
-    assign text_bg = symbol[13:11];
-    assign text_fg = symbol[10:8];
-    always @(posedge pll_clk) begin
-        text_at_out <= text_at;
-        text_bg_out <= text_bg;
-        text_fg_out <= text_fg;
-    end
-
-    // drive the VGA R/G/B pins
-	always @(*) begin
-		vga_r = 0;
-		vga_g = 0;
-		vga_b = 0;
-		
-        // render the foreground/background colour using the VT100 palette, with support
-        // bold/dim attributes
-		if (vga_active) begin
-            case (text_out ? text_fg_out : text_bg_out)
-                0: // black
-                    {vga_r, vga_g, vga_b} <= 12'b0000_0000_0000;
-                1: // red
-                    {vga_r, vga_g, vga_b} <= {text_at_out[text_out], 3'b111, 4'b0000, 4'b0000};
-                2: // green
-                    {vga_r, vga_g, vga_b} <= {4'b0000, text_at_out[text_out], 3'b111, 4'b0000};
-                3: // yellow
-                    {vga_r, vga_g, vga_b} <= {text_at_out[text_out], 3'b111, text_at_out[text_out], 3'b111, 4'b0000};
-                4: // blue
-                    {vga_r, vga_g, vga_b} <= {4'b0000, 4'b0000, text_at_out[text_out], 3'b111};
-                5: // magenta
-                    {vga_r, vga_g, vga_b} <= {text_at_out[text_out], 3'b111, 4'b0000, text_at_out[text_out], 3'b111};
-                6: // cyan
-                    {vga_r, vga_g, vga_b} <= {4'b0000, text_at_out[text_out], 3'b111, text_at_out[text_out], 3'b111};
-                7: // white
-                    {vga_r, vga_g, vga_b} <= {text_at_out[text_out], 3'b111, text_at_out[text_out], 3'b111, text_at_out[text_out], 3'b111};
-            endcase
-		end
-	end
-
     // vt100 emulator
     // This uses the uart pins (uart_rx/uart_tx) and then drives port A of the DP video memory
     vt100 thefuture(
         .clk(pll_clk), .rst_n(rst_n),
-        .uart_tx(uart_tx), .uart_rx(uart_rx),
-        .mem_addr_a(mem_addr_a), .mem_din_a(mem_din_a), .mem_dout_a(mem_dout_a), .mem_wr_en_a(mem_wr_en_a));
+        .uart_tx(uart_tx), .uart_rx(uart_rx),                                                                // uart
+        .mem_addr_a(mem_addr_a), .mem_din_a(mem_din_a), .mem_dout_a(mem_dout_a), .mem_wr_en_a(mem_wr_en_a),  // framebuffer
+        .text_out(text_out), .symbol(symbol),                                                                                     // text driver output symbol
+        .vga_active(vga_active), .vga_r(vga_r), .vga_g(vga_g), .vga_b(vga_b));                               // vga RGB output
 
 endmodule

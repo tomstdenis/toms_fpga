@@ -27,7 +27,14 @@ module vt100
     output reg [10:0] mem_addr_a,       // video memory in 80x25 format with 16 bits per symbol ([15:8] == attribute, [7:0] == symbol)
     output reg [15:0] mem_din_a,
     input wire [15:0] mem_dout_a,
-    output reg        mem_wr_en_a
+    output reg        mem_wr_en_a,
+
+    input wire [15:0] symbol,
+    input wire text_out,
+    input wire vga_active,
+    output reg [3:0] vga_r,
+    output reg [3:0] vga_g,
+    output reg [3:0] vga_b
 );
 
     // uart driven by uart_tx/uart_rx pins
@@ -132,7 +139,6 @@ module vt100
                                     if (vt100_prev_char == 27) begin
                                         // starting a CSI
                                         vt100_term[vt100_terms] <= 0;
-                                        vt100_terms        <= 0;
                                         vt100_term_default <= 1;
                                         vt100_i            <= 0;
                                         vt100_j            <= 0;
@@ -157,7 +163,7 @@ module vt100
                                     if (vt100_x + 4 >= 80) begin
                                         vt100_x <= 79;
                                     end else begin
-                                        vt100_x <= vt100_x + 7'd4;
+                                        vt100_x <= vt100_x + 11'd4;
                                     end
                                 end
                             8: // bs
@@ -400,4 +406,52 @@ module vt100
             endcase
 		end
 	end
+
+    // grab the current symbol attribute and latch it so it's valid for the entire width of the font
+    wire [1:0] text_at;
+    wire [2:0] text_fg;
+    wire [2:0] text_bg;
+    reg [1:0] text_at_out;
+    reg [2:0] text_fg_out;
+    reg [2:0] text_bg_out;
+    assign text_at = symbol[15:14];
+    assign text_bg = symbol[13:11];
+    assign text_fg = symbol[10:8];
+    always @(posedge clk) begin
+        text_at_out <= text_at;
+        text_bg_out <= text_bg;
+        text_fg_out <= text_fg;
+    end
+
+    // drive the VGA R/G/B pins
+	always @(*) begin
+		vga_r = 0;
+		vga_g = 0;
+		vga_b = 0;
+		
+        // render the foreground/background colour using the VT100 palette, with support
+        // bold/dim attributes
+		if (vga_active) begin
+            case (text_out ? text_fg_out : text_bg_out)
+                0: // black
+                    {vga_r, vga_g, vga_b} <= 12'b0000_0000_0000;
+                1: // red
+                    {vga_r, vga_g, vga_b} <= {text_at_out[text_out], 3'b111, 4'b0000, 4'b0000};
+                2: // green
+                    {vga_r, vga_g, vga_b} <= {4'b0000, text_at_out[text_out], 3'b111, 4'b0000};
+                3: // yellow
+                    {vga_r, vga_g, vga_b} <= {text_at_out[text_out], 3'b111, text_at_out[text_out], 3'b111, 4'b0000};
+                4: // blue
+                    {vga_r, vga_g, vga_b} <= {4'b0000, 4'b0000, text_at_out[text_out], 3'b111};
+                5: // magenta
+                    {vga_r, vga_g, vga_b} <= {text_at_out[text_out], 3'b111, 4'b0000, text_at_out[text_out], 3'b111};
+                6: // cyan
+                    {vga_r, vga_g, vga_b} <= {4'b0000, text_at_out[text_out], 3'b111, text_at_out[text_out], 3'b111};
+                7: // white
+                    {vga_r, vga_g, vga_b} <= {text_at_out[text_out], 3'b111, text_at_out[text_out], 3'b111, text_at_out[text_out], 3'b111};
+            endcase
+		end
+	end
+
+
 endmodule
