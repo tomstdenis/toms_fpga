@@ -16,6 +16,7 @@ module vt100
     parameter VT100_HEIGHT='d25,
     parameter VT100_FREQ=27_000_000,    // default clock for a Tang Nano 1K
     parameter VT100_BAUD=230_400,
+    parameter VT100_ECHO=0,
     parameter INDEX_BITS=$clog2(VT100_WIDTH*VT100_HEIGHT)
 )
 (
@@ -52,7 +53,7 @@ module vt100
         baudwidth = $clog2(bauddiv);
     wire [baudwidth-1:0] baud_div = bauddiv;
 
-    uart #(.FIFO_DEPTH(16), .RX_ENABLE(1), .TX_ENABLE(0), .BAUD_WIDTH(baudwidth)) mrtalky (
+    uart #(.FIFO_DEPTH(16), .RX_ENABLE(1), .TX_ENABLE(VT100_ECHO), .BAUD_WIDTH(baudwidth)) mrtalky (
         .clk(clk), .rst_n(rst_n), .baud_div(baud_div),
         .uart_tx_start(uart_tx_start), .uart_tx_data_in(uart_tx_data_in),
         .uart_tx_pin(uart_tx), .uart_tx_fifo_empty(uart_tx_fifo_empty), .uart_tx_fifo_full(uart_tx_fifo_full),
@@ -73,6 +74,7 @@ module vt100
     reg [INDEX_BITS-1:0] vt100_i;
     reg [INDEX_BITS-1:0] vt100_j;
     reg [7:0]  vt100_prev_char;
+    reg [7:0]  vt100_curr_char;
 
     wire [INDEX_BITS-1:0] vt100_row_addr;
     wire [INDEX_BITS-1:0] vt100_cursor_addr;
@@ -91,8 +93,9 @@ module vt100
         vt100_state_csi_term_parse = 8,
         vt100_state_erase_cells    = 9,
         vt100_state_attributes     = 10,
-        vt100_state_delay          = 11;
-	
+        vt100_state_delay          = 11,
+        vt100_state_delay2         = 12;
+
 	always @(posedge clk) begin
 		if (!rst_n) begin
 			mem_wr_en_a      <= 0;
@@ -129,19 +132,18 @@ module vt100
                             vt100_fsm_tag   <= vt100_state_rx_char;
                             vt100_fsm_state <= vt100_state_delay;
                         end
-
                     end
                 vt100_state_rx_char:
                     begin
-                        vt100_prev_char <= uart_rx_byte;
-                        uart_tx_start   <= 0;
-                        uart_tx_data_in <= uart_rx_byte;
+                        vt100_prev_char <= vt100_curr_char;
+                        uart_tx_start   <= VT100_ECHO;
+                        uart_tx_data_in <= vt100_curr_char;
                         mem_addr_a      <= vt100_cursor_addr;          // address for colour/symbol pair
-                        mem_din_a       <= {vt100_colour, uart_rx_byte};
+                        mem_din_a       <= {vt100_colour, vt100_curr_char};
                         mem_wr_en_a     <= 1;
                         vt100_fsm_tag   <= vt100_state_idle;
                         vt100_fsm_state <= vt100_state_delay;
-                        case (uart_rx_byte)
+                        case (vt100_curr_char)
                             27: // ESC
                                 begin
                                     mem_wr_en_a <= 0;
@@ -241,17 +243,17 @@ module vt100
                 vt100_state_csi_term_parse:
                     begin
                         vt100_fsm_state <= vt100_state_csi_terms;
-                        if (uart_rx_byte >= 48 && uart_rx_byte <= 57) begin // 0 - 9
-                            vt100_term[vt100_terms] <= vt100_term[vt100_terms] * 8'd10 + uart_rx_byte - 8'd48;
+                        if (vt100_curr_char >= 48 && vt100_curr_char <= 57) begin // 0 - 9
+                            vt100_term[vt100_terms] <= vt100_term[vt100_terms] * 8'd10 + vt100_curr_char - 8'd48;
                             vt100_term_default <= 1'b0;
-                        end else if (uart_rx_byte == 61 || uart_rx_byte == 63) begin              // =, ?
+                        end else if (vt100_curr_char == 61 || vt100_curr_char == 63) begin // =, ?
                             // for now just skip over this byte
-                        end else if (uart_rx_byte == 59) begin              // ;
+                        end else if (vt100_curr_char == 59) begin              // ;
                             vt100_terms        <= vt100_terms + 1'b1;
                             vt100_fsm_state    <= vt100_state_zero_term;
                         end else begin                                      // command character
                             vt100_fsm_state <= vt100_state_idle;
-                            case (uart_rx_byte)
+                            case (vt100_curr_char)
                                 102, 72: // f or H
                                     begin
                                         if (vt100_term_default) begin
@@ -406,6 +408,11 @@ module vt100
                         mem_wr_en_a     <= 1'b0;
                         uart_rx_read    <= 1'b0;
                         uart_tx_start   <= 1'b0;
+                        vt100_fsm_state <= vt100_state_delay2;
+                    end
+                vt100_state_delay2:
+                    begin
+                        vt100_curr_char <= uart_rx_byte;
                         vt100_fsm_state <= vt100_fsm_tag;
                     end
             endcase
