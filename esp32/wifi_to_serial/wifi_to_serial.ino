@@ -108,17 +108,17 @@ void setup()
   server_loaded = 0;
 
   // try to load from EEPROM
-  Serial0.println("Booting...");
+  Serial.println("Booting...");
   if (digitalRead(PIN_SETUP) == HIGH && loaded == 0) {
-    Serial0.println("Read settings from EERPOM trying to connect...");
-    Serial0.print("SSID: [");
-    Serial0.print(ssid);
-    Serial0.println("]");
-    Serial0.print("Password: [");
-    Serial0.print(password);
-    Serial0.println("]");
-    Serial0.print("Baud: ");
-    Serial0.println(baud);
+    Serial.println("Read settings from EERPOM trying to connect...");
+    Serial.print("SSID: [");
+    Serial.print(ssid);
+    Serial.println("]");
+    Serial.print("Password: [");
+    Serial.print(password);
+    Serial.println("]");
+    Serial.print("Baud: ");
+    Serial.println(baud);
     int tries = 30;
     WiFi.begin(ssid, password); //Connect to wifi
   
@@ -128,18 +128,25 @@ void setup()
       delay(250); yield();
       delay(250); yield();
       delay(250); yield();
-      Serial0.write('.');
+      Serial.write('.');
       if (!--tries) {
         break;
       }
     }
 
     if (WiFi.status() == WL_CONNECTED) {
-      Serial0.println("Connected.");
+      Serial.println("Connected.");
+      for (tries = 0; tries < 10; tries++) {
+        Serial.printf("Signal strength %ld dBm\n", WiFi.RSSI());
+        delay(250); yield();
+        delay(250); yield();
+        delay(250); yield();
+        delay(250); yield();
+      }
       server.begin();
       server_loaded = 1;
     } else {
-      Serial0.println("Not connected.");
+      Serial.println("Not connected.");
     }
   }
   blink = millis();
