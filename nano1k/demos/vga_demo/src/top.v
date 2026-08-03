@@ -103,7 +103,7 @@ module top(
 
     // vt100 emulator
     // This uses the uart pins (uart_rx/uart_tx) and then drives port A of the DP video memory
-    vt100 thefuture(
+    vt100 #(.VT100_ECHO(0)) thefuture (
         .clk(pll_clk), .rst_n(rst_n),
         .uart_tx(uart_tx), .uart_rx(uart_rx),                                                                // uart
         .mem_addr_a(mem_addr_a), .mem_din_a(mem_din_a), .mem_dout_a(mem_dout_a), .mem_wr_en_a(mem_wr_en_a),  // framebuffer
