@@ -12,8 +12,8 @@ Assumes a 80x25 display for now.
 
 module vt100
 #(
-    parameter VT100_WIDTH=11'd80,
-    parameter VT100_HEIGHT=11'd25,
+    parameter VT100_WIDTH='d80,
+    parameter VT100_HEIGHT='d25,
     parameter VT100_FREQ=27_000_000,    // default clock for a Tang Nano 1K
     parameter VT100_BAUD=230_400,
     parameter INDEX_BITS=$clog2(VT100_WIDTH*VT100_HEIGHT)
@@ -243,12 +243,12 @@ module vt100
                         vt100_fsm_state <= vt100_state_csi_terms;
                         if (uart_rx_byte >= 48 && uart_rx_byte <= 57) begin // 0 - 9
                             vt100_term[vt100_terms] <= vt100_term[vt100_terms] * 8'd10 + uart_rx_byte - 8'd48;
-                            vt100_term_default      <= 1'b0;
+                            vt100_term_default <= 1'b0;
                         end else if (uart_rx_byte == 61 || uart_rx_byte == 63) begin              // =, ?
                             // for now just skip over this byte
                         end else if (uart_rx_byte == 59) begin              // ;
-                            vt100_terms             <= vt100_terms + 1'b1;
-                            vt100_fsm_state         <= vt100_state_zero_term;
+                            vt100_terms        <= vt100_terms + 1'b1;
+                            vt100_fsm_state    <= vt100_state_zero_term;
                         end else begin                                      // command character
                             vt100_fsm_state <= vt100_state_idle;
                             case (uart_rx_byte)
@@ -301,10 +301,10 @@ module vt100
                                         end else if (vt100_term[0] == 1) begin // from cursor to start of screen
                                             vt100_fsm_state <= vt100_state_erase_cells;
                                             vt100_j         <= vt100_cursor_addr;
-                                            vt100_i         <= 11'd0;
+                                            vt100_i         <= 0;
                                         end else if (vt100_term[0] == 2) begin // entire screen
                                             vt100_fsm_state <= vt100_state_erase_cells;
-                                            vt100_i         <= 11'd0;
+                                            vt100_i         <= 0;
                                             vt100_j         <= VT100_HEIGHT * VT100_WIDTH;
                                         end
                                     end
