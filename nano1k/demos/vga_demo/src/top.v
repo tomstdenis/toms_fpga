@@ -9,6 +9,11 @@ module top(
     output wire vga_h_pulse,
     output wire vga_v_pulse
 );
+    localparam
+        VT100_WIDTH = 80,
+        VT100_HEIGHT = 25,
+        VT100_INDEX_BITS = $clog2(VT100_WIDTH * VT100_HEIGHT);
+
     reg [3:0] rstcnt = 4'b0000;
     wire rst_n;
     assign rst_n = rstcnt[3];
@@ -65,11 +70,11 @@ module top(
     // video memory (16 bit wide, 2048 deep for a 80x25 with attribute bytes)
     wire [15:0] mem_dout_a;
     wire mem_wr_en_a;
-    wire [10:0] mem_addr_a;
+    wire [VT100_INDEX_BITS-1:0] mem_addr_a;
     wire [15:0] mem_din_a;
 
     wire [15:0] mem_dout_b;
-    wire [10:0] mem_addr_b;
+    wire [VT100_INDEX_BITS-1:0] mem_addr_b;
 	
     Gowin_DPB vt100_mem(
         // VT100
@@ -95,7 +100,7 @@ module top(
 
 	// VGA text mode driver, defaults to 80x25 using an 8x8 font
 	// notice we're scaling the font by 2 so we change the height to 16 here
-	vga_text_driver #(.FONTHEIGHT(16), .X_FETCH_DELAY(2), .SYMBOL_BITS(16)) textdrv(
+	vga_text_driver #(.FONTHEIGHT(16), .X_FETCH_DELAY(2), .SYMBOL_BITS(16), .TEXTROWS(VT100_HEIGHT), .TEXTCOLS(VT100_WIDTH)) textdrv(
 		.clk(pll_clk), .rst_n(rst_n),
 		.x(vga_x), .y(vga_y), .active_video(vga_active),
 		.rd_addr(mem_addr_b), .rd_data(mem_dout_b),
@@ -103,7 +108,7 @@ module top(
 
     // vt100 emulator
     // This uses the uart pins (uart_rx/uart_tx) and then drives port A of the DP video memory
-    vt100 #(.VT100_ECHO(0)) thefuture (
+    vt100 #(.VT100_ECHO(0), .VT100_HEIGHT(VT100_HEIGHT), .VT100_WIDTH(VT100_WIDTH)) thefuture (
         .clk(pll_clk), .rst_n(rst_n),
         .uart_tx(uart_tx), .uart_rx(uart_rx),                                                                // uart
         .mem_addr_a(mem_addr_a), .mem_din_a(mem_din_a), .mem_dout_a(mem_dout_a), .mem_wr_en_a(mem_wr_en_a),  // framebuffer
