@@ -35,8 +35,10 @@ module vt100
 
     output reg [INDEX_BITS-1:0] mem_addr_a,       // video memory in 80x25 format with 16 bits per symbol ([15:8] == attribute, [7:0] == symbol)
     output reg [15:0] mem_din_a,                  // 16-bit input
-    input wire [15:0] mem_dout_a,                 // 16-bit output
     output reg        mem_wr_en_a,                // write enable
+
+    input wire [INDEX_BITS-1:0] mem_addr_b,       // tracking the VGA driver reads for scrolls
+    input wire [15:0] mem_dout_b,                 // 16-bit output
 
     input wire [15:0] symbol,                     // the current symbol being drawn (see mem_addr_a comment)
     input wire text_out,                          // whether the current pixel should be foreground (1) or background (1) coloured
@@ -206,15 +208,18 @@ module vt100
                         if (vt100_i == (VT100_HEIGHT * VT100_WIDTH - VT100_WIDTH)) begin
                             vt100_fsm_state <= vt100_state_scroll3;
                         end else begin
-                            mem_addr_a      <= vt100_i + VT100_WIDTH;
-                            vt100_fsm_state <= vt100_state_delay;
-                            vt100_fsm_tag   <= vt100_state_scroll2;
+                            // wait till the VGA driver gets here
+                            if (mem_addr_b == vt100_i + VT100_WIDTH) begin
+                                // if addr matches on this cycle then the data is valid
+                                // next cycle
+                                vt100_fsm_state <= vt100_state_scroll2;
+                            end
                         end
                     end
                 vt100_state_scroll2: // start write
                     begin
                         mem_addr_a      <= vt100_i;
-                        mem_din_a       <= mem_dout_a;
+                        mem_din_a       <= mem_dout_b;
                         mem_wr_en_a     <= 1;
                         vt100_i         <= vt100_i + 1'b1;
                         vt100_fsm_state <= vt100_state_delay;

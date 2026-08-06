@@ -64,7 +64,7 @@ def main():
                       f"Total Errors: {total_errors} | Unique Bad Addrs: {len(unique_failing_addrs)}", end="", flush=True)
 
             # 2. Check for Address Error Report [TB, Addr_23..16, Addr_15..8, Addr_7..0]
-            elif header_candidate == current_test_byte:
+            elif header_candidate == current_test_byte + 1:
                 # Assuming Big-Endian address encoding (MSB first)
                 failing_addr = (word[1] << 16) | (word[2] << 8) | word[3]
                 total_errors += 1

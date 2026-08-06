@@ -76,27 +76,21 @@ module top(
     wire [15:0] mem_dout_b;
     wire [VT100_INDEX_BITS-1:0] mem_addr_b;
 	
-    Gowin_DPB vt100_mem(
-        // VT100
-        .douta(mem_dout_a), //output [15:0] douta
-        .clka(pll_clk), //input clka
-        .ocea(1'b1), //input ocea
-        .cea(1'b1), //input cea
-        .reseta(~rst_n), //input reseta
-        .wrea(mem_wr_en_a), //input wrea
+    Gowin_SDPB vidmem(
         .ada(mem_addr_a), //input [10:0] ada
-        .dina(mem_din_a), //input [15:0] dina
+        .din(mem_din_a), //input [15:0] din
+        .clka(pll_clk), //input clka
+        .cea(mem_wr_en_a), //input cea
+        .reseta(~rst_n), //input reseta
 
-        // text driver
-        .doutb(mem_dout_b), //output [15:0] doutb
+        .adb(mem_addr_b), //input [10:0] adb
+        .dout(mem_dout_b), //output [15:0] dout
         .clkb(pll_clk), //input clkb
-        .oceb(1'b1), //input oceb
         .ceb(1'b1), //input ceb
         .resetb(~rst_n), //input resetb
-        .wreb(1'b0), //input wreb
-        .adb(mem_addr_b), //input [10:0] adb
-        .dinb(16'b0) //input [15:0] dinb
+        .oce(1'b1) //input oce
     );
+
 
 	// VGA text mode driver, defaults to 80x25 using an 8x8 font
 	// notice we're scaling the font by 2 so we change the height to 16 here
@@ -111,7 +105,8 @@ module top(
     vt100 #(.VT100_ECHO(0), .VT100_HEIGHT(VT100_HEIGHT), .VT100_WIDTH(VT100_WIDTH)) thefuture (
         .clk(pll_clk), .rst_n(rst_n),
         .uart_tx(uart_tx), .uart_rx(uart_rx),                                                                // uart
-        .mem_addr_a(mem_addr_a), .mem_din_a(mem_din_a), .mem_dout_a(mem_dout_a), .mem_wr_en_a(mem_wr_en_a),  // framebuffer
+        .mem_addr_a(mem_addr_a), .mem_din_a(mem_din_a), .mem_wr_en_a(mem_wr_en_a),  // framebuffer write
+        .mem_addr_b(mem_addr_b), .mem_dout_b(mem_dout_b),                           // framebuffer read
         .text_out(text_out), .symbol(symbol),                                                                                     // text driver output symbol
         .vga_active(vga_active), .vga_r(vga_r), .vga_g(vga_g), .vga_b(vga_b));                               // vga RGB output
 
