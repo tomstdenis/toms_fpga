@@ -158,8 +158,8 @@ module vt100
                                 end
                             55, 56, 91: // 7, 8, [
                                 begin
-                                    if (vt100_prev_char == 27) begin
-                                        if (uart_rx_byte == 91) begin
+                                    if (vt100_prev_char == 27) begin // ESC
+                                        if (uart_rx_byte == 91) begin // [, CSI
                                             // starting a CSI
                                             vt100_term[vt100_terms] <= 0;
                                             vt100_term_default <= 1;
@@ -168,16 +168,16 @@ module vt100
                                             vt100_fsm_state    <= vt100_state_csi_terms;
                                             mem_wr_en_a        <= 0;
                                         end else if (uart_rx_byte == 55) begin // 7, save cursor
-                                            vt100_sx    <= vt100_x;
-                                            vt100_sy    <= vt100_y;
-                                            mem_wr_en_a <= 0;
+                                            vt100_sx           <= vt100_x;
+                                            vt100_sy           <= vt100_y;
+                                            mem_wr_en_a        <= 0;
                                         end else if (uart_rx_byte == 56) begin // 8, restore cursor
-                                            vt100_x    <= vt100_sx;
-                                            vt100_y    <= vt100_sy;
-                                            mem_wr_en_a <= 0;
+                                            vt100_x            <= vt100_sx;
+                                            vt100_y            <= vt100_sy;
+                                            mem_wr_en_a        <= 0;
                                         end                                    
                                     end else begin
-                                        // advance x/y
+                                        // advance x/y because we drew a [
                                         if (vt100_x == VT100_WIDTH - 1) begin
                                             if (vt100_linewrap) begin
                                                 vt100_x <= 0;
