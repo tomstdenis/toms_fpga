@@ -6,7 +6,7 @@ to a synchronous video memory (mem_*_a).
 To use this you need
    - VGA timer (supplies vga_active does timing to generate v/h sync, and vga x/y)
    - VGA character generator (supplies symbol based on VGA timing and dual ported memory)
-   - dual ported 16-bit memory for vt100 and VGA char generator
+   - semi dual ported 16-bit memory for vt100 and VGA char generator
    - A 8-bit 256 byte font rom
    - some top glue to generate text_out
 
@@ -62,7 +62,7 @@ module vt100
         baudwidth = $clog2(bauddiv);
     wire [baudwidth-1:0] baud_div = bauddiv;
 
-    uart #(.FIFO_DEPTH(16), .RX_ENABLE(1), .TX_ENABLE(VT100_ECHO), .BAUD_WIDTH(baudwidth)) mrtalky (
+    uart #(.FIFO_DEPTH(2048), .RX_ENABLE(1), .TX_ENABLE(VT100_ECHO), .BAUD_WIDTH(baudwidth)) mrtalky (
         .clk(clk), .rst_n(rst_n), .baud_div(baud_div),
         .uart_tx_start(uart_tx_start), .uart_tx_data_in(uart_tx_data_in),
         .uart_tx_pin(uart_tx), .uart_tx_fifo_empty(uart_tx_fifo_empty), .uart_tx_fifo_full(uart_tx_fifo_full),
@@ -211,7 +211,7 @@ module vt100
                             // wait till the VGA driver gets here
                             if (mem_addr_b == vt100_i + VT100_WIDTH) begin
                                 // if addr matches on this cycle then the data is valid
-                                // next cycle
+                                // on the next cycle
                                 vt100_fsm_state <= vt100_state_scroll2;
                             end
                         end
