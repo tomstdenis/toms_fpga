@@ -166,6 +166,16 @@ module vt100
                                         vt100_j            <= 0;
                                         vt100_fsm_state    <= vt100_state_csi_terms;
                                         mem_wr_en_a        <= 0;
+                                    end else begin
+                                        // advance x/y
+                                        if (vt100_x == VT100_WIDTH - 1) begin
+                                            if (vt100_linewrap) begin
+                                                vt100_x <= 0;
+                                                vt100_y <= vt100_y + 1'b1;
+                                            end
+                                        end else begin
+                                            vt100_x <= vt100_x + 1'b1;
+                                        end
                                     end
                                 end
                             10: // line feed
