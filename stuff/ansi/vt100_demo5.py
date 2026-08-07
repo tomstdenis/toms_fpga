@@ -62,8 +62,8 @@ def main():
 
     ball_x = float(left_col + box_w // 2)
     ball_y = float(paddle_y - 2)
-    ball_dx = 0.8
-    ball_dy = -0.6
+    ball_dx = 0.5
+    ball_dy = -0.5
 
     score = 0
     lives = 3
@@ -90,10 +90,10 @@ def main():
             paddle_center = paddle_x + (paddle_w / 2.0)
             target_x = ball_x + (ball_dx * 2.0) if ball_dy > 0 else ball_x
 
-            if paddle_center < target_x - 0.5:
-                paddle_x += 0.95
-            elif paddle_center > target_x + 0.5:
-                paddle_x -= 0.95
+            if paddle_center < target_x - 1:
+                paddle_x += 0.70
+            elif paddle_center > target_x + 1:
+                paddle_x -= 0.70
 
             # Clamp paddle inside borders
             paddle_x = max(left_col + 1, min(left_col + box_w - 1 - paddle_w, paddle_x))
@@ -122,7 +122,7 @@ def main():
                     ball_dy = -abs(ball_dy)
                     # Add spin offset depending on where ball hits paddle
                     hit_pos = (next_x - paddle_x) / float(paddle_w)
-                    ball_dx = (hit_pos - 0.5) * 1.8
+                    ball_dx = (hit_pos - 0.5) * 1.55
 
             # Floor Collision (Life lost)
             if next_y >= top_row + box_h - 1:
