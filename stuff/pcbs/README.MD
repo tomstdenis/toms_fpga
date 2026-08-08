@@ -1,6 +1,8 @@
 Tom's Perfectly Cromulent Boards
 --------------------------------
 
+![Tom's Partially Correct Board Collection](myboards.png)
+
 Me boards, y'arr matey:
 
    - **console_hat**:  A 4x dual PMOD hat for the Sipeed Tang Console 60K/138K FPGAs.  Provides four dual PMODs and one AUX (4 GPIO) port.
