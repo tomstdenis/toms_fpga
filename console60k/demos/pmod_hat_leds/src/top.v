@@ -13,7 +13,7 @@ module top(input wire clk, output wire [63:0] gpio);
     assign gpio = ~leds;
 
     always @(posedge clk) begin
-        if (count == 2_000_000) begin              // 1/4 sec @ 50MHz
+        if (count == 25_000_000) begin              // 1/4 sec @ 50MHz
             count <= 0;
 //leds[8] <= ~leds[8]; 
 //leds[31:0] <= ~leds[31:0];
