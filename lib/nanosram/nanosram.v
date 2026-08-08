@@ -19,6 +19,8 @@ module nanosram #(
     input wire start_trans,                 // start a transaction (hold high during the entire transmission)
     output wire trans_started,              // we're ready to start clocking data
     input wire shift_data,                  // start shifting a new byte (takes 2*(QPI_TIMER+1) cycles)
+    output wire busy,
+    output wire idle,
 
     // I/O
     input wire [3:0] sio_din,               // QPI data in
@@ -27,6 +29,12 @@ module nanosram #(
     output reg cs_pin,                      // active low CS pin
     output reg sck_pin                      // SPI clock
 );
+
+`ifdef MODEL_SIM
+	reg [3:0] sim_mem[65535:0];				// 32K of memory
+	reg [SRAM_ADDR_WIDTH-1:0] sim_addr;
+	reg                       sim_active;
+`endif	
 
     reg [$clog2(QPI_TIMER):0] qpi_timer;    // timer to divide clk into SCK
     reg [7:0] temp_wire_bits;               // latch the data_in/out
@@ -56,6 +64,8 @@ module nanosram #(
         FSM_SHIFT_QUAD  = 5;
     
     assign trans_started = (fsm_state == FSM_WORK_MODE) ? 1'b1 : 1'b0;
+    assign idle          = (fsm_state == FSM_STATE_IDLE) ? 1'b1 : 1'b0;
+    assign busy          = (fsm_state == FSM_SHIFT_QUAD) ? 1'b1 : 1'b0;
     assign data_out      = temp_wire_bits;
     
     reg [31:0]                init_sr;
@@ -69,6 +79,9 @@ module nanosram #(
             sck_pin       <= 1'b0;
             init_cnt      <= 3;
             init_sr       <= eqio_bits;
+`ifdef MODEL_SIM
+			sim_active    <= 1'b0;
+`endif			
         end else begin
             case (fsm_state)
                 FSM_STATE_INIT:    // send EQIO command
@@ -92,8 +105,10 @@ module nanosram #(
                 FSM_STATE_IDLE:
                     begin
                         cs_pin         <= 1'b1;                         // ensure CS defaults to high (inactive)
-                        
-                        if (start_trans) begin
+`ifdef MODEL_SIM
+						sim_active 	   <= 1'b0;
+`endif                        
+                        if (cs_pin & start_trans) begin
                             // start by writing command byte
                             temp_wire_bits <= wr_en ? 8'h02 : 8'h0B;
                             cs_pin         <= 1'b0;
@@ -101,12 +116,17 @@ module nanosram #(
                             sio_en         <= 1'b1;
                             fsm_state      <= FSM_SHIFT_QUAD;
                             fsm_tag        <= FSM_WRITE_ADDR;
+							/* verilator lint_off WIDTHTRUNC */
                             init_cnt       <= (SRAM_ADDR_WIDTH/8)-1'b1;    // how many address bytes to write - 1
+                            /* verilator lint_on WIDTHTRUNC */
                             if (SRAM_ADDR_WIDTH == 24) begin
 								init_sr <= {addr[23:0], 8'b0};
 							end else begin
 								init_sr <= {addr[15:0], 16'b0};
 							end
+`ifdef MODEL_SIM
+							sim_addr <= addr;
+`endif							
                         end
                     end
                 FSM_WRITE_ADDR:
@@ -129,11 +149,14 @@ module nanosram #(
                         temp_wire_bits <= 8'hFF;
                         sio_dout       <= 4'hF;
                         fsm_state      <= FSM_SHIFT_QUAD;
-                        fsm_tag        <= (init_cnt == 0) ? fsm_state : FSM_WORK_MODE;
+                        fsm_tag        <= (init_cnt != 0) ? fsm_state : FSM_WORK_MODE;
                         init_cnt       <= init_cnt - 1'b1;
                     end
                 FSM_WORK_MODE:
                     begin
+`ifdef MODEL_SIM
+						sim_active <= 1'b1;
+`endif						
 						sio_en <= wr_en;
                         if (start_trans) begin
                             if (shift_data) begin
@@ -159,15 +182,22 @@ module nanosram #(
 
 							if (sck_pin) begin
 								temp_cnt       <= temp_cnt - 1'b1;                    // note this resets temp_cnt to 1 after each byte
+`ifdef MODEL_SIM
+								if (sim_active) begin
+									if (wr_en) begin
+										sim_mem[sim_addr + 1 - temp_cnt] <= temp_wire_bits[7:4];
+										temp_wire_bits <= {temp_wire_bits[3:0], 4'b0 };
+									end else begin
+										temp_wire_bits <= {temp_wire_bits[3:0], sim_mem[sim_addr + 1 - temp_cnt]};
+									end
+								end
+`else
 								temp_wire_bits <= {temp_wire_bits[3:0], sio_din};
+`endif
 								sio_dout       <= temp_wire_bits[3:0];
 								if (!temp_cnt) begin
-									if (!shift_data | !start_trans) begin
-										fsm_state      <= fsm_tag;					  // transaction cancelled or not shifting more data
-									end else if (wr_en) begin                         // avoid 1 cycle delay if we're doing back to back
-										temp_wire_bits <= data_in;
-										sio_dout       <= data_in[7:4];
-									end
+                                    // todo: avoid cycle lost here
+                                    fsm_state      <= fsm_tag;					  // transaction cancelled or not shifting more data
 								end
 							end
                         end else begin
