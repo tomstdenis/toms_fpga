@@ -23,7 +23,7 @@ module nanosram #(
     // I/O
     input wire [3:0] sio_din,               // QPI data in
     output reg [3:0] sio_dout,              // QPI data out
-    output reg [3:0] sio_en,                // QPI output enable (1 == output, 0 == input
+    output reg       sio_en,                // QPI output enable (1 == output, 0 == input
     output reg cs_pin,                      // active low CS pin
     output reg sck_pin                      // SPI clock
 );
@@ -58,32 +58,37 @@ module nanosram #(
     assign trans_started = (fsm_state == FSM_WORK_MODE) ? 1'b1 : 1'b0;
     assign data_out      = temp_wire_bits;
     
+    reg [31:0]                init_sr;
+    reg [SRAM_ADDR_WIDTH-1:0] addr_l;
+    
     always @(posedge clk) begin
         if (!rst_n) begin
             fsm_state     <= FSM_STATE_INIT;
             sio_dout      <= 4'b1111;
-            sio_en        <= 4'b1111;
+            sio_en        <= 1'b1;
             cs_pin        <= 1'b1;
             sck_pin       <= 1'b0;
             init_cnt      <= 3;
+            init_sr       <= eqio_bits;
         end else begin
             case (fsm_state)
                 FSM_STATE_INIT:    // send EQIO command
                     begin
                         // data to shift out
-                        temp_wire_bits <= eqio_bits[8 * init_cnt +: 8];
+                        temp_wire_bits <= init_sr[31:24];
                         temp_cnt       <= 1;
                         qpi_timer      <= QPI_TIMER;
                         
                         // setup pins
-                        sio_dout       <= eqio_bits[8 * init_cnt + 4 +: 4];
-                        sio_en         <= 4'b1111;
+                        sio_dout       <= init_sr[31:28];
+                        sio_en         <= 1'b1;
                         cs_pin         <= 1'b0;
 
                         // advance state
                         fsm_state      <= FSM_SHIFT_QUAD;
                         fsm_tag        <= (init_cnt == 0) ? FSM_STATE_IDLE : fsm_state;
                         init_cnt       <= init_cnt - 1'b1;
+                        init_sr		   <= {init_sr[23:0], 8'b0};
                     end
                 FSM_STATE_IDLE:
                     begin
@@ -94,23 +99,25 @@ module nanosram #(
                             temp_wire_bits <= wr_en ? 8'h02 : 8'h0B;
                             cs_pin         <= 1'b0;
                             sio_dout       <= 0;                        // note: the upper quad is 0 for both read and write
-                            sio_en         <= 4'b1111;
+                            sio_en         <= 1'b1;
                             fsm_state      <= FSM_SHIFT_QUAD;
                             fsm_tag        <= FSM_WRITE_ADDR;
                             init_cnt       <= (SRAM_ADDR_WIDTH/8)-1'b1;    // how many address bytes to write - 1
+                            addr_l         <= addr;
                         end
                     end
                 FSM_WRITE_ADDR:
                     begin
-                        temp_wire_bits <= addr[init_cnt * 8 +: 8];
-                        sio_dout       <= addr[init_cnt * 8 + 4 +: 4];
+                        temp_wire_bits <= addr_l[SRAM_ADDR_WIDTH-1:SRAM_ADDR_WIDTH-8];
+                        sio_dout       <= addr_l[SRAM_ADDR_WIDTH-1:SRAM_ADDR_WIDTH-4];
+                        addr_l         <= {addr_l[SRAM_ADDR_WIDTH-8:0], 8'b0};
+                        
                         init_cnt       <= init_cnt - 1;
                         fsm_state      <= FSM_SHIFT_QUAD;
                         if (init_cnt != 0) begin
                             fsm_tag    <= fsm_state;
                         end else begin
                             fsm_tag    <= wr_en ? FSM_WAIT_DUMMY : FSM_WORK_MODE;
-                            sio_en     <= wr_en ? 4'b1111 : 4'b0000;                // switch IO to input for reads
                             init_cnt   <= DUMMY_BYTES - 1;
                         end
                     end
@@ -124,10 +131,13 @@ module nanosram #(
                     end
                 FSM_WORK_MODE:
                     begin
+						sio_en <= wr_en;
                         if (start_trans) begin
                             if (shift_data) begin
-                                temp_wire_bits <= data_in;
-								sio_dout       <= data_in[7:4];
+								if (wr_en) begin
+									temp_wire_bits <= data_in;
+									sio_dout       <= data_in[7:4];
+								end
                                 fsm_state      <= FSM_SHIFT_QUAD;
                                 fsm_tag        <= fsm_state;
                             end
@@ -146,20 +156,17 @@ module nanosram #(
 
 							if (sck_pin) begin
 								temp_cnt       <= temp_cnt - 1'b1;                    // note this resets temp_cnt to 1 after each byte
-								sio_dout       <= temp_wire_bits[3:0];
 								temp_wire_bits <= {temp_wire_bits[3:0], sio_din};
+								sio_dout       <= temp_wire_bits[3:0];
 								if (!temp_cnt) begin
-									if (shift_data) begin                             // avoid 1 cycle delay if we're doing back to back
-										if (wr_en) begin
-											temp_wire_bits <= data_in;
-											sio_dout       <= data_in[7:4];
-										end
-									end else begin
-										fsm_state  <= fsm_tag;
+									if (!shift_data | !start_trans) begin
+										fsm_state      <= fsm_tag;					  // transaction cancelled or not shifting more data
+									end else if (wr_en) begin                         // avoid 1 cycle delay if we're doing back to back
+										temp_wire_bits <= data_in;
+										sio_dout       <= data_in[7:4];
 									end
 								end
 							end
-
                         end else begin
                             qpi_timer <= qpi_timer - 1'b1;
                         end
