@@ -59,7 +59,6 @@ module nanosram #(
     assign data_out      = temp_wire_bits;
     
     reg [31:0]                init_sr;
-    reg [SRAM_ADDR_WIDTH-1:0] addr_l;
     
     always @(posedge clk) begin
         if (!rst_n) begin
@@ -103,16 +102,20 @@ module nanosram #(
                             fsm_state      <= FSM_SHIFT_QUAD;
                             fsm_tag        <= FSM_WRITE_ADDR;
                             init_cnt       <= (SRAM_ADDR_WIDTH/8)-1'b1;    // how many address bytes to write - 1
-                            addr_l         <= addr;
+                            if (SRAM_ADDR_WIDTH == 24) begin
+								init_sr <= {addr[23:0], 8'b0};
+							end else begin
+								init_sr <= {addr[15:0], 16'b0};
+							end
                         end
                     end
                 FSM_WRITE_ADDR:
                     begin
-                        temp_wire_bits <= addr_l[SRAM_ADDR_WIDTH-1:SRAM_ADDR_WIDTH-8];
-                        sio_dout       <= addr_l[SRAM_ADDR_WIDTH-1:SRAM_ADDR_WIDTH-4];
-                        addr_l         <= {addr_l[SRAM_ADDR_WIDTH-8:0], 8'b0};
+                        temp_wire_bits <= init_sr[31:24];
+                        sio_dout       <= init_sr[31:28];
+                        init_sr        <= {init_sr[23:0], 8'b0};
                         
-                        init_cnt       <= init_cnt - 1;
+                        init_cnt       <= init_cnt - 1'b1;
                         fsm_state      <= FSM_SHIFT_QUAD;
                         if (init_cnt != 0) begin
                             fsm_tag    <= fsm_state;
@@ -127,7 +130,7 @@ module nanosram #(
                         sio_dout       <= 4'hF;
                         fsm_state      <= FSM_SHIFT_QUAD;
                         fsm_tag        <= (init_cnt == 0) ? fsm_state : FSM_WORK_MODE;
-                        init_cnt       <= init_cnt - 1;
+                        init_cnt       <= init_cnt - 1'b1;
                     end
                 FSM_WORK_MODE:
                     begin
