@@ -1,0 +1,8 @@
+ESP32-C3 PMOD:
+
+1, ESP32 C3 Super Mini breakout board
+2, X7R 1206 100nF
+1, 1206 22uF
+8, 1206 22R 1% RES, (I used manu: RC1206FR-0722RL)
+1, 2x6 12P MALE HDR (I used digi: 2057-PH2-12-UA-ND)
+1, 1x6 6P FEMALE HDR (I used digi: S5442-ND)
