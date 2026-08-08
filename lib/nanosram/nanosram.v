@@ -127,6 +127,7 @@ module nanosram #(
                         if (start_trans) begin
                             if (shift_data) begin
                                 temp_wire_bits <= data_in;
+								sio_dout       <= data_in[7:4];
                                 fsm_state      <= FSM_SHIFT_QUAD;
                                 fsm_tag        <= fsm_state;
                             end
@@ -142,19 +143,27 @@ module nanosram #(
                         if (qpi_timer == 0) begin
                             qpi_timer <= QPI_TIMER;
                             sck_pin   <= ~sck_pin;
+
+							if (sck_pin) begin
+								temp_cnt       <= temp_cnt - 1'b1;                    // note this resets temp_cnt to 1 after each byte
+								sio_dout       <= temp_wire_bits[3:0];
+								temp_wire_bits <= {temp_wire_bits[3:0], sio_din};
+								if (!temp_cnt) begin
+									if (shift_data) begin                             // avoid 1 cycle delay if we're doing back to back
+										if (wr_en) begin
+											temp_wire_bits <= data_in;
+											sio_dout       <= data_in[7:4];
+										end
+									end else begin
+										fsm_state  <= fsm_tag;
+									end
+								end
+							end
+
                         end else begin
                             qpi_timer <= qpi_timer - 1'b1;
                         end
-
-                        if (sck_pin == 1) begin
-                            temp_cnt       <= temp_cnt - 1'b1;                    // note this resets temp_cnt to 1 after each byte
-                            sio_dout       <= temp_wire_bits[3:0];
-                            temp_wire_bits <= {temp_wire_bits[3:0], sio_din};
-                            if (!temp_cnt) begin
-                                fsm_state  <= fsm_tag;
-                            end
-                        end
-                    end
+                   end
             endcase
         end
     end
