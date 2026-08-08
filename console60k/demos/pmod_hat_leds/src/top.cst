@@ -24,7 +24,7 @@ IO_PORT "clk" PULL_MODE=NONE IO_TYPE=LVCMOS33;
 
 PMOD layout:
       ┌─────────────────────────┐
-      │ VCC GMD 0   1   2   3   │
+      │ VCC GND 0   1   2   3   │
       │ VCC GND 4   5   6   7   │
       └─────────────────────────┘
 
