@@ -4,8 +4,8 @@
 //Tool Version: V1.9.11.03 Education
 //Part Number: GW1NZ-LV1QN48C6/I5
 //Device: GW1NZ-1
-//Created Time: Wed Aug  5 20:07:14 2026
-`default_nettype wire
+//Created Time: Thu Aug  6 15:12:23 2026
+
 module Gowin_SDPB (dout, clka, cea, reseta, clkb, ceb, resetb, oce, ada, din, adb);
 
 output [15:0] dout;
