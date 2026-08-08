@@ -1,3 +1,30 @@
+/*
+                                             
+		 PMOD1 PMOD2 PMOD3 PMOD4
+		   ▲     ▲     ▲     ▲                       
+		   │     │     │     │                       
+		┌──┴─────┴─────┴─────┴──────┐                
+		│        ┌──────────┐       │                
+		│        │          │       │                
+		│        │   SOM    │       │                
+		│        │          │       ├───► USB JTAG   
+		│        └──────────┘       │                
+		│                           │                
+		└───────────────────────────┘                
+
+GPIO is laid out [7:0] to PMOD1, [15:8] to PMOD2,
+[23:16] to PMOD3, and [31:24] to PMOD4.
+
+
+PMOD Layout:
+                                  
+		┌─────────────────────────┐   
+		│ VCC GMD 0   1   2   3   │   
+		│ VCC GND 4   5   6   7   │   
+		└─────────────────────────┘   
+
+*/                                           
+
 module top(input wire clk, output wire [31:0] gpio);
 
     reg [24:0] count;
