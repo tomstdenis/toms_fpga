@@ -1,14 +1,23 @@
-`timescale 1ns/1ps
-`default_nettype none
+/*
+nano sram (QPI) driver for SPI SRAM ICs.
 
-/* notes:
+To write:
 
-1.  turn data_out into a reg and pair with a 1-cycle read_strobe 
-2.  Add a write_strobe to indicate when to refresh data_in
-3.  Drop shift_data and just rely on start_trans being high.  So it always just does back to back bytes until start_trans goes low.
-    (you can make it loop on itself iff start_trans is high AND fsm_tag == IDLE that way you can transmit EQIO and READ/WRITE commands without it hard locking)
+   1. wait for idle to go high
+   2. set start_trans and wr_en high, data_in
+   3. if you are done writing set start_trans low go back to idle
+   4. if you are writing wait for ready & write_strobe, then set data_in and goto 3
+   
+To read:
+
+   1. wait for idle to go high
+   2. set start_trans high, wr_en low
+   3. If you are done reading set start_trans low and go back to idle
+   4. If you are reading more wait for ready & read_strobe, then capture data_out and goto 3
 
 */
+`timescale 1ns/1ps
+`default_nettype none
 
 module nanosram #(
     parameter SRAM_ADDR_WIDTH=24,           // Address width
@@ -25,19 +34,19 @@ module nanosram #(
     output reg [7:0]                 data_out, // byte read from SRAM
     
     // control
-    input wire start_trans,                 // start a transaction (hold high during the entire transmission)
+    input wire  start_trans,                // start a transaction (hold high during the entire transmission)
     output wire busy,						// busy sending/receiving 
     output wire idle,						// we're in the idle state waiting to start_trans
     output reg  ready,						// we're done sending the command you should respond to strobes now
-    output reg read_strobe,					// high when you can read data_out (lasts one cycle)
-    output reg write_strobe,				// high when you should either send a new data_in or take start_trans low to stop further writes
+    output reg  read_strobe,				// high when you can read data_out (lasts one cycle)
+    output reg  write_strobe,				// high when you should either send a new data_in or take start_trans low to stop further writes
 
     // I/O
     input wire [3:0] sio_din,               // QPI data in
     output reg [3:0] sio_dout,              // QPI data out
     output reg       sio_en,                // QPI output enable (1 == output, 0 == input
-    output reg cs_pin,                      // active low CS pin
-    output reg sck_pin                      // SPI clock
+    output reg       cs_pin,                // active low CS pin
+    output reg       sck_pin                // SPI clock
 );
 
 `ifdef MODEL_SIM
