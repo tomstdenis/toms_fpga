@@ -19,17 +19,18 @@ module nanosram #(
     input wire rst_n,
     
     // command 
-    input wire [SRAM_ADDR_WIDTH-1:0] addr,  // address to access in SRAM
-    input wire [7:0]            data_in,    // byte to write to SRAM
-    input wire                  wr_en,      // write enable control (cannot be swapped during a transaction)
-    output wire [7:0]           data_out,   // byte read from SRAM
+    input wire [SRAM_ADDR_WIDTH-1:0] addr,     // address to access in SRAM
+    input wire [7:0]                 data_in,  // byte to write to SRAM
+    input wire                       wr_en,    // write enable control (cannot be swapped during a transaction)
+    output reg [7:0]                 data_out, // byte read from SRAM
     
     // control
     input wire start_trans,                 // start a transaction (hold high during the entire transmission)
-    input wire shift_data,                  // start shifting a new byte (takes 1 + 2*(QPI_TIMER+1) cycles)
-    output wire ready,                      // ready to accept shift_data
     output wire busy,						// busy sending/receiving 
     output wire idle,						// we're in the idle state waiting to start_trans
+    output reg  ready,						// we're done sending the command you should respond to strobes now
+    output reg read_strobe,					// high when you can read data_out (lasts one cycle)
+    output reg write_strobe,				// high when you should either send a new data_in or take start_trans low to stop further writes
 
     // I/O
     input wire [3:0] sio_din,               // QPI data in
@@ -72,14 +73,14 @@ module nanosram #(
         FSM_WORK_MODE   = 4,
         FSM_SHIFT_QUAD  = 5;
     
-    assign ready         = (fsm_state == FSM_WORK_MODE) ? 1'b1 : 1'b0;
     assign idle          = (fsm_state == FSM_STATE_IDLE) ? 1'b1 : 1'b0;
     assign busy          = (fsm_state == FSM_SHIFT_QUAD) ? 1'b1 : 1'b0;
-    assign data_out      = temp_wire_bits;
     
     reg [31:0]                init_sr;
     
     always @(posedge clk) begin
+		write_strobe <= 1'b0;
+		read_strobe  <= 1'b0;
         if (!rst_n) begin
             fsm_state     <= FSM_STATE_INIT;
             sio_dout      <= 4'b1111;
@@ -88,6 +89,8 @@ module nanosram #(
             sck_pin       <= 1'b0;
             init_cnt      <= 3;
             init_sr       <= eqio_bits;
+            data_out      <= 8'h00;
+			ready         <= 1'b0;
 `ifdef MODEL_SIM
 			sim_active    <= 1'b0;
 `endif			
@@ -114,6 +117,7 @@ module nanosram #(
                 FSM_STATE_IDLE:
                     begin
                         cs_pin         <= 1'b1;                         // ensure CS defaults to high (inactive)
+						ready          <= 1'b0;
 `ifdef MODEL_SIM
 						sim_active 	   <= 1'b0;
 `endif                        
@@ -165,22 +169,15 @@ module nanosram #(
                     begin
 `ifdef MODEL_SIM
 						sim_active <= 1'b1;
-`endif						
+`endif
+						ready  <= 1'b1;
 						sio_en <= wr_en;
-                        if (start_trans) begin
-                            if (shift_data) begin
-								if (wr_en) begin
-									temp_wire_bits <= data_in;
-									sio_dout       <= data_in[7:4];
-								end
-                                fsm_state      <= FSM_SHIFT_QUAD;
-                                fsm_tag        <= fsm_state;
-                            end
-                        end else begin
-                            // go back to idle
-                            cs_pin             <= 1'b0;
-                            fsm_state          <= FSM_STATE_IDLE;
-                        end
+						if (wr_en) begin
+							temp_wire_bits <= data_in;
+							sio_dout       <= data_in[7:4];
+						end
+						fsm_state      <= FSM_SHIFT_QUAD;
+						fsm_tag        <= FSM_STATE_IDLE;
                     end
                 FSM_SHIFT_QUAD:
                     begin
@@ -188,7 +185,14 @@ module nanosram #(
                         if (qpi_timer == 0) begin
                             qpi_timer <= QPI_TIMER;
                             sck_pin   <= ~sck_pin;
+                            
+                            // we're about to go low SCK phase so good time send write strobe
+                            // to get a fresh data_in
+							write_strobe <= temp_cnt & sck_pin & wr_en;
 
+							// Time to read data_out
+							read_strobe  <= ~temp_cnt & sck_pin & ~wr_en;
+							
 							if (sck_pin) begin
 								temp_cnt       <= temp_cnt - 1'b1;                    // note this resets temp_cnt to 1 after each byte
 `ifdef MODEL_SIM
@@ -196,6 +200,7 @@ module nanosram #(
 									sim_addr <= sim_addr + 1;
 									if (wr_en) begin
 										sim_mem[sim_addr] <= temp_wire_bits[7:4];
+										$display("Storing %h at address %h", temp_wire_bits[7:4], sim_addr);
 										temp_wire_bits <= {temp_wire_bits[3:0], 4'b0 };
 									end else begin
 										temp_wire_bits <= {temp_wire_bits[3:0], sim_mem[sim_addr]};
@@ -207,8 +212,20 @@ module nanosram #(
 								sio_dout       <= temp_wire_bits[3:0];
 
 								if (!temp_cnt) begin
-                                    // todo: avoid cycle lost here
-                                    fsm_state      <= fsm_tag;					  // transaction cancelled or not shifting more data
+									if (start_trans && fsm_tag == FSM_STATE_IDLE) begin
+										if (wr_en) begin
+											temp_wire_bits <= data_in;
+											sio_dout       <= data_in[7:4];
+										end else begin
+`ifdef MODEL_SIM
+											data_out <= {temp_wire_bits[3:0], sim_mem[sim_addr]};
+`else
+											data_out <= {temp_wire_bits[3:0], sio_din};
+`endif
+										end
+									end else begin
+										fsm_state          <= fsm_tag;					  // transaction cancelled or not shifting more data
+									end
 								end
 							end
                         end else begin
