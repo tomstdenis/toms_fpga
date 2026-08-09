@@ -72,40 +72,13 @@ module nanosram_tb();
         rst_n = 1;
         wait(sram_idle == 1);
         test_rst = 1;
-/*        
-        // write one byte
-        sram_wr_en = 1;
-        sram_addr  = 24'h100;
-        sram_din   = 8'hEA;
-        sram_start_trans = 1;
-        wait (sram_ready == 1);
-        // toggle shift
-        sram_shift_data = 1;
-        wait(sram_ready == 0);
-        sram_shift_data = 0;
-        wait(sram_ready == 1);
-        sram_start_trans = 0;
-        wait(sram_idle == 1);
 
-        // read one byte
-        sram_wr_en = 0;
-        sram_addr  = 24'h100;
-        sram_start_trans = 1;
-        wait (sram_ready == 1);
-        // toggle shift
-        sram_shift_data = 1;
-        wait(sram_ready == 0);
-        sram_shift_data = 0;
-        wait(sram_ready == 1);
-        sram_start_trans = 0;
-        wait(sram_idle == 1);
-		$display("Read %h", sram_dout);
-*/
 		while(test_done == 0) @(posedge clk);
 		if (test_pass == 0) begin
 			$display("Test failed\n");
 			$fatal;
 		end
+		repeat(10) @(posedge clk);
         $finish;
 	end
 	
@@ -172,6 +145,7 @@ module nanosram_tb();
                             if (sram_addr == (16'h1234 + 16'd16)) begin
 								test_done <= 1'b1;
 								test_pass <= 1'b1;
+								sram_start_trans <= 1'b0;
                             end else begin
                                 if (sram_dout == 8'h55 + sram_addr - 16'h1234) begin
                                     sram_addr        <= sram_addr + 1'b1;
@@ -180,6 +154,7 @@ module nanosram_tb();
                                     sram_shift_data  <= 1'b0;
 									test_done <= 1'b1;
 									test_pass <= 1'b0;
+									sram_start_trans <= 1'b0;
                                 end
                             end
                         end
