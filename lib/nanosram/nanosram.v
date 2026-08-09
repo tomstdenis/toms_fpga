@@ -184,25 +184,22 @@ module nanosram #(
 								temp_cnt       <= temp_cnt - 1'b1;                    // note this resets temp_cnt to 1 after each byte
 `ifdef MODEL_SIM
 								if (sim_active) begin
+									sim_addr <= sim_addr + 1;
 									if (wr_en) begin
-										sim_mem[sim_addr + 1 - temp_cnt] <= temp_wire_bits[7:4];
+										sim_mem[sim_addr] <= temp_wire_bits[7:4];
 										temp_wire_bits <= {temp_wire_bits[3:0], 4'b0 };
 									end else begin
-										temp_wire_bits <= {temp_wire_bits[3:0], sim_mem[sim_addr + 1 - temp_cnt]};
+										temp_wire_bits <= {temp_wire_bits[3:0], sim_mem[sim_addr]};
 									end
 								end
 `else
 								temp_wire_bits <= {temp_wire_bits[3:0], sio_din};
 `endif
 								sio_dout       <= temp_wire_bits[3:0];
+
 								if (!temp_cnt) begin
                                     // todo: avoid cycle lost here
                                     fsm_state      <= fsm_tag;					  // transaction cancelled or not shifting more data
-`ifdef MODEL_SIM
-									if (sim_active) begin
-										sim_addr <= sim_addr + 2;
-									end
-`endif									
 								end
 							end
                         end else begin

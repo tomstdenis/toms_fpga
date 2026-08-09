@@ -102,7 +102,7 @@ module nanosram_tb();
                     begin
                         if (sram_idle) begin
                             sram_addr        <= 16'h1234;
-                            sram_din         <= 8'h55;
+                            sram_din         <= 8'h2A;
                             sram_start_trans <= 1'b1;
                             sram_wr_en       <= 1'b1;
                         end
@@ -147,10 +147,11 @@ module nanosram_tb();
 								test_pass <= 1'b1;
 								sram_start_trans <= 1'b0;
                             end else begin
-                                if (sram_dout == 8'h55 + sram_addr - 16'h1234) begin
+                                if (sram_dout == 8'h2A + sram_addr - 16'h1234) begin
                                     sram_addr        <= sram_addr + 1'b1;
                                     sram_shift_data  <= 1'b1;
-                                end else begin 
+                                end else begin
+									$display("Got %h expected %h", sram_dout, 8'h2A + sram_addr - 16'h1234);
                                     sram_shift_data  <= 1'b0;
 									test_done <= 1'b1;
 									test_pass <= 1'b0;

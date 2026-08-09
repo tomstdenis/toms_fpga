@@ -63,7 +63,7 @@ module top(
                     begin
                         if (sram_idle) begin
                             sram_addr        <= 16'h1234;
-                            sram_din         <= 8'h55;
+                            sram_din         <= 8'h2A;
                             sram_start_trans <= 1'b1;
                             sram_wr_en       <= 1'b1;
                         end
@@ -77,7 +77,7 @@ module top(
                     begin
                         sram_shift_data <= 1'b0;
                         if (sram_ready & !sram_shift_data) begin
-                            if (sram_addr == (16'h1234 + 16'd16)) begin
+                            if (sram_addr == (16'h1234 + 16'd256)) begin
                                 sram_shift_data  <= 0;
                                 sram_start_trans <= 0;
                                 test_state       <= STATE_START_READ;
@@ -105,10 +105,10 @@ module top(
                     begin
                         sram_shift_data <= 1'b0;
                         if (sram_ready & !sram_shift_data) begin
-                            if (sram_addr == (16'h1234 + 16'd16)) begin
+                            if (sram_addr == (16'h1234 + 16'd256)) begin
                                 {rgb_r, rgb_g, rgb_b} <= 3'b000; // white == good
                             end else begin
-                                if (sram_dout == 8'h55 + sram_addr - 16'h1234) begin
+                                if (sram_dout == ((8'h2A + sram_addr - 16'h1234) & 8'hFF)) begin
                                     sram_addr        <= sram_addr + 1'b1;
                                     sram_shift_data  <= 1'b1;
                                 end else begin 
