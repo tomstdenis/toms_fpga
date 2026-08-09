@@ -1,6 +1,15 @@
 `timescale 1ns/1ps
 `default_nettype none
 
+/* notes:
+
+1.  turn data_out into a reg and pair with a 1-cycle read_strobe 
+2.  Add a write_strobe to indicate when to refresh data_in
+3.  Drop shift_data and just rely on start_trans being high.  So it always just does back to back bytes until start_trans goes low.
+    (you can make it loop on itself iff start_trans is high AND fsm_tag == IDLE that way you can transmit EQIO and READ/WRITE commands without it hard locking)
+
+*/
+
 module nanosram #(
     parameter SRAM_ADDR_WIDTH=24,           // Address width
     parameter DUMMY_BYTES=3,                // number of dummy cycles on a fast read
