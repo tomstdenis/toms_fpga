@@ -17,10 +17,10 @@ module nanosram #(
     
     // control
     input wire start_trans,                 // start a transaction (hold high during the entire transmission)
-    output wire trans_started,              // we're ready to start clocking data
-    input wire shift_data,                  // start shifting a new byte (takes 2*(QPI_TIMER+1) cycles)
-    output wire busy,
-    output wire idle,
+    input wire shift_data,                  // start shifting a new byte (takes 1 + 2*(QPI_TIMER+1) cycles)
+    output wire ready,                      // ready to accept shift_data
+    output wire busy,						// busy sending/receiving 
+    output wire idle,						// we're in the idle state waiting to start_trans
 
     // I/O
     input wire [3:0] sio_din,               // QPI data in
@@ -63,7 +63,7 @@ module nanosram #(
         FSM_WORK_MODE   = 4,
         FSM_SHIFT_QUAD  = 5;
     
-    assign trans_started = (fsm_state == FSM_WORK_MODE) ? 1'b1 : 1'b0;
+    assign ready         = (fsm_state == FSM_WORK_MODE) ? 1'b1 : 1'b0;
     assign idle          = (fsm_state == FSM_STATE_IDLE) ? 1'b1 : 1'b0;
     assign busy          = (fsm_state == FSM_SHIFT_QUAD) ? 1'b1 : 1'b0;
     assign data_out      = temp_wire_bits;
@@ -125,7 +125,7 @@ module nanosram #(
 								init_sr <= {addr[15:0], 16'b0};
 							end
 `ifdef MODEL_SIM
-							sim_addr <= addr;
+							sim_addr <= addr * 2;
 `endif							
                         end
                     end
@@ -140,7 +140,7 @@ module nanosram #(
                         if (init_cnt != 0) begin
                             fsm_tag    <= fsm_state;
                         end else begin
-                            fsm_tag    <= wr_en ? FSM_WAIT_DUMMY : FSM_WORK_MODE;
+                            fsm_tag    <= wr_en ? FSM_WORK_MODE : FSM_WAIT_DUMMY;
                             init_cnt   <= DUMMY_BYTES - 1;
                         end
                     end
@@ -198,6 +198,11 @@ module nanosram #(
 								if (!temp_cnt) begin
                                     // todo: avoid cycle lost here
                                     fsm_state      <= fsm_tag;					  // transaction cancelled or not shifting more data
+`ifdef MODEL_SIM
+									if (sim_active) begin
+										sim_addr <= sim_addr + 2;
+									end
+`endif									
 								end
 							end
                         end else begin
