@@ -124,12 +124,19 @@ module nanosram_tb();
                 STATE_LOOP_READ:                                               // by this point we're in SHIFT_QUAD
                     begin
                         if (sram_ready & sram_read_strobe) begin
+							// we've read the last byte, end the test.
                             if (sram_addr == (16'h1234 + 16'd16)) begin
 								test_done <= 1'b1;
 								test_pass <= 1'b1;
-								sram_start_trans <= 1'b0;
                             end else begin
-                                if (sram_dout == 8'h2A + sram_addr - 16'h1234) begin
+								// we're at the 2nd last byte turn off the transaction so it stops reading once it reads
+								// byte 16
+								if (sram_addr == (16'h1234 + 16'd15)) begin
+									sram_start_trans <= 1'b0;
+								end
+
+								// compare the bytes
+                                if (sram_dout == ((8'h2A + sram_addr - 8'h34) & 8'hFF)) begin
                                     sram_addr <= sram_addr + 1'b1;
                                 end else begin
 									$display("Got %h expected %h", sram_dout, 8'h2A + sram_addr - 16'h1234);
