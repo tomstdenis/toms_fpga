@@ -4,14 +4,14 @@ nano sram (QPI) driver for SPI SRAM ICs.
 To write:
 
    1. wait for idle to go high
-   2. set start_trans and wr_en high, data_in
+   2. set start_trans and wr_en high, data_in, addr
    3. if you are done writing set start_trans low go back to idle
    4. if you are writing wait for ready & write_strobe, then set data_in and goto 3
 
 To read:
 
    1. wait for idle to go high
-   2. set start_trans high, wr_en low
+   2. set start_trans high, wr_en low, addr
    3. If you are done reading set start_trans low and go back to idle
    4. If you are reading more wait for ready & read_strobe, then capture data_out and goto 3
 
