@@ -81,7 +81,9 @@ module top(
                 STATE_LOOP_WRITE:                                               // by this point we're in SHIFT_QUAD
                     begin
                         if (sram_ready & sram_write_strobe) begin
-                            if (sram_addr == (16'h1234 + 16'd1024)) begin
+                            // the write strobe occurs BEFORE the current byte is finished so if we lower
+                            // start_trans the FSM will stop writing with the current byte being shifted out
+                            if (sram_addr == (16'h1234 + 16'd1023)) begin
                                 sram_start_trans <= 0;
                                 test_state       <= STATE_START_READ;
                             end else begin
@@ -105,8 +107,13 @@ module top(
                         if (sram_ready & sram_read_strobe) begin
                             if (sram_addr == (16'h1234 + 16'd1024)) begin
                                 {rgb_r, rgb_g, rgb_b} <= 3'b000; // white == good
-                                sram_start_trans      <= 1'b0;
                             end else begin
+								// we're at the 2nd last byte turn off the transaction so it stops reading once it reads
+								// byte 1024.  Unlike write_strobe the read_strobe occurs on the cycle the latest byte is
+                                // valid so we need to lower the start_trans reg on the count-1 byte.
+                                if (sram_addr == (16'h1234 + 16'd1023)) begin
+                                    sram_start_trans      <= 1'b0;
+                                end
                                 if (sram_dout == ((8'h2A + sram_addr[7:0] - 8'h34) & 8'hFF)) begin
                                     sram_addr         <= sram_addr + 1'b1;
                                 end else begin 

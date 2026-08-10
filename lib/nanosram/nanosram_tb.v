@@ -48,7 +48,7 @@ module nanosram_tb();
     reg [7:0] test_byte;
     reg [3:0] test_state;
     reg [3:0] test_tag;
-    reg [1:0] test_cycle;
+    reg [5:0] test_cycle;
 
 	initial begin
         // Waveform setup
@@ -57,14 +57,6 @@ module nanosram_tb();
 
 		rst_n = 0;
 		clk   = 0;
-		sram_start_trans = 0;
-		sram_wr_en       = 0;
-
-        // Reset system
-        repeat(10) @(posedge clk);
-        rst_n = 1;
-        wait(sram_idle == 1);
-        test_rst = 1;
 
 		while(test_done == 0) @(posedge clk);
 		if (test_pass == 0) begin
@@ -82,17 +74,19 @@ module nanosram_tb();
         STATE_LOOP_READ   = 3;
 
     always @(posedge clk) begin
-        if (!test_rst) begin
-            test_rst         <= 1'b1;
+        if (!rst_n) begin
+            rst_n            <= 1'b1;
             sram_start_trans <= 1'b0;
             sram_wr_en       <= 1'b0;
             test_state       <= STATE_START_WRITE;
             test_cycle       <= 0;
         end else begin
+            test_cycle <= test_cycle + 1;
             case (test_state)
                 STATE_START_WRITE:
                     begin
                         if (sram_idle) begin
+                            test_cycle       <= 0;
                             sram_addr        <= 16'h1234;
                             sram_din         <= 8'h2A;
                             sram_start_trans <= 1'b1;
@@ -103,7 +97,9 @@ module nanosram_tb();
                 STATE_LOOP_WRITE:                                               // by this point we're in SHIFT_QUAD
                     begin
                         if (sram_ready & sram_write_strobe) begin
-                            if (sram_addr == (16'h1234 + 16'd16)) begin
+                            // the write strobe occurs BEFORE the current byte is finished so if we lower
+                            // start_trans the FSM will stop writing with the current byte being shifted out
+                            if (sram_addr == (16'h1234 + 16'd15)) begin
                                 sram_start_trans <= 0;
                                 test_state       <= STATE_START_READ;
                             end else begin
@@ -115,6 +111,7 @@ module nanosram_tb();
                 STATE_START_READ:
                     begin
                         if (sram_idle) begin
+                            test_cycle       <= 0;
 							sram_start_trans <= 1'b1;
                             sram_addr        <= 16'h1234;
                             sram_wr_en       <= 1'b0;
@@ -130,7 +127,8 @@ module nanosram_tb();
 								test_pass <= 1'b1;
                             end else begin
 								// we're at the 2nd last byte turn off the transaction so it stops reading once it reads
-								// byte 16
+								// byte 16.  Unlike write_strobe the read_strobe occurs on the cycle the latest byte is
+                                // valid so we need to lower the start_trans reg on the count-1 byte.
 								if (sram_addr == (16'h1234 + 16'd15)) begin
 									sram_start_trans <= 1'b0;
 								end
