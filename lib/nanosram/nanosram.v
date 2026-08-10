@@ -7,7 +7,7 @@ To write:
    2. set start_trans and wr_en high, data_in
    3. if you are done writing set start_trans low go back to idle
    4. if you are writing wait for ready & write_strobe, then set data_in and goto 3
-   
+
 To read:
 
    1. wait for idle to go high
@@ -82,10 +82,10 @@ module nanosram #(
         FSM_WORK_MODE   = 4,
         FSM_SHIFT_QUAD  = 5;
     
-    assign idle          = (fsm_state == FSM_STATE_IDLE) ? 1'b1 : 1'b0;
-    assign busy          = (fsm_state == FSM_SHIFT_QUAD) ? 1'b1 : 1'b0;
+    assign idle = (fsm_state == FSM_STATE_IDLE) ? 1'b1 : 1'b0;
+    assign busy = (fsm_state == FSM_SHIFT_QUAD) ? 1'b1 : 1'b0;
     
-    reg [31:0]                init_sr;
+    reg [31:0] init_sr;
     
     always @(posedge clk) begin
 		write_strobe <= 1'b0;
@@ -100,6 +100,7 @@ module nanosram #(
             init_sr       <= eqio_bits;
             data_out      <= 8'h00;
 			ready         <= 1'b0;
+			temp_cnt      <= 1;
 `ifdef MODEL_SIM
 			sim_active    <= 1'b0;
 `endif			
@@ -109,7 +110,6 @@ module nanosram #(
                     begin
                         // data to shift out
                         temp_wire_bits <= init_sr[31:24];
-                        temp_cnt       <= 1;
                         qpi_timer      <= QPI_TIMER;
                         
                         // setup pins

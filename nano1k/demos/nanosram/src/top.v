@@ -9,6 +9,14 @@ module top(
     inout wire [3:0] sio
 );
 
+    wire pllclk;
+
+    Gowin_rPLL MrGoFast(
+        .clkout(pllclk), //output clkout
+        .clkin(clk) //input clkin
+    );
+
+
     reg rst_n = 1'b0;
 
     reg [23:0] sram_addr;
@@ -30,7 +38,7 @@ module top(
     assign sio_din = sio;
 
     nanosram(
-        .clk(clk), .rst_n(rst_n),
+        .clk(pllclk), .rst_n(rst_n),
         .addr(sram_addr), .data_in(sram_din), .data_out(sram_dout), .wr_en(sram_wr_en),
         .start_trans(sram_start_trans), .ready(sram_ready), .busy(sram_busy), .idle(sram_idle),
         .read_strobe(sram_read_strobe), .write_strobe(sram_write_strobe),
@@ -48,7 +56,7 @@ module top(
         STATE_START_READ  = 2,
         STATE_LOOP_READ   = 3;
 
-    always @(posedge clk) begin
+    always @(posedge pllclk) begin
         if (!rst_n) begin
             rst_n <= 1'b1;
             sram_start_trans <= 1'b0;
