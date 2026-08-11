@@ -1,20 +1,18 @@
-Nano SRAM Driver
-----------------
+# Nano SRAM Driver
 
-This verilog module presents a simple 1 byte wide interface to SPI based 8-pin SRAM chips that support QPI mode.  It provides an interface to start a read or write transaction which is then prompted by strobe signals and continued until the transmission signal is lowered.  This provides a rather compact module to stream data with.
+This Verilog module presents a simple 1-byte-wide interface to SPI-based 8-pin SRAM chips that support QPI mode. It provides an interface to start a read or write transaction, which is then prompted by strobe signals and continued until the transmission signal is lowered. This provides a rather compact module to stream data with.
 
-Instantiation
--------------
+## Instantiation
 
-The module has three parameters that configure it for the particular SRAM IC you are using and clock domain your module will reside in.
+The module has three parameters that configure it for the particular SRAM IC you are using and the clock domain your module will reside in:
 
-   1.  **SRAM_ADDR_WIDTH**: The number of bits in the address typically 24 or 16.  Default: 24.
-   2.  **DUMMY_BYTES**: Number of dummy bytes to read when performing an 8'h0B fast read.  Default: 3.
-   3.  **QPI_TIMER**: Length each half phase the of the SCK expressed as: **1 + QPI_TIMER**.  Default: 0
-   
-The module has the following ports:   
+1. **SRAM_ADDR_WIDTH**: The number of bits in the address, typically 24 or 16. Default: 24.
+2. **DUMMY_BYTES**: Number of dummy bytes to read when performing an `8'h0B` fast read. Default: 3.
+3. **QPI_TIMER**: Length of each half-phase of SCK, expressed as: **1 + QPI_TIMER**. Default: 0.
 
-```
+The module has the following ports:
+
+```verilog
     input wire clk,                            // Core clock signal
     input wire rst_n,                          // Active low reset
     
@@ -25,85 +23,93 @@ The module has the following ports:
     output reg [7:0]                 data_out, // byte read from SRAM
     
     // control
-    input wire  start_trans,                // start a transaction (hold high during the entire transmission)
-    output wire busy,						// busy sending/receiving 
-    output wire idle,						// we're in the idle state waiting to start_trans
-    output reg  ready,						// we're done sending the command you should respond to strobes now
-    output reg  read_strobe,				// high when you can read data_out (lasts one cycle)
-    output reg  write_strobe,				// high when you should either send a new data_in or take start_trans low to stop further writes
+    input wire  start_trans,                   // start a transaction (hold high during the entire transmission)
+    output wire busy,                          // busy sending/receiving 
+    output wire idle,                          // we're in the idle state waiting to start_trans
+    output reg  ready,                         // we're done sending the command; you should respond to strobes now
+    output reg  read_strobe,                   // high when you can read data_out (lasts one cycle)
+    output reg  write_strobe,                  // high when you should either send a new data_in or take start_trans low to stop further writes
 
     // I/O
-    input wire [3:0] sio_din,               // QPI data in
-    output reg [3:0] sio_dout,              // QPI data out
-    output reg       sio_en,                // QPI output enable (1 == output, 0 == input
-    output reg       cs_pin,                // active low CS pin
-    output reg       sck_pin                // SPI clock
+    input wire [3:0] sio_din,                  // QPI data in
+    output reg [3:0] sio_dout,                 // QPI data out
+    output reg       sio_en,                   // QPI output enable (1 == output, 0 == input)
+    output reg       cs_pin,                   // active low CS pin
+    output reg       sck_pin                   // SPI clock
+
 ```
 
-Reset
------
+## Reset
 
-Upon raising **rst_n** high the module enters an initialization sequence where in SPI mode it transmits the command 8'h38 which is the typical "enter Quad IO" mode command.  Initialization finishes with the **idle** signal going high.
+Upon raising **rst_n** high, the module enters an initialization sequence where, in SPI mode, it transmits the command `8'h38`, which is the typical "enter Quad IO" mode command. Initialization finishes with the **idle** signal going high.
 
-Write Timing
-------------
+## Write Timing
 
-Timing is in terms of the three parameters chosen when instantiating the module.  A byte takes **X** = 4 * (**QPI_TIMER** + 1) cycles to transfer over the QPI bus.  Each command is 1 byte, followed by the 2 or 3 byte address, and for reads is followed by the dummy bytes.
+Timing is in terms of the three parameters chosen when instantiating the module. A byte takes **X** = 4 * (**QPI_TIMER** + 1) cycles to transfer over the QPI bus. Each command is 1 byte, followed by the 2- or 3-byte address, and for reads, followed by dummy bytes.
 
-From the start of a transmission to the first byte being written would take:
+From the start of a transmission to the first byte being written takes:
 
-    FW = 2 + (SRAM_ADDR_WIDTH/8) + X * (1 + SRAM_ADDR_WIDTH/8) + X
+```
+FW = 2 + (SRAM_ADDR_WIDTH/8) + X * (1 + SRAM_ADDR_WIDTH/8) + X
+```
 
-Cycles to complete the first byte.  The '2 + (SRAM_ADDR_WIDTH/8)' term comes from the three FSM transitions to get into the bulk transfer FSM state.  The **write_strobe** signal is signalled on the first cycle of the SCK low phase and then every X cycles after that.  The first write strobe to occur at:
+cycles to complete the first byte. The `2 + (SRAM_ADDR_WIDTH/8)` term comes from the three FSM transitions to get into the bulk transfer FSM state. The **write_strobe** signal is signaled on the first cycle of the SCK low phase and then every **X** cycles after that. The first write strobe occurs at:
 
-    FWS = 2 + (SRAM_ADDR_WIDTH/8) + X * (1 + (SRAM_ADDR_WIDTH/8)) + (X/2)
+```
+FWS = 2 + (SRAM_ADDR_WIDTH/8) + X * (1 + (SRAM_ADDR_WIDTH/8)) + (X/2)
+```
 
 The write strobe happens after the first nibble is transmitted and then every **X** cycles after that.
 
 For the default configuration:
 
-    FW  = 2 + 3 + 4 * (1 + 3) + 4
-        = 2 + 3 + 4 * 4 + 4
-        = 25
+```
+FW  = 2 + 3 + 4 * (1 + 3) + 4
+    = 2 + 3 + 4 * 4 + 4
+    = 25
 
-    FWS = 2 + 3 + 4 * (1 + 3) + 2
-        = 5 + 4 * 4 + 2
-        = 23
+FWS = 2 + 3 + 4 * (1 + 3) + 2
+    = 5 + 4 * 4 + 2
+    = 23
+```
 
-This means that in the default configuration the first byte is written in 25 cycles and the first write strobe happens in 23 cycles.  A new write strobe happens every 4 cyles and a new byte is written every 4 cycles.
+This means that in the default configuration, the first byte is written in 25 cycles and the first write strobe happens in 23 cycles. A new write strobe happens every 4 cycles and a new byte is written every 4 cycles.
 
-Read Timing
------------
+## Read Timing
 
-Read timing is similar except there are **DUMMY_BYTES** to contend with.  The first byte is read and read strobe signalled (these are the same event) after:
+Read timing is similar, except there are **DUMMY_BYTES** to contend with. The first byte is read and the read strobe is signaled (these are the same event) after:
 
-    FR = 2 + (SRAM_ADDR_WIDTH/8) + DUMMY_BYTES + X * (1 + (SRAM_ADDR_WIDTH/8) + DUMMY_BYTES) + X
+```
+FR = 2 + (SRAM_ADDR_WIDTH/8) + DUMMY_BYTES + X * (1 + (SRAM_ADDR_WIDTH/8) + DUMMY_BYTES) + X
+```
 
-cycles.  After which a new byte is read (and strobe signalled) every X cycles.
+cycles, after which a new byte is read (and strobe signaled) every **X** cycles.
 
 For the default configuration:
 
-    FR = 2 + 3 + 3 + 4 * (1 + 3 + 3) + 4
-       = 8 + 4 * 7 + 4
-       = 40
+```
+FR = 2 + 3 + 3 + 4 * (1 + 3 + 3) + 4
+   = 8 + 4 * 7 + 4
+   = 40
+```
 
-This means the first byte takes 40 cycles to be read and a new byte is available every 4 cycles after that.
+This means the first byte takes 40 cycles to be read, and a new byte is available every 4 cycles after that.
 
-Theory of Operation: Reading
-----------------------------
+## Theory of Operation: Reading
 
 To read memory, first wait for **idle** to go high, then drive the following nets:
 
-- **addr**: The byte address to read
-- **start_trans**: 1
-- **wr_en**: 0
+* **addr**: The byte address to read
+* **start_trans**: 1
+* **wr_en**: 0
 
-The cycle after this you can wait for **ready** and **read_strobe** to go high simultaneously at which point you can read **data_out**.  If you lower **start_trans** on the 2nd to last byte the FSM will stop after reading the next byte.
+The cycle after this, you can wait for **ready** and **read_strobe** to go high simultaneously, at which point you can read **data_out**. If you lower **start_trans** on the 2nd to last byte, the FSM will stop after reading the next byte.
 
-If you want to only read 1 byte you need to lower **start_trans** on the cycle after you raise it.
+If you want to only read 1 byte, you need to lower **start_trans** on the cycle after you raise it.
 
 As RTL pseudo-code:
-```
+
+```verilog
    // wait for idle
    while (!idle);
 
@@ -116,26 +122,25 @@ As RTL pseudo-code:
         if (cnt == bytes_to_read - 1) {        // if we're on the last or 2nd last byte stop shifting after the next byte
             start_trans <= 0;
         }
-        buffer[cnt++] <= data_out;              // store the byte
+        buffer[cnt++] <= data_out;             // store the byte
     }
    }
 ```
 
-Theory of Operation: Writing
-----------------------------
+## Theory of Operation: Writing
 
 To write memory, first wait for **idle** to go high, then drive the following nets:
 
-- **addr**: The byte address to start writing to
-- **start_trans**: 1
-- **wr_en**: 1
-- **data_in**: The first byte to write
+* **addr**: The byte address to start writing to
+* **start_trans**: 1
+* **wr_en**: 1
+* **data_in**: The first byte to write
 
-The cycle after this you can wait for **ready** and **write_strobe** to go high simultaneously at which point you can
-either drive another byte in **data_in** or lower **start_trans** to stop writing.
+The cycle after this, you can wait for **ready** and **write_strobe** to go high simultaneously, at which point you can either drive another byte in **data_in** or lower **start_trans** to stop writing.
 
-As rtl pseudo-code:
-```
+As RTL pseudo-code:
+
+```verilog
    // wait for idle 
    while (!idle);
 
@@ -155,9 +160,9 @@ As rtl pseudo-code:
    }
 ```
 
-Caveats
--------
+## Caveats
 
-- When actively reading or writing make sure to check if **ready** is high as well.  The **read_strobe** and **write_strobe** signals will fire during command, address, or initialization sequencing.
-- With most SRAMs you can keep a transmission alive indefinitely.  Due to the nature of this module that means you're constantly reading or writing as long as **start_trans** is high.
-- There must be one cycle in which **start_trans** is low between jobs and you must wait for **idle** to be high before changing any of the command parameters including **start_trans** back to high.
+* When actively reading or writing, make sure to check if **ready** is high as well. The **read_strobe** and **write_strobe** signals will fire during command, address, or initialization sequencing.
+* With most SRAMs, you can keep a transmission alive indefinitely. Due to the nature of this module, that means you're constantly reading or writing as long as **start_trans** is high.
+* There must be one cycle in which **start_trans** is low between jobs, and you must wait for **idle** to be high before changing any of the command parameters, including setting **start_trans** back to high.
+* The included testbench **nanosram_tb.v** demonstrates how to perform a 16-byte-long burst.
