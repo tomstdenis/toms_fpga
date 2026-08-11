@@ -50,12 +50,11 @@ Write Timing
 
 Timing is in terms of the three parameters chosen when instantiating the module.  A byte takes **X** = 4 * (**QPI_TIMER** + 1) cycles to transfer over the QPI bus.  Each command is 1 byte, followed by the 2 or 3 byte address, and for reads is followed by the dummy bytes.
 
-From the start of a transmission to the first byte being written would take
+From the start of a transmission to the first byte being written would take:
 
     FW = 2 + (SRAM_ADDR_WIDTH/8) + X * (1 + SRAM_ADDR_WIDTH/8) + X
 
-Cycles to complete the first byte.  The '3' term comes from the three FSM transitions to get into the bulk transfer FSM state.  The **write_strobe** signal is signalled on the first cycle of the SCK low phase and then every X cycles after that.
-The first write strobe to occur at:
+Cycles to complete the first byte.  The '2 + (SRAM_ADDR_WIDTH/8)' term comes from the three FSM transitions to get into the bulk transfer FSM state.  The **write_strobe** signal is signalled on the first cycle of the SCK low phase and then every X cycles after that.  The first write strobe to occur at:
 
     FWS = 2 + (SRAM_ADDR_WIDTH/8) + X * (1 + (SRAM_ADDR_WIDTH/8)) + (X/2)
 
@@ -155,3 +154,10 @@ As rtl pseudo-code:
     }
    }
 ```
+
+Caveats
+-------
+
+- When actively reading or writing make sure to check if **ready** is high as well.  The **read_strobe** and **write_strobe** signals will fire during command, address, or initialization sequencing.
+- With most SRAMs you can keep a transmission alive indefinitely.  Due to the nature of this module that means you're constantly reading or writing as long as **start_trans** is high.
+- There must be one cycle in which **start_trans** is low between jobs and you must wait for **idle** to be high before changing any of the command parameters including **start_trans** back to high.
