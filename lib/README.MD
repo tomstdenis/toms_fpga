@@ -84,6 +84,10 @@ Modules
   - Low level timer imlemented in **timer/blocks/timer.v** with test bench **timer/blocks/timer_tb.v**
   - A bus wrapper in **timer/timer_mem.v** with test bench **timer/timer_mem_tb.v**
 
+- **nanosram**: SPI SRAM controller that is optimized for low area.  Provides streaming memory access with read and write strobes.
+  - Module in **nanosram/nanosram.v** with test bench **nanosram/nanosram_tb.v**
+  - Readme in **nanosram/README.MD**
+
 - **spidma**: SPI DMA controller for PSRAM/SRAM (and eventually NOR flash) memories
    - Works with PSRAM/SRAM evices in SPI and QPI mode (using read, fast read, or quad read)
    - Run time management allows switching between QPI/SPI mode, more robust FSM that to handle diff technologies
