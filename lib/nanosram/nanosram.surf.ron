@@ -28,8 +28,9 @@
         active_scope: Some(WaveScope((
             strs: [
                 "nanosram_tb",
+                "dut",
             ],
-            id: Wellen((2)),
+            id: Wellen((3)),
         ))),
         items_tree: (
             items: [
@@ -154,25 +155,31 @@
                     selected: false,
                 ),
                 (
-                    item_ref: (4),
+                    item_ref: (29),
                     level: 0,
                     unfolded: true,
                     selected: false,
                 ),
                 (
-                    item_ref: (5),
+                    item_ref: (30),
                     level: 0,
                     unfolded: true,
                     selected: false,
                 ),
                 (
-                    item_ref: (6),
+                    item_ref: (31),
                     level: 0,
                     unfolded: true,
                     selected: false,
                 ),
                 (
-                    item_ref: (1),
+                    item_ref: (32),
+                    level: 0,
+                    unfolded: true,
+                    selected: false,
+                ),
+                (
+                    item_ref: (33),
                     level: 0,
                     unfolded: true,
                     selected: false,
@@ -180,28 +187,6 @@
             ],
         ),
         displayed_items: {
-            (8): Variable((
-                variable_ref: (
-                    path: (
-                        strs: [
-                            "nanosram_tb",
-                        ],
-                        id: Wellen((2)),
-                    ),
-                    name: "sck_pin",
-                    id: Wellen((10)),
-                    index: None,
-                ),
-                color: Some("Orange"),
-                background_color: None,
-                display_name: "sck_pin",
-                display_name_type: Unique,
-                manual_name: None,
-                format: None,
-                field_formats: [],
-                height_scaling_factor: None,
-                analog: None,
-            )),
             (26): Variable((
                 variable_ref: (
                     path: (
@@ -224,7 +209,7 @@
                 height_scaling_factor: None,
                 analog: None,
             )),
-            (11): Variable((
+            (25): Variable((
                 variable_ref: (
                     path: (
                         strs: [
@@ -232,13 +217,214 @@
                         ],
                         id: Wellen((2)),
                     ),
-                    name: "sio_en",
-                    id: Wellen((8)),
+                    name: "sram_ready",
+                    id: Wellen((3)),
+                    index: None,
+                ),
+                color: Some("Violet"),
+                background_color: None,
+                display_name: "sram_ready",
+                display_name_type: Unique,
+                manual_name: None,
+                format: None,
+                field_formats: [],
+                height_scaling_factor: None,
+                analog: None,
+            )),
+            (15): Variable((
+                variable_ref: (
+                    path: (
+                        strs: [
+                            "nanosram_tb",
+                        ],
+                        id: Wellen((2)),
+                    ),
+                    name: "sram_dout",
+                    id: Wellen((6)),
+                    index: None,
+                ),
+                color: Some("Violet"),
+                background_color: None,
+                display_name: "sram_dout [7:0]",
+                display_name_type: Unique,
+                manual_name: None,
+                format: None,
+                field_formats: [],
+                height_scaling_factor: None,
+                analog: None,
+            )),
+            (22): Variable((
+                variable_ref: (
+                    path: (
+                        strs: [
+                            "nanosram_tb",
+                            "dut",
+                        ],
+                        id: Wellen((3)),
+                    ),
+                    name: "fsm_state",
+                    id: Wellen((65)),
+                    index: None,
+                ),
+                color: None,
+                background_color: None,
+                display_name: "fsm_state [3:0]",
+                display_name_type: Unique,
+                manual_name: None,
+                format: None,
+                field_formats: [],
+                height_scaling_factor: None,
+                analog: None,
+            )),
+            (14): Variable((
+                variable_ref: (
+                    path: (
+                        strs: [
+                            "nanosram_tb",
+                        ],
+                        id: Wellen((2)),
+                    ),
+                    name: "sram_din",
+                    id: Wellen((22)),
+                    index: None,
+                ),
+                color: Some("Violet"),
+                background_color: None,
+                display_name: "sram_din [7:0]",
+                display_name_type: Unique,
+                manual_name: None,
+                format: None,
+                field_formats: [],
+                height_scaling_factor: None,
+                analog: None,
+            )),
+            (8): Variable((
+                variable_ref: (
+                    path: (
+                        strs: [
+                            "nanosram_tb",
+                        ],
+                        id: Wellen((2)),
+                    ),
+                    name: "sck_pin",
+                    id: Wellen((10)),
                     index: None,
                 ),
                 color: Some("Orange"),
                 background_color: None,
-                display_name: "sio_en",
+                display_name: "sck_pin",
+                display_name_type: Unique,
+                manual_name: None,
+                format: None,
+                field_formats: [],
+                height_scaling_factor: None,
+                analog: None,
+            )),
+            (31): Variable((
+                variable_ref: (
+                    path: (
+                        strs: [
+                            "nanosram_tb",
+                            "dut",
+                        ],
+                        id: Wellen((3)),
+                    ),
+                    name: "init_cnt",
+                    id: Wellen((67)),
+                    index: None,
+                ),
+                color: None,
+                background_color: None,
+                display_name: "init_cnt [1:0]",
+                display_name_type: Unique,
+                manual_name: None,
+                format: None,
+                field_formats: [],
+                height_scaling_factor: None,
+                analog: None,
+            )),
+            (2): Variable((
+                variable_ref: (
+                    path: (
+                        strs: [
+                            "nanosram_tb",
+                        ],
+                        id: Wellen((2)),
+                    ),
+                    name: "clk",
+                    id: Wellen((19)),
+                    index: None,
+                ),
+                color: None,
+                background_color: None,
+                display_name: "clk",
+                display_name_type: Unique,
+                manual_name: None,
+                format: None,
+                field_formats: [],
+                height_scaling_factor: None,
+                analog: None,
+            )),
+            (30): Variable((
+                variable_ref: (
+                    path: (
+                        strs: [
+                            "nanosram_tb",
+                            "dut",
+                        ],
+                        id: Wellen((3)),
+                    ),
+                    name: "temp_wire_bits",
+                    id: Wellen((78)),
+                    index: None,
+                ),
+                color: None,
+                background_color: None,
+                display_name: "temp_wire_bits [7:0]",
+                display_name_type: Unique,
+                manual_name: None,
+                format: None,
+                field_formats: [],
+                height_scaling_factor: None,
+                analog: None,
+            )),
+            (7): Variable((
+                variable_ref: (
+                    path: (
+                        strs: [
+                            "nanosram_tb",
+                        ],
+                        id: Wellen((2)),
+                    ),
+                    name: "rst_n",
+                    id: Wellen((20)),
+                    index: None,
+                ),
+                color: None,
+                background_color: None,
+                display_name: "rst_n",
+                display_name_type: Unique,
+                manual_name: None,
+                format: None,
+                field_formats: [],
+                height_scaling_factor: None,
+                analog: None,
+            )),
+            (9): Variable((
+                variable_ref: (
+                    path: (
+                        strs: [
+                            "nanosram_tb",
+                        ],
+                        id: Wellen((2)),
+                    ),
+                    name: "sio_din",
+                    id: Wellen((1)),
+                    index: None,
+                ),
+                color: Some("Orange"),
+                background_color: None,
+                display_name: "sio_din [3:0]",
                 display_name_type: Unique,
                 manual_name: None,
                 format: None,
@@ -290,73 +476,7 @@
                 height_scaling_factor: None,
                 analog: None,
             )),
-            (14): Variable((
-                variable_ref: (
-                    path: (
-                        strs: [
-                            "nanosram_tb",
-                        ],
-                        id: Wellen((2)),
-                    ),
-                    name: "sram_din",
-                    id: Wellen((22)),
-                    index: None,
-                ),
-                color: Some("Violet"),
-                background_color: None,
-                display_name: "sram_din [7:0]",
-                display_name_type: Unique,
-                manual_name: None,
-                format: None,
-                field_formats: [],
-                height_scaling_factor: None,
-                analog: None,
-            )),
-            (25): Variable((
-                variable_ref: (
-                    path: (
-                        strs: [
-                            "nanosram_tb",
-                        ],
-                        id: Wellen((2)),
-                    ),
-                    name: "sram_ready",
-                    id: Wellen((3)),
-                    index: None,
-                ),
-                color: Some("Violet"),
-                background_color: None,
-                display_name: "sram_ready",
-                display_name_type: Unique,
-                manual_name: None,
-                format: None,
-                field_formats: [],
-                height_scaling_factor: None,
-                analog: None,
-            )),
-            (2): Variable((
-                variable_ref: (
-                    path: (
-                        strs: [
-                            "nanosram_tb",
-                        ],
-                        id: Wellen((2)),
-                    ),
-                    name: "clk",
-                    id: Wellen((19)),
-                    index: None,
-                ),
-                color: None,
-                background_color: None,
-                display_name: "clk",
-                display_name_type: Unique,
-                manual_name: None,
-                format: None,
-                field_formats: [],
-                height_scaling_factor: None,
-                analog: None,
-            )),
-            (23): Variable((
+            (33): Variable((
                 variable_ref: (
                     path: (
                         strs: [
@@ -365,13 +485,13 @@
                         ],
                         id: Wellen((3)),
                     ),
-                    name: "fsm_tag",
-                    id: Wellen((52)),
+                    name: "delay_timer",
+                    id: Wellen((63)),
                     index: None,
                 ),
                 color: None,
                 background_color: None,
-                display_name: "fsm_tag [2:0]",
+                display_name: "delay_timer [14:0]",
                 display_name_type: Unique,
                 manual_name: None,
                 format: None,
@@ -401,28 +521,6 @@
                 height_scaling_factor: None,
                 analog: None,
             )),
-            (27): Variable((
-                variable_ref: (
-                    path: (
-                        strs: [
-                            "nanosram_tb",
-                        ],
-                        id: Wellen((2)),
-                    ),
-                    name: "sram_read_strobe",
-                    id: Wellen((4)),
-                    index: None,
-                ),
-                color: Some("Violet"),
-                background_color: None,
-                display_name: "sram_read_strobe",
-                display_name_type: Unique,
-                manual_name: None,
-                format: None,
-                field_formats: [],
-                height_scaling_factor: None,
-                analog: None,
-            )),
             (12): Variable((
                 variable_ref: (
                     path: (
@@ -438,28 +536,6 @@
                 color: Some("Violet"),
                 background_color: None,
                 display_name: "sram_addr [23:0]",
-                display_name_type: Unique,
-                manual_name: None,
-                format: None,
-                field_formats: [],
-                height_scaling_factor: None,
-                analog: None,
-            )),
-            (7): Variable((
-                variable_ref: (
-                    path: (
-                        strs: [
-                            "nanosram_tb",
-                        ],
-                        id: Wellen((2)),
-                    ),
-                    name: "rst_n",
-                    id: Wellen((20)),
-                    index: None,
-                ),
-                color: None,
-                background_color: None,
-                display_name: "rst_n",
                 display_name_type: Unique,
                 manual_name: None,
                 format: None,
@@ -489,7 +565,12 @@
                 height_scaling_factor: None,
                 analog: None,
             )),
-            (22): Variable((
+            (21): Divider((
+                color: None,
+                background_color: None,
+                name: None,
+            )),
+            (29): Variable((
                 variable_ref: (
                     path: (
                         strs: [
@@ -498,19 +579,24 @@
                         ],
                         id: Wellen((3)),
                     ),
-                    name: "fsm_state",
-                    id: Wellen((51)),
+                    name: "temp_cnt",
+                    id: Wellen((77)),
                     index: None,
                 ),
                 color: None,
                 background_color: None,
-                display_name: "fsm_state [2:0]",
+                display_name: "temp_cnt",
                 display_name_type: Unique,
                 manual_name: None,
                 format: None,
                 field_formats: [],
                 height_scaling_factor: None,
                 analog: None,
+            )),
+            (20): Divider((
+                color: None,
+                background_color: None,
+                name: None,
             )),
             (3): Variable((
                 variable_ref: (
@@ -534,31 +620,22 @@
                 height_scaling_factor: None,
                 analog: None,
             )),
-            (21): Divider((
-                color: None,
-                background_color: None,
-                name: None,
-            )),
-            (20): Divider((
-                color: None,
-                background_color: None,
-                name: None,
-            )),
-            (4): Placeholder((
+            (32): Variable((
                 variable_ref: (
                     path: (
                         strs: [
                             "nanosram_tb",
+                            "dut",
                         ],
-                        id: Wellen((2)),
+                        id: Wellen((3)),
                     ),
-                    name: "i",
-                    id: r#None,
+                    name: "init_sr",
+                    id: Wellen((68)),
                     index: None,
                 ),
                 color: None,
                 background_color: None,
-                display_name: "i [31:0]",
+                display_name: "init_sr [31:0]",
                 display_name_type: Unique,
                 manual_name: None,
                 format: None,
@@ -566,7 +643,7 @@
                 height_scaling_factor: None,
                 analog: None,
             )),
-            (15): Variable((
+            (11): Variable((
                 variable_ref: (
                     path: (
                         strs: [
@@ -574,35 +651,13 @@
                         ],
                         id: Wellen((2)),
                     ),
-                    name: "sram_dout",
-                    id: Wellen((6)),
-                    index: None,
-                ),
-                color: Some("Violet"),
-                background_color: None,
-                display_name: "sram_dout [7:0]",
-                display_name_type: Unique,
-                manual_name: None,
-                format: None,
-                field_formats: [],
-                height_scaling_factor: None,
-                analog: None,
-            )),
-            (9): Variable((
-                variable_ref: (
-                    path: (
-                        strs: [
-                            "nanosram_tb",
-                        ],
-                        id: Wellen((2)),
-                    ),
-                    name: "sio_din",
-                    id: Wellen((1)),
+                    name: "sio_en",
+                    id: Wellen((8)),
                     index: None,
                 ),
                 color: Some("Orange"),
                 background_color: None,
-                display_name: "sio_din [3:0]",
+                display_name: "sio_en",
                 display_name_type: Unique,
                 manual_name: None,
                 format: None,
@@ -610,7 +665,7 @@
                 height_scaling_factor: None,
                 analog: None,
             )),
-            (5): Placeholder((
+            (27): Variable((
                 variable_ref: (
                     path: (
                         strs: [
@@ -618,13 +673,13 @@
                         ],
                         id: Wellen((2)),
                     ),
-                    name: "j",
-                    id: r#None,
+                    name: "sram_read_strobe",
+                    id: Wellen((4)),
                     index: None,
                 ),
-                color: None,
+                color: Some("Violet"),
                 background_color: None,
-                display_name: "j [31:0]",
+                display_name: "sram_read_strobe",
                 display_name_type: Unique,
                 manual_name: None,
                 format: None,
@@ -632,43 +687,22 @@
                 height_scaling_factor: None,
                 analog: None,
             )),
-            (6): Placeholder((
+            (23): Variable((
                 variable_ref: (
                     path: (
                         strs: [
                             "nanosram_tb",
+                            "dut",
                         ],
-                        id: Wellen((2)),
+                        id: Wellen((3)),
                     ),
-                    name: "k",
-                    id: r#None,
+                    name: "fsm_tag",
+                    id: Wellen((66)),
                     index: None,
                 ),
                 color: None,
                 background_color: None,
-                display_name: "k [31:0]",
-                display_name_type: Unique,
-                manual_name: None,
-                format: None,
-                field_formats: [],
-                height_scaling_factor: None,
-                analog: None,
-            )),
-            (1): Placeholder((
-                variable_ref: (
-                    path: (
-                        strs: [
-                            "nanosram_tb",
-                        ],
-                        id: Wellen((2)),
-                    ),
-                    name: "X",
-                    id: r#None,
-                    index: None,
-                ),
-                color: None,
-                background_color: None,
-                display_name: "X [31:0]",
+                display_name: "fsm_tag [3:0]",
                 display_name_type: Unique,
                 manual_name: None,
                 format: None,
@@ -677,21 +711,21 @@
                 analog: None,
             )),
         },
-        display_item_ref_counter: 28,
+        display_item_ref_counter: 33,
         viewports: [
             (
-                curr_left: (0.12072885040963209),
-                curr_right: (0.26232336947439927),
-                target_left: (0.00033063822416621956),
-                target_right: (0.0004883427527204896),
-                move_start_left: (0.00033063822416621956),
-                move_start_right: (0.0004883427527204896),
+                curr_left: (0.939867659907037),
+                curr_right: (0.941821679590708),
+                target_left: (0.9329838605954757),
+                target_right: (0.9345836761941051),
+                move_start_left: (0.9329838605954757),
+                move_start_right: (0.9345836761941051),
                 move_duration: None,
                 move_strategy: Instant,
             ),
         ],
         cursor: Some((1, [
-            710000,
+            243130000,
         ])),
         markers: {},
         selected_annotation: None,
@@ -700,7 +734,7 @@
         annotation_list_visible: false,
         annotation_counter: 0,
         last_active_viewport_idx: 0,
-        focused_item: Some((8)),
+        focused_item: Some((24)),
         focused_transaction: (None, None),
         default_variable_name_type: Unique,
         scroll_offset: 0.0,
@@ -709,10 +743,7 @@
     )),
     drag_started: false,
     drag_source_idx: None,
-    drag_target_idx: Some((
-        before: (8),
-        level: 0,
-    )),
+    drag_target_idx: None,
     previous_waves: None,
     count: None,
     blacklisted_translators: [],
@@ -750,7 +781,7 @@
         include_others: true,
         group_by_direction: false,
     ),
-    sidepanel_width: Some(111.96875),
+    sidepanel_width: Some(300.0),
     ui_zoom_factor: Some(1.5),
     animation_enabled: None,
     trace_style: None,

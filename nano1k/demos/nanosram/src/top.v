@@ -9,6 +9,11 @@ module top(
     inout wire [3:0] sio
 );
 
+    localparam
+        PSRAM  = 0,   // 1 == use PSRAM, 0 == SRAM
+        FREQ   = 81,  // clock rate in MHz
+        RUNLEN = 16;  // how many bytes to transfer
+
     wire pllclk;
 
     Gowin_rPLL MrGoFast(
@@ -37,7 +42,7 @@ module top(
     assign sio     = sio_en ? sio_dout : 4'bzzzz;
     assign sio_din = sio;
 
-    nanosram emm386 (
+    nanosram #(.PSRAM(PSRAM), .FREQ(FREQ)) emm386 (
         .clk(pllclk), .rst_n(rst_n),
         .addr({8'b0, sram_addr}), .data_in(sram_din), .data_out(sram_dout), .wr_en(sram_wr_en),
         .start_trans(sram_start_trans), .ready(sram_ready), .busy(sram_busy), .idle(sram_idle),
@@ -83,7 +88,7 @@ module top(
                         if (sram_ready & sram_write_strobe) begin
                             // the write strobe occurs BEFORE the current byte is finished so if we lower
                             // start_trans the FSM will stop writing with the current byte being shifted out
-                            if (sram_addr == (16'h1234 + 16'd1023)) begin
+                            if (sram_addr == (16'h1234 + RUNLEN - 1)) begin
                                 sram_start_trans <= 0;
                                 test_state       <= STATE_START_READ;
                             end else begin
@@ -105,13 +110,13 @@ module top(
                 STATE_LOOP_READ:                                               // by this point we're in SHIFT_QUAD
                     begin
                         if (sram_ready & sram_read_strobe) begin
-                            if (sram_addr == (16'h1234 + 16'd1024)) begin
+                            if (sram_addr == (16'h1234 + RUNLEN)) begin
                                 {rgb_r, rgb_g, rgb_b} <= 3'b000; // white == good
                             end else begin
 								// we're at the 2nd last byte turn off the transaction so it stops reading once it reads
 								// byte 1024.  Unlike write_strobe the read_strobe occurs on the cycle the latest byte is
                                 // valid so we need to lower the start_trans reg on the count-1 byte.
-                                if (sram_addr == (16'h1234 + 16'd1023)) begin
+                                if (sram_addr == (16'h1234 + RUNLEN - 1)) begin
                                     sram_start_trans      <= 1'b0;
                                 end
                                 if (sram_dout == ((8'h2A + sram_addr[7:0] - 8'h34) & 8'hFF)) begin

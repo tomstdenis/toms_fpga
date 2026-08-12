@@ -33,7 +33,7 @@ module nanosram_tb();
     wire       cs_pin;
 	wire	   sck_pin;
 
-    nanosram dut(
+    nanosram #(.PSRAM(1)) dut(
         .clk(clk), .rst_n(rst_n),
         .addr(sram_addr), .data_in(sram_din), .data_out(sram_dout), .wr_en(sram_wr_en),
         .start_trans(sram_start_trans), .busy(sram_busy), .idle(sram_idle), .ready(sram_ready),
