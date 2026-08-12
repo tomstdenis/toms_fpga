@@ -11,7 +11,7 @@ module top(
 
     localparam
         PSRAM  = 1,   // 1 == use PSRAM, 0 == SRAM
-        FREQ   = 81,  // clock rate in MHz
+        FREQ   = 101,  // clock rate in MHz
         RUNLEN = 16;  // how many bytes to transfer
 
     wire pllclk;

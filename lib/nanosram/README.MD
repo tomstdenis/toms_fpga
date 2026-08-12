@@ -1,14 +1,18 @@
-# Nano SRAM Driver
+# Nano (P)SRAM Driver
 
-This Verilog module presents a simple 1-byte-wide interface to SPI-based 8-pin SRAM chips that support QPI mode. It provides an interface to start a read or write transaction, which is then prompted by strobe signals and continued until the transmission signal is lowered. This provides a rather compact module to stream data with.
+This Verilog module presents a simple 1-byte-wide interface to SPI-based 8-pin (P)SRAM chips that support QPI mode. It provides an interface to start a read or write transaction, which is then prompted by strobe signals and continued until the transmission signal is lowered. This provides a rather compact module to stream data with.
+
+Note: In PSRAM mode it uses a 50nS hangup timer and a 50uS wakeup timer.
 
 ## Instantiation
 
-The module has three parameters that configure it for the particular SRAM IC you are using and the clock domain your module will reside in:
+The module has five parameters that configure it for the particular SRAM IC you are using and the clock domain your module will reside in:
 
 1. **SRAM_ADDR_WIDTH**: The number of bits in the address, typically 24 or 16. Default: 24.
 2. **DUMMY_BYTES**: Number of dummy bytes to read when performing an `8'h0B` fast read. Default: 3.
 3. **QPI_TIMER**: Length of each half-phase of SCK, expressed as: **1 + QPI_TIMER**. Default: 0.
+4. **PSRAM**: Enable PSRAM mode (0 == SRAM mode). Default: 0
+5. **FREQ**: Frequency in MHz (only used in PSRAM mode). Default: 81
 
 The module has the following ports:
 
@@ -166,3 +170,4 @@ As RTL pseudo-code:
 * With most SRAMs, you can keep a transmission alive indefinitely. Due to the nature of this module, that means you're constantly reading or writing as long as **start_trans** is high.
 * There must be one cycle in which **start_trans** is low between jobs, and you must wait for **idle** to be high before changing any of the command parameters, including setting **start_trans** back to high.
 * The included testbench **nanosram_tb.v** demonstrates how to perform a 16-byte-long burst.
+* In PSRAM mode keep in mind there's a hangup delay between transmissions and you can only hold **start_trans** high for around 4uS at a max (depends on PSRAM).
