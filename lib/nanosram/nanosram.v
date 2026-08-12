@@ -24,7 +24,8 @@ module nanosram #(
     parameter DUMMY_BYTES=3,                // number of dummy cycles on a fast read
     parameter QPI_TIMER=0,                  // how many cycles every half cycle of SCK is (minus 1)
     parameter PSRAM=0,                      // switch between PSRAM and SRAM
-    parameter FREQ=81                       // frequency of core in MHz used for PSRAM timing
+    parameter FREQ=81,                      // frequency of core in MHz used for PSRAM timing
+    parameter SKIP_RESET=1                  // Skip the RESET EN / RESET commands on PSRAM (seems to work for me and shaves 20 LUT4s off)
 )(
     input wire clk,
     input wire rst_n,
@@ -58,10 +59,8 @@ module nanosram #(
 `endif	
 
     localparam
-        CYCLES_PER_USEC = FREQ,
-        NSEC_PER_CYCLE = (1000 / FREQ),
-        WAKEUP_CYCLES = CYCLES_PER_USEC * 50,           // 50 uSec wakeup timer (smaller value == better timing and seems to work)
-        HANGUP_CYCLES = NSEC_PER_CYCLE * 50;            // 50ns hangup timer
+        WAKEUP_CYCLES = FREQ * 50,                      // 50 uSec wakeup timer (smaller value == better timing and seems to work)
+        HANGUP_CYCLES = (50 * FREQ + 999) / 1000;       // 50ns hangup timer
 
     reg [$clog2(WAKEUP_CYCLES):0] delay_timer;
     reg [$clog2(QPI_TIMER):0] qpi_timer;    // timer to divide clk into SCK
@@ -142,17 +141,18 @@ module nanosram #(
         if (!rst_n) begin
             if (PSRAM == 1) begin
                 fsm_state      <= FSM_DELAY;
-                fsm_delay_tag  <= FSM_STATE_INIT;
+                fsm_delay_tag  <= (SKIP_RESET == 0) ? FSM_STATE_INIT : FSM_STATE_EQIO;
                 delay_timer    <= WAKEUP_CYCLES;
+                init_sr        <= (SKIP_RESET == 0) ?  psram_reseten_bits : psram_eqio_bits;
             end else begin
-                fsm_state <= FSM_STATE_INIT;
+                fsm_state      <= FSM_STATE_INIT;
+                init_sr        <= sram_eqio_bits;
             end
             sio_dout      <= 4'b1111;
             sio_en        <= 1'b1;
             cs_pin        <= 1'b1;
             sck_pin       <= 1'b0;
             init_cnt      <= 3;
-            init_sr       <= (PSRAM == 0) ? sram_eqio_bits : psram_reseten_bits;
             data_out      <= 8'h00;
 			ready         <= 1'b0;
 			temp_cnt      <= 1;
@@ -178,27 +178,32 @@ module nanosram #(
                             if (PSRAM == 0) begin
                                 fsm_tag <= (init_cnt == 0) ? FSM_STATE_IDLE : fsm_state;
                             end else begin
-                                init_cnt      <= 3;
                                 fsm_tag       <= FSM_DELAY;
                                 delay_timer   <= 1;
-                                case (fsm_state)
-                                    FSM_STATE_INIT:
-                                        begin
-                                            // send reset 
-                                            init_sr       <= psram_reset_bits;
-                                            fsm_delay_tag <= FSM_STATE_RESET;
-                                        end
-                                    FSM_STATE_RESET:
-                                        begin
-                                            // send EQIO
-                                            init_sr       <= psram_eqio_bits;
-                                            fsm_delay_tag <= FSM_STATE_EQIO;
-                                        end
-                                    FSM_STATE_EQIO:
-                                        begin
-                                            fsm_delay_tag <= FSM_STATE_IDLE;
-                                        end
-                                endcase
+                                if (SKIP_RESET == 0) begin
+                                    init_cnt  <= 3;
+                                    case (fsm_state)
+                                        FSM_STATE_INIT:
+                                            begin
+                                                // send reset 
+                                                init_sr       <= psram_reset_bits;
+                                                fsm_delay_tag <= FSM_STATE_RESET;
+                                            end
+                                        FSM_STATE_RESET:
+                                            begin
+                                                // send EQIO
+                                                init_sr       <= psram_eqio_bits;
+                                                fsm_delay_tag <= FSM_STATE_EQIO;
+                                            end
+                                        FSM_STATE_EQIO:
+                                            begin
+                                                fsm_delay_tag <= FSM_STATE_IDLE;
+                                            end
+                                    endcase
+                                end else begin
+                                    // we only sent EQIO so jump to IDLE
+                                    fsm_delay_tag <= FSM_STATE_IDLE;
+                                end
                             end
                         end else begin
                             fsm_tag  <= fsm_state;
