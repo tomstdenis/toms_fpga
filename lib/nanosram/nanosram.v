@@ -60,7 +60,7 @@ module nanosram #(
     localparam
         CYCLES_PER_USEC = FREQ,
         NSEC_PER_CYCLE = (1000 / FREQ),
-        WAKEUP_CYCLES = CYCLES_PER_USEC * 150,          // 150 uSec wakeup timer
+        WAKEUP_CYCLES = CYCLES_PER_USEC * 50,           // 50 uSec wakeup timer (smaller value == better timing and seems to work)
         HANGUP_CYCLES = NSEC_PER_CYCLE * 50;            // 50ns hangup timer
 
     reg [$clog2(WAKEUP_CYCLES):0] delay_timer;
@@ -178,30 +178,25 @@ module nanosram #(
                             if (PSRAM == 0) begin
                                 fsm_tag <= (init_cnt == 0) ? FSM_STATE_IDLE : fsm_state;
                             end else begin
+                                init_cnt      <= 3;
+                                fsm_tag       <= FSM_DELAY;
+                                delay_timer   <= 1;
                                 case (fsm_state)
                                     FSM_STATE_INIT:
                                         begin
                                             // send reset 
                                             init_sr       <= psram_reset_bits;
-                                            init_cnt      <= 3;
-                                            fsm_tag       <= FSM_DELAY;
                                             fsm_delay_tag <= FSM_STATE_RESET;
-                                            delay_timer   <= 1;
                                         end
                                     FSM_STATE_RESET:
                                         begin
                                             // send EQIO
                                             init_sr       <= psram_eqio_bits;
-                                            init_cnt      <= 3;
-                                            fsm_tag       <= FSM_DELAY;
                                             fsm_delay_tag <= FSM_STATE_EQIO;
-                                            delay_timer   <= 1;
                                         end
                                     FSM_STATE_EQIO:
                                         begin
                                             fsm_delay_tag <= FSM_STATE_IDLE;
-                                            fsm_tag       <= FSM_DELAY;
-                                            delay_timer   <= 1;
                                         end
                                 endcase
                             end

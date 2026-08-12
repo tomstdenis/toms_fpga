@@ -10,7 +10,7 @@ module top(
 );
 
     localparam
-        PSRAM  = 0,   // 1 == use PSRAM, 0 == SRAM
+        PSRAM  = 1,   // 1 == use PSRAM, 0 == SRAM
         FREQ   = 81,  // clock rate in MHz
         RUNLEN = 16;  // how many bytes to transfer
 
@@ -20,7 +20,6 @@ module top(
         .clkout(pllclk), //output clkout
         .clkin(clk) //input clkin
     );
-
 
     reg rst_n = 1'b0;
 
