@@ -62,7 +62,7 @@ module top(
     assign sio     = sio_en ? sio_dout : 4'bzzzz;
     assign sio_din = sio;
 
-    nanosram #(.PSRAM(PSRAM), .FREQ(FREQ)) emm386 (
+    nanosram #(.PSRAM(PSRAM), .FREQ(FREQ), .SKIP_RESET(1)) emm386 (
         .clk(pllclk), .rst_n(rst_n),
         .addr(sram_addr), .data_in(sram_din), .data_out(sram_dout), .wr_en(sram_wr_en),
         .start_trans(sram_start_trans), .ready(sram_ready), .busy(sram_busy), .idle(sram_idle),
