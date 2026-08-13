@@ -1,5 +1,9 @@
 module top(
     input wire clk,
+
+    output wire uart_tx,
+    input wire uart_rx,
+
     output reg rgb_r,
     output reg rgb_g,
     output reg rgb_b,
@@ -11,7 +15,7 @@ module top(
 
     localparam
         PSRAM  = 1,   // 1 == use PSRAM, 0 == SRAM
-        FREQ   = 101,  // clock rate in MHz
+        FREQ   = 81,  // clock rate in MHz
         RUNLEN = 16;  // how many bytes to transfer
 
     wire pllclk;
@@ -22,6 +26,23 @@ module top(
     );
 
     reg rst_n = 1'b0;
+
+    localparam
+        baud     = 230_400,
+        baud_div = (FREQ * 1_000_000) / baud,
+        baud_width = $clog2(baud_div);
+
+    wire [baud_width-1:0] bauddiv = baud_div;
+
+    reg uart_tx_start;
+    reg [7:0] uart_tx_data_in;
+    wire uart_tx_fifo_full;
+    wire uart_tx_fifo_empty;
+
+    uart #(.FIFO_DEPTH(4), .RX_ENABLE(0), .TX_ENABLE(1), .BAUD_WIDTH(baud_width)) MrTalky(
+        .clk(pllclk), .rst_n(rst_n),
+        .baud_div(bauddiv), .uart_tx_start(uart_tx_start), .uart_tx_data_in(uart_tx_data_in),
+        .uart_tx_pin(uart_tx), .uart_tx_fifo_empty(uart_tx_fifo_empty), .uart_tx_fifo_full(uart_tx_fifo_full));
 
     reg [15:0] sram_addr;
     reg [7:0]  sram_din;
@@ -49,15 +70,16 @@ module top(
         .sio_din(sio_din), .sio_dout(sio_dout), .sio_en(sio_en), .cs_pin(cs_pin), .sck_pin(sck_pin));
 
     // simple test go to address 16'h1234 and write 16 bytes starting at value 8'h55 increasing by 1 per bytes
-    reg [1:0] test_state;
-    reg [1:0] test_tag;
+    reg [2:0] test_state;
+    reg [2:0] test_tag;
     reg [1:0] test_cycle;
 
     localparam
         STATE_START_WRITE = 0,
         STATE_LOOP_WRITE  = 1,
         STATE_START_READ  = 2,
-        STATE_LOOP_READ   = 3;
+        STATE_LOOP_READ   = 3,
+        STATE_DONE        = 4;
 
     always @(posedge pllclk) begin
         if (!rst_n) begin
@@ -69,10 +91,12 @@ module top(
             rgb_b            <= 1'b1;
             test_state       <= STATE_START_WRITE;
             test_cycle       <= 0;
+            uart_tx_start    <= 1'b0;
         end else begin
             case (test_state)
                 STATE_START_WRITE:
                     begin
+                        uart_tx_start <= 1'b0;
                         if (sram_idle) begin
                             sram_addr             <= 16'h1234;
                             sram_din              <= 8'h2A;
@@ -111,6 +135,8 @@ module top(
                         if (sram_ready & sram_read_strobe) begin
                             if (sram_addr == (16'h1234 + RUNLEN)) begin
                                 {rgb_r, rgb_g, rgb_b} <= 3'b000; // white == good
+                                uart_tx_data_in       <= 65;
+                                test_state            <= STATE_DONE;
                             end else begin
 								// we're at the 2nd last byte turn off the transaction so it stops reading once it reads
 								// byte 1024.  Unlike write_strobe the read_strobe occurs on the cycle the latest byte is
@@ -119,12 +145,21 @@ module top(
                                     sram_start_trans      <= 1'b0;
                                 end
                                 if (sram_dout == ((8'h2A + sram_addr[7:0] - 8'h34) & 8'hFF)) begin
-                                    sram_addr         <= sram_addr + 1'b1;
+                                    sram_addr             <= sram_addr + 1'b1;
                                 end else begin 
                                     {rgb_r, rgb_b, rgb_b} <= 3'b011;        // compare error == RED
                                     sram_start_trans      <= 1'b0;
+                                    uart_tx_data_in       <= 66;
+                                    test_state            <= STATE_DONE;
                                 end
                             end
+                        end
+                    end
+                STATE_DONE:
+                    begin
+                        if (!uart_tx_fifo_full) begin
+                            uart_tx_start <= 1'b1;
+                            test_state    <= STATE_START_WRITE;
                         end
                     end
             endcase

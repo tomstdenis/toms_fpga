@@ -25,7 +25,7 @@ module nanosram #(
     parameter QPI_TIMER=0,                  // how many cycles every half cycle of SCK is (minus 1)
     parameter PSRAM=0,                      // switch between PSRAM and SRAM
     parameter FREQ=81,                      // frequency of core in MHz used for PSRAM timing
-    parameter SKIP_RESET=1                  // Skip the RESET EN / RESET commands on PSRAM (seems to work for me and shaves 20 LUT4s off)
+    parameter SKIP_RESET=0                  // Skip the RESET EN / RESET commands on PSRAM (seems to work for me and shaves 20 LUT4s off)
 )(
     input wire clk,
     input wire rst_n,
@@ -182,22 +182,20 @@ module nanosram #(
                                 delay_timer   <= 1;
                                 if (SKIP_RESET == 0) begin
                                     init_cnt  <= 3;
+                                    fsm_delay_tag[1:0] <= fsm_delay_tag[1:0] + 1'b1;            // the first 4 FSM states to run must be numerically in order
                                     case (fsm_state)
                                         FSM_STATE_INIT:
                                             begin
                                                 // send reset 
                                                 init_sr       <= psram_reset_bits;
-                                                fsm_delay_tag <= FSM_STATE_RESET;
                                             end
                                         FSM_STATE_RESET:
                                             begin
                                                 // send EQIO
                                                 init_sr       <= psram_eqio_bits;
-                                                fsm_delay_tag <= FSM_STATE_EQIO;
                                             end
                                         FSM_STATE_EQIO:
                                             begin
-                                                fsm_delay_tag <= FSM_STATE_IDLE;
                                             end
                                     endcase
                                 end else begin
