@@ -16,7 +16,7 @@ module top(
     localparam
         PSRAM  = 1,   // 1 == use PSRAM, 0 == SRAM
         FREQ   = 81,  // clock rate in MHz
-        RUNLEN = 16;  // how many bytes to transfer
+        RUNLEN = 31;  // how many bytes to transfer (31 so the addresses come out of alignment)
 
     wire pllclk;
 
@@ -44,7 +44,7 @@ module top(
         .baud_div(bauddiv), .uart_tx_start(uart_tx_start), .uart_tx_data_in(uart_tx_data_in),
         .uart_tx_pin(uart_tx), .uart_tx_fifo_empty(uart_tx_fifo_empty), .uart_tx_fifo_full(uart_tx_fifo_full));
 
-    reg [15:0] sram_addr;
+    reg [23:0] sram_addr;
     reg [7:0]  sram_din;
     wire [7:0] sram_dout;
     reg        sram_wr_en;
@@ -64,7 +64,7 @@ module top(
 
     nanosram #(.PSRAM(PSRAM), .FREQ(FREQ)) emm386 (
         .clk(pllclk), .rst_n(rst_n),
-        .addr({8'b0, sram_addr}), .data_in(sram_din), .data_out(sram_dout), .wr_en(sram_wr_en),
+        .addr(sram_addr), .data_in(sram_din), .data_out(sram_dout), .wr_en(sram_wr_en),
         .start_trans(sram_start_trans), .ready(sram_ready), .busy(sram_busy), .idle(sram_idle),
         .read_strobe(sram_read_strobe), .write_strobe(sram_write_strobe),
         .sio_din(sio_din), .sio_dout(sio_dout), .sio_en(sio_en), .cs_pin(cs_pin), .sck_pin(sck_pin));
@@ -72,7 +72,7 @@ module top(
     // simple test go to address 16'h1234 and write 16 bytes starting at value 8'h55 increasing by 1 per bytes
     reg [2:0] test_state;
     reg [2:0] test_tag;
-    reg [1:0] test_cycle;
+    reg [$clog2(RUNLEN):0] test_cycle;
 
     localparam
         STATE_START_WRITE = 0,
@@ -92,26 +92,28 @@ module top(
             test_state       <= STATE_START_WRITE;
             test_cycle       <= 0;
             uart_tx_start    <= 1'b0;
+            sram_addr        <= 24'h1234;
         end else begin
             case (test_state)
                 STATE_START_WRITE:
                     begin
                         uart_tx_start <= 1'b0;
                         if (sram_idle) begin
-                            sram_addr             <= 16'h1234;
                             sram_din              <= 8'h2A;
                             sram_start_trans      <= 1'b1;
                             sram_wr_en            <= 1'b1;
                             {rgb_r, rgb_g, rgb_b} <= 3'b101; // green == writing
                             test_state            <= STATE_LOOP_WRITE;
+                            test_cycle            <= 0;
                         end
                     end
                 STATE_LOOP_WRITE:                                               // by this point we're in SHIFT_QUAD
                     begin
                         if (sram_ready & sram_write_strobe) begin
+                            test_cycle <= test_cycle + 1'b1;
                             // the write strobe occurs BEFORE the current byte is finished so if we lower
                             // start_trans the FSM will stop writing with the current byte being shifted out
-                            if (sram_addr == (16'h1234 + RUNLEN - 1)) begin
+                            if (test_cycle == RUNLEN) begin
                                 sram_start_trans <= 0;
                                 test_state       <= STATE_START_READ;
                             end else begin
@@ -128,12 +130,14 @@ module top(
                             sram_start_trans      <= 1'b1;
                             {rgb_r, rgb_g, rgb_b} <= 3'b110; // blue == read
                             test_state            <= STATE_LOOP_READ;
+                            test_cycle            <= 0;
                         end
                     end
                 STATE_LOOP_READ:                                               // by this point we're in SHIFT_QUAD
                     begin
                         if (sram_ready & sram_read_strobe) begin
-                            if (sram_addr == (16'h1234 + RUNLEN)) begin
+                            test_cycle <= test_cycle + 1'b1;
+                            if (test_cycle == RUNLEN) begin
                                 {rgb_r, rgb_g, rgb_b} <= 3'b000; // white == good
                                 uart_tx_data_in       <= 65;
                                 test_state            <= STATE_DONE;
@@ -141,7 +145,7 @@ module top(
 								// we're at the 2nd last byte turn off the transaction so it stops reading once it reads
 								// byte 1024.  Unlike write_strobe the read_strobe occurs on the cycle the latest byte is
                                 // valid so we need to lower the start_trans reg on the count-1 byte.
-                                if (sram_addr == (16'h1234 + RUNLEN - 1)) begin
+                                if (test_cycle == RUNLEN - 1) begin
                                     sram_start_trans      <= 1'b0;
                                 end
                                 if (sram_dout == ((8'h2A + sram_addr[7:0] - 8'h34) & 8'hFF)) begin
