@@ -73,6 +73,7 @@ module top(
     reg [2:0] test_state;
     reg [2:0] test_tag;
     reg [$clog2(RUNLEN):0] test_cycle;
+    reg [7:0] test_byte;
     
     localparam
         STATE_START_WRITE = 0,
@@ -94,13 +95,14 @@ module top(
             uart_tx_start    <= 1'b0;
             sram_addr        <= 0;
             sram_din         <= 0;
+            test_byte        <= 0;
         end else begin
             case (test_state)
                 STATE_START_WRITE:
                     begin
                         uart_tx_start <= 1'b0;
                         if (sram_idle) begin
-                            sram_din              <= sram_din + 1'b1;
+                            sram_din              <= test_byte;
                             sram_start_trans      <= 1'b1;
                             sram_wr_en            <= 1'b1;
                             {rgb_r, rgb_g, rgb_b} <= 3'b101; // green == writing
@@ -112,6 +114,7 @@ module top(
                     begin
                         if (sram_ready & sram_write_strobe) begin
                             test_cycle <= test_cycle + 1'b1;
+                            sram_din <= sram_din + 1'b1;
                             // the write strobe occurs BEFORE the current byte is finished so if we lower
                             // start_trans the FSM will stop writing with the current byte being shifted out
                             if (test_cycle == RUNLEN) begin
@@ -123,6 +126,8 @@ module top(
                 STATE_START_READ:
                     begin
                         if (sram_idle) begin
+                            test_byte             <= test_byte + 1'b1;
+                            sram_din              <= test_byte;
                             sram_wr_en            <= 1'b0;
                             sram_start_trans      <= 1'b1;
                             {rgb_r, rgb_g, rgb_b} <= 3'b110; // blue == read
@@ -140,6 +145,7 @@ module top(
                                 test_state            <= STATE_DONE;
                                 sram_addr             <= sram_addr + RUNLEN;
                             end else begin
+                                sram_din <= sram_din +1'b1;
 								// we're at the 2nd last byte turn off the transaction so it stops reading once it reads
 								// byte 1024.  Unlike write_strobe the read_strobe occurs on the cycle the latest byte is
                                 // valid so we need to lower the start_trans reg on the count-1 byte.
