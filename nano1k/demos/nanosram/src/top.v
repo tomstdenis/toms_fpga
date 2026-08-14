@@ -16,7 +16,7 @@ module top(
     localparam
         PSRAM  = 1,   // 1 == use PSRAM, 0 == SRAM
         FREQ   = 81,  // clock rate in MHz
-        RUNLEN = 31;  // how many bytes to transfer (31 so the addresses come out of alignment)
+        RUNLEN = 7;  // how many bytes to transfer (7 so the addresses come out of alignment)
 
     wire pllclk;
 

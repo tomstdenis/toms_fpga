@@ -145,10 +145,8 @@ module nanosram #(
             end else begin
                 fsm_state      <= FSM_STATE_EQIO;
             end
-            sio_dout      <= 4'b1111;
             sio_en        <= 1'b1;
             sck_pin       <= 1'b0;
-            data_out      <= 8'h00;
 			ready         <= 1'b0;
 			temp_cnt      <= 1;
             qpi_timer     <= QPI_TIMER;
