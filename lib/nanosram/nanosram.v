@@ -67,9 +67,10 @@ module nanosram #(
     reg [7:0] temp_wire_bits;               // latch the data_in/out
     reg       temp_cnt;                     // which nibble are we on
     reg [1:0] init_cnt;
-    reg [2+PSRAM:0] fsm_state;                    // FSM state control
-    reg [2+PSRAM:0] fsm_tag;
-    reg [2+PSRAM:0] fsm_delay_tag;
+    reg [31:0] init_sr;
+    reg [3:0] fsm_state;                    // FSM state control
+    reg [3:0] fsm_tag;
+    reg [3:0] fsm_delay_tag;
     
     wire [31:0] sram_eqio_bits;                  // Enter QIO mode framed as QPI transactions (0x38)
     assign sram_eqio_bits = { // 0011_1000
@@ -121,20 +122,18 @@ module nanosram #(
 
     localparam
         FSM_STATE_INIT  = 0,
-        FSM_STATE_RESET = (PSRAM == 0) ? 0 : 1,
-        FSM_STATE_EQIO  = (PSRAM == 0) ? 0 : 2,
-        FSM_STATE_IDLE  = (PSRAM == 0) ? 1 : 3,
-        FSM_WRITE_ADDR  = (PSRAM == 0) ? 2 : 4,
-        FSM_WAIT_DUMMY  = (PSRAM == 0) ? 3 : 5,
-        FSM_WORK_MODE   = (PSRAM == 0) ? 4 : 6,
-        FSM_SHIFT_QUAD  = (PSRAM == 0) ? 5 : 7,
-        FSM_DELAY       = (PSRAM == 0) ? 6 : 8;
+        FSM_STATE_RESET = 1,
+        FSM_STATE_EQIO  = 2,
+        FSM_STATE_IDLE  = 3,
+        FSM_WRITE_ADDR  = 4,
+        FSM_WAIT_DUMMY  = 5,
+        FSM_WORK_MODE   = 6,
+        FSM_SHIFT_QUAD  = 7,
+        FSM_DELAY       = 8;
     
     assign idle = (fsm_state == FSM_STATE_IDLE) ? 1'b1 : 1'b0;
     assign busy = (fsm_state == FSM_SHIFT_QUAD) ? 1'b1 : 1'b0;
-    
-    reg [31:0] init_sr;
-    
+       
     always @(posedge clk) begin
 		write_strobe <= 1'b0;
 		read_strobe  <= 1'b0;
@@ -145,7 +144,7 @@ module nanosram #(
                 delay_timer    <= WAKEUP_CYCLES;
                 init_sr        <= (SKIP_RESET == 0) ?  psram_reseten_bits : psram_eqio_bits;
             end else begin
-                fsm_state      <= FSM_STATE_INIT;
+                fsm_state      <= FSM_STATE_EQIO;
                 init_sr        <= sram_eqio_bits;
             end
             sio_dout      <= 4'b1111;
@@ -156,10 +155,10 @@ module nanosram #(
             data_out      <= 8'h00;
 			ready         <= 1'b0;
 			temp_cnt      <= 1;
+            qpi_timer     <= QPI_TIMER;
 `ifdef MODEL_SIM
 			sim_active    <= 1'b0;
 `endif			
-            qpi_timer     <= QPI_TIMER;
         end else begin
             case (fsm_state)
                 FSM_STATE_INIT, FSM_STATE_RESET, FSM_STATE_EQIO:  // Send init commands
@@ -174,9 +173,12 @@ module nanosram #(
 
                         // advance state
                         fsm_state      <= FSM_SHIFT_QUAD;
+                        fsm_tag  <= fsm_state;
+                        init_cnt <= init_cnt - 1'b1;
+                        init_sr	 <= {init_sr[23:0], 8'b0};
                         if (init_cnt == 0) begin
                             if (PSRAM == 0) begin
-                                fsm_tag <= (init_cnt == 0) ? FSM_STATE_IDLE : fsm_state;
+                                fsm_tag <= FSM_STATE_IDLE;
                             end else begin
                                 fsm_tag       <= FSM_DELAY;
                                 delay_timer   <= 1;
@@ -203,10 +205,6 @@ module nanosram #(
                                     fsm_delay_tag <= FSM_STATE_IDLE;
                                 end
                             end
-                        end else begin
-                            fsm_tag  <= fsm_state;
-                            init_cnt <= init_cnt - 1'b1;
-                            init_sr	 <= {init_sr[23:0], 8'b0};
                         end
                     end
                 FSM_STATE_IDLE:
@@ -323,7 +321,7 @@ module nanosram #(
 `endif
 										end
 									end else begin
-										fsm_state          <= fsm_tag;					  // transaction cancelled or not shifting more data
+										fsm_state <= fsm_tag;	// transaction cancelled or not shifting more data
                                         if (PSRAM == 1) begin
                                             // if we're ending a transmission we need to do the hangup cycles first
                                             if (fsm_tag == FSM_STATE_IDLE) begin

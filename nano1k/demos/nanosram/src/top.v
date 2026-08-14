@@ -39,7 +39,7 @@ module top(
     wire uart_tx_fifo_full;
     wire uart_tx_fifo_empty;
 
-    uart #(.FIFO_DEPTH(4), .RX_ENABLE(0), .TX_ENABLE(1), .BAUD_WIDTH(baud_width)) MrTalky(
+    uart #(.FIFO_DEPTH(8), .RX_ENABLE(0), .TX_ENABLE(1), .BAUD_WIDTH(baud_width)) MrTalky(
         .clk(pllclk), .rst_n(rst_n),
         .baud_div(bauddiv), .uart_tx_start(uart_tx_start), .uart_tx_data_in(uart_tx_data_in),
         .uart_tx_pin(uart_tx), .uart_tx_fifo_empty(uart_tx_fifo_empty), .uart_tx_fifo_full(uart_tx_fifo_full));
@@ -145,7 +145,7 @@ module top(
                                 test_state            <= STATE_DONE;
                                 sram_addr             <= sram_addr + RUNLEN;
                             end else begin
-                                sram_din <= sram_din +1'b1;
+                                sram_din <= sram_din + 1'b1;
 								// we're at the 2nd last byte turn off the transaction so it stops reading once it reads
 								// byte 1024.  Unlike write_strobe the read_strobe occurs on the cycle the latest byte is
                                 // valid so we need to lower the start_trans reg on the count-1 byte.
