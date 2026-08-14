@@ -66,11 +66,11 @@ module nanosram #(
     reg [$clog2(QPI_TIMER):0] qpi_timer;    // timer to divide clk into SCK
     reg [7:0] temp_wire_bits;               // latch the data_in/out
     reg       temp_cnt;                     // which nibble are we on
-    reg [1:0] init_cnt;
+    reg [2:0] init_cnt;
     reg [31:0] init_sr;
-    reg [3:0] fsm_state;                    // FSM state control
-    reg [3:0] fsm_tag;
-    reg [3:0] fsm_delay_tag;
+    reg [2:0] fsm_state;                    // FSM state control
+    reg [2:0] fsm_tag;
+    reg [2:0] fsm_delay_tag;
     
     wire [31:0] sram_eqio_bits;                  // Enter QIO mode framed as QPI transactions (0x38)
     assign sram_eqio_bits = { // 0011_1000
@@ -126,10 +126,9 @@ module nanosram #(
         FSM_STATE_EQIO  = 2,
         FSM_STATE_IDLE  = 3,
         FSM_WRITE_ADDR  = 4,
-        FSM_WAIT_DUMMY  = 5,
-        FSM_WORK_MODE   = 6,
-        FSM_SHIFT_QUAD  = 7,
-        FSM_DELAY       = 8;
+        FSM_WORK_MODE   = 5,
+        FSM_SHIFT_QUAD  = 6,
+        FSM_DELAY       = 7;
     
     assign idle = (fsm_state == FSM_STATE_IDLE) ? 1'b1 : 1'b0;
     assign busy = (fsm_state == FSM_SHIFT_QUAD) ? 1'b1 : 1'b0;
@@ -216,23 +215,16 @@ module nanosram #(
 `endif                        
                         if (cs_pin & start_trans) begin
                             // start by writing command byte
-                            temp_wire_bits <= wr_en ? 8'h02 : ((PSRAM == 0) ? 8'h0B : 8'hEB); // use 0B for SRAM and EB for PSRAM
                             cs_pin         <= 1'b0;
-                            if (PSRAM == 0) begin
-                                sio_dout   <= 0;
-                            end else begin
-                                sio_dout   <= wr_en ? 4'h0 : 4'hE;
-                            end
                             sio_en         <= 1'b1;
-                            fsm_state      <= FSM_SHIFT_QUAD;
-                            fsm_tag        <= FSM_WRITE_ADDR;
+                            fsm_state      <= FSM_WRITE_ADDR;
 							/* verilator lint_off WIDTHTRUNC */
-                            init_cnt       <= (SRAM_ADDR_WIDTH/8)-1'b1;    // how many address bytes to write - 1
+                            init_cnt       <= wr_en ? (SRAM_ADDR_WIDTH/8) : (SRAM_ADDR_WIDTH/8) + DUMMY_BYTES;    // how many address bytes to write - 1
                             /* verilator lint_on WIDTHTRUNC */
                             if (SRAM_ADDR_WIDTH == 24) begin
-								init_sr <= {addr[23:0], 8'b0};
+								init_sr <= {wr_en ? 8'h02 : ((PSRAM == 0) ? 8'h0B : 8'hEB), addr[23:0]};
 							end else begin
-								init_sr <= {addr[15:0], 16'b0};
+								init_sr <= {wr_en ? 8'h02 : ((PSRAM == 0) ? 8'h0B : 8'hEB), addr[15:0], 8'b0};
 							end
 `ifdef MODEL_SIM
 							sim_addr <= addr * 2;
@@ -250,17 +242,8 @@ module nanosram #(
                         if (init_cnt != 0) begin
                             fsm_tag    <= fsm_state;
                         end else begin
-                            fsm_tag    <= wr_en ? FSM_WORK_MODE : FSM_WAIT_DUMMY;
-                            init_cnt   <= DUMMY_BYTES - 1;
+                            fsm_tag    <= FSM_WORK_MODE;
                         end
-                    end
-                FSM_WAIT_DUMMY:
-                    begin
-                        temp_wire_bits <= 8'hFF;
-                        sio_dout       <= 4'hF;
-                        fsm_state      <= FSM_SHIFT_QUAD;
-                        fsm_tag        <= (init_cnt != 0) ? fsm_state : FSM_WORK_MODE;
-                        init_cnt       <= init_cnt - 1'b1;
                     end
                 FSM_WORK_MODE:
                     begin
