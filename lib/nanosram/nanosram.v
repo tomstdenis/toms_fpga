@@ -158,26 +158,27 @@ module nanosram #(
                 FSM_STATE_INIT, FSM_STATE_RESET, FSM_STATE_EQIO:  // Send init commands
                     begin
                         cs_pin         <= 1'b0;
+                        init_cnt       <= 3;
 
                         // advance state
                         fsm_state      <= FSM_WRITE_ADDR;
                         if (PSRAM == 0) begin
-                            fsm_write_tag[1:0] <= fsm_state[1:0] + 1'b1;            // the first 4 FSM states to run must be numerically in order
+                            fsm_write_tag      <= FSM_STATE_IDLE;
+                            init_sr            <= sram_eqio_bits;
                         end else begin
                             fsm_delay_tag[1:0] <= fsm_state[1:0] + 1'b1;            // the first 4 FSM states to run must be numerically in order
                             fsm_write_tag      <= FSM_DELAY;
                             delay_timer        <= HANGUP_CYCLES;
-                        end
-                        init_cnt       <= 3;
-                        if (SKIP_RESET == 0) begin
-                            case (fsm_state)
-                                FSM_STATE_INIT:  init_sr <= psram_reseten_bits;
-                                FSM_STATE_RESET: init_sr <= psram_reset_bits;
-                                FSM_STATE_EQIO:  init_sr <= (PSRAM==1) ? psram_eqio_bits: sram_eqio_bits;
-                            endcase
-                        end else begin
-                            // only sending the EQIO
-                            init_sr <= (PSRAM==1) ? psram_eqio_bits: sram_eqio_bits;
+                            if (SKIP_RESET == 0) begin
+                                case (fsm_state)
+                                    FSM_STATE_INIT:  init_sr <= psram_reseten_bits;
+                                    FSM_STATE_RESET: init_sr <= psram_reset_bits;
+                                    FSM_STATE_EQIO:  init_sr <= (PSRAM==1) ? psram_eqio_bits: sram_eqio_bits;
+                                endcase
+                            end else begin
+                                // only sending the EQIO
+                                init_sr        <= psram_eqio_bits;
+                            end
                         end
                     end
                 FSM_STATE_IDLE:
@@ -249,7 +250,7 @@ module nanosram #(
 							read_strobe  <= ~temp_cnt & sck_pin & ~wr_en;
 							
 							if (sck_pin) begin
-								temp_cnt       <= temp_cnt - 1'b1;                    // note this resets temp_cnt to 1 after each byte
+								temp_cnt       <= ~temp_cnt; // this resets temp_cnt at the end of each byte
 `ifdef MODEL_SIM
 								if (sim_active) begin
 									sim_addr <= sim_addr + 1;
@@ -292,7 +293,9 @@ module nanosram #(
 								end
 							end
                         end else begin
-                            qpi_timer <= qpi_timer - 1'b1;
+                            if (QPI_TIMER > 0) begin
+                                qpi_timer <= qpi_timer - 1'b1;
+                            end
                         end
                    end
                 FSM_DELAY:
