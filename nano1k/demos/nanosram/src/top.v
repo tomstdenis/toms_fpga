@@ -72,7 +72,7 @@ module top(
     // simple test go to address 16'h1234 and write 16 bytes starting at value 8'h55 increasing by 1 per bytes
     reg [2:0] test_state;
     reg [2:0] test_tag;
-    reg [$clog2(RUNLEN):0] test_cycle;
+    reg [$clog2(RUNLEN)-1:0] test_cycle;
     reg [7:0] test_byte;
     
     localparam
@@ -91,10 +91,8 @@ module top(
             rgb_g            <= 1'b1;
             rgb_b            <= 1'b1;
             test_state       <= STATE_START_WRITE;
-            test_cycle       <= 0;
             uart_tx_start    <= 1'b0;
             sram_addr        <= 0;
-            sram_din         <= 0;
             test_byte        <= 0;
         end else begin
             case (test_state)
@@ -114,7 +112,7 @@ module top(
                     begin
                         if (sram_ready & sram_write_strobe) begin
                             test_cycle <= test_cycle + 1'b1;
-                            sram_din <= sram_din + 1'b1;
+                            sram_din   <= sram_din + 1'b1;
                             // the write strobe occurs BEFORE the current byte is finished so if we lower
                             // start_trans the FSM will stop writing with the current byte being shifted out
                             if (test_cycle == RUNLEN) begin
