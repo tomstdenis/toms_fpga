@@ -140,7 +140,7 @@ module top(
                             test_cycle <= test_cycle + 1'b1;
                             if (test_cycle == RUNLEN) begin
                                 {rgb_r, rgb_g, rgb_b} <= 3'b000; // white == good
-                                uart_tx_data_in       <= 65;
+                                uart_tx_data_in       <= 8'h55;
                                 test_state            <= STATE_DONE;
                                 sram_addr             <= sram_addr + RUNLEN;
                             end else begin
@@ -154,7 +154,7 @@ module top(
                                 if (sram_dout != sram_din) begin
                                     {rgb_r, rgb_b, rgb_b} <= 3'b011;        // compare error == RED
                                     sram_start_trans      <= 1'b0;
-                                    uart_tx_data_in       <= 66;
+                                    uart_tx_data_in       <= 8'hAA;
                                     test_state            <= STATE_DONE;
                                 end
                             end

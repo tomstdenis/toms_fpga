@@ -214,7 +214,7 @@ module nanosram #(
                end
             FSM_DELAY:
                 begin
-                    cs_pi       <= 1'b1;
+                    cs_pin      <= 1'b1;
                     ready_sr    <= 1'b0;
                     delay_timer <= delay_timer - 1'b1;
                     if (delay_timer == 0) begin
