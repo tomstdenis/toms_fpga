@@ -16,7 +16,7 @@ module top(
     localparam
         PSRAM      = 1,   // 1 == use PSRAM, 0 == SRAM
         SKIP_RESET = 1,   // for PSRAMs skip the 66/99 reset sequence which seems to be optional
-        FREQ       = 114,  // clock rate in MHz
+        FREQ       = 114750,  // clock rate in LHz
         RUNLEN     = 31;   // how many bytes to transfer (7 so the addresses come out of alignment)
 
     wire pllclk;
@@ -30,7 +30,7 @@ module top(
 
     localparam
         baud     = 230_400,
-        baud_div = (FREQ * 1_000_000) / baud,
+        baud_div = (FREQ * 1_000) / baud,
         baud_width = $clog2(baud_div);
 
     wire [baud_width-1:0] bauddiv = baud_div;
@@ -63,7 +63,7 @@ module top(
     assign sio     = sio_en ? sio_dout : 4'bzzzz;
     assign sio_din = sio;
 
-    nanosram #(.PSRAM(PSRAM), .FREQ(FREQ)) emm386 (
+    nanosram #(.PSRAM(PSRAM), .FREQ(FREQ/1000)) emm386 (
         .clk(pllclk), .rst_n(rst_n),
         .addr(sram_addr), .data_in(sram_din), .data_out(sram_dout), .wr_en(sram_wr_en),
         .start_trans(sram_start_trans), .ready(sram_ready), .busy(sram_busy), .idle(sram_idle),
