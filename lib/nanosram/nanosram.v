@@ -112,6 +112,7 @@ module nanosram #(
                 fsm_state      <= FSM_DELAY;
                 delay_timer    <= WAKEUP_CYCLES;
             end else begin
+                delay_timer    <= HANGUP_CYCLES;
                 fsm_state      <= FSM_STATE_EQIO;
             end
             sio_en        <= 1'b1;
@@ -145,9 +146,6 @@ module nanosram #(
                     end
                 FSM_STATE_IDLE:
                     begin
-                        cs_pin         <= 1'b1;                         // ensure CS defaults to high (inactive)
-						ready          <= 1'b0;
-                        ready_sr       <= 1'b0;
 `ifdef MODEL_SIM
 						sim_active 	   <= 1'b0;
 `endif                        
@@ -212,14 +210,9 @@ module nanosram #(
                                         init_cnt       <= init_cnt - 1'b1;
                                     end else begin
                                         if (init_en) begin 
+                                            // we're done sending eqio jump to idle (through IDLE)
                                             init_en    <= 1'b0;
-                                            // we're done sending eqio jump to idle
-                                            if (PSRAM == 1) begin
-                                                // if we're ending a transmission we need to do the hangup cycles first
-                                                fsm_state     <= FSM_DELAY;
-                                            end else begin
-                                                fsm_state     <= FSM_STATE_IDLE;	// transaction cancelled or not shifting more data
-                                            end
+                                            fsm_state  <= FSM_DELAY;
                                         end else begin
                                             // we're done sending the command now moving to data
                                             sio_en     <= wr_en;
@@ -241,12 +234,8 @@ module nanosram #(
         `endif
                                                 end
                                             end else begin
-                                                if (PSRAM == 1) begin
-                                                    // if we're ending a transmission we need to do the hangup cycles first
-                                                    fsm_state     <= FSM_DELAY;
-                                                end else begin
-                                                    fsm_state     <= FSM_STATE_IDLE;	// transaction cancelled or not shifting more data
-                                                end
+                                                // if we're ending a transmission we need to do the hangup cycles first
+                                                fsm_state     <= FSM_DELAY;
                                             end
                                         end
                                     end
@@ -260,16 +249,15 @@ module nanosram #(
                    end
                 FSM_DELAY:
                     begin
-                        if (PSRAM == 1) begin
-                            cs_pin      <= 1'b1;
-                            delay_timer <= delay_timer - 1'b1;
-                            if (delay_timer == 0) begin
-                                delay_timer   <= HANGUP_CYCLES;
-                                if (init_en) begin
-                                    fsm_state <= FSM_STATE_EQIO;
-                                end else begin
-                                    fsm_state <= FSM_STATE_IDLE;
-                                end
+                        cs_pin      <= 1'b1;
+                        ready_sr    <= 1'b0;
+                        delay_timer <= delay_timer - 1'b1;
+                        if (delay_timer == 0) begin
+                            delay_timer   <= HANGUP_CYCLES;
+                            if (init_en) begin
+                                fsm_state <= FSM_STATE_EQIO;
+                            end else begin
+                                fsm_state <= FSM_STATE_IDLE;
                             end
                         end
                     end
