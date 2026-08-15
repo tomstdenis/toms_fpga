@@ -16,7 +16,7 @@ module top(
     localparam
         PSRAM      = 1,   // 1 == use PSRAM, 0 == SRAM
         SKIP_RESET = 1,   // for PSRAMs skip the 66/99 reset sequence which seems to be optional
-        FREQ       = 81,  // clock rate in MHz
+        FREQ       = 114,  // clock rate in MHz
         RUNLEN     = 31;   // how many bytes to transfer (7 so the addresses come out of alignment)
 
     wire pllclk;
