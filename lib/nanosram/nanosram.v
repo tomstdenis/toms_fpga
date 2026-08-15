@@ -61,8 +61,8 @@ module nanosram #(
         WAKEUP_CYCLES = FREQ * 50,                      // 50 uSec wakeup timer (smaller value == better timing and seems to work)
         HANGUP_CYCLES = (50 * FREQ + 999) / 1000;       // 50ns hangup timer
 
-    reg [$clog2(WAKEUP_CYCLES):0] delay_timer;
-    reg [$clog2(QPI_TIMER):0] qpi_timer;    // timer to divide clk into SCK
+    reg [$clog2(WAKEUP_CYCLES)-1:0] delay_timer;
+    reg [$clog2(QPI_TIMER)-1:0] qpi_timer;    // timer to divide clk into SCK
     reg [7:0] temp_wire_bits;               // latch the data_in/out
     reg       temp_cnt;                     // which nibble are we on
     reg [2:0] init_cnt;
@@ -71,7 +71,7 @@ module nanosram #(
     reg [1:0] fsm_state;                    // FSM state control
     reg [1:0] fsm_tag;
     reg [1:0] fsm_delay_tag;
-    reg ready_sr;
+    reg       ready_sr;
     
     wire [31:0] sram_eqio_bits;                  // Enter QIO mode framed as QPI transactions (0x38)
     assign sram_eqio_bits = { // 0011_1000
@@ -128,6 +128,7 @@ module nanosram #(
 			sim_active    <= 1'b0;
 `endif			
         end else begin
+            ready <= ready_sr;
             case (fsm_state)
                 FSM_STATE_EQIO:  // Send init commands
                     begin
@@ -182,7 +183,6 @@ module nanosram #(
                     end
                 FSM_SHIFT_QUAD:
                     begin
-                        ready <= ready_sr;
                         // drive SCK via qpi_timer
                         if (qpi_timer == 0) begin
                             qpi_timer <= QPI_TIMER;
@@ -227,7 +227,8 @@ module nanosram #(
                                         end else begin
                                             // we're done sending the command now moving to data
                                             sio_en         <= wr_en;
-                                            ready_sr       <= 1;
+                                            ready_sr       <= 1;   // we use a shift register since we don't want to trigger a read strobe
+                                                                   // on this cycle.  
 `ifdef MODEL_SIM
                                             sim_active <= 1'b1;
 `endif
