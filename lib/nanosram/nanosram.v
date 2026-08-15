@@ -217,7 +217,6 @@ module nanosram #(
                                             if (PSRAM == 1) begin
                                                 // if we're ending a transmission we need to do the hangup cycles first
                                                 fsm_state     <= FSM_DELAY;
-                                                delay_timer   <= HANGUP_CYCLES;
                                             end else begin
                                                 fsm_state     <= FSM_STATE_IDLE;	// transaction cancelled or not shifting more data
                                             end
@@ -245,7 +244,6 @@ module nanosram #(
                                                 if (PSRAM == 1) begin
                                                     // if we're ending a transmission we need to do the hangup cycles first
                                                     fsm_state     <= FSM_DELAY;
-                                                    delay_timer   <= HANGUP_CYCLES;
                                                 end else begin
                                                     fsm_state     <= FSM_STATE_IDLE;	// transaction cancelled or not shifting more data
                                                 end
@@ -266,6 +264,7 @@ module nanosram #(
                             cs_pin      <= 1'b1;
                             delay_timer <= delay_timer - 1'b1;
                             if (delay_timer == 0) begin
+                                delay_timer   <= HANGUP_CYCLES;
                                 if (init_en) begin
                                     fsm_state <= FSM_STATE_EQIO;
                                 end else begin
