@@ -69,7 +69,6 @@ module nanosram #(
     reg [31:0] init_sr;
     reg       init_en;
     reg [1:0] fsm_state;                    // FSM state control
-    reg [1:0] fsm_tag;
     reg       ready_sr;
     
     wire [31:0] sram_eqio_bits;                  // Enter QIO mode framed as QPI transactions (0x38)
@@ -117,7 +116,6 @@ module nanosram #(
             end
             sio_en        <= 1'b1;
             sck_pin       <= 1'b0;
-			ready         <= 1'b0;
             ready_sr      <= 1'b0;
 			temp_cnt      <= 1;
             qpi_timer     <= QPI_TIMER;
@@ -126,7 +124,8 @@ module nanosram #(
 			sim_active    <= 1'b0;
 `endif			
         end else begin
-            ready <= ready_sr;
+            ready       <= ready_sr;
+            delay_timer <= delay_timer - 1'b1;
             case (fsm_state)
                 FSM_STATE_EQIO:  // Send init commands
                     begin
@@ -264,7 +263,6 @@ module nanosram #(
                     begin
                         if (PSRAM == 1) begin
                             cs_pin      <= 1'b1;
-                            delay_timer <= delay_timer - 1'b1;
                             if (delay_timer == 0) begin
                                 delay_timer   <= HANGUP_CYCLES;
                                 if (init_en) begin
