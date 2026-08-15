@@ -24,8 +24,7 @@ module nanosram #(
     parameter DUMMY_BYTES=3,                // number of dummy cycles on a fast read
     parameter QPI_TIMER=0,                  // how many cycles every half cycle of SCK is (minus 1)
     parameter PSRAM=0,                      // switch between PSRAM and SRAM
-    parameter FREQ=81,                      // frequency of core in MHz used for PSRAM timing
-    parameter SKIP_RESET=0                  // Skip the RESET EN / RESET commands on PSRAM (seems to work for me and shaves 20 LUT4s off)
+    parameter FREQ=81                       // frequency of core in MHz used for PSRAM timing
 )(
     input wire clk,
     input wire rst_n,
@@ -97,39 +96,13 @@ module nanosram #(
         4'b1111  // 1
     };
 
-    wire [31:0] psram_reseten_bits;                  // reset enable 8'h66
-    assign psram_reseten_bits = { // 0110_0110
-        4'b1110, // 0
-        4'b1111, // 1
-        4'b1111, // 1
-        4'b1110, // 0
-        4'b1110, // 0
-        4'b1111, // 1
-        4'b1111, // 1
-        4'b1110  // 0
-    };
-
-    wire [31:0] psram_reset_bits;                  // reset 8'h99
-    assign psram_reset_bits = { // 1001_1001
-        4'b1111, // 1
-        4'b1110, // 0
-        4'b1110, // 0
-        4'b1111, // 1
-        4'b1111, // 1
-        4'b1110, // 0
-        4'b1110, // 0
-        4'b1111  // 1
-    };
-
     localparam
-        FSM_STATE_INIT  = 0,
-        FSM_STATE_RESET = 1,
-        FSM_STATE_EQIO  = 2,
-        FSM_STATE_IDLE  = 3,
-        FSM_WRITE_ADDR  = 4,
-        FSM_WORK_MODE   = 5,
-        FSM_SHIFT_QUAD  = 6,
-        FSM_DELAY       = 7;
+        FSM_STATE_EQIO  = 0,
+        FSM_STATE_IDLE  = 1,
+        FSM_WRITE_ADDR  = 2,
+        FSM_WORK_MODE   = 3,
+        FSM_SHIFT_QUAD  = 4,
+        FSM_DELAY       = 5;
     
     assign idle = (fsm_state == FSM_STATE_IDLE) ? 1'b1 : 1'b0;
     assign busy = (fsm_state == FSM_SHIFT_QUAD) ? 1'b1 : 1'b0;
@@ -140,7 +113,7 @@ module nanosram #(
         if (!rst_n) begin
             if (PSRAM == 1) begin
                 fsm_state      <= FSM_DELAY;
-                fsm_delay_tag  <= (SKIP_RESET == 0) ? FSM_STATE_INIT : FSM_STATE_EQIO;
+                fsm_delay_tag  <= FSM_STATE_EQIO;
                 delay_timer    <= WAKEUP_CYCLES;
             end else begin
                 fsm_state      <= FSM_STATE_EQIO;
@@ -155,7 +128,7 @@ module nanosram #(
 `endif			
         end else begin
             case (fsm_state)
-                FSM_STATE_INIT, FSM_STATE_RESET, FSM_STATE_EQIO:  // Send init commands
+                FSM_STATE_EQIO:  // Send init commands
                     begin
                         cs_pin         <= 1'b0;
                         init_cnt       <= 3;
@@ -166,19 +139,10 @@ module nanosram #(
                             fsm_write_tag      <= FSM_STATE_IDLE;
                             init_sr            <= sram_eqio_bits;
                         end else begin
-                            fsm_delay_tag[1:0] <= fsm_state[1:0] + 1'b1;            // the first 4 FSM states to run must be numerically in order
+                            fsm_delay_tag[1:0] <= FSM_STATE_IDLE;            // the first 4 FSM states to run must be numerically in order
                             fsm_write_tag      <= FSM_DELAY;
                             delay_timer        <= HANGUP_CYCLES;
-                            if (SKIP_RESET == 0) begin
-                                case (fsm_state)
-                                    FSM_STATE_INIT:  init_sr <= psram_reseten_bits;
-                                    FSM_STATE_RESET: init_sr <= psram_reset_bits;
-                                    FSM_STATE_EQIO:  init_sr <= (PSRAM==1) ? psram_eqio_bits: sram_eqio_bits;
-                                endcase
-                            end else begin
-                                // only sending the EQIO
-                                init_sr        <= psram_eqio_bits;
-                            end
+                            init_sr        <= psram_eqio_bits;
                         end
                     end
                 FSM_STATE_IDLE:
