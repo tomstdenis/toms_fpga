@@ -106,6 +106,123 @@ module nanosram #(
 		write_strobe <= 1'b0;
 		read_strobe  <= 1'b0;
         ready        <= ready_sr;
+        case (fsm_state)
+            FSM_STATE_EQIO:  // Send init commands
+                begin
+                    cs_pin         <= 1'b0;
+                    init_cnt       <= 3;
+
+                    // advance state
+                    fsm_state      <= FSM_SHIFT_QUAD;
+                    if (PSRAM == 0) begin
+                        init_sr        <= {sram_eqio_bits[23:0], 8'b0};
+                        temp_wire_bits <= sram_eqio_bits[27:24];
+                        sio_dout       <= sram_eqio_bits[31:28];
+                    end else begin
+                        init_sr        <= {psram_eqio_bits[23:0], 8'b0};
+                        temp_wire_bits <= psram_eqio_bits[27:24];
+                        sio_dout       <= psram_eqio_bits[31:28];
+                    end
+                end
+            FSM_STATE_IDLE:
+                begin
+`ifdef MODEL_SIM
+                    sim_active 	   <= 1'b0;
+`endif                        
+                    // start by writing command byte
+                    cs_pin         <= ~start_trans;
+                    sio_en         <= start_trans;
+                    fsm_state      <= {start_trans, 1'b0};   // jump to state 2 (SHIFT_QUAD) when start_trans goes high
+                    /* verilator lint_off WIDTHTRUNC */
+                    init_cnt       <= wr_en ? (SRAM_ADDR_WIDTH/8) : (SRAM_ADDR_WIDTH/8) + DUMMY_BYTES;    // how many address bytes to write - 1
+                    /* verilator lint_on WIDTHTRUNC */
+                    temp_wire_bits <= wr_en ? 4'h2 : 4'hB;
+                    sio_dout       <= wr_en ? 4'h0  : ((PSRAM == 0) ? 4'h0 : 4'hE);
+                    if (SRAM_ADDR_WIDTH == 24) begin
+                        init_sr <= {addr[23:0], 8'b0};
+                    end else begin
+                        init_sr <= {addr[15:0], 16'b0};
+                    end
+`ifdef MODEL_SIM
+                        sim_addr <= addr * 2;
+`endif							
+                end
+            FSM_SHIFT_QUAD:
+                begin
+                    sck_pin   <= ~sck_pin;
+                    
+                    // we're about to go low SCK phase so good time send write strobe
+                    // to get a fresh data_in
+                    write_strobe <= temp_cnt & sck_pin & wr_en;
+
+                    // Time to read data_out
+                    read_strobe  <= ~temp_cnt & sck_pin & ~wr_en;
+                    
+                    if (sck_pin) begin
+                        temp_cnt       <= ~temp_cnt; // this resets temp_cnt at the end of each byte
+`ifdef MODEL_SIM
+                        if (sim_active) begin
+// TODO this is broken.
+                            sim_addr <= sim_addr + 1;
+                            if (wr_en) begin
+                                sim_mem[sim_addr] <= temp_wire_bits;
+                                $display("Storing %h at address %h", temp_wire_bits, sim_addr);
+                                temp_wire_bits <= {temp_wire_bits[3:0], 4'b0 };
+                            end else begin
+                                temp_wire_bits <= {temp_wire_bits[3:0], sim_mem[sim_addr]};
+                            end
+                        end
+`else
+                        temp_wire_bits <= sio_din;
+`endif
+                        sio_dout       <= temp_wire_bits;
+
+                        if (~temp_cnt) begin
+                            if (init_cnt != 0) begin
+                                // shift in data from the shift register
+                                temp_wire_bits <= init_sr[27:24];
+                                sio_dout       <= init_sr[31:28];
+                                init_sr        <= {init_sr[23:0], 8'b0};
+                                init_cnt       <= init_cnt - 1'b1;
+                            end else begin
+                                init_en        <= 1'b0;
+                                if (start_trans) begin
+                                    // we're done sending the command now moving to data
+                                    sio_en     <= wr_en;
+                                    ready_sr   <= 1;   // we use a shift register since we don't want to trigger a read strobe
+                                                       // on this cycle.  
+`ifdef MODEL_SIM
+                                    sim_active <= 1'b1;
+`endif
+                                    if (wr_en) begin
+                                        temp_wire_bits <= data_in[3:0];
+                                        sio_dout       <= data_in[7:4];
+                                    end else begin
+`ifdef MODEL_SIM
+                                        data_out <= {temp_wire_bits, sim_mem[sim_addr]};
+`else
+                                        data_out <= {temp_wire_bits, sio_din};
+`endif
+                                    end
+                                end else begin
+                                    // if we're ending a transmission we need to do the hangup cycles first
+                                    fsm_state     <= FSM_DELAY;
+                                end
+                            end
+                        end
+                    end
+               end
+            FSM_DELAY:
+                begin
+                    cs_pi       <= 1'b1;
+                    ready_sr    <= 1'b0;
+                    delay_timer <= delay_timer - 1'b1;
+                    if (delay_timer == 0) begin
+                        delay_timer <= HANGUP_CYCLES;
+                        fsm_state   <= {1'b0, init_en};            // jump to EQIO if init_en, or IDLE if not
+                    end
+                end
+        endcase
         if (!rst_n) begin
             if (PSRAM == 1) begin
                 fsm_state      <= FSM_DELAY;
@@ -122,124 +239,6 @@ module nanosram #(
 `ifdef MODEL_SIM
 			sim_active    <= 1'b0;
 `endif			
-        end else begin
-            case (fsm_state)
-                FSM_STATE_EQIO:  // Send init commands
-                    begin
-                        cs_pin         <= 1'b0;
-                        init_cnt       <= 3;
-
-                        // advance state
-                        fsm_state      <= FSM_SHIFT_QUAD;
-                        if (PSRAM == 0) begin
-                            init_sr        <= {sram_eqio_bits[23:0], 8'b0};
-                            temp_wire_bits <= sram_eqio_bits[27:24];
-                            sio_dout       <= sram_eqio_bits[31:28];
-                        end else begin
-                            init_sr        <= {psram_eqio_bits[23:0], 8'b0};
-                            temp_wire_bits <= psram_eqio_bits[27:24];
-                            sio_dout       <= psram_eqio_bits[31:28];
-                        end
-                    end
-                FSM_STATE_IDLE:
-                    begin
-`ifdef MODEL_SIM
-						sim_active 	   <= 1'b0;
-`endif                        
-                        // start by writing command byte
-                        cs_pin         <= ~start_trans;
-                        sio_en         <= start_trans;
-                        fsm_state      <= {start_trans, 1'b0};   // jump to state 2 (SHIFT_QUAD) when start_trans goes high
-                        /* verilator lint_off WIDTHTRUNC */
-                        init_cnt       <= wr_en ? (SRAM_ADDR_WIDTH/8) : (SRAM_ADDR_WIDTH/8) + DUMMY_BYTES;    // how many address bytes to write - 1
-                        /* verilator lint_on WIDTHTRUNC */
-                        temp_wire_bits <= wr_en ? 4'h2 : 4'hB;
-                        sio_dout       <= wr_en ? 4'h0  : ((PSRAM == 0) ? 4'h0 : 4'hE);
-                        if (SRAM_ADDR_WIDTH == 24) begin
-                            init_sr <= {addr[23:0], 8'b0};
-                        end else begin
-                            init_sr <= {addr[15:0], 16'b0};
-                        end
-`ifdef MODEL_SIM
-							sim_addr <= addr * 2;
-`endif							
-                    end
-                FSM_SHIFT_QUAD:
-                    begin
-                        sck_pin   <= ~sck_pin;
-                        
-                        // we're about to go low SCK phase so good time send write strobe
-                        // to get a fresh data_in
-                        write_strobe <= temp_cnt & sck_pin & wr_en;
-
-                        // Time to read data_out
-                        read_strobe  <= ~temp_cnt & sck_pin & ~wr_en;
-                        
-                        if (sck_pin) begin
-                            temp_cnt       <= ~temp_cnt; // this resets temp_cnt at the end of each byte
-`ifdef MODEL_SIM
-                            if (sim_active) begin
-// TODO this is broken.
-                                sim_addr <= sim_addr + 1;
-                                if (wr_en) begin
-                                    sim_mem[sim_addr] <= temp_wire_bits;
-                                    $display("Storing %h at address %h", temp_wire_bits, sim_addr);
-                                    temp_wire_bits <= {temp_wire_bits[3:0], 4'b0 };
-                                end else begin
-                                    temp_wire_bits <= {temp_wire_bits[3:0], sim_mem[sim_addr]};
-                                end
-                            end
-`else
-                            temp_wire_bits <= sio_din;
-`endif
-                            sio_dout       <= temp_wire_bits;
-
-                            if (~temp_cnt) begin
-                                if (init_cnt != 0) begin
-                                    // shift in data from the shift register
-                                    temp_wire_bits <= init_sr[27:24];
-                                    sio_dout       <= init_sr[31:28];
-                                    init_sr        <= {init_sr[23:0], 8'b0};
-                                    init_cnt       <= init_cnt - 1'b1;
-                                end else begin
-                                    init_en        <= 1'b0;
-                                    if (start_trans) begin
-                                        // we're done sending the command now moving to data
-                                        sio_en     <= wr_en;
-                                        ready_sr   <= 1;   // we use a shift register since we don't want to trigger a read strobe
-                                                           // on this cycle.  
-`ifdef MODEL_SIM
-                                        sim_active <= 1'b1;
-`endif
-                                        if (wr_en) begin
-                                            temp_wire_bits <= data_in[3:0];
-                                            sio_dout       <= data_in[7:4];
-                                        end else begin
-`ifdef MODEL_SIM
-                                            data_out <= {temp_wire_bits, sim_mem[sim_addr]};
-`else
-                                            data_out <= {temp_wire_bits, sio_din};
-`endif
-                                        end
-                                    end else begin
-                                        // if we're ending a transmission we need to do the hangup cycles first
-                                        fsm_state     <= FSM_DELAY;
-                                    end
-                                end
-                            end
-                        end
-                   end
-                FSM_DELAY:
-                    begin
-                        cs_pin      <= 1'b1;
-                        ready_sr    <= 1'b0;
-                        delay_timer <= delay_timer - 1'b1;
-                        if (delay_timer == 0) begin
-                            delay_timer <= HANGUP_CYCLES;
-                            fsm_state   <= {1'b0, init_en};            // jump to EQIO if init_en, or IDLE if not
-                        end
-                    end
-            endcase
         end
     end
 endmodule
