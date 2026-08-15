@@ -62,7 +62,7 @@ module nanosram #(
         HANGUP_CYCLES = (50 * FREQ + 999) / 1000;       // 50ns hangup timer
 
     reg [$clog2(WAKEUP_CYCLES)-1:0] delay_timer;
-    reg [$clog2(QPI_TIMER)-1:0] qpi_timer;    // timer to divide clk into SCK
+    reg [$clog2(QPI_TIMER):0] qpi_timer;    // timer to divide clk into SCK
     reg [7:0] temp_wire_bits;               // latch the data_in/out
     reg       temp_cnt;                     // which nibble are we on
     reg [2:0] init_cnt;
@@ -70,7 +70,6 @@ module nanosram #(
     reg       init_en;
     reg [1:0] fsm_state;                    // FSM state control
     reg [1:0] fsm_tag;
-    reg [1:0] fsm_delay_tag;
     reg       ready_sr;
     
     wire [31:0] sram_eqio_bits;                  // Enter QIO mode framed as QPI transactions (0x38)
@@ -112,7 +111,6 @@ module nanosram #(
         if (!rst_n) begin
             if (PSRAM == 1) begin
                 fsm_state      <= FSM_DELAY;
-                fsm_delay_tag  <= FSM_STATE_EQIO;
                 delay_timer    <= WAKEUP_CYCLES;
             end else begin
                 fsm_state      <= FSM_STATE_EQIO;
@@ -138,14 +136,10 @@ module nanosram #(
                         // advance state
                         fsm_state      <= FSM_SHIFT_QUAD;
                         if (PSRAM == 0) begin
-                            fsm_tag        <= FSM_STATE_IDLE;
                             init_sr        <= {sram_eqio_bits[23:0], 8'b0};
                             temp_wire_bits <= sram_eqio_bits[31:24];
                             sio_dout       <= sram_eqio_bits[31:28];
                         end else begin
-                            fsm_delay_tag  <= FSM_STATE_IDLE;            // the first 4 FSM states to run must be numerically in order
-                            fsm_tag        <= FSM_DELAY;
-                            delay_timer    <= HANGUP_CYCLES;
                             init_sr        <= {psram_eqio_bits[23:0], 8'b0};
                             temp_wire_bits <= psram_eqio_bits[31:24];
                             sio_dout       <= psram_eqio_bits[31:28];
@@ -156,7 +150,6 @@ module nanosram #(
                         cs_pin         <= 1'b1;                         // ensure CS defaults to high (inactive)
 						ready          <= 1'b0;
                         ready_sr       <= 1'b0;
-                        init_en        <= 1'b0;
 `ifdef MODEL_SIM
 						sim_active 	   <= 1'b0;
 `endif                        
@@ -165,7 +158,6 @@ module nanosram #(
                             cs_pin         <= 1'b0;
                             sio_en         <= 1'b1;
                             fsm_state      <= FSM_SHIFT_QUAD;
-                            fsm_tag        <= FSM_STATE_IDLE;
 							/* verilator lint_off WIDTHTRUNC */
                             init_cnt       <= wr_en ? (SRAM_ADDR_WIDTH/8) : (SRAM_ADDR_WIDTH/8) + DUMMY_BYTES;    // how many address bytes to write - 1
                             /* verilator lint_on WIDTHTRUNC */
@@ -222,18 +214,25 @@ module nanosram #(
                                         init_cnt       <= init_cnt - 1'b1;
                                     end else begin
                                         if (init_en) begin 
+                                            init_en    <= 1'b0;
                                             // we're done sending eqio jump to idle
-                                            fsm_state  <= fsm_tag;
+                                            if (PSRAM == 1) begin
+                                                // if we're ending a transmission we need to do the hangup cycles first
+                                                delay_timer   <= HANGUP_CYCLES;
+                                                fsm_state     <= FSM_DELAY;
+                                            end else begin
+                                                fsm_state     <= FSM_STATE_IDLE;	// transaction cancelled or not shifting more data
+                                            end
                                         end else begin
                                             // we're done sending the command now moving to data
-                                            sio_en         <= wr_en;
-                                            ready_sr       <= 1;   // we use a shift register since we don't want to trigger a read strobe
-                                                                   // on this cycle.  
+                                            sio_en     <= wr_en;
+                                            ready_sr   <= 1;   // we use a shift register since we don't want to trigger a read strobe
+                                                               // on this cycle.  
 `ifdef MODEL_SIM
                                             sim_active <= 1'b1;
 `endif
 
-                                            if (start_trans && fsm_tag == FSM_STATE_IDLE) begin
+                                            if (start_trans) begin
                                                 if (wr_en) begin
                                                     temp_wire_bits <= data_in;
                                                     sio_dout       <= data_in[7:4];
@@ -245,14 +244,12 @@ module nanosram #(
         `endif
                                                 end
                                             end else begin
-                                                fsm_state <= fsm_tag;	// transaction cancelled or not shifting more data
                                                 if (PSRAM == 1) begin
                                                     // if we're ending a transmission we need to do the hangup cycles first
-                                                    if (fsm_tag == FSM_STATE_IDLE) begin
-                                                        delay_timer   <= HANGUP_CYCLES;
-                                                        fsm_state     <= FSM_DELAY;
-                                                        fsm_delay_tag <= FSM_STATE_IDLE;
-                                                    end
+                                                    delay_timer   <= HANGUP_CYCLES;
+                                                    fsm_state     <= FSM_DELAY;
+                                                end else begin
+                                                    fsm_state     <= FSM_STATE_IDLE;	// transaction cancelled or not shifting more data
                                                 end
                                             end
                                         end
@@ -271,7 +268,11 @@ module nanosram #(
                             cs_pin      <= 1'b1;
                             delay_timer <= delay_timer - 1'b1;
                             if (delay_timer == 0) begin
-                                fsm_state <= fsm_delay_tag;
+                                if (init_en) begin
+                                    fsm_state <= FSM_STATE_EQIO;
+                                end else begin
+                                    fsm_state <= FSM_STATE_IDLE;
+                                end
                             end
                         end
                     end
