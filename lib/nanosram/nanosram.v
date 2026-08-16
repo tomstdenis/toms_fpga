@@ -128,6 +128,7 @@ module nanosram #(
                 begin
 `ifdef MODEL_SIM
                     sim_active 	   <= 1'b0;
+                    sim_addr       <= addr * 2;
 `endif                        
                     // start by writing command byte
                     cs_pin         <= ~start_trans;
@@ -143,9 +144,6 @@ module nanosram #(
                     end else begin
                         init_sr <= {addr[15:0], 16'b0};
                     end
-`ifdef MODEL_SIM
-                        sim_addr <= addr * 2;
-`endif							
                 end
             FSM_SHIFT_QUAD:
                 begin
@@ -162,14 +160,12 @@ module nanosram #(
                         temp_cnt       <= ~temp_cnt; // this resets temp_cnt at the end of each byte
 `ifdef MODEL_SIM
                         if (sim_active) begin
-// TODO this is broken.
                             sim_addr <= sim_addr + 1;
                             if (wr_en) begin
-                                sim_mem[sim_addr] <= temp_wire_bits;
-                                $display("Storing %h at address %h", temp_wire_bits, sim_addr);
-                                temp_wire_bits <= {temp_wire_bits[3:0], 4'b0 };
+                                sim_mem[sim_addr] <= sio_dout;
+                                $display("Storing %h at address %h", sio_dout, sim_addr);
                             end else begin
-                                temp_wire_bits <= {temp_wire_bits[3:0], sim_mem[sim_addr]};
+                                temp_wire_bits <= sim_mem[sim_addr];
                             end
                         end
 `else
