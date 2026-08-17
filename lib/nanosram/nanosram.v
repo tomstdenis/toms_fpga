@@ -174,6 +174,7 @@ module nanosram #(
                         sio_dout       <= temp_wire_bits;
 
                         if (~temp_cnt) begin
+                            // this happens once per byte 
                             if (init_cnt != 0) begin
                                 // shift in data from the shift register
                                 temp_wire_bits <= init_sr[27:24];
