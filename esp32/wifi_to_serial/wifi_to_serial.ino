@@ -136,7 +136,7 @@ void setup()
 
     if (WiFi.status() == WL_CONNECTED) {
       Serial.println("Connected.");
-      for (tries = 0; tries < 10; tries++) {
+      for (tries = 0; tries < 3; tries++) {
         Serial.printf("Signal strength %ld dBm\n", WiFi.RSSI());
         delay(250); yield();
         delay(250); yield();
