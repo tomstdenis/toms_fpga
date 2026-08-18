@@ -13,7 +13,7 @@ module top(
     localparam
         PSRAM      = 1,   // 1 == use PSRAM, 0 == SRAM
         FREQ       = `FREQ * 1000,  // clock rate in LHz
-        RUNLEN     = 32;   // how many bytes to transfer (7 so the addresses come out of alignment)
+        RUNLEN     = 31;   // how many bytes to transfer (7 so the addresses come out of alignment)
 
     wire pllclk;
 	wire pll_locked;
@@ -23,7 +23,7 @@ module top(
     reg rst_n = 1'b0;
 
     localparam
-        baud     = 230_400,
+        baud     = 1_000_000,
         baud_div = (FREQ * 1_000) / baud,
         baud_width = $clog2(baud_div);
 
