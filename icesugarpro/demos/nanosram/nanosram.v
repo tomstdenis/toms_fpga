@@ -101,7 +101,7 @@ module top(
                     end
                 STATE_LOOP_WRITE:                                               // by this point we're in SHIFT_QUAD
                     begin
-                        if (sram_ready & sram_write_strobe) begin
+                        if (sram_write_strobe) begin
                             test_cycle <= test_cycle - 1'b1;
                             sram_din   <= sram_din + 1'b1;
                             // the write strobe occurs BEFORE the current byte is finished so if we lower
@@ -125,7 +125,7 @@ module top(
                     end
                 STATE_LOOP_READ:                                               // by this point we're in SHIFT_QUAD
                     begin
-                        if (sram_ready & sram_read_strobe) begin
+                        if (sram_read_strobe) begin
                             test_cycle <= test_cycle - 1'b1;
                             if (test_cycle == 0) begin
                                 uart_tx_data_in       <= 8'h55;

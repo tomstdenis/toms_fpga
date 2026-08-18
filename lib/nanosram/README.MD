@@ -107,7 +107,7 @@ To read memory, first wait for **idle** to go high, then drive the following net
 * **start_trans**: 1
 * **wr_en**: 0
 
-The cycle after this, you can wait for **ready** and **read_strobe** to go high simultaneously, at which point you can read **data_out**. If you lower **start_trans** on the 2nd to last byte, the FSM will stop after reading the next byte.
+The cycle after this, you can wait for **read_strobe** to go high, at which point you can read **data_out**. If you lower **start_trans** on the 2nd to last byte, the FSM will stop after reading the next byte.
 
 If you want to only read 1 byte, you need to lower **start_trans** on the cycle after you raise it.
 
@@ -122,7 +122,7 @@ As RTL pseudo-code:
    
    // transfer bytes
    while (cnt != bytes_to_read) {              // read 'bytes_to_read' bytes into buffer[]
-    if (ready & read_strobe) {                 // wait for ready and read strobe
+    if (read_strobe) {                         // wait for ready and read strobe
         if (cnt == bytes_to_read - 1) {        // if we're on the last or 2nd last byte stop shifting after the next byte
             start_trans <= 0;
         }
@@ -140,7 +140,7 @@ To write memory, first wait for **idle** to go high, then drive the following ne
 * **wr_en**: 1
 * **data_in**: The first byte to write
 
-The cycle after this, you can wait for **ready** and **write_strobe** to go high simultaneously, at which point you can either drive another byte in **data_in** or lower **start_trans** to stop writing.
+The cycle after this, you can wait for **write_strobe** to go high, at which point you can either drive another byte in **data_in** or lower **start_trans** to stop writing.
 
 As RTL pseudo-code:
 
@@ -154,7 +154,7 @@ As RTL pseudo-code:
    // transfer bytes
    cnt <= 0;
    while (cnt != bytes_to_write) {             // write 'bytes_to_write' bytes from buffer[]
-    if (ready & write_strobe) {                // wait for ready and write strobe
+    if (write_strobe) {                        // wait for ready and write strobe
         if (cnt == bytes_to_write - 1) {       // if we're on the last or 2nd last byte stop shifting after the next byte
             start_trans <= 0;
         } else {

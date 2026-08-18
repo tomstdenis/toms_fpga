@@ -151,10 +151,10 @@ module nanosram #(
                     
                     // we're about to go low SCK phase so good time send write strobe
                     // to get a fresh data_in
-                    write_strobe <= temp_cnt & sck_pin & wr_en;
+                    write_strobe <= temp_cnt & sck_pin & wr_en & ready;
 
                     // Time to read data_out
-                    read_strobe  <= ~temp_cnt & sck_pin & ~wr_en;
+                    read_strobe  <= ~temp_cnt & sck_pin & ~wr_en & ready;
                     
                     if (sck_pin) begin
                         temp_cnt       <= ~temp_cnt; // this resets temp_cnt at the end of each byte
