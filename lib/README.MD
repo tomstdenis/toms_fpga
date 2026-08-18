@@ -84,7 +84,7 @@ Modules
   - Low level timer imlemented in **timer/blocks/timer.v** with test bench **timer/blocks/timer_tb.v**
   - A bus wrapper in **timer/timer_mem.v** with test bench **timer/timer_mem_tb.v**
 
-- **nanosram**: SPI SRAM controller that is optimized for low area.  Provides streaming memory access with read and write strobes.
+- **nanosram**: SPI PSRAM/SRAM controller that is optimized for low area.  Provides streaming memory access with read and write strobes.
   - Module in **nanosram/nanosram.v** with test bench **nanosram/nanosram_tb.v**
   - Readme in **nanosram/README.MD**
 
