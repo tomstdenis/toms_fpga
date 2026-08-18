@@ -65,17 +65,15 @@ module top(
         .sio_din(sio_din), .sio_dout(sio_dout), .sio_en(sio_en), .cs_pin(cs_pin), .sck_pin(sck_pin));
 
     // simple test go to address 16'h1234 and write 16 bytes starting at value 8'h55 increasing by 1 per bytes
-    reg [2:0] test_state;
-    reg [2:0] test_tag;
+    reg [1:0] test_state;
+    reg [1:0] test_tag;
     reg [4:0] test_cycle;
     reg [7:0] test_byte;
     
     localparam
         STATE_START_WRITE = 0,
-        STATE_LOOP_WRITE  = 1,
-        STATE_START_READ  = 2,
-        STATE_LOOP_READ   = 3,
-        STATE_DONE        = 4;
+        STATE_START_READ  = 1,
+        STATE_DONE        = 2;
 
     always @(posedge pllclk) begin
         if (!rst_n) begin
@@ -95,12 +93,8 @@ module top(
                             sram_din              <= test_byte;
                             sram_start_trans      <= 1'b1;
                             sram_wr_en            <= 1'b1;
-                            test_state            <= STATE_LOOP_WRITE;
                             test_cycle            <= RUNLEN-1;
                         end
-                    end
-                STATE_LOOP_WRITE:                                               // by this point we're in SHIFT_QUAD
-                    begin
                         if (sram_write_strobe) begin
                             test_cycle <= test_cycle - 1'b1;
                             sram_din   <= sram_din + 1'b1;
@@ -115,19 +109,15 @@ module top(
                 STATE_START_READ:
                     begin
                         if (sram_idle) begin
-                            test_byte             <= test_byte + 1'b1;
                             sram_din              <= test_byte;
                             sram_wr_en            <= 1'b0;
                             sram_start_trans      <= 1'b1;
-                            test_state            <= STATE_LOOP_READ;
                             test_cycle            <= RUNLEN-1;
                         end
-                    end
-                STATE_LOOP_READ:                                               // by this point we're in SHIFT_QUAD
-                    begin
                         if (sram_read_strobe) begin
                             test_cycle <= test_cycle - 1'b1;
                             if (test_cycle == 0) begin
+								test_byte             <= test_byte + 1'b1;
                                 uart_tx_data_in       <= 8'h55;
                                 test_state            <= STATE_DONE;
                                 sram_addr             <= sram_addr + RUNLEN;

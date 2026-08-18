@@ -71,10 +71,8 @@ module nanosram_tb();
 	
     localparam
         STATE_START_WRITE = 0,
-        STATE_LOOP_WRITE  = 1,
-        STATE_START_READ  = 2,
-        STATE_LOOP_READ   = 3,
-        STATE_DONE        = 4;
+        STATE_START_READ  = 1,
+        STATE_DONE        = 2;
 
     always @(posedge clk) begin
         if (!rst_n) begin
@@ -92,12 +90,8 @@ module nanosram_tb();
                             sram_din              <= test_byte;
                             sram_start_trans      <= 1'b1;
                             sram_wr_en            <= 1'b1;
-                            test_state            <= STATE_LOOP_WRITE;
                             test_cycle            <= RUNLEN-1;
                         end
-                    end
-                STATE_LOOP_WRITE:                                               // by this point we're in SHIFT_QUAD
-                    begin
                         if (sram_write_strobe) begin
                             test_cycle <= test_cycle - 1'b1;
                             sram_din   <= sram_din + 1'b1;
@@ -112,19 +106,15 @@ module nanosram_tb();
                 STATE_START_READ:
                     begin
                         if (sram_idle) begin
-                            test_byte             <= test_byte + 1'b1;
                             sram_din              <= test_byte;
                             sram_wr_en            <= 1'b0;
                             sram_start_trans      <= 1'b1;
-                            test_state            <= STATE_LOOP_READ;
                             test_cycle            <= RUNLEN-1;
                         end
-                    end
-                STATE_LOOP_READ:                                               // by this point we're in SHIFT_QUAD
-                    begin
                         if (sram_read_strobe) begin
                             test_cycle <= test_cycle - 1'b1;
                             if (test_cycle == 0) begin
+								test_byte             <= test_byte + 1'b1;
                                 test_state            <= STATE_DONE;
                                 sram_addr             <= sram_addr + RUNLEN;
 								test_pass <= 1;
