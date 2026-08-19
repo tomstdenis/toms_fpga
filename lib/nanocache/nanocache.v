@@ -62,7 +62,7 @@ module nanocache #(
 	// cache memory (Semi-Dual Port BRAM)
 	reg [7:0]				cache_mem_out;
 	reg [7:0]				cache_mem_in;
-	reg [CACHE_LINE-1:0]	cache_mem_addr;
+	reg [CACHE_SIZE-1:0]	cache_mem_addr;
 	reg 					cache_mem_wren;
 	reg [7:0]				cache_mem[0:(1<<CACHE_SIZE)-1];
 	
@@ -92,14 +92,13 @@ module nanocache #(
 		.SRAM_ADDR_WIDTH(SRAM_ADDR_WIDTH),
 		.DUMMY_BYTES(DUMMY_BYTES),
 		.PSRAM(1),
-		.FREQ(FREQ))
-	(
-		.clk(clk), .rst_n(rst_n),
-		.addr(psram_addr), .data_in(psram_data_in), .wr_en(psram_wr_en), .data_out(psram_data_out),
-		.start_trans(psram_start_trans), .busy(psram_busy), .idle(psram_idle),
-		.ready(psram_ready), .read_strobe(psram_read_strobe), .write_strobe(psram_write_strobe),
-		.sio_din(sio_din), .sio_dout(sio_dout), .sio_en(sio_en), .cs_pin(cs_pin), sck_pin(sck_pin)
-	);
+		.FREQ(FREQ)) memory(
+			.clk(clk), .rst_n(rst_n),
+			.addr(psram_addr), .data_in(psram_data_in), .wr_en(psram_wr_en), .data_out(psram_data_out),
+			.start_trans(psram_start_trans), .busy(psram_busy), .idle(psram_idle),
+			.ready(psram_ready), .read_strobe(psram_read_strobe), .write_strobe(psram_write_strobe),
+			.sio_din(sio_din), .sio_dout(sio_dout), .sio_en(sio_en), .cs_pin(cs_pin), .sck_pin(sck_pin)
+		);
 	
 	// controller logic
 	reg [3:0] 				ctrl_fsm;				// what FSM state are we in
@@ -109,11 +108,14 @@ module nanocache #(
 	localparam
 		FSM_CLEAR_TAGS         = 0,
 		FSM_IDLE               = 1,
-		FSM_COMPARE_TAGS       = 2,
-		FSM_DELAY              = 3,
+		FSM_COMPARE_TAG        = 2,
+		FSM_EVICT              = 3,
+		FSM_FILL               = 4,
+		FSM_RETIRE             = 5,
+		FSM_DELAY              = 6;
 			
 	always @(posedge clk) begin
-		case (ctrl_fsm) begin
+		case (ctrl_fsm)
 			// zero out all of the tags
 			FSM_CLEAR_TAGS:
 				begin
@@ -141,7 +143,7 @@ module nanocache #(
 					if (tag_mem_out[VALID_BIT] && data_tag == tag_mem_out[TAG_BITS-3:0]) begin
 						// cache line is valid and matches rest of tag
 						ctrl_fsm                     <= FSM_RETIRE;
-						if (wr_en) begin
+						if (data_wr_en) begin
 							// write the tag as dirty since we wrote to it
 							tag_mem_in[TAG_BITS-3:0] <= data_tag;	// tag bits
 							tag_mem_in[DIRTY_BIT]    <= 1'b1;
@@ -188,7 +190,7 @@ module nanocache #(
 					end
 				end
 			// fill a line and write out the new tag then jump to retire (remember to honour data_in/data_out mid fill)
-			FSM_FILL
+			FSM_FILL:
 				begin
 					if (psram_idle) begin
 						// configure cache
@@ -208,7 +210,7 @@ module nanocache #(
 						ctrl_idx                 <= ctrl_idx - 1'b1;
 
 						// write to to cache (if we're writing to memory check against address
-						cache_mem_in             <= (data_wr_en && ((cache_mem_addr[CACHE_LINE-1:0] - 1'b1) == data_line_offset) ? data_in : psram_data_out;
+						cache_mem_in             <= (data_wr_en && ((cache_mem_addr[CACHE_LINE-1:0] - 1'b1) == data_line_offset)) ? data_in : psram_data_out;
 						cache_mem_wren           <= 1'b1;
 						cache_mem_addr           <= cache_mem_addr + 1'b1;
 						

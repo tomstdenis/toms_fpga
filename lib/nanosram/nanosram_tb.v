@@ -112,25 +112,20 @@ module nanosram_tb();
                             test_cycle            <= RUNLEN-1;
                         end
                         if (sram_read_strobe) begin
-                            test_cycle <= test_cycle - 1'b1;
+                            test_cycle            <= test_cycle - 1'b1;
+							if (sram_dout != sram_din) begin
+								sram_start_trans  <= 1'b0;
+								test_state        <= STATE_DONE;
+								test_pass         <= 0;
+							end
                             if (test_cycle == 0) begin
-								test_byte             <= test_byte + 1'b1;
-                                test_state            <= STATE_DONE;
-                                sram_addr             <= sram_addr + RUNLEN;
-								test_pass <= 1;
+								test_byte         <= test_byte + 1'b1;
+                                test_state        <= STATE_DONE;
+                                sram_addr         <= sram_addr + RUNLEN;
+								sram_start_trans  <= 1'b0;
+								test_pass         <= 1;
                             end else begin
-                                sram_din <= sram_din + 1'b1;
-								// we're at the 2nd last byte turn off the transaction so it stops reading once it reads
-								// byte 1024.  Unlike write_strobe the read_strobe occurs on the cycle the latest byte is
-                                // valid so we need to lower the start_trans reg on the count-1 byte.
-                                if (test_cycle == 1) begin
-                                    sram_start_trans      <= 1'b0;
-                                end
-                                if (sram_dout != sram_din) begin
-                                    sram_start_trans      <= 1'b0;
-                                    test_state            <= STATE_DONE;
-									test_pass <= 0;
-                                end
+                                sram_din          <= sram_din + 1'b1;
                             end
                         end
                     end
