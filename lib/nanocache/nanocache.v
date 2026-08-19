@@ -18,7 +18,7 @@ module nanocache #(
     input wire [7:0]                 data_in,				// byte to write to cache line when data_wr_en==1
     input wire [SRAM_ADDR_WIDTH-1:0] data_addr,				// address in memory to read from
     input wire                       data_wr_en,			// write enable 
-    output reg [7:0]                 data_out,				// byte to read back (writethrough too so on wr_en, data_in makes it's way to data_out)
+    output reg [7:0]                 data_out,				// byte to read
     
     input wire                       valid,					// request is valid
     output reg                       ready,					// command is done (must be low before sending next command)
@@ -155,7 +155,6 @@ module nanocache #(
 							// write to cache memory
 							cache_mem_in             <= data_in;
 							cache_mem_wren           <= 1'b1;
-							data_out                 <= data_in;
 						end else begin
 							data_out                 <= cache_mem_out;
 						end
@@ -224,7 +223,9 @@ module nanocache #(
 						
 						// store data_out matching the corresponding line byte read from PSRAM
 						if ((((cache_mem_addr + 1'b1)) & ((1<<CACHE_LINE)-1)) == data_line_offset) begin
-							data_out             <= (data_wr_en) ? data_in : psram_data_out;
+							if (~data_wr_en) begin
+								data_out         <= psram_data_out;
+							end
 							cache_mem_in         <= (data_wr_en) ? data_in : psram_data_out;
 							// signal data_out is valid now so the bus can in theory return earlier 
 							ready                <= 1'b1;
