@@ -16,7 +16,7 @@ module top(
     localparam
         PSRAM      = 1,   // 1 == use PSRAM, 0 == SRAM
         SKIP_RESET = 1,   // for PSRAMs skip the 66/99 reset sequence which seems to be optional
-        FREQ       = 114750,  // clock rate in LHz
+        FREQ       = 101_250,  // clock rate in LHz
         RUNLEN     = 32;   // how many bytes to transfer (7 so the addresses come out of alignment)
 
     wire pllclk;
@@ -138,25 +138,20 @@ module top(
                     begin
                         if (sram_ready & sram_read_strobe) begin
                             test_cycle <= test_cycle - 1'b1;
+                            if (sram_dout != sram_din) begin
+                                {rgb_r, rgb_b, rgb_b} <= 3'b011;        // compare error == RED
+                                sram_start_trans      <= 1'b0;
+                                uart_tx_data_in       <= 8'hAA;
+                                test_state            <= STATE_DONE;
+                            end
                             if (test_cycle == 0) begin
                                 {rgb_r, rgb_g, rgb_b} <= 3'b000; // white == good
                                 uart_tx_data_in       <= 8'h55;
                                 test_state            <= STATE_DONE;
                                 sram_addr             <= sram_addr + RUNLEN;
+                                sram_start_trans      <= 1'b0;
                             end else begin
-                                sram_din <= sram_din + 1'b1;
-								// we're at the 2nd last byte turn off the transaction so it stops reading once it reads
-								// byte 1024.  Unlike write_strobe the read_strobe occurs on the cycle the latest byte is
-                                // valid so we need to lower the start_trans reg on the count-1 byte.
-                                if (test_cycle == 1) begin
-                                    sram_start_trans      <= 1'b0;
-                                end
-                                if (sram_dout != sram_din) begin
-                                    {rgb_r, rgb_b, rgb_b} <= 3'b011;        // compare error == RED
-                                    sram_start_trans      <= 1'b0;
-                                    uart_tx_data_in       <= 8'hAA;
-                                    test_state            <= STATE_DONE;
-                                end
+                                sram_din              <= sram_din + 1'b1;
                             end
                         end
                     end
