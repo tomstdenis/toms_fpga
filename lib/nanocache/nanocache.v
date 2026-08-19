@@ -197,8 +197,9 @@ module nanocache #(
 			// fill a line and write out the new tag then jump to retire (remember to honour data_in/data_out mid fill)
 			{1'b0, FSM_FILL}:
 				begin
-					// only write it once per FILL
+					// only write data once (there will be multiple cycles per data)
 					tag_mem_wren                 <= 1'b0;
+					cache_mem_wren				 <= 1'b0;
 					
 					if (psram_idle) begin
 						// configure cache
@@ -222,7 +223,7 @@ module nanocache #(
 						cache_mem_addr           <= cache_mem_addr + 1'b1;
 						
 						// store data_out matching the corresponding line byte read from PSRAM
-						if ((((cache_mem_addr[CACHE_LINE-1:0] + 1'b1)) & ((1<<CACHE_LINE)-1)) == data_line_offset) begin
+						if ((((cache_mem_addr + 1'b1)) & ((1<<CACHE_LINE)-1)) == data_line_offset) begin
 							data_out             <= (data_wr_en) ? data_in : psram_data_out;
 							cache_mem_in         <= (data_wr_en) ? data_in : psram_data_out;
 							// signal data_out is valid now so the bus can in theory return earlier 
