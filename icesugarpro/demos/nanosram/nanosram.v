@@ -116,24 +116,19 @@ module top(
                         end
                         if (sram_read_strobe) begin
                             test_cycle <= test_cycle - 1'b1;
+							if (sram_dout != sram_din) begin
+								sram_start_trans      <= 1'b0;
+								uart_tx_data_in       <= 8'hAA;
+								test_state            <= STATE_DONE;
+							end
                             if (test_cycle == 0) begin
 								test_byte             <= test_byte + 1'b1;
                                 uart_tx_data_in       <= 8'h55;
                                 test_state            <= STATE_DONE;
                                 sram_addr             <= sram_addr + RUNLEN;
+								sram_start_trans      <= 1'b0;
                             end else begin
                                 sram_din <= sram_din + 1'b1;
-								// we're at the 2nd last byte turn off the transaction so it stops reading once it reads
-								// byte 1024.  Unlike write_strobe the read_strobe occurs on the cycle the latest byte is
-                                // valid so we need to lower the start_trans reg on the count-1 byte.
-                                if (test_cycle == 1) begin
-                                    sram_start_trans      <= 1'b0;
-                                end
-                                if (sram_dout != sram_din) begin
-                                    sram_start_trans      <= 1'b0;
-                                    uart_tx_data_in       <= 8'hAA;
-                                    test_state            <= STATE_DONE;
-                                end
                             end
                         end
                     end
