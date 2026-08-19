@@ -1,0 +1,234 @@
+`timescale 1ns/1ps
+`default_nettype none
+
+module nanocache #(
+	parameter CACHE_SIZE=11,				// log2(cache_bytes)
+	parameter CACHE_LINE=5,					// log2(cache_line_bytes)
+
+    parameter SRAM_ADDR_WIDTH=24,           // Address width
+    parameter DUMMY_BYTES=3,                // number of dummy cycles on a fast read
+    parameter FREQ=81                       // frequency of core in MHz used for PSRAM timing
+)(
+    input wire                       clk,
+    input wire                       rst_n,
+    
+    input wire [7:0]                 data_in,				// byte to write to cache line when data_wr_en==1
+    input wire [SRAM_ADDR_WIDTH-1:0] data_addr,				// address in memory to read from
+    input wire                       data_wr_en,			// write enable 
+    output reg [7:0]                 data_out,				// byte to read back 
+    
+    input wire                       valid,					// request is valid
+    output reg                       ready,					// command is done
+
+    // I/O
+    input wire [3:0]                 sio_din,               // QPI data in
+    output wire [3:0]                sio_dout,              // QPI data out
+    output wire                      sio_en,                // QPI output enable (1 == output, 0 == input
+    output wire                      cs_pin,                // active low CS pin
+    output wire                      sck_pin                // SPI clock
+    
+);
+	// configuration data
+	localparam
+		CACHE_LINES = CACHE_SIZE - CACHE_LINE,							// log2(# of cache lines)
+		TAG_BITS    = 2 + SRAM_ADDR_WIDTH - CACHE_LINE - CACHE_LINES,	// # of bits in TAG (plus D and V bits)
+		VALID_BIT   = TAG_BITS-2,										// which bit of the tag array is valid
+		DIRTY_BIT   = TAG_BITS-1;										// which bit of the tag array is dirty
+		
+	// input address mapping mapping
+	wire [TAG_BITS-3:0] data_tag;
+	wire [CACHE_LINE-1:0] data_line_offset;
+	wire [CACHE_LINES-1:0] data_line_index;
+	
+	assign data_line_offset = data_addr[CACHE_LINE-1:0];								// offset into line
+	assign data_line_index  = data_addr[CACHE_LINES+CACHE_LINE-1:CACHE_LINE];			// which line
+	assign data_tag         = data_addr[SRAM_ADDR_WIDTH-1:CACHE_LINE+CACHE_LINES];		// tag 
+
+	// tag memory (LUT-RAM)
+	reg [TAG_BITS-1:0] 		tag_mem_out;
+	reg [TAG_BITS-1:0] 		tag_mem_in;
+	reg [CACHE_LINES-1:0] 	tag_mem_addr;
+	reg 					tag_mem_wren;
+	reg [TAG_BITS-1:0] 		tag_mem[0:(1<<CACHE_LINES)-1];
+	
+	always @(posedge clk) begin
+		if (tag_mem_wren) begin
+			tag_mem[tag_mem_addr] <= tag_mem_in;
+		end else begin
+			tag_mem_out <= tag_mem[tag_mem_addr];
+		end
+	end
+	
+	// cache memory (Semi-Dual Port BRAM)
+	reg [7:0]				cache_mem_out;
+	reg [7:0]				cache_mem_in;
+	reg [CACHE_LINE-1:0]	cache_mem_addr;
+	reg 					cache_mem_wren;
+	reg [7:0]				cache_mem[0:(1<<CACHE_SIZE)-1];
+	
+	always @(posedge clk) begin
+		if (cache_mem_wren) begin
+			cache_mem[cache_mem_addr] <= cache_mem_in;
+		end else begin
+			cache_mem_out <= cache_mem[cache_mem_addr];
+		end
+	end
+	
+	// psram interface
+	reg [7:0] psram_data_in;
+	reg       psram_wr_en;
+	wire [7:0] psram_data_out;
+	reg	       psram_start_trans;
+	reg [SRAM_ADDR_WIDTH-1:0] psram_addr;
+	wire       psram_busy;
+	wire       psram_idle;
+	wire       psram_ready;
+	wire       psram_read_strobe;
+	wire       psram_write_strobe;
+	wire [CACHE_LINE-1:0] psram_zero;
+	assign psram_zero = 0;
+	
+	nanosram #(
+		.SRAM_ADDR_WIDTH(SRAM_ADDR_WIDTH),
+		.DUMMY_BYTES(DUMMY_BYTES),
+		.PSRAM(1),
+		.FREQ(FREQ))
+	(
+		.clk(clk), .rst_n(rst_n),
+		.addr(psram_addr), .data_in(psram_data_in), .wr_en(psram_wr_en), .data_out(psram_data_out),
+		.start_trans(psram_start_trans), .busy(psram_busy), .idle(psram_idle),
+		.ready(psram_ready), .read_strobe(psram_read_strobe), .write_strobe(psram_write_strobe),
+		.sio_din(sio_din), .sio_dout(sio_dout), .sio_en(sio_en), .cs_pin(cs_pin), sck_pin(sck_pin)
+	);
+	
+	// controller logic
+	reg [3:0] 				ctrl_fsm;				// what FSM state are we in
+	reg [3:0]				ctrl_tag;				// tag for jumping about
+	reg [CACHE_LINE-1:0]	ctrl_idx;
+	
+	localparam
+		FSM_CLEAR_TAGS         = 0,
+		FSM_IDLE               = 1,
+		FSM_COMPARE_TAGS       = 2,
+		FSM_DELAY              = 3,
+			
+	always @(posedge clk) begin
+		case (ctrl_fsm) begin
+			// zero out all of the tags
+			FSM_CLEAR_TAGS:
+				begin
+					if (tag_mem_addr == ((1<<CACHE_LINE) - 1)) begin
+						tag_mem_wren <= 1'b0;
+						ctrl_fsm     <= FSM_IDLE;
+					end else begin
+						tag_mem_addr <= tag_mem_addr + 1'b1;
+					end
+				end
+			// idle state waiting for a command
+			FSM_IDLE:
+				begin
+					if (valid) begin
+						// start reading tag and reading from cache
+						tag_mem_addr   <= data_line_index;
+						cache_mem_addr <= {data_line_index, data_line_offset};
+						ctrl_tag       <= FSM_COMPARE_TAG;
+						ctrl_fsm       <= FSM_DELAY;
+					end
+				end
+			// tag compare state
+			FSM_COMPARE_TAG:
+				begin
+					if (tag_mem_out[VALID_BIT] && data_tag == tag_mem_out[TAG_BITS-3:0]) begin
+						// cache line is valid and matches rest of tag
+						ctrl_fsm       <= FSM_RETIRE;
+						if (wr_en) begin
+							// write the tag as dirty since we wrote to it
+							tag_mem_in[TAG_BITS-3:0] <= data_tag;	// tag bits
+							tag_mem_in[DIRTY_BIT]    <= 1'b1;
+							tag_mem_in[VALID_BIT]    <= 1'b1;
+							tag_mem_wren             <= 1'b1;
+							cache_mem_in             <= data_in;
+							cache_mem_wren           <= 1'b1;
+						end else begin
+							data_out       <= cache_mem_out;
+						end
+					end else begin
+						// miss is it a valid line we need to evict?
+						if (tag_mem_out[DIRTY_BIT]) begin
+							ctrl_fsm                 <= FSM_EVICT;
+							ctrl_idx                 <= 0;
+						end else begin
+							ctrl_fsm                 <= FSM_FILL;
+							ctrl_idx                 <= 0;
+						end
+					end
+				end
+			// Evict a line to PSRAM then jump to fill it
+			FSM_EVICT:
+				begin
+					if (psram_idle) begin
+						psram_addr        <= {tag_mem_out[TAG_BITS-3:0], data_line_index, psram_zero};
+						psram_wr_en       <= 1'b1;
+						psram_data_in     <= cache_mem_out;			// we previously ready this
+						psram_start_trans <= 1'b1;
+						cache_mem_addr    <= cache_mem_addr + 1'b1;	// advance cache addr for write strobe
+					end
+					if (psram_write_strobe) begin
+						ctrl_idx          <= ctrl_idx + 1'b1;
+						if (ctrl_idx == (1<<CACHE_LINE)) begin
+							// evict is done
+							psram_wr_en   <= 1'b0;
+							ctrl_idx      <= 0;
+							ctrl_fsm      <= FSM_FILL;
+						end
+						if (ctrl_idx == ((1<<CACHE_LINE)-1) begin
+							// last strobe
+							psram_start_trans <= 1'b0;
+						end
+						psram_data_in     <= cache_mem_out;
+						cache_mem_addr    <= cache_mem_addr + 1'b1;
+					end
+				end
+			// fill a line and write out the new tag then jump to retire (remember to honour data_in/data_out mid fill)
+			FSM_FILL
+				begin
+					if (psram_idle) begin
+						// start PSRAM read
+						psram_addr        <= {data_tag, data_line_index, psram_zero};
+						psram_start_trans <= 1'b1;
+						// start write of tag mem
+						tag_mem_in[TAG_BITS-3:0] <= data_tag;
+						tag_mem_in[DIRTY_BIT]    <= data_wr_en;
+						tag_mem_in[VALID_BIT]    <= 1'b1;
+						tag_mem_wren             <= 1'b1;
+					end
+				end
+			// we're done waiting for valid to lower
+			FSM_RETIRE:
+				begin
+					ready          <= 1'b1;
+					cache_mem_wren <= 1'b0;
+					tag_mem_wren   <= 1'b0;
+					if (~valid) begin 
+						ready      <= 1'b0;
+						ctrl_fsm   <= FSM_IDLE;
+					end
+				end
+			// one cycle delay for reading from tag and cache 
+			FSM_DELAY:
+				begin
+					ctrl_fsm <= ctrl_tag;
+				end
+		endcase
+		if (~rst_n) begin
+			ctrl_fsm          <= FSM_CLEAR_TAGS;
+			psram_wr_en       <= 1'b0;
+			psram_start_trans <= 1'b0;
+			cache_mem_wren    <= 1'b0;
+			tag_mem_wren	  <= 1'b1;
+			tag_mem_in		  <= 0;
+			tag_mem_addr      <= 0;
+			ctrl_idx          <= 0;
+		end
+	end
+endmodule
