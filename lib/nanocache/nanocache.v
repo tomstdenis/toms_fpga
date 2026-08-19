@@ -1,3 +1,6 @@
+// byte wide nanocache
+// microcache later on should be 32-bit wide but for now 8-bit only
+
 `timescale 1ns/1ps
 `default_nettype none
 
@@ -18,7 +21,7 @@ module nanocache #(
     output reg [7:0]                 data_out,				// byte to read back (writethrough too so on wr_en, data_in makes it's way to data_out)
     
     input wire                       valid,					// request is valid
-    output reg                       ready,					// command is done
+    output reg                       ready,					// command is done (must be low before sending next command)
 
     // I/O
     input wire [3:0]                 sio_din,               // QPI data in
@@ -101,8 +104,7 @@ module nanocache #(
 		);
 	
 	// controller logic
-	reg [3:0] 				ctrl_fsm;				// what FSM state are we in
-	reg [3:0]				ctrl_tag;				// tag for jumping about
+	reg [2:0] 				ctrl_fsm;				// what FSM state are we in
 	reg [CACHE_LINE:0]		ctrl_idx;
 	
 	localparam
@@ -133,7 +135,6 @@ module nanocache #(
 						// start reading tag and reading from cache
 						tag_mem_addr   <= data_line_index;
 						cache_mem_addr <= {data_line_index, data_line_offset};
-						ctrl_tag       <= FSM_COMPARE_TAG;
 						ctrl_fsm       <= FSM_DELAY;
 					end
 				end
@@ -158,7 +159,7 @@ module nanocache #(
 						end
 					end else begin
 						// miss is it a valid line we need to evict?
-						ctrl_idx <= (1 << CACHE_LINE) - 1;
+						ctrl_idx     <= (1 << CACHE_LINE) - 1;
 						if (tag_mem_out[DIRTY_BIT]) begin
 							ctrl_fsm <= FSM_EVICT;
 						end else begin
@@ -192,13 +193,16 @@ module nanocache #(
 			// fill a line and write out the new tag then jump to retire (remember to honour data_in/data_out mid fill)
 			FSM_FILL:
 				begin
+					// only write it once per FILL
+					tag_mem_wren                 <= 1'b0;
+					
 					if (psram_idle) begin
 						// configure cache
-						cache_mem_addr    <= {data_line_index, psram_zero} - 1'b1;
+						cache_mem_addr           <= {data_line_index, psram_zero} - 1'b1;
 
 						// start PSRAM read
-						psram_addr        <= {data_tag, data_line_index, psram_zero};
-						psram_start_trans <= 1'b1;
+						psram_addr               <= {data_tag, data_line_index, psram_zero};
+						psram_start_trans        <= 1'b1;
 
 						// start write of tag mem
 						tag_mem_in[TAG_BITS-3:0] <= data_tag;
@@ -217,6 +221,8 @@ module nanocache #(
 						// store data_out matching the corresponding line byte read from PSRAM
 						if (((cache_mem_addr[CACHE_LINE-1:0] - 1'b1)) == data_line_offset) begin
 							data_out             <= (data_wr_en) ? data_in : psram_data_out;
+							// signal data_out is valid now so the bus can in theory return earlier 
+							ready                <= 1'b1;
 						end
 
 						// we hit the last byte
@@ -241,7 +247,7 @@ module nanocache #(
 			// one cycle delay for reading from tag and cache 
 			FSM_DELAY:
 				begin
-					ctrl_fsm <= ctrl_tag;
+					ctrl_fsm       <= FSM_COMPARE_TAG;
 				end
 		endcase
 		if (~rst_n) begin
