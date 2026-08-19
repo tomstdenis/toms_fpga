@@ -15,7 +15,7 @@ module nanocache #(
     input wire [7:0]                 data_in,				// byte to write to cache line when data_wr_en==1
     input wire [SRAM_ADDR_WIDTH-1:0] data_addr,				// address in memory to read from
     input wire                       data_wr_en,			// write enable 
-    output reg [7:0]                 data_out,				// byte to read back 
+    output reg [7:0]                 data_out,				// byte to read back (writethrough too so on wr_en, data_in makes it's way to data_out)
     
     input wire                       valid,					// request is valid
     output reg                       ready,					// command is done
@@ -104,7 +104,7 @@ module nanocache #(
 	// controller logic
 	reg [3:0] 				ctrl_fsm;				// what FSM state are we in
 	reg [3:0]				ctrl_tag;				// tag for jumping about
-	reg [CACHE_LINE-1:0]	ctrl_idx;
+	reg [CACHE_LINE:0]		ctrl_idx;
 	
 	localparam
 		FSM_CLEAR_TAGS         = 0,
@@ -140,26 +140,27 @@ module nanocache #(
 				begin
 					if (tag_mem_out[VALID_BIT] && data_tag == tag_mem_out[TAG_BITS-3:0]) begin
 						// cache line is valid and matches rest of tag
-						ctrl_fsm       <= FSM_RETIRE;
+						ctrl_fsm                     <= FSM_RETIRE;
 						if (wr_en) begin
 							// write the tag as dirty since we wrote to it
 							tag_mem_in[TAG_BITS-3:0] <= data_tag;	// tag bits
 							tag_mem_in[DIRTY_BIT]    <= 1'b1;
 							tag_mem_in[VALID_BIT]    <= 1'b1;
 							tag_mem_wren             <= 1'b1;
+							// write to cache memory
 							cache_mem_in             <= data_in;
 							cache_mem_wren           <= 1'b1;
+							data_out                 <= data_in;
 						end else begin
-							data_out       <= cache_mem_out;
+							data_out                 <= cache_mem_out;
 						end
 					end else begin
 						// miss is it a valid line we need to evict?
+						ctrl_idx <= (1 << CACHE_LINE) - 1;
 						if (tag_mem_out[DIRTY_BIT]) begin
-							ctrl_fsm                 <= FSM_EVICT;
-							ctrl_idx                 <= 0;
+							ctrl_fsm <= FSM_EVICT;
 						end else begin
-							ctrl_fsm                 <= FSM_FILL;
-							ctrl_idx                 <= 0;
+							ctrl_fsm <= FSM_FILL;
 						end
 					end
 				end
@@ -174,16 +175,13 @@ module nanocache #(
 						cache_mem_addr    <= cache_mem_addr + 1'b1;	// advance cache addr for write strobe
 					end
 					if (psram_write_strobe) begin
-						ctrl_idx          <= ctrl_idx + 1'b1;
-						if (ctrl_idx == (1<<CACHE_LINE)) begin
-							// evict is done
-							psram_wr_en   <= 1'b0;
-							ctrl_idx      <= 0;
-							ctrl_fsm      <= FSM_FILL;
-						end
-						if (ctrl_idx == ((1<<CACHE_LINE)-1) begin
-							// last strobe
+						ctrl_idx          <= ctrl_idx - 1'b1;
+						if (ctrl_idx == 0) begin
+							// evict is done (off by one?)
+							psram_wr_en       <= 1'b0;
 							psram_start_trans <= 1'b0;
+							ctrl_idx          <= (1 << CACHE_LINE) - 1;
+							ctrl_fsm          <= FSM_FILL;
 						end
 						psram_data_in     <= cache_mem_out;
 						cache_mem_addr    <= cache_mem_addr + 1'b1;
@@ -193,14 +191,38 @@ module nanocache #(
 			FSM_FILL
 				begin
 					if (psram_idle) begin
+						// configure cache
+						cache_mem_addr    <= {data_line_index, psram_zero} - 1'b1;
+
 						// start PSRAM read
 						psram_addr        <= {data_tag, data_line_index, psram_zero};
 						psram_start_trans <= 1'b1;
+
 						// start write of tag mem
 						tag_mem_in[TAG_BITS-3:0] <= data_tag;
 						tag_mem_in[DIRTY_BIT]    <= data_wr_en;
 						tag_mem_in[VALID_BIT]    <= 1'b1;
 						tag_mem_wren             <= 1'b1;
+					end
+					if (psram_read_strobe) begin
+						ctrl_idx                 <= ctrl_idx - 1'b1;
+
+						// write to to cache (if we're writing to memory check against address
+						cache_mem_in             <= (data_wr_en && ((cache_mem_addr[CACHE_LINE-1:0] - 1'b1) == data_line_offset) ? data_in : psram_data_out;
+						cache_mem_wren           <= 1'b1;
+						cache_mem_addr           <= cache_mem_addr + 1'b1;
+						
+						// store data_out matching the corresponding line byte read from PSRAM
+						if (((cache_mem_addr[CACHE_LINE-1:0] - 1'b1)) == data_line_offset) begin
+							data_out             <= (data_wr_en) ? data_in : psram_data_out;
+						end
+
+						// we hit the last byte
+						if (ctrl_idx == 0) begin
+							// last byte
+							psram_start_trans    <= 1'b0;
+							ctrl_fsm             <= FSM_RETIRE;
+						end
 					end
 				end
 			// we're done waiting for valid to lower
