@@ -218,15 +218,17 @@ module nanocache #(
 						ctrl_idx                 <= ctrl_idx - 1'b1;
 
 						// write to to cache (if we're writing to memory check against address)
-						cache_mem_in             <= (data_wr_en && ((cache_mem_addr[CACHE_LINE-1:0] - 1'b1) == data_line_offset)) ? data_in : psram_data_out;
 						cache_mem_wren           <= 1'b1;
 						cache_mem_addr           <= cache_mem_addr + 1'b1;
 						
 						// store data_out matching the corresponding line byte read from PSRAM
-						if (((cache_mem_addr[CACHE_LINE-1:0] - 1'b1)) == data_line_offset) begin
+						if ((((cache_mem_addr[CACHE_LINE-1:0] + 1'b1)) & ((1<<CACHE_LINE)-1)) == data_line_offset) begin
 							data_out             <= (data_wr_en) ? data_in : psram_data_out;
+							cache_mem_in         <= (data_wr_en) ? data_in : psram_data_out;
 							// signal data_out is valid now so the bus can in theory return earlier 
 							ready                <= 1'b1;
+						end else begin
+							cache_mem_in         <= psram_data_out;
 						end
 
 						// we hit the last byte
