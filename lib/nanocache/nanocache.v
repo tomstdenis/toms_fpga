@@ -84,7 +84,7 @@ module nanocache #(
 	reg 					cache_mem_wren;
 	reg [7:0]				cache_mem[0:(1<<CACHE_SIZE)-1];
 	wire [CACHE_SIZE-1:0]   cache_mem_next;
-	assign cache_mem_next = cache_mem_addr + 1;
+	assign cache_mem_next = cache_mem_addr[CACHE_SIZE-1:0] + 1'b1;
 	
 	always @(posedge clk) begin
 		if (cache_mem_wren) begin
@@ -171,7 +171,7 @@ module nanocache #(
 				begin
 					// since we want to pipeline reads if we hit we need to keep incrementing the cache addr
 					if (~data_wr_en) begin
-						cache_mem_addr[CACHE_LINE-1:0] <= cache_mem_addr[CACHE_LINE-1:0] + 1'b1;		// only advance if we're reading
+						cache_mem_addr[CACHE_LINE-1:0] <= cache_mem_next;		// only advance if we're reading
 					end
 				end
 			{1'b0, FSM_COMPARE_TAG}:
@@ -197,16 +197,18 @@ module nanocache #(
 							// we already have cache_mem_addr pointing at the 2nd byte so by time we hit RETIRE+spin we're consistent with FSM_FILL
 							data_out                 <= cache_mem_out;
 							// since we want to pipeline reads if we hit we need to keep incrementing the cache addr
-							cache_mem_addr[CACHE_LINE-1:0] <= cache_mem_addr[CACHE_LINE-1:0] + 1'b1; // only advance if we're reading
+							cache_mem_addr[CACHE_LINE-1:0] <= cache_mem_next; // only advance if we're reading
 						end
 					end else begin
 						// miss is it a valid line we need to evict?
 						ctrl_idx                           <= (1 << CACHE_LINE) - 1;
 						if (tag_mem_out[DIRTY_BIT]) begin
+							// line is dirty we need to evict it first
 							ctrl_fsm                       <= FSM_EVICT;
 							ctrl_spin                      <= 1;   // add delay to wait for cache data
 							cache_mem_addr[CACHE_LINE-1:0] <= 0;   // read 0th byte of line we are evicting
 						end else begin
+							// line is clean so we can fill first
 							ctrl_fsm                       <= FSM_FILL;
 						end
 					end
@@ -221,7 +223,9 @@ module nanocache #(
 						psram_wr_en               	       <= 1'b1;
 						psram_addr                         <= {tag_mem_out[TAG_SIZE-1:0], data_line_index, psram_zero};
 						psram_data_in                      <= cache_mem_out;							// we previously ready this: during EVICT+spin
-						cache_mem_addr[CACHE_LINE-1:0]     <= cache_mem_addr[CACHE_LINE-1:0] + 1'b1;	// advance cache addr for write strobe
+						// note we have at least 4 cycles between write strobes so we don't need to
+						// per cycle pipeline reads from the cache mem
+						cache_mem_addr[CACHE_LINE-1:0]     <= cache_mem_next;	// advance cache addr for write strobe
 					end
 					if (psram_write_strobe) begin
 						ctrl_idx          	               <= ctrl_idx - 1'b1;
@@ -233,7 +237,7 @@ module nanocache #(
 							psram_wr_en            	       <= 1'b0;
 						end else begin
 							psram_data_in                  <= cache_mem_out;
-							cache_mem_addr[CACHE_LINE-1:0] <= cache_mem_addr[CACHE_LINE-1:0] + 1'b1;
+							cache_mem_addr[CACHE_LINE-1:0] <= cache_mem_next;
 						end
 					end
 				end
@@ -244,7 +248,7 @@ module nanocache #(
 					// only write data once (there will be multiple cycles per data)		
 					if (psram_idle) begin
 						// configure cache
-						cache_mem_addr           <= {data_line_index, ~psram_zero};				// start at -1 in the cache line since we preincrement during the strobe
+						cache_mem_addr           <= {data_line_index, ~psram_zero};	// start at -1 in the cache line since we preincrement during the strobe
 
 						// start PSRAM read
 						psram_start_trans        <= 1'b1;
@@ -261,7 +265,7 @@ module nanocache #(
 
 						// write to to cache (if we're writing to memory check against address)
 						cache_mem_wren                 <= 1'b1;
-						cache_mem_addr[CACHE_LINE-1:0] <= cache_mem_addr[CACHE_LINE-1:0] + 1'b1;
+						cache_mem_addr[CACHE_LINE-1:0] <= cache_mem_next;
 						
 						// store data_out matching the corresponding line byte read from PSRAM
 						if (cache_mem_next == data_line_offset) begin
@@ -294,7 +298,7 @@ module nanocache #(
 				begin
 					ready <= 1; // ready first goes high for first cycle of RETIRE+~spin
 					if (~data_wr_en) begin
-						cache_mem_addr[CACHE_LINE-1:0] <= cache_mem_addr[CACHE_LINE-1:0] + 1'b1;		// only advance if we're reading
+						cache_mem_addr[CACHE_LINE-1:0] <= cache_mem_next;		// only advance if we're reading
 					end
 				end
 			// we're done waiting for valid to lower
@@ -305,7 +309,7 @@ module nanocache #(
 						ctrl_fsm  <= FSM_IDLE;
 					end else begin
 						// stream bytes 2,3,4,...,N-1
-						cache_mem_addr[CACHE_LINE-1:0] <= cache_mem_addr[CACHE_LINE-1:0] + 1'b1;	// advance cache (reads are already ahead, writes start at addr-1)
+						cache_mem_addr[CACHE_LINE-1:0] <= cache_mem_next;	// advance cache (reads are already ahead, writes start at addr-1)
 						if (data_wr_en) begin
 							cache_mem_in    <= data_in;
 							cache_mem_wren  <= 1;								// turn on cache write enable
