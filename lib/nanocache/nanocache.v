@@ -2,15 +2,19 @@
 
 Gist (doc tbd): 
 
-Cycle 0: when idle then set data_in/data_addr/data_wr_en/valid
-Cycle 1: set valid = 0 if not reading/writing more than 1 byte, if writing you can load the 2nd byte into data_in
-Cycle 2..N: while ready==0
-Cycle N+1: if reading store data_out, if writing (more than 2 bytes) store the 3rd byte in data_in
-Cycle N+2...: set valid=0 after the last byte is read/written otherwise keep looping like Cycle N+1
+So for writing you use data_in, so on
 
-Basically once ready==1 every cycle valid==1 means another byte is read/written from the cache line.  Keep in mind if you
-are writing you must preload byte #2 before ready==1 (you can do it after cycle 0).  After you load byte #2, you then
-load byte 3,4,5,... every cycle after ready==1.
+cycle == 0: wait for idle, program data_in/data_addr/data_wr_en=1
+cycle == 1: if there's more data load the 2nd byte into data_in, otherwise lower valid
+cycle == 2: if there are more bytes wait for ready, once ready load a new byte in data_in every cycle, otherwise lower valid
+
+For reading:
+
+cycle == 0: wait for idle, program data_in/data_addr/data_wr_en=0
+cycle == 1: wait for ready, then every cycle latch
+
+
+
 
 */
 
@@ -184,7 +188,7 @@ module nanocache #(
                         // in the spin+COMPARE_TAG cycle.  We must make sure we increment the cache addr
                         // below in our ~data_wr_en state
                         ctrl_fsm                     <= FSM_RETIRE;
-						ready                        <= data_wr_en;
+						ready                        <= 1;
                         if (data_wr_en) begin
                             // write the tag as dirty since we wrote to it
                             tag_mem_in               <= tag_mem_out; // tag bits
@@ -297,7 +301,7 @@ module nanocache #(
             // host sees 'ready' after this cycle so that by time we get to RETIRE+~spin data_in is valid
             {1'b1, FSM_RETIRE}:
                 begin
-					ready <= data_wr_en;
+					ready <= 1;
                     if (~data_wr_en) begin
                         cache_mem_addr[CACHE_LINE-1:0] <= cache_mem_next;        // only advance if we're reading
                     end
