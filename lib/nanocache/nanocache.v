@@ -19,7 +19,7 @@ load byte 3,4,5,... every cycle after ready==1.
 
 module nanocache #(
     parameter CACHE_SIZE=11,                // log2(cache_bytes)
-    parameter CACHE_LINE=5,                    // log2(cache_line_bytes)
+    parameter CACHE_LINE=5,                 // log2(cache_line_bytes)
 
     parameter SRAM_ADDR_WIDTH=24,           // Address width
     parameter DUMMY_BYTES=3,                // number of dummy cycles on a fast read
@@ -143,7 +143,7 @@ module nanocache #(
         cache_mem_wren  <= 1'b0;
         case ({ctrl_spin, ctrl_fsm})
             // zero out all of the tags
-            {1'b0, FSM_CLEAR_TAGS}:
+            {1'bx, FSM_CLEAR_TAGS}:
                 begin
                     tag_mem_wren     <= 1'b1;
                     if (tag_mem_addr == ((1<<CACHE_LINES) - 1)) begin
@@ -319,11 +319,6 @@ module nanocache #(
                         end
                     end
                 end
-			default: begin
-				ctrl_fsm     <= FSM_CLEAR_TAGS;
-				tag_mem_addr <= 0;
-				tag_mem_out  <= 0;
-			end
         endcase
         if (~rst_n) begin
             ctrl_fsm          <= FSM_CLEAR_TAGS;
