@@ -12,6 +12,7 @@
 #define MEM_SIZE 8192
 
 uint8_t memory[MEM_SIZE], init[MEM_SIZE];
+uint32_t lines = 0;
 
 void write_opcode(FILE *out, uint32_t opcode, uint32_t addr, uint32_t value, uint32_t len)
 {
@@ -26,6 +27,7 @@ void write_opcode(FILE *out, uint32_t opcode, uint32_t addr, uint32_t value, uin
 	b = (value >> 16) & 0xFF;   fprintf(out, "%02x", b);
 	b = (value >> 8) & 0xFF;    fprintf(out, "%02x", b);
 	b = value & 0xFF;           fprintf(out, "%02x\n", b);
+	lines++;
 }
 
 // write out value[31:(32 - len)]
@@ -107,5 +109,7 @@ int main(void)
 		}
 	}
 
-	write_opcode(out, OP_HALT, 0, 0, 0);
+	while (lines < 10240) {
+		write_opcode(out, OP_HALT, 0, 0, 0);
+	}
 }
