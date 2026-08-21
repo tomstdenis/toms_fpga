@@ -184,7 +184,7 @@ module nanocache #(
                         // in the spin+COMPARE_TAG cycle.  We must make sure we increment the cache addr
                         // below in our ~data_wr_en state
                         ctrl_fsm                     <= FSM_RETIRE;
-                        ready                        <= 1; // ready first goes high for first cycle of RETIRE+~spin
+						ready                        <= data_wr_en;
                         if (data_wr_en) begin
                             // write the tag as dirty since we wrote to it
                             tag_mem_in               <= tag_mem_out; // tag bits
@@ -202,11 +202,11 @@ module nanocache #(
                     end else begin
                         // miss is it a valid line we need to evict?
                         ctrl_idx                           <= (1 << CACHE_LINE) - 1;
+						cache_mem_addr[CACHE_LINE-1:0]     <= 0;
                         if (tag_mem_out[DIRTY_BIT]) begin
                             // line is dirty we need to evict it first
                             ctrl_fsm                       <= FSM_EVICT;
                             ctrl_spin                      <= 1;   // add delay to wait for cache data
-                            cache_mem_addr[CACHE_LINE-1:0] <= 0;   // read 0th byte of line we are evicting
                         end else begin
                             // line is clean so we can fill first
                             ctrl_fsm                       <= FSM_FILL;
@@ -229,15 +229,14 @@ module nanocache #(
                     end
                     if (psram_write_strobe) begin
                         ctrl_idx                           <= ctrl_idx - 1'b1;
+						psram_data_in                      <= cache_mem_out;
+						cache_mem_addr[CACHE_LINE-1:0]     <= cache_mem_next;
                         if (ctrl_idx == 0) begin
                             // evict is done
-                            ctrl_idx                       <= (1 << CACHE_LINE) - 1;
+// not needed since 0 - 1 is 1<<CACHE_LINE - 1
+//                            ctrl_idx                       <= (1 << CACHE_LINE) - 1;
                             ctrl_fsm                       <= FSM_FILL;
                             psram_start_trans              <= 1'b0;
-                            psram_wr_en                    <= 1'b0;
-                        end else begin
-                            psram_data_in                  <= cache_mem_out;
-                            cache_mem_addr[CACHE_LINE-1:0] <= cache_mem_next;
                         end
                     end
                 end
@@ -252,6 +251,7 @@ module nanocache #(
 
                         // start PSRAM read
                         psram_start_trans        <= 1'b1;
+						psram_wr_en              <= 1'b0;
                         psram_addr               <= {data_tag, data_line_index, psram_zero};
 
                         // start write of tag mem
@@ -286,7 +286,7 @@ module nanocache #(
                         if (ctrl_idx == 0) begin
                             // last byte
                             ctrl_fsm             <= FSM_RETIRE;   // retire
-                            ctrl_spin            <= 1;            // give cycle for host to respond to ready only if they're still waiting
+                            ctrl_spin            <= 1;
                             psram_start_trans    <= 1'b0;
                             cache_mem_addr[CACHE_SIZE-1:CACHE_LINE] <= data_line_index;
                             cache_mem_addr[CACHE_LINE-1:0]          <= data_line_offset + ~data_wr_en;
@@ -297,14 +297,15 @@ module nanocache #(
             // host sees 'ready' after this cycle so that by time we get to RETIRE+~spin data_in is valid
             {1'b1, FSM_RETIRE}:
                 begin
-                    ready <= 1; // ready first goes high for first cycle of RETIRE+~spin
+					ready <= data_wr_en;
                     if (~data_wr_en) begin
                         cache_mem_addr[CACHE_LINE-1:0] <= cache_mem_next;        // only advance if we're reading
                     end
                 end
-            // we're done waiting for valid to lower
+            // we're done waiting for valid to lower to then jump back to IDLE
             {1'b0, FSM_RETIRE}:
                 begin
+					ready <= 1;
                     if (~valid) begin 
                         ready     <= 1'b0;
                         ctrl_fsm  <= FSM_IDLE;
@@ -330,6 +331,7 @@ module nanocache #(
             tag_mem_in        <= 0;
             tag_mem_addr      <= 0;
             tag_mem_wren      <= 1'b1;
+            ready             <= 1'b0;
         end
     end
 endmodule
