@@ -51,8 +51,8 @@ module nanocache_tb();
     reg [31:0] command_data;
     
     localparam
-		command_op_write = 4'h4,
 		command_op_read  = 4'h8,
+		command_op_write = 4'h4,
 		command_op_halt  = 4'h2;
 
 	initial begin
@@ -131,7 +131,8 @@ module nanocache_tb();
 								nc_valid   <= 1'b0;
 							end
 							// every cycle this is high we have data
-							if (nc_data_out != command_data[31:24]) begin
+							$display("Read byte: %x", nc_data_out);
+							if (nc_data_out !== command_data[31:24]) begin
 								$display("Read back failed got %x expected %x", nc_data_out, command_data[31:24]);
 								test_state <= STATE_HALT;
 								nc_valid   <= 1'b0;
@@ -140,6 +141,7 @@ module nanocache_tb();
 					end
 				STATE_START_WRITE:
 					begin
+						nc_valid   <= (command_burst_len != 0) ? nc_valid : 1'b0;
 						nc_data_in <= command_data[31:24];					// this is so data_in is set for when ready goes high first
 						if (nc_idle) begin
 							$display("WRITE in idle");
@@ -147,7 +149,9 @@ module nanocache_tb();
 							nc_data_wr_en <= 1'b1;
 							nc_data_in    <= command_data[31:24];
 							nc_data_addr  <= command_addr;
-							command_data  <= { command_data[23:0], 8'b0 }; // preshift for any 2nd byte
+							if (!nc_valid) begin
+								command_data <= { command_data[23:0], 8'b0 };
+							end
 						end
 						if (nc_ready) begin
 							$display("WRITE in ready");

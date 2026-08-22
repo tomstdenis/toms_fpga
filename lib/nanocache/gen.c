@@ -91,8 +91,8 @@ int main(void)
 	out = fopen("trace.hex", "w");
 
 #if 1
-	gen_write(out, 0x1234, 0x5A000000, 0);
-	gen_read(out, 0x1234, 0);
+	gen_write(out, 0x1210, 0x5A6B7C00, 3);
+	gen_read(out, 0x1210, 3);
 #else	
 	// let's fill the first 8KB in banks of 2K using runs of 1, 2, 3, and 4 byte strides
 	for (x = 1; x <= 4; x++) {

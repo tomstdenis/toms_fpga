@@ -62,8 +62,8 @@ module nanocache #(
     wire [CACHE_LINE-1:0]  data_line_offset;
     wire [CACHE_LINES-1:0] data_line_index;
     
-    assign data_line_offset = data_addr[CACHE_LINE-1:0];                            // offset into line
-    assign data_line_index  = data_addr[CACHE_LINES+CACHE_LINE-1:CACHE_LINE];        // which line
+    assign data_line_offset = data_addr[CACHE_LINE-1:0];                              // offset into line
+    assign data_line_index  = data_addr[CACHE_LINES+CACHE_LINE-1:CACHE_LINE];         // which line
     assign data_tag         = data_addr[SRAM_ADDR_WIDTH-1:CACHE_LINE+CACHE_LINES];    // tag 
 
     // tag memory
@@ -87,8 +87,8 @@ module nanocache #(
     reg [CACHE_SIZE-1:0]     cache_mem_addr;
     reg                      cache_mem_wren;
     reg [7:0]                cache_mem[0:(1<<CACHE_SIZE)-1];
-    wire [CACHE_SIZE-1:0]    cache_mem_next;
-    assign cache_mem_next =  cache_mem_addr[CACHE_SIZE-1:0] + 1'b1;
+    wire [CACHE_LINE-1:0]    cache_mem_next;
+    assign cache_mem_next =  cache_mem_addr[CACHE_LINE-1:0] + 1'b1;
     
     always @(posedge clk) begin
         if (cache_mem_wren) begin
@@ -136,7 +136,8 @@ module nanocache #(
         FSM_COMPARE_TAG  = 3'd2,
         FSM_EVICT        = 3'd3,
         FSM_FILL         = 3'd4,
-        FSM_RETIRE       = 3'd5;
+        FSM_PREP_RETIRE  = 3'd5,
+        FSM_RETIRE       = 3'd6;
 
     // idle signal
     assign idle = (ctrl_fsm == FSM_IDLE ? 1'b1 : 1'b0);
@@ -174,7 +175,7 @@ module nanocache #(
             {1'b1, FSM_COMPARE_TAG}:
                 begin
                     // since we want to pipeline reads if we hit we need to keep incrementing the cache addr
-                    if (~data_wr_en) begin
+                    if (!data_wr_en) begin
                         cache_mem_addr[CACHE_LINE-1:0] <= cache_mem_next;        // only advance if we're reading
                     end
                 end
@@ -273,7 +274,7 @@ module nanocache #(
                         
                         // store data_out matching the corresponding line byte read from PSRAM
                         if (cache_mem_next == data_line_offset) begin
-                            if (~data_wr_en) begin
+                            if (!data_wr_en) begin
                                 // host is reading this byte so relay to data_out
                                 data_out         <= psram_data_out;
                                 cache_mem_in     <= psram_data_out;
@@ -289,20 +290,26 @@ module nanocache #(
                         // we hit the last byte
                         if (ctrl_idx == 0) begin
                             // last byte
-                            ctrl_fsm             <= FSM_RETIRE;   // retire
-                            ctrl_spin            <= 1;
+                            ctrl_fsm             <= FSM_PREP_RETIRE;   // retire
                             psram_start_trans    <= 1'b0;
-                            cache_mem_addr[CACHE_SIZE-1:CACHE_LINE] <= data_line_index;
-                            cache_mem_addr[CACHE_LINE-1:0]          <= data_line_offset + ~data_wr_en;
                         end                    
                     end
                 end
+
+			// prep to go into RETIRE by starting to read or write from the next byte
+			{1'b0, FSM_PREP_RETIRE}:
+				begin
+					cache_mem_addr[CACHE_SIZE-1:CACHE_LINE] <= data_line_index;
+					cache_mem_addr[CACHE_LINE-1:0]          <= data_line_offset + (data_wr_en ? 1'b0 : 1'b1);
+					ctrl_fsm                                <= FSM_RETIRE;
+					ctrl_spin                               <= 1'b1;
+				end
 
             // host sees 'ready' after this cycle so that by time we get to RETIRE+~spin data_in is valid
             {1'b1, FSM_RETIRE}:
                 begin
 					ready <= 1;
-                    if (~data_wr_en) begin
+                    if (!data_wr_en) begin
                         cache_mem_addr[CACHE_LINE-1:0] <= cache_mem_next;        // only advance if we're reading
                     end
                 end
