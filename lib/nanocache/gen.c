@@ -91,7 +91,9 @@ int main(void)
 	out = fopen("trace.hex", "w");
 
 #if 1
-	gen_write(out, 0x210,         0x5A6B7C8D, 4);
+	gen_write(out, 0x210,         0x5A000000, 1);
+	gen_write(out, 0x211,         0x6B000000, 1);
+	gen_write(out, 0x212,         0x7C8D0000, 2);
 	gen_write(out, 0x210 + 0x800, 0x12345678, 4);	// this should force collisions
 	gen_read(out,  0x210, 4);
 	gen_read(out,  0x210 + 0x800, 4);
