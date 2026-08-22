@@ -90,30 +90,35 @@ int main(void)
 	
 	out = fopen("trace.hex", "w");
 
-#if 1
+#if 0
 	gen_write(out, 0x210,         0x5A000000, 1);
 	gen_write(out, 0x211,         0x6B000000, 1);
 	gen_write(out, 0x212,         0x7C8D0000, 2);
-	gen_write(out, 0x210 + 0x800, 0x12345678, 4);	// this should force collisions
+	gen_write(out, 0x210 + 0x800, 0x12345600, 3);	// this should force collisions
+	gen_write(out, 0x213 + 0x800, 0x78000000, 1);
 	gen_read(out,  0x210, 4);
 	gen_read(out,  0x210 + 0x800, 4);
 #else	
 	// let's fill the first 8KB in banks of 2K using runs of 1, 2, 3, and 4 byte strides
 	for (x = 1; x <= 4; x++) {
+		uint32_t s;
 		z = 2048 * (x - 1);
-		for (y = 0; y <= (2048 - x); y += x) {
+		s = (x < 3) ? x : 4;
+		for (y = 0; y <= (2048 - x); y += s) {
 			uint32_t value;
 			value = read_rng(x);
 			gen_write(out, z, value, x);
-			z += x;
+			z += s;
 		}
 	}
 	// now generate reads 
 	for (x = 1; x <= 4; x++) {
+		uint32_t s;
 		z = 2048 * (x - 1);
-		for (y = 0; y <= (2048 - x); y += x) {
+		s = (x < 3) ? x : 4;
+		for (y = 0; y <= (2048 - x); y += s) {
 			gen_read(out, z, x);
-			z += x;
+			z += s;
 		}
 	}
 #endif

@@ -13,4 +13,4 @@ gen: gen.c
 
 .PHONY: clean
 clean:
-	@rm -f gen trace.hex *.log *.pass *.vvp
+	@rm -f gen trace.hex *.log *.pass *.vvp *.vcd
