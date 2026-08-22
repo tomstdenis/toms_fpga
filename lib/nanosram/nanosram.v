@@ -23,7 +23,9 @@ module nanosram #(
     parameter SRAM_ADDR_WIDTH=24,           // Address width
     parameter DUMMY_BYTES=3,                // number of dummy cycles on a fast read
     parameter PSRAM=0,                      // switch between PSRAM and SRAM
-    parameter FREQ=81                       // frequency of core in MHz used for PSRAM timing
+    parameter FREQ=81,                      // frequency of core in MHz used for PSRAM timing
+    parameter WAKEUP_DELAY_US=50,           // wakeup delay in uSec
+    parameter HANGUP_DELAY_NS=50            // hangup time between commands in nSec
 )(
     input wire clk,
     input wire rst_n,
@@ -57,8 +59,8 @@ module nanosram #(
 `endif	
 
     localparam
-        WAKEUP_CYCLES = FREQ * 50,                      // 50 uSec wakeup timer (smaller value == better timing and seems to work)
-        HANGUP_CYCLES = (50 * FREQ + 999) / 1000;       // 50ns hangup timer
+        WAKEUP_CYCLES = FREQ * WAKEUP_DELAY_US,                      // 50 uSec wakeup timer (smaller value == better timing and seems to work)
+        HANGUP_CYCLES = (HANGUP_DELAY_NS * FREQ + 999) / 1000;       // hangup timer
 
     reg [$clog2(WAKEUP_CYCLES)-1:0] delay_timer;
     reg [3:0] temp_wire_bits;               // latch the data_in/out

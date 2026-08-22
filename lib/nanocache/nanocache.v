@@ -27,7 +27,9 @@ module nanocache #(
 
     parameter SRAM_ADDR_WIDTH=24,           // Address width
     parameter DUMMY_BYTES=3,                // number of dummy cycles on a fast read
-    parameter FREQ=81                       // frequency of core in MHz used for PSRAM timing
+    parameter FREQ=81,                      // frequency of core in MHz used for PSRAM timing
+    parameter WAKEUP_DELAY_US=50,           // wakeup delay in uSec
+    parameter HANGUP_DELAY_NS=50            // hangup time between commands in nSec
 )(
     input wire                       clk,
     input wire                       rst_n,
@@ -116,7 +118,9 @@ module nanocache #(
         .SRAM_ADDR_WIDTH(SRAM_ADDR_WIDTH),
         .DUMMY_BYTES(DUMMY_BYTES),
         .PSRAM(1),
-        .FREQ(FREQ)) memory(
+        .FREQ(FREQ),
+        .WAKEUP_DELAY_US(WAKEUP_DELAY_US),
+        .HANGUP_DELAY_NS(HANGUP_DELAY_NS)) memory(
             .clk(clk), .rst_n(rst_n),
             .addr(psram_addr), .data_in(psram_data_in), .wr_en(psram_wr_en), .data_out(psram_data_out),
             .start_trans(psram_start_trans), .busy(psram_busy), .idle(psram_idle),

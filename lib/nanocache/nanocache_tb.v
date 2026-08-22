@@ -28,7 +28,7 @@ module nanocache_tb();
 	wire	   sck_pin;
 
 	// nanocache
-	nanocache nc_dut (
+	nanocache #(.WAKEUP_DELAY_US(0), .HANGUP_DELAY_NS(0)) nc_dut (
 		.clk(clk), .rst_n(rst_n),
 		.data_in(nc_data_in), .data_out(nc_data_out), .data_addr(nc_data_addr), .data_wr_en(nc_data_wr_en),
 		.valid(nc_valid), .ready(nc_ready), .idle(nc_idle),
