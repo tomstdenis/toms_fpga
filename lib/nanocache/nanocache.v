@@ -54,6 +54,8 @@ module nanocache #(
 `ifdef MODEL_SIM
 	reg [31:0] stats_hit;
 	reg [31:0] stats_miss;
+	reg [31:0] stats_evicts;
+	reg [31:0] stats_fills;
 `endif	
 
     // configuration data
@@ -239,6 +241,9 @@ module nanocache #(
             {1'b0, FSM_EVICT}:
                 begin
                     if (~psram_start_trans & psram_idle) begin
+`ifdef MODEL_SIM
+						stats_evicts <= stats_evicts + 1;
+`endif						
                         // start at byte zero of the cache line and write it out to PSRAM
                         psram_start_trans                  <= 1'b1;
                         psram_wr_en                        <= 1'b1;
@@ -267,6 +272,9 @@ module nanocache #(
                 begin
                     // only write data once (there will be multiple cycles per data)        
                     if (~psram_start_trans & psram_idle) begin
+`ifdef MODEL_SIM
+						stats_fills <= stats_fills + 1;
+`endif						
                         // configure cache
                         cache_mem_addr           <= {data_line_index, ~psram_zero};    // start at -1 in the cache line since we preincrement during the strobe
 
@@ -350,8 +358,10 @@ module nanocache #(
         endcase
         if (~rst_n) begin
 `ifdef MODEL_SIM
-			stats_hit <= 0;
-			stats_miss <= 0;
+			stats_hit    <= 0;
+			stats_miss   <= 0;
+			stats_evicts <= 0;
+			stats_fills  <= 0;
 `endif	
             ctrl_fsm          <= FSM_CLEAR_TAGS;
             ctrl_idx          <= 0;

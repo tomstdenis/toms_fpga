@@ -68,7 +68,8 @@ module nanocache_tb();
 			$display("Test failed\n");
 			$fatal;
 		end
-		$display("Cache hits: %d\nCache Misses: %d\n", nc_dut.stats_hit, nc_dut.stats_miss);
+		$display("Cache hits:\t%d\nCache Misses:\t%d\nCache Evicts:\t%d\nCache Fills:\t%d\n", 
+			nc_dut.stats_hit, nc_dut.stats_miss, nc_dut.stats_evicts, nc_dut.stats_fills - nc_dut.stats_evicts);
 		repeat(10) @(posedge clk);
         $finish;
 	end
