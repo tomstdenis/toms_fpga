@@ -1,0 +1,10 @@
+IO_LOC "led_r" 9; 
+IO_PORT "led_r" IO_TYPE=LVCMOS33 PULL_MODE=UP  BANK_VCCIO=3.3;
+IO_LOC "led_g" 11; 
+IO_PORT "led_g" IO_TYPE=LVCMOS33 PULL_MODE=UP  BANK_VCCIO=3.3;
+IO_LOC "led_b" 10; 
+IO_PORT "led_b" IO_TYPE=LVCMOS33 PULL_MODE=UP  BANK_VCCIO=3.3;
+
+// 27MHz XTAL input
+IO_LOC "clk" 47; // if you can find this on the PCB you've wasted your life.
+IO_PORT "clk" IO_TYPE=LVCMOS33 PULL_MODE=UP BANK_VCCIO=3.3;
