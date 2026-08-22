@@ -147,7 +147,7 @@ module nanocache #(
         cache_mem_wren  <= 1'b0;
         case ({ctrl_spin, ctrl_fsm})
             // zero out all of the tags
-            {1'bx, FSM_CLEAR_TAGS}:
+            {1'b0, FSM_CLEAR_TAGS}:
                 begin
                     tag_mem_wren     <= 1'b1;
                     if (tag_mem_addr == ((1<<CACHE_LINES) - 1)) begin
@@ -327,6 +327,7 @@ module nanocache #(
         endcase
         if (~rst_n) begin
             ctrl_fsm          <= FSM_CLEAR_TAGS;
+            ctrl_idx          <= 0;
             psram_data_in     <= 0;
             psram_wr_en       <= 1'b0;
             psram_start_trans <= 1'b0;
