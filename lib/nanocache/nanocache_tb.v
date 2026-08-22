@@ -72,7 +72,7 @@ module nanocache_tb();
         $finish;
 	end
 	
-	reg [63:0] test_commands[0:10239];
+	reg [63:0] test_commands[0:32767];
 	wire [63:0] cur_command;
 	assign cur_command = test_commands[command_num];
 	
