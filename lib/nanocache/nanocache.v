@@ -207,7 +207,7 @@ module nanocache #(
                     end else begin
                         // miss is it a valid line we need to evict?
                         ctrl_idx                           <= (1 << CACHE_LINE) - 1;
-						cache_mem_addr[CACHE_LINE-1:0]     <= 0;
+						cache_mem_addr[CACHE_LINE-1:0]     <= ~psram_zero;
                         if (tag_mem_out[DIRTY_BIT]) begin
                             // line is dirty we need to evict it first
                             ctrl_fsm                       <= FSM_EVICT;
