@@ -207,7 +207,7 @@ module nanocache #(
                     end else begin
                         // miss is it a valid line we need to evict?
                         ctrl_idx                           <= (1 << CACHE_LINE) - 1;
-						cache_mem_addr[CACHE_LINE-1:0]     <= ~psram_zero;
+						cache_mem_addr[CACHE_LINE-1:0]     <= psram_zero;
                         if (tag_mem_out[DIRTY_BIT]) begin
                             // line is dirty we need to evict it first
                             ctrl_fsm                       <= FSM_EVICT;
@@ -222,7 +222,7 @@ module nanocache #(
             // Evict a line to PSRAM then jump to fill it
             {1'b0, FSM_EVICT}:
                 begin
-                    if (psram_idle) begin
+                    if (~psram_start_trans & psram_idle) begin
                         // start at byte zero of the cache line and write it out to PSRAM
                         psram_start_trans                  <= 1'b1;
                         psram_wr_en                        <= 1'b1;
@@ -250,7 +250,7 @@ module nanocache #(
             {1'b0, FSM_FILL}:
                 begin
                     // only write data once (there will be multiple cycles per data)        
-                    if (psram_idle) begin
+                    if (~psram_start_trans & psram_idle) begin
                         // configure cache
                         cache_mem_addr           <= {data_line_index, ~psram_zero};    // start at -1 in the cache line since we preincrement during the strobe
 
