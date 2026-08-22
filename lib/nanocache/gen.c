@@ -99,37 +99,25 @@ int main(void)
 	gen_read(out,  0x210, 4);
 	gen_read(out,  0x210 + 0x800, 4);
 #else	
-	// let's fill the first 8KB in banks of 2K using runs of 1, 2, 3, and 4 byte strides
-	for (x = 1; x <= 4; x++) {
-		uint32_t s;
-		z = 2048 * (x - 1);
-		s = (x < 3) ? x : 4;
-		for (y = 0; y <= (2048 - x); y += s) {
-			uint32_t value;
-			value = read_rng(x);
-			gen_write(out, z, value, x);
-			z += s;
-		}
+	// fill the full 8kb with values so it's initialized
+	for (x = 0; x < 8192; x += 4) {
+		gen_write(out, x, read_rng(4), 4);
 	}
-	// now generate reads 
-	for (x = 1; x <= 4; x++) {
-		uint32_t s;
-		z = 2048 * (x - 1);
-		s = (x < 3) ? x : 4;
-		for (y = 0; y <= (2048 - x); y += s) {
-			gen_read(out, z, x);
-			z += s;
-		}
-	}
-	
-	// generate upto 10239 random reads or writes
+
 	while (lines < 65535) {
-		uint32_t r = read_rng(4);
+		uint32_t r, bl;
+
+		// pick a random offset until it doesn't cross a cache line
+		do {
+			r = read_rng(4);
+			bl = 1+((r>>13)&3);
+		} while ((r & 31) > ((r + bl) & 31));
+
 		if (r & 0x80000000) {
-			gen_read(out, r & 0xFFF, 1+((x>>12)&3));
+			gen_read(out, r & 0x1FFF, bl);
 		} else {
 			uint32_t v = read_rng(4);
-			gen_write(out, r & 0xFFF, v, 1+((x>>12)&3));
+			gen_write(out, r & 0x1FFF, v, bl);
 		}
 	}
 	
