@@ -68,11 +68,12 @@ module nanocache_tb();
 			$display("Test failed\n");
 			$fatal;
 		end
+		$display("Cache hits: %d\nCache Misses: %d\n", nc_dut.stats_hit, nc_dut.stats_miss);
 		repeat(10) @(posedge clk);
         $finish;
 	end
 	
-	reg [63:0] test_commands[0:32767];
+	reg [63:0] test_commands[0:65535];
 	wire [63:0] cur_command;
 	assign cur_command = test_commands[command_num];
 	

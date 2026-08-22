@@ -123,7 +123,7 @@ int main(void)
 	}
 	
 	// generate upto 10239 random reads or writes
-	while (lines < 32766) {
+	while (lines < 65535) {
 		uint32_t r = read_rng(4);
 		if (r & 0x80000000) {
 			gen_read(out, r & 0xFFF, 1+((x>>12)&3));
@@ -135,7 +135,7 @@ int main(void)
 	
 #endif
 
-	while (lines < 32767) {
+	while (lines < 65536) {
 		write_opcode(out, OP_HALT, 0, 0, 0);
 	}
 }

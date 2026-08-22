@@ -51,6 +51,11 @@ module nanocache #(
     output wire                      sck_pin                // SPI clock
     
 );
+`ifdef MODEL_SIM
+	reg [31:0] stats_hit;
+	reg [31:0] stats_miss;
+`endif	
+
     // configuration data
     localparam
         CACHE_LINES = CACHE_SIZE - CACHE_LINE,                           // log2(# of cache lines)
@@ -188,6 +193,10 @@ module nanocache #(
                     // at this point cache_mem_out is the initial data_line_offset and by the next cycle
                     // it'll be data_line_offset+1 which allows nice read streaming from the cache
                     if (tag_mem_out[VALID_BIT] && data_tag == tag_mem_out[TAG_SIZE-1:0]) begin
+`ifdef MODEL_SIM
+						stats_hit <= stats_hit + 1;
+`endif						
+
                         // cache line is valid and matches rest of tag
                         // we jump to retire skipping the spin cycle because we incremented the address
                         // in the spin+COMPARE_TAG cycle.  We must make sure we increment the cache addr
@@ -209,6 +218,9 @@ module nanocache #(
                             cache_mem_addr[CACHE_LINE-1:0] <= cache_mem_next; // only advance if we're reading
                         end
                     end else begin
+`ifdef MODEL_SIM
+						stats_miss <= stats_miss + 1;
+`endif						
                         // miss is it a valid line we need to evict?
                         ctrl_idx                           <= (1 << CACHE_LINE) - 1;
 						cache_mem_addr[CACHE_LINE-1:0]     <= psram_zero;
@@ -337,6 +349,10 @@ module nanocache #(
                 end
         endcase
         if (~rst_n) begin
+`ifdef MODEL_SIM
+			stats_hit <= 0;
+			stats_miss <= 0;
+`endif	
             ctrl_fsm          <= FSM_CLEAR_TAGS;
             ctrl_idx          <= 0;
             psram_data_in     <= 0;
