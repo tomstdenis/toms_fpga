@@ -115,8 +115,8 @@ module nanocache_tb();
 					end
 				STATE_START_READ:
 					begin
-						nc_valid <= (command_burst_len != 0)? 1'b1 : 1'b0;
-						if (nc_idle) begin
+						nc_valid <= (command_burst_len != 0)? nc_valid : 1'b0;
+						if (!nc_valid & nc_idle) begin
 							$display("READ in idle");
 							nc_valid      <= 1;
 							nc_data_wr_en <= 0;
@@ -139,28 +139,29 @@ module nanocache_tb();
 							end
 						end
 					end
-				STATE_START_WRITE:
+				STATE_START_WRITE: // start a write burst
 					begin
-						nc_valid   <= (command_burst_len != 0) ? nc_valid : 1'b0;
-						nc_data_in <= command_data[31:24];					// this is so data_in is set for when ready goes high first
-						if (nc_idle) begin
+						nc_valid   <= (command_burst_len != 0) ? nc_valid : 1'b0;   // We need to stop writing before the first ready if 1 byte stride
+						nc_data_in <= command_data[31:24];							// this is so data_in is set for when ready goes high first
+						if (!nc_valid & nc_idle) begin								// only program job once
 							$display("WRITE in idle");
 							nc_valid      <= 1'b1;
 							nc_data_wr_en <= 1'b1;
 							nc_data_in    <= command_data[31:24];
 							nc_data_addr  <= command_addr;
-							if (!nc_valid) begin
-								command_data <= { command_data[23:0], 8'b0 };
-							end
+							command_data <= { command_data[23:0], 8'b0 };
 						end
-						if (nc_ready) begin
+						if (nc_ready) begin											// ready strobe
 							$display("WRITE in ready");
 							// every cycle this is high we shift command_data
-							command_data      <= { command_data[23:0], 8'b0 };
+							command_data      <= { command_data[23:0], 8'b0 };		// shift data up
+							nc_data_in        <= command_data[23:16];				// by the first ready we've already processed the 2nd byte so load the third onwards
 							command_burst_len <= command_burst_len - 1;
 							if (command_burst_len == 0) begin
-								test_state <= STATE_START_COMMAND;
-								nc_valid   <= 1'b0;
+								test_state <= STATE_START_COMMAND;                  // jump to start when done last byte
+							end
+							if (command_burst_len == 1) begin
+								nc_valid   <= 1'b0;                                 // turn off valid one cycle EARLY to avoid over-writing past the burst
 							end
 						end
 					end
