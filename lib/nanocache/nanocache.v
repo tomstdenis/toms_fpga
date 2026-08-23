@@ -49,8 +49,8 @@ module nanocache #(
     output wire                      sio_en,                // QPI output enable (1 == output, 0 == input
     output wire                      cs_pin,                // active low CS pin
     output wire                      sck_pin                // SPI clock
-    
 );
+
 `ifdef MODEL_SIM
 	reg [31:0] stats_hit;
 	reg [31:0] stats_miss;

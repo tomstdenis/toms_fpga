@@ -7,11 +7,14 @@ void setup() {
 }
 
 void loop() {
+  unsigned char b;
   // put your main code here, to run repeatedly:
   if (Serial.available()) {
-    Serial0.write(Serial.read());
+    Serial.readBytes(&b, 1);
+    Serial0.write(b);
   }
   if (Serial0.available()) {
-    Serial.write(Serial0.read());
+    Serial0.readBytes(&b, 1);
+    Serial.write(b);
   }
 }
