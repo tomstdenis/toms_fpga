@@ -5,6 +5,12 @@
 module nanocache_tb();
 	reg clk;
 	reg rst_n;
+	reg [31:0] test_cycles_w;
+	reg [31:0] test_cycles_r;
+	reg [31:0] test_writes;
+	reg [31:0] test_writes_b;
+	reg [31:0] test_reads;
+	reg [31:0] test_reads_b;
 	
     // Parameters
 	localparam SRAM_ADDR_WIDTH = 24;
@@ -70,6 +76,8 @@ module nanocache_tb();
 		end
 		$display("Cache hits:\t%d\nCache Misses:\t%d\nCache Evicts:\t%d\nCache Fills:\t%d\n", 
 			nc_dut.stats_hit, nc_dut.stats_miss, nc_dut.stats_evicts, nc_dut.stats_fills - nc_dut.stats_evicts);
+		$display("Total writes:\t%d\nTotal write bytes:\t%d\nCycles spent writing\t%d\n", test_writes, test_writes_b, test_cycles_w);
+		$display("Total reads:\t%d\nTotal read bytes:\t%d\nCycles spent reading\t%d\n", test_reads, test_reads_b, test_cycles_r);
 		repeat(10) @(posedge clk);
         $finish;
 	end
@@ -81,7 +89,7 @@ module nanocache_tb();
 	initial begin
 		$readmemh("trace.hex", test_commands);
 	end
-
+	
     localparam
 		STATE_START_COMMAND        = 0,
 		STATE_START_READ           = 1,
@@ -95,6 +103,12 @@ module nanocache_tb();
             test_state       <= STATE_START_COMMAND;
             nc_valid         <= 0;
             nc_data_wr_en    <= 0;
+            test_cycles_w    <= 0;
+            test_cycles_r    <= 0;
+            test_writes      <= 0;
+            test_reads       <= 0;
+            test_writes_b    <= 0;
+            test_reads_b     <= 0;
         end else begin
             case (test_state)
 				STATE_START_COMMAND:
@@ -117,9 +131,12 @@ module nanocache_tb();
 					end
 				STATE_START_READ:
 					begin
+						test_cycles_r      <= test_cycles_r + 1;
 						nc_valid <= (command_burst_len != 0)? nc_valid : 1'b0;
 						if (!nc_valid & nc_idle) begin
 							$display("READ in idle");
+							test_reads    <= test_reads + 1;
+							test_reads_b  <= test_reads_b + 1 + command_burst_len;
 							nc_valid      <= 1;
 							nc_data_wr_en <= 0;
 							nc_data_addr  <= command_addr;
@@ -145,10 +162,13 @@ module nanocache_tb();
 					end
 				STATE_START_WRITE: // start a write burst
 					begin
+						test_cycles_w      <= test_cycles_w + 1;
 						nc_valid   <= (command_burst_len != 0) ? nc_valid : 1'b0;   // We need to stop writing before the first ready if 1 byte stride
 						nc_data_in <= command_data[31:24];							// this is so data_in is set for when ready goes high first
 						if (!nc_valid & nc_idle) begin								// only program job once
 							$display("WRITE in idle");
+							test_writes   <= test_writes + 1;
+							test_writes_b <= test_writes_b + 1 + command_burst_len;
 							nc_valid      <= 1'b1;
 							nc_data_wr_en <= 1'b1;
 							nc_data_in    <= command_data[31:24];
