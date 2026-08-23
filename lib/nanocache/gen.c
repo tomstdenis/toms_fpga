@@ -110,7 +110,7 @@ int main(void)
 		// pick a random offset until it doesn't cross a cache line
 		do {
 			r = read_rng(4);
-			bl = 1+((r>>13)&3);
+			bl = 4; // 1+((r>>13)&3);
 		} while ((r & 31) > ((r + bl) & 31));
 
 		if (r & 0x80000000) {

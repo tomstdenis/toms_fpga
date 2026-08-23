@@ -74,8 +74,10 @@ module nanocache_tb();
 			$display("Test failed\n");
 			$fatal;
 		end
-		$display("Cache hits:\t%d\nCache Misses:\t%d\nCache Evicts:\t%d\nCache Fills:\t%d\n", 
-			nc_dut.stats_hit, nc_dut.stats_miss, nc_dut.stats_evicts, nc_dut.stats_fills - nc_dut.stats_evicts);
+		$display("Cache hits:\t%d\nCache Misses:\t%d\nCache Evicts:\t%d (%d cycles)\nCache Fills:\t%d (%d cycles)\n", 
+			nc_dut.stats_hit, nc_dut.stats_miss, 
+			nc_dut.stats_evicts, nc_dut.stats_evict_cycles,
+			nc_dut.stats_fills - nc_dut.stats_evicts, nc_dut.stats_fill_cycles);
 		$display("Total writes:\t%d\nTotal write bytes:\t%d\nCycles spent writing\t%d\n", test_writes, test_writes_b, test_cycles_w);
 		$display("Total reads:\t%d\nTotal read bytes:\t%d\nCycles spent reading\t%d\n", test_reads, test_reads_b, test_cycles_r);
 		repeat(10) @(posedge clk);

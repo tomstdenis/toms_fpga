@@ -56,8 +56,9 @@ module nanocache #(
 	reg [31:0] stats_miss;
 	reg [31:0] stats_evicts;
 	reg [31:0] stats_fills;
-`endif	
-
+	reg [31:0] stats_fill_cycles;
+	reg [31:0] stats_evict_cycles;
+`endif
     // configuration data
     localparam
         CACHE_LINES = CACHE_SIZE - CACHE_LINE,                           // log2(# of cache lines)
@@ -240,6 +241,9 @@ module nanocache #(
             // Evict a line to PSRAM then jump to fill it
             {1'b0, FSM_EVICT}:
                 begin
+`ifdef MODEL_SIM
+					stats_evict_cycles <= stats_evict_cycles + 1;
+`endif					
                     if (~psram_start_trans & psram_idle) begin
 `ifdef MODEL_SIM
 						stats_evicts <= stats_evicts + 1;
@@ -270,6 +274,9 @@ module nanocache #(
             // fill a line and write out the new tag then jump to retire (remember to honour data_in/data_out mid fill)
             {1'b0, FSM_FILL}:
                 begin
+`ifdef MODEL_SIM
+					stats_fill_cycles <= stats_fill_cycles + 1;
+`endif					
                     // only write data once (there will be multiple cycles per data)        
                     if (~psram_start_trans & psram_idle) begin
 `ifdef MODEL_SIM
@@ -362,6 +369,8 @@ module nanocache #(
 			stats_miss   <= 0;
 			stats_evicts <= 0;
 			stats_fills  <= 0;
+			stats_fill_cycles <= 0;
+			stats_evict_cycles <= 0;
 `endif	
             ctrl_fsm          <= FSM_CLEAR_TAGS;
             ctrl_idx          <= 0;
