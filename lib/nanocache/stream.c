@@ -20,6 +20,8 @@
 // smaller to test (8KB)
 #define MEM_SIZE (1UL<<13)
 
+// smallest to test (2KB)
+//#define MEM_SIZE (1UL<<11)
 
 uint8_t memory[MEM_SIZE], init[MEM_SIZE];
 uint64_t lines = 0;
@@ -65,27 +67,13 @@ void write_opcode(uint32_t opcode, uint32_t addr, uint32_t value, uint32_t len)
 	b = (value >> 8) & 0xFF;    buf[x++] = b;
 	b = value & 0xFF;           buf[x++] = b;
 	
-	for (x = 0; x < 8; x++) {
-		// write buffer
-		if (write(fd, &buf[x], 1) != 1) {
-			printf("Serial write failed, so sad\n");
-			exit(-1);
-		}
-		tcdrain(fd);
-		
-#if 0
-		if (read(fd, &rbuf[x], 1) != 1) {
-			printf("Serial read back failed\n");
-			exit(-1);
-		}
-		
-		if (rbuf[x] != buf[x]) {
-			printf("Serial read back mismatch e: %x g: %x\n", buf[x], rbuf[x]);
-			exit(-1);
-		}
-#endif
+	// write buffer
+	if (write(fd, buf, 8) != 8) {
+		printf("Serial write failed, so sad\n");
+		exit(-1);
 	}
-	
+	tcdrain(fd);
+
 	// read 1 char back (should be 0xAA for pass, 0x55 for fail)
 	if (read(fd, &b, 1) != 1) {
 		printf("\nCould not read from serial...\n");
