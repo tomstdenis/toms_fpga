@@ -16,7 +16,7 @@ module top(
     localparam
         SRAM_ADDR_WIDTH = 24,
         PSRAM = 1,       // 1 == use PSRAM, 0 == SRAM
-        FREQ  = 81_000;  // clock rate in LHz
+        FREQ  = 87_750;  // clock rate in LHz
 
     wire pllclk;
 
@@ -131,9 +131,6 @@ module top(
                     end
                 STATE_RX_BYTE:
                     begin
-                        uart_rx_read    <= 1'b0;
-                        uart_tx_data_in <= uart_rx_byte;
-//                        uart_tx_start   <= 1'b1;
                         test_cnt        <= test_cnt - 1'b1;
                         test_data       <= {test_data[55:0], uart_rx_byte };
                         if (test_cnt == 0) begin
