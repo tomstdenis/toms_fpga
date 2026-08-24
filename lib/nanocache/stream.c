@@ -17,8 +17,11 @@
 // 8MB buffer 
 //#define MEM_SIZE (1UL<<23)
 
+// standard test (64KB)
+#define MEM_SIZE (1UL<<16)
+
 // smaller to test (8KB)
-#define MEM_SIZE (1UL<<13)
+//#define MEM_SIZE (1UL<<13)
 
 // smallest to test (2KB)
 //#define MEM_SIZE (1UL<<11)
@@ -172,7 +175,7 @@ int main(int argc, char **argv)
 		}
 		do {
 			r = read_rng(4);
-			bl = 4; // 1+((r>>13)&3);
+			bl = 1+((r>>13)&3);
 		} while ((r & 31) > ((r + bl) & 31));
 
 		if (r & 0x80000000) {
