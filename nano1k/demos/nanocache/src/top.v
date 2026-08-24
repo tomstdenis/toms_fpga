@@ -16,7 +16,7 @@ module top(
     localparam
         SRAM_ADDR_WIDTH = 24,
         PSRAM = 1,       // 1 == use PSRAM, 0 == SRAM
-        FREQ  = 74_250;  // clock rate in LHz
+        FREQ  = 81_000;  // clock rate in LHz
 
     wire pllclk;
 
@@ -75,7 +75,7 @@ module top(
         .sio_din(sio_din), .sio_dout(sio_dout), .sio_en(sio_en), .cs_pin(cs_pin), .sck_pin(sck_pin)
     );
 
-    reg [3:0]  test_state;
+    reg [2:0]  test_state;
     reg [2:0]  test_cnt;
     reg        test_pass;
     reg [63:0] test_data;
