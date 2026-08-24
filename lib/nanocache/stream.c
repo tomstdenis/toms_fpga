@@ -144,7 +144,7 @@ int main(int argc, char **argv)
 	
     fd = open(argv[1], O_RDWR | O_NOCTTY);
     if (fd < 0) { perror("Open port"); return 1; }
-    set_interface_attribs(B230400);
+    set_interface_attribs(B1000000);
 	tcflush(fd, TCIOFLUSH);
 
 	rng = fopen("/dev/urandom", "r");

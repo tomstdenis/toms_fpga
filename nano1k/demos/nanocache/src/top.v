@@ -16,7 +16,7 @@ module top(
     localparam
         SRAM_ADDR_WIDTH = 24,
         PSRAM = 1,       // 1 == use PSRAM, 0 == SRAM
-        FREQ  = 54_000;  // clock rate in LHz
+        FREQ  = 74_250;  // clock rate in LHz
 
     wire pllclk;
 
@@ -28,7 +28,7 @@ module top(
     reg rst_n = 1'b0;
 
     localparam
-        baud     = 230_400,
+        baud     = 1_000_000,
         baud_div = (FREQ * 1_000) / baud,
         baud_width = $clog2(baud_div);
 

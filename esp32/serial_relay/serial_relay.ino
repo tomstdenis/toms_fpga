@@ -1,4 +1,4 @@
-#define baud 230400
+#define baud 1000000
 
 void setup() {
   // put your setup code here, to run once:
