@@ -3,9 +3,9 @@ module top(
     input wire clk,
     input wire uart_rx,
     output wire uart_tx,
-    output wire [3:0] vga_r,
-    output wire [3:0] vga_g,
-    output wire [3:0] vga_b,
+    output wire [1:0] vga_r,
+    output wire [1:0] vga_g,
+    output wire [1:0] vga_b,
     output wire vga_h_pulse,
     output wire vga_v_pulse
 );
@@ -100,6 +100,16 @@ module top(
 		.rd_addr(mem_addr_b), .rd_data(mem_dout_b),
 		.symbol(symbol), .lrg_mode(1'b0));
 
+    // we're using a RGB222 so we need to reduce RGB444
+    wire [3:0] vga_r_f;
+    wire [3:0] vga_g_f;
+    wire [3:0] vga_b_f;
+
+    // only use top two bits to make 64-colour palette
+    assign vga_r = vga_r_f[3:2];
+    assign vga_g = vga_g_f[3:2];
+    assign vga_b = vga_b_f[3:2];
+
     // vt100 emulator
     // This uses the uart pins (uart_rx/uart_tx) and then drives port A of the DP video memory
     vt100 #(.VT100_ECHO(0), .VT100_HEIGHT(VT100_HEIGHT), .VT100_WIDTH(VT100_WIDTH)) thefuture (
@@ -108,6 +118,6 @@ module top(
         .mem_addr_a(mem_addr_a), .mem_din_a(mem_din_a), .mem_wr_en_a(mem_wr_en_a),  // framebuffer write
         .mem_addr_b(mem_addr_b), .mem_dout_b(mem_dout_b),                           // framebuffer read
         .text_out(text_out), .symbol(symbol),                                                                                     // text driver output symbol
-        .vga_active(vga_active), .vga_r(vga_r), .vga_g(vga_g), .vga_b(vga_b));                               // vga RGB output
+        .vga_active(vga_active), .vga_r(vga_r_f), .vga_g(vga_g_f), .vga_b(vga_b_f));                               // vga RGB output
 
 endmodule
