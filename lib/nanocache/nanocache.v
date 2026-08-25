@@ -158,6 +158,7 @@ module nanocache #(
         ctrl_spin       <= 1'b0;
         tag_mem_wren    <= 1'b0;
         cache_mem_wren  <= 1'b0;
+        ready           <= 1'b0;
         case ({ctrl_spin, ctrl_fsm})
             // zero out all of the tags
             {1'b0, FSM_CLEAR_TAGS}:
@@ -349,7 +350,6 @@ module nanocache #(
                 begin
 					ready <= 1;
                     if (~valid) begin 
-                        ready     <= 1'b0;
                         ctrl_fsm  <= FSM_IDLE;
                     end else begin
                         // stream bytes 2,3,4,...,N-1
@@ -374,8 +374,6 @@ module nanocache #(
 `endif	
             ctrl_fsm          <= FSM_CLEAR_TAGS;
             ctrl_idx          <= 0;
-            psram_data_in     <= 0;
-            psram_wr_en       <= 1'b0;
             psram_start_trans <= 1'b0;
             cache_mem_addr    <= 0;
             cache_mem_in      <= 0;
