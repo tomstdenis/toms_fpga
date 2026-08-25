@@ -9,11 +9,11 @@ void setup() {
 void loop() {
   unsigned char b;
   // put your main code here, to run repeatedly:
-  if (Serial.available()) {
+  while (Serial.available()) {
     Serial.readBytes(&b, 1);
     Serial0.write(b);
   }
-  if (Serial0.available()) {
+  while (Serial0.available()) {
     Serial0.readBytes(&b, 1);
     Serial.write(b);
   }

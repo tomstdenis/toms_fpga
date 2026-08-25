@@ -340,7 +340,7 @@ module nanocache #(
             // host sees 'ready' after this cycle so that by time we get to RETIRE+~spin data_in is valid
             {1'b1, FSM_RETIRE}:
                 begin
-					ready <= 1;
+					ready <= 1;                                                  // data_out is already the first byte being read
                     if (!data_wr_en) begin
                         cache_mem_addr[CACHE_LINE-1:0] <= cache_mem_next;        // only advance if we're reading
                     end
