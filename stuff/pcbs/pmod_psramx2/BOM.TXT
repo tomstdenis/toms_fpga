@@ -1,0 +1,7 @@
+PMOD PSRAMx2:
+
+2, X7R 1206 100nF
+7, 1206 22R 1% RES, (I used manu: RC1206FR-0722RL)
+7, 1206 10K 1% RES, (I used manu: RT1206FRE1310KL)
+1, 2x6 12P MALE HDR (I used digi: 2057-PH2-12-UA-ND)
+2, 8-SOIC memory IC of some sort.
