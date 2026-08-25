@@ -10,7 +10,7 @@ Me boards, y'arr matey:
    - **pmod_esp32c3**: A ESP32-C3 Super Mini to PMOD board that breaks out I2C/SPI/UART to the PMOD header, and then four more ESP32 GPIOs to a single PMOD on the back end.
    - **pmod_psram**: A 8-SOIC PSRAM/SRAM/NOR memory to dual PMOD (8-pin) header.  Tested with ESP PSRAMH and ISSI PSRAM mostly but I have in the past tried a SRAM too.
    - **pmod_psram x2**: Like the pmod_psram but it supports two ICs using two CS pins.  Tested with a pair of ESP PSRAMH 64Mbit chips at 80MHz SCK.
-   - **pmod_vga**: A RGB222 single PMOD VGA adapter using a buffer driver and simple resistor ladder to create a 64-colour palette
+   - **pmod_vga**: A RGB222 single PMOD VGA adapter using a buffer driver and simple resistor ladder to create a 64-colour palette.  (Tested and works as spec'ed)
    - **primer_hat**: Like the **console_hat** but for the Sipeed Tang Primer25K FPGA.  Breaks out four dual-PMODs and one AUX (4 GPIO) port.
    
 In each directory you'll find
