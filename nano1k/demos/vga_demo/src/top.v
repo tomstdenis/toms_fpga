@@ -3,11 +3,11 @@ module top(
     input wire clk,
     input wire uart_rx,
     output wire uart_tx,
-    output wire [1:0] vga_r,
-    output wire [1:0] vga_g,
-    output wire [1:0] vga_b,
-    output wire vga_h_pulse,
-    output wire vga_v_pulse
+    output reg [1:0] vga_r,
+    output reg [1:0] vga_g,
+    output reg [1:0] vga_b,
+    output reg vga_h_pulse,
+    output reg vga_v_pulse
 );
     localparam
         VT100_WIDTH = 80,
@@ -35,9 +35,6 @@ module top(
 	wire vga_v_sync;
 	wire vga_active;
 	
-	assign vga_h_pulse = vga_h_sync;
-	assign vga_v_pulse = vga_v_sync;
-
 	// this module produces the VGA timing signals other modules depend on
 	vga_timing vga(
 		.clk(pll_clk),
@@ -106,10 +103,13 @@ module top(
     wire [3:0] vga_b_f;
 
     // only use top two bits to make 64-colour palette
-    assign vga_r = vga_r_f[3:2];
-    assign vga_g = vga_g_f[3:2];
-    assign vga_b = vga_b_f[3:2];
-
+    always @(posedge pll_clk) begin
+        vga_r <= vga_r_f[3:2];
+        vga_g <= vga_g_f[3:2];
+        vga_b <= vga_b_f[3:2];
+        vga_h_pulse <= vga_h_sync;
+        vga_v_pulse <= vga_v_sync;
+    end
     // vt100 emulator
     // This uses the uart pins (uart_rx/uart_tx) and then drives port A of the DP video memory
     vt100 #(.VT100_ECHO(0), .VT100_HEIGHT(VT100_HEIGHT), .VT100_WIDTH(VT100_WIDTH)) thefuture (
