@@ -3,7 +3,7 @@
 <Project>
     <Template>FPGA</Template>
     <Version>5</Version>
-    <Device name="GW1NZ-1" pn="GW1NZ-LV1QN48C6/I5">gw1nz1-015</Device>
+    <Device name="GW1NSR-4C" pn="GW1NSR-LV4CQN48PC6/I5">gw1nsr4c-000</Device>
     <FileList>
         <File path="/home/tom/nas/toms_fpga/lib/uart/blocks/rx_uart.v" type="file.verilog" enable="1"/>
         <File path="/home/tom/nas/toms_fpga/lib/uart/blocks/tx_uart.v" type="file.verilog" enable="1"/>
@@ -11,11 +11,9 @@
         <File path="/home/tom/nas/toms_fpga/lib/vga/blocks/vga_text_driver.v" type="file.verilog" enable="1"/>
         <File path="/home/tom/nas/toms_fpga/lib/vga/blocks/vga_timing.v" type="file.verilog" enable="1"/>
         <File path="/home/tom/nas/toms_fpga/lib/vt100/vt100.v" type="file.verilog" enable="1"/>
-        <File path="src/gowin_osc/gowin_osc.v" type="file.verilog" enable="1"/>
         <File path="src/gowin_prom/gowin_prom.v" type="file.verilog" enable="1"/>
         <File path="src/gowin_sdpb/gowin_sdpb.v" type="file.verilog" enable="1"/>
         <File path="src/top.v" type="file.verilog" enable="1"/>
         <File path="src/top.cst" type="file.cst" enable="1"/>
-        <File path="src/top.sdc" type="file.sdc" enable="1"/>
     </FileList>
 </Project>
