@@ -16,7 +16,7 @@ module top(
     localparam
         SRAM_ADDR_WIDTH = 24,
         PSRAM = 1,       // 1 == use PSRAM, 0 == SRAM
-        FREQ  = 87_750;  // clock rate in LHz
+        FREQ  = 54_000;  // clock rate in LHz
 
     wire pllclk;
 
@@ -48,10 +48,11 @@ module top(
         .uart_tx_pin(uart_tx), .uart_tx_fifo_empty(uart_tx_fifo_empty), .uart_tx_fifo_full(uart_tx_fifo_full),
         .uart_rx_pin(uart_rx), .uart_rx_read(uart_rx_read), .uart_rx_ready(uart_rx_ready), .uart_rx_byte(uart_rx_byte));
 
-    reg [7:0] nc_data_in;
+    reg [31:0] nc_data_in;
+    reg [3:0] nc_write_mask;
     reg [SRAM_ADDR_WIDTH-1:0] nc_data_addr;
     reg nc_data_wr_en;
-    wire [7:0] nc_data_out;
+    wire [31:0] nc_data_out;
     reg nc_valid;
     wire nc_ready;
     wire nc_idle;
@@ -70,7 +71,7 @@ module top(
         .FREQ(FREQ/1000)) MrLocalMemory
     (
         .clk(pllclk), .rst_n(rst_n),
-        .data_in(nc_data_in), .data_out(nc_data_out), .data_addr(nc_data_addr), .data_wr_en(nc_data_wr_en),
+        .data_in(nc_data_in), .data_out(nc_data_out), .data_addr(nc_data_addr), .data_wr_en(nc_data_wr_en), .write_mask(nc_write_mask),
         .valid(nc_valid), .ready(nc_ready), .idle(nc_idle),
         .sio_din(sio_din), .sio_dout(sio_dout), .sio_en(sio_en), .cs_pin(cs_pin), .sck_pin(sck_pin)
     );
@@ -147,6 +148,12 @@ module top(
                         command_burst_len <= test_data[59:56];
                         command_addr      <= test_data[55:32];
                         command_data      <= test_data[31:0];
+						case (test_data[59:56]) 
+							0: nc_write_mask <= 4'b1000;
+							1: nc_write_mask <= 4'b1100;
+							2: nc_write_mask <= 4'b1110;
+							3: nc_write_mask <= 4'b1111;
+						endcase
                         case (test_data[63:60])
                             command_op_read:   test_state <= STATE_READ;
                             command_op_write:  test_state <= STATE_WRITE;
@@ -162,54 +169,53 @@ module top(
                                 end
                         endcase
                     end
-                STATE_WRITE:
-                    begin
-                        {rgb_r,rgb_g,rgb_b} <= 3'b100; // cyan == write
-						nc_valid   <= (command_burst_len != 0) ? nc_valid : 1'b0;   // We need to stop writing before the first ready if 1 byte stride
-						nc_data_in <= command_data[31:24];							// this is so data_in is set for when ready goes high first
-						if (!nc_valid & nc_idle) begin								// only program job once
-							nc_valid      <= 1'b1;
-							nc_data_wr_en <= 1'b1;
-							nc_data_in    <= command_data[31:24];
-							nc_data_addr  <= command_addr;
-							command_data  <= { command_data[23:0], 8'b0 };
-						end
-						if (nc_ready) begin											// ready strobe
-							// every cycle this is high we shift command_data
-							command_data      <= { command_data[23:0], 8'b0 };		// shift data up
-							nc_data_in        <= command_data[23:16];				// by the first ready we've already processed the 2nd byte so load the third onwards
-							command_burst_len <= command_burst_len - 1'b1;
-							if (command_burst_len == 0) begin
-								test_state <= STATE_PASS;                           // jump to start when done last byte
-							end
-							if (command_burst_len == 1) begin
-								nc_valid   <= 1'b0;                                 // turn off valid one cycle EARLY to avoid over-writing past the burst
-							end
-						end
-                    end
                 STATE_READ:
                     begin
-                        {rgb_r,rgb_g,rgb_b} <= 3'b010; // purple == read
-						nc_valid <= (command_burst_len != 0) ? nc_valid : 1'b0;
+                        {rgb_r,rgb_g,rgb_b} <= 3'b100; // cyan == write
 						if (!nc_valid & nc_idle) begin
 							nc_valid      <= 1;
 							nc_data_wr_en <= 0;
 							nc_data_addr  <= command_addr;
 						end
 						if (nc_ready) begin
-							command_data      <= {command_data[23:0], 8'b0};
-							command_burst_len <= command_burst_len - 1'b1;
-							if (command_burst_len == 0) begin
-								test_state <= STATE_PASS;					// jump to start on last byte
-							end
-							if (command_burst_len == 1) begin
-								nc_valid   <= 1'b0;                                 // turn off valid one cycle EARLY to avoid over-writing past the burst
-							end
-							// every cycle this is high we have data
-							if (nc_data_out !== command_data[31:24]) begin
-								test_state <= STATE_HALT;
-								nc_valid   <= 1'b0;
-							end
+							nc_valid <= 1'b0;
+							test_state <= STATE_PASS;
+							case (nc_write_mask)
+								4'b1000: begin
+									if (nc_data_out[31:24] != command_data[31:24]) begin
+										test_state <= STATE_HALT;
+									end
+								end
+								4'b1100: begin
+									if (nc_data_out[31:16] != command_data[31:16]) begin
+										test_state <= STATE_HALT;
+									end
+								end
+								4'b1110: begin
+									if (nc_data_out[31:8] != command_data[31:8]) begin
+										test_state <= STATE_HALT;
+									end
+								end
+								4'b1111: begin
+									if (nc_data_out != command_data) begin
+										test_state <= STATE_HALT;
+									end
+								end
+							endcase
+						end
+                    end
+                STATE_WRITE:
+                    begin
+                        {rgb_r,rgb_g,rgb_b} <= 3'b010; // purple == read
+						if (!nc_valid & nc_idle) begin								// only program job once
+							nc_valid      <= 1'b1;
+							nc_data_wr_en <= 1'b1;
+							nc_data_in    <= command_data;
+							nc_data_addr  <= command_addr;
+						end
+						if (nc_ready) begin											// ready strobe
+							nc_valid   <= 1'b0;
+							test_state <= STATE_PASS;
 						end
                     end
                 STATE_PASS:
