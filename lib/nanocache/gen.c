@@ -92,12 +92,15 @@ int main(void)
 
 #if 0
 	gen_write(out, 0x210,         0x5A000000, 1);
-	gen_write(out, 0x211,         0x6B000000, 1);
-	gen_write(out, 0x212,         0x7C8D0000, 2);
-	gen_write(out, 0x210 + 0x800, 0x12345600, 3);	// this should force collisions
-	gen_write(out, 0x213 + 0x800, 0x78000000, 1);
+	gen_write(out, 0x211,         0x6B7C0000, 2);
+	gen_write(out, 0x212,         0x8D9EAFBE, 4);
 	gen_read(out,  0x210, 4);
+	gen_read(out,  0x214, 2);
+#if 0
+	gen_write(out, 0x210 + 0x800, 0x12345600, 4);	// this should force collisions
+	gen_write(out, 0x213 + 0x800, 0x78000000, 1);
 	gen_read(out,  0x210 + 0x800, 4);
+#endif
 #else	
 	// fill the full 8kb with values so it's initialized
 	for (x = 0; x < 8192; x += 4) {
