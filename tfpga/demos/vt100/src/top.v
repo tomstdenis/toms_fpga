@@ -7,7 +7,8 @@ module top(
     output reg [1:0] vga_g,
     output reg [1:0] vga_b,
     output reg vga_h_pulse,
-    output reg vga_v_pulse
+    output reg vga_v_pulse,
+    output reg led
 );
     localparam
         VT100_WIDTH = 80,
@@ -21,6 +22,13 @@ module top(
     // dropped the PLL for this demo since it native runs at 27MHz and the PLL can't target 25MHz anyways...
     wire pll_clk = clk;
 	wire pll_locked = 1'b1;
+
+    reg [23:0] led_counter;
+    always @(posedge pll_clk) begin
+        led <= led_counter[23];
+        led_counter <= led_counter + 1'b1;
+    end
+
 
 //    Gowin_OSC your_instance_name(
 //        .oscout(pll_clk), //output oscout
