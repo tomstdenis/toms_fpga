@@ -354,12 +354,9 @@ module nanocache #(
             ctrl_idx          <= 0;
             ctrl_write_mask   <= 0;
             psram_start_trans <= 1'b0;
-            cache_mem_addr    <= 0;
-            cache_mem_in      <= 0;
             tag_mem_in        <= 0;
             tag_mem_addr      <= 0;
             tag_mem_wren      <= 1'b1;
-            ready             <= 1'b0;
         end
     end
 endmodule

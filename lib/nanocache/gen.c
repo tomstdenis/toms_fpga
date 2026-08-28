@@ -113,14 +113,14 @@ int main(void)
 		// pick a random offset until it doesn't cross a cache line
 		do {
 			r = read_rng(4);
-			bl = 4; // 1+((r>>13)&3);
+			bl = 1+((r>>13)&3);
 		} while ((r & 31) > ((r + bl) & 31));
 
 		if (r & 0x80000000) {
-			gen_read(out, r & 0x7FF, bl);
+			gen_read(out, r & 0x1FFF, bl);
 		} else {
 			uint32_t v = read_rng(4);
-			gen_write(out, r & 0x7FF, v, bl);
+			gen_write(out, r & 0x1FFF, v, bl);
 		}
 	}
 	
