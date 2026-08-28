@@ -373,7 +373,7 @@ module nanocache #(
                         cache_mem_addr[CACHE_LINE-1:0] <= cache_mem_next;
                         
                         // store data_out matching the corresponding line byte read from PSRAM
-                        if (cache_mem_next >= data_line_offset && ctrl_write_mask[3:0] != 4'b0000) begin
+                        if ((cache_mem_next == data_line_offset || ~ctrl_write_mask[0]) && ctrl_write_mask[3:0] != 4'b0000) begin
                             data_out         <= { data_out[23:0], psram_data_out };				// shift data
 							ctrl_write_mask  <= { ctrl_write_mask[3:0], 1'b0 };					// shift write mask
                             if (data_wr_en & ctrl_write_mask[4]) begin
