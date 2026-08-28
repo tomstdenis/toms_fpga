@@ -35,7 +35,7 @@ module nanocache_tb();
 	wire	   sck_pin;
 
 	// nanocache
-	nanocache #(.WAKEUP_DELAY_US(0), .HANGUP_DELAY_NS(0)) nc_dut (
+	nanocache #(.CACHE_DP(1), .WAKEUP_DELAY_US(0), .HANGUP_DELAY_NS(0)) nc_dut (
 		.clk(clk), .rst_n(rst_n),
 		.data_in(nc_data_in), .data_out(nc_data_out), .write_mask(nc_write_mask), .data_addr(nc_data_addr), .data_wr_en(nc_data_wr_en),
 		.valid(nc_valid), .ready(nc_ready), .idle(nc_idle),
@@ -141,6 +141,7 @@ module nanocache_tb();
 				STATE_START_READ:
 					begin
 						test_cycles_r      <= test_cycles_r + 1;
+						nc_valid <= 1'b0;
 						if (!nc_valid & nc_idle) begin
 							$display("READ in idle");
 							test_reads    <= test_reads + 1;
@@ -184,6 +185,7 @@ module nanocache_tb();
 				STATE_START_WRITE: // start a write burst
 					begin
 						test_cycles_w      <= test_cycles_w + 1;
+						nc_valid <= 1'b0;
 						if (!nc_valid & nc_idle) begin								// only program job once
 							$display("WRITE in idle");
 							test_writes   <= test_writes + 1;

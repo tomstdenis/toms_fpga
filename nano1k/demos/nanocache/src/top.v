@@ -16,7 +16,7 @@ module top(
     localparam
         SRAM_ADDR_WIDTH = 24,
         PSRAM = 1,       // 1 == use PSRAM, 0 == SRAM
-        FREQ  = 74_250;  // clock rate in LHz
+        FREQ  = 67_500;  // clock rate in LHz
 
     wire pllclk;
 
@@ -67,6 +67,7 @@ module top(
     nanocache #(
         .CACHE_SIZE(11),
         .CACHE_LINE(5),
+        .CACHE_DP(0),                       // nano1k's don't have DP BRAMs...
         .SRAM_ADDR_WIDTH(SRAM_ADDR_WIDTH),
         .FREQ(FREQ/1000)) MrLocalMemory
     (
@@ -103,6 +104,7 @@ module top(
         STATE_DELAY           = 7;
 
     always @(posedge pllclk) begin
+        nc_valid         <= 1'b0;
         if (!rst_n) begin
             rst_n            <= 1'b1;
             rgb_r            <= 1'b1;
@@ -110,7 +112,6 @@ module top(
             rgb_b            <= 1'b1;
             uart_tx_start    <= 1'b0;
             uart_rx_read     <= 1'b0;
-            nc_valid         <= 1'b0;
             test_state       <= STATE_START_COMMAND;
             test_cnt         <= 7;
             test_pass        <= 1'b0;
@@ -178,30 +179,19 @@ module top(
 							nc_data_addr  <= command_addr;
 						end
 						if (nc_ready) begin
-							nc_valid <= 1'b0;
 							test_state <= STATE_PASS;
-							case (nc_write_mask)
-								4'b1000: begin
-									if (nc_data_out[31:24] != command_data[31:24]) begin
-										test_state <= STATE_HALT;
-									end
-								end
-								4'b1100: begin
-									if (nc_data_out[31:16] != command_data[31:16]) begin
-										test_state <= STATE_HALT;
-									end
-								end
-								4'b1110: begin
-									if (nc_data_out[31:8] != command_data[31:8]) begin
-										test_state <= STATE_HALT;
-									end
-								end
-								4'b1111: begin
-									if (nc_data_out != command_data) begin
-										test_state <= STATE_HALT;
-									end
-								end
-							endcase
+                            if (nc_write_mask[3] && nc_data_out[31:24] != command_data[31:24]) begin
+                                test_state <= STATE_HALT;
+                            end
+                            if (nc_write_mask[2] && nc_data_out[23:16] != command_data[23:16]) begin
+                                test_state <= STATE_HALT;
+                            end
+                            if (nc_write_mask[1] && nc_data_out[15:8] != command_data[15:8]) begin
+                                test_state <= STATE_HALT;
+                            end
+                            if (nc_write_mask[0] && nc_data_out[7:0] != command_data[7:0]) begin
+                                test_state <= STATE_HALT;
+                            end
 						end
                     end
                 STATE_WRITE:
@@ -214,7 +204,6 @@ module top(
 							nc_data_addr  <= command_addr;
 						end
 						if (nc_ready) begin											// ready strobe
-							nc_valid   <= 1'b0;
 							test_state <= STATE_PASS;
 						end
                     end
@@ -232,6 +221,7 @@ module top(
                         if (!uart_tx_fifo_full) begin
                             uart_tx_start <= 1'b1;
                             uart_tx_data_in <= test_pass ? 8'hBB : 8'h55;
+                            test_state      <= STATE_START_COMMAND;
                         end
                     end
             endcase
