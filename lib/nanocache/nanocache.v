@@ -173,6 +173,17 @@ module nanocache #(
                 end
 
             // idle state waiting for a command
+            {1'b1, FSM_IDLE}:
+                begin
+                    // if we did a read with shifts left near the end of a line fill we need to shift it here
+                    // here we're trading a giant mux for a few cycles.  If you want to avoid this don't do reads starting
+                    // closer than <4 bytes from the end of a cache line
+                    if (ctrl_write_mask[3:0] != 4'b0) begin
+                        ctrl_spin <= 1;
+                        data_out <= {data_out[23:0], 8'h00};
+                        ctrl_write_mask <= {ctrl_write_mask[3:0], 1'b0};
+                    end
+                end
             {1'b0, FSM_IDLE}:
                 begin
                     if (valid) begin
@@ -208,18 +219,17 @@ module nanocache #(
 						cache_mem_addr[CACHE_LINE-1:0] <= cache_mem_next;
 
 						// shift data and write mask
-						if (ctrl_write_mask[3:0] != 0) begin
-							data_out        <= { data_out[23:0], cache_mem_out };
-							if (data_wr_en & ctrl_write_mask[4]) begin
-								// write the tag as dirty since we wrote to it
-								tag_mem_in               <= tag_mem_out; // tag bits
-								tag_mem_in[DIRTY_BIT]    <= 1'b1;
-								tag_mem_wren             <= 1'b1;
-								// write to cache memory
-								cache_mem_in             <= data_out[31:24];
-								cache_mem_wren           <= 1'b1;
-							end
-						end else begin
+                        data_out        <= { data_out[23:0], cache_mem_out };
+                        if (data_wr_en & ctrl_write_mask[4]) begin
+                            // write the tag as dirty since we wrote to it
+                            tag_mem_in               <= tag_mem_out; // tag bits
+                            tag_mem_in[DIRTY_BIT]    <= 1'b1;
+                            tag_mem_wren             <= 1'b1;
+                            // write to cache memory
+                            cache_mem_in             <= data_out[31:24];
+                            cache_mem_wren           <= 1'b1;
+                        end
+						if (ctrl_write_mask[3:0] == 4'b1000) begin
 							ready     <= 1;
 							ctrl_fsm  <= FSM_IDLE;
 							ctrl_spin <= 1'b1;
@@ -309,16 +319,7 @@ module nanocache #(
                         
                         // store data_out matching the corresponding line byte read from PSRAM
                         if (cache_mem_next >= data_line_offset && ctrl_write_mask[3:0] != 4'b0000) begin
-							if (ctrl_idx == 0) begin
-								case (ctrl_write_mask[3:0])
-									4'b1000: data_out <= { data_out[23:0], psram_data_out };
-									4'b0100: data_out <= { data_out[15:0], psram_data_out, 8'b00 };
-									4'b0010: data_out <= { data_out[7:0], psram_data_out, 16'b00 };
-									4'b0001: data_out <= { psram_data_out, 24'b00 };
-								endcase
-							end else begin
-								data_out         <= { data_out[23:0], psram_data_out };				// shift data
-							end
+                            data_out         <= { data_out[23:0], psram_data_out };				// shift data
 							ctrl_write_mask  <= { ctrl_write_mask[3:0], 1'b0 };					// shift write mask
                             if (data_wr_en & ctrl_write_mask[4]) begin
                                 cache_mem_in <= data_out[31:24]; // host is writing so store input (which we stuff in data_out) into cache
@@ -337,7 +338,7 @@ module nanocache #(
                             ctrl_fsm          <= FSM_IDLE; // IDLE
                             ctrl_spin         <= 1'b1;     // give the host 1 cycle to lower valid
                             psram_start_trans <= 1'b0;
-                            ready             <= 1;
+                            ready             <= ctrl_write_mask[2:0] == 0 ? 1'b1 : 1'b0;
                         end
                     end
                 end

@@ -16,7 +16,7 @@ module top(
     localparam
         SRAM_ADDR_WIDTH = 24,
         PSRAM = 1,       // 1 == use PSRAM, 0 == SRAM
-        FREQ  = 54_000;  // clock rate in LHz
+        FREQ  = 74_250;  // clock rate in LHz
 
     wire pllclk;
 
