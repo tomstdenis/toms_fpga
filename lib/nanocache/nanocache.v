@@ -148,9 +148,7 @@ module nanocache #(
         FSM_IDLE         = 3'd1,
         FSM_COMPARE_TAG  = 3'd2,
         FSM_EVICT        = 3'd3,
-        FSM_FILL         = 3'd4,
-        FSM_PREP_RETIRE  = 3'd5,
-        FSM_RETIRE       = 3'd6;
+        FSM_FILL         = 3'd4;
 
     // idle signal
     assign idle = (ctrl_fsm == FSM_IDLE ? 1'b1 : 1'b0);
