@@ -177,8 +177,8 @@ module nanocache #(
                     // here we're trading a giant mux for a few cycles.  If you want to avoid this don't do reads starting
                     // closer than <4 bytes from the end of a cache line
                     if (ctrl_write_mask[3:0] != 4'b0) begin
-                        ctrl_spin <= 1;
-                        data_out <= {data_out[23:0], 8'h00};
+                        ctrl_spin       <= 1;
+                        data_out        <= {data_out[23:0], 8'h00};
                         ctrl_write_mask <= {ctrl_write_mask[3:0], 1'b0};
                     end
                 end
