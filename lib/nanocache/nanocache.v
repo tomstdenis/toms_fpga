@@ -215,10 +215,10 @@ module nanocache #(
                         tag_mem_addr    <= data_line_index;
                         cache_mem_addr  <= {data_line_index, data_line_offset};
                         if (CACHE_REGISTERED == 0) begin
-							ctrl_fsm        <= FSM_COMPARE_TAG;
-							ctrl_spin       <= 1'b1;
+							ctrl_fsm    <= FSM_COMPARE_TAG;
+							ctrl_spin   <= 1'b1;
 						end else begin
-							ctrl_fsm        <= FSM_COMPARE_TAG_DELAY;
+							ctrl_fsm    <= FSM_COMPARE_TAG_DELAY;
 						end
                         data_out        <= data_in;
                         ctrl_write_mask <= { write_mask, 1'b1 }; // LSB is "data is active" where we test ctrl_write_mask[3:0] for non zero
@@ -317,10 +317,10 @@ module nanocache #(
                         if (tag_mem_out[DIRTY_BIT]) begin
                             // line is dirty we need to evict it first
                             if (CACHE_REGISTERED == 0) begin
-								ctrl_fsm                       <= FSM_EVICT;
-								ctrl_spin                      <= 1;   // add delay to wait for cache data
+								ctrl_fsm                   <= FSM_EVICT;
+								ctrl_spin                  <= 1;   // add delay to wait for cache data
 							end else begin
-								ctrl_fsm <= FSM_EVICT_DELAY;
+								ctrl_fsm                   <= FSM_EVICT_DELAY;
 							end
                         end else begin
                             // line is clean so we can fill first
