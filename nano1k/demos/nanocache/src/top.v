@@ -68,6 +68,7 @@ module top(
         .CACHE_SIZE(11),
         .CACHE_LINE(5),
         .CACHE_DP(0),                       // nano1k's don't have DP BRAMs...
+        .CACHE_REGISTERED(1),
         .SRAM_ADDR_WIDTH(SRAM_ADDR_WIDTH),
         .FREQ(FREQ/1000)) MrLocalMemory
     (
