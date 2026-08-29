@@ -1,4 +1,6 @@
 clean:
+	make -C nanosram clean
+	make -C nanocache clean
 	make -C vga_comb clean
 	make -C debug clean
 	make -C spisram clean

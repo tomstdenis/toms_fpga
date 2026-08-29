@@ -17,22 +17,22 @@ module nanocache #(
     input wire                       clk,
     input wire                       rst_n,
     
-    input wire [31:0]                data_in,               // byte to write to cache line when data_wr_en==1
-    input wire [3:0]                 write_mask,            // per byte write mask 
-    input wire [SRAM_ADDR_WIDTH-1:0] data_addr,             // address in memory to read from
-    input wire                       data_wr_en,            // write enable 
-    output reg [31:0]                data_out,              // byte to read
+    input wire [31:0]                data_in,        // data to write (from MSB down to LSB)
+    input wire [3:0]                 write_mask,     // per byte write mask 
+    input wire [SRAM_ADDR_WIDTH-1:0] data_addr,      // address in memory to read from
+    input wire                       data_wr_en,     // write enable 
+    output reg [31:0]                data_out,       // data read back (MSB first, LSB last)
     
-    input wire                       valid,                 // request is valid
-    output reg                       ready,                 // command is done (must be low before sending next command)
-    output wire                      idle,                  // waiting in IDLE state
+    input wire                       valid,          // request is valid
+    output reg                       ready,          // command is done (must be low before sending next command)
+    output wire                      idle,           // waiting in IDLE state
 
     // I/O
-    input wire [3:0]                 sio_din,               // QPI data in
-    output wire [3:0]                sio_dout,              // QPI data out
-    output wire                      sio_en,                // QPI output enable (1 == output, 0 == input
-    output wire                      cs_pin,                // active low CS pin
-    output wire                      sck_pin                // SPI clock
+    input wire [3:0]                 sio_din,        // QPI data in
+    output wire [3:0]                sio_dout,       // QPI data out
+    output wire                      sio_en,         // QPI output enable (1 == output, 0 == input)
+    output wire                      cs_pin,         // active low CS pin
+    output wire                      sck_pin         // SPI clock
 );
 
 `ifdef MODEL_SIM
@@ -61,13 +61,14 @@ module nanocache #(
     assign data_tag         = data_addr[SRAM_ADDR_WIDTH-1:CACHE_LINE+CACHE_LINES];    // tag 
 
     // tag memory
-    reg [TAG_BITS-1:0]      tag_mem_out;
-    reg [TAG_BITS-1:0]      tag_mem_out_tmp;
-    reg [TAG_BITS-1:0]      tag_mem_in;
-    reg [CACHE_LINES-1:0]   tag_mem_addr;
-    reg                     tag_mem_wren;
-    reg [TAG_BITS-1:0]      tag_mem[0:(1<<CACHE_LINES)-1];
+    reg [TAG_BITS-1:0]      tag_mem_out;                          // tag mem output
+    reg [TAG_BITS-1:0]      tag_mem_out_tmp;                      // registered staging output
+    reg [TAG_BITS-1:0]      tag_mem_in;                           // input
+    reg [CACHE_LINES-1:0]   tag_mem_addr;                         // address
+    reg                     tag_mem_wren;                         // write enable
+    reg [TAG_BITS-1:0]      tag_mem[0:(1<<CACHE_LINES)-1];        // the tag memory itself
     
+    // block that drives the tag memory in single ported mode
     always @(posedge clk) begin
         if (tag_mem_wren) begin
             tag_mem[tag_mem_addr] <= tag_mem_in;
@@ -83,21 +84,21 @@ module nanocache #(
     
     // cache memory
     // port 1
-    reg [7:0]                cache_mem_out;
-    reg [7:0]                cache_mem_out_tmp;
-    reg [7:0]                cache_mem_in;
-    reg [CACHE_SIZE-1:0]     cache_mem_addr;
-    reg                      cache_mem_wren;
-    reg [7:0]                cache_mem[0:(1<<CACHE_SIZE)-1];
+    reg [7:0]                cache_mem_out;                        // cache mem out
+    reg [7:0]                cache_mem_out_tmp;                    // registered staging output
+    reg [7:0]                cache_mem_in;                         // input
+    reg [CACHE_SIZE-1:0]     cache_mem_addr;                       // address
+    reg                      cache_mem_wren;                       // write enable
+    reg [7:0]                cache_mem[0:(1<<CACHE_SIZE)-1];       // the cache memory itself
 
     // some helper wires for advancing inside a cache line
-    wire [CACHE_LINE-1:0]    cache_mem_next;
-    wire [CACHE_LINE-1:0]    cache_mem_next2;
+    wire [CACHE_LINE-1:0]    cache_mem_next;                       // next address
+    wire [CACHE_LINE-1:0]    cache_mem_next2;                      // address + 2 for dual ported memory builds
     assign cache_mem_next =  cache_mem_addr[CACHE_LINE-1:0] + 1'd1;
     assign cache_mem_next2 = cache_mem_addr[CACHE_LINE-1:0] + 2'd2;  // advance by two for DP cache hits
 
     // port 2
-    reg [7:0]                cache_mem_out2;     // 2nd port for DP builds
+    reg [7:0]                cache_mem_out2;                       // 2nd port for DP builds
     reg [7:0]                cache_mem_out2_tmp;
     reg [7:0]                cache_mem_in2;
     wire [CACHE_SIZE-1:0]    cache_mem_addr2;
@@ -108,9 +109,11 @@ module nanocache #(
     assign cache_mem_addr2 = { cache_mem_addr[CACHE_SIZE-1:CACHE_LINE], cache_mem_next };  
    
     always @(posedge clk) begin
+        // we operate these in write OR read mode like a single ported memory
         if (cache_mem_wren) begin
 			cache_mem[cache_mem_addr] <= cache_mem_in;
         end else begin
+			// if we are using registered memory type builds then we do a two-stage load first into tmp and then into out
 			if (CACHE_REGISTERED == 0) begin
 				cache_mem_out <= cache_mem[cache_mem_addr];
 			end else begin
@@ -118,6 +121,8 @@ module nanocache #(
 				cache_mem_out     <= cache_mem_out_tmp;
 			end			
         end
+
+        // If dual ported is enabled then we drive the '2' memory ports here in the same manner
         if (CACHE_DP == 1) begin
             if (cache_mem_wren2) begin
                 cache_mem[cache_mem_addr2] <= cache_mem_in2;
@@ -133,23 +138,23 @@ module nanocache #(
     end
     
     // psram interface
-    reg [7:0]                 psram_data_in;
-    reg                       psram_wr_en;
-    wire [7:0]                psram_data_out;
-    reg                       psram_start_trans;
-    reg [SRAM_ADDR_WIDTH-1:0] psram_addr;
+    reg [7:0]                 psram_data_in;             // byte to write to PSRAM memory
+    reg                       psram_wr_en;               // PSRAM write enable
+    wire [7:0]                psram_data_out;            // byte read from PSRAM memory
+    reg                       psram_start_trans;         // hold this high while we are still shifting bytes in or out
+    reg [SRAM_ADDR_WIDTH-1:0] psram_addr;                // address into the PSRAM to access
     wire                      psram_busy;
-    wire                      psram_idle;
+    wire                      psram_idle;                // this is high when we can start a transaction
     wire                      psram_ready;
-    wire                      psram_read_strobe;
-    wire                      psram_write_strobe;
-    wire [CACHE_LINE-1:0]     psram_zero;
+    wire                      psram_read_strobe;         // read strobe goes high the very cycle psram_data_out is valid
+    wire                      psram_write_strobe;        // write strobe goes high the cycle just before psram_data_in is read from
+    wire [CACHE_LINE-1:0]     psram_zero;                // helper for starting at the start of a cache line
     assign psram_zero = 0;
     
     nanosram #(
         .SRAM_ADDR_WIDTH(SRAM_ADDR_WIDTH),
         .DUMMY_BYTES(DUMMY_BYTES),
-        .PSRAM(1),
+        .PSRAM(1),                                       // only work with PSRAMS
         .FREQ(FREQ),
         .WAKEUP_DELAY_US(WAKEUP_DELAY_US),
         .HANGUP_DELAY_NS(HANGUP_DELAY_NS)) memory(
@@ -162,18 +167,18 @@ module nanocache #(
     
     // controller logic
     reg [2:0]               ctrl_fsm;                // what FSM state are we in
-    reg [CACHE_LINE-1:0]    ctrl_idx;
-    reg                     ctrl_spin;
-    reg [4:0]               ctrl_write_mask;
+    reg [CACHE_LINE-1:0]    ctrl_idx;                // counter used for evicting/filling cache lines
+    reg                     ctrl_spin;               // this is used to add a 1 cycle delay to various FSM states
+    reg [4:0]               ctrl_write_mask;         // local copy of write_mask the host passes in so we can shift it around
     
     localparam
-        FSM_CLEAR_TAGS   = 3'd0,
-        FSM_IDLE         = 3'd1,
-        FSM_COMPARE_TAG  = 3'd2,
-        FSM_EVICT        = 3'd3,
-        FSM_FILL         = 3'd4,
-        FSM_COMPARE_TAG_DELAY = 3'd5,
-        FSM_EVICT_DELAY       = 3'd6;
+        FSM_CLEAR_TAGS        = 3'd0,                // Initialize tags to zero on POR
+        FSM_IDLE              = 3'd1,                // Idle state waiting for next valid
+        FSM_COMPARE_TAG       = 3'd2,                // Loading and comparing the tag, for cache hits this is the state we shift out in
+        FSM_EVICT             = 3'd3,                // Evict a full cache line
+        FSM_FILL              = 3'd4,                // Fill a full cache line
+        FSM_COMPARE_TAG_DELAY = 3'd5,                // Delay cycle before comparing tag when using registered memory
+        FSM_EVICT_DELAY       = 3'd6;                // Delay cycle before starting eviction when using registered memory
 
     // idle signal
     assign idle = (ctrl_fsm == FSM_IDLE ? 1'b1 : 1'b0);
@@ -196,7 +201,7 @@ module nanocache #(
                     end
                 end
 
-            // idle state waiting for a command
+			// land here after an evict in case we need to shift data_out more 
             {1'b1, FSM_IDLE}:
                 begin
                     // if we did a read with shifts left near the end of a line fill we need to shift it here
@@ -208,6 +213,8 @@ module nanocache #(
                         ctrl_write_mask <= {ctrl_write_mask[3:0], 1'b0};
                     end
                 end
+
+            // idle state waiting for a command
             {1'b0, FSM_IDLE}:
                 begin
                     if (valid) begin
@@ -218,9 +225,10 @@ module nanocache #(
 							ctrl_fsm    <= FSM_COMPARE_TAG;
 							ctrl_spin   <= 1'b1;
 						end else begin
+							// registered memory needs an extra cycle for the output
 							ctrl_fsm    <= FSM_COMPARE_TAG_DELAY;
 						end
-                        data_out        <= data_in;
+                        data_out        <= data_in;              // latch the input locally so we only need one shift register
                         ctrl_write_mask <= { write_mask, 1'b1 }; // LSB is "data is active" where we test ctrl_write_mask[3:0] for non zero
                     end
                 end
@@ -242,9 +250,11 @@ module nanocache #(
                 begin
                     // since we want to pipeline reads if we hit we need to keep incrementing the cache addr
                     if (!data_wr_en) begin
-                        cache_mem_addr[CACHE_LINE-1:0] <= (CACHE_DP == 1) ? cache_mem_next2 : cache_mem_next;        // only advance if we're reading
+						// only advance if we're reading (by 2 for dual ported, by 1 for single)
+                        cache_mem_addr[CACHE_LINE-1:0] <= (CACHE_DP == 1) ? cache_mem_next2 : cache_mem_next;
                     end else begin
-						cache_mem_addr[CACHE_LINE-1:0] <= cache_mem_addr[CACHE_LINE-1:0] - ((CACHE_DP == 1) ? 2'd2 : 1'b1); // rewind a byte if writing
+						// rewind if we're writing since we advance in the COMPARE_TAG state (by 2 for dual ported, 1 for single)
+						cache_mem_addr[CACHE_LINE-1:0] <= cache_mem_addr[CACHE_LINE-1:0] - ((CACHE_DP == 1) ? 2'd2 : 1'b1);
 					end
                 end
             {1'b0, FSM_COMPARE_TAG}:
@@ -339,11 +349,15 @@ module nanocache #(
 				end
 
             // Evict a line to PSRAM then jump to fill it
+            // For registered mem this relies on the fact taht psram_write_strobes occur every
+            // 4 cycles giving the necessary time for the registered cache memory to respond
             {1'b0, FSM_EVICT}:
                 begin
 `ifdef MODEL_SIM
 					stats_evict_cycles <= stats_evict_cycles + 1;
 `endif					
+
+                    // initiate the transaction only if idle and we haven't already started it.
                     if (~psram_start_trans & psram_idle) begin
 `ifdef MODEL_SIM
 						stats_evicts <= stats_evicts + 1;
@@ -357,6 +371,8 @@ module nanocache #(
                         // per cycle pipeline reads from the cache mem
                         cache_mem_addr[CACHE_LINE-1:0]     <= cache_mem_next;    // advance cache addr for write strobe
                     end
+
+					// the PSRAM is asking for the next byte to write out to PSRAM memory
                     if (psram_write_strobe) begin
                         ctrl_idx                           <= ctrl_idx - 1'b1;
 						psram_data_in                      <= cache_mem_out;
@@ -377,7 +393,7 @@ module nanocache #(
 `ifdef MODEL_SIM
 					stats_fill_cycles <= stats_fill_cycles + 1;
 `endif					
-                    // only write data once (there will be multiple cycles per data)        
+                    // only write data once (there will be multiple cycles per data)
                     if (~psram_start_trans & psram_idle) begin
 `ifdef MODEL_SIM
 						stats_fills <= stats_fills + 1;
@@ -396,6 +412,8 @@ module nanocache #(
                         tag_mem_in[VALID_BIT]    <= 1'b1;
                         tag_mem_wren             <= 1'b1;
                     end
+                    
+                    // The PSRAM is informing us a byte is available to be used (stored in the cache line)
                     if (psram_read_strobe) begin
                         ctrl_idx                       <= ctrl_idx - 1'b1;
 
@@ -404,6 +422,10 @@ module nanocache #(
                         cache_mem_addr[CACHE_LINE-1:0] <= cache_mem_next;
                         
                         // store data_out matching the corresponding line byte read from PSRAM
+                        // This looks for matching the first address and then that the LSB of ctrl_write_mask is non-zero
+                        // which indicates we started.  Then we stop once ctrl_write_mask's lower bits are zero indicating
+                        // 4 bytes have been processed
+                        // This is more efficient than a >= && <= check
                         if ((cache_mem_next == data_line_offset || ~ctrl_write_mask[0]) && ctrl_write_mask[3:0] != 4'b0000) begin
                             data_out         <= { data_out[23:0], psram_data_out };				// shift data
 							ctrl_write_mask  <= { ctrl_write_mask[3:0], 1'b0 };					// shift write mask
@@ -418,13 +440,17 @@ module nanocache #(
                             cache_mem_in     <= psram_data_out;
                         end
 
-                        // we hit the last byte
+                        // we hit the last byte of the cache line fill
                         if (ctrl_idx == 0) begin
                             // last byte
                             ctrl_fsm          <= FSM_IDLE; // IDLE
+                            // we need to spin if we have to shift data_out to be in the correct alignment
+                            // this happens when we initiate a <4 byte read less than 4 bytes away from the
+                            // end of a cache line.
                             ctrl_spin         <= ctrl_write_mask[2:0] == 0 ? 1'b0 : 1'b1;
+                            ready             <= ctrl_write_mask[2:0] == 0 ? 1'b1 : 1'b0; // only set ready if there's no spin
+                            // turn off PSRAM transaction
                             psram_start_trans <= 1'b0;
-                            ready             <= ctrl_write_mask[2:0] == 0 ? 1'b1 : 1'b0;
                         end
                     end
                 end
