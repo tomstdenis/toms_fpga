@@ -6,10 +6,6 @@ module top(
     output wire uart_tx,
     input wire uart_rx,
 
-    output reg rgb_r,
-    output reg rgb_g,
-    output reg rgb_b,
-
     output wire sck_pin,
     output wire cs_pin,
     inout wire [3:0] sio
@@ -18,12 +14,12 @@ module top(
     localparam
         SRAM_ADDR_WIDTH = 24,
         PSRAM = 1,       // 1 == use PSRAM, 0 == SRAM
-        FREQ  = 81_000;  // clock rate in LHz
+        FREQ  = 150_000;  // clock rate in LHz
 
     wire pllclk;
 
-    Gowin_rPLL MrGoFast(
-        .clkout(pllclk), //output clkout
+    Gowin_PLL MrGoFast(
+        .clkout0(pllclk), //output clkout
         .clkin(clk) //input clkin
     );
 
@@ -67,9 +63,9 @@ module top(
     assign sio_din = sio;
 
     nanocache #(
-        .CACHE_SIZE(11),
+        .CACHE_SIZE(13),
         .CACHE_LINE(5),
-        .CACHE_DP(0),                       // nano1k's don't have DP BRAMs...
+        .CACHE_DP(1),
         .CACHE_REGISTERED(1),
         .SRAM_ADDR_WIDTH(SRAM_ADDR_WIDTH),
         .FREQ(FREQ/1000)) MrLocalMemory
@@ -121,7 +117,6 @@ module top(
                     begin
                         uart_tx_start           <= 1'b0;
                         if (uart_rx_ready) begin
-                            {rgb_r,rgb_g,rgb_b} <= 3'b110; // blue == RX started
                             test_state          <= STATE_DELAY;
                             uart_rx_read        <= 1'b1;
                         end
@@ -144,7 +139,6 @@ module top(
                 STATE_PROCESS_COMMAND:
                     begin
                         uart_tx_start <= 1'b0;
-                        {rgb_r,rgb_g,rgb_b} <= 3'b001; // yellow == running command
                         command_op        <= test_data[63:60];
                         command_burst_len <= test_data[59:56];
                         command_addr      <= test_data[55:32];
@@ -172,7 +166,6 @@ module top(
                     end
                 STATE_READ:
                     begin
-                        {rgb_r,rgb_g,rgb_b} <= 3'b100; // cyan == write
 						if (!nc_valid & nc_idle) begin
 							nc_valid      <= 1;
 							nc_data_wr_en <= 0;
@@ -196,7 +189,6 @@ module top(
                     end
                 STATE_WRITE:
                     begin
-                        {rgb_r,rgb_g,rgb_b} <= 3'b010; // purple == read
 						if (!nc_valid & nc_idle) begin								// only program job once
 							nc_valid      <= 1'b1;
 							nc_data_wr_en <= 1'b1;
@@ -217,7 +209,6 @@ module top(
                     end
                 STATE_HALT:
                     begin
-                        {rgb_r,rgb_g,rgb_b} <= { test_pass, ~test_pass, 1'b1 }; // red == fail, green == pass
                         if (!uart_tx_fifo_full) begin
                             uart_tx_start <= 1'b1;
                             uart_tx_data_in <= test_pass ? 8'hBB : 8'h55;

@@ -470,8 +470,6 @@ module nanocache #(
 			stats_evict_cycles <= 0;
 `endif	
             ctrl_fsm          <= FSM_CLEAR_TAGS;
-            ctrl_idx          <= 0;
-            ctrl_write_mask   <= 0;
             psram_start_trans <= 1'b0;
             tag_mem_in        <= 0;
             tag_mem_addr      <= 0;

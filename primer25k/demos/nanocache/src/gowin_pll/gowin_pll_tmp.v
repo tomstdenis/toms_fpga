@@ -1,17 +1,18 @@
 //Copyright (C)2014-2025 Gowin Semiconductor Corporation.
 //All rights reserved.
 //File Title: Template file for instantiation
-//Tool Version: V1.9.11.03 Education
-//Part Number: GW1NZ-LV1QN48C6/I5
-//Device: GW1NZ-1
-//Created Time: Sat Aug 29 18:38:26 2026
+//Part Number: GW5A-LV25MG121NC1/I0
+//Device: GW5A-25
+//Device Version: A
+
 
 //Change the instance name and port connections to the signal names
 //--------Copy here to design--------
+    Gowin_PLL your_instance_name(
+        .clkin(clkin), //input  clkin
+        .clkout0(clkout0), //output  clkout0
+        .mdclk(mdclk) //input  mdclk
+);
 
-    Gowin_rPLL your_instance_name(
-        .clkout(clkout), //output clkout
-        .clkin(clkin) //input clkin
-    );
 
 //--------Copy end-------------------
