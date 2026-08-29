@@ -181,9 +181,10 @@ module nanocache #(
         FSM_EVICT_DELAY       = 3'd6;                // Delay cycle before starting eviction when using registered memory
 
     // idle signal
-    assign idle = (ctrl_fsm == FSM_IDLE ? 1'b1 : 1'b0);
+    assign idle = (ctrl_fsm == FSM_IDLE ? 1'b1 : 1'b0) & ~ctrl_spin;
 
     always @(posedge clk) begin
+		// global resets happen every cycle which simplifes logic a bit no need to manually turn things off everywhere.
         ctrl_spin       <= 1'b0;
         tag_mem_wren    <= 1'b0;
         cache_mem_wren  <= 1'b0;
@@ -195,6 +196,7 @@ module nanocache #(
                 begin
                     tag_mem_wren     <= 1'b1;
                     if (tag_mem_addr == ((1<<CACHE_LINES) - 1)) begin
+						// we jump to IDLE at the same time the last write happens.
                         ctrl_fsm     <= FSM_IDLE;
                     end else begin
                         tag_mem_addr <= tag_mem_addr + 1'b1;
@@ -262,9 +264,6 @@ module nanocache #(
                     // at this point cache_mem_out is the initial data_line_offset and by the next cycle
                     // it'll be data_line_offset+1 which allows nice read streaming from the cache
                     if (tag_mem_out[VALID_BIT] && data_tag == tag_mem_out[TAG_SIZE-1:0]) begin
-`ifdef MODEL_SIM
-						stats_hit <= stats_hit + !ctrl_write_mask[3:0];
-`endif						
                         if (CACHE_DP == 0) begin
                             // this path is for semi dual ported memory
                             ctrl_write_mask <= { ctrl_write_mask[3:0], 1'b0 };
@@ -282,6 +281,9 @@ module nanocache #(
                                 cache_mem_wren           <= 1'b1;
                             end
                             if (ctrl_write_mask[3:0] == 4'b1000) begin
+`ifdef MODEL_SIM
+								stats_hit <= stats_hit + 1;
+`endif						
                                 ready     <= 1;
                                 ctrl_fsm  <= FSM_IDLE;
                                 ctrl_spin <= 1'b0;
@@ -312,6 +314,9 @@ module nanocache #(
                                 cache_mem_wren2          <= 1'b1;
                             end
                             if (ctrl_write_mask[2:0] == 3'b100) begin
+`ifdef MODEL_SIM
+								stats_hit <= stats_hit + 1;
+`endif						
                                 ready     <= 1;
                                 ctrl_fsm  <= FSM_IDLE;
                                 ctrl_spin <= 1'b0;

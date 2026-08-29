@@ -35,7 +35,13 @@ module nanocache_tb();
 	wire	   sck_pin;
 
 	// nanocache
-	nanocache #(.CACHE_DP(1), .WAKEUP_DELAY_US(0), .HANGUP_DELAY_NS(0)) nc_dut (
+	nanocache #(
+		.CACHE_DP(1),           // dual ported memory
+		.CACHE_REGISTERED(1),   // registered memory
+		
+		.WAKEUP_DELAY_US(0),	// we make sim go faster by turning off PSRAM delays
+		.HANGUP_DELAY_NS(0)
+		) nc_dut (
 		.clk(clk), .rst_n(rst_n),
 		.data_in(nc_data_in), .data_out(nc_data_out), .write_mask(nc_write_mask), .data_addr(nc_data_addr), .data_wr_en(nc_data_wr_en),
 		.valid(nc_valid), .ready(nc_ready), .idle(nc_idle),
@@ -97,14 +103,16 @@ module nanocache_tb();
 		STATE_START_COMMAND        = 0,
 		STATE_START_READ           = 1,
 		STATE_START_WRITE          = 2,
-		STATE_HALT                 = 3;
+		STATE_HALT                 = 3,
+		STATE_PASS                 = 4;
 		
     always @(posedge clk) begin
+		nc_valid <= 1'b0;
         if (!rst_n) begin
             rst_n            <= 1'b1;
             command_num      <= 0;
             test_state       <= STATE_START_COMMAND;
-            nc_valid         <= 0;
+        //    nc_valid         <= 0;
             nc_data_wr_en    <= 0;
             test_cycles_w    <= 0;
             test_cycles_r    <= 0;
@@ -141,8 +149,7 @@ module nanocache_tb();
 				STATE_START_READ:
 					begin
 						test_cycles_r      <= test_cycles_r + 1;
-						nc_valid <= 1'b0;
-						if (!nc_valid & nc_idle) begin
+						if (!nc_valid & nc_idle & ~nc_ready) begin
 							$display("READ in idle");
 							test_reads    <= test_reads + 1;
 							test_reads_b  <= test_reads_b + 1 + command_burst_len;
@@ -152,8 +159,30 @@ module nanocache_tb();
 						end
 						if (nc_ready) begin
 							$display("READ in ready");
-							nc_valid <= 1'b0;
-							test_state <= STATE_START_COMMAND;
+							test_state <= STATE_PASS;
+						end
+					end
+				STATE_START_WRITE: // start a write burst
+					begin
+						test_cycles_w      <= test_cycles_w + 1;
+						if (!nc_valid & nc_idle & ~nc_ready) begin								// only program job once
+							$display("WRITE in idle");
+							test_writes   <= test_writes + 1;
+							test_writes_b <= test_writes_b + 1 + command_burst_len;
+							nc_valid      <= 1'b1;
+							nc_data_wr_en <= 1'b1;
+							nc_data_in    <= command_data;
+							nc_data_addr  <= command_addr;
+						end
+						if (nc_ready) begin											// ready strobe
+							$display("WRITE in ready");
+							test_state <= STATE_PASS;
+						end
+					end
+				STATE_PASS:
+					begin
+						test_state <= STATE_START_COMMAND;
+						if (!nc_data_wr_en) begin
 							case (nc_write_mask)
 								4'b1000: begin
 									if (nc_data_out[31:24] !== command_data[31:24]) begin
@@ -180,25 +209,6 @@ module nanocache_tb();
 									end
 								end
 							endcase
-						end
-					end
-				STATE_START_WRITE: // start a write burst
-					begin
-						test_cycles_w      <= test_cycles_w + 1;
-						nc_valid <= 1'b0;
-						if (!nc_valid & nc_idle) begin								// only program job once
-							$display("WRITE in idle");
-							test_writes   <= test_writes + 1;
-							test_writes_b <= test_writes_b + 1 + command_burst_len;
-							nc_valid      <= 1'b1;
-							nc_data_wr_en <= 1'b1;
-							nc_data_in    <= command_data;
-							nc_data_addr  <= command_addr;
-						end
-						if (nc_ready) begin											// ready strobe
-							$display("WRITE in ready");
-							nc_valid   <= 1'b0;
-							test_state <= STATE_START_COMMAND;
 						end
 					end
 				STATE_HALT:
