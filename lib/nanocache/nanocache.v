@@ -1,30 +1,11 @@
-/* byte wide nanocache
-
-Gist (doc tbd): 
-
-So for writing you use data_in, so on
-
-cycle == 0: wait for idle, program data_in/data_addr/data_wr_en=1
-cycle == 1: if there's more data load the 2nd byte into data_in, otherwise lower valid
-cycle == 2: if there are more bytes wait for ready, once ready load a new byte in data_in every cycle, otherwise lower valid
-
-For reading:
-
-cycle == 0: wait for idle, program data_in/data_addr/data_wr_en=0
-cycle == 1: wait for ready, then every cycle latch
-
-
-
-
-*/
-
+// nanocache(nanosram) 
 `timescale 1ns/1ps
 `default_nettype none
 
 module nanocache #(
     parameter CACHE_SIZE=11,                // log2(cache_bytes)
     parameter CACHE_LINE=5,                 // log2(cache_line_bytes)
-    parameter CACHE_DP=0,                   // use dual ported cache memory
+    parameter CACHE_DP=1,                   // use dual ported cache memory
 
     parameter SRAM_ADDR_WIDTH=24,           // Address width
     parameter DUMMY_BYTES=3,                // number of dummy cycles on a fast read
