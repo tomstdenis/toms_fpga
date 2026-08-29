@@ -11,7 +11,7 @@ module top(
     localparam
         SRAM_ADDR_WIDTH = 24,
         PSRAM = 1,       // 1 == use PSRAM, 0 == SRAM
-        FREQ  = 125_000;  // clock rate in LHz
+        FREQ  = `FREQ * 1000;  // clock rate in LHz
 
     wire pllclk;
 	wire pll_locked;
@@ -57,9 +57,11 @@ module top(
     assign sio_din = sio;
 
     nanocache #(
-        .CACHE_SIZE(11),
+        .CACHE_SIZE(13),
         .CACHE_LINE(5),
-        .CACHE_DP(1),                       // nano1k's don't have DP BRAMs...
+        .CACHE_DP(1),
+        .CACHE_REGISTERED(1),
+        
         .SRAM_ADDR_WIDTH(SRAM_ADDR_WIDTH),
         .FREQ(FREQ/1000)) MrLocalMemory
     (

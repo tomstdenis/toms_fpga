@@ -6,6 +6,7 @@ module nanocache #(
     parameter CACHE_SIZE=11,                // log2(cache_bytes)
     parameter CACHE_LINE=5,                 // log2(cache_line_bytes)
     parameter CACHE_DP=1,                   // use dual ported cache memory
+    parameter CACHE_REGISTERED=1,			// use registered cache memory
 
     parameter SRAM_ADDR_WIDTH=24,           // Address width
     parameter DUMMY_BYTES=3,                // number of dummy cycles on a fast read
@@ -61,6 +62,7 @@ module nanocache #(
 
     // tag memory
     reg [TAG_BITS-1:0]      tag_mem_out;
+    reg [TAG_BITS-1:0]      tag_mem_out_tmp;
     reg [TAG_BITS-1:0]      tag_mem_in;
     reg [CACHE_LINES-1:0]   tag_mem_addr;
     reg                     tag_mem_wren;
@@ -70,13 +72,19 @@ module nanocache #(
         if (tag_mem_wren) begin
             tag_mem[tag_mem_addr] <= tag_mem_in;
         end else begin
-            tag_mem_out <= tag_mem[tag_mem_addr];
+			if (CACHE_REGISTERED == 0) begin
+				tag_mem_out <= tag_mem[tag_mem_addr];
+			end else begin
+				tag_mem_out_tmp <= tag_mem[tag_mem_addr];
+				tag_mem_out     <= tag_mem_out_tmp;
+			end
         end
     end
     
     // cache memory
     // port 1
     reg [7:0]                cache_mem_out;
+    reg [7:0]                cache_mem_out_tmp;
     reg [7:0]                cache_mem_in;
     reg [CACHE_SIZE-1:0]     cache_mem_addr;
     reg                      cache_mem_wren;
@@ -89,7 +97,8 @@ module nanocache #(
     assign cache_mem_next2 = cache_mem_addr[CACHE_LINE-1:0] + 2'd2;  // advance by two for DP cache hits
 
     // port 2
-    reg [7:0]                cache_mem_out2;    // 2nd port for DP builds
+    reg [7:0]                cache_mem_out2;     // 2nd port for DP builds
+    reg [7:0]                cache_mem_out2_tmp;
     reg [7:0]                cache_mem_in2;
     wire [CACHE_SIZE-1:0]    cache_mem_addr2;
     reg                      cache_mem_wren2;
@@ -100,15 +109,25 @@ module nanocache #(
    
     always @(posedge clk) begin
         if (cache_mem_wren) begin
-            cache_mem[cache_mem_addr] <= cache_mem_in;
+			cache_mem[cache_mem_addr] <= cache_mem_in;
         end else begin
-            cache_mem_out <= cache_mem[cache_mem_addr];
+			if (CACHE_REGISTERED == 0) begin
+				cache_mem_out <= cache_mem[cache_mem_addr];
+			end else begin
+				cache_mem_out_tmp <= cache_mem[cache_mem_addr];
+				cache_mem_out     <= cache_mem_out_tmp;
+			end			
         end
         if (CACHE_DP == 1) begin
             if (cache_mem_wren2) begin
                 cache_mem[cache_mem_addr2] <= cache_mem_in2;
             end else begin
-                cache_mem_out2 <= cache_mem[cache_mem_addr2];
+			if (CACHE_REGISTERED == 0) begin
+				cache_mem_out2     <= cache_mem[cache_mem_addr2];
+			end else begin
+				cache_mem_out2_tmp <= cache_mem[cache_mem_addr2];
+				cache_mem_out2     <= cache_mem_out2_tmp;
+			end			
             end
         end
     end
@@ -152,7 +171,9 @@ module nanocache #(
         FSM_IDLE         = 3'd1,
         FSM_COMPARE_TAG  = 3'd2,
         FSM_EVICT        = 3'd3,
-        FSM_FILL         = 3'd4;
+        FSM_FILL         = 3'd4,
+        FSM_COMPARE_TAG_DELAY = 3'd5,
+        FSM_EVICT_DELAY       = 3'd6;
 
     // idle signal
     assign idle = (ctrl_fsm == FSM_IDLE ? 1'b1 : 1'b0);
@@ -193,12 +214,28 @@ module nanocache #(
                         // start reading tag and reading from cache
                         tag_mem_addr    <= data_line_index;
                         cache_mem_addr  <= {data_line_index, data_line_offset};
-                        ctrl_fsm        <= FSM_COMPARE_TAG;
-                        ctrl_spin       <= 1'b1;
+                        if (CACHE_REGISTERED == 0) begin
+							ctrl_fsm        <= FSM_COMPARE_TAG;
+							ctrl_spin       <= 1'b1;
+						end else begin
+							ctrl_fsm        <= FSM_COMPARE_TAG_DELAY;
+						end
                         data_out        <= data_in;
                         ctrl_write_mask <= { write_mask, 1'b1 }; // LSB is "data is active" where we test ctrl_write_mask[3:0] for non zero
                     end
                 end
+
+			// delay for registered mem
+			{1'b0, FSM_COMPARE_TAG_DELAY}:
+				begin
+					if (CACHE_REGISTERED == 1) begin
+						ctrl_fsm  <= FSM_COMPARE_TAG;
+						ctrl_spin <= 1'b1;
+						if (!data_wr_en) begin
+							cache_mem_addr[CACHE_LINE-1:0] <= (CACHE_DP == 1) ? cache_mem_next2 : cache_mem_next;        // only advance if we're reading
+						end
+					end
+				end
 
             // tag compare state
             {1'b1, FSM_COMPARE_TAG}:
@@ -279,14 +316,27 @@ module nanocache #(
 						cache_mem_addr[CACHE_LINE-1:0]     <= psram_zero;
                         if (tag_mem_out[DIRTY_BIT]) begin
                             // line is dirty we need to evict it first
-                            ctrl_fsm                       <= FSM_EVICT;
-                            ctrl_spin                      <= 1;   // add delay to wait for cache data
+                            if (CACHE_REGISTERED == 0) begin
+								ctrl_fsm                       <= FSM_EVICT;
+								ctrl_spin                      <= 1;   // add delay to wait for cache data
+							end else begin
+								ctrl_fsm <= FSM_EVICT_DELAY;
+							end
                         end else begin
                             // line is clean so we can fill first
                             ctrl_fsm                       <= FSM_FILL;
                         end
                     end
                 end
+
+			// delay for registered mem on eviction
+			{1'b0, FSM_EVICT_DELAY}:
+				begin
+					if (CACHE_REGISTERED == 1) begin
+						ctrl_fsm  <= FSM_EVICT;
+						ctrl_spin <= 1;   // add delay to wait for cache data
+					end
+				end
 
             // Evict a line to PSRAM then jump to fill it
             {1'b0, FSM_EVICT}:
