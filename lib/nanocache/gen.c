@@ -9,7 +9,8 @@
 
 #define OP_LEN(x) ((x - 1) & 3)
 
-#define MEM_SIZE 8192
+#define MEM_BITS 13
+#define MEM_SIZE (1U << MEM_BITS)
 
 uint8_t memory[MEM_SIZE], init[MEM_SIZE];
 uint32_t lines = 0;
@@ -101,25 +102,27 @@ int main(void)
 	gen_read(out,  0x210 + 0x800, 4);
 #endif
 #else	
-	// fill the full 8kb with values so it's initialized
-	for (x = 0; x < 8192; x += 4) {
+	// fill the full mem with values so it's initialized
+	for (x = 0; x < MEM_SIZE; x += 4) {
 		gen_write(out, x, read_rng(4), 4);
 	}
 
 	while (lines < 65535) {
-		uint32_t r, bl;
+		uint32_t r, bl, w;
 
 		// pick a random offset until it doesn't cross a cache line
 		do {
 			r = read_rng(4);
-			bl = 1+((r>>13)&3);
+			bl = 1+((r>>MEM_BITS)&3);
+			w = r >> 31;
+			r &= (MEM_SIZE - 1);			
 		} while ((r & 31) > ((r + bl) & 31));
 
-		if (r & 0x80000000) {
-			gen_read(out, r & 0x1FFF, bl);
+		if (w) {
+			gen_read(out, r, bl);
 		} else {
 			uint32_t v = read_rng(4);
-			gen_write(out, r & 0x1FFF, v, bl);
+			gen_write(out, r, v, bl);
 		}
 	}
 	

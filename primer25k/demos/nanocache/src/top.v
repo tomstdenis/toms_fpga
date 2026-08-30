@@ -1,4 +1,78 @@
-`define GOWIN
+// note if you change any of this you need to rebuild the memory IP blocks
+// 16KB cache, 32byte line
+`define CACHE_SIZE      14
+`define CACHE_LINE       5
+`define CACHE_LINES      (`CACHE_LINE - `CACHE_LINE)
+`define CACHE_REGISTERED 1
+`define CACHE_DP         1
+`define SRAM_ADDR_WIDTH 24
+
+// this is the wrapper for our TAG memeoy using a Gowin SP registered memory
+module nanocache_tag_mem #(
+    parameter WIDTH=2 + `SRAM_ADDR_WIDTH - `CACHE_LINE - `CACHE_LINES,
+    parameter DEPTH=`CACHE_LINES,
+    parameter REG=`CACHE_REGISTERED
+)(
+    input wire clk,
+    input wire rst_n,
+
+    output wire [WIDTH-1:0] mem_out,
+    input wire [WIDTH-1:0]  mem_in,
+    input wire [DEPTH-1:0] addr,
+    input wire wren
+);
+    gowin_tagmem tagmem(
+        .dout(mem_out), //output [11:0] dout
+        .clk(clk), //input clk
+        .oce(1'b1), //input oce
+        .ce(1'b1), //input ce
+        .reset(~rst_n), //input reset
+        .wre(wren), //input wre
+        .ad(addr), //input [8:0] ad
+        .din(mem_in) //input [11:0] din
+    );
+endmodule
+
+// this is the wrapper for our cache memory using a set of Gowin DP register memories in an 8x16384 configuration
+module nanocache_cache_mem #(
+    parameter WIDTH=8,
+    parameter DEPTH=(1 << `CACHE_SIZE),
+    parameter REG=`CACHE_REGISTERED
+)(
+    input wire clk,
+    input wire rst_n,
+
+    output wire [WIDTH-1:0] mem_out_1,
+    input wire [WIDTH-1:0]  mem_in_1,
+    input wire [DEPTH-1:0]  mem_addr_1,
+    input wire              mem_wren_1,
+
+    output wire [WIDTH-1:0] mem_out_2,
+    input wire [WIDTH-1:0]  mem_in_2,
+    input wire [DEPTH-1:0]  mem_addr_2,
+    input wire              mem_wren_2
+);
+
+    gowin_cache_mem cache_mem(
+        .douta(mem_out_1), //output [7:0] douta
+        .clka(clk), //input clka
+        .ocea(1'b1), //input ocea
+        .cea(1'b1), //input cea
+        .reseta(~rst_n), //input reseta
+        .wrea(mem_wren_1), //input wrea
+        .ada(mem_addr_1), //input [13:0] ada
+        .dina(mem_in_1), //input [7:0] dina
+
+        .doutb(mem_out_2), //output [7:0] doutb
+        .clkb(clk), //input clkb
+        .oceb(1'b1), //input oceb
+        .ceb(1'b1), //input ceb
+        .resetb(~rst_n), //input resetb
+        .wreb(mem_wren_2), //input wreb
+        .adb(mem_addr_2), //input [13:0] adb
+        .dinb(mem_in_2) //input [7:0] dinb
+    );
+endmodule
 
 module top(
     input wire clk,
@@ -14,7 +88,7 @@ module top(
     localparam
         SRAM_ADDR_WIDTH = 24,
         PSRAM = 1,       // 1 == use PSRAM, 0 == SRAM
-        FREQ  = 150_000;  // clock rate in LHz
+        FREQ  = 100_000;  // clock rate in LHz
 
     wire pllclk;
 
@@ -63,10 +137,10 @@ module top(
     assign sio_din = sio;
 
     nanocache #(
-        .CACHE_SIZE(14),
-        .CACHE_LINE(5),
-        .CACHE_DP(1),
-        .CACHE_REGISTERED(1),
+        .CACHE_SIZE(`CACHE_SIZE),
+        .CACHE_LINE(`CACHE_LINE),
+        .CACHE_DP(`CACHE_DP),
+        .CACHE_REGISTERED(`CACHE_REGISTERED),
         .SRAM_ADDR_WIDTH(SRAM_ADDR_WIDTH),
         .FREQ(FREQ/1000)) MrLocalMemory
     (

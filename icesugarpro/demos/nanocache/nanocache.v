@@ -57,7 +57,7 @@ module top(
     assign sio_din = sio;
 
     nanocache #(
-        .CACHE_SIZE(13),
+        .CACHE_SIZE(14),
         .CACHE_LINE(5),
         .CACHE_DP(1),
         .CACHE_REGISTERED(1),

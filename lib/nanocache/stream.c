@@ -23,6 +23,9 @@
 // smaller to test (8KB)
 //#define MEM_BITS 13
 
+// smaller to test (4KB)
+// #define MEM_BITS 12
+
 // smallest to test (2KB)
 //#define MEM_BITS 11
 
@@ -165,13 +168,25 @@ int main(int argc, char **argv)
 			fflush(stdout);
 		}
 		gen_write(x, read_rng(4), 4);		// write and read back
+	}
+	printf("\nDone\n");
+
+	printf("Reading memory back:\n");
+	for (x = 0; x < MEM_SIZE; x += 4) {
+		if (!(x&0xFF)) {
+			printf("%u...\r", x);
+			fflush(stdout);
+		}
 		gen_read(x, 4);
 	}
 	printf("\nDone\n");
 
+
+
 	// pick a random offset until it doesn't cross a cache line
 	printf("Running random traffic...\n");
 	for (;;) {
+		uint32_t w;
 		if (!(lines&0xFF)) {
 			printf("%llu...\r", lines);
 			fflush(stdout);
@@ -179,10 +194,11 @@ int main(int argc, char **argv)
 		do {
 			r = read_rng(4);
 			bl = 1+((r>>MEM_BITS)&3);
-			r  = r & (MEM_SIZE - 1);
+			w  = r >> 31;							// write bit
+			r  = r & (MEM_SIZE - 1);				
 		} while ((r & 31) > ((r + bl) & 31));
 
-		if (r & 0x80000000) {
+		if (!w) {
 			gen_read(r, bl);
 		} else {
 			uint32_t v = read_rng(4);

@@ -10,7 +10,7 @@ all: ${TARGET}.bit
 
 # Synthesize the source
 $(TARGET).json: $(OBJS)
-		yosys -DFREQ=${FREQ} -p "synth_ecp5 -json $@" $(OBJS)
+		yosys -DFREQ=${FREQ} -DINFER_MEM -p "synth_ecp5 -json $@" $(OBJS)
 
 # Place and Route
 $(TARGET)_out.config: $(TARGET).json

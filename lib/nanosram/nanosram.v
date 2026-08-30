@@ -53,7 +53,7 @@ module nanosram #(
 );
 
 `ifdef MODEL_SIM
-	reg [3:0] sim_mem[65535:0];				// 32K of memory
+	reg [3:0] sim_mem[0:131071];				// 64K of memory
 	reg [SRAM_ADDR_WIDTH-1:0] sim_addr;
 	reg                       sim_active;
 `endif	

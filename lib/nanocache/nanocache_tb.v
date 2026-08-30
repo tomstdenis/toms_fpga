@@ -36,7 +36,9 @@ module nanocache_tb();
 
 	// nanocache
 	nanocache #(
-		.CACHE_DP(1),           // dual ported memory
+		.CACHE_SIZE(12),
+		.CACHE_LINE(5),
+		.CACHE_DP(0),           // dual ported memory
 		.CACHE_REGISTERED(1),   // registered memory
 		
 		.WAKEUP_DELAY_US(0),	// we make sim go faster by turning off PSRAM delays

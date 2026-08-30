@@ -60,12 +60,13 @@ module nanocache #(
     assign data_line_index  = data_addr[CACHE_LINES+CACHE_LINE-1:CACHE_LINE];         // which line
     assign data_tag         = data_addr[SRAM_ADDR_WIDTH-1:CACHE_LINE+CACHE_LINES];    // tag 
 
+`ifdef INFER_MEM
     // tag memory
     reg [TAG_BITS-1:0]      tag_mem_out;                          // tag mem output
-    reg [TAG_BITS-1:0]      tag_mem_out_tmp;                      // registered staging output
     reg [TAG_BITS-1:0]      tag_mem_in;                           // input
     reg [CACHE_LINES-1:0]   tag_mem_addr;                         // address
     reg                     tag_mem_wren;                         // write enable
+    reg [TAG_BITS-1:0]      tag_mem_out_tmp;                      // registered staging output
     reg [TAG_BITS-1:0]      tag_mem[0:(1<<CACHE_LINES)-1];        // the tag memory itself
     
     // block that drives the tag memory in single ported mode
@@ -81,7 +82,23 @@ module nanocache #(
 			end
         end
     end
+`else
+    // tag memory (you must supply a nanocache_tag_mem that infers the corret 
+    wire [TAG_BITS-1:0]      tag_mem_out;                          // tag mem output
+    reg  [TAG_BITS-1:0]      tag_mem_in;                           // input
+    reg  [CACHE_LINES-1:0]   tag_mem_addr;                         // address
+    reg                      tag_mem_wren;                         // write enable
+    nanocache_tag_mem #(
+        .WIDTH(TAG_BITS),
+        .DEPTH(1<<CACHE_LINES),
+        .REG(CACHE_REGISTERED)
+    ) tag_mem(
+        .clk(clk), .rst_n(rst_n),
+        .mem_out(tag_mem_out), .mem_in(tag_mem_in), .addr(tag_mem_addr), .wren(tag_mem_wren)
+    );
+`endif
     
+`ifdef INFER_MEM
     // cache memory
     // port 1
     reg [7:0]                cache_mem_out;                        // cache mem out
@@ -91,11 +108,6 @@ module nanocache #(
     reg                      cache_mem_wren;                       // write enable
     reg [7:0]                cache_mem[0:(1<<CACHE_SIZE)-1];       // the cache memory itself
 
-    // some helper wires for advancing inside a cache line
-    wire [CACHE_LINE-1:0]    cache_mem_next;                       // next address
-    wire [CACHE_LINE-1:0]    cache_mem_next2;                      // address + 2 for dual ported memory builds
-    assign cache_mem_next =  cache_mem_addr[CACHE_LINE-1:0] + 1'd1;
-    assign cache_mem_next2 = cache_mem_addr[CACHE_LINE-1:0] + 2'd2;  // advance by two for DP cache hits
 
     // port 2
     reg [7:0]                cache_mem_out2;                       // 2nd port for DP builds
@@ -103,11 +115,7 @@ module nanocache #(
     reg [7:0]                cache_mem_in2;
     wire [CACHE_SIZE-1:0]    cache_mem_addr2;
     reg                      cache_mem_wren2;
-
-    // the 2nd port always points to the next byte in the cache line based on where the first port is pointing
-    // this simplifies a lot of logic 
-    assign cache_mem_addr2 = { cache_mem_addr[CACHE_SIZE-1:CACHE_LINE], cache_mem_next };  
-   
+  
     always @(posedge clk) begin
         // we operate these in write OR read mode like a single ported memory
         if (cache_mem_wren) begin
@@ -136,6 +144,42 @@ module nanocache #(
             end
         end
     end
+`else
+    // bring your own cache memory you need to supply nanocache_cache_mem...
+
+    // cache memory
+    // port 1
+    wire [7:0]                cache_mem_out;                        // cache mem out
+    reg  [7:0]                cache_mem_in;                         // input
+    reg  [CACHE_SIZE-1:0]     cache_mem_addr;                       // address
+    reg                       cache_mem_wren;                       // write enable
+
+    // port 2
+    wire [7:0]                cache_mem_out2;                       // 2nd port for DP builds
+    reg  [7:0]                cache_mem_in2;
+    wire [CACHE_SIZE-1:0]     cache_mem_addr2;
+    reg                       cache_mem_wren2;
+
+    nanocache_cache_mem #(
+        .WIDTH(8),
+        .DEPTH(1<<CACHE_SIZE),
+        .REG(CACHE_REGISTERED)
+    ) cache_mem (
+        .clk(clk), .rst_n(rst_n),
+        .mem_out_1(cache_mem_out), .mem_in_1(cache_mem_in), .mem_addr_1(cache_mem_addr), .mem_wren_1(cache_mem_wren),
+        .mem_out_2(cache_mem_out2), .mem_in_2(cache_mem_in2), .mem_addr_2(cache_mem_addr2), .mem_wren_2(cache_mem_wren2)
+    );
+`endif
+
+    // some helper wires for advancing inside a cache line
+    wire [CACHE_LINE-1:0]    cache_mem_next;                       // next address
+    wire [CACHE_LINE-1:0]    cache_mem_next2;                      // address + 2 for dual ported memory builds
+    assign cache_mem_next =  cache_mem_addr[CACHE_LINE-1:0] + 1'd1;
+    assign cache_mem_next2 = cache_mem_addr[CACHE_LINE-1:0] + 2'd2;  // advance by two for DP cache hits
+
+    // the 2nd port always points to the next byte in the cache line based on where the first port is pointing
+    // this simplifies a lot of logic 
+    assign cache_mem_addr2 = { cache_mem_addr[CACHE_SIZE-1:CACHE_LINE], cache_mem_next };  
     
     // psram interface
     reg [7:0]                 psram_data_in;             // byte to write to PSRAM memory

@@ -1,0 +1,24 @@
+-series GW5A
+-device GW5A-25
+-device_version A
+-package MBGA121N
+-part_number GW5A-LV25MG121NC1/I0
+
+
+-mod_name gowin_cache_mem
+-file_name gowin_dpb
+-path /home/tom/nas/toms_fpga/primer25k/demos/nanocache/src/gowin_dpb/
+-type RAM_DP
+-file_type vlg
+-bram_b true
+-dev_type GW5A-25A
+-depth_0 16384
+-depth_1 16384
+-width_0 8
+-width_1 8
+-read_mode_0 pipeline
+-read_mode_1 pipeline
+-write_mode_0 normal
+-write_mode_1 normal
+-speed true
+-reset_mode sync
