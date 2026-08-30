@@ -1,4 +1,4 @@
-`define FREQ 150_000
+`define FREQ 140_000
 
 // note if you change any of this you need to rebuild the memory IP blocks
 // 16KB cache, 32byte line
