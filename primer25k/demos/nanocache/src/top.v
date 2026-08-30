@@ -7,7 +7,7 @@
 `define CACHE_DP         1
 `define SRAM_ADDR_WIDTH 24
 
-// this is the wrapper for our TAG memeoy using a Gowin SP registered memory
+// this is the wrapper for our TAG memory using a Gowin SP registered memory
 module nanocache_tag_mem #(
     parameter WIDTH=2 + `SRAM_ADDR_WIDTH - `CACHE_LINE - `CACHE_LINES,      // width of data in bits
     parameter DEPTH=`CACHE_LINES,                                           // address width in bits

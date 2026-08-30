@@ -60,29 +60,6 @@ module nanocache #(
     assign data_line_index  = data_addr[CACHE_LINES+CACHE_LINE-1:CACHE_LINE];         // which line
     assign data_tag         = data_addr[SRAM_ADDR_WIDTH-1:CACHE_LINE+CACHE_LINES];    // tag 
 
-`ifdef INFER_MEM
-    // tag memory
-    reg [TAG_BITS-1:0]      tag_mem_out;                          // tag mem output
-    reg [TAG_BITS-1:0]      tag_mem_in;                           // input
-    reg [CACHE_LINES-1:0]   tag_mem_addr;                         // address
-    reg                     tag_mem_wren;                         // write enable
-    reg [TAG_BITS-1:0]      tag_mem_out_tmp;                      // registered staging output
-    reg [TAG_BITS-1:0]      tag_mem[0:(1<<CACHE_LINES)-1];        // the tag memory itself
-    
-    // block that drives the tag memory in single ported mode
-    always @(posedge clk) begin
-        if (tag_mem_wren) begin
-            tag_mem[tag_mem_addr] <= tag_mem_in;
-        end else begin
-			if (CACHE_REGISTERED == 0) begin
-				tag_mem_out <= tag_mem[tag_mem_addr];
-			end else begin
-				tag_mem_out_tmp <= tag_mem[tag_mem_addr];
-				tag_mem_out     <= tag_mem_out_tmp;
-			end
-        end
-    end
-`else
     // tag memory (you must supply a nanocache_tag_mem that infers the corret 
     wire [TAG_BITS-1:0]      tag_mem_out;                          // tag mem output
     reg  [TAG_BITS-1:0]      tag_mem_in;                           // input
@@ -96,57 +73,8 @@ module nanocache #(
         .clk(clk), .rst_n(rst_n),
         .mem_out(tag_mem_out), .mem_in(tag_mem_in), .addr(tag_mem_addr), .wren(tag_mem_wren)
     );
-`endif
-    
-`ifdef INFER_MEM
-    // cache memory
-    // port 1
-    reg [7:0]                cache_mem_out;                        // cache mem out
-    reg [7:0]                cache_mem_out_tmp;                    // registered staging output
-    reg [7:0]                cache_mem_in;                         // input
-    reg [CACHE_SIZE-1:0]     cache_mem_addr;                       // address
-    reg                      cache_mem_wren;                       // write enable
-    reg [7:0]                cache_mem[0:(1<<CACHE_SIZE)-1];       // the cache memory itself
 
-
-    // port 2
-    reg [7:0]                cache_mem_out2;                       // 2nd port for DP builds
-    reg [7:0]                cache_mem_out2_tmp;
-    reg [7:0]                cache_mem_in2;
-    wire [CACHE_SIZE-1:0]    cache_mem_addr2;
-    reg                      cache_mem_wren2;
-  
-    always @(posedge clk) begin
-        // we operate these in write OR read mode like a single ported memory
-        if (cache_mem_wren) begin
-			cache_mem[cache_mem_addr] <= cache_mem_in;
-        end else begin
-			// if we are using registered memory type builds then we do a two-stage load first into tmp and then into out
-			if (CACHE_REGISTERED == 0) begin
-				cache_mem_out <= cache_mem[cache_mem_addr];
-			end else begin
-				cache_mem_out_tmp <= cache_mem[cache_mem_addr];
-				cache_mem_out     <= cache_mem_out_tmp;
-			end			
-        end
-
-        // If dual ported is enabled then we drive the '2' memory ports here in the same manner
-        if (CACHE_DP == 1) begin
-            if (cache_mem_wren2) begin
-                cache_mem[cache_mem_addr2] <= cache_mem_in2;
-            end else begin
-			if (CACHE_REGISTERED == 0) begin
-				cache_mem_out2     <= cache_mem[cache_mem_addr2];
-			end else begin
-				cache_mem_out2_tmp <= cache_mem[cache_mem_addr2];
-				cache_mem_out2     <= cache_mem_out2_tmp;
-			end			
-            end
-        end
-    end
-`else
     // bring your own cache memory you need to supply nanocache_cache_mem...
-
     // cache memory
     // port 1
     wire [7:0]                cache_mem_out;                        // cache mem out
@@ -169,7 +97,6 @@ module nanocache #(
         .mem_out_1(cache_mem_out), .mem_in_1(cache_mem_in), .mem_addr_1(cache_mem_addr), .mem_wren_1(cache_mem_wren),
         .mem_out_2(cache_mem_out2), .mem_in_2(cache_mem_in2), .mem_addr_2(cache_mem_addr2), .mem_wren_2(cache_mem_wren2)
     );
-`endif
 
     // some helper wires for advancing inside a cache line
     wire [CACHE_LINE-1:0]    cache_mem_next;                       // next address
