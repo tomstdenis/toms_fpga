@@ -1,6 +1,6 @@
 // note if you change any of this you need to rebuild the memory IP blocks
-// 8KB cache, 32byte line, registered, DP
-`define CACHE_SIZE      13
+// 16KB cache, 32byte line, registered, DP
+`define CACHE_SIZE      14
 `define CACHE_LINE       5
 `define CACHE_LINES      (`CACHE_SIZE - `CACHE_LINE)
 `define CACHE_REGISTERED 1
