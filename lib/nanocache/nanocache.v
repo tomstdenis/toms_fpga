@@ -90,7 +90,7 @@ module nanocache #(
     reg                      tag_mem_wren;                         // write enable
     nanocache_tag_mem #(
         .WIDTH(TAG_BITS),
-        .DEPTH(1<<CACHE_LINES),
+        .DEPTH(CACHE_LINES),
         .REG(CACHE_REGISTERED)
     ) tag_mem(
         .clk(clk), .rst_n(rst_n),
@@ -162,7 +162,7 @@ module nanocache #(
 
     nanocache_cache_mem #(
         .WIDTH(8),
-        .DEPTH(1<<CACHE_SIZE),
+        .DEPTH(CACHE_SIZE),
         .REG(CACHE_REGISTERED)
     ) cache_mem (
         .clk(clk), .rst_n(rst_n),

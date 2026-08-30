@@ -2,15 +2,15 @@
 // 16KB cache, 32byte line
 `define CACHE_SIZE      14
 `define CACHE_LINE       5
-`define CACHE_LINES      (`CACHE_LINE - `CACHE_LINE)
+`define CACHE_LINES      (`CACHE_SIZE - `CACHE_LINE)
 `define CACHE_REGISTERED 1
 `define CACHE_DP         1
 `define SRAM_ADDR_WIDTH 24
 
 // this is the wrapper for our TAG memeoy using a Gowin SP registered memory
 module nanocache_tag_mem #(
-    parameter WIDTH=2 + `SRAM_ADDR_WIDTH - `CACHE_LINE - `CACHE_LINES,
-    parameter DEPTH=`CACHE_LINES,
+    parameter WIDTH=2 + `SRAM_ADDR_WIDTH - `CACHE_LINE - `CACHE_LINES,      // width of data in bits
+    parameter DEPTH=`CACHE_LINES,                                           // address width in bits
     parameter REG=`CACHE_REGISTERED
 )(
     input wire clk,
@@ -35,8 +35,8 @@ endmodule
 
 // this is the wrapper for our cache memory using a set of Gowin DP register memories in an 8x16384 configuration
 module nanocache_cache_mem #(
-    parameter WIDTH=8,
-    parameter DEPTH=(1 << `CACHE_SIZE),
+    parameter WIDTH=8,                      // width of data in bits
+    parameter DEPTH=`CACHE_SIZE,            // address width in bits
     parameter REG=`CACHE_REGISTERED
 )(
     input wire clk,
