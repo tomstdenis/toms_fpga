@@ -18,10 +18,10 @@
 //#define MEM_SIZE (1UL<<23)
 
 // standard test (64KB)
-//#define MEM_SIZE (1UL<<16)
+#define MEM_SIZE (1UL<<16)
 
 // smaller to test (8KB)
-#define MEM_SIZE (1UL<<13)
+//#define MEM_SIZE (1UL<<13)
 
 // smallest to test (2KB)
 //#define MEM_SIZE (1UL<<11)

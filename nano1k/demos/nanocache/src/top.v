@@ -88,8 +88,14 @@ module top(
     reg [3:0]  command_op;
     reg [3:0]  command_burst_len;
     reg [23:0] command_addr;
-    reg        command_wr_en;
     reg [31:0] command_data;
+
+    always @(*) begin
+        command_op        = test_data[63:60];
+        command_burst_len = test_data[59:56];
+        command_addr      = test_data[55:32];
+        command_data      = test_data[31:0];
+    end
 
     localparam
 		command_op_read  = 4'h8,
@@ -145,10 +151,6 @@ module top(
                     begin
                         uart_tx_start <= 1'b0;
                         {rgb_r,rgb_g,rgb_b} <= 3'b001; // yellow == running command
-                        command_op        <= test_data[63:60];
-                        command_burst_len <= test_data[59:56];
-                        command_addr      <= test_data[55:32];
-                        command_data      <= test_data[31:0];
 						case (test_data[59:56]) 
 							0: nc_write_mask <= 4'b1000;
 							1: nc_write_mask <= 4'b1100;

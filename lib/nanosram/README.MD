@@ -10,9 +10,8 @@ The module has five parameters that configure it for the particular SRAM IC you 
 
 1. **SRAM_ADDR_WIDTH**: The number of bits in the address, typically 24 or 16. Default: 24.
 2. **DUMMY_BYTES**: Number of dummy bytes to read when performing an `8'h0B` fast read. Default: 3.
-3. **QPI_TIMER**: Length of each half-phase of SCK, expressed as: **1 + QPI_TIMER**. Default: 0.
-4. **PSRAM**: Enable PSRAM mode (0 == SRAM mode). Default: 0
-5. **FREQ**: Frequency in MHz (only used in PSRAM mode). Default: 81
+3. **PSRAM**: Enable PSRAM mode (0 == SRAM mode). Default: 0
+4. **FREQ**: Frequency in MHz (only used in PSRAM mode). Default: 81
 
 The module has the following ports:
 
@@ -49,7 +48,7 @@ Upon raising **rst_n** high, the module enters an initialization sequence where,
 
 ## Write Timing
 
-Timing is in terms of the three parameters chosen when instantiating the module. A byte takes **X** = 4 * (**QPI_TIMER** + 1) cycles to transfer over the QPI bus. Each command is 1 byte, followed by the 2- or 3-byte address, and for reads, followed by dummy bytes.
+Timing is in terms of the three parameters chosen when instantiating the module. A byte takes **X** = 4 cycles to transfer over the QPI bus. Each command is 1 byte, followed by the 2- or 3-byte address, and for reads, followed by dummy bytes.
 
 From the start of a transmission to the first byte being written takes:
 
@@ -60,7 +59,7 @@ FW = 2 + (SRAM_ADDR_WIDTH/8) + X * (1 + SRAM_ADDR_WIDTH/8) + X
 cycles to complete the first byte. The `2 + (SRAM_ADDR_WIDTH/8)` term comes from the three FSM transitions to get into the bulk transfer FSM state. The **write_strobe** signal is signaled on the first cycle of the SCK low phase and then every **X** cycles after that. The first write strobe occurs at:
 
 ```
-FWS = 2 + (SRAM_ADDR_WIDTH/8) + X * (1 + (SRAM_ADDR_WIDTH/8)) + (X/2)
+FWS = 1 + X * (1 + (SRAM_ADDR_WIDTH/8)) + (X/2)
 ```
 
 The write strobe happens after the first nibble is transmitted and then every **X** cycles after that.
@@ -68,23 +67,22 @@ The write strobe happens after the first nibble is transmitted and then every **
 For the default configuration:
 
 ```
-FW  = 2 + 3 + 4 * (1 + 3) + 4
-    = 2 + 3 + 4 * 4 + 4
-    = 25
+FWS = 1 + 4 * (1 + 3) + 2
+    = 1 + 16 + 2
+    = 19
 
-FWS = 2 + 3 + 4 * (1 + 3) + 2
-    = 5 + 4 * 4 + 2
-    = 23
+FW  = 2 + FWS
+    = 21
 ```
 
-This means that in the default configuration, the first byte is written in 25 cycles and the first write strobe happens in 23 cycles. A new write strobe happens every 4 cycles and a new byte is written every 4 cycles.
+This means that in the default configuration, the first byte is written in 21 cycles and the first write strobe happens in 19 cycles. A new write strobe happens every 4 cycles (after the FWS) and a new byte is written every 4 cycles.
 
 ## Read Timing
 
 Read timing is similar, except there are **DUMMY_BYTES** to contend with. The first byte is read and the read strobe is signaled (these are the same event) after:
 
 ```
-FR = 2 + (SRAM_ADDR_WIDTH/8) + DUMMY_BYTES + X * (1 + (SRAM_ADDR_WIDTH/8) + DUMMY_BYTES) + X
+FR = 1 + X * (1 + (SRAM_ADDR_WIDTH/8) + DUMMY_BYTES) + X
 ```
 
 cycles, after which a new byte is read (and strobe signaled) every **X** cycles.
@@ -92,12 +90,12 @@ cycles, after which a new byte is read (and strobe signaled) every **X** cycles.
 For the default configuration:
 
 ```
-FR = 2 + 3 + 3 + 4 * (1 + 3 + 3) + 4
-   = 8 + 4 * 7 + 4
-   = 40
+FR = 1 + 4 * (1 + 3 + 3) + 4
+   = 1 + 28 + 4
+   = 33
 ```
 
-This means the first byte takes 40 cycles to be read, and a new byte is available every 4 cycles after that.
+This means the first byte takes 33 cycles to be read, and a new byte is available every 4 cycles after that.
 
 ## Theory of Operation: Reading
 
@@ -166,8 +164,7 @@ As RTL pseudo-code:
 
 ## Caveats
 
-* When actively reading or writing, make sure to check if **ready** is high as well. The **read_strobe** and **write_strobe** signals will fire during command, address, or initialization sequencing.
 * With most SRAMs, you can keep a transmission alive indefinitely. Due to the nature of this module, that means you're constantly reading or writing as long as **start_trans** is high.
 * There must be one cycle in which **start_trans** is low between jobs, and you must wait for **idle** to be high before changing any of the command parameters, including setting **start_trans** back to high.
-* The included testbench **nanosram_tb.v** demonstrates how to perform a 16-byte-long burst.
+* The included testbench **nanosram_tb.v** demonstrates how to perform a burst.
 * In PSRAM mode keep in mind there's a hangup delay between transmissions and you can only hold **start_trans** high for around 4uS at a max (depends on PSRAM).
