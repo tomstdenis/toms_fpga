@@ -13,9 +13,9 @@
 -file_type vlg
 -dev_type GW1NZ-1
 -dyn_idiv_sel false
--idiv_sel 1
+-idiv_sel 9
 -dyn_fbdiv_sel false
--fbdiv_sel 3
+-fbdiv_sel 28
 -dyn_odiv_sel false
 -odiv_sel 8
 -dyn_da_en true
