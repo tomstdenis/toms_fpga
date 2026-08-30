@@ -77,7 +77,7 @@ module nanocache_cache_mem #(
                 cachemem[mem_addr_2] <= mem_in_2;
             end else begin
                 if (REG == 1) begin
-                    tmpout2    <= cachemem[mem_addr_2];
+                    tmpout2   <= cachemem[mem_addr_2];
                     mem_out_2 <= tmpout2;
                 end else begin
                     mem_out_2 <= cachemem[mem_addr_2];

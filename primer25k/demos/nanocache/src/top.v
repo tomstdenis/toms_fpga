@@ -1,3 +1,5 @@
+`define FREQ 150_000
+
 // note if you change any of this you need to rebuild the memory IP blocks
 // 16KB cache, 32byte line
 `define CACHE_SIZE      14
@@ -88,7 +90,7 @@ module top(
     localparam
         SRAM_ADDR_WIDTH = 24,
         PSRAM = 1,       // 1 == use PSRAM, 0 == SRAM
-        FREQ  = 100_000;  // clock rate in LHz
+        FREQ  = `FREQ;  // clock rate in LHz
 
     wire pllclk;
 
