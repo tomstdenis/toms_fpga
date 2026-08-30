@@ -15,16 +15,19 @@
 #define OP_LEN(x) ((x - 1) & 3)
 
 // 8MB buffer 
-//#define MEM_SIZE (1UL<<23)
+//#define MEM_BITS 23
 
 // standard test (64KB)
-#define MEM_SIZE (1UL<<16)
+#define MEM_BITS 16
 
 // smaller to test (8KB)
-//#define MEM_SIZE (1UL<<13)
+//#define MEM_BITS 13
 
 // smallest to test (2KB)
-//#define MEM_SIZE (1UL<<11)
+//#define MEM_BITS 11
+
+#define MEM_SIZE (1U << MEM_BITS)
+
 
 uint8_t memory[MEM_SIZE], init[MEM_SIZE];
 uint64_t lines = 0;
@@ -84,7 +87,7 @@ void write_opcode(uint32_t opcode, uint32_t addr, uint32_t value, uint32_t len)
 	}
 	
 	if (b != 0xAA) {
-		printf("\nRead back 0x%x instead of 0xAA...\n", b);
+		printf("\nRead back 0x%x instead of 0xAA...(addr: %x, bl: %x)\n", b, addr, len);
 		exit(-1);
 	}
 	
@@ -175,14 +178,15 @@ int main(int argc, char **argv)
 		}
 		do {
 			r = read_rng(4);
-			bl = 1+((r>>13)&3);
+			bl = 1+((r>>MEM_BITS)&3);
+			r  = r & (MEM_SIZE - 1);
 		} while ((r & 31) > ((r + bl) & 31));
 
 		if (r & 0x80000000) {
-			gen_read(r & (MEM_SIZE - 1), bl);
+			gen_read(r, bl);
 		} else {
 			uint32_t v = read_rng(4);
-			gen_write(r & (MEM_SIZE - 1), v, bl);
+			gen_write(r, v, bl);
 		}
 	}
 }

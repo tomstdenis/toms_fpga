@@ -40,7 +40,7 @@ module top(
     wire uart_rx_ready;
     wire [7:0] uart_rx_byte;
 
-    uart #(.FIFO_DEPTH(16), .RX_ENABLE(1), .TX_ENABLE(1), .BAUD_WIDTH(baud_width)) MrTalky(
+    uart #(.FIFO_DEPTH(4), .RX_ENABLE(1), .TX_ENABLE(1), .BAUD_WIDTH(baud_width)) MrTalky(
         .clk(pllclk), .rst_n(rst_n),
         .baud_div(bauddiv), .uart_tx_start(uart_tx_start), .uart_tx_data_in(uart_tx_data_in),
         .uart_tx_pin(uart_tx), .uart_tx_fifo_empty(uart_tx_fifo_empty), .uart_tx_fifo_full(uart_tx_fifo_full),
@@ -63,7 +63,7 @@ module top(
     assign sio_din = sio;
 
     nanocache #(
-        .CACHE_SIZE(13),
+        .CACHE_SIZE(14),
         .CACHE_LINE(5),
         .CACHE_DP(1),
         .CACHE_REGISTERED(1),
