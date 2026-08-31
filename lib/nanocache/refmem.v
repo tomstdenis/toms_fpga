@@ -1,5 +1,6 @@
 // These are reference blocks for nanocache
 
+`ifndef EXTERN_CONFIG
 // your cache config, this is an example
 // 16KB cache, 32byte line, registered, DP
 `define CACHE_SIZE      14
@@ -8,6 +9,7 @@
 `define CACHE_REGISTERED 1
 `define CACHE_DP         1
 `define SRAM_ADDR_WIDTH 24
+`endif
 
 // this is the wrapper for our TAG memory
 module nanocache_tag_mem #(

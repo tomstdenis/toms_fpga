@@ -2,6 +2,13 @@
 /* verilator lint_off WIDTHTRUNC */
 `timescale 1ns/1ps
 
+`ifndef EXTERN_CONFIG
+`define CACHE_SIZE 14
+`define CACHE_LINE 5
+`define CACHE_DP   1
+`define CACHE_REGISTERED 1
+`endif
+
 module nanocache_tb();
 	reg clk;
 	reg rst_n;
@@ -36,10 +43,10 @@ module nanocache_tb();
 
 	// nanocache
 	nanocache #(
-		.CACHE_SIZE(12),
-		.CACHE_LINE(5),
-		.CACHE_DP(0),           // dual ported memory
-		.CACHE_REGISTERED(1),   // registered memory
+        .CACHE_SIZE(`CACHE_SIZE),
+        .CACHE_LINE(`CACHE_LINE),
+        .CACHE_DP(`CACHE_DP),
+        .CACHE_REGISTERED(`CACHE_REGISTERED),
 		
 		.WAKEUP_DELAY_US(0),	// we make sim go faster by turning off PSRAM delays
 		.HANGUP_DELAY_NS(0)
