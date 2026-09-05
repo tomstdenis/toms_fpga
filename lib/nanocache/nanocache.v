@@ -325,7 +325,7 @@ module nanocache #(
 				end
 
             // Evict a line to PSRAM then jump to fill it
-            // For registered mem this relies on the fact taht psram_write_strobes occur every
+            // For registered mem this relies on the fact that psram_write_strobes occur every
             // 4 cycles giving the necessary time for the registered cache memory to respond
             {1'b0, FSM_EVICT}:
                 begin

@@ -9,7 +9,7 @@
 `define CACHE_DP         1
 `define SRAM_ADDR_WIDTH 24
 
-//`define INFER_MEM
+`define INFER_MEM
 
 `ifdef INFER_MEM
 // note if you change any of this you need to rebuild the memory IP blocks
