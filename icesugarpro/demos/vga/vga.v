@@ -50,7 +50,7 @@ module top(
 		if (!rst_n) begin
 			host_write_mask <= 4'b1111;
 			host_addr       <= -4;
-			host_data_in    <= 32'hE01C03FF;
+			host_data_in    <= 32'hFFE01C03;
 			video_mode      <= 1'b1;
 			rst_n           <= 1'b1;
 			cnt             <= 0;
@@ -61,7 +61,7 @@ module top(
 				cnt <= 0;
 			end
 			if (cnt == 0) begin
-				host_data_in <= {host_data_in[23:0], host_data_in[31:24]};
+//				host_data_in <= {host_data_in[23:0], host_data_in[31:24]};
 			end
 			if (host_addr == (320 * 200) - 4) begin
 				host_write_mask <= 4'b0000;
