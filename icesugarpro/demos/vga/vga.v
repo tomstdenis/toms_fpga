@@ -8,6 +8,13 @@ module top(
 	output reg  vga_v_pulse,
 	output reg  vga_h_pulse
 );
+
+	wire host_clk;
+	wire vga_clk;
+
+	pll1 hostpll (.clkin(clk), .clkout0(host_clk));
+	pll2 vgapll  (.clkin(clk), .clkout0(vga_clk));
+	
 	reg         video_mode;
 	reg [15:0]  host_addr;
 	reg [31:0]  host_data_in;
@@ -20,12 +27,12 @@ module top(
 	wire        vga_out_h_pulse;
 	
 	vga myvga(
-		.vga_clk(clk), .host_clk(clk), .rst_n(rst_n),
+		.vga_clk(vga_clk), .host_clk(host_clk), .rst_n(rst_n),
 		.video_mode(video_mode),
 		.host_addr(host_addr), .host_data_in(host_data_in), .host_data_out(host_data_out), .host_write_mask(host_write_mask),
 		.vga_r(vga_out_r), .vga_g(vga_out_g), .vga_b(vga_out_b), .vga_v_pulse(vga_out_v_pulse), .vga_h_pulse(vga_out_h_pulse));
 
-	always @(posedge clk) begin
+	always @(posedge vga_clk) begin
 		vga_r       <= vga_out_r[3:2];
 		vga_g       <= vga_out_g[3:2];
 		vga_b       <= vga_out_b[3:2];
@@ -38,16 +45,27 @@ module top(
 		rst_n = 1'b0;
 	end
 	
-	always @(posedge clk) begin
+	reg [8:0] cnt;
+	always @(posedge host_clk) begin
 		if (!rst_n) begin
 			host_write_mask <= 4'b1111;
-			host_addr       <= 0;
-			host_data_in    <= 32'h44434241;
-			video_mode      <= 1'b0;
+			host_addr       <= -4;
+			host_data_in    <= 32'hE01C03FF;
+			video_mode      <= 1'b1;
 			rst_n           <= 1'b1;
+			cnt             <= 0;
 		end else begin
-			host_data_in    <= {host_data_in[23:0], host_data_in[31:24]};
 			host_addr       <= host_addr + 16'd4;
+			cnt <= cnt + 1;
+			if (cnt == 79) begin
+				cnt <= 0;
+			end
+			if (cnt == 0) begin
+				host_data_in <= {host_data_in[23:0], host_data_in[31:24]};
+			end
+			if (host_addr == (320 * 200) - 4) begin
+				host_write_mask <= 4'b0000;
+			end
 		end
 	end
 endmodule
@@ -259,7 +277,38 @@ module vga
 				end
 			end
 		end else begin
-			// 320x200 video mode
+			// 320x200 video mode, note we're doubled in both directions
+			if (vga_x < 640 && vga_y < 400) begin
+				// in region
+				vga_symbol   <= vga_data_out;
+				if (~vga_x[0]) begin
+					vga_mem_addr <= vga_mem_addr + 1'b1;
+				end
+			end else begin
+				// out of region (either H or V blank)
+				vga_symbol <= 0;
+				if (vga_y < 400) begin
+					// H blank either duplicate line or next
+					if ((vga_x == H_TOTAL - X_FETCH_DELAY - 1)) begin
+						// only execute once per HBLANK
+						if (vga_y[0]) begin
+							// last line in the pair so we just advance
+							vga_mem_addr <= vga_mem_addr;
+						end else begin
+							vga_mem_addr <= vga_mem_addr - 16'd320;		// go back 320 pixels
+						end
+					end
+					if (vga_x == H_TOTAL-1) begin
+						vga_symbol <= vga_data_out;
+					end
+				end else begin
+					// V blank region
+					vga_mem_addr <= 0;
+					if ((vga_x == H_TOTAL - 1) && (vga_y == V_TOTAL - 1)) begin
+						vga_symbol   <= vga_data_out;
+					end
+				end
+			end
 		end
 	end
 
@@ -271,9 +320,14 @@ module vga
 				// text mode
 				if (text_out) begin
 					{vga_r, vga_g, vga_b} = {4'b1111, 4'b1111, 4'b1111};
-				end
+				end 
 			end else begin
-				// 320x200 322 mode
+				// 332 colour mode
+				{vga_r, vga_g, vga_b} = {
+											vga_symbol[7:5], &vga_symbol[7:5],                  // red is 3-bits
+											vga_symbol[4:2], &vga_symbol[4:2],                  // green is 3-bits
+											vga_symbol[1:0], |vga_symbol[1:0], &vga_symbol[1:0] // blue is 2-bits
+										};
 			end
 		end
 	end

@@ -1,8 +1,8 @@
 TARGET=vga
 TOP=top
-FREQ=25.175
+FREQ=75
 
-OBJS+=${TARGET}.v pll1.v
+OBJS+=${TARGET}.v pll1.v pll2.v
 
 all: ${TARGET}.bit
 
@@ -30,11 +30,13 @@ flash: ${TARGET}.bit
 	openFPGALoader -b colorlight-i9 --unprotect-flash --bulk-erase
 	openFPGALoader -b colorlight-i9 -f ${TARGET}.bit --verify
 
-# Generate the four PLLs we need for this design
 pll1.v:
 	ecppll --highres -i 25 -o ${FREQ} -f pll1.v --module pll1
 
+pll2.v:
+	ecppll --highres -i 25 -o 25.175 -f pll2.v --module pll2
+
 clean:
-		rm -f *.svf *.bit *.config *.ys pll*.v *.asc *.json fontgen
+		rm -f *.svf *.bit *.config *.ys pll*.v *.asc *.json fontgen pll1.v pll2.v
 
 .PHONY: sram flash clean
