@@ -46,6 +46,7 @@ module top(
 			video_mode      <= 1'b0;
 			rst_n           <= 1'b1;
 		end else begin
+			host_data_in    <= {host_data_in[23:0], host_data_in[31:24]};
 			host_addr       <= host_addr + 16'd4;
 		end
 	end
@@ -54,6 +55,8 @@ endmodule
 // simple vga module
 module vga
 #(
+	// these parameters aren't really changeable...
+	
     // Horizontal constants
     parameter H_VISIBLE    = 640,
     parameter H_FRONT      = 16,
@@ -72,7 +75,7 @@ module vga
 	parameter TEXTCOLS   = 80,					// number of text columns
 	parameter TEXTROWS   = 25,					// number of text rows
 	parameter FONTWIDTH  = 8,					// font width in pixels
-	parameter FONTHEIGHT = 8,					// font height in pixels
+	parameter FONTHEIGHT = 16,					// font height in pixels (doubled, we're using an 8x8 font)
 	
 	// memory config
 	parameter X_FETCH_DELAY = 2
@@ -216,7 +219,7 @@ module vga
 			y_cnt        <= 0;
 		end else if (video_mode == 0) begin
 			// text mode (double height fonts...)
-			if (vga_y < (2*TEXTROWS*FONTHEIGHT) && vga_x < (TEXTCOLS*FONTWIDTH)) begin
+			if (vga_y < (TEXTROWS*FONTHEIGHT) && vga_x < (TEXTCOLS*FONTWIDTH)) begin
                 x_cnt <= x_cnt + 1'b1;
                 if (x_cnt == (FONTWIDTH-1)) begin
                     x_cnt   <= 1'b0;
@@ -234,21 +237,21 @@ module vga
 				if (vga_x == (H_TOTAL-3-X_FETCH_DELAY)) begin
 					// set the next address for the next scanline which is either
                     // another line of the same text char row or the first row of the next row of text...
-					if (vga_y >= (2*TEXTROWS*FONTHEIGHT-1)) begin
-						vga_mem_addr <= 1'b0;                                               // we're beyond the last row so start at 0
+					if (vga_y >= ((TEXTROWS*FONTHEIGHT)-1)) begin
+						vga_mem_addr <= 0;                                              // we're beyond the last row so start at 0
 					end else begin
 						if (vga_y[$clog2(FONTHEIGHT)-1:0] == (FONTHEIGHT-1)) begin      // next row of chars
 							vga_mem_addr <= vga_mem_addr;
 						end else begin
-							vga_mem_addr <= vga_mem_addr - TEXTCOLS;                          // next font row of same text row
+							vga_mem_addr <= vga_mem_addr - TEXTCOLS;                    // next font row of same text row
 						end
 					end
-				end else if (vga_x == (H_TOTAL-1-X_FETCH_DELAY)) begin
+				end else if (vga_x == (H_TOTAL-1)) begin
                     y_cnt <= y_cnt + 1'b1;
                     if ((y_cnt == (FONTHEIGHT-1)) || (vga_y == (V_TOTAL-1))) begin
                         y_cnt <= 1'b0;
                     end
-                    if (vga_y < (2*TEXTROWS*FONTHEIGHT-1) || vga_y == (V_TOTAL-1)) begin      // either we're in the first TEXTROWS OR the last line preparing for row 0
+                    if (vga_y < (TEXTROWS*FONTHEIGHT-1) || vga_y == (V_TOTAL-1)) begin      // either we're in the first TEXTROWS OR the last line preparing for row 0
                         vga_symbol <= vga_data_out;
                     end else begin
                         vga_symbol <= 8'h20; // SPC
