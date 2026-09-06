@@ -65,9 +65,15 @@ module vga
     reg [9:0]   vga_x;
     reg [9:0]   vga_y;
     wire        active_video;
+    reg         prev_mode;
 
     // Active video flag
     assign active_video = (vga_x < H_VISIBLE) && (vga_y < V_VISIBLE);
+
+    reg [1:0]   video_mode_l;
+    always @(posedge vga_clk) begin
+        video_mode_l <= {video_mode_l[0], video_mode};
+    end
     
     always @(posedge vga_clk) begin
         if (!rst_n) begin
@@ -112,9 +118,13 @@ module vga
 	// vga memory organized as four lanes of 16KB
 	// we present to the host using a 32-bit friendly map using registered outputs
 	// and to the VGA we present a 64KB lane that is bypassed
+	(* ram_style = "block" *)
 	reg [7:0] vga_mem_lane0[0:16383];
+	(* ram_style = "block" *)
 	reg [7:0] vga_mem_lane1[0:16383];
+	(* ram_style = "block" *)
 	reg [7:0] vga_mem_lane2[0:16383];
+	(* ram_style = "block" *)
 	reg [7:0] vga_mem_lane3[0:16383];
 	reg [7:0] vga_mem_lane0_tmp;
 	reg [7:0] vga_mem_lane1_tmp;
@@ -149,7 +159,7 @@ module vga
 	reg [15:0] vga_mem_addr;			// the address this module is reading from
 	reg [1:0]  vga_mem_addr_lane;
 	reg [7:0] vga_symbol;
-	wire [7:0] vga_data_out;
+	reg [7:0] vga_data_out;
 	reg [7:0] vga_disp_lane0_tmp;
 	reg [7:0] vga_disp_lane1_tmp;
 	reg [7:0] vga_disp_lane2_tmp;
@@ -179,11 +189,12 @@ module vga
 	reg [3:0] y_cnt;
 
 	always @(posedge vga_clk) begin
-		if (!rst_n) begin
+		if (!rst_n || prev_mode != video_mode_l[1]) begin
 			vga_mem_addr <= 0;
 			x_cnt        <= 0;
 			y_cnt        <= 0;
-		end else if (video_mode == 0) begin
+            prev_mode    <= video_mode;
+		end else if (video_mode_l[0] == 0) begin
 			// text mode 80x25 (double height fonts...)
 			if (vga_y < (TEXTROWS*FONTHEIGHT) && vga_x < (TEXTCOLS*FONTWIDTH)) begin
                 x_cnt <= x_cnt + 1'b1;
@@ -260,7 +271,7 @@ module vga
 	always @(*) begin
 		{vga_r, vga_g, vga_b} = 12'b0;
 		if (active_video) begin
-			if (video_mode == 0) begin
+			if (video_mode_l[0] == 0) begin
 				// text mode
 				if (text_out) begin
 					{vga_r, vga_g, vga_b} = {4'b1111, 4'b1111, 4'b1111};
