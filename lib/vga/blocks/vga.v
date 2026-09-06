@@ -158,8 +158,8 @@ module vga
 	// VGA driver memory interface
 	reg [15:0] vga_mem_addr;			// the address this module is reading from
 	reg [1:0]  vga_mem_addr_lane;
-	reg [7:0] vga_symbol;
-	reg [7:0] vga_data_out;
+	reg [15:0] vga_symbol;
+	reg [15:0] vga_data_out;
 	reg [7:0] vga_disp_lane0_tmp;
 	reg [7:0] vga_disp_lane1_tmp;
 	reg [7:0] vga_disp_lane2_tmp;
@@ -177,10 +177,10 @@ module vga
 	// and then drive the data out based on the lane selector
 	always @(*) begin
 		case (vga_mem_addr_lane)
-			2'b00: vga_data_out = vga_disp_lane0_tmp;
-			2'b01: vga_data_out = vga_disp_lane1_tmp;
-			2'b10: vga_data_out = vga_disp_lane2_tmp;
-			2'b11: vga_data_out = vga_disp_lane3_tmp;
+			2'b00: vga_data_out = {vga_disp_lane1_tmp, vga_disp_lane0_tmp };
+			2'b01: vga_data_out = {vga_disp_lane2_tmp, vga_disp_lane1_tmp };
+			2'b10: vga_data_out = {vga_disp_lane3_tmp, vga_disp_lane2_tmp };
+			2'b11: vga_data_out = {vga_disp_lane0_tmp, vga_disp_lane3_tmp };
 		endcase
 	end	
 
@@ -202,7 +202,7 @@ module vga
                     x_cnt   <= 1'b0;
                 end
 				if (vga_x[$clog2(FONTWIDTH)-1:0] == (FONTWIDTH-2-X_FETCH_DELAY)) begin
-					vga_mem_addr <= vga_mem_addr + 1'b1;
+					vga_mem_addr <= vga_mem_addr + 2;
 				end
 				// Latch symbol at the last column of font
 				if (vga_x[$clog2(FONTWIDTH)-1:0] == (FONTWIDTH-X_FETCH_DELAY)) begin
@@ -222,7 +222,7 @@ module vga
 						if (vga_y[$clog2(FONTHEIGHT)-1:0] == (FONTHEIGHT-1)) begin      // next row of chars
 							vga_mem_addr <= vga_mem_addr;
 						end else begin
-							vga_mem_addr <= vga_mem_addr - TEXTCOLS;                    // next font row of same text row
+							vga_mem_addr <= vga_mem_addr - (TEXTCOLS*2);                // next font row of same text row
 						end
 					end
 				end else if (vga_x == (H_TOTAL-X_FETCH_DELAY)) begin
@@ -233,7 +233,7 @@ module vga
                     if (vga_y < (TEXTROWS*FONTHEIGHT-1) || vga_y == (V_TOTAL-1)) begin      // either we're in the first TEXTROWS OR the last line preparing for row 0
                         vga_symbol <= vga_data_out;
                     end else begin
-                        vga_symbol <= 8'h20; // SPC
+                        vga_symbol <= 16'h20; // SPC
                     end
 				end
 			end
@@ -272,10 +272,19 @@ module vga
 		{vga_r, vga_g, vga_b} = 12'b0;
 		if (active_video) begin
 			if (video_mode_l[0] == 0) begin
-				// text mode
+				// text mode uses upper 8 bits of vga_symbol as colour in the form of IRGBirgb foreground then background
 				if (text_out) begin
-					{vga_r, vga_g, vga_b} = {4'b1111, 4'b1111, 4'b1111};
-				end 
+					{vga_r, vga_g, vga_b} = { 
+                        vga_symbol[14], vga_symbol[15] & vga_symbol[14], vga_symbol[15] & vga_symbol[14], vga_symbol[15] & vga_symbol[14],
+                        vga_symbol[13], vga_symbol[15] & vga_symbol[13], vga_symbol[15] & vga_symbol[13], vga_symbol[15] & vga_symbol[13], 
+                        vga_symbol[12], vga_symbol[15] & vga_symbol[12], vga_symbol[15] & vga_symbol[12], vga_symbol[15] & vga_symbol[12] };
+				end else begin
+                    // background
+					{vga_r, vga_g, vga_b} = { 
+                        vga_symbol[10], vga_symbol[11] & vga_symbol[10], vga_symbol[11] & vga_symbol[10], vga_symbol[11] & vga_symbol[10], 
+                        vga_symbol[9], vga_symbol[11] & vga_symbol[9], vga_symbol[11] & vga_symbol[9], vga_symbol[11] & vga_symbol[9], 
+                        vga_symbol[8], vga_symbol[11] & vga_symbol[8], vga_symbol[11] & vga_symbol[8], vga_symbol[11] & vga_symbol[8] };
+                end
 			end else begin
 				// 332 colour mode
 				{vga_r, vga_g, vga_b} = {

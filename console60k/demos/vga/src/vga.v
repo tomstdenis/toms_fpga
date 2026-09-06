@@ -70,7 +70,7 @@ module top(
                 cnt          <= 0;
                 if (video_mode) begin
                     // moving to text mode
-                    host_data_in    <= 32'h44434241;
+                    host_data_in    <= 32'hC642F941; // regular white on bright blue A and bright red on regular yellow B
                 end else begin
                     // moving to graphical mode
                     host_data_in    <= 32'hFFE01C03;
@@ -78,9 +78,6 @@ module top(
             end else begin
                 host_addr       <= host_addr + 16'd4;
                 cnt             <= cnt + 1;
-                if (cnt == 0) begin
-                    host_data_in <= {host_data_in[23:0], host_data_in[31:24]};
-                end
                 if (video_mode) begin
                     if (cnt == 79) begin
                         cnt <= 0;
@@ -88,12 +85,18 @@ module top(
                     if (host_addr == (320 * 200) - 4) begin
                         host_write_mask <= 4'b0000;
                     end
+                    if (cnt == 0) begin
+                        host_data_in <= {host_data_in[23:0], host_data_in[31:24]};
+                    end
                 end else begin
-                    if (cnt == 19) begin
+                    if (cnt == 39) begin
                         cnt <= 0;
                     end
-                    if (host_addr == (80*25) - 4) begin
+                    if (host_addr == (80*25*2) - 4) begin
                         host_write_mask <= 4'b0000;
+                    end
+                    if (cnt == 0) begin
+                        host_data_in <= {host_data_in[15:0], host_data_in[31:16]};
                     end
                 end
             end
