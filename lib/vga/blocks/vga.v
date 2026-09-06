@@ -1,11 +1,11 @@
 `default_nettype none
 
 // All-in-one VGA module provides 80x25 text mode, and 320x200 8bpp mode (332)
-// along with a 64KB memory which has a host access port suitable for a 32-bit
+// along with a 128KB memory which has a host access port suitable for a 32-bit
 // bus.  Supports dual clock domains.  Memory is registered on the host side.
 //
 // For the 80x25 this module includes a 8x8 CP437 IBM PC font.  The module should
-// infer one 18Kbit BRAM (ROM) for the font, and 32 18Kbit BRAMS (dual ported) for the 
+// infer one 18Kbit BRAM (ROM) for the font, and 64 18Kbit BRAMS (dual ported) for the 
 // video memory.
 //
 // The video_mode net controls which is enabled, (0) for text mode and (1) for 320x200 mode.
@@ -13,6 +13,9 @@
 // made up of rrrgggbb from the msb down for video and IRGBirgb (foreground then background) for
 // text mode.  In text mode the symbol comes first then the colour.  The entire screen takes
 // 80 * 25 * 2 == 4000 bytes.
+//
+// Page swapping is provided by the page_sel pin which tells the driver which 64KB half of the video
+// memory to read from.  Toggling that during VBLANK will allow tear-free buffer swapping
 //
 // The underlying signal is a 640x480 timing signal.  In text mode we use a 8x16 font spacing
 // (with the 8x8 font) to make up the 80x25 display which occupies 640x400 region of the display.  The
@@ -23,14 +26,16 @@
 
 module vga
 (
-	input wire vga_clk,                         // VGA dot clock (should be 25.170MHz)
-	input wire host_clk,                        // Host clock
-	input wire rst_n,
+	input wire         vga_clk,                 // VGA dot clock (should be 25.170MHz)
+	input wire         host_clk,                // Host clock
+	input wire         rst_n,
 	
 	input wire         video_mode,              // 0 == 80x25 text mode, 1 == 320x200 322 colour mode
+	input wire         page_sel,				// changes which half of the 128KB that is accessed
+                                                // if you constantly drive this to 0 it will drop the VRAM to 64KB
 	
-	// host access to VGA 64KB memory (little endian)
-	input wire [15:0]  host_addr,				// address must be dword aligned
+	// host access to VGA 128KB memory (little endian)
+	input wire [16:0]  host_addr,				// address must be dword aligned
 	input wire [31:0]  host_data_in,			// data to write if any from LSB up
 	input wire [3:0]   host_write_mask,			// write mask 
 	output reg [31:0]  host_data_out,			// data read from this address
@@ -127,17 +132,17 @@ module vga
     assign font_addr = {vga_symbol[7:0], vga_y_p1[3:1]};     // address into the rom, it's 11 bits of which the top 8 are the symbol and bottom 3 are the row
     assign text_out  = font_dout[7 - vga_x[2:0]];            // bit of output indexed from the ROM output
 
-	// vga memory organized as four lanes of 16KB
+	// vga memory organized as four lanes of 32KB
 	// we present to the host using a 32-bit friendly map using registered outputs
-	// and to the VGA we present a 64KB lane that is bypassed
+	// and to the VGA we present a 128KB lane that is bypassed
 	(* ram_style = "block" *)
-	reg [7:0] vga_mem_lane0[0:16383];
+	reg [7:0] vga_mem_lane0[0:32767];
 	(* ram_style = "block" *)
-	reg [7:0] vga_mem_lane1[0:16383];
+	reg [7:0] vga_mem_lane1[0:32767];
 	(* ram_style = "block" *)
-	reg [7:0] vga_mem_lane2[0:16383];
+	reg [7:0] vga_mem_lane2[0:32767];
 	(* ram_style = "block" *)
-	reg [7:0] vga_mem_lane3[0:16383];
+	reg [7:0] vga_mem_lane3[0:32767];
 	reg [7:0] vga_mem_lane0_tmp;
 	reg [7:0] vga_mem_lane1_tmp;
 	reg [7:0] vga_mem_lane2_tmp;
@@ -146,21 +151,21 @@ module vga
 	// host memory access
 	always @(posedge host_clk) begin
 		if (host_write_mask[0]) begin
-			vga_mem_lane0[host_addr[15:2]] <= host_data_in[7:0];
+			vga_mem_lane0[host_addr[16:2]] <= host_data_in[7:0];
 		end
 		if (host_write_mask[1]) begin
-			vga_mem_lane1[host_addr[15:2]] <= host_data_in[15:8];
+			vga_mem_lane1[host_addr[16:2]] <= host_data_in[15:8];
 		end
 		if (host_write_mask[2]) begin
-			vga_mem_lane2[host_addr[15:2]] <= host_data_in[23:16];
+			vga_mem_lane2[host_addr[16:2]] <= host_data_in[23:16];
 		end
 		if (host_write_mask[3]) begin
-			vga_mem_lane3[host_addr[15:2]] <= host_data_in[31:24];
+			vga_mem_lane3[host_addr[16:2]] <= host_data_in[31:24];
 		end
-		vga_mem_lane0_tmp <= vga_mem_lane0[host_addr[15:2]];         // registered outputs make routing sooo much faster
-		vga_mem_lane1_tmp <= vga_mem_lane1[host_addr[15:2]];
-		vga_mem_lane2_tmp <= vga_mem_lane2[host_addr[15:2]];
-		vga_mem_lane3_tmp <= vga_mem_lane3[host_addr[15:2]];
+		vga_mem_lane0_tmp <= vga_mem_lane0[host_addr[16:2]];         // registered outputs make routing sooo much faster
+		vga_mem_lane1_tmp <= vga_mem_lane1[host_addr[16:2]];
+		vga_mem_lane2_tmp <= vga_mem_lane2[host_addr[16:2]];
+		vga_mem_lane3_tmp <= vga_mem_lane3[host_addr[16:2]];
 		host_data_out[7:0]   <= vga_mem_lane0_tmp;
 		host_data_out[15:8]  <= vga_mem_lane1_tmp;
 		host_data_out[23:16] <= vga_mem_lane2_tmp;
@@ -176,13 +181,22 @@ module vga
 	reg [7:0] vga_disp_lane1_tmp;
 	reg [7:0] vga_disp_lane2_tmp;
 	reg [7:0] vga_disp_lane3_tmp;
+	reg [1:0] vga_page_sel;
+	initial begin
+		vga_page_sel = 2'b00;			// give if a default so you can disable the upper 64KB
+	end
+	
+	always @(posedge vga_clk) begin
+		vga_page_sel <= {vga_page_sel[0], page_sel};
+	end	
+	
 	always @(posedge vga_clk) begin
 		// note you can't assign lane output to the same reg and infer a BRAM
 		// so we copy out all of the lanes here 
-		vga_disp_lane0_tmp <= vga_mem_lane0[vga_mem_addr[15:2]];
-		vga_disp_lane1_tmp <= vga_mem_lane1[vga_mem_addr[15:2]];
-		vga_disp_lane2_tmp <= vga_mem_lane2[vga_mem_addr[15:2]];
-		vga_disp_lane3_tmp <= vga_mem_lane3[vga_mem_addr[15:2]];
+		vga_disp_lane0_tmp <= vga_mem_lane0[{vga_page_sel, vga_mem_addr[15:2]}];
+		vga_disp_lane1_tmp <= vga_mem_lane1[{vga_page_sel, vga_mem_addr[15:2]}];
+		vga_disp_lane2_tmp <= vga_mem_lane2[{vga_page_sel, vga_mem_addr[15:2]}];
+		vga_disp_lane3_tmp <= vga_mem_lane3[{vga_page_sel, vga_mem_addr[15:2]}];
 		// and register the lane selector
 		vga_mem_addr_lane  <= vga_mem_addr[1:0];
 	end
