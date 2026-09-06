@@ -202,7 +202,7 @@ module vga
 			vga_mem_addr <= 0;
 			x_cnt        <= 0;
 			y_cnt        <= 0;
-            prev_mode    <= video_mode;
+            prev_mode    <= video_mode_l[1];
 		end else if (video_mode_l[0] == 0) begin
 			// text mode 80x25 (double height fonts...)
 			if (vga_y < (TEXTROWS*FONTHEIGHT) && vga_x < (TEXTCOLS*FONTWIDTH)) begin
