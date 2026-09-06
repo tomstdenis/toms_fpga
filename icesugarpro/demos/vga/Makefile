@@ -2,7 +2,7 @@ TARGET=vga
 TOP=top
 FREQ=75
 
-OBJS+=${TARGET}.v pll1.v pll2.v
+OBJS+=${TARGET}.v pll1.v pll2.v ../../../lib/vga/blocks/vga.v
 
 all: ${TARGET}.bit
 
