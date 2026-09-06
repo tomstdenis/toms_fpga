@@ -1,4 +1,4 @@
-/* Text mode driver
+/* Text mode driver (obsolete)
 
 The purpose of this module is given a 2KB BRAM memory it produces
 one output 'symbol' in step with the VGA signalling so the font

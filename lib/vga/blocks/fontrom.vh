@@ -1,3 +1,4 @@
+// used by vga.v for the all-in-one VGA driver
 initial begin
 	font_rom[0] = 8'h00;
 	font_rom[1] = 8'h00;

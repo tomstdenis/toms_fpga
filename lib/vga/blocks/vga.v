@@ -1,6 +1,6 @@
 `default_nettype none
 
-// VGA module provides 80x25 text mode, and 320x200 8bpp mode (332)
+// All-in-one VGA module provides 80x25 text mode, and 320x200 8bpp mode (332)
 // along with a 64KB memory which has a host access port suitable for a 32-bit
 // bus.  Supports dual clock domains.  Memory is registered on the host side.
 //
@@ -18,6 +18,9 @@
 // (with the 8x8 font) to make up the 80x25 display which occupies 640x400 region of the display.  The
 // 320x200 mode uses pixel dubbling occupying the same 640x400 region of the display.  Because it doesn't
 // stretch the vertical the pixels are still square.
+//
+// Requires fontrom.vh for the CP437 font make sure you include that in your project.
+
 module vga
 (
 	input wire vga_clk,                         // VGA dot clock (should be 25.170MHz)
