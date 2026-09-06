@@ -16,9 +16,10 @@ module top(
         .clkout0(host_clk), //output  clkout0
         .clkout1(vga_clk) //output  clkout1
     );
-
+	
 	reg         video_mode;
-	reg [15:0]  host_addr;
+	reg         page_sel;
+	reg [16:0]  host_addr;
 	reg [31:0]  host_data_in;
 	wire [31:0] host_data_out;
 	reg [3:0]   host_write_mask;
@@ -30,7 +31,7 @@ module top(
 	
 	vga myvga(
 		.vga_clk(vga_clk), .host_clk(host_clk), .rst_n(rst_n),
-		.video_mode(video_mode),
+		.video_mode(video_mode), .page_sel(page_sel),
 		.host_addr(host_addr), .host_data_in(host_data_in), .host_data_out(host_data_out), .host_write_mask(host_write_mask),
 		.vga_r(vga_out_r), .vga_g(vga_out_g), .vga_b(vga_out_b), .vga_v_pulse(vga_out_v_pulse), .vga_h_pulse(vga_out_h_pulse));
 
@@ -60,6 +61,7 @@ module top(
 			rst_n           <= 1'b1;
 			cnt             <= 0;
             demo_counter    <= 0;
+			page_sel        <= 0;
 		end else begin
             demo_counter    <= demo_counter + 1;
             if (demo_counter == 75_000_000) begin
@@ -71,23 +73,32 @@ module top(
                 if (video_mode) begin
                     // moving to text mode
                     host_data_in    <= 32'hC642F941; // regular white on bright blue A and bright red on regular yellow B
+					page_sel        <= 0;
                 end else begin
                     // moving to graphical mode
                     host_data_in    <= 32'hFFE01C03;
                 end
             end else begin
-                host_addr       <= host_addr + 16'd4;
+                host_addr       <= host_addr + 4;
                 cnt             <= cnt + 1;
                 if (video_mode) begin
                     if (cnt == 79) begin
                         cnt <= 0;
                     end
-                    if (host_addr == (320 * 200) - 4) begin
-                        host_write_mask <= 4'b0000;
-                    end
                     if (cnt == 0) begin
                         host_data_in <= {host_data_in[23:0], host_data_in[31:24]};
                     end
+                    if (host_addr == (320*200-4)) begin
+						// jump to 2nd page
+						host_addr    <= 65536;
+						host_data_in <= 32'hFF00FF00;
+					end
+                    if (host_addr == (65536 + 320*200)) begin // turn off writes
+                        host_write_mask <= 4'b0000;
+                    end
+                    if (demo_counter == 37_500_000) begin
+						page_sel <= ~page_sel;
+					end
                 end else begin
                     if (cnt == 39) begin
                         cnt <= 0;
