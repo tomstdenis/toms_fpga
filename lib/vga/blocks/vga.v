@@ -240,15 +240,9 @@ module vga
 							vga_mem_addr <= vga_mem_addr - 16'd320;		// go back 320 pixels
 						end
 					end
-					if (vga_x == H_TOTAL-1) begin
-						vga_symbol <= vga_data_out;
-					end
 				end else begin
 					// V blank region
 					vga_mem_addr <= 0;
-					if ((vga_x == H_TOTAL - 1) && (vga_y == V_TOTAL - 1)) begin
-						vga_symbol   <= vga_data_out;
-					end
 				end
 			end
 		end

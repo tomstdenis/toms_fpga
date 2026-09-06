@@ -49,21 +49,21 @@ module top(
 		if (!rst_n) begin
 			host_write_mask <= 4'b1111;
 			host_addr       <= -4;
-//			host_data_in    <= 32'hFFE01C03;
-			host_data_in    <= 32'h44434241;
-			video_mode      <= 1'b0;
+			host_data_in    <= 32'hFFE01C03;
+//			host_data_in    <= 32'h44434241;
+			video_mode      <= 1'b1;
 			rst_n           <= 1'b1;
 			cnt             <= 0;
 		end else begin
 			host_addr       <= host_addr + 16'd4;
-			cnt <= cnt + 1;
-			if (cnt == 19) begin
+			cnt             <= cnt + 1;
+			if (cnt == 79) begin
 				cnt <= 0;
 			end
 			if (cnt == 0) begin
 				host_data_in <= {host_data_in[23:0], host_data_in[31:24]};
 			end
-			if (host_addr == (25 * 80) - 4) begin
+			if (host_addr == (320 * 200) - 4) begin
 				host_write_mask <= 4'b0000;
 			end
 		end
