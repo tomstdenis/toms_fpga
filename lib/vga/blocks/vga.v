@@ -7,32 +7,16 @@
 // For the 80x25 this module includes a 8x8 CP437 IBM PC font.  The module should
 // infer one 18Kbit BRAM (ROM) for the font, and 32 18Kbit BRAMS (dual ported) for the 
 // video memory.
+//
+// The video_mode net controls which is enabled, (0) for text mode and (1) for 320x200 mode.
+// There's no "palette" like in a conventional VGA driver and we simply use a 332 palette 
+// made up of rrrgggbb from the msb down.  
+//
+// The underlying signal is a 640x480 timing signal.  In text mode we use a 8x16 font spacing
+// (with the 8x8 font) to make up the 80x25 display which occupies 640x400 region of the display.  The
+// 320x200 mode uses pixel dubbling occupying the same 640x400 region of the display.  Because it doesn't
+// stretch the vertical the pixels are still square.
 module vga
-#(
-	// these parameters aren't really changeable...(they're just to make the code more legible)
-    // Horizontal constants
-    parameter H_VISIBLE    = 640,
-    parameter H_FRONT      = 16,
-    parameter H_SYNC       = 96,
-    parameter H_BACK       = 48,
-    parameter H_TOTAL      = 800,
-
-    // Vertical constants
-    parameter V_VISIBLE    = 480,
-    parameter V_FRONT      = 10,
-    parameter V_SYNC       = 2,
-    parameter V_BACK       = 33,
-    parameter V_TOTAL      = 525,
-    
-	// text mode parameter
-	parameter TEXTCOLS   = 80,					// number of text columns
-	parameter TEXTROWS   = 25,					// number of text rows
-	parameter FONTWIDTH  = 8,					// font width in pixels
-	parameter FONTHEIGHT = 16,					// font height in pixels (doubled, we're using an 8x8 font)
-	
-	// memory config
-	parameter X_FETCH_DELAY = 2
-)
 (
 	input wire vga_clk,                         // VGA dot clock (should be 25.170MHz)
 	input wire host_clk,                        // Host clock
@@ -53,6 +37,30 @@ module vga
 	output reg         vga_v_pulse,
 	output reg         vga_h_pulse
 );
+	// these parameters aren't really changeable...(they're just to make the code more legible)
+    // Horizontal constants
+    localparam H_VISIBLE    = 640;
+    localparam H_FRONT      = 16;
+    localparam H_SYNC       = 96;
+    localparam H_BACK       = 48;
+    localparam H_TOTAL      = 800;
+
+    // Vertical constants
+    localparam V_VISIBLE    = 480;
+    localparam V_FRONT      = 10;
+    localparam V_SYNC       = 2;
+    localparam V_BACK       = 33;
+    localparam V_TOTAL      = 525;
+    
+	// text mode parameter
+	localparam TEXTCOLS   = 80;					// number of text columns
+	localparam TEXTROWS   = 25;					// number of text rows
+	localparam FONTWIDTH  = 8;					// font width in pixels
+	localparam FONTHEIGHT = 16;					// font height in pixels (doubled, we're using an 8x8 font)
+	
+	// memory config
+	localparam X_FETCH_DELAY = 2;
+
 	// VGA timing
     reg [9:0]   vga_x;
     reg [9:0]   vga_y;

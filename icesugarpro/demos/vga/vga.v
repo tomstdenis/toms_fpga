@@ -31,6 +31,7 @@ module top(
 		.host_addr(host_addr), .host_data_in(host_data_in), .host_data_out(host_data_out), .host_write_mask(host_write_mask),
 		.vga_r(vga_out_r), .vga_g(vga_out_g), .vga_b(vga_out_b), .vga_v_pulse(vga_out_v_pulse), .vga_h_pulse(vga_out_h_pulse));
 
+	// register the VGA signals so there's less jitter on the display
 	always @(posedge vga_clk) begin
 		vga_r       <= vga_out_r[3:2];
 		vga_g       <= vga_out_g[3:2];
