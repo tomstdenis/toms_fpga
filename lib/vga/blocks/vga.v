@@ -303,13 +303,15 @@ module vga
 					{vga_r, vga_g, vga_b} = { 
                         vga_symbol[14], vga_symbol[15] & vga_symbol[14], vga_symbol[15] & vga_symbol[14], vga_symbol[15] & vga_symbol[14],
                         vga_symbol[13], vga_symbol[15] & vga_symbol[13], vga_symbol[15] & vga_symbol[13], vga_symbol[15] & vga_symbol[13], 
-                        vga_symbol[12], vga_symbol[15] & vga_symbol[12], vga_symbol[15] & vga_symbol[12], vga_symbol[15] & vga_symbol[12] };
+                        vga_symbol[12], vga_symbol[15] & vga_symbol[12], vga_symbol[15] & vga_symbol[12], vga_symbol[15] & vga_symbol[12]
+                    };
 				end else begin
                     // background
 					{vga_r, vga_g, vga_b} = { 
                         vga_symbol[10], vga_symbol[11] & vga_symbol[10], vga_symbol[11] & vga_symbol[10], vga_symbol[11] & vga_symbol[10], 
-                        vga_symbol[9], vga_symbol[11] & vga_symbol[9], vga_symbol[11] & vga_symbol[9], vga_symbol[11] & vga_symbol[9], 
-                        vga_symbol[8], vga_symbol[11] & vga_symbol[8], vga_symbol[11] & vga_symbol[8], vga_symbol[11] & vga_symbol[8] };
+                        vga_symbol[9],  vga_symbol[11] & vga_symbol[9],  vga_symbol[11] & vga_symbol[9],  vga_symbol[11] & vga_symbol[9], 
+                        vga_symbol[8],  vga_symbol[11] & vga_symbol[8],  vga_symbol[11] & vga_symbol[8],  vga_symbol[11] & vga_symbol[8]
+                    };
                 end
 			end else begin
 				// 332 colour mode
