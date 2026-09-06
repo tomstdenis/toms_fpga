@@ -37,6 +37,6 @@ pll2.v:
 	ecppll --highres -i 25 -o 25.175 -f pll2.v --module pll2
 
 clean:
-		rm -f *.svf *.bit *.config *.ys pll*.v *.asc *.json fontgen pll1.v pll2.v
+		rm -f *.svf *.bit *.config *.ys pll*.v *.asc *.json pll1.v pll2.v
 
 .PHONY: sram flash clean
