@@ -10,7 +10,9 @@
 //
 // The video_mode net controls which is enabled, (0) for text mode and (1) for 320x200 mode.
 // There's no "palette" like in a conventional VGA driver and we simply use a 332 palette 
-// made up of rrrgggbb from the msb down.  
+// made up of rrrgggbb from the msb down for video and IRGBirgb (foreground then background) for
+// text mode.  In text mode the symbol comes first then the colour.  The entire screen takes
+// 80 * 25 * 2 == 4000 bytes.
 //
 // The underlying signal is a 640x480 timing signal.  In text mode we use a 8x16 font spacing
 // (with the 8x8 font) to make up the 80x25 display which occupies 640x400 region of the display.  The
@@ -35,7 +37,11 @@ module vga
 	output reg [3:0]   vga_g,
 	output reg [3:0]   vga_b,
 	output reg         vga_v_pulse,
-	output reg         vga_h_pulse
+	output reg         vga_h_pulse,
+
+    // VGA timing
+    output wire        vga_v_blank,
+    output wire        vga_h_blank
 );
 	// these parameters aren't really changeable...(they're just to make the code more legible)
     // Horizontal constants
@@ -66,6 +72,9 @@ module vga
     reg [9:0]   vga_y;
     wire        active_video;
     reg         prev_mode;
+
+    assign vga_v_blank = (vga_y >= V_VISIBLE);
+    assign vga_h_blank = (vga_x >= H_VISIBLE);
 
     // Active video flag
     assign active_video = (vga_x < H_VISIBLE) && (vga_y < V_VISIBLE);
