@@ -150,26 +150,33 @@ module vga
 	
 	// host memory access
 	always @(posedge host_clk) begin
+		// write or read, allows tech mapping to BRAM on more FPGAs
 		if (host_write_mask[0]) begin
 			vga_mem_lane0[host_addr[16:2]] <= host_data_in[7:0];
+		end else begin
+			vga_mem_lane0_tmp  <= vga_mem_lane0[host_addr[16:2]];         // registered outputs make routing sooo much faster
+			host_data_out[7:0] <= vga_mem_lane0_tmp;
 		end
+		
 		if (host_write_mask[1]) begin
 			vga_mem_lane1[host_addr[16:2]] <= host_data_in[15:8];
+		end else begin
+			vga_mem_lane1_tmp   <= vga_mem_lane1[host_addr[16:2]];
+			host_data_out[15:8] <= vga_mem_lane1_tmp;
 		end
+		
 		if (host_write_mask[2]) begin
 			vga_mem_lane2[host_addr[16:2]] <= host_data_in[23:16];
+		end else begin
+			vga_mem_lane2_tmp    <= vga_mem_lane2[host_addr[16:2]];
+			host_data_out[23:16] <= vga_mem_lane2_tmp;
 		end
 		if (host_write_mask[3]) begin
 			vga_mem_lane3[host_addr[16:2]] <= host_data_in[31:24];
+		end else begin
+			vga_mem_lane3_tmp    <= vga_mem_lane3[host_addr[16:2]];
+			host_data_out[31:24] <= vga_mem_lane3_tmp;
 		end
-		vga_mem_lane0_tmp <= vga_mem_lane0[host_addr[16:2]];         // registered outputs make routing sooo much faster
-		vga_mem_lane1_tmp <= vga_mem_lane1[host_addr[16:2]];
-		vga_mem_lane2_tmp <= vga_mem_lane2[host_addr[16:2]];
-		vga_mem_lane3_tmp <= vga_mem_lane3[host_addr[16:2]];
-		host_data_out[7:0]   <= vga_mem_lane0_tmp;
-		host_data_out[15:8]  <= vga_mem_lane1_tmp;
-		host_data_out[23:16] <= vga_mem_lane2_tmp;
-		host_data_out[31:24] <= vga_mem_lane3_tmp;
 	end
 	
 	// VGA driver memory interface
