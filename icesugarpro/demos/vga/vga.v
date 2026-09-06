@@ -50,20 +50,21 @@ module top(
 		if (!rst_n) begin
 			host_write_mask <= 4'b1111;
 			host_addr       <= -4;
-			host_data_in    <= 32'hFFE01C03;
-			video_mode      <= 1'b1;
+//			host_data_in    <= 32'hFFE01C03;
+			host_data_in    <= 32'h44434241;
+			video_mode      <= 1'b0;
 			rst_n           <= 1'b1;
 			cnt             <= 0;
 		end else begin
 			host_addr       <= host_addr + 16'd4;
 			cnt <= cnt + 1;
-			if (cnt == 79) begin
+			if (cnt == 19) begin
 				cnt <= 0;
 			end
 			if (cnt == 0) begin
-//				host_data_in <= {host_data_in[23:0], host_data_in[31:24]};
+				host_data_in <= {host_data_in[23:0], host_data_in[31:24]};
 			end
-			if (host_addr == (320 * 200) - 4) begin
+			if (host_addr == (25 * 80) - 4) begin
 				host_write_mask <= 4'b0000;
 			end
 		end
@@ -252,7 +253,9 @@ module vga
 			end else begin
                 // we're either just entering HBLANK or VBLANK
                 x_cnt <= 1'b0;
-				if (vga_x == (H_TOTAL-3-X_FETCH_DELAY)) begin
+                // need to set address with enough time to wait 1 cycle then read symbol
+                // but font then needs a cycle after that
+				if (vga_x == (H_TOTAL-X_FETCH_DELAY-X_FETCH_DELAY)) begin
 					// set the next address for the next scanline which is either
                     // another line of the same text char row or the first row of the next row of text...
 					if (vga_y >= ((TEXTROWS*FONTHEIGHT)-1)) begin
@@ -264,7 +267,7 @@ module vga
 							vga_mem_addr <= vga_mem_addr - TEXTCOLS;                    // next font row of same text row
 						end
 					end
-				end else if (vga_x == (H_TOTAL-1)) begin
+				end else if (vga_x == (H_TOTAL-X_FETCH_DELAY)) begin
                     y_cnt <= y_cnt + 1'b1;
                     if ((y_cnt == (FONTHEIGHT-1)) || (vga_y == (V_TOTAL-1))) begin
                         y_cnt <= 1'b0;
