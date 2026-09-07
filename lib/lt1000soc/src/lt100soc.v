@@ -9,6 +9,15 @@ module lt100soc
     parameter TCM_SIZE_BITS   = 15,             // 32KB TCM region
     parameter SRAM_ADDR_WIDTH = 24,
 
+    // *** RV parameters ***
+    parameter RV_TWO_CYCLE_COMPARE=1,
+    parameter RV_TWO_CYCLE_ALU=1,
+    parameter RV_COMPRESSED_ISA=1,
+    parameter RV_ENABLE_MUL=1,
+    parameter RV_ENABLE_DIV=1,
+    parameter RV_PROGADDR_RESET=32'h0100_0000,
+    parameter RV_STACKADDR=32'h0200_7FFF,
+
     // *** UART parameters ***
     parameter UART_BAUD       = 230_400,
     parameter UART_FIFO_DEPTH = 64,
@@ -76,7 +85,7 @@ localparam
     reg [7:0] bios_lane_1[0:2047];
     reg [7:0] bios_lane_2[0:2047];
     reg [7:0] bios_lane_3[0:2047];
-    wire [11:0] bios_mem_addr;
+    reg [31:0] bios_mem_addr;
     reg [7:0] bios_mem_dout0;
     reg [7:0] bios_mem_dout1;
     reg [7:0] bios_mem_dout2;
@@ -86,10 +95,10 @@ localparam
     reg [7:0] bios_mem_dout2_tmp;
     reg [7:0] bios_mem_dout3_tmp;
     always @(posedge core_clk) begin
-        bios_mem_dout0_tmp <= bios_lane_0[bios_mem_addr];
-        bios_mem_dout1_tmp <= bios_lane_1[bios_mem_addr];
-        bios_mem_dout2_tmp <= bios_lane_2[bios_mem_addr];
-        bios_mem_dout3_tmp <= bios_lane_3[bios_mem_addr];
+        bios_mem_dout0_tmp <= bios_lane_0[bios_mem_addr[11:0]];
+        bios_mem_dout1_tmp <= bios_lane_1[bios_mem_addr[11:0]];
+        bios_mem_dout2_tmp <= bios_lane_2[bios_mem_addr[11:0]];
+        bios_mem_dout3_tmp <= bios_lane_3[bios_mem_addr[11:0]];
         bios_mem_dout0     <= bios_mem_dout0_tmp;
         bios_mem_dout1     <= bios_mem_dout1_tmp;
         bios_mem_dout2     <= bios_mem_dout2_tmp;
@@ -120,30 +129,30 @@ localparam
     reg [7:0] tcm_din2;
     reg [7:0] tcm_din3;
     reg [3:0] tcm_wren;
-    wire [TCM_SIZE_BITS-1:0] tcm_addr;
+    reg [31:0] tcm_addr;
     always @(posedge core_clk) begin
         if (tcm_wren[0]) begin
-            tcm_lane0[tcm_addr] <= tcm_din0;
+            tcm_lane0[tcm_addr[TCM_SIZE_BITS-1:2]] <= tcm_din0;
         end else begin
-            tcm_dout0_tmp <= tcm_lane0[tcm_addr];
+            tcm_dout0_tmp <= tcm_lane0[tcm_addr[TCM_SIZE_BITS-1:2]];
             tcm_dout0     <= tcm_dout0_tmp;
         end
         if (tcm_wren[1]) begin
-            tcm_lane1[tcm_addr] <= tcm_din1;
+            tcm_lane1[tcm_addr[TCM_SIZE_BITS-1:2]] <= tcm_din1;
         end else begin
-            tcm_dout1_tmp <= tcm_lane1[tcm_addr];
+            tcm_dout1_tmp <= tcm_lane1[tcm_addr[TCM_SIZE_BITS-1:2]];
             tcm_dout1     <= tcm_dout1_tmp;
         end
         if (tcm_wren[2]) begin
-            tcm_lane2[tcm_addr] <= tcm_din2;
+            tcm_lane2[tcm_addr[TCM_SIZE_BITS-1:2]] <= tcm_din2;
         end else begin
-            tcm_dout2_tmp <= tcm_lane2[tcm_addr];
+            tcm_dout2_tmp <= tcm_lane2[tcm_addr[TCM_SIZE_BITS-1:2]];
             tcm_dout2     <= tcm_dout2_tmp;
         end
         if (tcm_wren[3]) begin
-            tcm_lane3[tcm_addr] <= tcm_din3;
+            tcm_lane3[tcm_addr[TCM_SIZE_BITS-1:2]] <= tcm_din3;
         end else begin
-            tcm_dout3_tmp <= tcm_lane3[tcm_addr];
+            tcm_dout3_tmp <= tcm_lane3[tcm_addr[TCM_SIZE_BITS-1:2]];
             tcm_dout3     <= tcm_dout3_tmp;
         end
     end
@@ -151,9 +160,9 @@ localparam
 // *** VGA ***
     reg vga_video_mode;
     reg vga_page_sel;
-    wire [16:0] vga_host_addr;
-    wire [31:0] vga_data_in;
-    wire [3:0]  vga_wren;
+    reg [16:0] vga_host_addr;
+    reg  [31:0] vga_data_in;
+    reg [3:0]  vga_wren;
     wire [31:0] vga_data_out;
 
     vga vga(
@@ -178,6 +187,7 @@ localparam
     reg        uart_rx_read;
     wire       uart_rx_ready;
     wire [7:0] uart_rx_byte;
+    reg [31:0] uart_data_out; // for the bus
 
     uart #(
         .FIFO_DEPTH(UART_FIFO_DEPTH), .RX_ENABLE(1), .TX_ENABLE(1), .BAUD_WIDTH(BAUD_WIDTH)
@@ -191,10 +201,10 @@ localparam
     );
 
 // *** PSRAM ***
-    wire [31:0] psram_data_in;  // Note bus is LE and this needs BE
-    wire [3:0]  psram_write_mask;
-    wire [SRAM_ADDR_WIDTH-1:0] psram_data_addr;
-    wire        psram_data_wr_en;
+    reg  [31:0] psram_data_in;  // Note bus is LE and this needs BE
+    reg [3:0]   psram_write_mask;
+    reg [SRAM_ADDR_WIDTH-1:0] psram_data_addr;
+    reg         psram_data_wr_en;
     wire [31:0] psram_data_out; // note this is BE and bus needs LE
     reg         psram_valid;
     wire        psram_ready;
@@ -212,6 +222,132 @@ localparam
         .sio_en(psram_sio_en), .cs_pin(psram_cs_pin), .sck_pin(psram_sck_pin)
     );
 
+// ** SPI **
+   // IOU One SPI module.
+
+// *** RISCV core ***   
+    wire picorv_trap;
+
+    wire picorv_mem_valid;
+    wire picorv_mem_instr;
+    reg  picorv_mem_ready;
+    wire [31:0] picorv_mem_addr;
+    wire [31:0] picorv_mem_wdata;
+    wire [3:0]  picorv_mem_wstrb;
+    wire [31:0] picorv_mem_rdata;
+
+    picorv32 #(
+        .TWO_CYCLE_COMPARE(RV_TWO_CYCLE_COMPARE),
+        .TWO_CYCLE_ALU(RV_TWO_CYCLE_ALU),
+        .COMPRESSED_ISA(RV_COMPRESSED_ISA),
+        .ENABLE_MUL(RV_ENABLE_MUL),
+        .ENABLE_DIV(RV_ENABLE_DIV),
+        .PROGADDR_RESET(RV_PROGADDR_RESET),
+        .STACKADDR(RV_STACKADDR)
+    ) picorv32 (
+        .clk(core_clk), .resetn(rst_n), .trap(picorv_trap),
+        .mem_valid(picorv_mem_valid), .mem_instr(picorv_mem_instr),
+        .mem_ready(picorv_mem_ready), .mem_addr(picorv_mem_addr),
+        .mem_wdata(picorv_mem_wdata), .mem_wstrb(picorv_mem_wstrb),
+        .mem_rdata(picorv_mem_rdata),
+    );
+
+// *** BUS ***
+    reg [31:0]  mmio_data_out;
+    reg [31:0]  mmio_data_in;
+    reg [3:0]   mmio_wren;
+    reg [23:0]  mmio_addr;
+
+    // combinatorially connect bus to blocks
+    always @(*) begin
+        // assign inputs
+        tcm_addr = picorv_mem_addr[TCM_SIZE_BITS-1:0];
+        tcm_din0 = picorv_mem_wdata[7:0];
+        tcm_din1 = picorv_mem_wdata[15:8];
+        tcm_din2 = picorv_mem_wdata[23:16];
+        tcm_din3 = picorv_mem_wdata[31:24];
+        psram_data_addr = picorv_mem_addr[SRAM_ADDR_WIDTH-1:0];
+        psram_data_in = // byte swap since PSRAM is BE
+            { picorv_mem_wdata[7:0], picorv_mem_wdata[15:8], 
+              picorv_mem_wdata[23:16], picorv_mem_wdata[31:24] };
+        vga_host_addr = picorv_mem_addr[16:0];
+        vga_data_in   = picorv_mem_wdata;
+        mmio_addr     = picorv_mem_addr[23:0];
+        mmio_data_in  = picorv_mem_wdata;
+
+        // ensure wren's are zeroed out 
+        tcm_wren         = 4'b0000;
+        psram_write_mask = 4'b0000;
+        psram_data_wr_en = 1'b0;
+        vga_wren         = 4'b0000;
+        mmio_wren        = 1'b0;
+
+        // assign outputs
+        picorv_mem_rdata = 32'hBEBEBEEF;
+
+        if (picorv_mem_addr[MEM_16M_BIOS]) begin
+            picorv_mem_rdata = { bios_mem_dout3, bios_mem_dout2, bios_mem_dout1, bios_mem_dout0 };
+        end
+        if (picorv_mem_addr[MEM_16M_TCM]) begin
+            picorv_mem_rdata = { tcm_dout3, tcm_dout2, tcm_dout1, tcm_dout0 };
+            tcm_wren         = picorv_mem_valid ? picorv_mem_wstrb : 4'b0000;
+        end
+        if (picorv_mem_addr[MEM_16M_VGA]) begin
+            picorv_mem_rdata = vga_data_out;
+            vga_wren         = picorv_mem_valid ? picorv_mem_wstrb : 4'b0000;
+        end
+        if (picorv_mem_addr[MEM_16M_PSRAM]) begin
+            picorv_mem_rdata = 
+                { psram_data_out[7:0], psram_data_out[15:8],
+                  psram_data_out[23:16], psram_data_out[31:24] };
+            psram_write_mask = picorv_mem_wstrb;
+            psram_data_wr_en = picorv_mem_valid ? |picorv_mem_wstrb : 1'b0;
+        end
+        if (picorv_mem_addr[MEM_16M_MMIO]) begin
+            mmio_wren        = picorv_mem_valid ? |picorv_mem_wstrb : 1'b0;
+            picorv_mem_rdata = mmio_data_out;
+        end
+    end
+
+    // driver of ready signal
+    reg bus_cycle;
+
+    always @(posedge core_clk) begin
+        // always reset various signals
+        bus_cycle     <= 1'b0;
+        uart_tx_start <= 1'b0;
+        uart_rx_read  <= 1'b0;
+        psram_valid   <= 1'b0;
+
+        if (picorv_mem_valid) begin
+            // simple memories with 1 cycle delay on reads
+            if (picorv_mem_addr[MEM_16M_BIOS] || 
+                picorv_mem_addr[MEM_16M_TCM] ||
+                picorv_mem_addr[MEM_16M_VGA]) begin
+                if (|picorv_mem_wstrb) begin
+                    picorv_mem_ready <= 1'b1;
+                end else begin
+                    bus_cycle        <= 1'b1;
+                    picorv_mem_ready <= bus_cycle;
+                end
+            end
+
+// note: does picorv drop valid immediately or do we need to wait?
+            if (picorv_mem_addr[MEM_16M_PSRAM]) begin
+                if (!bus_cycle) begin
+                    // start job
+                    bus_cycle        <= 1'b1;
+                    psram_valid      <= 1'b1;
+                end else begin
+                    // wait till ready (and picorv drops valid)
+                    bus_cycle        <= ~psram_ready | picorv_mem_valid;
+                    picorv_mem_ready <= psram_ready;
+                end
+            end
+        end
+        if (!rst_n) begin
+        end
+    end
 endmodule
 
 `include "picorv32/picorv32.v"
