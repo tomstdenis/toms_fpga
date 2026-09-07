@@ -7,6 +7,7 @@ module lt100soc
     parameter CORE_FREQ_KHZ   = 50_000,         // 50MHz default core clock
     parameter CACHE_SIZE_BITS = 12,             // 8KB cache for PSRAM region
     parameter TCM_SIZE_BITS   = 15,             // 32KB TCM region
+    parameter SRAM_ADDR_WIDTH = 24,
 
     // *** UART parameters ***
     parameter UART_BAUD       = 230_400,
@@ -187,6 +188,28 @@ localparam
         .uart_tx_fifo_empty(uart_tx_fifo_empty), .uart_rx_pin(uart_rx),
         .uart_rx_read(uart_rx_read), .uart_rx_ready(uart_rx_ready),
         .uart_rx_byte(uart_rx_byte)
+    );
+
+// *** PSRAM ***
+    wire [31:0] psram_data_in;  // Note bus is LE and this needs BE
+    wire [3:0]  psram_write_mask;
+    wire [SRAM_ADDR_WIDTH-1:0] psram_data_addr;
+    wire        psram_data_wr_en;
+    wire [31:0] psram_data_out; // note this is BE and bus needs LE
+    reg         psram_valid;
+    wire        psram_ready;
+    wire        psram_idle;
+
+    nanocache #(
+        .CACHE_SIZE(CACHE_SIZE_BITS), .FREQ(CORE_FREQ_KHZ/1000)
+    ) psram_mem (
+        .clk(core_clk), .rst_n(rst_n),
+        .data_in(psram_data_in), .write_mask(psram_write_mask),
+        .data_addr(psram_data_addr), .data_wr_en(psram_data_wr_en),
+        .data_out(psram_data_out), .valid(psram_valid), .ready(psram_ready),
+        .idle(psram_idle),
+        .sio_din(psram_sio_din), .sio_dout(psram_sio_dout),
+        .sio_en(psram_sio_en), .cs_pin(psram_cs_pin), .sck_pin(psram_sck_pin)
     );
 
 endmodule

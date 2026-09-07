@@ -36,6 +36,7 @@ The memory map is split into 16MByte regions to allow for one-hot zone control.
 1000_0000 - Machine Config
                 - [11:0]   Core Clock (*10)
                 - [19:15]  TCM log2 size
+                - [27:20]  Core revision
 
 1000_0004 - GPIO DATA OUT
 1000_0008 - GPIO DATA IN
