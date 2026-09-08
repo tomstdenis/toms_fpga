@@ -368,13 +368,12 @@ localparam
             end
 
 // *** PSRAM ***
-// note: does picorv drop valid immediately or do we need to wait?
             if (picorv_mem_addr[MEM_16M_PSRAM]) begin
-                if (!bus_cycle) begin
+                if (psram_idle & ~bus_cycle) begin
                     // start job
                     bus_cycle        <= 1'b1;
                     psram_valid      <= 1'b1;
-                end else begin
+                end else if (bus_cycle) begin
                     // wait till ready (and picorv drops valid)
                     bus_cycle        <= ~psram_ready;
                     picorv_mem_ready <= psram_ready;
