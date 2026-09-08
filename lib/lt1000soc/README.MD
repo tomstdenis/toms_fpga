@@ -39,23 +39,22 @@ The memory map is split into 16MByte regions to allow for one-hot zone control.
                 - [27:20]  Core revision
 
 1000_0004 - GPIO DATA OUT
-1000_0008 - GPIO DATA IN
-1000_000C - GPIO OE
-1000_0010 - GPIO (W1S) SET
-1000_0014 - GPIO (W1C) CLEAR
-1000_0018 - GPIO (W1T) TOGGLE
+1000_0008 - GPIO OE
+1000_000C - GPIO (W1S) SET
+1000_0010 - GPIO (W1C) CLEAR
+1000_0014 - GPIO (W1T) TOGGLE
 
-1000_001C - UART DATA
-1000_0020 - UART STATUS
+1000_0018 - UART DATA
+1000_001C - UART STATUS
                 - [0]     TX FIFO Full
                 - [1]     TX FIFO Empty
                 - [2]     RX READ Ready
 
-1000_0024 - VGA CTRL
+1000_0020 - VGA CTRL
                 - [0]     Video mode (0 == Text Mode, 1 == 320x200 Mode)
                 - [1]     Page Select (0 == First 64KB, 1 == Second 64KB)
 
-1000_0028 - SPI TRANSFER
+1000_0024 - SPI TRANSFER
                 - [7:0]   MOSI/MISO byte
                 - [15:8]  SPI Tick per SCK
                 - [17:16] CS Pin Selector

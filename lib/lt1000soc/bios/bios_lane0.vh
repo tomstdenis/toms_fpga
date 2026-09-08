@@ -37,7 +37,7 @@
 	bios_lane_0[36] = 8'h48;
 	bios_lane_0[37] = 8'h6f;
 	bios_lane_0[38] = 8'h72;
-	bios_lane_0[39] = 8'h0;
+	bios_lane_0[39] = 8'hd;
 	bios_lane_0[40] = 8'h0;
 	bios_lane_0[41] = 8'h0;
 	bios_lane_0[42] = 8'h0;
