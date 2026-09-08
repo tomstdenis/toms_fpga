@@ -1,7 +1,7 @@
 bios_lane0.vh: bios.bin
 	@make -C ../tools
 	@../tools/mkbioshex
-	
+
 bios.bin: bios.elf
 	@size bios.elf
 	@riscv32-unknown-elf-objcopy -O binary --pad-to=0x01002000 --gap-fill=0x00 bios.elf bios.bin

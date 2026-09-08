@@ -293,7 +293,7 @@ localparam
         mmio_reg_mcfg[27:20] = `LT100SOC_REV;
         mmio_reg_gpio_din    = gpio_din;
         mmio_reg_uart_status = 0;
-        mmio_reg_uart_status[1:0] = { uart_tx_fifo_empty, uart_tx_fifo_full };
+        mmio_reg_uart_status[2:0] = { uart_rx_ready, uart_tx_fifo_empty, uart_tx_fifo_full };
 
         // assign inputs
         tcm_addr = picorv_mem_addr[TCM_SIZE_BITS-1:0];
@@ -322,23 +322,19 @@ localparam
 
         if (picorv_mem_addr[MEM_16M_BIOS]) begin
             picorv_mem_rdata = { bios_mem_dout3, bios_mem_dout2, bios_mem_dout1, bios_mem_dout0 };
-        end
-        if (picorv_mem_addr[MEM_16M_TCM]) begin
+        end else if (picorv_mem_addr[MEM_16M_TCM]) begin
             picorv_mem_rdata = { tcm_dout3, tcm_dout2, tcm_dout1, tcm_dout0 };
             tcm_wren         = picorv_mem_valid ? picorv_mem_wstrb : 4'b0000;
-        end
-        if (picorv_mem_addr[MEM_16M_VGA]) begin
+        end else if (picorv_mem_addr[MEM_16M_VGA]) begin
             picorv_mem_rdata = vga_data_out;
             vga_wren         = picorv_mem_valid ? picorv_mem_wstrb : 4'b0000;
-        end
-        if (picorv_mem_addr[MEM_16M_PSRAM]) begin
+        end else if (picorv_mem_addr[MEM_16M_PSRAM]) begin
             picorv_mem_rdata = 
                 { psram_data_out[7:0], psram_data_out[15:8],
                   psram_data_out[23:16], psram_data_out[31:24] };
             psram_write_mask = picorv_mem_wstrb;
             psram_data_wr_en = picorv_mem_valid ? |picorv_mem_wstrb : 1'b0;
-        end
-        if (picorv_mem_addr[MEM_16M_MMIO]) begin
+        end else if (picorv_mem_addr[MEM_16M_MMIO]) begin
             mmio_wren        = picorv_mem_valid ? |picorv_mem_wstrb : 1'b0;
             picorv_mem_rdata = mmio_data_out;
         end
@@ -535,6 +531,11 @@ localparam
             uart_rx_read       <= 1'b0;
             psram_valid        <= 1'b0;
             mmio_uart_rx_delay <= 1'b0;
+            vga_page_sel       <= 1'b0;
+            vga_video_mode     <= 1'b0;
+            picorv_mem_ready   <= 1'b0;
+            gpio_dout          <= 32'b0;
+            gpio_oe            <= 32'b0;
         end
     end
 endmodule
