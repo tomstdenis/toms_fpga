@@ -11,9 +11,9 @@ int main(int argc, char **argv)
     int in_fd;
     int x, y;
 
-    in_fd = open("bios/bios.bin", O_RDONLY);
+    in_fd = open("bios.bin", O_RDONLY);
     for (x = 0; x < 4; x++) {
-        sprintf(fname, "bios/bios_lane%d.vh", x);
+        sprintf(fname, "bios_lane%d.vh", x);
         out_fd[x] = fopen(fname, "w");
     }
 
