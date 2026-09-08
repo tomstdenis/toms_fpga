@@ -15,6 +15,8 @@ module lt100soc
     // *** RV parameters ***
     parameter RV_TWO_CYCLE_COMPARE=1,
     parameter RV_TWO_CYCLE_ALU=1,
+ 	parameter RV_TWO_STAGE_SHIFT = 1,
+	parameter RV_BARREL_SHIFTER = 0,
     parameter RV_COMPRESSED_ISA=1,
     parameter RV_ENABLE_MUL=1,
     parameter RV_ENABLE_DIV=1,
@@ -242,6 +244,8 @@ localparam
     picorv32 #(
         .TWO_CYCLE_COMPARE(RV_TWO_CYCLE_COMPARE),
         .TWO_CYCLE_ALU(RV_TWO_CYCLE_ALU),
+ 	    .TWO_STAGE_SHIFT(RV_TWO_STAGE_SHIFT),
+	    .BARREL_SHIFTER(RV_BARREL_SHIFTER),
         .COMPRESSED_ISA(RV_COMPRESSED_ISA),
         .ENABLE_MUL(RV_ENABLE_MUL),
         .ENABLE_DIV(RV_ENABLE_DIV),
@@ -350,8 +354,10 @@ localparam
         uart_rx_read       <= 1'b0;
         psram_valid        <= 1'b0;
         mmio_uart_rx_delay <= 1'b0;
+        picorv_mem_ready   <= 1'b0;
 
-        if (picorv_mem_valid) begin
+        // respond to valid only if ready is already low
+        if (~picorv_mem_ready & picorv_mem_valid) begin
             // simple memories with 1 cycle delay on reads
 // *** BIOS, TCM, VGA ***
             if (picorv_mem_addr[MEM_16M_BIOS] || 
@@ -477,7 +483,7 @@ localparam
                 end
                 MMIO_UART_DATA: begin
                     if (picorv_mem_wstrb[0]) begin // only care about lower byte
-                        uart_tx_data_in <= mmio_data_in[7:0];
+                        uart_tx_data_in        <= mmio_data_in[7:0];
                         if (!uart_tx_fifo_full) begin
                             uart_tx_start      <= 1'b1;
                         end 
