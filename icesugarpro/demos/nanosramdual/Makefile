@@ -1,6 +1,6 @@
 TARGET=nanosram
 TOP=top
-FREQ=160
+FREQ=140
 SRAM_ADDR_WIDTH=24
 
 OBJS+=${TARGET}.v pll1.v \

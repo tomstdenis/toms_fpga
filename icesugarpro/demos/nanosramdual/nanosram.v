@@ -1,3 +1,6 @@
+// define this if you're using 2x 16Mbyte (ISSI) memories, if you undefine this an 8 or 4MB memory is assumed.
+`define USE_16MBYTE
+
 module top(
     input wire clk,
 
@@ -39,7 +42,7 @@ module top(
         .baud_div(bauddiv), .uart_tx_start(uart_tx_start), .uart_tx_data_in(uart_tx_data_in),
         .uart_tx_pin(uart_tx), .uart_tx_fifo_empty(uart_tx_fifo_empty), .uart_tx_fifo_full(uart_tx_fifo_full));
 
-    reg [23:0] sram_addr;
+    reg [24:0] sram_addr;
     reg [7:0]  sram_din;
     wire [7:0] sram_dout;
     reg        sram_wr_en;
@@ -69,6 +72,16 @@ module top(
 			cs_pin  = sram_cs;
 			cs2_pin = sram_cs;
 		end else begin
+`ifdef USE_16MBYTE
+			// 16MB chips...
+			if (sram_addr[24]) begin
+				cs_pin  = sram_cs;
+				cs2_pin = 1'b1;
+			end else begin
+				cs2_pin = sram_cs;
+				cs_pin  = 1'b1;
+			end
+`else
 			// 8MB chips...
 			if (sram_addr[23]) begin
 				cs_pin  = sram_cs;
@@ -77,12 +90,13 @@ module top(
 				cs2_pin = sram_cs;
 				cs_pin  = 1'b1;
 			end
+`endif
 		end
 	end
 
     nanosram #(.PSRAM(PSRAM), .FREQ(FREQ/1000)) emm386 (
         .clk(pllclk), .rst_n(rst_n),
-        .addr(sram_addr), .data_in(sram_din), .data_out(sram_dout), .wr_en(sram_wr_en),
+        .addr(sram_addr[23:0]), .data_in(sram_din), .data_out(sram_dout), .wr_en(sram_wr_en),
         .start_trans(sram_start_trans), .ready(sram_ready), .busy(sram_busy), .idle(sram_idle),
         .read_strobe(sram_read_strobe), .write_strobe(sram_write_strobe),
         .sio_din(sio_din), .sio_dout(sio_dout), .sio_en(sio_en), .cs_pin(sram_cs), .sck_pin(sck_pin));
