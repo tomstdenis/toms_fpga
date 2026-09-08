@@ -2,9 +2,12 @@
 `default_nettype none
 
 // SOC revision
-`define LT100SOC_REV 8'h00
+`define LT1000SOC_REV 8'h00
 
-module lt100soc
+
+// GW5AT-LV60PG484AC1/I0
+
+module lt1000soc
 #(
     // *** SOC parameters ***
     parameter CORE_FREQ_KHZ   = 50_000,         // 50MHz default core clock
@@ -25,8 +28,8 @@ module lt100soc
 
     // *** UART parameters ***
     parameter UART_BAUD       = 230_400,
-    parameter UART_FIFO_DEPTH = 64,
-)
+    parameter UART_FIFO_DEPTH = 64
+) 
 (
     // *** Clocks ***
     input  wire       core_clk,                  // The clock for the CPU
@@ -90,7 +93,7 @@ localparam
     reg [7:0] bios_lane_1[0:2047];
     reg [7:0] bios_lane_2[0:2047];
     reg [7:0] bios_lane_3[0:2047];
-    reg [31:0] bios_mem_addr;
+    reg [12:0] bios_mem_addr;
     reg [7:0] bios_mem_dout0;
     reg [7:0] bios_mem_dout1;
     reg [7:0] bios_mem_dout2;
@@ -100,10 +103,10 @@ localparam
     reg [7:0] bios_mem_dout2_tmp;
     reg [7:0] bios_mem_dout3_tmp;
     always @(posedge core_clk) begin
-        bios_mem_dout0_tmp <= bios_lane_0[bios_mem_addr[11:0]];
-        bios_mem_dout1_tmp <= bios_lane_1[bios_mem_addr[11:0]];
-        bios_mem_dout2_tmp <= bios_lane_2[bios_mem_addr[11:0]];
-        bios_mem_dout3_tmp <= bios_lane_3[bios_mem_addr[11:0]];
+        bios_mem_dout0_tmp <= bios_lane_0[bios_mem_addr[12:2]];
+        bios_mem_dout1_tmp <= bios_lane_1[bios_mem_addr[12:2]];
+        bios_mem_dout2_tmp <= bios_lane_2[bios_mem_addr[12:2]];
+        bios_mem_dout3_tmp <= bios_lane_3[bios_mem_addr[12:2]];
         bios_mem_dout0     <= bios_mem_dout0_tmp;
         bios_mem_dout1     <= bios_mem_dout1_tmp;
         bios_mem_dout2     <= bios_mem_dout2_tmp;
@@ -134,7 +137,7 @@ localparam
     reg [7:0] tcm_din2;
     reg [7:0] tcm_din3;
     reg [3:0] tcm_wren;
-    reg [31:0] tcm_addr;
+    reg [TCM_SIZE_BITS-1:0] tcm_addr;
     always @(posedge core_clk) begin
         if (tcm_wren[0]) begin
             tcm_lane0[tcm_addr[TCM_SIZE_BITS-1:2]] <= tcm_din0;
@@ -239,7 +242,7 @@ localparam
     wire [31:0] picorv_mem_addr;
     wire [31:0] picorv_mem_wdata;
     wire [3:0]  picorv_mem_wstrb;
-    wire [31:0] picorv_mem_rdata;
+    reg  [31:0] picorv_mem_rdata;
 
     picorv32 #(
         .TWO_CYCLE_COMPARE(RV_TWO_CYCLE_COMPARE),
@@ -256,7 +259,7 @@ localparam
         .mem_valid(picorv_mem_valid), .mem_instr(picorv_mem_instr),
         .mem_ready(picorv_mem_ready), .mem_addr(picorv_mem_addr),
         .mem_wdata(picorv_mem_wdata), .mem_wstrb(picorv_mem_wstrb),
-        .mem_rdata(picorv_mem_rdata),
+        .mem_rdata(picorv_mem_rdata)
     );
 
 // *** BUS ***
@@ -290,7 +293,7 @@ localparam
         mmio_reg_mcfg        = 0;
         mmio_reg_mcfg[11:0]  = CORE_FREQ_KHZ / 10;
         mmio_reg_mcfg[19:15] = TCM_SIZE_BITS;
-        mmio_reg_mcfg[27:20] = `LT100SOC_REV;
+        mmio_reg_mcfg[27:20] = `LT1000SOC_REV;
         mmio_reg_gpio_din    = gpio_din;
         mmio_reg_uart_status = 0;
         mmio_reg_uart_status[2:0] = { uart_rx_ready, uart_tx_fifo_empty, uart_tx_fifo_full };
@@ -354,21 +357,19 @@ localparam
 
         // respond to valid only if ready is already low
         if (~picorv_mem_ready & picorv_mem_valid) begin
-            // simple memories with 1 cycle delay on reads
-// *** BIOS, TCM, VGA ***
             if (picorv_mem_addr[MEM_16M_BIOS] || 
                 picorv_mem_addr[MEM_16M_TCM]  ||
                 picorv_mem_addr[MEM_16M_VGA]) begin
+// *** BIOS, TCM, VGA ***
+            // simple memories with 1 cycle delay on reads
                 if (|picorv_mem_wstrb) begin
                     picorv_mem_ready <= 1'b1;
                 end else begin
                     bus_cycle        <= 1'b1;
                     picorv_mem_ready <= bus_cycle;
                 end
-            end
-
+            end else if (picorv_mem_addr[MEM_16M_PSRAM]) begin
 // *** PSRAM ***
-            if (picorv_mem_addr[MEM_16M_PSRAM]) begin
                 if (psram_idle & ~bus_cycle) begin
                     // start job
                     bus_cycle        <= 1'b1;
@@ -378,10 +379,8 @@ localparam
                     bus_cycle        <= ~psram_ready;
                     picorv_mem_ready <= psram_ready;
                 end
-            end
-
+            end else if (picorv_mem_addr[MEM_16M_MMIO]) begin
 // *** MMIO ***
-            if (picorv_mem_addr[MEM_16M_MMIO]) begin
                 // default to ready
                 picorv_mem_ready <= 1'b1;
                 case (mmio_addr)
