@@ -9,7 +9,7 @@
 
 void bios_main(void)
 {
-    const char *msg = "Hello world\n\r";
+    char *msg = "Hello world\n\r";
     int x;
     x = 0;
     for (;;) {
