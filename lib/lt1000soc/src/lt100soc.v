@@ -1,6 +1,9 @@
 // Little Timmy 1000 SOC
 `default_nettype none
 
+// SOC revision
+`define LT100SOC_REV 8'h00
+
 module lt100soc
 #(
     // *** SOC parameters ***
@@ -258,8 +261,36 @@ localparam
     reg [3:0]   mmio_wren;
     reg [23:0]  mmio_addr;
 
+    localparam
+        MMIO_MCFG         = 8'h00,
+        MMIO_GPIO_DATA    = 8'h04,
+        MMIO_GPIO_OE      = 8'h08,
+        MMIO_GPIO_W1S     = 8'h0C,
+        MMIO_GPIO_W1C     = 8'h10,
+        MMIO_GPIO_W1T     = 8'h14,
+        MMIO_UART_DATA    = 8'h18,
+        MMIO_UART_STATUS  = 8'h1C,
+        MMIO_VGA_CTRL     = 8'h20,
+        MMIO_SPI_TRANSFER = 8'h24;
+
+    reg  [31:0] mmio_reg_mcfg;
+    reg  [31:0] mmio_reg_gpio_din;
+    reg  [31:0] mmio_reg_uart_status;
+    reg  [31:0] mmio_reg_spi_transfer_in;
+    wire [31:0] mmio_reg_spi_transfer_out;
+    reg         mmio_uart_rx_delay;
+
     // combinatorially connect bus to blocks
     always @(*) begin
+        // assign mmio wires
+        mmio_reg_mcfg        = 0;
+        mmio_reg_mcfg[11:0]  = CORE_FREQ_KHZ / 10;
+        mmio_reg_mcfg[19:15] = TCM_SIZE_BITS;
+        mmio_reg_mcfg[27:20] = `LT100SOC_REV;
+        mmio_reg_gpio_din    = gpio_din;
+        mmio_reg_uart_status = 0;
+        mmio_reg_uart_status[1:0] = { uart_tx_fifo_empty, uart_tx_fifo_full };
+
         // assign inputs
         tcm_addr = picorv_mem_addr[TCM_SIZE_BITS-1:0];
         tcm_din0 = picorv_mem_wdata[7:0];
@@ -314,15 +345,17 @@ localparam
 
     always @(posedge core_clk) begin
         // always reset various signals
-        bus_cycle     <= 1'b0;
-        uart_tx_start <= 1'b0;
-        uart_rx_read  <= 1'b0;
-        psram_valid   <= 1'b0;
+        bus_cycle          <= 1'b0;
+        uart_tx_start      <= 1'b0;
+        uart_rx_read       <= 1'b0;
+        psram_valid        <= 1'b0;
+        mmio_uart_rx_delay <= 1'b0;
 
         if (picorv_mem_valid) begin
             // simple memories with 1 cycle delay on reads
+// *** BIOS, TCM, VGA ***
             if (picorv_mem_addr[MEM_16M_BIOS] || 
-                picorv_mem_addr[MEM_16M_TCM] ||
+                picorv_mem_addr[MEM_16M_TCM]  ||
                 picorv_mem_addr[MEM_16M_VGA]) begin
                 if (|picorv_mem_wstrb) begin
                     picorv_mem_ready <= 1'b1;
@@ -332,6 +365,7 @@ localparam
                 end
             end
 
+// *** PSRAM ***
 // note: does picorv drop valid immediately or do we need to wait?
             if (picorv_mem_addr[MEM_16M_PSRAM]) begin
                 if (!bus_cycle) begin
@@ -340,12 +374,161 @@ localparam
                     psram_valid      <= 1'b1;
                 end else begin
                     // wait till ready (and picorv drops valid)
-                    bus_cycle        <= ~psram_ready | picorv_mem_valid;
+                    bus_cycle        <= ~psram_ready;
                     picorv_mem_ready <= psram_ready;
                 end
             end
+
+// *** MMIO ***
+            if (picorv_mem_addr[MEM_16M_MMIO]) begin
+                // default to ready
+                picorv_mem_ready <= 1'b1;
+                case (mmio_addr)
+                    MMIO_MCFG: begin
+                        if (!(|picorv_mem_wstrb)) begin
+                            mmio_data_out <= mmio_reg_mcfg;
+                        end
+                    end
+                    MMIO_GPIO_DATA: begin
+                        if (picorv_mem_wstrb[0]) begin
+                            gpio_dout[7:0] <= mmio_data_in[7:0];
+                        end else begin
+                            mmio_data_out[7:0] <= gpio_din[7:0];
+                        end
+                        if (picorv_mem_wstrb[1]) begin
+                            gpio_dout[15:8] <= mmio_data_in[15:8];
+                        end else begin
+                            mmio_data_out[15:8] <= gpio_din[15:8];
+                        end
+                        if (picorv_mem_wstrb[2]) begin
+                            gpio_dout[23:16] <= mmio_data_in[23:16];
+                        end else begin
+                            mmio_data_out[23:16] <= gpio_din[23:16];
+                        end
+                        if (picorv_mem_wstrb[3]) begin
+                            gpio_dout[31:24] <= mmio_data_in[31:24];
+                        end else begin
+                            mmio_data_out[31:24] <= gpio_din[31:24];
+                        end
+                    end
+                    MMIO_GPIO_OE: begin
+                        if (picorv_mem_wstrb[0]) begin
+                            gpio_oe[7:0] <= mmio_data_in[7:0];
+                        end else begin
+                            mmio_data_out[7:0] <= gpio_oe[7:0];
+                        end
+                        if (picorv_mem_wstrb[1]) begin
+                            gpio_oe[15:8] <= mmio_data_in[15:8];
+                        end else begin
+                            mmio_data_out[15:8] <= gpio_oe[15:8];
+                        end
+                        if (picorv_mem_wstrb[2]) begin
+                            gpio_oe[23:16] <= mmio_data_in[23:16];
+                        end else begin
+                            mmio_data_out[23:16] <= gpio_oe[23:16];
+                        end
+                        if (picorv_mem_wstrb[3]) begin
+                            gpio_oe[31:24] <= mmio_data_in[31:24];
+                        end else begin
+                            mmio_data_out[31:24] <= gpio_oe[31:24];
+                        end
+                    end
+                MMIO_GPIO_W1S: begin // Write one to set bit
+                    if (picorv_mem_wstrb[0]) begin
+                        gpio_dout[7:0] <= gpio_dout[7:0] | mmio_data_in[7:0];
+                    end
+                    if (picorv_mem_wstrb[1]) begin
+                        gpio_dout[15:8] <= gpio_dout[15:8] | mmio_data_in[15:8];
+                    end
+                    if (picorv_mem_wstrb[2]) begin
+                        gpio_dout[23:16] <= gpio_dout[23:16] | mmio_data_in[23:16];
+                    end
+                    if (picorv_mem_wstrb[3]) begin
+                        gpio_dout[31:24] <= gpio_dout[31:24] | mmio_data_in[31:24];
+                    end
+                end
+                MMIO_GPIO_W1C: begin // Write one to clear bit
+                    if (picorv_mem_wstrb[0]) begin
+                        gpio_dout[7:0] <= gpio_dout[7:0] & ~mmio_data_in[7:0];
+                    end
+                    if (picorv_mem_wstrb[1]) begin
+                        gpio_dout[15:8] <= gpio_dout[15:8] & ~mmio_data_in[15:8];
+                    end
+                    if (picorv_mem_wstrb[2]) begin
+                        gpio_dout[23:16] <= gpio_dout[23:16] & ~mmio_data_in[23:16];
+                    end
+                    if (picorv_mem_wstrb[3]) begin
+                        gpio_dout[31:24] <= gpio_dout[31:24] & ~mmio_data_in[31:24];
+                    end
+                end
+                MMIO_GPIO_W1T: begin // Write one to toggle bit
+                    if (picorv_mem_wstrb[0]) begin
+                        gpio_dout[7:0] <= gpio_dout[7:0] ^ mmio_data_in[7:0];
+                    end
+                    if (picorv_mem_wstrb[1]) begin
+                        gpio_dout[15:8] <= gpio_dout[15:8] ^ mmio_data_in[15:8];
+                    end
+                    if (picorv_mem_wstrb[2]) begin
+                        gpio_dout[23:16] <= gpio_dout[23:16] ^ mmio_data_in[23:16];
+                    end
+                    if (picorv_mem_wstrb[3]) begin
+                        gpio_dout[31:24] <= gpio_dout[31:24] ^ mmio_data_in[31:24];
+                    end
+                end
+                MMIO_UART_DATA: begin
+                    if (picorv_mem_wstrb[0]) begin // only care about lower byte
+                        uart_tx_data_in <= mmio_data_in[7:0];
+                        if (!uart_tx_fifo_full) begin
+                            uart_tx_start      <= 1'b1;
+                        end 
+                    end else begin
+                        // default to all FF if no bytes to read
+                        mmio_data_out <= 32'hFFFF_FFFF;
+                        if (~mmio_uart_rx_delay & ~bus_cycle & uart_rx_ready) begin
+                            uart_rx_read       <= 1;
+                            bus_cycle          <= 1'b1;
+                            picorv_mem_ready   <= ~uart_rx_ready;
+                        end
+                        if (~mmio_uart_rx_delay & bus_cycle) begin
+                            picorv_mem_ready   <= 1'b0;
+                            mmio_uart_rx_delay <= 1'b1;
+                        end
+                        if (mmio_uart_rx_delay) begin
+                            mmio_data_out      <= {24'h0, uart_rx_byte};
+                        end
+                    end
+                end
+                MMIO_UART_STATUS: begin
+                    if (~picorv_mem_wstrb[0]) begin
+                        mmio_data_out <= mmio_reg_uart_status;
+                    end
+                end
+                MMIO_VGA_CTRL: begin
+                    if (picorv_mem_wstrb[0]) begin
+                        vga_video_mode <= mmio_data_in[0];
+                        vga_page_sel   <= mmio_data_in[1];
+                    end else begin
+                        mmio_data_out  <= { 32'b0, vga_page_sel, vga_video_mode };
+                    end
+                end
+                MMIO_SPI_TRANSFER: begin
+                    if (picorv_mem_wstrb[0]) begin
+                        mmio_reg_spi_transfer_in <= mmio_data_in;
+                        // TODO: actually call out to SPI module and block
+                        //     : ready until SPI is done
+                    end else begin
+                        mmio_data_out <= mmio_reg_spi_transfer_out;
+                    end
+                end
+                endcase
+            end
         end
         if (!rst_n) begin
+            bus_cycle          <= 1'b0;
+            uart_tx_start      <= 1'b0;
+            uart_rx_read       <= 1'b0;
+            psram_valid        <= 1'b0;
+            mmio_uart_rx_delay <= 1'b0;
         end
     end
 endmodule
