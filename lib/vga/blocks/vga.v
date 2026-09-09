@@ -129,6 +129,7 @@ module vga
 	// font bit generator
     wire [9:0] vga_y_p1 = (vga_y + (vga_x == (H_TOTAL-1) ? 1'b1 : 1'b0));
     wire   text_out;
+	reg [15:0] vga_symbol;
     assign font_addr = {vga_symbol[7:0], vga_y_p1[3:1]};     // address into the rom, it's 11 bits of which the top 8 are the symbol and bottom 3 are the row
     assign text_out  = font_dout[7 - vga_x[2:0]];            // bit of output indexed from the ROM output
 
@@ -182,7 +183,6 @@ module vga
 	// VGA driver memory interface
 	reg [15:0] vga_mem_addr;			// the address this module is reading from
 	reg [1:0]  vga_mem_addr_lane;
-	reg [15:0] vga_symbol;
 	reg [15:0] vga_data_out;
 	reg [7:0] vga_disp_lane0_tmp;
 	reg [7:0] vga_disp_lane1_tmp;
