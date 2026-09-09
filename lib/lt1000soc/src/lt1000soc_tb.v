@@ -16,7 +16,7 @@ module lt1000soc_tb();
     end
 
     lt1000soc #(.CORE_FREQ_KHZ(50_000), .UART_BAUD(1_000_000)) lt1000dut(
-        .core_clk(clk), .vga_clk(clk), .rst_n(rst_n)
+        .core_clk(clk), .vga_clk(clk), .rst_n(rst_n), .uart_rx(1'b1)
     );
 
     initial begin
