@@ -1,6 +1,27 @@
 IO_LOC "clk" V22;
 IO_PORT "clk" PULL_MODE=NONE IO_TYPE=LVCMOS33;
 
+// onboard PMOD next to USB type A port
+// TOP: VCC GND C22 F18 G21 V18
+// BOT: VCC GND B22 E18 G22 V19
+IO_LOC "vga_g[1]" C22;
+IO_PORT "vga_g[1]" IO_TYPE=LVCMOS33  DRIVE=8 BANK_VCCIO=3.3;
+IO_LOC "vga_g[0]" F18;
+IO_PORT "vga_g[0]" IO_TYPE=LVCMOS33  DRIVE=8 BANK_VCCIO=3.3;
+IO_LOC "vga_r[1]" G21;
+IO_PORT "vga_r[1]" IO_TYPE=LVCMOS33  DRIVE=8 BANK_VCCIO=3.3;
+IO_LOC "vga_r[0]" V18;
+IO_PORT "vga_r[0]" IO_TYPE=LVCMOS33  DRIVE=8 BANK_VCCIO=3.3;
+IO_LOC "vga_v_pulse" B22;
+IO_PORT "vga_v_pulse" IO_TYPE=LVCMOS33  DRIVE=8 BANK_VCCIO=3.3;
+IO_LOC "vga_h_pulse" E18;
+IO_PORT "vga_h_pulse" IO_TYPE=LVCMOS33  DRIVE=8 BANK_VCCIO=3.3;
+IO_LOC "vga_b[1]" G22;
+IO_PORT "vga_b[1]" IO_TYPE=LVCMOS33  DRIVE=8 BANK_VCCIO=3.3;
+IO_LOC "vga_b[0]" V19;
+IO_PORT "vga_b[0]" IO_TYPE=LVCMOS33  DRIVE=8 BANK_VCCIO=3.3;
+
+
 /*
 
                          USB JTAG           USB HOST                           

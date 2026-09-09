@@ -7,17 +7,20 @@
 #define uart_status_tx_fifo_empty 2
 #define uart_status_rx_read_ready 4
 
+#define vga_mem ((volatile uint32_t *)0x04000000)
+
 void bios_main(void)
 {
     char *msg = "Hello world\n\r";
     int x;
     x = 0;
+//    vga_mem[0] = 0xFF42FF41;
     for (;;) {
-        if (!(uart_status & uart_status_tx_fifo_full)) {
+//        if (!(uart_status & uart_status_tx_fifo_full)) {
             uart_data = msg[x++];
             if (!msg[x]) {
                 x = 0;
             }
-        }
+//        }
     }
 }

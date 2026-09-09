@@ -67,8 +67,8 @@ module vga
     localparam V_TOTAL      = 525;
     
 	// text mode parameter
-	localparam TEXTCOLS   = 80;					// number of text columns
-	localparam TEXTROWS   = 25;					// number of text rows
+	localparam TEXTCOLS   = 16'd80;					// number of text columns
+	localparam TEXTROWS   = 16'd25;					// number of text rows
 	localparam FONTWIDTH  = 8;					// font width in pixels
 	localparam FONTHEIGHT = 16;					// font height in pixels (doubled, we're using an 8x8 font)
 	
@@ -235,7 +235,7 @@ module vga
                     x_cnt   <= 1'b0;
                 end
 				if (vga_x[$clog2(FONTWIDTH)-1:0] == (FONTWIDTH-2-X_FETCH_DELAY)) begin
-					vga_mem_addr <= vga_mem_addr + 2;
+					vga_mem_addr <= vga_mem_addr + 16'd2;
 				end
 				// Latch symbol at the last column of font
 				if (vga_x[$clog2(FONTWIDTH)-1:0] == (FONTWIDTH-X_FETCH_DELAY)) begin

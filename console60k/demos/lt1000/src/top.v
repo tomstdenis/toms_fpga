@@ -9,13 +9,36 @@ module top
     // rest of pins
     inout wire [61:0] gpio,
 
+    // VGA
+    output reg [1:0] vga_r,
+    output reg [1:0] vga_g,
+    output reg [1:0] vga_b,
+    output reg       vga_h_pulse,
+    output reg       vga_v_pulse,
+
     // UART
     input wire uart_rx,
     output wire uart_tx
 );
-    reg rst_n = 0;
-    always @(posedge clk) begin
-        rst_n   <= 1;
+    wire core_clk;
+    wire vga_clk;
+
+    lt1000clk daysofourlives(
+        .clkin(clk), //input  clkin
+        .clkout0(core_clk), //output  clkout0
+        .clkout1(vga_clk) //output  clkout1
+    );
+
+    reg crst_n;
+    initial crst_n = 1'b0;
+    always @(posedge core_clk) begin
+        crst_n <= 1'b1;
+    end
+
+    reg vrst_n;
+    initial vrst_n = 4'b0000;
+    always @(posedge vga_clk) begin
+        vrst_n <= 1'b1;
     end
 
     wire [31:0] gpio_dout;
@@ -30,13 +53,28 @@ module top
     endgenerate
     assign gpio_din = gpio[31:0];
 
+    wire [3:0] ltvga_r;
+    wire [3:0] ltvga_g;
+    wire [3:0] ltvga_b;
+    wire       ltvga_h_pulse;
+    wire       ltvga_v_pulse;
+
+    always @(posedge vga_clk) begin
+        vga_r       <= ltvga_r[3:2];
+        vga_g       <= ltvga_g[3:2];
+        vga_b       <= ltvga_b[3:2];
+        vga_h_pulse <= ltvga_h_pulse;
+        vga_v_pulse <= ltvga_v_pulse;
+    end
+
     lt1000soc #(
         .CORE_FREQ_KHZ(`FREQ),
         .UART_BAUD(1_000_000)
     ) lt1000soc
     (
-        .rst_n(rst_n), .core_clk(clk), .vga_clk(clk),
+        .core_rst_n(crst_n), .core_clk(core_clk), .vga_rst_n(vrst_n), .vga_clk(vga_clk),
         .uart_rx(uart_rx), .uart_tx(uart_tx),
-        .gpio_din(gpio_din), .gpio_dout(gpio_dout), .gpio_oe(gpio_oe)
+        .gpio_din(gpio_din), .gpio_dout(gpio_dout), .gpio_oe(gpio_oe),
+        .vga_r(ltvga_r), .vga_g(ltvga_g), .vga_b(ltvga_b), .vga_h_pulse(ltvga_h_pulse), .vga_v_pulse(ltvga_v_pulse)
     );
 endmodule

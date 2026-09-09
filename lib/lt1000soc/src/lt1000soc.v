@@ -25,13 +25,14 @@ module lt1000soc
 
     // *** UART parameters ***
     parameter UART_BAUD       = 1_000_000,
-    parameter UART_FIFO_DEPTH = 8
+    parameter UART_FIFO_DEPTH = 64
 ) 
 (
     // *** Clocks ***
     input  wire       core_clk,                  // The clock for the CPU
     input  wire       vga_clk,                   // The clock for the VGA
-    input  wire       rst_n,
+    input  wire       core_rst_n,
+    input  wire       vga_rst_n,
 
     // *** VGA output ***
     output wire [3:0] vga_r,                     // VGA red channel
@@ -69,7 +70,7 @@ module lt1000soc
 	assign crst_n = crst[15];
 	
 	always @(posedge core_clk) begin
-		if (!rst_n) begin
+		if (!core_rst_n) begin
 			crst <= 16'b0;
 		end else begin
 			crst <= {crst[14:0], 1'b1};
@@ -82,7 +83,7 @@ module lt1000soc
 	assign vrst_n = vrst[15];
 	
 	always @(posedge vga_clk) begin
-		if (!rst_n) begin
+		if (!vga_rst_n) begin
 			vrst <= 16'b0;
 		end else begin
 			vrst <= {vrst[14:0], 1'b1};
