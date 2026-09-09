@@ -63,6 +63,32 @@ module lt1000soc
     output wire       uart_tx                    // UART TX pin
 );
 
+	// core reset
+	reg [15:0] crst;
+	wire crst_n;
+	assign crst_n = crst[15];
+	
+	always @(posedge core_clk) begin
+		if (!rst_n) begin
+			crst <= 16'b0;
+		end else begin
+			crst <= {crst[14:0], 1'b1};
+		end
+	end
+	
+	// vga reset
+	reg [15:0] vrst;
+	wire vrst_n;
+	assign vrst_n = vrst[15];
+	
+	always @(posedge vga_clk) begin
+		if (!rst_n) begin
+			vrst <= 16'b0;
+		end else begin
+			vrst <= {vrst[14:0], 1'b1};
+		end
+	end
+
 // memory addressing 
 localparam 
     // regions (one hot selector)
@@ -150,16 +176,28 @@ localparam
     end
 
 // *** VGA ***
-    reg         vga_video_mode;
-    reg         vga_page_sel;
+	reg         cvga_video_mode;
+	reg         cvga_page_sel;
+    reg [1:0]   vga_video_mode;
+    reg [1:0]   vga_page_sel;
     reg [16:0]  vga_host_addr;
     reg [31:0]  vga_data_in;
     reg [3:0]   vga_wren;
     wire [31:0] vga_data_out;
+    
+    always @(posedge vga_clk) begin
+		if (!vrst_n) begin
+			vga_video_mode <= 2'b00;
+			vga_page_sel   <= 2'b00;
+		end else begin
+			vga_video_mode <= {vga_video_mode[0], cvga_video_mode};
+			vga_page_sel   <= {vga_page_sel[0], cvga_page_sel};
+		end
+	end
 
     vga vga(
-        .vga_clk(vga_clk), .host_clk(core_clk), .rst_n(rst_n),
-        .video_mode(vga_video_mode), .page_sel(vga_page_sel),
+        .vga_clk(vga_clk), .host_clk(core_clk), .rst_n(vrst_n),
+        .video_mode(vga_video_mode[1]), .page_sel(vga_page_sel[1]),
         .host_addr(vga_host_addr), .host_data_in(vga_data_in),
         .host_write_mask(vga_wren), .host_data_out(vga_data_out),
         .vga_r(vga_r), .vga_g(vga_g), .vga_b(vga_b), .vga_v_blank(vga_v_pulse),
@@ -184,7 +222,7 @@ localparam
     uart #(
         .FIFO_DEPTH(UART_FIFO_DEPTH), .RX_ENABLE(1), .TX_ENABLE(1), .BAUD_WIDTH(BAUD_WIDTH)
     ) uart (
-        .clk(core_clk), .rst_n(rst_n), .baud_div(uart_baud),
+        .clk(core_clk), .rst_n(crst_n), .baud_div(uart_baud),
         .uart_tx_start(uart_tx_start), .uart_tx_data_in(uart_tx_data_in),
         .uart_tx_pin(uart_tx), .uart_tx_fifo_full(uart_tx_fifo_full),
         .uart_tx_fifo_empty(uart_tx_fifo_empty), .uart_rx_pin(uart_rx),
@@ -205,7 +243,7 @@ localparam
     nanocache #(
         .CACHE_SIZE(CACHE_SIZE_BITS), .FREQ(CORE_FREQ_KHZ/1000)
     ) psram_mem (
-        .clk(core_clk), .rst_n(rst_n),
+        .clk(core_clk), .rst_n(crst_n),
         .data_in(psram_data_in), .write_mask(psram_write_mask),
         .data_addr(psram_data_addr), .data_wr_en(psram_data_wr_en),
         .data_out(psram_data_out), .valid(psram_valid), .ready(psram_ready),
@@ -239,7 +277,7 @@ localparam
         .PROGADDR_RESET(RV_PROGADDR_RESET),
         .STACKADDR(RV_STACKADDR)
     ) picorv32 (
-        .clk(core_clk), .resetn(rst_n), .trap(picorv_trap),
+        .clk(core_clk), .resetn(crst_n), .trap(picorv_trap),
         .mem_valid(picorv_mem_valid), .mem_instr(picorv_mem_instr),
         .mem_ready(picorv_mem_ready), .mem_addr(picorv_mem_addr),
         .mem_wdata(picorv_mem_wdata), .mem_wstrb(picorv_mem_wstrb),
@@ -489,10 +527,10 @@ localparam
                     end
                     MMIO_VGA_CTRL: begin
                         if (mmio_wren[0]) begin
-                            vga_video_mode <= mmio_data_in[0];
-                            vga_page_sel   <= mmio_data_in[1];
+                            cvga_video_mode <= mmio_data_in[0];
+                            cvga_page_sel   <= mmio_data_in[1];
                         end else begin
-                            mmio_data_out  <= { 30'b0, vga_page_sel, vga_video_mode };
+                            mmio_data_out  <= { 30'b0, cvga_page_sel, cvga_video_mode };
                         end
                     end
                     MMIO_SPI_TRANSFER: begin
@@ -507,14 +545,14 @@ localparam
                 endcase
             end
         end
-        if (!rst_n) begin
+        if (!crst_n) begin
             bus_cycle          <= 1'b0;
             uart_tx_start      <= 1'b0;
             uart_rx_read       <= 1'b0;
             psram_valid        <= 1'b0;
             mmio_uart_rx_delay <= 1'b0;
-            vga_page_sel       <= 1'b0;
-            vga_video_mode     <= 1'b0;
+            cvga_page_sel      <= 1'b0;
+            cvga_video_mode    <= 1'b0;
             picorv_mem_ready   <= 1'b0;
             gpio_dout          <= 32'b0;
             gpio_oe            <= 32'b0;
