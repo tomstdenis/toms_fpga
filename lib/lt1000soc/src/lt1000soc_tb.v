@@ -15,7 +15,7 @@ module lt1000soc_tb();
         cycles <= cycles + 1;
     end
 
-    lt1000soc #(.CORE_FREQ_KHZ(50_000)) lt1000dut(
+    lt1000soc #(.CORE_FREQ_KHZ(50_000), .UART_BAUD(1_000_000)) lt1000dut(
         .core_clk(clk), .vga_clk(clk), .rst_n(rst_n)
     );
 
@@ -28,7 +28,7 @@ module lt1000soc_tb();
         rst_n  = 0;
         clk    = 0;
 
-        while (cycles < 100) @(posedge clk);
+        while (cycles < 50000) @(posedge clk);
         $finish;
     end
 endmodule

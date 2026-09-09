@@ -11,10 +11,10 @@ IO_PORT "clk" PULL_MODE=NONE IO_TYPE=LVCMOS33;
 (gpio[39:32]) PMOD4 ◄───┤                             ├───► PMOD3 (gpio[31:24])
                         │   │   ┌─────────────┐  │    │                        
                         │   │   │             │  │    │                        
-(gpio(47:40]) PMOD5 ◄───┤   │   │             │  │    ├───► PMOD2 (gpio(23:16])
+(gpio[47:40]) PMOD5 ◄───┤   │   │             │  │    ├───► PMOD2 (gpio[23:16])
                         │   │   │     SOM     │  │    │                        
                         │   │   │             │  │    │                        
-(gpio(55:48]) PMOD6 ◄───┤   │   │             │  │    ├───► PMOD1 (gpio[15:8]) 
+(gpio[55:48]) PMOD6 ◄───┤   │   │             │  │    ├───► PMOD1 (gpio[15:8]) 
                         │   │   │             │  │    │                        
                         │   │   └─────────────┘  │    │                        
 (gpio[63:56]) PMOD7 ◄───┤   │                    │    ├───► PMOD0 (gpio[7:0])  

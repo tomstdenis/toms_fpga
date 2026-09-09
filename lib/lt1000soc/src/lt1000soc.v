@@ -4,7 +4,6 @@
 // SOC revision
 `define LT1000SOC_REV 8'h00
 
-
 // GW5AT-LV60PG484AC1/I0
 
 module lt1000soc
@@ -266,7 +265,7 @@ localparam
     reg [31:0]  mmio_data_out;
     reg [31:0]  mmio_data_in;
     reg [3:0]   mmio_wren;
-    reg [23:0]  mmio_addr;
+    reg [7:0]   mmio_addr;
 
     localparam
         MMIO_MCFG         = 8'h00,
@@ -295,10 +294,10 @@ localparam
         mmio_reg_mcfg[19:15] = TCM_SIZE_BITS;
         mmio_reg_mcfg[27:20] = `LT1000SOC_REV;
         mmio_reg_gpio_din    = gpio_din;
-        mmio_reg_uart_status = 0;
-        mmio_reg_uart_status[2:0] = { uart_rx_ready, uart_tx_fifo_empty, uart_tx_fifo_full };
+        mmio_reg_uart_status = { 29'b0, uart_rx_ready, uart_tx_fifo_empty, uart_tx_fifo_full };
 
         // assign inputs
+        bios_mem_addr = picorv_mem_addr[12:0];
         tcm_addr = picorv_mem_addr[TCM_SIZE_BITS-1:0];
         tcm_din0 = picorv_mem_wdata[7:0];
         tcm_din1 = picorv_mem_wdata[15:8];
@@ -310,7 +309,7 @@ localparam
               picorv_mem_wdata[23:16], picorv_mem_wdata[31:24] };
         vga_host_addr = picorv_mem_addr[16:0];
         vga_data_in   = picorv_mem_wdata;
-        mmio_addr     = picorv_mem_addr[23:0];
+        mmio_addr     = picorv_mem_addr[7:0];
         mmio_data_in  = picorv_mem_wdata;
 
         // ensure wren's are zeroed out 
@@ -508,7 +507,7 @@ localparam
                         vga_video_mode <= mmio_data_in[0];
                         vga_page_sel   <= mmio_data_in[1];
                     end else begin
-                        mmio_data_out  <= { 32'b0, vga_page_sel, vga_video_mode };
+                        mmio_data_out  <= { 30'b0, vga_page_sel, vga_video_mode };
                     end
                 end
                 MMIO_SPI_TRANSFER: begin
