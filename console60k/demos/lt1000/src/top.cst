@@ -1,6 +1,13 @@
 IO_LOC "clk" V22;
 IO_PORT "clk" PULL_MODE=NONE IO_TYPE=LVCMOS33;
 
+// *** PSRAM ***
+// onboard PMOD next to DVI port
+// TOP: VCC GND E21 E22 F19 W19
+// BOT: VCC GND D21 D22 F20 W20
+// TODO: pins
+
+// *** VGA ***
 // onboard PMOD next to USB type A port
 // TOP: VCC GND C22 F18 G21 V18
 // BOT: VCC GND B22 E18 G22 V19
@@ -21,6 +28,13 @@ IO_PORT "vga_b[1]" IO_TYPE=LVCMOS33  DRIVE=8 BANK_VCCIO=3.3;
 IO_LOC "vga_b[0]" V19;
 IO_PORT "vga_b[0]" IO_TYPE=LVCMOS33  DRIVE=8 BANK_VCCIO=3.3;
 
+
+// The rest of the pins are on PMOD hats
+
+// PMOD7 == Serial (ESP32C3)
+// PMOD6 == SPI devices (currently just Sipeed SD board but eventually will be a multi IC board)
+// PMOD4 == debug 8 LED board
+// PMOD0..PMOD3 == 32 GPIO lanes
 
 /*
 

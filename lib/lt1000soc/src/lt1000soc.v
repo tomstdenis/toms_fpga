@@ -531,12 +531,14 @@ localparam
                             picorv_mem_rdata <= mmio_reg_spi_transfer_out;
                         end
                     end
+                    default: picorv_mem_rdata <= 32'hBEBEBEEF;
                 endcase
-            end else begin
+            end else begin // default 16M region that isn't mapped to anything
                 // unmapped memory just return ready better than hanging I guess 
                 picorv_mem_ready <= 1'b1;
+                picorv_mem_rdata <= 32'hBEBEBEEF;
             end
-        end else begin
+        end else begin // ready & valid (reset things before the next bus access)
             bus_cycle <= 0;
         end
         if (!crst_n) begin
