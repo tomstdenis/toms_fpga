@@ -1,4 +1,6 @@
-// These work for my ESP PSRAMH 64-bit single IC setup
+// These work for my ISSI 128Mbit single PSRAM chip
+
+
 LOCATE      COMP "clk"    SITE "P3";
 IOBUF       PORT "clk"    IO_TYPE=LVCMOS33;
 FREQUENCY   PORT "clk"    25 MHZ;
@@ -30,7 +32,7 @@ IOBUF		PORT "sio[3]"		PULLMODE=UP IO_TYPE=LVCMOS33 DRIVE=4 SLEWRATE=FAST;
 
 // SCK is on top next to GND
 LOCATE		COMP "sck_pin"		 	SITE "E3";
-IOBUF		PORT "sck_pin"			PULLMODE=DOWN IO_TYPE=LVCMOS33 DRIVE=8 SLEWRATE=FAST;
+IOBUF		PORT "sck_pin"			PULLMODE=DOWN IO_TYPE=LVCMOS33 DRIVE=16 SLEWRATE=FAST;
 
 // CS is on top next to SCK
 LOCATE		COMP "cs_pin"			SITE "C2";

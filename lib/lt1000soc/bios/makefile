@@ -8,6 +8,7 @@ bios.bin: bios.elf
 
 bios.elf: bios.c crt0.s bios.ld
 	@riscv32-unknown-elf-gcc -march=rv32imc -mabi=ilp32 -Os -ffreestanding -nostdlib -T bios.ld crt0.s bios.c -o bios.elf
+#	@riscv32-unknown-elf-gcc -march=rv32i -mabi=ilp32 -Os -ffreestanding -nostdlib -T bios.ld crt0.s bios.c -o bios.elf
 
 clean:
 	@rm -f bios.elf
