@@ -31,7 +31,6 @@ module goamd(
 	
 	// fsm
 	reg [1:0] fsm_state;
-	reg [1:0] fsm_tag;
 	
 	localparam
 		STATE_INIT=0,
@@ -40,8 +39,9 @@ module goamd(
 		STATE_DELAY=3;
 		
 	initial begin
-		fsm_state = STATE_INIT;
-		message   = { CHAR_G, CHAR_O, CHAR_SPC, CHAR_A, CHAR_M, CHAR_D, CHAR_EXC, CHAR_EXC };
+		fsm_state  = STATE_INIT;
+		char_morse = 1;
+		message    = { CHAR_G, CHAR_O, CHAR_SPC, CHAR_A, CHAR_M, CHAR_D, CHAR_EXC, CHAR_EXC };
 	end
 	
 	always @(posedge clk) begin
@@ -63,7 +63,6 @@ module goamd(
 					CHAR_SPC: begin // intra word gap
 						timer <= ui_time * 7;
 						fsm_state <= STATE_DELAY;
-						fsm_tag   <= fsm_state;
 					end
 					CHAR_A: begin // .-
 						char_morse <= 3'b110;
@@ -85,7 +84,6 @@ module goamd(
 				char_morse <= {1'b0, char_morse[7:1]};
 				led        <= 1'b1;
 				fsm_state  <= STATE_DELAY;
-				fsm_tag    <= (char_morse[7:1] == 1) ? STATE_NEXT_CHAR : fsm_state;
 			end
 			STATE_DELAY: begin
 				timer <= timer - 1'b1;
@@ -94,7 +92,7 @@ module goamd(
 					if (led == 1) begin // inter delay (character, or element)
 						timer <= (char_morse == 1) ? (3 * ui_time) : ui_time;
 					end else begin
-						fsm_state <= fsm_tag;
+						fsm_state <= (char_morse == 1) ? STATE_NEXT_CHAR : STATE_NEXT_BIT;
 					end
 				end
 			end
