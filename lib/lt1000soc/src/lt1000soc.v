@@ -16,7 +16,7 @@ module lt1000soc
     parameter RV_TWO_CYCLE_COMPARE=0,
     parameter RV_TWO_CYCLE_ALU=0,
  	parameter RV_TWO_STAGE_SHIFT=0,
-	parameter RV_BARREL_SHIFTER=0,
+	parameter RV_BARREL_SHIFTER=1,
     parameter RV_LATCHED_MEM_RDATA=0,
     parameter RV_COMPRESSED_ISA=1,
     parameter RV_ENABLE_MUL=1,

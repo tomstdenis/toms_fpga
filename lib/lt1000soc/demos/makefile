@@ -1,7 +1,15 @@
-all: loader gfx_circle.bin gfx_wire.bin
+all: loader gfx_circle.bin gfx_wire.bin gfx_plasma.bin gfx_flatcube.bin
 
 loader: loader.c
 	gcc loader.c -o loader
+
+gfx_flatcube.bin: gfx_flatcube.c
+	@riscv32-unknown-elf-gcc -march=rv32imc -mabi=ilp32 -O3 -ffreestanding -nostartfiles -T app.ld crt0.s gfx_flatcube.c -o gfx_flatcube.elf
+	@riscv32-unknown-elf-objcopy -O binary gfx_flatcube.elf gfx_flatcube.bin
+
+gfx_plasma.bin: gfx_plasma.c
+	@riscv32-unknown-elf-gcc -march=rv32imc -mabi=ilp32 -O3 -ffreestanding -nostartfiles -T app.ld crt0.s gfx_plasma.c -o gfx_plasma.elf
+	@riscv32-unknown-elf-objcopy -O binary gfx_plasma.elf gfx_plasma.bin
 
 gfx_wire.bin: gfx_wire.c
 	@riscv32-unknown-elf-gcc -march=rv32imc -mabi=ilp32 -O3 -ffreestanding -nostartfiles -T app.ld crt0.s gfx_wire.c -o gfx_wire.elf
