@@ -7,9 +7,9 @@
 module lt1000soc
 #(
     // *** SOC parameters ***
-    parameter CORE_FREQ_KHZ   = 50_000,         // 50MHz default core clock
-    parameter CACHE_SIZE_BITS = 12,             // 4KB cache for PSRAM region
-    parameter TCM_SIZE_BITS   = 15,             // 32KB TCM region
+    parameter CORE_FREQ_KHZ   = 50_000,         // core clock
+    parameter CACHE_SIZE_BITS = 12,             // cache for PSRAM region
+    parameter TCM_SIZE_BITS   = 16,             // TCM region
     parameter SRAM_ADDR_WIDTH = 24,
 
     // *** RV parameters ***
