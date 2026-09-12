@@ -1,6 +1,6 @@
 `default_nettype none
 
-`define FREQ 50_000
+`define FREQ 70_000
 
 module top
 (
@@ -8,6 +8,11 @@ module top
 
     // rest of pins
     inout wire [61:0] gpio,
+
+    // PSRAM
+    output wire psram_sck_pin,
+    output wire psram_cs_pin,
+    inout wire [3:0] psram_sio,
 
     // VGA
     output reg [1:0] vga_r,
@@ -41,6 +46,14 @@ module top
         vrst_n <= 1'b1;
     end
 
+    // PSRAM
+    wire [3:0] psram_sio_din;
+    wire [3:0] psram_sio_dout;
+    wire       psram_sio_en;
+    assign psram_sio     = psram_sio_en ? psram_sio_dout : 4'bzzzz;
+    assign psram_sio_din = psram_sio;
+
+    // GPIO
     wire [31:0] gpio_dout;
     wire [31:0] gpio_din;
     wire [31:0] gpio_oe;
@@ -53,6 +66,7 @@ module top
     endgenerate
     assign gpio_din = gpio[31:0];
 
+    // VGA
     wire [3:0] ltvga_r;
     wire [3:0] ltvga_g;
     wire [3:0] ltvga_b;
@@ -74,7 +88,15 @@ module top
     (
         .core_rst_n(crst_n), .core_clk(core_clk), .vga_rst_n(vrst_n), .vga_clk(vga_clk),
         .uart_rx(uart_rx), .uart_tx(uart_tx),
+
+        // PSRAM
+        .psram_sio_din(psram_sio_din), .psram_sio_dout(psram_sio_dout), .psram_sio_en(psram_sio_en),
+        .psram_cs_pin(psram_cs_pin), .psram_sck_pin(psram_sck_pin),
+
+        // GPIO
         .gpio_din(gpio_din), .gpio_dout(gpio_dout), .gpio_oe(gpio_oe),
+
+        // VGA
         .vga_r(ltvga_r), .vga_g(ltvga_g), .vga_b(ltvga_b), .vga_h_pulse(ltvga_h_pulse), .vga_v_pulse(ltvga_v_pulse)
     );
 endmodule

@@ -8,7 +8,7 @@ module lt1000soc
 #(
     // *** SOC parameters ***
     parameter CORE_FREQ_KHZ   = 50_000,         // 50MHz default core clock
-    parameter CACHE_SIZE_BITS = 12,             // 8KB cache for PSRAM region
+    parameter CACHE_SIZE_BITS = 12,             // 4KB cache for PSRAM region
     parameter TCM_SIZE_BITS   = 15,             // 32KB TCM region
     parameter SRAM_ADDR_WIDTH = 24,
 
@@ -176,6 +176,8 @@ localparam
 // *** VGA ***
 	reg         cvga_video_mode;
 	reg         cvga_page_sel;
+    reg         vga_h_blank_l;
+    reg         vga_v_blank_l;
     wire        vga_h_blank;
     wire        vga_v_blank;
     reg [1:0]   cvga_h_blank;
@@ -194,6 +196,8 @@ localparam
 		end else begin
 			vga_video_mode <= {vga_video_mode[0], cvga_video_mode};
 			vga_page_sel   <= {vga_page_sel[0], cvga_page_sel};
+            vga_h_blank_l  <= vga_h_blank;
+            vga_v_blank_l  <= vga_v_blank;
 		end
 	end
 
@@ -202,8 +206,8 @@ localparam
             cvga_h_blank <= 2'b00;
             cvga_v_blank <= 2'b00;
         end else begin
-            cvga_h_blank <= {cvga_h_blank[0], vga_h_blank};
-            cvga_v_blank <= {cvga_v_blank[0], vga_v_blank};
+            cvga_h_blank <= {cvga_h_blank[0], vga_h_blank_l};
+            cvga_v_blank <= {cvga_v_blank[0], vga_v_blank_l};
         end
     end
 
@@ -403,6 +407,7 @@ localparam
                     // wait till ready (and picorv drops valid)
                     bus_cycle[0]     <= ~psram_ready;
                     picorv_mem_ready <= psram_ready;
+                    picorv_mem_rdata <= { psram_data_out[7:0], psram_data_out[15:8], psram_data_out[23:16], psram_data_out[31:24] };
                 end
             end else if (picorv_mem_addr[MEM_16M_MMIO]) begin
 // *** MMIO ***
