@@ -8,7 +8,7 @@ module lt1000soc
 #(
     // *** SOC parameters ***
     parameter CORE_FREQ_KHZ   = 50_000,         // core clock
-    parameter CACHE_SIZE_BITS = 12,             // cache for PSRAM region
+    parameter CACHE_SIZE_BITS = 13,             // cache for PSRAM region
     parameter TCM_SIZE_BITS   = 16,             // TCM region
     parameter SRAM_ADDR_WIDTH = 24,
 
@@ -257,7 +257,8 @@ localparam
     wire        psram_idle;
 
     nanocache #(
-        .CACHE_SIZE(CACHE_SIZE_BITS), .FREQ(CORE_FREQ_KHZ/1000)
+        .CACHE_SIZE(CACHE_SIZE_BITS), 
+        .FREQ(CORE_FREQ_KHZ/1000)
     ) psram_mem (
         .clk(core_clk), .rst_n(crst_n),
         .data_in(psram_data_in), .write_mask(psram_write_mask),
