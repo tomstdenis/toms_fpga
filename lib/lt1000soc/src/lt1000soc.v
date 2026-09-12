@@ -19,9 +19,10 @@ module lt1000soc
 	parameter RV_BARREL_SHIFTER=0,
     parameter RV_COMPRESSED_ISA=1,
     parameter RV_ENABLE_MUL=1,
+    parameter RV_ENABLE_FAST_MUL=0,
     parameter RV_ENABLE_DIV=1,
     parameter RV_PROGADDR_RESET=32'h0100_0000,
-    parameter RV_STACKADDR=32'h0200_7FFF,
+    parameter RV_STACKADDR=32'h0200_8000,
 
     // *** UART parameters ***
     parameter UART_BAUD       = 1_000_000,
@@ -152,33 +153,33 @@ localparam
     always @(posedge core_clk) begin
         if (tcm_wren[0]) begin
             tcm_lane0[tcm_addr[TCM_SIZE_BITS-1:2]] <= tcm_din0;
-        end else begin
-            tcm_dout0_tmp <= tcm_lane0[tcm_addr[TCM_SIZE_BITS-1:2]];
-            tcm_dout0     <= tcm_dout0_tmp;
         end
         if (tcm_wren[1]) begin
             tcm_lane1[tcm_addr[TCM_SIZE_BITS-1:2]] <= tcm_din1;
-        end else begin
-            tcm_dout1_tmp <= tcm_lane1[tcm_addr[TCM_SIZE_BITS-1:2]];
-            tcm_dout1     <= tcm_dout1_tmp;
         end
         if (tcm_wren[2]) begin
             tcm_lane2[tcm_addr[TCM_SIZE_BITS-1:2]] <= tcm_din2;
-        end else begin
-            tcm_dout2_tmp <= tcm_lane2[tcm_addr[TCM_SIZE_BITS-1:2]];
-            tcm_dout2     <= tcm_dout2_tmp;
         end
         if (tcm_wren[3]) begin
             tcm_lane3[tcm_addr[TCM_SIZE_BITS-1:2]] <= tcm_din3;
-        end else begin
-            tcm_dout3_tmp <= tcm_lane3[tcm_addr[TCM_SIZE_BITS-1:2]];
-            tcm_dout3     <= tcm_dout3_tmp;
         end
+        tcm_dout0_tmp <= tcm_lane0[tcm_addr[TCM_SIZE_BITS-1:2]];
+        tcm_dout0     <= tcm_dout0_tmp;
+        tcm_dout1_tmp <= tcm_lane1[tcm_addr[TCM_SIZE_BITS-1:2]];
+        tcm_dout1     <= tcm_dout1_tmp;
+        tcm_dout2_tmp <= tcm_lane2[tcm_addr[TCM_SIZE_BITS-1:2]];
+        tcm_dout2     <= tcm_dout2_tmp;
+        tcm_dout3_tmp <= tcm_lane3[tcm_addr[TCM_SIZE_BITS-1:2]];
+        tcm_dout3     <= tcm_dout3_tmp;
     end
 
 // *** VGA ***
 	reg         cvga_video_mode;
 	reg         cvga_page_sel;
+    wire        vga_h_blank;
+    wire        vga_v_blank;
+    reg [1:0]   cvga_h_blank;
+    reg [1:0]   cvga_v_blank;
     reg [1:0]   vga_video_mode;
     reg [1:0]   vga_page_sel;
     reg [16:0]  vga_host_addr;
@@ -196,13 +197,23 @@ localparam
 		end
 	end
 
+    always @(posedge core_clk) begin
+        if (!crst_n) begin
+            cvga_h_blank <= 2'b00;
+            cvga_v_blank <= 2'b00;
+        end else begin
+            cvga_h_blank <= {cvga_h_blank[0], vga_h_blank};
+            cvga_v_blank <= {cvga_v_blank[0], vga_v_blank};
+        end
+    end
+
     vga vga(
         .vga_clk(vga_clk), .host_clk(core_clk), .rst_n(vrst_n),
         .video_mode(vga_video_mode[1]), .page_sel(vga_page_sel[1]),
         .host_addr(vga_host_addr), .host_data_in(vga_data_in),
         .host_write_mask(vga_wren), .host_data_out(vga_data_out),
         .vga_r(vga_r), .vga_g(vga_g), .vga_b(vga_b), .vga_v_pulse(vga_v_pulse),
-        .vga_h_pulse(vga_h_pulse)
+        .vga_h_pulse(vga_h_pulse), .vga_v_blank(vga_v_blank), .vga_h_blank(vga_h_blank)
     );
 
 // *** UART ***
@@ -273,6 +284,7 @@ localparam
 	    .BARREL_SHIFTER(RV_BARREL_SHIFTER),
         .COMPRESSED_ISA(RV_COMPRESSED_ISA),
         .ENABLE_MUL(RV_ENABLE_MUL),
+        .ENABLE_FAST_MUL(RV_ENABLE_FAST_MUL),
         .ENABLE_DIV(RV_ENABLE_DIV),
         .PROGADDR_RESET(RV_PROGADDR_RESET),
         .STACKADDR(RV_STACKADDR)
@@ -309,6 +321,10 @@ localparam
         mmio_reg_mcfg[11:0]  = CORE_FREQ_KHZ / 10;
         mmio_reg_mcfg[19:15] = TCM_SIZE_BITS;
         mmio_reg_mcfg[27:20] = `LT1000SOC_REV;
+
+        bios_mem_addr = picorv_mem_addr[12:0];
+        tcm_addr      = picorv_mem_addr[TCM_SIZE_BITS-1:0];
+        vga_host_addr = picorv_mem_addr[16:0];
     end
 
     // driver of ready signal
@@ -327,11 +343,9 @@ localparam
         vga_wren             <= 4'b0000;
 
         // respond to valid only if ready is already low
-//        picorv_mem_rdata <= 32'hBEBEBEEF;
         if (~picorv_mem_ready & picorv_mem_valid) begin
             if (picorv_mem_addr[MEM_16M_BIOS]) begin
 // *** BIOS ***
-                bios_mem_addr <= picorv_mem_addr[12:0];
 
             // simple memories with 1 cycle delay on reads
                 if (|picorv_mem_wstrb) begin
@@ -339,12 +353,11 @@ localparam
                 end else begin
                     // memory address is set, now we wait two cycles
                     bus_cycle        <= bus_cycle + 1'b1;
-                    picorv_mem_ready <= bus_cycle == 3 ? 1 : 0;
+                    picorv_mem_ready <= bus_cycle == 2 ? 1 : 0;
                     picorv_mem_rdata <= { bios_mem_dout3, bios_mem_dout2, bios_mem_dout1, bios_mem_dout0 };
                 end
             end else if (picorv_mem_addr[MEM_16M_TCM]) begin
 // *** TCM ***
-                tcm_addr <= picorv_mem_addr[TCM_SIZE_BITS-1:0];
                 tcm_din0 <= picorv_mem_wdata[7:0];
                 tcm_din1 <= picorv_mem_wdata[15:8];
                 tcm_din2 <= picorv_mem_wdata[23:16];
@@ -357,12 +370,11 @@ localparam
                 end else begin
                     // memory address is set, now we wait two cycles
                     bus_cycle        <= bus_cycle + 1'b1;
-                    picorv_mem_ready <= bus_cycle == 3 ? 1 : 0;
+                    picorv_mem_ready <= bus_cycle == 2 ? 1 : 0;
                     picorv_mem_rdata <= { tcm_dout3, tcm_dout2, tcm_dout1, tcm_dout0 };
                 end
             end else if (picorv_mem_addr[MEM_16M_VGA]) begin
 // *** VGA ***
-                vga_host_addr <= picorv_mem_addr[16:0];
                 vga_data_in   <= picorv_mem_wdata;
                 vga_wren      <= picorv_mem_wstrb;
             // simple memories with 1 cycle delay on reads
@@ -371,7 +383,7 @@ localparam
                 end else begin
                     // memory address is set, now we wait two cycles
                     bus_cycle        <= bus_cycle + 1'b1;
-                    picorv_mem_ready <= bus_cycle == 3 ? 1 : 0;
+                    picorv_mem_ready <= bus_cycle == 2 ? 1 : 0;
                     picorv_mem_rdata <= vga_data_out;
                 end
             end else if (picorv_mem_addr[MEM_16M_PSRAM]) begin
@@ -519,7 +531,7 @@ localparam
                             cvga_video_mode <= picorv_mem_wdata[0];
                             cvga_page_sel   <= picorv_mem_wdata[1];
                         end else begin
-                            picorv_mem_rdata  <= { 30'b0, cvga_page_sel, cvga_video_mode };
+                            picorv_mem_rdata  <= { 28'b0, cvga_v_blank[1], cvga_h_blank[1], cvga_page_sel, cvga_video_mode };
                         end
                     end
                     MMIO_SPI_TRANSFER: begin

@@ -7,20 +7,20 @@ MEMORY
     TCM (rwx) : ORIGIN = 0x02000000, LENGTH = 32K
 }
 
-/* Define top of TCM for the stack: 0x02000000 + 32K */
 __stack_top = ORIGIN(TCM) + LENGTH(TCM);
 
 SECTIONS
 {
-    /* Code and read-only data live in ROM */
     .text : ALIGN(4) {
-        *(.text._start)   /* Ensure _start is at the absolute top of ROM */
+        *(.text._start)
         *(.text .text.*)
         *(.rodata .rodata.*)
         *(.srodata .srodata.*)
+        . = ALIGN(4);
     } > ROM
 
-    /* Loaded initialization data: stored in ROM, copied to TCM at boot */
+    __data_load_start = LOADADDR(.data);
+
     .data : ALIGN(4) {
         __data_start = .;
         *(.data .data.*)
@@ -29,10 +29,6 @@ SECTIONS
         __data_end = .;
     } > TCM AT > ROM
 
-    /* VMA/LMA symbols for .data initialization */
-    __data_load_start = LOADADDR(.data);
-
-    /* Uninitialized data resides in TCM */
     .bss (NOLOAD) : ALIGN(4) {
         __bss_start = .;
         *(.bss .bss.*)
@@ -42,7 +38,7 @@ SECTIONS
         __bss_end = .;
     } > TCM
 
-    /* Provide Global Pointer for small-data optimization */
+    /* Position GP in the middle of small data section in TCM */
     . = ALIGN(16);
-    __global_pointer$ = . + 0x800;
+    PROVIDE(__global_pointer$ = __data_start + 0x800);
 }
