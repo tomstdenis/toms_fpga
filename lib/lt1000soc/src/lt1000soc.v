@@ -317,6 +317,7 @@ localparam
     reg  [31:0] mmio_reg_spi_transfer_in;
     wire [31:0] mmio_reg_spi_transfer_out;
     reg         mmio_uart_rx_delay;
+    reg  [31:0] mmio_data_out;
 
     // combinatorially connect bus to blocks
     always @(*) begin
@@ -326,9 +327,42 @@ localparam
         mmio_reg_mcfg[19:15] = TCM_SIZE_BITS;
         mmio_reg_mcfg[27:20] = `LT1000SOC_REV;
 
-        bios_mem_addr = picorv_mem_addr[12:0];
-        tcm_addr      = picorv_mem_addr[TCM_SIZE_BITS-1:0];
-        vga_host_addr = picorv_mem_addr[16:0];
+        // addresses 
+        bios_mem_addr   = picorv_mem_addr[12:0];
+        tcm_addr        = picorv_mem_addr[TCM_SIZE_BITS-1:0];
+        vga_host_addr   = picorv_mem_addr[16:0];
+        psram_data_addr = picorv_mem_addr[SRAM_ADDR_WIDTH-1:0];
+
+        // data input routing
+        tcm_din0         = picorv_mem_wdata[7:0];
+        tcm_din1         = picorv_mem_wdata[15:8];
+        tcm_din2         = picorv_mem_wdata[23:16];
+        tcm_din3         = picorv_mem_wdata[31:24];
+        vga_data_in      = picorv_mem_wdata;
+        psram_data_in    = { picorv_mem_wdata[7:0], picorv_mem_wdata[15:8], picorv_mem_wdata[23:16], picorv_mem_wdata[31:24] }; // PSRAM is big endian
+
+        // default to all write enables off
+        picorv_mem_rdata  = 32'hBEBEBEEF;
+        tcm_wren          = 4'b0000;
+        psram_write_mask  = 4'b0000;
+        psram_data_wr_en  = 1'b0;
+        vga_wren          = 4'b0000;
+
+        if (picorv_mem_addr[MEM_16M_BIOS]) begin
+            picorv_mem_rdata = { bios_mem_dout3, bios_mem_dout2, bios_mem_dout1, bios_mem_dout0 };
+        end else if (picorv_mem_addr[MEM_16M_TCM]) begin
+            tcm_wren         = picorv_mem_valid ? picorv_mem_wstrb : 4'b0000;
+            picorv_mem_rdata = { tcm_dout3, tcm_dout2, tcm_dout1, tcm_dout0 };
+        end else if (picorv_mem_addr[MEM_16M_VGA]) begin
+            vga_wren         = picorv_mem_valid ? picorv_mem_wstrb : 4'b0000;
+            picorv_mem_rdata = vga_data_out;
+        end else if (picorv_mem_addr[MEM_16M_PSRAM]) begin
+            psram_write_mask = picorv_mem_valid ? { picorv_mem_wstrb[0], picorv_mem_wstrb[1], picorv_mem_wstrb[2], picorv_mem_wstrb[3] } : 4'b0000;
+            psram_data_wr_en = picorv_mem_valid ? |picorv_mem_wstrb : 1'b0;
+            picorv_mem_rdata = { psram_data_out[7:0], psram_data_out[15:8], psram_data_out[23:16], psram_data_out[31:24] };
+        end else if (picorv_mem_addr[MEM_16M_MMIO]) begin
+            picorv_mem_rdata = mmio_data_out;
+        end
     end
 
     // driver of ready signal
@@ -340,65 +374,22 @@ localparam
         uart_rx_read         <= 1'b0;
         mmio_uart_rx_delay   <= 1'b0;
         picorv_mem_ready     <= 1'b0;
-        tcm_wren             <= 4'b0000;
         psram_valid          <= 1'b0;
-        psram_write_mask     <= 4'b0000;
-        psram_data_wr_en     <= 1'b0;
-        vga_wren             <= 4'b0000;
 
         // respond to valid only if ready is already low
         if (~picorv_mem_ready & picorv_mem_valid) begin
-            if (picorv_mem_addr[MEM_16M_BIOS]) begin
-// *** BIOS ***
-
+            if (picorv_mem_addr[MEM_16M_BIOS] | picorv_mem_addr[MEM_16M_TCM] | picorv_mem_addr[MEM_16M_VGA]) begin
+// *** BIOS, TCM, VGA ***
             // simple memories with 1 cycle delay on reads
                 if (|picorv_mem_wstrb) begin
                     picorv_mem_ready <= 1'b1;
                 end else begin
                     // memory address is set, now we wait two cycles
-                    bus_cycle        <= bus_cycle + 1'b1;
-                    picorv_mem_ready <= bus_cycle == 2 ? 1 : 0;
-                    picorv_mem_rdata <= { bios_mem_dout3, bios_mem_dout2, bios_mem_dout1, bios_mem_dout0 };
-                end
-            end else if (picorv_mem_addr[MEM_16M_TCM]) begin
-// *** TCM ***
-                tcm_din0 <= picorv_mem_wdata[7:0];
-                tcm_din1 <= picorv_mem_wdata[15:8];
-                tcm_din2 <= picorv_mem_wdata[23:16];
-                tcm_din3 <= picorv_mem_wdata[31:24];
-                tcm_wren <= picorv_mem_wstrb;
-
-            // simple memories with 1 cycle delay on reads
-                if (|picorv_mem_wstrb) begin
-                    picorv_mem_ready <= 1'b1;
-                end else begin
-                    // memory address is set, now we wait two cycles
-                    bus_cycle        <= bus_cycle + 1'b1;
-                    picorv_mem_ready <= bus_cycle == 2 ? 1 : 0;
-                    picorv_mem_rdata <= { tcm_dout3, tcm_dout2, tcm_dout1, tcm_dout0 };
-                end
-            end else if (picorv_mem_addr[MEM_16M_VGA]) begin
-// *** VGA ***
-                vga_data_in   <= picorv_mem_wdata;
-                vga_wren      <= picorv_mem_wstrb;
-            // simple memories with 1 cycle delay on reads
-                if (|picorv_mem_wstrb) begin
-                    picorv_mem_ready <= 1'b1;
-                end else begin
-                    // memory address is set, now we wait two cycles
-                    bus_cycle        <= bus_cycle + 1'b1;
-                    picorv_mem_ready <= bus_cycle == 2 ? 1 : 0;
-                    picorv_mem_rdata <= vga_data_out;
+                    bus_cycle[0]     <= ~bus_cycle[0];
+                    picorv_mem_ready <= bus_cycle[0];
                 end
             end else if (picorv_mem_addr[MEM_16M_PSRAM]) begin
 // *** PSRAM ***
-                psram_data_addr <= picorv_mem_addr[SRAM_ADDR_WIDTH-1:0];
-                psram_data_in <= // byte swap since PSRAM is BE
-                    { picorv_mem_wdata[7:0], picorv_mem_wdata[15:8], 
-                      picorv_mem_wdata[23:16], picorv_mem_wdata[31:24] };
-                psram_write_mask <= { picorv_mem_wstrb[0], picorv_mem_wstrb[1], picorv_mem_wstrb[2], picorv_mem_wstrb[3] };
-                psram_data_wr_en <= |picorv_mem_wstrb;
-
                 if (psram_idle & ~bus_cycle) begin
                     // start job
                     bus_cycle        <= 1'b1;
@@ -407,7 +398,6 @@ localparam
                     // wait till ready (and picorv drops valid)
                     bus_cycle[0]     <= ~psram_ready;
                     picorv_mem_ready <= psram_ready;
-                    picorv_mem_rdata <= { psram_data_out[7:0], psram_data_out[15:8], psram_data_out[23:16], psram_data_out[31:24] };
                 end
             end else if (picorv_mem_addr[MEM_16M_MMIO]) begin
 // *** MMIO ***
@@ -416,51 +406,51 @@ localparam
                 case (picorv_mem_addr[7:0])
                     MMIO_MCFG: begin
                         if (!(|picorv_mem_wstrb)) begin
-                            picorv_mem_rdata <= mmio_reg_mcfg;
+                            mmio_data_out <= mmio_reg_mcfg;
                         end
                     end
                     MMIO_GPIO_DATA: begin
                         if (picorv_mem_wstrb[0]) begin
                             gpio_dout[7:0] <= picorv_mem_wdata[7:0];
                         end else begin
-                            picorv_mem_rdata[7:0] <= gpio_din[7:0];
+                            mmio_data_out[7:0] <= gpio_din[7:0];
                         end
                         if (picorv_mem_wstrb[1]) begin
                             gpio_dout[15:8] <= picorv_mem_wdata[15:8];
                         end else begin
-                            picorv_mem_rdata[15:8] <= gpio_din[15:8];
+                            mmio_data_out[15:8] <= gpio_din[15:8];
                         end
                         if (picorv_mem_wstrb[2]) begin
                             gpio_dout[23:16] <= picorv_mem_wdata[23:16];
                         end else begin
-                            picorv_mem_rdata[23:16] <= gpio_din[23:16];
+                            mmio_data_out[23:16] <= gpio_din[23:16];
                         end
                         if (picorv_mem_wstrb[3]) begin
                             gpio_dout[31:24] <= picorv_mem_wdata[31:24];
                         end else begin
-                            picorv_mem_rdata[31:24] <= gpio_din[31:24];
+                            mmio_data_out[31:24] <= gpio_din[31:24];
                         end
                     end
                     MMIO_GPIO_OE: begin
                         if (picorv_mem_wstrb[0]) begin
                             gpio_oe[7:0] <= picorv_mem_wdata[7:0];
                         end else begin
-                            picorv_mem_rdata[7:0] <= gpio_oe[7:0];
+                            mmio_data_out[7:0] <= gpio_oe[7:0];
                         end
                         if (picorv_mem_wstrb[1]) begin
                             gpio_oe[15:8] <= picorv_mem_wdata[15:8];
                         end else begin
-                            picorv_mem_rdata[15:8] <= gpio_oe[15:8];
+                            mmio_data_out[15:8] <= gpio_oe[15:8];
                         end
                         if (picorv_mem_wstrb[2]) begin
                             gpio_oe[23:16] <= picorv_mem_wdata[23:16];
                         end else begin
-                            picorv_mem_rdata[23:16] <= gpio_oe[23:16];
+                            mmio_data_out[23:16] <= gpio_oe[23:16];
                         end
                         if (picorv_mem_wstrb[3]) begin
                             gpio_oe[31:24] <= picorv_mem_wdata[31:24];
                         end else begin
-                            picorv_mem_rdata[31:24] <= gpio_oe[31:24];
+                            mmio_data_out[31:24] <= gpio_oe[31:24];
                         end
                     end
                     MMIO_GPIO_W1S: begin // Write one to set bit
@@ -513,7 +503,7 @@ localparam
                             end 
                         end else begin
                             // default to all FF if no bytes to read
-                            picorv_mem_rdata <= 32'hFFFF_FFFF;
+                            mmio_data_out <= 32'hFFFF_FFFF;
                             if (~mmio_uart_rx_delay & ~bus_cycle & uart_rx_ready) begin
                                 uart_rx_read       <= 1;
                                 bus_cycle          <= 1'b1;
@@ -524,19 +514,19 @@ localparam
                                 mmio_uart_rx_delay <= 1'b1;
                             end
                             if (mmio_uart_rx_delay) begin
-                                picorv_mem_rdata   <= {24'h0, uart_rx_byte};
+                                mmio_data_out   <= {24'h0, uart_rx_byte};
                             end
                         end
                     end
                     MMIO_UART_STATUS: begin
-                        picorv_mem_rdata <= { 29'b0, uart_rx_ready, uart_tx_fifo_empty, uart_tx_fifo_full };
+                        mmio_data_out <= { 29'b0, uart_rx_ready, uart_tx_fifo_empty, uart_tx_fifo_full };
                     end
                     MMIO_VGA_CTRL: begin
                         if (picorv_mem_wstrb[0]) begin
                             cvga_video_mode <= picorv_mem_wdata[0];
                             cvga_page_sel   <= picorv_mem_wdata[1];
                         end else begin
-                            picorv_mem_rdata  <= { 28'b0, cvga_v_blank[1], cvga_h_blank[1], cvga_page_sel, cvga_video_mode };
+                            mmio_data_out  <= { 28'b0, cvga_v_blank[1], cvga_h_blank[1], cvga_page_sel, cvga_video_mode };
                         end
                     end
                     MMIO_SPI_TRANSFER: begin
@@ -545,15 +535,15 @@ localparam
                             // TODO: actually call out to SPI module and block
                             //     : ready until SPI is done
                         end else begin
-                            picorv_mem_rdata <= mmio_reg_spi_transfer_out;
+                            mmio_data_out <= mmio_reg_spi_transfer_out;
                         end
                     end
-                    default: picorv_mem_rdata <= 32'hBEBEBEEF;
+                    default: mmio_data_out <= 32'hBEBEBEEF;
                 endcase
             end else begin // default 16M region that isn't mapped to anything
                 // unmapped memory just return ready better than hanging I guess 
                 picorv_mem_ready <= 1'b1;
-                picorv_mem_rdata <= 32'hBEBEBEEF;
+                mmio_data_out <= 32'hBEBEBEEF;
             end
         end else begin // ready & valid (reset things before the next bus access)
             bus_cycle <= 0;

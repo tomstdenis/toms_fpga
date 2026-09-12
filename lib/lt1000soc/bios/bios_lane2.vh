@@ -1,4 +1,4 @@
-	bios_lane_2[0] = 8'h0;
+	bios_lane_2[0] = 8'h1;
 	bios_lane_2[1] = 8'h1;
 	bios_lane_2[2] = 8'h0;
 	bios_lane_2[3] = 8'h81;

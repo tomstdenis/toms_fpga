@@ -4,4 +4,5 @@ bios/bios.elf:
 clean:
 	@make -C tools clean
 	@make -C bios clean
+	@make -C src clean
 

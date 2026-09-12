@@ -4,7 +4,7 @@ ENTRY(_start)
 MEMORY
 {
     ROM (rx)  : ORIGIN = 0x01000000, LENGTH = 8K
-    TCM (rwx) : ORIGIN = 0x02000000, LENGTH = 32K
+    TCM (rwx) : ORIGIN = 0x02000000, LENGTH = 64K
 }
 
 __stack_top = ORIGIN(TCM) + LENGTH(TCM);
