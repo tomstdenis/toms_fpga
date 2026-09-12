@@ -17,6 +17,7 @@ module lt1000soc
     parameter RV_TWO_CYCLE_ALU=0,
  	parameter RV_TWO_STAGE_SHIFT=0,
 	parameter RV_BARREL_SHIFTER=0,
+    parameter RV_LATCHED_MEM_RDATA=0,
     parameter RV_COMPRESSED_ISA=1,
     parameter RV_ENABLE_MUL=1,
     parameter RV_ENABLE_FAST_MUL=0,
@@ -286,6 +287,7 @@ localparam
         .TWO_CYCLE_ALU(RV_TWO_CYCLE_ALU),
  	    .TWO_STAGE_SHIFT(RV_TWO_STAGE_SHIFT),
 	    .BARREL_SHIFTER(RV_BARREL_SHIFTER),
+        .LATCHED_MEM_RDATA(RV_LATCHED_MEM_RDATA),
         .COMPRESSED_ISA(RV_COMPRESSED_ISA),
         .ENABLE_MUL(RV_ENABLE_MUL),
         .ENABLE_FAST_MUL(RV_ENABLE_FAST_MUL),
@@ -504,16 +506,16 @@ localparam
                         end else begin
                             // default to all FF if no bytes to read
                             mmio_data_out <= 32'hFFFF_FFFF;
-                            if (~mmio_uart_rx_delay & ~bus_cycle & uart_rx_ready) begin
-                                uart_rx_read       <= 1;
-                                bus_cycle          <= 1'b1;
-                                picorv_mem_ready   <= ~uart_rx_ready;
-                            end
-                            if (~mmio_uart_rx_delay & bus_cycle) begin
+                            if ((bus_cycle == 2'b00) && uart_rx_ready) begin
+                                uart_rx_read       <= 1'b1;
+                                bus_cycle          <= 2'b01;
                                 picorv_mem_ready   <= 1'b0;
-                                mmio_uart_rx_delay <= 1'b1;
                             end
-                            if (mmio_uart_rx_delay) begin
+                            if (bus_cycle == 2'b01) begin
+                                picorv_mem_ready   <= 1'b0;
+                                bus_cycle          <= 2'b11;
+                            end
+                            if (bus_cycle == 2'b11) begin
                                 mmio_data_out   <= {24'h0, uart_rx_byte};
                             end
                         end
