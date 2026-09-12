@@ -181,8 +181,6 @@ void main(void)
         ry += 3;
         rz += 1;
 
-        delay_short(1000);
-
         // UART Echo loop back check
         if (*UART_STATUS & UART_STATUS_RX_READY) {
             *UART_DATA = *UART_DATA;
