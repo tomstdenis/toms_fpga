@@ -54,7 +54,7 @@ module lt1000soc
     input wire        spi_miso_pin,              // SPI MISO pin
     output wire       spi_mosi_pin,              // SPI MOSI pin
     output wire       spi_sck_pin,               // SPI SCK  pin
-    output wire [3:0] spi_cs_pin,                // SPI CS   pin
+    output reg  [3:0] spi_cs_pin,                // SPI CS   pin
 
     // *** GPIO ***
     input wire [31:0] gpio_din,                  // GPIO data output
@@ -270,7 +270,30 @@ localparam
     );
 
 // ** SPI **
-   // IOU One SPI module.
+    reg        spi_valid;
+    wire       spi_idle;
+    reg [3:0]  spi_div;
+    reg        spi_cs_start;
+    reg        spi_cs_end;
+    reg [7:0]  spi_mosi_byte;
+    wire [7:0] spi_miso_byte;
+    wire       spi_m_cs;
+    reg [1:0]  spi_cs_sel;
+
+    always @(*) begin
+        case (spi_cs_sel)
+            2'b00: spi_cs_pin = {1'b1, 1'b1, 1'b1, spi_m_cs};
+            2'b01: spi_cs_pin = {1'b1, 1'b1, spi_m_cs, 1'b1};
+            2'b10: spi_cs_pin = {1'b1, spi_m_cs, 1'b1, 1'b1};
+            2'b11: spi_cs_pin = {spi_m_cs, 1'b1, 1'b1, 1'b1};
+        endcase
+    end
+
+    spi spi_bus(
+        .clk(core_clk), .rst_n(crst_n),
+        .valid(spi_valid), .idle(spi_idle),
+        .div(spi_div), .cs_start(spi_cs_start), .cs_end(spi_cs_end), .mosi_byte(spi_mosi_byte), .miso_byte(spi_miso_byte),
+        .cs_pin(spi_m_cs), .sck_pin(spi_sck_pin), .mosi_pin(spi_mosi_pin), .miso_pin(spi_miso_pin));
 
 // *** RISCV core ***   
     wire picorv_trap;
@@ -317,9 +340,6 @@ localparam
         MMIO_SPI_TRANSFER = 8'h24;
 
     reg  [31:0] mmio_reg_mcfg;
-    reg  [31:0] mmio_reg_spi_transfer_in;
-    wire [31:0] mmio_reg_spi_transfer_out;
-    reg         mmio_uart_rx_delay;
     reg  [31:0] mmio_data_out;
 
     // combinatorially connect bus to blocks
@@ -375,9 +395,9 @@ localparam
         // always reset various signals
         uart_tx_start        <= 1'b0;
         uart_rx_read         <= 1'b0;
-        mmio_uart_rx_delay   <= 1'b0;
         picorv_mem_ready     <= 1'b0;
         psram_valid          <= 1'b0;
+        spi_valid            <= 1'b0;
 
         // respond to valid only if ready is already low
         if (~picorv_mem_ready & picorv_mem_valid) begin
@@ -533,12 +553,15 @@ localparam
                         end
                     end
                     MMIO_SPI_TRANSFER: begin
-                        if (picorv_mem_wstrb[0]) begin
-                            mmio_reg_spi_transfer_in <= picorv_mem_wdata;
-                            // TODO: actually call out to SPI module and block
-                            //     : ready until SPI is done
+                        if (picorv_mem_wstrb[0]) begin // TODO: technically this is a bug since we don't check the other strobes
+                            spi_mosi_byte <= picorv_mem_wdata[7:0];
+                            spi_div       <= picorv_mem_wdata[11:8];
+                            spi_cs_start  <= picorv_mem_wdata[12];
+                            spi_cs_end    <= picorv_mem_wdata[13];
+                            spi_cs_sel    <= picorv_mem_wdata[15:14];
+                            spi_valid     <= picorv_mem_wdata[16];
                         end else begin
-                            mmio_data_out <= mmio_reg_spi_transfer_out;
+                            mmio_data_out <= {23'b0, spi_idle, spi_miso_byte};
                         end
                     end
                     default: mmio_data_out <= 32'hBEBEBEEF;
@@ -556,7 +579,6 @@ localparam
             uart_tx_start      <= 1'b0;
             uart_rx_read       <= 1'b0;
             psram_valid        <= 1'b0;
-            mmio_uart_rx_delay <= 1'b0;
             cvga_page_sel      <= 1'b0;
             cvga_video_mode    <= 1'b0;
             picorv_mem_ready   <= 1'b0;
@@ -575,3 +597,4 @@ endmodule
 `include "../../nanosram/nanosram.v"
 `include "../../vga/blocks/vga.v"
 `include "../../timer/blocks/timer.v"
+`include "../../spi/spi.v"

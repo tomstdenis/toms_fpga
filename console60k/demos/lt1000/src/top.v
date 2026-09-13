@@ -1,6 +1,5 @@
 `default_nettype none
-
-`define FREQ 100_000
+`define FREQ 95_000
 
 module top
 (
@@ -8,6 +7,12 @@ module top
 
     // rest of pins
     inout wire [61:0] gpio,
+
+    // SPI
+    output wire spi_cs_pin,
+    output wire spi_sck_pin,
+    output wire spi_mosi_pin,
+    input wire  spi_miso_pin,
 
     // PSRAM
     output wire psram_sck_pin,
@@ -88,6 +93,9 @@ module top
     (
         .core_rst_n(crst_n), .core_clk(core_clk), .vga_rst_n(vrst_n), .vga_clk(vga_clk),
         .uart_rx(uart_rx), .uart_tx(uart_tx),
+
+        // SPI
+        .spi_cs_pin(spi_cs_pin), .spi_sck_pin(spi_sck_pin), .spi_mosi_pin(spi_mosi_pin), .spi_miso_pin(spi_miso_pin),
 
         // PSRAM
         .psram_sio_din(psram_sio_din), .psram_sio_dout(psram_sio_dout), .psram_sio_en(psram_sio_en),
