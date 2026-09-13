@@ -9,7 +9,7 @@ module top
     inout wire [61:0] gpio,
 
     // SPI
-    output wire spi_cs_pin,
+    output wire [3:0] spi_cs_pin,
     output wire spi_sck_pin,
     output wire spi_mosi_pin,
     input wire  spi_miso_pin,
