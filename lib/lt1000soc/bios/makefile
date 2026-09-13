@@ -7,7 +7,7 @@ bios.bin: bios.elf
 	@riscv32-unknown-elf-objcopy -O binary --pad-to=0x01002000 --gap-fill=0x00 bios.elf bios.bin
 
 bios.elf: bios.c crt0.s bios.ld
-	@riscv32-unknown-elf-gcc -march=rv32imc -mabi=ilp32 -Os -ffreestanding -nostartfiles -T bios.ld crt0.s bios.c -o bios.elf -lc -lgcc
+	@riscv32-unknown-elf-gcc -march=rv32im -mabi=ilp32 -Os -ffreestanding -nostartfiles -T bios.ld crt0.s bios.c -o bios.elf -lc -lgcc
 	
 clean:
 	@rm -f bios.elf
