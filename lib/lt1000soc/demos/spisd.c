@@ -1,6 +1,9 @@
 #include <stdint.h>
 #include "lt1000.h"
 
+#define INIT_DIV 15
+#define OPER_DIV 3
+
 void main(void)
 {
 	uint8_t csd[16], buf[512];
@@ -9,19 +12,19 @@ void main(void)
 	// wait for a key to be pressed
 	getc();
 
-	if (sd_init(0, 15, 7, csd, &sectors) == 1) {
+	if (sd_init(0, INIT_DIV, OPER_DIV, csd, &sectors) == 1) {
 		puts("SD SPI initialized...");
 		puts_hex(sectors, 4);
 		puts(" sectors.\n\r");
-		if (sd_sector_op(0, 7, 0, buf, 0) == 0) {
+		if (sd_sector_op(0, OPER_DIV, 0, buf, 0) == 0) {
 			puts("Sector #0 contents\r\n");
 			for (x = 0; x < 512; x++) {
 				puts_hex((uint32_t)buf[x] << 24, 1); putc(' ');
 				if (!((x+1)&15)) puts("\r\n");
 			}
-			if (sd_sector_op(0, 7, 1, buf, 1) == 0) {
+			if (sd_sector_op(0, OPER_DIV, 1, buf, 1) == 0) {
 				puts("Sector #1 written\r\n");
-				if (sd_sector_op(0, 7, 1, buf, 0) == 0) {
+				if (sd_sector_op(0, OPER_DIV, 1, buf, 0) == 0) {
 					puts("Sector #1 contents\r\n");
 					for (x = 0; x < 512; x++) {
 						puts_hex((uint32_t)buf[x] << 24, 1); putc(' ');
