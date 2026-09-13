@@ -1,7 +1,10 @@
 CFLAGS=-I../inc/ -march=rv32im -mabi=ilp32 -Os -ffreestanding -nostartfiles -T app.ld
 LDFLAGS=../lib/lt1000.a
 
-all: loader gfx_circle.bin gfx_wire.bin gfx_plasma.bin gfx_flatcube.bin gfx_breakout.bin gfx_breakout2.bin gfx_hblank.bin spisd.bin
+all: ../lib/lt1000.a loader gfx_circle.bin gfx_wire.bin gfx_plasma.bin gfx_flatcube.bin gfx_breakout.bin gfx_breakout2.bin gfx_hblank.bin spisd.bin
+
+../lib/lt1000.a:
+	make -C ../lib
 
 loader: loader.c
 	gcc loader.c -o loader

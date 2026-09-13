@@ -13,7 +13,7 @@ module lt1000soc
     parameter SRAM_ADDR_WIDTH = 24,
 
     // *** RV parameters ***
-    parameter RV_ENABLE_COUNTERS=1,             // 32/64 bit counters
+    parameter RV_ENABLE_COUNTERS=0,             // 32/64 bit counters
     parameter RV_TWO_CYCLE_COMPARE=0,
     parameter RV_TWO_CYCLE_ALU=0,
  	parameter RV_TWO_STAGE_SHIFT=0,
@@ -340,7 +340,8 @@ localparam
         MMIO_UART_DATA    = 8'h18,
         MMIO_UART_STATUS  = 8'h1C,
         MMIO_VGA_CTRL     = 8'h20,
-        MMIO_SPI_TRANSFER = 8'h24;
+        MMIO_SPI_TRANSFER = 8'h24,
+        MMIO_TIMER        = 8'h28;
 
     reg  [31:0] mmio_reg_mcfg;
     reg  [31:0] mmio_data_out;
@@ -393,6 +394,7 @@ localparam
 
     // driver of ready signal
     reg [1:0] bus_cycle;
+    reg [9:0] timer;
 
     always @(posedge core_clk) begin
         // always reset various signals
@@ -401,6 +403,7 @@ localparam
         picorv_mem_ready     <= 1'b0;
         psram_valid          <= 1'b0;
         spi_valid            <= 1'b0;
+        timer                <= timer + 1'b1;
 
         // respond to valid only if ready is already low
         if (~picorv_mem_ready & picorv_mem_valid) begin
@@ -416,8 +419,7 @@ localparam
                 end
             end else if (picorv_mem_addr[MEM_16M_PSRAM]) begin
 // *** PSRAM ***
-                if (psram_idle & ~bus_cycle) begin
-                    // start job
+                if (~bus_cycle[0] & psram_idle) begin
                     bus_cycle        <= 1'b1;
                     psram_valid      <= 1'b1;
                 end else if (bus_cycle[0]) begin
@@ -566,6 +568,9 @@ localparam
                         end else begin
                             mmio_data_out <= {23'b0, spi_idle, spi_miso_byte};
                         end
+                    end
+                    MMIO_TIMER: begin
+                        mmio_data_out <= { 22'b0, timer };
                     end
                     default: mmio_data_out <= 32'hBEBEBEEF;
                 endcase

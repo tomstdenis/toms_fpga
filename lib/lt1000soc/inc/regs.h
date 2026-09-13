@@ -1,5 +1,5 @@
-#ifndef LT1000_REGS
-#define LT1000_REGS
+#ifndef LT1000_REGS_H
+#define LT1000_REGS_H
 
 // MCFG
 #define MCFG_DATA           *((volatile uint32_t *)0x10000000)
@@ -30,5 +30,8 @@
 
 // SPI
 #define SPI_TRANSFER        *((volatile uint32_t *)0x10000024)
+
+// TIMER
+#define TIMER               *((volatile uint32_t *)0x10000028)
 
 #endif

@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 
+#include "mem.h"
 #include "regs.h"
 #include "serial.h"
 #include "sd.h"
