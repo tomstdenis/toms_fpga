@@ -117,16 +117,19 @@ int main(int argc, char *argv[]) {
 
     printf("Sending payload size (%u bytes, little-endian)...\n", filesize);
     
-    uint8_t header[5] = {
-		27, // ESC to stop demo
+    uint8_t header[8] = {
+		0x1B, // ESC to stop demo
+		0x1B,
+		0x55,
+		0xAA,
         (uint8_t)(filesize & 0xFF),
         (uint8_t)((filesize >> 8) & 0xFF),
         (uint8_t)((filesize >> 16) & 0xFF),
         (uint8_t)((filesize >> 24) & 0xFF)
     };
 
-    // Send and verify the 5-byte header
-    for (size_t i = 0; i < 5; i++) {
+    // Send and verify the 8-byte header
+    for (size_t i = 0; i < 8; i++) {
         if (send_and_verify_byte(tty_fd, header[i], i, "header") < 0) {
             free(buffer);
             close(tty_fd);

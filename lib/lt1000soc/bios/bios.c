@@ -16,14 +16,22 @@ uint8_t uart_read_byte(void)
     return b;
 }
 
-// Read a 32-bit little-endian integer over UART
+// Read a 32-bit little-endian integer over UART, we expect 0x1B, 0x55, 0xAA before the length
 uint32_t uart_read_u32(void) {
     uint32_t val = 0;
-    val |= ((uint32_t)uart_read_byte());
-    if (val == 27) {
-		// normally this would suck but since binaries have to be a multiple of 4 bytes at a min 27 in the lower position is not valid
-		return uart_read_u32();
-	}
+top:
+    val = ((uint32_t)uart_read_byte());
+    if (val != 0x1B) goto top;
+top55:
+    val = ((uint32_t)uart_read_byte());
+    if (val == 0x1B) goto top55;
+    if (val != 0x55) goto top;
+topAA:
+    val = ((uint32_t)uart_read_byte());
+    if (val == 0x1B) goto top55;
+    if (val == 0x55) goto topAA;
+    if (val != 0xAA) goto top;
+    val  = (uint32_t)uart_read_byte();
     val |= ((uint32_t)uart_read_byte()) << 8;
     val |= ((uint32_t)uart_read_byte()) << 16;
     val |= ((uint32_t)uart_read_byte()) << 24;
