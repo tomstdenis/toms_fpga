@@ -1,5 +1,5 @@
 `default_nettype none
-`define FREQ 90_000
+`define FREQ 100_000
 
 module top
 (
