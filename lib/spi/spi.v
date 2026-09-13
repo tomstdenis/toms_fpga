@@ -39,14 +39,13 @@ module spi(
 				sck_pin  <= ~sck_pin;
 				if (sck_pin) begin
 					// pin is high going low
-					curbit <= curbit - 1'b1;
-					if (curbit == 1) begin
+					curbit    <= curbit - 1'b1;
+					miso_byte <= {miso_byte[6:0], miso_pin};
+					mosi_pin  <= miso_byte[6];
+					if (curbit == 0) begin
 						// done sending
 						cs_pin <= cs_end;
 						idle   <= 1'b1;
-					end else begin
-						miso_byte <= {miso_byte[6:0], miso_pin};
-						mosi_pin  <= miso_byte[6];
 					end
 				end
 			end

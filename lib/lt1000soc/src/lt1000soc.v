@@ -13,6 +13,7 @@ module lt1000soc
     parameter SRAM_ADDR_WIDTH = 24,
 
     // *** RV parameters ***
+    parameter RV_ENABLE_COUNTERS=1,             // 32/64 bit counters
     parameter RV_TWO_CYCLE_COMPARE=0,
     parameter RV_TWO_CYCLE_ALU=0,
  	parameter RV_TWO_STAGE_SHIFT=0,
@@ -307,6 +308,8 @@ localparam
     reg  [31:0] picorv_mem_rdata;
 
     picorv32 #(
+        .ENABLE_COUNTERS(RV_ENABLE_COUNTERS),
+        .ENABLE_COUNTERS64(RV_ENABLE_COUNTERS),
         .TWO_CYCLE_COMPARE(RV_TWO_CYCLE_COMPARE),
         .TWO_CYCLE_ALU(RV_TWO_CYCLE_ALU),
  	    .TWO_STAGE_SHIFT(RV_TWO_STAGE_SHIFT),
@@ -553,7 +556,7 @@ localparam
                         end
                     end
                     MMIO_SPI_TRANSFER: begin
-                        if (picorv_mem_wstrb[0]) begin // TODO: technically this is a bug since we don't check the other strobes
+                        if (picorv_mem_wstrb[2:0] == 3'b111) begin
                             spi_mosi_byte <= picorv_mem_wdata[7:0];
                             spi_div       <= picorv_mem_wdata[11:8];
                             spi_cs_start  <= picorv_mem_wdata[12];

@@ -1,12 +1,12 @@
 `default_nettype none
-`define FREQ 95_000
+`define FREQ 90_000
 
 module top
 (
     input wire clk,
 
     // rest of pins
-    inout wire [61:0] gpio,
+    inout wire [47:0] gpio,
 
     // SPI
     output wire [3:0] spi_cs_pin,
@@ -30,6 +30,20 @@ module top
     input wire uart_rx,
     output wire uart_tx
 );
+
+    // debug sigrok on a gpio [47:40]
+    reg [6:0] mon;
+    assign gpio[46:40] = mon;
+    always @(posedge core_clk) begin
+        mon[0] <= spi_sck_pin;
+        mon[1] <= spi_miso_pin;
+        mon[2] <= spi_mosi_pin;
+        mon[3] <= spi_cs_pin[0];
+        mon[4] <= spi_cs_pin[1];
+        mon[5] <= spi_cs_pin[2];
+        mon[6] <= spi_cs_pin[3];
+    end
+
     wire core_clk;
     wire vga_clk;
 
