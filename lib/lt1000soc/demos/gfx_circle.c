@@ -170,9 +170,7 @@ void main(void)
 
         angle += 2;
         pulse += 3;
-
-        delay_short(1000);
-        
+      
         // uart echo
         if (*UART_STATUS & UART_STATUS_RX_READY) {
 			uint32_t v = *UART_DATA;
