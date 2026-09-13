@@ -5,5 +5,6 @@
 
 #include "regs.h"
 #include "serial.h"
+#include "sd.h"
 
 #endif

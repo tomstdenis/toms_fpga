@@ -7,7 +7,7 @@ loader: loader.c
 	gcc loader.c -o loader
 
 spisd.bin: spisd.c
-	@riscv32-unknown-elf-gcc ${CFLAGS} -DSD_DEMO crt0.s spisd.c ${LDFLAGS} -o spisd.elf
+	@riscv32-unknown-elf-gcc ${CFLAGS} crt0.s spisd.c ${LDFLAGS} -o spisd.elf
 	@riscv32-unknown-elf-objcopy -O binary spisd.elf spisd.bin
 
 gfx_hblank.bin: gfx_hblank.c
