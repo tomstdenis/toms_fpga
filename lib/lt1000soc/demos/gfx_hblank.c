@@ -1,5 +1,11 @@
 #include <stdint.h>
 
+#define UART_DATA           ((volatile uint32_t *)0x10000018)
+#define UART_STATUS         ((volatile uint32_t *)0x1000001C)
+#define UART_STATUS_TX_FULL  1
+#define UART_STATUS_TX_EMPTY 2
+#define UART_STATUS_RX_READY 4
+
 #define VGA_FB8             ((volatile uint8_t  *)0x04000000)
 #define VGA_FB32            ((volatile uint32_t *)0x04000000)
 #define VGA_CTRL            ((volatile uint32_t *)0x10000020)
@@ -94,5 +100,15 @@ void main(void) {
         *VGA_CTRL = CTRL_MODE_GFX;
 
         frame_counter++;
+
+        // uart echo
+        if (*UART_STATUS & UART_STATUS_RX_READY) {
+			uint32_t v = *UART_DATA;
+			*UART_DATA = v;
+			if (v == 27) { 
+				void (*bios_entry)(void) = (void (*)(void))0x01000000;
+				bios_entry();
+			}
+		}
     }
 }

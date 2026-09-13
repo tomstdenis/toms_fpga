@@ -181,9 +181,14 @@ void main(void)
         ry += 3;
         rz += 1;
 
-        // UART Echo loop back check
+        // uart echo
         if (*UART_STATUS & UART_STATUS_RX_READY) {
-            *UART_DATA = *UART_DATA;
-        }
+			uint32_t v = *UART_DATA;
+			*UART_DATA = v;
+			if (v == 27) { 
+				void (*bios_entry)(void) = (void (*)(void))0x01000000;
+				bios_entry();
+			}
+		}
     }
 }

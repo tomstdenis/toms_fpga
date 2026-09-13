@@ -175,7 +175,12 @@ void main(void)
         
         // uart echo
         if (*UART_STATUS & UART_STATUS_RX_READY) {
-			*UART_DATA = *UART_DATA; // echo back
+			uint32_t v = *UART_DATA;
+			*UART_DATA = v;
+			if (v == 27) { 
+				void (*bios_entry)(void) = (void (*)(void))0x01000000;
+				bios_entry();
+			}
 		}
     }
 }

@@ -2,6 +2,8 @@
 
 #define UART_DATA           ((volatile uint32_t *)0x10000018)
 #define UART_STATUS         ((volatile uint32_t *)0x1000001C)
+#define UART_STATUS_TX_FULL  1
+#define UART_STATUS_TX_EMPTY 2
 #define UART_STATUS_RX_READY 4
 
 #define VGA_FB              ((volatile uint8_t  *)0x04000000)
@@ -131,9 +133,14 @@ void main(void)
         bob_angle_x += 3;
         bob_angle_y += 5;
 
-        // UART Echo Loop
+        // uart echo
         if (*UART_STATUS & UART_STATUS_RX_READY) {
-            *UART_DATA = *UART_DATA;
-        }
+			uint32_t v = *UART_DATA;
+			*UART_DATA = v;
+			if (v == 27) { 
+				void (*bios_entry)(void) = (void (*)(void))0x01000000;
+				bios_entry();
+			}
+		}
     }
 }

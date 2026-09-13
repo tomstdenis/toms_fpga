@@ -20,6 +20,10 @@ uint8_t uart_read_byte(void)
 uint32_t uart_read_u32(void) {
     uint32_t val = 0;
     val |= ((uint32_t)uart_read_byte());
+    if (val == 27) {
+		// normally this would suck but since binaries have to be a multiple of 4 bytes at a min 27 in the lower position is not valid
+		return uart_read_u32();
+	}
     val |= ((uint32_t)uart_read_byte()) << 8;
     val |= ((uint32_t)uart_read_byte()) << 16;
     val |= ((uint32_t)uart_read_byte()) << 24;
