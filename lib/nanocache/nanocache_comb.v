@@ -232,64 +232,38 @@ module nanocache #(
                     // at this point cache_mem_out is the initial data_line_offset and by the next cycle
                     // it'll be data_line_offset+1 which allows nice read streaming from the cache
                     if (tag_mem_out[VALID_BIT] && data_tag == tag_mem_out[TAG_SIZE-1:0]) begin
-                        if (CACHE_DP == 0) begin
-                            // this path is for semi dual ported memory
-                            ctrl_write_mask <= { ctrl_write_mask[3:0], 1'b0 };
-                            cache_mem_addr[CACHE_LINE-1:0] <= cache_mem_next;
+						// this path is for true dual ported memory
+						ctrl_write_mask <= { ctrl_write_mask[2:0], 2'b0 }; // shift by 2
+						cache_mem_addr[CACHE_LINE-1:0] <= cache_mem_next2; // advance by 2
 
-                            // shift data and write mask
-                            data_out        <= { data_out[23:0], cache_mem_out };
-                            if (data_wr_en & ctrl_write_mask[4]) begin
-                                // write the tag as dirty since we wrote to it
-                                tag_mem_in               <= tag_mem_out; // tag bits
-                                tag_mem_in[DIRTY_BIT]    <= 1'b1;
-                                tag_mem_wren             <= 1'b1;
-                                // write to cache memory
-                                cache_mem_in             <= data_out[31:24];
-                                cache_mem_wren           <= 1'b1;
-                            end
-                            if (ctrl_write_mask[3:0] == 4'b1000) begin
+						// shift data and write mask
+						data_out        <= { data_out[15:0], cache_mem_out, cache_mem_out2 };
+						if (data_wr_en & ctrl_write_mask[4]) begin                  // 1st byte
+							// write the tag as dirty since we wrote to it
+							tag_mem_in               <= tag_mem_out; // tag bits
+							tag_mem_in[DIRTY_BIT]    <= 1'b1;
+							tag_mem_wren             <= 1'b1;
+							// write to cache memory
+							cache_mem_in             <= data_out[31:24];
+							cache_mem_wren           <= 1'b1;
+						end
+						if (data_wr_en & ctrl_write_mask[3]) begin                  // 2nd byte
+							// write the tag as dirty since we wrote to it
+							tag_mem_in               <= tag_mem_out; // tag bits
+							tag_mem_in[DIRTY_BIT]    <= 1'b1;
+							tag_mem_wren             <= 1'b1;
+							// write to cache memory
+							cache_mem_in2            <= data_out[23:16];
+							cache_mem_wren2          <= 1'b1;
+						end
+						if (ctrl_write_mask[2:0] == 3'b100) begin
 `ifdef MODEL_SIM
-								stats_hit <= stats_hit + 1;
+							stats_hit <= stats_hit + 1;
 `endif						
-                                ready     <= 1;
-                                ctrl_fsm  <= FSM_IDLE;
-                                ctrl_spin <= 1'b0;
-                            end
-                        end else if (CACHE_DP == 1) begin
-                            // this path is for true dual ported memory
-                            ctrl_write_mask <= { ctrl_write_mask[2:0], 2'b0 }; // shift by 2
-                            cache_mem_addr[CACHE_LINE-1:0] <= cache_mem_next2; // advance by 2
-
-                            // shift data and write mask
-                            data_out        <= { data_out[15:0], cache_mem_out, cache_mem_out2 };
-                            if (data_wr_en & ctrl_write_mask[4]) begin                  // 1st byte
-                                // write the tag as dirty since we wrote to it
-                                tag_mem_in               <= tag_mem_out; // tag bits
-                                tag_mem_in[DIRTY_BIT]    <= 1'b1;
-                                tag_mem_wren             <= 1'b1;
-                                // write to cache memory
-                                cache_mem_in             <= data_out[31:24];
-                                cache_mem_wren           <= 1'b1;
-                            end
-                            if (data_wr_en & ctrl_write_mask[3]) begin                  // 2nd byte
-                                // write the tag as dirty since we wrote to it
-                                tag_mem_in               <= tag_mem_out; // tag bits
-                                tag_mem_in[DIRTY_BIT]    <= 1'b1;
-                                tag_mem_wren             <= 1'b1;
-                                // write to cache memory
-                                cache_mem_in2            <= data_out[23:16];
-                                cache_mem_wren2          <= 1'b1;
-                            end
-                            if (ctrl_write_mask[2:0] == 3'b100) begin
-`ifdef MODEL_SIM
-								stats_hit <= stats_hit + 1;
-`endif						
-                                ready     <= 1;
-                                ctrl_fsm  <= FSM_IDLE;
-                                ctrl_spin <= 1'b0;
-                            end
-                        end
+							ready     <= 1;
+							ctrl_fsm  <= FSM_IDLE;
+							ctrl_spin <= 1'b0;
+						end
                     end else begin
 `ifdef MODEL_SIM
 						stats_miss <= stats_miss + 1;
@@ -408,13 +382,9 @@ module nanocache #(
 
                         // we hit the last byte of the cache line fill
                         if (ctrl_idx == 0) begin
-                            // last byte
-                            ctrl_fsm          <= FSM_IDLE; // IDLE
-                            ctrl_spin         <= 1'b0;
+                            ctrl_fsm          <= FSM_IDLE;
                             ready             <= 1'b1;
-
-                            // turn off PSRAM transaction
-                            psram_start_trans <= 1'b0;
+                            psram_start_trans <= 1'b0;     // turn off PSRAM transaction
                         end
                     end
                 end
