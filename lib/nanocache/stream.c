@@ -18,10 +18,10 @@
 //#define MEM_BITS 23
 
 // standard test (64KB)
-//#define MEM_BITS 16
+#define MEM_BITS 14
 
 // smaller to test (8KB)
-#define MEM_BITS 13
+//#define MEM_BITS 13
 
 // smaller to test (4KB)
 // #define MEM_BITS 12

@@ -91,7 +91,7 @@ int main(void)
 	
 	out = fopen("trace.hex", "w");
 
-#if 1
+#if 0
 	gen_write(out, 0x210,         0x11223344, 4);
 	gen_write(out, 0x214,         0x55667788, 4);
 	gen_read(out,  0x210, 4);
@@ -115,7 +115,7 @@ int main(void)
 			r = read_rng(4);
 			bl = 1+((r>>MEM_BITS)&3);
 			w = r >> 31;
-			r &= (MEM_SIZE - 1);			
+			r &= (MEM_SIZE - 1) & ~3UL;
 		} while ((r & 31) > ((r + bl) & 31));
 
 		if (w) {

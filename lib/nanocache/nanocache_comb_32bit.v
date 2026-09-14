@@ -1,5 +1,9 @@
-/* based on nanocache.v but with some important changes
+/* based on nanocache_comb.v but with some important changes
 
+New here:
+1.  Uses four parallel 8-bit lanes for the cache memory
+
+From comb.v
 1.  Uses combinatorial addressing so once valid goes high the memories start reading
 2.  Must use DP=1 and REGISTERED=1
 3.  Drops support for unaligned accesses, can only access at dword boundary (supports all write_mask combinations
@@ -77,35 +81,50 @@ module nanocache #(
         .mem_out(tag_mem_out), .mem_in(tag_mem_in), .addr(tag_mem_addr_ea), .wren(tag_mem_wren)
     );
 
-    // bring your own cache memory you need to supply nanocache_cache_mem...
-    // cache memory
-    // port 1
-    wire [7:0]                cache_mem_out;                        // cache mem out
-    reg  [7:0]                cache_mem_in;                         // input
-    reg  [CACHE_SIZE-1:0]     cache_mem_addr;                       // address
-    reg  [CACHE_SIZE-1:0]     cache_mem_addr_ea;                    // address (effective address)
-    reg                       cache_mem_wren;                       // write enable
-
-    // port 2
-    wire [7:0]                cache_mem_out2;                       // 2nd port for DP builds
-    reg  [7:0]                cache_mem_in2;
-    reg [CACHE_SIZE-1:0]      cache_mem_addr2;
-    reg                       cache_mem_wren2;
-
-    nanocache_cache_mem #(
-        .WIDTH(8),
-        .DEPTH(CACHE_SIZE),
-        .REG(CACHE_REGISTERED)
-    ) cache_mem (
-        .clk(clk), .rst_n(rst_n),
-        .mem_out_1(cache_mem_out), .mem_in_1(cache_mem_in), .mem_addr_1(cache_mem_addr_ea), .mem_wren_1(cache_mem_wren),
-        .mem_out_2(cache_mem_out2), .mem_in_2(cache_mem_in2), .mem_addr_2(cache_mem_addr2), .mem_wren_2(cache_mem_wren2)
-    );
-
-    // some helper wires for advancing inside a cache line
-    reg [CACHE_LINE-1:0]    cache_mem_next;                       // next address
-    reg [CACHE_LINE-1:0]    cache_mem_next2;                      // address + 2 for dual ported memory builds
-    
+	// cache memories
+	reg [7:0] cache_mem_lane1_out;     // data out
+	reg [7:0] cache_mem_lane1_out_tmp; // reg buffer
+	reg [7:0] cache_mem_lane1_in;      // data in
+	reg [7:0] cache_mem_lane1[0:(1<<(CACHE_SIZE-2))-1];
+	reg [7:0] cache_mem_lane2_out;
+	reg [7:0] cache_mem_lane2_out_tmp; // reg buffer
+	reg [7:0] cache_mem_lane2_in;
+	reg [7:0] cache_mem_lane2[0:(1<<(CACHE_SIZE-2))-1];
+	reg [7:0] cache_mem_lane3_out;
+	reg [7:0] cache_mem_lane3_out_tmp; // reg buffer
+	reg [7:0] cache_mem_lane3_in;
+	reg [7:0] cache_mem_lane3[0:(1<<(CACHE_SIZE-2))-1];
+	reg [7:0] cache_mem_lane4_out;
+	reg [7:0] cache_mem_lane4_out_tmp; // reg buffer
+	reg [7:0] cache_mem_lane4_in;
+	reg [7:0] cache_mem_lane4[0:(1<<(CACHE_SIZE-2))-1];
+	reg [CACHE_SIZE-1:0] cache_mem_addr;
+	reg [CACHE_LINE-1:0] cache_mem_next;
+	reg [CACHE_SIZE-1:0] cache_mem_addr_ea;
+	reg [3:0]            cache_mem_wren;
+	always @(posedge clk) begin
+		cache_mem_lane1_out_tmp <= cache_mem_lane1[cache_mem_addr_ea[CACHE_SIZE-1:2]];
+		cache_mem_lane2_out_tmp <= cache_mem_lane2[cache_mem_addr_ea[CACHE_SIZE-1:2]];
+		cache_mem_lane3_out_tmp <= cache_mem_lane3[cache_mem_addr_ea[CACHE_SIZE-1:2]];
+		cache_mem_lane4_out_tmp <= cache_mem_lane4[cache_mem_addr_ea[CACHE_SIZE-1:2]];
+		cache_mem_lane1_out     <= cache_mem_lane1_out_tmp;
+		cache_mem_lane2_out     <= cache_mem_lane2_out_tmp;
+		cache_mem_lane3_out     <= cache_mem_lane3_out_tmp;
+		cache_mem_lane4_out     <= cache_mem_lane4_out_tmp;
+		if (cache_mem_wren[0]) begin
+			cache_mem_lane1[cache_mem_addr[CACHE_SIZE-1:2]] <= cache_mem_lane1_in;
+		end
+		if (cache_mem_wren[1]) begin
+			cache_mem_lane2[cache_mem_addr[CACHE_SIZE-1:2]] <= cache_mem_lane2_in;
+		end
+		if (cache_mem_wren[2]) begin
+			cache_mem_lane3[cache_mem_addr[CACHE_SIZE-1:2]] <= cache_mem_lane3_in;
+		end
+		if (cache_mem_wren[3]) begin
+			cache_mem_lane4[cache_mem_addr[CACHE_SIZE-1:2]] <= cache_mem_lane4_in;
+		end
+	end
+  
     // psram interface
     reg [7:0]                 psram_data_in;             // byte to write to PSRAM memory
     reg                       psram_wr_en;               // PSRAM write enable
@@ -138,7 +157,7 @@ module nanocache #(
     reg [2:0]               ctrl_fsm;                // what FSM state are we in
     reg [CACHE_LINE-1:0]    ctrl_idx;                // counter used for evicting/filling cache lines
     reg                     ctrl_spin;               // this is used to add a 1 cycle delay to various FSM states
-    reg [4:0]               ctrl_write_mask;         // local copy of write_mask the host passes in so we can shift it around
+    reg [3:0]               ctrl_write_mask;         // local copy of write_mask
     
     localparam
         FSM_CLEAR_TAGS        = 3'd0,                // Initialize tags to zero on POR
@@ -167,21 +186,15 @@ module nanocache #(
 			cache_mem_addr_ea = {data_line_index, data_line_offset};
 		end
 
-		// next address
-		cache_mem_next        = cache_mem_addr_ea[CACHE_LINE-1:0] + 1'd1;
-		cache_mem_next2       = cache_mem_addr_ea[CACHE_LINE-1:0] + 2'd2;  // advance by two for DP cache hits
-
-		// the 2nd port always points to the next byte in the cache line based on where the first port is pointing
-		// this simplifies a lot of logic 
-		cache_mem_addr2       = { cache_mem_addr_ea[CACHE_SIZE-1:CACHE_LINE], cache_mem_next };  
+		// next address on cache line
+		cache_mem_next        = cache_mem_addr_ea[CACHE_LINE-1:0] + 1'b1;
 	end
 
     always @(posedge clk) begin
 		// global resets happen every cycle which simplifes logic a bit no need to manually turn things off everywhere.
         ctrl_spin       <= 1'b0;
         tag_mem_wren    <= 1'b0;
-        cache_mem_wren  <= 1'b0;
-        cache_mem_wren2 <= 1'b0;
+        cache_mem_wren  <= 4'b0000;
         ready           <= 1'b0;
         case ({ctrl_spin, ctrl_fsm})
             // zero out all of the tags
@@ -206,65 +219,33 @@ module nanocache #(
 						ctrl_fsm        <= FSM_COMPARE_TAG;
 						ctrl_spin       <= 1'b1;
                         data_out        <= data_in;              // latch the input locally so we only need one shift register
-                        ctrl_write_mask <= { write_mask, 1'b1 }; // LSB is "data is active" where we test ctrl_write_mask[3:0] for non zero
-
-						cache_mem_addr <= cache_mem_addr_ea;
-						if (!data_wr_en) begin
-							// only advance if we're reading (by 2 for dual ported, by 1 for single)
-							cache_mem_addr[CACHE_LINE-1:0] <= cache_mem_next2;
-						end
+                        ctrl_write_mask <= data_wr_en ? write_mask : 4'b0000;
+						cache_mem_addr  <= cache_mem_addr_ea;
                     end
                 end
 
-            // tag compare state
+            // tag compare state (delay cycle to load tag/cache through registered mem)
             {1'b1, FSM_COMPARE_TAG}:
                 begin
-                    // since we want to pipeline reads if we hit we need to keep incrementing the cache addr
-                    if (!data_wr_en) begin
-						// only advance if we're reading (by 2 for dual ported, by 1 for single)
-                        cache_mem_addr[CACHE_LINE-1:0] <= cache_mem_next2;
-                    end else begin
-						// rewind if we're writing since we advance in the COMPARE_TAG state (by 2 for dual ported, 1 for single)
-						cache_mem_addr[CACHE_LINE-1:0] <= cache_mem_addr[CACHE_LINE-1:0] - 2'd2;
-					end
                 end
+
             {1'b0, FSM_COMPARE_TAG}:
                 begin
                     // at this point cache_mem_out is the initial data_line_offset and by the next cycle
                     // it'll be data_line_offset+1 which allows nice read streaming from the cache
                     if (tag_mem_out[VALID_BIT] && data_tag == tag_mem_out[TAG_SIZE-1:0]) begin
-						// this path is for true dual ported memory
-						ctrl_write_mask <= { ctrl_write_mask[2:0], 2'b0 }; // shift by 2
-						cache_mem_addr[CACHE_LINE-1:0] <= cache_mem_next2; // advance by 2
-
-						// shift data and write mask
-						data_out        <= { data_out[15:0], cache_mem_out, cache_mem_out2 };
-						if (data_wr_en & ctrl_write_mask[4]) begin                  // 1st byte
+						if (ctrl_write_mask != 4'b0000) begin
 							// write the tag as dirty since we wrote to it
 							tag_mem_in               <= tag_mem_out; // tag bits
 							tag_mem_in[DIRTY_BIT]    <= 1'b1;
 							tag_mem_wren             <= 1'b1;
-							// write to cache memory
-							cache_mem_in             <= data_out[31:24];
-							cache_mem_wren           <= 1'b1;
+							cache_mem_wren           <= ctrl_write_mask;
+							{cache_mem_lane4_in, cache_mem_lane3_in, cache_mem_lane2_in, cache_mem_lane1_in} <= data_out;
+						end else begin
+							data_out <= {cache_mem_lane4_out, cache_mem_lane3_out, cache_mem_lane2_out, cache_mem_lane1_out};
 						end
-						if (data_wr_en & ctrl_write_mask[3]) begin                  // 2nd byte
-							// write the tag as dirty since we wrote to it
-							tag_mem_in               <= tag_mem_out; // tag bits
-							tag_mem_in[DIRTY_BIT]    <= 1'b1;
-							tag_mem_wren             <= 1'b1;
-							// write to cache memory
-							cache_mem_in2            <= data_out[23:16];
-							cache_mem_wren2          <= 1'b1;
-						end
-						if (ctrl_write_mask[2:0] == 3'b100) begin
-`ifdef MODEL_SIM
-							stats_hit <= stats_hit + 1;
-`endif						
-							ready     <= 1;
-							ctrl_fsm  <= FSM_IDLE;
-							ctrl_spin <= 1'b0;
-						end
+						ctrl_fsm <= FSM_IDLE;
+						ready    <= 1'b1;
                     end else begin
 `ifdef MODEL_SIM
 						stats_miss <= stats_miss + 1;
@@ -289,9 +270,6 @@ module nanocache #(
 					ctrl_spin <= 1;   // add delay to wait for cache data
 				end
 
-            // Evict a line to PSRAM then jump to fill it
-            // For registered mem this relies on the fact that psram_write_strobes occur every
-            // 4 cycles giving the necessary time for the registered cache memory to respond
             {1'b0, FSM_EVICT}:
                 begin
 `ifdef MODEL_SIM
@@ -307,21 +285,22 @@ module nanocache #(
                         psram_start_trans                  <= 1'b1;
                         psram_wr_en                        <= 1'b1;
                         psram_addr                         <= {tag_mem_out[TAG_SIZE-1:0], data_line_index, psram_zero};
-                        psram_data_in                      <= cache_mem_out;                            // we previously ready this: during EVICT+spin
-                        // note we have at least 4 cycles between write strobes so we don't need to
-                        // per cycle pipeline reads from the cache mem
+                        psram_data_in                      <= cache_mem_lane1_out;
                         cache_mem_addr[CACHE_LINE-1:0]     <= cache_mem_next;    // advance cache addr for write strobe
                     end
 
 					// the PSRAM is asking for the next byte to write out to PSRAM memory
                     if (psram_write_strobe) begin
                         ctrl_idx                           <= ctrl_idx - 1'b1;
-						psram_data_in                      <= cache_mem_out;
+                        case (cache_mem_addr[1:0])
+							2'b00: psram_data_in <= cache_mem_lane1_out;
+							2'b01: psram_data_in <= cache_mem_lane2_out;
+							2'b10: psram_data_in <= cache_mem_lane3_out;
+							2'b11: psram_data_in <= cache_mem_lane4_out;
+						endcase
 						cache_mem_addr[CACHE_LINE-1:0]     <= cache_mem_next;
                         if (ctrl_idx == 0) begin
                             // evict is done
-// not needed since 0 - 1 is 1<<CACHE_LINE - 1
-//                            ctrl_idx                       <= (1 << CACHE_LINE) - 1;
                             ctrl_fsm                       <= FSM_FILL;
                             psram_start_trans              <= 1'b0;
                         end
@@ -359,26 +338,31 @@ module nanocache #(
                         ctrl_idx                       <= ctrl_idx - 1'b1;
 
                         // write to to cache (if we're writing to memory check against address)
-                        cache_mem_wren                 <= 1'b1;
+                        case (cache_mem_next[1:0]) 
+							2'b00: cache_mem_wren <= 4'b0001 & ctrl_write_mask;
+							2'b01: cache_mem_wren <= 4'b0010 & ctrl_write_mask;
+							2'b10: cache_mem_wren <= 4'b0100 & ctrl_write_mask;
+							2'b11: cache_mem_wren <= 4'b1000 & ctrl_write_mask;
+						endcase
                         cache_mem_addr[CACHE_LINE-1:0] <= cache_mem_next;
                         
                         // store data_out matching the corresponding line byte read from PSRAM
-                        // This looks for matching the first address and then that the LSB of ctrl_write_mask is non-zero
-                        // which indicates we started.  Then we stop once ctrl_write_mask's lower bits are zero indicating
-                        // 4 bytes have been processed
-                        // This is more efficient than a >= && <= check
-                        if ((cache_mem_next == data_line_offset || ~ctrl_write_mask[0]) && ctrl_write_mask[3:0] != 4'b0000) begin
-                            data_out         <= { data_out[23:0], psram_data_out };				// shift data
-							ctrl_write_mask  <= { ctrl_write_mask[3:0], 1'b0 };					// shift write mask
-                            if (data_wr_en & ctrl_write_mask[4]) begin
-                                cache_mem_in <= data_out[31:24]; // host is writing so store input (which we stuff in data_out) into cache
-                            end else begin
-                                cache_mem_in <= psram_data_out;  // host is reading so store psram backed data in cache
-                            end
+                        if (cache_mem_next[CACHE_LINE-1:2] == data_line_offset[CACHE_LINE-1:2]) begin
+							case (cache_mem_next[1:0]) 
+								2'b00: cache_mem_lane1_in <= ctrl_write_mask[0] ? data_out[7:0]   : psram_data_out;
+								2'b01: cache_mem_lane2_in <= ctrl_write_mask[1] ? data_out[15:8]  : psram_data_out;
+								2'b10: cache_mem_lane3_in <= ctrl_write_mask[2] ? data_out[23:16] : psram_data_out;
+								2'b11: cache_mem_lane4_in <= ctrl_write_mask[3] ? data_out[31:24] : psram_data_out;
+							endcase
                         end else begin
                             // we're not aligned with the host read/write cache line offset
                             // so just store what we read from psram
-                            cache_mem_in     <= psram_data_out;
+							case (cache_mem_next[1:0]) 
+								2'b00: cache_mem_lane1_in <= psram_data_out;
+								2'b01: cache_mem_lane2_in <= psram_data_out;
+								2'b10: cache_mem_lane3_in <= psram_data_out;
+								2'b11: cache_mem_lane4_in <= psram_data_out;
+							endcase
                         end
 
                         // we hit the last byte of the cache line fill
