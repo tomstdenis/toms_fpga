@@ -1,4 +1,4 @@
-CFLAGS=-I../inc/ -march=rv32im -mabi=ilp32 -Os -ffreestanding -nostartfiles
+CFLAGS=-I../inc/ -march=rv32im -mabi=ilp32 -Os -ffreestanding -nostartfiles -ffunction-sections -fdata-sections
 CC=riscv32-unknown-elf-gcc
 AR=riscv32-unknown-elf-ar
 
