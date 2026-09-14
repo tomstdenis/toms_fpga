@@ -18,10 +18,10 @@
 //#define MEM_BITS 23
 
 // standard test (64KB)
-#define MEM_BITS 16
+//#define MEM_BITS 16
 
 // smaller to test (8KB)
-//#define MEM_BITS 13
+#define MEM_BITS 13
 
 // smaller to test (4KB)
 // #define MEM_BITS 12
@@ -181,8 +181,6 @@ int main(int argc, char **argv)
 	}
 	printf("\nDone\n");
 
-
-
 	// pick a random offset until it doesn't cross a cache line
 	printf("Running random traffic...\n");
 	for (;;) {
@@ -195,7 +193,7 @@ int main(int argc, char **argv)
 			r = read_rng(4);
 			bl = 1+((r>>MEM_BITS)&3);
 			w  = r >> 31;							// write bit
-			r  = r & (MEM_SIZE - 1);				
+			r  = r & (MEM_SIZE - 1) & ~3UL;	        // keep inside memory and force to be dword aligned
 		} while ((r & 31) > ((r + bl) & 31));
 
 		if (!w) {

@@ -91,7 +91,7 @@ int main(void)
 	
 	out = fopen("trace.hex", "w");
 
-#if 0
+#if 1
 	gen_write(out, 0x210,         0x11223344, 4);
 	gen_write(out, 0x214,         0x55667788, 4);
 	gen_read(out,  0x210, 4);
