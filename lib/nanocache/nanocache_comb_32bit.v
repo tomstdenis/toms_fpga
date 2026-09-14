@@ -99,8 +99,8 @@ module nanocache #(
 	reg [7:0] cache_mem_lane4_in;
 	reg [7:0] cache_mem_lane4[0:(1<<(CACHE_SIZE-2))-1];
 	reg [CACHE_SIZE-1:0] cache_mem_addr;
-	reg [CACHE_LINE-1:0] cache_mem_next;
 	reg [CACHE_SIZE-1:0] cache_mem_addr_ea;
+	reg [CACHE_LINE-1:0] cache_mem_next;
 	reg [3:0]            cache_mem_wren;
 	always @(posedge clk) begin
 		cache_mem_lane1_out_tmp <= cache_mem_lane1[cache_mem_addr_ea[CACHE_SIZE-1:2]];
@@ -112,16 +112,16 @@ module nanocache #(
 		cache_mem_lane3_out     <= cache_mem_lane3_out_tmp;
 		cache_mem_lane4_out     <= cache_mem_lane4_out_tmp;
 		if (cache_mem_wren[0]) begin
-			cache_mem_lane1[cache_mem_addr[CACHE_SIZE-1:2]] <= cache_mem_lane1_in;
+			cache_mem_lane1[cache_mem_addr_ea[CACHE_SIZE-1:2]] <= cache_mem_lane1_in;
 		end
 		if (cache_mem_wren[1]) begin
-			cache_mem_lane2[cache_mem_addr[CACHE_SIZE-1:2]] <= cache_mem_lane2_in;
+			cache_mem_lane2[cache_mem_addr_ea[CACHE_SIZE-1:2]] <= cache_mem_lane2_in;
 		end
 		if (cache_mem_wren[2]) begin
-			cache_mem_lane3[cache_mem_addr[CACHE_SIZE-1:2]] <= cache_mem_lane3_in;
+			cache_mem_lane3[cache_mem_addr_ea[CACHE_SIZE-1:2]] <= cache_mem_lane3_in;
 		end
 		if (cache_mem_wren[3]) begin
-			cache_mem_lane4[cache_mem_addr[CACHE_SIZE-1:2]] <= cache_mem_lane4_in;
+			cache_mem_lane4[cache_mem_addr_ea[CACHE_SIZE-1:2]] <= cache_mem_lane4_in;
 		end
 	end
   
@@ -215,12 +215,11 @@ module nanocache #(
                     if (valid) begin
                         // start reading tag and reading from cache
                         tag_mem_addr    <= data_line_index;
-                        // cache_mem_addr  <= {data_line_index, data_line_offset};
+                        cache_mem_addr  <= {data_line_index, data_line_offset};
 						ctrl_fsm        <= FSM_COMPARE_TAG;
 						ctrl_spin       <= 1'b1;
-                        data_out        <= data_in;              // latch the input locally so we only need one shift register
                         ctrl_write_mask <= data_wr_en ? write_mask : 4'b0000;
-						cache_mem_addr  <= cache_mem_addr_ea;
+                        data_out        <= data_in;              // latch the input locally so we only need one shift register
                     end
                 end
 
@@ -336,23 +335,29 @@ module nanocache #(
                     // The PSRAM is informing us a byte is available to be used (stored in the cache line)
                     if (psram_read_strobe) begin
                         ctrl_idx                       <= ctrl_idx - 1'b1;
-
-                        // write to to cache (if we're writing to memory check against address)
-                        case (cache_mem_next[1:0]) 
-							2'b00: cache_mem_wren <= 4'b0001 & ctrl_write_mask;
-							2'b01: cache_mem_wren <= 4'b0010 & ctrl_write_mask;
-							2'b10: cache_mem_wren <= 4'b0100 & ctrl_write_mask;
-							2'b11: cache_mem_wren <= 4'b1000 & ctrl_write_mask;
-						endcase
                         cache_mem_addr[CACHE_LINE-1:0] <= cache_mem_next;
+
+						case (cache_mem_next[1:0]) 
+							2'b00: cache_mem_wren <= 4'b0001;
+							2'b01: cache_mem_wren <= 4'b0010;
+							2'b10: cache_mem_wren <= 4'b0100;
+							2'b11: cache_mem_wren <= 4'b1000;
+						endcase
                         
                         // store data_out matching the corresponding line byte read from PSRAM
                         if (cache_mem_next[CACHE_LINE-1:2] == data_line_offset[CACHE_LINE-1:2]) begin
+							// write to to cache (if we're writing to memory check against address)
 							case (cache_mem_next[1:0]) 
 								2'b00: cache_mem_lane1_in <= ctrl_write_mask[0] ? data_out[7:0]   : psram_data_out;
 								2'b01: cache_mem_lane2_in <= ctrl_write_mask[1] ? data_out[15:8]  : psram_data_out;
 								2'b10: cache_mem_lane3_in <= ctrl_write_mask[2] ? data_out[23:16] : psram_data_out;
 								2'b11: cache_mem_lane4_in <= ctrl_write_mask[3] ? data_out[31:24] : psram_data_out;
+							endcase
+							case (cache_mem_next[1:0]) 
+								2'b00: data_out[7:0]   <= psram_data_out;
+								2'b01: data_out[15:8]  <= psram_data_out;
+								2'b10: data_out[23:16] <= psram_data_out;
+								2'b11: data_out[31:24] <= psram_data_out;
 							endcase
                         end else begin
                             // we're not aligned with the host read/write cache line offset

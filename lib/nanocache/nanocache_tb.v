@@ -3,7 +3,7 @@
 `timescale 1ns/1ps
 
 `ifndef EXTERN_CONFIG
-`define CACHE_SIZE 14
+`define CACHE_SIZE 12 // 4KB cache
 `define CACHE_LINE 5
 `define CACHE_DP   1
 `define CACHE_REGISTERED 1
@@ -140,10 +140,17 @@ module nanocache_tb();
 						command_addr      <= cur_command[55:32];
 						command_data      <= cur_command[31:0];
 						case (cur_command[59:56]) 
+`ifdef NATIVE_32BIT
+							0: nc_write_mask <= 4'b0001;
+							1: nc_write_mask <= 4'b0011;
+							2: nc_write_mask <= 4'b0111;
+							3: nc_write_mask <= 4'b1111;
+`else
 							0: nc_write_mask <= 4'b1000;
 							1: nc_write_mask <= 4'b1100;
 							2: nc_write_mask <= 4'b1110;
 							3: nc_write_mask <= 4'b1111;
+`endif
 						endcase
 						case (cur_command[63:60])
 							command_op_read:   test_state <= STATE_START_READ;
@@ -193,6 +200,32 @@ module nanocache_tb();
 						test_state <= STATE_START_COMMAND;
 						if (!nc_data_wr_en) begin
 							case (nc_write_mask)
+`ifdef NATIVE_32BIT
+								4'b0001: begin
+									if (nc_data_out[7:0] !== command_data[7:0]) begin
+										$display("Read back failed got %x expected %x", nc_data_out[7:0], command_data[7:0]);
+										test_state <= STATE_HALT;
+									end
+								end
+								4'b0011: begin
+									if (nc_data_out[15:0] !== command_data[15:0]) begin
+										$display("Read back failed got %x expected %x", nc_data_out[15:0], command_data[15:0]);
+										test_state <= STATE_HALT;
+									end
+								end
+								4'b0111: begin
+									if (nc_data_out[23:0] !== command_data[23:0]) begin
+										$display("Read back failed got %x expected %x", nc_data_out[23:0], command_data[23:0]);
+										test_state <= STATE_HALT;
+									end
+								end
+								4'b1111: begin
+									if (nc_data_out !== command_data) begin
+										$display("Read back failed got %x expected %x", nc_data_out, command_data);
+										test_state <= STATE_HALT;
+									end
+								end
+`else
 								4'b1000: begin
 									if (nc_data_out[31:24] !== command_data[31:24]) begin
 										$display("Read back failed got %x expected %x", nc_data_out[31:24], command_data[31:24]);
@@ -217,6 +250,7 @@ module nanocache_tb();
 										test_state <= STATE_HALT;
 									end
 								end
+`endif
 							endcase
 						end
 					end

@@ -9,6 +9,7 @@
 
 #define OP_LEN(x) ((x - 1) & 3)
 
+// testbench uses 4KB cache so MEM_BITS >= 13 is required
 #define MEM_BITS 13
 #define MEM_SIZE (1U << MEM_BITS)
 
@@ -39,8 +40,13 @@ void gen_write(FILE *out, uint32_t addr, uint32_t value, uint32_t len)
 	// now do the op
 	while (len--) {
 		init[addr & (MEM_SIZE - 1)]     = 1;
+#ifdef NATIVE_32BIT
+		memory[addr++ & (MEM_SIZE - 1)] = value & 0xFF;
+		value >>= 8;
+#else
 		memory[addr++ & (MEM_SIZE - 1)] = (value >> 24) & 0xFF;
 		value <<= 8;
+#endif
 	}	
 }
 
@@ -55,11 +61,19 @@ void gen_read(FILE *out, uint32_t addr, uint32_t len)
 			printf("Address %u was not initialized before reading!\n", addr & (MEM_SIZE - 1));
 			exit(-1);
 		}
+#ifdef NATIVE_32BIT
+		value = (value >> 8) | ((uint32_t)memory[addr++ & (MEM_SIZE - 1)] << 24);
+#else
 		value = (value << 8) | memory[addr++ & (MEM_SIZE - 1)];
+#endif
 	}
 	// shift up to MSB
 	if (olen != 4) {
+#ifdef NATIVE_32BIT
+		value >>= 8 * (4 - olen);
+#else
 		value <<= 8 * (4 - olen);
+#endif
 	}
 	write_opcode(out, OP_READ, oaddr, value, olen);
 }
@@ -91,7 +105,7 @@ int main(void)
 	
 	out = fopen("trace.hex", "w");
 
-#if 0
+#if 1
 	gen_write(out, 0x210,         0x11223344, 4);
 	gen_write(out, 0x214,         0x55667788, 4);
 	gen_read(out,  0x210, 4);
@@ -105,6 +119,10 @@ int main(void)
 	// fill the full mem with values so it's initialized
 	for (x = 0; x < MEM_SIZE; x += 4) {
 		gen_write(out, x, read_rng(4), 4);
+	}
+
+	for (x = 0; x < MEM_SIZE; x += 4) {
+		gen_read(out, x, 4);
 	}
 
 	while (lines < 65535) {
