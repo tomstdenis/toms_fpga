@@ -3,9 +3,9 @@
 
 // MCFG
 #define MCFG_DATA           *((volatile uint32_t *)0x10000000)
-#define MCFG_FREQ_KHZ(x) ((x) & 0xFFF)
-#define MCFG_TCM_BITS(x) (((x) >> 15) & 0x1F)
-#define MCFG_SOC_REV(x)  (((x) >> 20) & 0xFF)
+#define MCFG_FREQ_MHZ(x) (((x) >> 24) & 0xFF)
+#define MCFG_SOC_REV(x)  (((x) >> 16) & 0xFF)
+#define MCFG_TCM_BITS(x) (((x) >> 8) & 0xFF)
 
 // GPIO
 #define GPIO_DATA           *((volatile uint32_t *)0x10000004)

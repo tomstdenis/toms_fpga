@@ -7,5 +7,6 @@
 #include "regs.h"
 #include "serial.h"
 #include "sd.h"
+#include "string.h"
 
 #endif

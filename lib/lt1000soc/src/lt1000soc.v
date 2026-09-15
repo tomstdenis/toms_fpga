@@ -349,10 +349,10 @@ localparam
     // combinatorially connect bus to blocks
     always @(*) begin
         // assign mmio wires
-        mmio_reg_mcfg        = 0;
-        mmio_reg_mcfg[11:0]  = CORE_FREQ_KHZ / 10;
-        mmio_reg_mcfg[19:15] = TCM_SIZE_BITS;
-        mmio_reg_mcfg[27:20] = `LT1000SOC_REV;
+        mmio_reg_mcfg[31:24] = CORE_FREQ_KHZ / 1000;
+        mmio_reg_mcfg[23:16] = `LT1000SOC_REV;
+        mmio_reg_mcfg[15:8]  = TCM_SIZE_BITS;
+        mmio_reg_mcfg[7:0]   = 8'h00;
 
         // addresses 
         bios_mem_addr   = picorv_mem_addr[12:0];
@@ -433,9 +433,7 @@ localparam
                 picorv_mem_ready <= 1'b1;
                 case (picorv_mem_addr[7:0])
                     MMIO_MCFG: begin
-                        if (!(|picorv_mem_wstrb)) begin
-                            mmio_data_out <= mmio_reg_mcfg;
-                        end
+                        mmio_data_out <= mmio_reg_mcfg;
                     end
                     MMIO_GPIO_DATA: begin
                         if (picorv_mem_wstrb[0]) begin
