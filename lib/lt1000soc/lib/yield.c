@@ -7,12 +7,13 @@ static struct {
 		cycles_per_usec,
 		cycles_per_msec,
 		last_cycle_count,
-		last_gpio_read;
+		last_gpio_read,
+		last_vga_read;
 	int
 		in_yield;
 } yd;
 
-struct {
+static struct {
 	enum yield_irq_type type;
 	uint64_t       data, data2;
 	void (*handler)(uint32_t data);
@@ -33,6 +34,7 @@ void yield_init(void)
 	yield_cycles        = 0;
 
 	yd.last_gpio_read   = GPIO_DATA;
+	yd.last_vga_read    = VGA_CTRL;
 	yd.last_cycle_count = TIMER;
 }
 
@@ -52,13 +54,16 @@ void yield(void)
 	
 	// handle soft IRQs
 	if (!yd.in_yield) {
-		uint32_t gpio_edge, gpio, x;
+		uint32_t gpio_edge, gpio, vga, x;
 		
 		yd.in_yield = 1;
 		
 		// detect changes in GPIO
 		gpio        = GPIO_DATA;
 		gpio_edge   = gpio ^ yd.last_gpio_read;
+		
+		// detect change in VGA
+		vga         = VGA_CTRL;
 		
 		for (x = 0; x < MAX_IRQ; x++) {
 			switch(irqs[x].type) {
@@ -94,10 +99,21 @@ void yield(void)
 						irqs[x].data2 = yield_cycles + irqs[x].data;
 					}
 					break;
+				case YIELD_IRQ_VBLANK:
+					if (!(yd.last_vga_read & VGA_CTRL_VBLANK) && (vga & VGA_CTRL_VBLANK)) {
+						irqs[x].handler(0);
+					}
+					break;
+				case YIELD_IRQ_HBLANK:
+					if (!(yd.last_vga_read & VGA_CTRL_HBLANK) && (vga & VGA_CTRL_HBLANK)) {
+						irqs[x].handler(0);
+					}
+					break;
 			}
 		}
 		yd.last_gpio_read = gpio;
-		yd.in_yield = 0;
+		yd.last_vga_read  = vga;
+		yd.in_yield       = 0;
 	}		
 }
 
@@ -136,4 +152,14 @@ int yield_add_irq(enum yield_irq_type type, uint64_t data, irq_handler_t handler
 		}
 	}
 	return -1;
+}
+
+void yield_del_irq(irq_handler_t handler)
+{
+	uint32_t x;
+	for (x = 0; x < MAX_IRQ; x++) {
+		if (irqs[x].handler == handler) {
+			irqs[x].type = YIELD_IRQ_INACTIVE;
+		}
+	}
 }

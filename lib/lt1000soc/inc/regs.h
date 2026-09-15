@@ -9,10 +9,10 @@
 
 // GPIO
 #define GPIO_DATA           *((volatile uint32_t *)0x10000004)
-#define GPIO_OE             *((volatile uint32_t *)0x10000004)
-#define GPIO_W1S            *((volatile uint32_t *)0x10000008)
-#define GPIO_W1C            *((volatile uint32_t *)0x1000000C)
-#define GPIO_W1T            *((volatile uint32_t *)0x10000010)
+#define GPIO_OE             *((volatile uint32_t *)0x10000008)
+#define GPIO_W1S            *((volatile uint32_t *)0x1000000C)
+#define GPIO_W1C            *((volatile uint32_t *)0x10000010)
+#define GPIO_W1T            *((volatile uint32_t *)0x10000014)
 
 // UART
 #define UART_DATA           *((volatile uint32_t *)0x10000018)
@@ -22,11 +22,11 @@
 #define UART_STATUS_RX_READY 4
 
 // VGA
-#define VGA_CTRL            ((volatile uint32_t *)0x10000020)
+#define VGA_CTRL            *((volatile uint32_t *)0x10000020)
 #define VGA_CTRL_GFX_MODE    1
 #define VGA_CTRL_PAGE_SEL    2
-#define VGA_CTRL_VBLANK      4
-#define VGA_CTRL_HBLANKL     8
+#define VGA_CTRL_HBLANK      4
+#define VGA_CTRL_VBLANK      8
 
 // SPI
 #define SPI_TRANSFER        *((volatile uint32_t *)0x10000024)

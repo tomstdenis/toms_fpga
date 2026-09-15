@@ -1,5 +1,12 @@
 #include "lt1000.h"
 
+uint32_t vblanks = 0;
+
+static void vblank_irq(uint32_t data)
+{
+	++vblanks;
+}
+
 static void timer_3sec(uint32_t data)
 {
 	puts("Three second timer\r\n");
@@ -7,15 +14,26 @@ static void timer_3sec(uint32_t data)
 
 static void timer_1sec(uint32_t data)
 {
-	puts("One second timer\r\n");
+	puts("One second timer (vblanks: ");
+	puts_dec(vblanks);
+	puts(")\r\n");
 }
 
+static void timer_250msec(uint32_t data)
+{
+	uint32_t d = GPIO_DATA;
+	d = (d << 1) | (d >> 31);
+	GPIO_DATA = d;
+}	
 
 void main(void)
 {
 	uint32_t x;
 	
 	yield_init();
+	
+	GPIO_DATA = ~1UL;
+	GPIO_OE   = 0xFFFFFFFF;
 	
 	// wait for key press
 	getc();
@@ -25,16 +43,21 @@ void main(void)
 		delay_ms(500);
 	}
 	
-	// install IRQ for 3 sec delay
-	if (yield_add_irq(YIELD_IRQ_TIMER, yield_usec_to_cycles() * 3000000UL, timer_3sec) == 0) {
-		puts("Installed 3 second timer IRQ...\n\r");
-		if (yield_add_irq(YIELD_IRQ_TIMER, yield_usec_to_cycles() * 1000000UL, timer_1sec) == 0) {
-			puts("Installed 1 second timer IRQ...(hit key to exit)\n\r");
-			while (!(UART_STATUS & UART_STATUS_RX_READY)) {
-				// application loop goes here... 
-				
-				// call yield frequently to keep things moving
-				yield();
+	if (yield_add_irq(YIELD_IRQ_TIMER, yield_usec_to_cycles() * 1000UL * 250, timer_250msec) == 0) {
+		puts("Installed 250ms timer IRQ...\n\r");
+		if (yield_add_irq(YIELD_IRQ_VBLANK, 0, vblank_irq) == 0) {
+			puts("Installed vblank IRQ...\n\r");
+			if (yield_add_irq(YIELD_IRQ_TIMER, yield_usec_to_cycles() * 3000000UL, timer_3sec) == 0) {
+				puts("Installed 3 second timer IRQ...\n\r");
+				if (yield_add_irq(YIELD_IRQ_TIMER, yield_usec_to_cycles() * 1000000UL, timer_1sec) == 0) {
+					puts("Installed 1 second timer IRQ...(hit key to exit)\n\r");
+					while (!(UART_STATUS & UART_STATUS_RX_READY)) {
+						// application loop goes here... 
+						
+						// call yield frequently to keep things moving
+						yield();
+					}
+				}
 			}
 		}
 	} else {
