@@ -349,7 +349,7 @@ localparam
     // driver of ready signal
     reg [1:0] bus_cycle;
     reg       bus_ready;
-    reg [9:0] timer;
+    reg [31:0] timer;
 
     // combinatorially connect bus to blocks
     always @(*) begin
@@ -547,14 +547,14 @@ localparam
                         mmio_data_out <= { 29'b0, uart_rx_ready, uart_tx_fifo_empty, uart_tx_fifo_full };
                     end
                     MMIO_VGA_CTRL: begin
+                        mmio_data_out  <= { 28'b0, cvga_v_blank[1], cvga_h_blank[1], cvga_page_sel, cvga_video_mode };
                         if (picorv_mem_wstrb[0]) begin
                             cvga_video_mode <= picorv_mem_wdata[0];
                             cvga_page_sel   <= picorv_mem_wdata[1];
-                        end else begin
-                            mmio_data_out  <= { 28'b0, cvga_v_blank[1], cvga_h_blank[1], cvga_page_sel, cvga_video_mode };
                         end
                     end
                     MMIO_SPI_TRANSFER: begin
+                        mmio_data_out <= {23'b0, spi_idle, spi_miso_byte};
                         if (picorv_mem_wstrb[2:0] == 3'b111) begin
                             spi_mosi_byte <= picorv_mem_wdata[7:0];
                             spi_div       <= picorv_mem_wdata[11:8];
@@ -562,12 +562,10 @@ localparam
                             spi_cs_end    <= picorv_mem_wdata[13];
                             spi_cs_sel    <= picorv_mem_wdata[15:14];
                             spi_valid     <= picorv_mem_wdata[16];
-                        end else begin
-                            mmio_data_out <= {23'b0, spi_idle, spi_miso_byte};
                         end
                     end
                     MMIO_TIMER: begin
-                        mmio_data_out <= { 22'b0, timer };
+                        mmio_data_out <= timer;
                     end
                     default: mmio_data_out <= 32'hBEBEBEEF;
                 endcase
