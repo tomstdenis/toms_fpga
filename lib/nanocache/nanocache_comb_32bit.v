@@ -233,6 +233,9 @@ module nanocache #(
                     // at this point cache_mem_out is the initial data_line_offset and by the next cycle
                     // it'll be data_line_offset+1 which allows nice read streaming from the cache
                     if (tag_mem_out[VALID_BIT] && data_tag == tag_mem_out[TAG_SIZE-1:0]) begin
+						ctrl_fsm <= FSM_IDLE;
+						ready    <= 1'b1;
+						data_out <= {cache_mem_lane4_out, cache_mem_lane3_out, cache_mem_lane2_out, cache_mem_lane1_out};
 						if (ctrl_write_mask != 4'b0000) begin
 							// write the tag as dirty since we wrote to it
 							tag_mem_in               <= tag_mem_out; // tag bits
@@ -240,11 +243,7 @@ module nanocache #(
 							tag_mem_wren             <= 1'b1;
 							cache_mem_wren           <= ctrl_write_mask;
 							{cache_mem_lane4_in, cache_mem_lane3_in, cache_mem_lane2_in, cache_mem_lane1_in} <= data_out;
-						end else begin
-							data_out <= {cache_mem_lane4_out, cache_mem_lane3_out, cache_mem_lane2_out, cache_mem_lane1_out};
 						end
-						ctrl_fsm <= FSM_IDLE;
-						ready    <= 1'b1;
                     end else begin
 `ifdef MODEL_SIM
 						stats_miss <= stats_miss + 1;
@@ -292,10 +291,10 @@ module nanocache #(
                     if (psram_write_strobe) begin
                         ctrl_idx                           <= ctrl_idx - 1'b1;
                         case (cache_mem_addr[1:0])
-							2'b00: psram_data_in <= cache_mem_lane1_out;
-							2'b01: psram_data_in <= cache_mem_lane2_out;
-							2'b10: psram_data_in <= cache_mem_lane3_out;
-							2'b11: psram_data_in <= cache_mem_lane4_out;
+							2'b00: psram_data_in           <= cache_mem_lane1_out;
+							2'b01: psram_data_in           <= cache_mem_lane2_out;
+							2'b10: psram_data_in           <= cache_mem_lane3_out;
+							2'b11: psram_data_in           <= cache_mem_lane4_out;
 						endcase
 						cache_mem_addr[CACHE_LINE-1:0]     <= cache_mem_next;
                         if (ctrl_idx == 0) begin
