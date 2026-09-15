@@ -346,6 +346,11 @@ localparam
     reg  [31:0] mmio_reg_mcfg;
     reg  [31:0] mmio_data_out;
 
+    // driver of ready signal
+    reg [1:0] bus_cycle;
+    reg       bus_ready;
+    reg [9:0] timer;
+
     // combinatorially connect bus to blocks
     always @(*) begin
         // assign mmio wires
@@ -374,6 +379,7 @@ localparam
         psram_write_mask  = 4'b0000;
         psram_data_wr_en  = 1'b0;
         vga_wren          = 4'b0000;
+        picorv_mem_ready  = bus_ready;
 
         if (picorv_mem_addr[MEM_16M_BIOS]) begin
             picorv_mem_rdata = { bios_mem_dout3, bios_mem_dout2, bios_mem_dout1, bios_mem_dout0 };
@@ -387,23 +393,20 @@ localparam
             psram_write_mask = picorv_mem_valid ? { picorv_mem_wstrb[0], picorv_mem_wstrb[1], picorv_mem_wstrb[2], picorv_mem_wstrb[3] } : 4'b0000;
             psram_data_wr_en = picorv_mem_valid ? |picorv_mem_wstrb : 1'b0;
             picorv_mem_rdata = { psram_data_out[7:0], psram_data_out[15:8], psram_data_out[23:16], psram_data_out[31:24] };
+            picorv_mem_ready = psram_ready;
         end else if (picorv_mem_addr[MEM_16M_MMIO]) begin
             picorv_mem_rdata = mmio_data_out;
         end
     end
 
-    // driver of ready signal
-    reg [1:0] bus_cycle;
-    reg [9:0] timer;
-
     always @(posedge core_clk) begin
         // always reset various signals
         uart_tx_start        <= 1'b0;
         uart_rx_read         <= 1'b0;
-        picorv_mem_ready     <= 1'b0;
-        psram_valid          <= 1'b0;
         spi_valid            <= 1'b0;
         timer                <= timer + 1'b1;
+        bus_ready            <= 1'b0;
+        psram_valid          <= 1'b0;
 
         // respond to valid only if ready is already low
         if (~picorv_mem_ready & picorv_mem_valid) begin
@@ -411,26 +414,22 @@ localparam
 // *** BIOS, TCM, VGA ***
             // simple memories with 1 cycle delay on reads
                 if (|picorv_mem_wstrb) begin
-                    picorv_mem_ready <= 1'b1;
+                    bus_ready        <= 1'b1;
                 end else begin
                     // memory address is set, now we wait two cycles
                     bus_cycle[0]     <= ~bus_cycle[0];
-                    picorv_mem_ready <= bus_cycle[0];
+                    bus_ready        <= bus_cycle[0];
                 end
             end else if (picorv_mem_addr[MEM_16M_PSRAM]) begin
 // *** PSRAM ***
                 if (~bus_cycle[0] & psram_idle) begin
                     bus_cycle        <= 1'b1;
                     psram_valid      <= 1'b1;
-                end else if (bus_cycle[0]) begin
-                    // wait till ready (and picorv drops valid)
-                    bus_cycle[0]     <= ~psram_ready;
-                    picorv_mem_ready <= psram_ready;
                 end
             end else if (picorv_mem_addr[MEM_16M_MMIO]) begin
 // *** MMIO ***
                 // default to ready
-                picorv_mem_ready <= 1'b1;
+                bus_ready <= 1'b1;
                 case (picorv_mem_addr[7:0])
                     MMIO_MCFG: begin
                         mmio_data_out <= mmio_reg_mcfg;
@@ -533,10 +532,10 @@ localparam
                             if ((bus_cycle == 2'b00) && uart_rx_ready) begin
                                 uart_rx_read       <= 1'b1;
                                 bus_cycle          <= 2'b01;
-                                picorv_mem_ready   <= 1'b0;
+                                bus_ready          <= 1'b0;
                             end
                             if (bus_cycle == 2'b01) begin
-                                picorv_mem_ready   <= 1'b0;
+                                bus_ready          <= 1'b0;
                                 bus_cycle          <= 2'b11;
                             end
                             if (bus_cycle == 2'b11) begin
@@ -574,7 +573,7 @@ localparam
                 endcase
             end else begin // default 16M region that isn't mapped to anything
                 // unmapped memory just return ready better than hanging I guess 
-                picorv_mem_ready <= 1'b1;
+                bus_ready <= 1'b1;
                 mmio_data_out <= 32'hBEBEBEEF;
             end
         end else begin // ready & valid (reset things before the next bus access)
@@ -584,10 +583,8 @@ localparam
             bus_cycle          <= 1'b0;
             uart_tx_start      <= 1'b0;
             uart_rx_read       <= 1'b0;
-            psram_valid        <= 1'b0;
             cvga_page_sel      <= 1'b0;
             cvga_video_mode    <= 1'b0;
-            picorv_mem_ready   <= 1'b0;
             gpio_dout          <= 32'b0;
             gpio_oe            <= 32'b0;
         end
