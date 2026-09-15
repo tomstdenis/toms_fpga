@@ -1,13 +1,17 @@
 CFLAGS=-I../inc/ -march=rv32im -mabi=ilp32 -Os -ffreestanding -nostartfiles -T app.ld -ffunction-sections -fdata-sections
 LDFLAGS=../lib/lt1000.a
 
-all: ../lib/lt1000.a loader gfx_circle.bin gfx_wire.bin gfx_plasma.bin gfx_flatcube.bin gfx_breakout.bin gfx_breakout2.bin gfx_hblank.bin spisd.bin mcfg.bin
+all: ../lib/lt1000.a loader gfx_circle.bin gfx_wire.bin gfx_plasma.bin gfx_flatcube.bin gfx_breakout.bin gfx_breakout2.bin gfx_hblank.bin spisd.bin mcfg.bin yield.bin
 
 ../lib/lt1000.a:
 	make -C ../lib
 
 loader: loader.c
 	gcc loader.c -o loader
+
+yield.bin: yield.c
+	@riscv32-unknown-elf-gcc ${CFLAGS} crt0.s yield.c ${LDFLAGS} -o yield.elf
+	@riscv32-unknown-elf-objcopy -O binary yield.elf yield.bin
 
 mcfg.bin: mcfg.c
 	@riscv32-unknown-elf-gcc ${CFLAGS} crt0.s mcfg.c ${LDFLAGS} -o mcfg.elf

@@ -8,5 +8,6 @@
 #include "serial.h"
 #include "sd.h"
 #include "string.h"
+#include "yield.h"
 
 #endif
