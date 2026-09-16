@@ -9,7 +9,8 @@ static void gpio_irq(uint32_t data)
 
 static void uart_irq(uint32_t data)
 {
-	puts("Returning to BIOS from IRQ...\r\n");	
+	puts("Returning to BIOS from IRQ...\r\n");
+	UART_DATA;
 	void (*bios_entry)(void) = (void (*)(void))0x01000000;
 	bios_entry();
 }

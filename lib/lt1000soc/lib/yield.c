@@ -35,8 +35,8 @@ void yield_init(void)
 
 	yd.last_gpio_read   = GPIO_DATA;
 	yd.last_vga_read    = VGA_CTRL;
-	yd.last_cycle_count = TIMER;
 	yd.irq_enabled      = 0;
+	yd.last_cycle_count = TIMER;
 }
 
 uint64_t yield_usec_to_cycles(void)
