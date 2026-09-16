@@ -55,6 +55,7 @@ void main(void)
 		delay_ms(500);
 	}
 	
+	yield_sei();
 	if (yield_add_irq(YIELD_IRQ_GPIO_POSEDGE, 1 << 4, gpio_irq) == 0) {
 		puts("Installed GPIO IRQ...\n\r");
 		if (yield_add_irq(YIELD_IRQ_UART_RX_READY, 0, uart_irq) == 0) {

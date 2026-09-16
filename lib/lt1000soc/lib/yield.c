@@ -10,6 +10,7 @@ static struct {
 		last_gpio_read,
 		last_vga_read;
 	int
+		irq_enabled,
 		in_yield;
 } yd;
 
@@ -36,6 +37,7 @@ void yield_init(void)
 	yd.last_gpio_read   = GPIO_DATA;
 	yd.last_vga_read    = VGA_CTRL;
 	yd.last_cycle_count = TIMER;
+	yd.irq_enabled      = 0;
 }
 
 uint64_t yield_usec_to_cycles(void)
@@ -53,7 +55,7 @@ void yield(void)
 	yd.last_cycle_count = t;
 	
 	// handle soft IRQs
-	if (!yd.in_yield) {
+	if (yd.irq_enabled && !yd.in_yield) {
 		uint32_t gpio_edge, gpio, vga, x;
 		
 		yd.in_yield = 1;
@@ -162,4 +164,14 @@ void yield_del_irq(irq_handler_t handler)
 			irqs[x].type = YIELD_IRQ_INACTIVE;
 		}
 	}
+}
+
+void yield_cli(void)
+{
+	yd.irq_enabled = 0;
+}
+
+void yield_sei(void)
+{
+	yd.irq_enabled = 1;
 }
