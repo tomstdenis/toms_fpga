@@ -1,22 +1,11 @@
-#include <stdint.h>
+#include "lt1000.h"
 
-#define UART_DATA           ((volatile uint32_t *)0x10000018)
-#define UART_STATUS         ((volatile uint32_t *)0x1000001C)
-#define UART_STATUS_TX_FULL  1
-#define UART_STATUS_TX_EMPTY 2
-#define UART_STATUS_RX_READY 4
-
-#define VGA_FB8             ((volatile uint8_t  *)0x04000000)
-#define VGA_FB32            ((volatile uint32_t *)0x04000000)
-#define VGA_CTRL            ((volatile uint32_t *)0x10000020)
+#define VGA_FB8             ((volatile uint8_t  *)VGA_ADDR)
+#define VGA_FB32            ((volatile uint32_t *)VGA_ADDR)
 
 #define WIDTH               320
 #define HEIGHT              200
 #define PAGE_SIZE           0x10000 
-
-#define CTRL_MODE_GFX       (1 << 0)
-#define CTRL_PAGE_1         (1 << 1)
-#define CTRL_VBLANK         (1 << 3)
 
 #define BRICK_ROWS          8
 #define BRICK_COLS          10
@@ -32,7 +21,7 @@ typedef struct {
 } Pos2D;
 
 static inline void wait_vblank(void) {
-    while (!(*VGA_CTRL & CTRL_VBLANK));
+    while (!(VGA_CTRL & VGA_CTRL_VBLANK));
 }
 
 static uint16_t lfsr = 0xACE1;
@@ -55,7 +44,7 @@ static uint8_t bricks[BRICK_ROWS][BRICK_COLS];
 // Dirty tracker counter: 2 = erase on both buffers, 1 = erase on second buffer, 0 = clean
 static uint8_t dirty_erase[BRICK_ROWS][BRICK_COLS]; 
 
-static inline void clear_vga_buffer(volatile uint32_t *fb32) {
+TCM_FUNC static inline void clear_vga_buffer(volatile uint32_t *fb32) {
     for (int i = 0; i < (WIDTH * HEIGHT) / 4; i++) {
         fb32[i] = 0;
     }
@@ -72,7 +61,7 @@ static void init_board(void) {
     clear_vga_buffer(VGA_FB32 + (PAGE_SIZE / 4));
 }
 
-static inline void draw_rect_vga(volatile uint8_t *fb, int16_t rx, int16_t ry, int16_t rw, int16_t rh, uint8_t color) {
+TCM_FUNC static void draw_rect_vga(volatile uint8_t *fb, int16_t rx, int16_t ry, int16_t rw, int16_t rh, uint8_t color) {
     if (rx < 0 || ry < 0 || rx + rw > WIDTH || ry + rh > HEIGHT) return;
     
     for (int16_t y = ry; y < ry + rh; y++) {
@@ -101,7 +90,7 @@ static inline void draw_rect_vga(volatile uint8_t *fb, int16_t rx, int16_t ry, i
 
 void main(void) {
     uint8_t active_page = 0;
-    *VGA_CTRL = CTRL_MODE_GFX | (active_page ? CTRL_PAGE_1 : 0);
+    VGA_CTRL = VGA_CTRL_GFX_MODE | (active_page ? VGA_CTRL_PAGE_SEL : 0);
 
     init_board();
 
@@ -242,12 +231,12 @@ void main(void) {
         // 9. Page Swap on VBLANK
         wait_vblank();
         active_page = !active_page;
-        *VGA_CTRL = CTRL_MODE_GFX | (active_page ? CTRL_PAGE_1 : 0);
+        VGA_CTRL = VGA_CTRL_GFX_MODE | (active_page ? VGA_CTRL_PAGE_SEL : 0);
 
         // uart echo
-        if (*UART_STATUS & UART_STATUS_RX_READY) {
-			uint32_t v = *UART_DATA;
-			*UART_DATA = v;
+        if (UART_STATUS & UART_STATUS_RX_READY) {
+			uint32_t v = UART_DATA;
+			UART_DATA = v;
 			if (v == 27) { 
 				void (*bios_entry)(void) = (void (*)(void))0x01000000;
 				bios_entry();

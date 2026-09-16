@@ -18,6 +18,13 @@ TCM_FUNC static void fps_counter(uint32_t data)
 	frames = 0;
 }
 
+TCM_FUNC static void timer_250msec(uint32_t data)
+{
+	uint32_t d = GPIO_DATA;
+	d = (d << 1) | (d >> 31);
+	GPIO_DATA = d;
+}	
+
 TCM_FUNC static void wait_vblank(void) {
     while (!(VGA_CTRL & VGA_CTRL_VBLANK)) {
 		yield();
@@ -71,6 +78,7 @@ static const uint8_t face_colors[6] = {
     0b00110011  // Cyan
 };
 
+	
 // Scanline edge filling with 32-bit DWORD packing
 TCM_FUNC static void draw_span(volatile uint8_t *canvas, int16_t y, int16_t x1, int16_t x2, uint8_t color) {
     if (y < 0 || y >= HEIGHT) return;
@@ -154,10 +162,14 @@ TCM_FUNC void demo(void) {
     uint8_t rx = 0, ry = 0, rz = 0;
     volatile uint8_t  *psram_canvas   = PSRAM_BASE8;
     volatile uint32_t *psram_canvas32 = PSRAM_BASE32;
+    
+    GPIO_DATA = ~1UL;
+    GPIO_OE   = 0xFFFFFFFF;
 
 	yield_init();
 	yield_sei();
 	yield_add_irq(YIELD_IRQ_TIMER, 1000000UL * yield_usec_to_cycles(), 0, fps_counter);
+	yield_add_irq(YIELD_IRQ_TIMER, 250UL * 1000UL * yield_usec_to_cycles(), 0, timer_250msec);
 	
 	VGA_CTRL = VGA_CTRL_GFX_MODE | (active_page ? VGA_CTRL_PAGE_SEL : 0);
 

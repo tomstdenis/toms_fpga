@@ -7,12 +7,14 @@
 #define UART_STATUS_RX_READY 4
 
 // Simple blocking UART read
-uint8_t uart_read_byte(void)
+uint8_t uart_read_byte(int echo)
 {
 	uint8_t b;
     while (!(UART_STATUS & UART_STATUS_RX_READY)); // Poll until RX ready
     b = (uint8_t)(UART_DATA & 0xFF);
-    UART_DATA = b;
+    if (echo) {
+		UART_DATA = b;
+	}
     return b;
 }
 
@@ -20,21 +22,21 @@ uint8_t uart_read_byte(void)
 uint32_t uart_read_u32(void) {
     uint32_t val = 0;
 top:
-    val = ((uint32_t)uart_read_byte());
+    val = ((uint32_t)uart_read_byte(1));
     if (val != 0x1B) goto top;
 top55:
-    val = ((uint32_t)uart_read_byte());
+    val = ((uint32_t)uart_read_byte(1));
     if (val == 0x1B) goto top55;
     if (val != 0x55) goto top;
 topAA:
-    val = ((uint32_t)uart_read_byte());
+    val = ((uint32_t)uart_read_byte(1));
     if (val == 0x1B) goto top55;
     if (val == 0x55) goto topAA;
     if (val != 0xAA) goto top;
-    val  = (uint32_t)uart_read_byte();
-    val |= ((uint32_t)uart_read_byte()) << 8;
-    val |= ((uint32_t)uart_read_byte()) << 16;
-    val |= ((uint32_t)uart_read_byte()) << 24;
+    val  = (uint32_t)uart_read_byte(1);
+    val |= ((uint32_t)uart_read_byte(1)) << 8;
+    val |= ((uint32_t)uart_read_byte(1)) << 16;
+    val |= ((uint32_t)uart_read_byte(1)) << 24;
     return val;
 }
 
@@ -47,7 +49,7 @@ void bios_main(void)
 
     // 2. Stream bytes into PSRAM (through nanocache)
     for (uint32_t i = 0; i < binary_size; i++) {
-        psram_base[i] = uart_read_byte();
+        psram_base[i] = uart_read_byte(0);
     }
 
     // 3. Cast PSRAM address to function pointer and execute!

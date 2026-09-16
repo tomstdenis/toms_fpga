@@ -45,11 +45,13 @@ static int setup_serial(const char *portname, speed_t baud) {
 }
 
 // Helper to transmit 1 byte and verify its echo
-static int send_and_verify_byte(int tty_fd, uint8_t byte_to_send, size_t byte_index, const char *stage) {
+static int send_and_verify_byte(int tty_fd, uint8_t byte_to_send, size_t byte_index, const char *stage, int expect_echo) {
     if (write(tty_fd, &byte_to_send, 1) != 1) {
         perror("\nError writing to serial port");
         return -1;
     }
+
+	if (!expect_echo) return 0;
 
     uint8_t rx_byte = 0;
     ssize_t n = read(tty_fd, &rx_byte, 1);
@@ -130,7 +132,7 @@ int main(int argc, char *argv[]) {
 
     // Send and verify the 8-byte header
     for (size_t i = 0; i < 8; i++) {
-        if (send_and_verify_byte(tty_fd, header[i], i, "header") < 0) {
+        if (send_and_verify_byte(tty_fd, header[i], i, "header", 1) < 0) {
             free(buffer);
             close(tty_fd);
             return 1;
@@ -141,20 +143,20 @@ int main(int argc, char *argv[]) {
     
     // Send and verify the payload bytes with progress display
     for (size_t i = 0; i < filesize; i++) {
-        if (send_and_verify_byte(tty_fd, buffer[i], i, "payload") < 0) {
+        if (send_and_verify_byte(tty_fd, buffer[i], i, "payload", 0) < 0) {
             free(buffer);
             close(tty_fd);
             return 1;
         }
 
         if ((i + 1) % 1024 == 0 || (i + 1) == filesize) {
-            printf("\rVerified %zu / %u bytes (%.1f%%)", 
+            printf("\rUploaded %zu / %u bytes (%.1f%%)", 
                    i + 1, filesize, ((float)(i + 1) / filesize) * 100.0f);
             fflush(stdout);
         }
     }
 
-    printf("\nSuccessfully verified and loaded %u bytes into PSRAM!\n", filesize);
+    printf("\nSuccessfully loaded %u bytes into PSRAM!\n", filesize);
 
     free(buffer);
     close(tty_fd);
