@@ -1,7 +1,7 @@
 #ifndef LT1000_YIELD_H
 #define LT1000_YIELD_H
 
-#define MAX_IRQ 8
+#define MAX_IRQ 32
 
 typedef void (*irq_handler_t)(uint32_t event_flags);
 
