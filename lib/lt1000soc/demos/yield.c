@@ -56,23 +56,26 @@ void main(void)
 	}
 	
 	yield_sei();
-	if (yield_add_irq(YIELD_IRQ_GPIO_POSEDGE, 1 << 4, gpio_irq) == 0) {
+	if (yield_add_irq(YIELD_IRQ_GPIO_POSEDGE, 1 << 4, 0, gpio_irq) == 0) {
 		puts("Installed GPIO IRQ...\n\r");
-		if (yield_add_irq(YIELD_IRQ_UART_RX_READY, 0, uart_irq) == 0) {
+		if (yield_add_irq(YIELD_IRQ_UART_RX_READY, 0, 0, uart_irq) == 0) {
 			puts("Installed UART IRQ...\n\r");
-			if (yield_add_irq(YIELD_IRQ_TIMER, yield_usec_to_cycles() * 1000UL * 250, timer_250msec) == 0) {
+			if (yield_add_irq(YIELD_IRQ_TIMER, yield_usec_to_cycles() * 1000UL * 250, 0, timer_250msec) == 0) {
 				puts("Installed 250ms timer IRQ...\n\r");
-				if (yield_add_irq(YIELD_IRQ_VBLANK, 0, vblank_irq) == 0) {
+				if (yield_add_irq(YIELD_IRQ_VBLANK, 0, 0, vblank_irq) == 0) {
 					puts("Installed vblank IRQ...\n\r");
-					if (yield_add_irq(YIELD_IRQ_TIMER, yield_usec_to_cycles() * 3000000UL, timer_3sec) == 0) {
+					if (yield_add_irq(YIELD_IRQ_TIMER, yield_usec_to_cycles() * 3000000UL, 0, timer_3sec) == 0) {
 						puts("Installed 3 second timer IRQ...\n\r");
-						if (yield_add_irq(YIELD_IRQ_TIMER, yield_usec_to_cycles() * 1000000UL, timer_1sec) == 0) {
+						if (yield_add_irq(YIELD_IRQ_TIMER, yield_usec_to_cycles() * 1000000UL, 0, timer_1sec) == 0) {
 							puts("Installed 1 second timer IRQ...(hit key to exit)\n\r");
 							for (;;) {
 								// app code would go here
 								
-								// call this frequently to keep things moving
+								// call this frequently to keep things moving (but not like this often...)
 								yield();
+								
+								// alternatively you can call a delay so you can pace your app loop
+								// delay_ms(50); // wait 50 ms
 							}
 						}
 					}

@@ -22,15 +22,14 @@ static struct {
 
 void yield_init(void)
 {
-	uint32_t v;
+	uint32_t x;
 	
-	for (v = 0; v < MAX_IRQ; v++) {
-		irqs[v].type = YIELD_IRQ_INACTIVE;
+	for (x = 0; x < MAX_IRQ; x++) {
+		irqs[x].type = YIELD_IRQ_INACTIVE;
 	}
 	
-	v                   = MCFG_FREQ_MHZ(MCFG_DATA) * 1000000UL; // frequency in Hz
-	yd.cycles_per_usec  = v / 1000000;
-	yd.cycles_per_msec  = v / 1000;
+	yd.cycles_per_usec  = MCFG_FREQ_MHZ(MCFG_DATA);
+	yd.cycles_per_msec  = MCFG_FREQ_MHZ(MCFG_DATA) * 1000UL;
 	yd.in_yield         = 0;
 	yield_cycles        = 0;
 
@@ -111,6 +110,25 @@ void yield(void)
 						irqs[x].handler(0);
 					}
 					break;
+				case YIELD_IRQ_ALWAYS:
+					irqs[x].handler(0);
+					break;
+				case YIELD_IRQ_MEMEQ:
+				{
+					uint32_t p = ((uint32_t *)(uint32_t)irqs[x].data)[0];
+					if (p == irqs[x].data2) {
+						irqs[x].handler(p);
+					}
+					break;
+				}
+				case YIELD_IRQ_MEMAND:
+				{
+					uint32_t p = ((uint32_t *)(uint32_t)irqs[x].data)[0];
+					if (p & irqs[x].data2) {
+						irqs[x].handler(p);
+					}
+					break;
+				}
 			}
 		}
 		yd.last_gpio_read = gpio;
@@ -139,13 +157,14 @@ void delay_usec(uint32_t usec)
 	}
 }
 
-int yield_add_irq(enum yield_irq_type type, uint64_t data, irq_handler_t handler)
+int yield_add_irq(enum yield_irq_type type, uint64_t data, uint64_t data2, irq_handler_t handler)
 {
 	uint32_t x;
 	for (x = 0; x < MAX_IRQ; x++) {
 		if (irqs[x].type == YIELD_IRQ_INACTIVE) {
 			irqs[x].type    = type;
 			irqs[x].data    = data;
+			irqs[x].data2   = data2;
 			irqs[x].handler = handler;
 			if (type == YIELD_IRQ_TIMER) {
 				irqs[x].data2 = yield_cycles + data;

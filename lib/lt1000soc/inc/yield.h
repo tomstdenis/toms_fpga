@@ -17,6 +17,9 @@ enum yield_irq_type {
 	YIELD_IRQ_TIMER,           // data is the # of clock cycles per event
 	YIELD_IRQ_VBLANK,          // triggers on posedge of vertical blank
 	YIELD_IRQ_HBLANK,          // triggers on posedge of horizontal blank
+	YIELD_IRQ_ALWAYS,		   // triggers every time yield() is called (any for arbitrary logic in delay_*() calls)
+	YIELD_IRQ_MEMEQ,           // triggers when mem[data] == data2
+	YIELD_IRQ_MEMAND,		   // triggers when mem[data] & data2
 };
 
 // 64-bit count of cycles since yield_init()
@@ -35,7 +38,7 @@ void delay_ms(uint32_t ms);
 void delay_usec(uint32_t usec);
 
 // insert a new IRQ (-1 == error)
-int yield_add_irq(enum yield_irq_type type, uint64_t data, irq_handler_t handler);
+int yield_add_irq(enum yield_irq_type type, uint64_t data, uint64_t data2, irq_handler_t handler);
 
 // remove any IRQ that has this as a handler
 void yield_del_irq(irq_handler_t handler);
