@@ -14,7 +14,7 @@
 static uint32_t frames = 0;
 TCM_FUNC static void fps_counter(uint32_t data)
 {
-	puts("FPS: "); puts_dec(frames); puts("\r\n");
+	puts("FPS: "); puts_dec(frames); puts(", TCM_FREE == 0x"); puts_hex(TCM_FREE, 4); puts("\r\n");
 	frames = 0;
 }
 

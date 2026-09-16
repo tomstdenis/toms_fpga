@@ -48,11 +48,6 @@ TCM_FUNC void yield(void)
 {
 	uint32_t t;
 	
-	// update timer
-	t = TIMER;
-	yield_cycles += (t - yd.last_cycle_count);
-	yd.last_cycle_count = t;
-	
 	// handle soft IRQs
 	if (yd.irq_enabled && !yd.in_yield) {
 		uint32_t gpio_edge, gpio, vga, x;
@@ -67,6 +62,16 @@ TCM_FUNC void yield(void)
 		vga         = VGA_CTRL;
 		
 		for (x = 0; x < MAX_IRQ; x++) {
+			// only force timer update on first pass 
+			if (x && irqs[x].type == YIELD_IRQ_INACTIVE) {
+				continue;
+			}
+			
+			// update timer before each IRQ handler for more precise timing
+			t = TIMER;
+			yield_cycles += (t - yd.last_cycle_count);
+			yd.last_cycle_count = t;
+
 			switch(irqs[x].type) {
 				case YIELD_IRQ_INACTIVE: continue;
 				case YIELD_IRQ_GPIO_LEVEL_HIGH:
@@ -96,8 +101,8 @@ TCM_FUNC void yield(void)
 					break;
 				case YIELD_IRQ_TIMER:
 					if (yield_cycles > irqs[x].data2) {
-						irqs[x].handler(0);
 						irqs[x].data2 = yield_cycles + irqs[x].data;
+						irqs[x].handler(0);
 					}
 					break;
 				case YIELD_IRQ_VBLANK:
@@ -134,7 +139,12 @@ TCM_FUNC void yield(void)
 		yd.last_gpio_read = gpio;
 		yd.last_vga_read  = vga;
 		yd.in_yield       = 0;
-	}		
+	} else {	
+		// update timer
+		t = TIMER;
+		yield_cycles += (t - yd.last_cycle_count);
+		yd.last_cycle_count = t;
+	}
 }
 
 void delay_ms(uint32_t ms)
