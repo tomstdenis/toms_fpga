@@ -1,30 +1,31 @@
 #include "lt1000.h"
 
+// With this set we render to PSRAM first and then copy to the VGA back buffer
+// this is meant to stress test the cache a bunch
 #define PSRAM_STRESS
 
-#define UART_STATUS_TX_FULL  1
-#define UART_STATUS_TX_EMPTY 2
-#define UART_STATUS_RX_READY 4
-
-#define VGA_FB32            ((volatile uint32_t *)0x04000000)
-
-#define PSRAM_BASE8         ((volatile uint8_t  *)0x08020000)
-#define PSRAM_BASE32        ((volatile uint32_t *)0x08020000)
-
+#define VGA_FB32            ((volatile uint32_t *)VGA_ADDR)
+#define PSRAM_BASE8         ((volatile uint8_t  *)(PSRAM_ADDR + 0x20000))
+#define PSRAM_BASE32        ((volatile uint32_t *)(PSRAM_ADDR + 0x20000))
 #define WIDTH               320
 #define HEIGHT              200
 #define PAGE_SIZE           0x10000 
 
-#define CTRL_MODE_GFX       (1 << 0)
-#define CTRL_PAGE_1         (1 << 1)
-#define CTRL_VBLANK         (1 << 3)
+static uint32_t frames = 0;
+TCM_FUNC static void fps_counter(uint32_t data)
+{
+	puts("FPS: "); puts_dec(frames); puts("\r\n");
+	frames = 0;
+}
 
-static void wait_vblank(void) {
-    while (!(VGA_CTRL & CTRL_VBLANK));
+TCM_FUNC static void wait_vblank(void) {
+    while (!(VGA_CTRL & VGA_CTRL_VBLANK)) {
+		yield();
+	}
 }
 
 // Q8 Fixed-point sine/cosine
-static int16_t sin_q8(uint8_t angle) {
+TCM_FUNC static int16_t sin_q8(uint8_t angle) {
     static const uint8_t sin_table[65] = {
           0,   3,   6,   9,  12,  15,  18,  21,  24,  27,  30,  33,  36,  39,  42,  45,
          48,  51,  54,  57,  60,  63,  65,  68,  71,  73,  76,  78,  81,  83,  85,  88,
@@ -37,7 +38,7 @@ static int16_t sin_q8(uint8_t angle) {
     return ((angle & 0x80) != 0) ? -val : val;
 }
 
-static inline int16_t cos_q8(uint8_t angle) {
+TCM_FUNC static int16_t cos_q8(uint8_t angle) {
     return sin_q8(angle + 64);
 }
 
@@ -71,7 +72,7 @@ static const uint8_t face_colors[6] = {
 };
 
 // Scanline edge filling with 32-bit DWORD packing
-static void draw_span(volatile uint8_t *canvas, int16_t y, int16_t x1, int16_t x2, uint8_t color) {
+TCM_FUNC static void draw_span(volatile uint8_t *canvas, int16_t y, int16_t x1, int16_t x2, uint8_t color) {
     if (y < 0 || y >= HEIGHT) return;
     if (x1 > x2) { int16_t t = x1; x1 = x2; x2 = t; }
     if (x1 < 0) x1 = 0;
@@ -110,7 +111,7 @@ static void draw_span(volatile uint8_t *canvas, int16_t y, int16_t x1, int16_t x
     }
 }
 
-static void fill_quad(volatile uint8_t *canvas, Point2D p[4], uint8_t color) {
+TCM_FUNC static void fill_quad(volatile uint8_t *canvas, Point2D p[4], uint8_t color) {
     int16_t min_y = p[0].y, max_y = p[0].y;
     for (int i = 1; i < 4; i++) {
         if (p[i].y < min_y) min_y = p[i].y;
@@ -147,20 +148,24 @@ static void fill_quad(volatile uint8_t *canvas, Point2D p[4], uint8_t color) {
     }
 }
 
-__attribute__((section(".tcm_code"), noinline)) void tcm_uart(void) { UART_DATA = 'H'; }
-
-void main(void) {
+TCM_FUNC void demo(void) {
 	uint8_t active_page = 0;
 	
-    VGA_CTRL = CTRL_MODE_GFX | (active_page ? CTRL_PAGE_1 : 0);
-
     uint8_t rx = 0, ry = 0, rz = 0;
     volatile uint8_t  *psram_canvas   = PSRAM_BASE8;
     volatile uint32_t *psram_canvas32 = PSRAM_BASE32;
 
+	yield_init();
+	yield_sei();
+	yield_add_irq(YIELD_IRQ_TIMER, 1000000UL * yield_usec_to_cycles(), 0, fps_counter);
+	
+	VGA_CTRL = VGA_CTRL_GFX_MODE | (active_page ? VGA_CTRL_PAGE_SEL : 0);
+
     while (1) {
         uint32_t back_page_offset = (active_page == 0) ? PAGE_SIZE : 0x00000;
         volatile uint32_t *vga_back_buffer32 = VGA_FB32 + (back_page_offset / 4);
+        
+        yield();
 
         // 1. Clear PSRAM Background to dark gray/black
         for (int i = 0; i < (WIDTH * HEIGHT) / 4; i++) {
@@ -226,15 +231,13 @@ void main(void) {
 #endif
         // 5. Swap Pages
         wait_vblank();
+        ++frames;
         active_page = !active_page;
-        VGA_CTRL = CTRL_MODE_GFX | (active_page ? CTRL_PAGE_1 : 0);
+        VGA_CTRL = VGA_CTRL_GFX_MODE | (active_page ? VGA_CTRL_PAGE_SEL : 0);
 
         rx += 2;
         ry += 3;
         rz += 1;
-
-		// call tcm_code for fun
-		tcm_uart();
 
         // uart echo
         if (UART_STATUS & UART_STATUS_RX_READY) {
@@ -247,3 +250,5 @@ void main(void) {
 		}
     }
 }
+
+void main(void) { demo(); }

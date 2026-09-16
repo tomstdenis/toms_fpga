@@ -12,6 +12,8 @@
 // MMIO base address
 #define MMIO_ADDR  0x10000000
 
+#define TCM_FUNC __attribute__((section(".tcm_code"), noinline)) 
+
 void load_tcm_code(void);
 
 #endif
