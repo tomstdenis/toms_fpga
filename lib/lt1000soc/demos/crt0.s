@@ -22,10 +22,23 @@ bss_clear_loop:
     sw zero, 0(t0)
     addi t0, t0, 4
     j bss_clear_loop
-
 bss_done:
-    /* 5. Jump to application main */
+
+    /* 5. Copy TCM code payload from PSRAM (LMA) to TCM (VMA) */
+    la t0, __tcm_code_start
+    la t1, __tcm_code_end
+    la t2, __tcm_code_load_start
+tcm_copy_loop:
+    bgeu t0, t1, tcm_copy_done
+    lw t3, 0(t2)
+    sw t3, 0(t0)
+    addi t0, t0, 4
+    addi t2, t2, 4
+    j tcm_copy_loop
+tcm_copy_done:
+
+    /* 6. Jump to application main */
     jal ra, main
 
-    /* 6. Infinite loop if main returns */
+    /* 7. Infinite loop if main returns */
 1:  j 1b

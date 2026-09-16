@@ -1,16 +1,15 @@
-#include <stdint.h>
+#include "lt1000.h"
 
-#define UART_DATA           ((volatile uint32_t *)0x10000018)
-#define UART_STATUS         ((volatile uint32_t *)0x1000001C)
+#define PSRAM_STRESS
+
 #define UART_STATUS_TX_FULL  1
 #define UART_STATUS_TX_EMPTY 2
 #define UART_STATUS_RX_READY 4
 
 #define VGA_FB32            ((volatile uint32_t *)0x04000000)
-#define VGA_CTRL            ((volatile uint32_t *)0x10000020)
 
-#define PSRAM_BASE8         ((volatile uint8_t  *)0x08010000)
-#define PSRAM_BASE32        ((volatile uint32_t *)0x08010000)
+#define PSRAM_BASE8         ((volatile uint8_t  *)0x08020000)
+#define PSRAM_BASE32        ((volatile uint32_t *)0x08020000)
 
 #define WIDTH               320
 #define HEIGHT              200
@@ -21,7 +20,7 @@
 #define CTRL_VBLANK         (1 << 3)
 
 static void wait_vblank(void) {
-    while (!(*VGA_CTRL & CTRL_VBLANK));
+    while (!(VGA_CTRL & CTRL_VBLANK));
 }
 
 // Q8 Fixed-point sine/cosine
@@ -148,9 +147,14 @@ static void fill_quad(volatile uint8_t *canvas, Point2D p[4], uint8_t color) {
     }
 }
 
+__attribute__((section(".tcm_code"), noinline)) void tcm_uart(void) { UART_DATA = 'H'; }
+
 void main(void) {
-    uint8_t active_page = 0;
-    *VGA_CTRL = CTRL_MODE_GFX | (active_page ? CTRL_PAGE_1 : 0);
+	uint8_t active_page = 0;
+
+	load_tcm_code();
+	
+    VGA_CTRL = CTRL_MODE_GFX | (active_page ? CTRL_PAGE_1 : 0);
 
     uint8_t rx = 0, ry = 0, rz = 0;
     volatile uint8_t  *psram_canvas   = PSRAM_BASE8;
@@ -162,7 +166,11 @@ void main(void) {
 
         // 1. Clear PSRAM Background to dark gray/black
         for (int i = 0; i < (WIDTH * HEIGHT) / 4; i++) {
+#ifdef PSRAM_STRESS        
             psram_canvas32[i] = 0x00000000;
+#else
+            vga_back_buffer32[i] = 0x00000000;
+#endif
         }
 
         // Trig setup
@@ -204,28 +212,36 @@ void main(void) {
                                  (int32_t)(quad[1].y - quad[0].y) * (quad[2].x - quad[0].x);
 
             if (cross_prod < -16) { // Visible front-facing polygon!
+#ifdef PSRAM_STRESS        
                 fill_quad(psram_canvas, quad, face_colors[f]);
+#else
+                fill_quad((uint8_t *)vga_back_buffer32, quad, face_colors[f]);
+#endif
             }
         }
 
         // 4. Blit PSRAM -> VGA Back Buffer
+#ifdef PSRAM_STRESS        
         for (int i = 0; i < (WIDTH * HEIGHT) / 4; i++) {
             vga_back_buffer32[i] = psram_canvas32[i];
         }
-
+#endif
         // 5. Swap Pages
         wait_vblank();
         active_page = !active_page;
-        *VGA_CTRL = CTRL_MODE_GFX | (active_page ? CTRL_PAGE_1 : 0);
+        VGA_CTRL = CTRL_MODE_GFX | (active_page ? CTRL_PAGE_1 : 0);
 
         rx += 2;
         ry += 3;
         rz += 1;
 
+		// call tcm_code for fun
+		tcm_uart();
+
         // uart echo
-        if (*UART_STATUS & UART_STATUS_RX_READY) {
-			uint32_t v = *UART_DATA;
-			*UART_DATA = v;
+        if (UART_STATUS & UART_STATUS_RX_READY) {
+			uint32_t v = UART_DATA;
+			UART_DATA = v;
 			if (v == 27) { 
 				void (*bios_entry)(void) = (void (*)(void))0x01000000;
 				bios_entry();

@@ -4,25 +4,36 @@ MEMORY
     PSRAM (rwx) : ORIGIN = 0x08000000, LENGTH = 16M
 }
 
-/* Define the stack pointer at the very top of 64KB TCM */
-_stack_top = ORIGIN(TCM) + LENGTH(TCM);
-
 SECTIONS
 {
+    /* Main executable code & constants in PSRAM */
     .text : {
-        KEEP(*crt0.o(.text .text.*))
+        KEEP(*(.text ._start))
         *(.text*)
         *(.rodata*)
+        *(.srodata*)
+        . = ALIGN(4);
     } > PSRAM
+    
+    /* TCM Code ONLY (VMA=TCM, LMA=PSRAM) */
+    .tcm_code ORIGIN(TCM) : {
+        . = ALIGN(4);
+        __tcm_code_start = .;
+        *(.tcm_code*)
+        . = ALIGN(4);
+        __tcm_code_end = .;
+    } > TCM AT > PSRAM
 
+    __tcm_code_load_start = LOADADDR(.tcm_code);
+
+    /* Force all RAM variables and constants into PSRAM */
     .data : {
+        . = ALIGN(4);
         *(.data*)
-        
-        /* Define __global_pointer$ in the middle of small data */
+        *(.sdata*)
         . = ALIGN(4);
         PROVIDE(__global_pointer$ = . + 0x800);
-        *(.sdata*)
-    } > PSRAM
+    } > PSRAM AT > PSRAM
 
     .bss : {
         . = ALIGN(4);

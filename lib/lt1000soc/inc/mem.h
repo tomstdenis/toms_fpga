@@ -12,4 +12,6 @@
 // MMIO base address
 #define MMIO_ADDR  0x10000000
 
+void load_tcm_code(void);
+
 #endif
