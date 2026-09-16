@@ -12,8 +12,7 @@ __stack_top = ORIGIN(TCM) + LENGTH(TCM);
 SECTIONS
 {
     .text : ALIGN(4) {
-        *(.text._start)
-        *(.text .text.*)
+        KEEP(*(.text ._start))
         *(.rodata .rodata.*)
         *(.srodata .srodata.*)
         . = ALIGN(4);

@@ -151,8 +151,6 @@ __attribute__((section(".tcm_code"), noinline)) void tcm_uart(void) { UART_DATA 
 
 void main(void) {
 	uint8_t active_page = 0;
-
-	load_tcm_code();
 	
     VGA_CTRL = CTRL_MODE_GFX | (active_page ? CTRL_PAGE_1 : 0);
 
