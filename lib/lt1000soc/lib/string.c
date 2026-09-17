@@ -13,6 +13,26 @@ int memcmp(const void *a, const void *b, size_t len)
 void *memset(void *dst, int c, size_t len)
 {
 	uint8_t *d = (uint8_t*)dst;
+	uint32_t *d32;
+	
+	while (len && (((intptr_t)dst) & 3)) {
+		*d++ = c;
+		--len;
+	}
+	
+	if (len) {
+		uint32_t c32 = (uint8_t)c;
+        c32 |= (c32 << 8);
+        c32 |= (c32 << 16);
+        d32 = (uint32_t *)d;
+
+		while (len >= 4) {
+			*d32++ = c32;
+			len -= 4;
+		}
+		d = (uint8_t*)d32;
+	}
+	
 	while (len--) {
 		*d++ = c;
 	}
