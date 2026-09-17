@@ -4,6 +4,12 @@
 // this is meant to stress test the cache a bunch
 #define PSRAM_STRESS
 
+#ifdef PSRAM_STRESS
+#define CODE_SEC 
+#else
+#define CODE_SEC TCM_FUNC
+#endif
+
 #define VGA_FB32            ((volatile uint32_t *)VGA_ADDR)
 #define PSRAM_BASE8         ((volatile uint8_t  *)(PSRAM_ADDR + 0x20000))
 #define PSRAM_BASE32        ((volatile uint32_t *)(PSRAM_ADDR + 0x20000))
@@ -12,27 +18,27 @@
 #define PAGE_SIZE           0x10000 
 
 static uint32_t frames = 0;
-TCM_FUNC static void fps_counter(uint32_t data)
+CODE_SEC static void fps_counter(uint32_t data)
 {
 	puts("FPS: "); puts_dec(frames); puts(", TCM_FREE == 0x"); puts_hex(TCM_FREE, 4); puts("\r\n");
 	frames = 0;
 }
 
-TCM_FUNC static void timer_250msec(uint32_t data)
+CODE_SEC static void timer_250msec(uint32_t data)
 {
 	uint32_t d = GPIO_DATA;
 	d = (d << 1) | (d >> 31);
 	GPIO_DATA = d;
 }	
 
-TCM_FUNC static void wait_vblank(void) {
+CODE_SEC static void wait_vblank(void) {
     while (!(VGA_CTRL & VGA_CTRL_VBLANK)) {
 		yield();
 	}
 }
 
 // Q8 Fixed-point sine/cosine
-TCM_FUNC static int16_t sin_q8(uint8_t angle) {
+CODE_SEC static int16_t sin_q8(uint8_t angle) {
     static const uint8_t sin_table[65] = {
           0,   3,   6,   9,  12,  15,  18,  21,  24,  27,  30,  33,  36,  39,  42,  45,
          48,  51,  54,  57,  60,  63,  65,  68,  71,  73,  76,  78,  81,  83,  85,  88,
@@ -45,7 +51,7 @@ TCM_FUNC static int16_t sin_q8(uint8_t angle) {
     return ((angle & 0x80) != 0) ? -val : val;
 }
 
-TCM_FUNC static int16_t cos_q8(uint8_t angle) {
+CODE_SEC static int16_t cos_q8(uint8_t angle) {
     return sin_q8(angle + 64);
 }
 
@@ -80,7 +86,7 @@ static const uint8_t face_colors[6] = {
 
 	
 // Scanline edge filling with 32-bit DWORD packing
-TCM_FUNC static void draw_span(volatile uint8_t *canvas, int16_t y, int16_t x1, int16_t x2, uint8_t color) {
+CODE_SEC static void draw_span(volatile uint8_t *canvas, int16_t y, int16_t x1, int16_t x2, uint8_t color) {
     if (y < 0 || y >= HEIGHT) return;
     if (x1 > x2) { int16_t t = x1; x1 = x2; x2 = t; }
     if (x1 < 0) x1 = 0;
@@ -119,7 +125,7 @@ TCM_FUNC static void draw_span(volatile uint8_t *canvas, int16_t y, int16_t x1, 
     }
 }
 
-TCM_FUNC static void fill_quad(volatile uint8_t *canvas, Point2D p[4], uint8_t color) {
+CODE_SEC static void fill_quad(volatile uint8_t *canvas, Point2D p[4], uint8_t color) {
     int16_t min_y = p[0].y, max_y = p[0].y;
     for (int i = 1; i < 4; i++) {
         if (p[i].y < min_y) min_y = p[i].y;
@@ -156,7 +162,7 @@ TCM_FUNC static void fill_quad(volatile uint8_t *canvas, Point2D p[4], uint8_t c
     }
 }
 
-TCM_FUNC void demo(void) {
+CODE_SEC void demo(void) {
 	uint8_t active_page = 0;
 	
     uint8_t rx = 0, ry = 0, rz = 0;
