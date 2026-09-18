@@ -4,7 +4,7 @@
 #define SCREEN_HEIGHT 200
 #define FB_SIZE       (SCREEN_WIDTH * SCREEN_HEIGHT)
 
-#define NUM_BOIDS     128
+#define NUM_BOIDS     32
 #define FIXED_SHIFT   8   // 24.8 Fixed-point format
 
 // Flocking parameters
