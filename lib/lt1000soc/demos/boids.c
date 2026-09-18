@@ -274,7 +274,7 @@ static void render_to_psram(void) {
     }
 }
 
-TCM_FUNC static void copy_psram_to_vga(void) {
+static void copy_psram_to_vga(void) {
     volatile uint32_t *vga = (volatile uint32_t *)VGA_ADDR;
     uint32_t *psram = (uint32_t *)PSRAM_BACK_BUFFER;
 
@@ -287,7 +287,7 @@ TCM_FUNC static void copy_psram_to_vga(void) {
 static uint32_t frames = 0;
 static void fps_counter(uint32_t data)
 {
-    puts("FPS: "); puts_dec(frames); puts("\r\n");
+    puts("\r\nFPS: "); puts_dec(frames);
     frames = 0;
 }
 
