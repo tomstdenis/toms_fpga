@@ -33,6 +33,7 @@ module lt1000soc
 #(
     // *** SOC parameters ***
     parameter CORE_FREQ_KHZ   = 50_000,         // core clock
+    parameter BIOS_SIZE_BITS  = 13,             // BIOS ROM region
     parameter CACHE_SIZE_BITS = 13,             // cache for PSRAM region
     parameter TCM_SIZE_BITS   = 16,             // TCM region
     parameter SRAM_ADDR_WIDTH = 24,
@@ -128,10 +129,10 @@ localparam
     MEM_16M_MMIO  = 28;
 
 // *** BIOS ***
-    reg [7:0] bios_lane_0[0:2047];
-    reg [7:0] bios_lane_1[0:2047];
-    reg [7:0] bios_lane_2[0:2047];
-    reg [7:0] bios_lane_3[0:2047];
+    reg [7:0] bios_lane_0[0:((1<<(BIOS_SIZE_BITS-2))-1)];
+    reg [7:0] bios_lane_1[0:((1<<(BIOS_SIZE_BITS-2))-1)];
+    reg [7:0] bios_lane_2[0:((1<<(BIOS_SIZE_BITS-2))-1)];
+    reg [7:0] bios_lane_3[0:((1<<(BIOS_SIZE_BITS-2))-1)];
     reg [12:0] bios_mem_addr;
     reg [7:0] bios_mem_dout0;
     reg [7:0] bios_mem_dout1;
@@ -142,10 +143,10 @@ localparam
     reg [7:0] bios_mem_dout2_tmp;
     reg [7:0] bios_mem_dout3_tmp;
     always @(posedge core_clk) begin
-        bios_mem_dout0_tmp <= bios_lane_0[bios_mem_addr[12:2]];
-        bios_mem_dout1_tmp <= bios_lane_1[bios_mem_addr[12:2]];
-        bios_mem_dout2_tmp <= bios_lane_2[bios_mem_addr[12:2]];
-        bios_mem_dout3_tmp <= bios_lane_3[bios_mem_addr[12:2]];
+        bios_mem_dout0_tmp <= bios_lane_0[bios_mem_addr[BIOS_SIZE_BITS-1:2]];
+        bios_mem_dout1_tmp <= bios_lane_1[bios_mem_addr[BIOS_SIZE_BITS-1:2]];
+        bios_mem_dout2_tmp <= bios_lane_2[bios_mem_addr[BIOS_SIZE_BITS-1:2]];
+        bios_mem_dout3_tmp <= bios_lane_3[bios_mem_addr[BIOS_SIZE_BITS-1:2]];
         bios_mem_dout0     <= bios_mem_dout0_tmp;
         bios_mem_dout1     <= bios_mem_dout1_tmp;
         bios_mem_dout2     <= bios_mem_dout2_tmp;
