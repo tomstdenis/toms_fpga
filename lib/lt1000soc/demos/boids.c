@@ -298,6 +298,19 @@ static void timer_250msec(uint32_t data)
     GPIO_DATA = d;
 }   
 
+static void uart_handler(uint32_t data)
+{
+	// UART echo and ESC check to return to BIOS
+	if (UART_STATUS & UART_STATUS_RX_READY) {
+		uint32_t v = UART_DATA;
+		UART_DATA = v;
+		if (v == 27) { 
+			void (*bios_entry)(void) = (void (*)(void))ROM_ADDR;
+			bios_entry();
+		}
+	}
+}	
+
 int main(void) {
     GPIO_DATA = ~1UL;
     GPIO_OE   = 0xFFFFFFFF;
@@ -306,6 +319,7 @@ int main(void) {
     yield_sei();
     yield_add_irq(YIELD_IRQ_TIMER, 1000000UL * yield_usec_to_cycles(), 0, fps_counter);
     yield_add_irq(YIELD_IRQ_TIMER, 250UL * 1000UL * yield_usec_to_cycles(), 0, timer_250msec);
+    yield_add_irq(YIELD_IRQ_UART_RX_READY, 0, 0, uart_handler);
 
     VGA_CTRL = VGA_CTRL_GFX_MODE;
 
@@ -320,16 +334,6 @@ int main(void) {
         render_to_psram();
         copy_psram_to_vga();
         ++frames;
-
-        // UART echo and ESC check to return to BIOS
-        if (UART_STATUS & UART_STATUS_RX_READY) {
-            uint32_t v = UART_DATA;
-            UART_DATA = v;
-            if (v == 27) { 
-                void (*bios_entry)(void) = (void (*)(void))ROM_ADDR;
-                bios_entry();
-            }
-        }
     }
 
     return 0;
