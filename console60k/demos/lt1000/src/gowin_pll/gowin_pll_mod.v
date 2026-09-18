@@ -5,7 +5,7 @@
 //Part Number: GW5AT-LV60PG484AC1/I0
 //Device: GW5AT-60
 //Device Version: B
-//Created Time: Tue Sep 15 07:57:11 2026
+//Created Time: Thu Sep 17 20:56:13 2026
 
 module lt1000clk_MOD (lock, clkout0, clkout1, mdrdo, clkin, reset, mdclk, mdopc, mdainc, mdwdi);
 
