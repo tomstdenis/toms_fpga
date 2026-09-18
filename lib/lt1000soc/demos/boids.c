@@ -311,29 +311,37 @@ static void uart_handler(uint32_t data)
 	}
 }	
 
-int main(void) {
+static void vblank_handler(uint32_t data)
+{
+	update_boids();
+	render_to_psram();
+	copy_psram_to_vga();
+	++frames;
+}	
+
+int main(void)
+{
+	// set GFX mode
+    VGA_CTRL = VGA_CTRL_GFX_MODE;
+
+	// turn on one LED for a fun blinky too
     GPIO_DATA = ~1UL;
     GPIO_OE   = 0xFFFFFFFF;
 
+	// init, enable, and add IRQs to drive demo
     yield_init();
     yield_sei();
     yield_add_irq(YIELD_IRQ_TIMER, 1000000UL * yield_usec_to_cycles(), 0, fps_counter);
     yield_add_irq(YIELD_IRQ_TIMER, 250UL * 1000UL * yield_usec_to_cycles(), 0, timer_250msec);
     yield_add_irq(YIELD_IRQ_UART_RX_READY, 0, 0, uart_handler);
+    yield_add_irq(YIELD_IRQ_VBLANK, 0, 0, vblank_handler);
 
-    VGA_CTRL = VGA_CTRL_GFX_MODE;
-
+	// init sim
     init_boids();
 
+	// drive yield loop
     while (1) {
-        while (!(VGA_CTRL & VGA_CTRL_VBLANK)) {
-            yield();
-        }
-
-        update_boids();
-        render_to_psram();
-        copy_psram_to_vga();
-        ++frames;
+		yield();
     }
 
     return 0;
