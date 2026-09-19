@@ -37,7 +37,6 @@ module lt1000soc
     parameter CACHE_SIZE_BITS  = 13,             // cache for PSRAM region
     parameter TCM_SIZE_BITS    = 16,             // TCM region
     parameter SRAM_ADDR_WIDTH  = 24,             // PSRAM address width
-    parameter MMIO_MULT_ENABLE = 1,              // 32x32=>64 scaled (>>(scaler*8)) multiplier in MMIO space
 
     // *** RV parameters ***
     parameter RV_ENABLE_COUNTERS=0,             // 32/64 bit counters
@@ -368,20 +367,10 @@ localparam
         MMIO_UART_STATUS  = 8'h1C,
         MMIO_VGA_CTRL     = 8'h20,
         MMIO_SPI_TRANSFER = 8'h24,
-        MMIO_TIMER        = 8'h28,
-        MMIO_MULT_SCALER  = 8'h2C,
-        MMIO_MULT_IN_LO   = 8'h30,
-        MMIO_MULT_IN_HI   = 8'h34,
-        MMIO_MULT_OUT_LO  = 8'h38,
-        MMIO_MULT_OUT_HI  = 8'h3C;
+        MMIO_TIMER        = 8'h28;
 
     reg  [31:0] mmio_reg_mcfg;
     reg  [31:0] mmio_data_out;
-
-    reg  [63:0] mmio_mult_operands;
-    reg  [1:0]  mmio_mult_scaler;
-    reg [63:0]  mmio_mult_out;
-    reg [63:0]  mmio_mult_out_tmp;
 
     // driver of ready signal
     reg [1:0] bus_cycle;
@@ -444,12 +433,6 @@ localparam
         timer                <= timer + 1'b1;
         bus_ready            <= 1'b0;
         psram_valid          <= 1'b0;
-
-        // multiplier
-        if (MMIO_MULT_ENABLE == 1) begin
-            mmio_mult_out_tmp <= (mmio_mult_operands[63:32] * mmio_mult_operands[31:0]) >> (mmio_mult_scaler * 8);
-            mmio_mult_out     <= mmio_mult_out_tmp;
-        end
 
         // respond to valid only if ready is already low
         if (~picorv_mem_ready & picorv_mem_valid) begin
@@ -605,41 +588,6 @@ localparam
                             spi_cs_end    <= picorv_mem_wdata[13];
                             spi_cs_sel    <= picorv_mem_wdata[15:14];
                             spi_valid     <= picorv_mem_wdata[16];
-                        end
-                    end
-                    MMIO_MULT_SCALER: begin
-                        if (MMIO_MULT_ENABLE == 1) begin
-                            mmio_mult_scaler <= picorv_mem_wdata[1:0];
-                        end else begin
-                            mmio_data_out <= 32'hBEBEBEEF;
-                        end
-                    end
-                    MMIO_MULT_IN_LO: begin
-                        if (MMIO_MULT_ENABLE == 1) begin
-                            mmio_mult_operands[31:0] <= picorv_mem_wdata;
-                        end else begin
-                            mmio_data_out <= 32'hBEBEBEEF;
-                        end
-                    end
-                    MMIO_MULT_IN_HI: begin
-                        if (MMIO_MULT_ENABLE == 1) begin
-                            mmio_mult_operands[63:32] <= picorv_mem_wdata;
-                        end else begin
-                            mmio_data_out <= 32'hBEBEBEEF;
-                        end
-                    end
-                    MMIO_MULT_OUT_LO: begin
-                        if (MMIO_MULT_ENABLE == 1) begin
-                            mmio_data_out <= mmio_mult_out[31:0];
-                        end else begin
-                            mmio_data_out <= 32'hBEBEBEEF;
-                        end
-                    end
-                    MMIO_MULT_OUT_HI: begin
-                        if (MMIO_MULT_ENABLE == 1) begin
-                            mmio_data_out <= mmio_mult_out[63:32];
-                        end else begin
-                            mmio_data_out <= 32'hBEBEBEEF;
                         end
                     end
                     MMIO_TIMER: begin

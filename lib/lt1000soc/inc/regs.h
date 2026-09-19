@@ -53,16 +53,4 @@
 // TIMER (32-bit Cycle Counter)
 #define TIMER               *((volatile uint32_t *)0x10000028)
 
-// Fixed point Multiplication
-// SCALER determines right shift count *8 (e.g. 00=0,01==8,10==16,11==24)
-#define MULT_SCALER         *((volatile uint32_t *)0x1000002C)
-// lower 32 bits of input
-#define MULT_IN_LO          *((volatile uint32_t *)0x10000030)
-// upper 32 bits of input
-#define MULT_IN_HI          *((volatile uint32_t *)0x10000034)
-// lower 32 bits of output (post shift)
-#define MULT_OUT_LO         *((volatile uint32_t *)0x10000038)
-// upper 32 bits of output (post shift)
-#define MULT_OUT_HI         *((volatile uint32_t *)0x1000003C)
-
 #endif

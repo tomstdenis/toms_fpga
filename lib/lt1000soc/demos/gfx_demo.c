@@ -1,51 +1,45 @@
 #include "lt1000.h"
+#include "gfx.h"
 
-// Simple 16x16 color sprite with color 0 as transparent
-static const uint8_t sprite_16x16[256] = {
-    0,0,0,0,0,0,14,14,14,14,0,0,0,0,0,0,
-    0,0,0,0,14,14,15,15,15,15,14,14,0,0,0,0,
-    0,0,0,14,15,15,12,12,12,12,15,15,14,0,0,0,
-    0,0,14,15,12,12,10,10,10,10,12,12,15,14,0,0,
-    0,14,15,12,10,10,10,10,10,10,10,10,12,15,14,0,
-    0,14,15,12,10,10,15,10,10,15,10,10,12,15,14,0,
-    14,15,12,10,10,10,15,10,10,15,10,10,10,12,15,14,
-    14,15,12,10,10,10,10,10,10,10,10,10,10,12,15,14,
-    14,15,12,10,10,10,10,10,10,10,10,10,10,12,15,14,
-    14,15,12,10,10,15,10,10,10,10,15,10,10,12,15,14,
-    0,14,15,12,10,10,15,15,15,15,10,10,12,15,14,0,
-    0,14,15,12,10,10,10,10,10,10,10,10,12,15,14,0,
-    0,0,14,15,12,12,10,10,10,10,12,12,15,14,0,0,
-    0,0,0,14,15,15,12,12,12,12,15,15,14,0,0,0,
-    0,0,0,0,14,14,15,15,15,15,14,14,0,0,0,0,
-    0,0,0,0,0,0,14,14,14,14,0,0,0,0,0,0,
-};
+// -----------------------------------------------------------------------------
+// Global State & IRQ Callbacks
+// -----------------------------------------------------------------------------
 
-// Return to ROM when any UART byte is received
-TCM_FUNC static void check_uart_exit(void) {
+static volatile uint32_t frames = 0;
+static volatile int vsync_enabled = 1;
+
+static void fps_counter_handler(uint32_t data) {
+    puts("\r\nFPS: "); 
+    puts_dec(frames);
+    if (vsync_enabled) {
+        puts(" (VSYNC ON)");
+    } else {
+        puts(" (VSYNC OFF)");
+    }
+    frames = 0;
+}
+
+static void vsync_toggle_handler(uint32_t data) {
+    vsync_enabled = !vsync_enabled;
+}
+
+static void uart_handler(uint32_t data) {
     if (UART_STATUS & UART_STATUS_RX_READY) {
-        (void)UART_DATA; // Clear byte
-        yield_cli();
-        
-        void (*rom_entry)(void) = (void (*)(void))ROM_ADDR;
-        rom_entry();
-        while (1);
+        uint32_t v = UART_DATA;
+        UART_DATA = v;
+        if (v == 27) { // ESC key
+            yield_cli();
+            void (*bios_entry)(void) = (void (*)(void))ROM_ADDR;
+            bios_entry();
+            while (1);
+        }
     }
 }
 
-// 3D Cube Vertices (Scaled by 64 for fixed-point math)
-static const int cube_verts[8][3] = {
-    {-35, -35, -35}, { 35, -35, -35}, { 35,  35, -35}, {-35,  35, -35},
-    {-35, -35,  35}, { 35, -35,  35}, { 35,  35,  35}, {-35,  35,  35}
-};
+// -----------------------------------------------------------------------------
+// Fixed-Point Math & 3D Pyramid Model
+// -----------------------------------------------------------------------------
 
-// 12 Edges connecting 8 vertices
-static const int cube_edges[12][2] = {
-    {0,1}, {1,2}, {2,3}, {3,0},
-    {4,5}, {5,6}, {6,7}, {7,4},
-    {0,4}, {1,5}, {2,6}, {3,7}
-};
-
-// Integer Sine approximation (input 0..255 maps to -128..127)
 TCM_FUNC static int fast_sin(int angle) {
     angle = angle & 255;
     if (angle < 64)  return (angle * 2);
@@ -58,98 +52,153 @@ TCM_FUNC static int fast_cos(int angle) {
     return fast_sin(angle + 64);
 }
 
-// Draw 3D Wireframe Cube with rotation
-TCM_FUNC static void draw_rotating_cube(int cx, int cy, int angle_x, int angle_y, uint8_t color) {
-    int projected[8][2];
+// Scaled up by ~50% (Symmetrical around origin)
+static const int pyramid_verts[5][3] = {
+    {   0, -40,   0}, // 0: Apex (Top)
+    {-40,  40, -40}, // 1: Front-Left
+    { 40,  40, -40}, // 2: Front-Right
+    { 40,  40,  40}, // 3: Back-Right
+    {-40,  40,  40}  // 4: Back-Left
+};
 
-    int sin_x = fast_sin(angle_x), cos_x = fast_cos(angle_x);
-    int sin_y = fast_sin(angle_y), cos_y = fast_cos(angle_y);
+typedef struct {
+    int v0, v1, v2;
+    uint8_t color;
+} Face;
 
-    for (int i = 0; i < 8; i++) {
-        int x = cube_verts[i][0];
-        int y = cube_verts[i][1];
-        int z = cube_verts[i][2];
+// Using your RGB332 byte color values
+static const Face pyramid_faces[6] = {
+    {0, 1, 2, 0b11100000}, // Front Side (Red)
+    {0, 2, 3, 0b00011100}, // Right Side (Green)
+    {0, 3, 4, 0b00000011}, // Back Side  (Blue)
+    {0, 4, 1, 0b11111100}, // Left Side  (Yellow)
+    {1, 4, 3, 0b11100011}, // Base Tri 1 (Purple)
+    {1, 3, 2, 0b11100011}  // Base Tri 2 (Purple)
+};
 
-        // Rotate Y
+TCM_FUNC static void draw_rotating_pyramid(int cx, int cy, int rx, int ry, int rz) {
+    int transformed[5][3];
+    int projected[5][2];
+
+    int sin_x = fast_sin(rx), cos_x = fast_cos(rx);
+    int sin_y = fast_sin(ry), cos_y = fast_cos(ry);
+    int sin_z = fast_sin(rz), cos_z = fast_cos(rz);
+
+    const int camera_dist = 180;
+
+    // 1. Strict Sequential 3D Euler Transformation (Yaw -> Pitch -> Roll)
+    for (int i = 0; i < 5; i++) {
+        int x = pyramid_verts[i][0];
+        int y = pyramid_verts[i][1];
+        int z = pyramid_verts[i][2];
+
+        // Yaw (Y-axis)
         int x1 = (x * cos_y - z * sin_y) >> 7;
+        int y1 = y;
         int z1 = (x * sin_y + z * cos_y) >> 7;
 
-        // Rotate X
-        int y2 = (y * cos_x - z1 * sin_x) >> 7;
-        int z2 = (y * sin_x + z1 * cos_x) >> 7;
+        // Pitch (X-axis)
+        int x2 = x1;
+        int y2 = (y1 * cos_x - z1 * sin_x) >> 7;
+        int z2 = (y1 * sin_x + z1 * cos_x) >> 7;
+
+        // Roll (Z-axis)
+        int x3 = (x2 * cos_z - y2 * sin_z) >> 7;
+        int y3 = (x2 * sin_z + y2 * cos_z) >> 7;
+        int z3 = z2;
+
+        transformed[i][0] = x3;
+        transformed[i][1] = y3;
+        transformed[i][2] = z3;
 
         // Perspective Projection
-        int distance = 140;
-        int z_offset = z2 + distance;
+        int z_offset = z3 + camera_dist;
         if (z_offset < 1) z_offset = 1;
 
-        projected[i][0] = cx + ((x1 * 160) / z_offset);
-        projected[i][1] = cy + ((y2 * 160) / z_offset);
+        projected[i][0] = cx + ((x3 * 160) / z_offset);
+        projected[i][1] = cy + ((y3 * 160) / z_offset);
     }
 
-    // Draw all 12 edges
-    for (int i = 0; i < 12; i++) {
-        int v0 = cube_edges[i][0];
-        int v1 = cube_edges[i][1];
-        gfx_line(projected[v0][0], projected[v0][1],
-                 projected[v1][0], projected[v1][1], color);
+    // 2. Camera-Space Normal Culling & Rendering
+    for (int i = 0; i < 6; i++) {
+        int i0 = pyramid_faces[i].v0;
+        int i1 = pyramid_faces[i].v1;
+        int i2 = pyramid_faces[i].v2;
+
+        // Edge vectors in 3D camera space
+        int ax = transformed[i1][0] - transformed[i0][0];
+        int ay = transformed[i1][1] - transformed[i0][1];
+        int az = transformed[i1][2] - transformed[i0][2];
+
+        int bx = transformed[i2][0] - transformed[i0][0];
+        int by = transformed[i2][1] - transformed[i0][1];
+        int bz = transformed[i2][2] - transformed[i0][2];
+
+        // Face Normal (Cross Product: A x B)
+        int nx = (ay * bz) - (az * by);
+        int ny = (az * bx) - (ax * bz);
+        int nz = (ax * by) - (ay * bx);
+
+        // Vector from face vertex to Camera at (0, 0, -camera_dist)
+        int vx = transformed[i0][0];
+        int vy = transformed[i0][1];
+        int vz = transformed[i0][2] + camera_dist;
+
+        // Dot product with View Vector (Back-face test)
+        int dot = (nx * vx) + (ny * vy) + (nz * vz);
+
+        if (dot < 0) {
+            int x0 = projected[i0][0], y0 = projected[i0][1];
+            int x1 = projected[i1][0], y1 = projected[i1][1];
+            int x2 = projected[i2][0], y2 = projected[i2][1];
+
+            gfx_fill_triangle(x0, y0, x1, y1, x2, y2, pyramid_faces[i].color);
+            gfx_triangle(x0, y0, x1, y1, x2, y2, 0b11111111); // White Wireframe
+        }
     }
 }
 
+// -----------------------------------------------------------------------------
+// Entry Point
+// -----------------------------------------------------------------------------
+
 int main(void) {
-    VGA_CTRL = VGA_CTRL_GFX_MODE;
+    gfx_set_mode(1);
+
     yield_init();
-    yield_sei(); // Enable yield timer/soft IRQs
+    yield_sei();
+
+    yield_add_irq(YIELD_IRQ_TIMER, 1000000UL * yield_usec_to_cycles(), 0, fps_counter_handler);
+    yield_add_irq(YIELD_IRQ_TIMER, 5000000UL * yield_usec_to_cycles(), 0, vsync_toggle_handler);
+    yield_add_irq(YIELD_IRQ_UART_RX_READY, 0, 0, uart_handler);
 
     int frame = 0;
 
     while (1) {
-        check_uart_exit();
+        yield();
 
-        // 1. Clear Backbuffer
         gfx_clear(0x00);
 
-        // 2. Animated Tunnel/Rings (Background)
-        for (int r = 10; r < 140; r += 14) {
-            int dynamic_r = r + (frame % 14);
-            uint8_t ring_col = 32 + ((dynamic_r / 4) % 32);
-            gfx_circle(GFX_WIDTH / 2, GFX_HEIGHT / 2, dynamic_r, ring_col);
+        // Render pyramid at center screen with 3-axis rotation
+        draw_rotating_pyramid(GFX_WIDTH / 2, GFX_HEIGHT / 2, frame * 2, frame * 3, frame * 1);
+
+        // UI Overlay
+        gfx_puts(8, 8, "LT1000 3D DEMO", 0b11111100, 0x00, 1);
+        gfx_puts(8, 20, "VSYNC:", 0b11111111, 0x00, 1);
+        if (vsync_enabled) {
+            gfx_puts(56, 20, "ON  (5s TOGGLE)", 0b00011100, 0x00, 1);
+        } else {
+            gfx_puts(56, 20, "OFF (5s TOGGLE)", 0b11100000, 0x00, 1);
         }
 
-        // 3. Horizontal Grid Horizon Lines
-        for (int y = 130; y < GFX_HEIGHT; y += 10) {
-            gfx_hline(0, y, GFX_WIDTH, 0x08);
+        if (vsync_enabled) {
+            gfx_vsync();
         }
 
-        // 4. Bouncing Spheres (Filled & Outline)
-        int bounce_y1 = 100 + (fast_sin(frame * 3) / 3);
-        int bounce_y2 = 100 + (fast_cos(frame * 4) / 3);
-        
-        gfx_fill_circle(60, bounce_y1, 18, 0x28); // Green filled
-        gfx_circle(60, bounce_y1, 18, 0x2F);      // Bright outline
-
-        gfx_fill_circle(260, bounce_y2, 22, 0x48); // Blue filled
-        gfx_circle(260, bounce_y2, 22, 0x4F);      // Bright outline
-
-        // 5. 3D Wireframe Spinning Cube (Center foreground)
-        draw_rotating_cube(GFX_WIDTH / 2, GFX_HEIGHT / 2 - 10, frame * 2, frame * 3, 0x0E);
-
-        // 6. Transparent BitBlt Sprites (orbiting around the screen)
-        int sp_x1 = (GFX_WIDTH / 2 - 8) + ((fast_cos(frame * 2) * 100) >> 7);
-        int sp_y1 = (GFX_HEIGHT / 2 - 8) + ((fast_sin(frame * 2) * 60) >> 7);
-        gfx_bitblit_transparent(sp_x1, sp_y1, 16, 16, sprite_16x16, 16, 0x00);
-
-        int sp_x2 = (GFX_WIDTH / 2 - 8) - ((fast_cos(frame * 2) * 100) >> 7);
-        int sp_y2 = (GFX_HEIGHT / 2 - 8) - ((fast_sin(frame * 2) * 60) >> 7);
-        gfx_bitblit_transparent(sp_x2, sp_y2, 16, 16, sprite_16x16, 16, 0x00);
-
-        // 7. Page Flip & Frame Sync
         gfx_flip_page();
-        
-        frame++;
 
-        // Yield processing and accurate hardware delay using your API
-        delay_ms(16); // ~60 FPS Target
+        frame++;
+        frames++;
     }
 
     return 0;
