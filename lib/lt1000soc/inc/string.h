@@ -1,8 +1,6 @@
 #ifndef LT1000_STRING_H
 #define LT1000_STRING_H
 
-#define size_t uint32_t
-
 char *stpcpy(char *restrict dst, const char *restrict src);
 char *strcpy(char *restrict dst, const char *restrict src);
 char *strcat(char *restrict dst, const char *restrict src);

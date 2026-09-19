@@ -2,6 +2,9 @@
 #define LT1000_H
 
 #include <stdint.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <stddef.h>
 
 #include "mem.h"
 #include "regs.h"

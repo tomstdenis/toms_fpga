@@ -43,8 +43,16 @@ SECTIONS
         *(COMMON)
         . = ALIGN(4);
         __bss_end = .;
+
+		/* Define symbols for Newlib heap */
+        _end = .;
+        __end__ = .;             /* Some newlib builds look for __end__ */
+        PROVIDE(end = .);        /* Standard libc fallback */
     } > PSRAM
 
+	/* Define top of PSRAM for the heap (16MB total from 0x08000000) */
+    _heap_max = ORIGIN(PSRAM) + LENGTH(PSRAM);
+    
     _stack_top = ORIGIN(TCM) + LENGTH(TCM);
     __stack = _stack_top;
 }
