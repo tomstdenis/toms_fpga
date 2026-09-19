@@ -20,7 +20,7 @@
 static uint32_t frames = 0;
 CODE_SEC static void fps_counter(uint32_t data)
 {
-	puts("FPS: "); puts_dec(frames); puts(", TCM_FREE == 0x"); puts_hex(TCM_FREE, 4); puts("\r\n");
+	putstr("FPS: "); puts_dec(frames); putstr(", TCM_FREE == 0x"); puts_hex(TCM_FREE, 4); putstr("\r\n");
 	frames = 0;
 }
 

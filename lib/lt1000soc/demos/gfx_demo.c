@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include "lt1000.h"
 #include "gfx.h"
 
@@ -175,6 +176,7 @@ int main(void) {
     int frame = 0;
 
     while (1) {
+		char buf[80];
         yield();
 
         gfx_clear(0x00);
@@ -183,7 +185,8 @@ int main(void) {
         draw_rotating_pyramid(GFX_WIDTH / 2, GFX_HEIGHT / 2, frame * 2, frame * 3, frame * 1);
 
         // UI Overlay
-        gfx_puts(8, 8, "LT1000 3D DEMO", 0b11111100, 0x00, 1);
+        sprintf(buf, "TOM: %d", frames);
+        gfx_puts(8, 8, buf, 0b11111100, 0x00, 1);
         gfx_puts(8, 20, "VSYNC:", 0b11111111, 0x00, 1);
         if (vsync_enabled) {
             gfx_puts(56, 20, "ON  (5s TOGGLE)", 0b00011100, 0x00, 1);

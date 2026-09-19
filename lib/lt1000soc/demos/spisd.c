@@ -10,37 +10,37 @@ void main(void)
 	uint32_t sectors, x;
 	
 	// wait for a key to be pressed
-	getc();
+	getch();
 
 	if (sd_init(0, INIT_DIV, OPER_DIV, csd, &sectors) == 1) {
-		puts("SD SPI initialized...");
+		putstr("SD SPI initialized...");
 		puts_hex(sectors, 4);
-		puts(" sectors.\n\r");
+		putstr(" sectors.\n\r");
 		if (sd_sector_op(0, OPER_DIV, 0, buf, 0) == 0) {
-			puts("Sector #0 contents\r\n");
+			putstr("Sector #0 contents\r\n");
 			for (x = 0; x < 512; x++) {
-				puts_hex((uint32_t)buf[x] << 24, 1); putc(' ');
-				if (!((x+1)&15)) puts("\r\n");
+				puts_hex((uint32_t)buf[x] << 24, 1); putch(' ');
+				if (!((x+1)&15)) putstr("\r\n");
 			}
 			if (sd_sector_op(0, OPER_DIV, 1, buf, 1) == 0) {
-				puts("Sector #1 written\r\n");
+				putstr("Sector #1 written\r\n");
 				if (sd_sector_op(0, OPER_DIV, 1, buf, 0) == 0) {
-					puts("Sector #1 contents\r\n");
+					putstr("Sector #1 contents\r\n");
 					for (x = 0; x < 512; x++) {
-						puts_hex((uint32_t)buf[x] << 24, 1); putc(' ');
-						if (!((x+1)&15)) puts("\r\n");
+						puts_hex((uint32_t)buf[x] << 24, 1); putch(' ');
+						if (!((x+1)&15)) putstr("\r\n");
 					}
 				} else {
-					puts("Error reading sector #1\n\r");
+					putstr("Error reading sector #1\n\r");
 				}
 			} else {
-				puts("Error writing sector #1\n\r");
+				putstr("Error writing sector #1\n\r");
 			}
 		} else {
-			puts("Error reading sector #0...\r\n");
+			putstr("Error reading sector #0...\r\n");
 		}		
 	} else {
-		puts("SD SPI failed to initialize.\n\r");
+		putstr("SD SPI failed to initialize.\n\r");
 	}
 
 	// jump back to the BIOS

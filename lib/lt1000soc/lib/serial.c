@@ -1,16 +1,16 @@
 #include "lt1000.h"
 
-char getc(void)
+int getch(void)
 {
 	while (!(UART_STATUS & UART_STATUS_RX_READY));
 	return UART_DATA & 0xFF;
 }
 
-void gets(char *s)
+char *getstr(char *s)
 {
 	char *os = s, c;
 	for(;;) { 
-		c = getc();
+		c = getch();
 		if (c == 10 || c == 13) {
 			break;
 		} else if (c == 8 && os != s) {
@@ -20,18 +20,19 @@ void gets(char *s)
 		}
 	}
 	*s = 0;
+	return os;
 }
 
-void putc(const char c)
+void putch(const char c)
 {
 	while (UART_STATUS & UART_STATUS_TX_FULL);
 	UART_DATA = c;
 }
 	
-void puts(const char *s)
+void putstr(const char *s)
 {
 	while (*s) {
-		putc(*s++);
+		putch(*s++);
 	}
 }
 
@@ -41,7 +42,7 @@ void puts_hex(uint32_t v, int width)
 	int x;
 	
 	for (x = 0; x < width * 2; x++) {
-		putc(hex[(v>>28) & 0xF]);
+		putch(hex[(v>>28) & 0xF]);
 		v <<= 4;
 	}
 }
@@ -58,10 +59,10 @@ void puts_dec(uint32_t v)
 		v /= 10;
 	}
 	if (!x) {
-		putc('0');
+		putch('0');
 	} else {
 		while (x) {
-			putc(buf[--x]);
+			putch(buf[--x]);
 		}
 	}	
 }
