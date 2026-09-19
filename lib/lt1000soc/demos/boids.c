@@ -31,7 +31,7 @@ typedef struct {
 static grid_cell_t grid[GRID_ROWS][GRID_COLS];
 
 // Offset buffer past your code region in PSRAM
-#define PSRAM_BACK_BUFFER ((uint8_t *)(PSRAM_ADDR + 0x10000))
+uint8_t *PSRAM_BACK_BUFFER;
 
 typedef struct {
     int32_t x, y;     // 24.8 fixed point
@@ -287,7 +287,7 @@ static void copy_psram_to_vga(void) {
 static uint32_t frames = 0;
 static void fps_counter(uint32_t data)
 {
-    putstr("\r\nFPS: "); puts_dec(frames);
+	printf("FPS: %x\n", frames);
     frames = 0;
 }
 
@@ -313,14 +313,23 @@ static void uart_handler(uint32_t data)
 
 static void vblank_handler(uint32_t data)
 {
+//	uint32_t t = TIMER;
 	update_boids();
 	render_to_psram();
 	copy_psram_to_vga();
+//	t = TIMER - t;
+//    putstr("\r\nT: "); puts_dec(t);
 	++frames;
 }	
 
 int main(void)
 {
+	// turn off output buffering
+	setvbuf(stdout, NULL, _IONBF, 0);
+
+	// allocate ram for PSRAM backbuffer
+	PSRAM_BACK_BUFFER = malloc(64000);
+	
 	// set GFX mode
     VGA_CTRL = VGA_CTRL_GFX_MODE;
 

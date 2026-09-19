@@ -9,8 +9,7 @@ void main(void)
 	getch();
 
 	p = malloc(256);
-	sprintf(buf, "p == 0x%08x\n\r", p);
-	putstr(buf);
+	printf("p == 0x%08x %f\n\r", p, 3.14592);
 
 	void (*bios_entry)(void) = (void (*)(void))0x01000000;
 	bios_entry();
