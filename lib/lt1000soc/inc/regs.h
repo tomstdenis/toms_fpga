@@ -34,4 +34,11 @@
 // TIMER
 #define TIMER               *((volatile uint32_t *)0x10000028)
 
+// MULT
+#define MULT_SCALER         *((volatile uint32_t *)0x1000002C)
+#define MULT_IN_LO          *((volatile uint32_t *)0x10000030)
+#define MULT_IN_HI          *((volatile uint32_t *)0x10000034)
+#define MULT_OUT_LO         *((volatile uint32_t *)0x10000038)
+#define MULT_OUT_HI         *((volatile uint32_t *)0x1000003C)
+
 #endif

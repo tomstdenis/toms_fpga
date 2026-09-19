@@ -367,10 +367,19 @@ localparam
         MMIO_UART_STATUS  = 8'h1C,
         MMIO_VGA_CTRL     = 8'h20,
         MMIO_SPI_TRANSFER = 8'h24,
-        MMIO_TIMER        = 8'h28;
+        MMIO_TIMER        = 8'h28,
+        MMIO_MULT_SCALER  = 8'h2C,
+        MMIO_MULT_IN_LO   = 8'h30,
+        MMIO_MULT_IN_HI   = 8'h34,
+        MMIO_MULT_OUT_LO  = 8'h38,
+        MMIO_MULT_OUT_HI  = 8'h3C;
 
     reg  [31:0] mmio_reg_mcfg;
     reg  [31:0] mmio_data_out;
+
+    reg  [63:0] mmio_mult_operands;
+    reg  [1:0]  mmio_mult_scaler;
+    wire [63:0] mmio_mult_out = (mmio_mult_operands[63:32] * mmio_mult_operands[31:0]) >> (mmio_mult_scaler * 8);
 
     // driver of ready signal
     reg [1:0] bus_cycle;
@@ -589,6 +598,21 @@ localparam
                             spi_cs_sel    <= picorv_mem_wdata[15:14];
                             spi_valid     <= picorv_mem_wdata[16];
                         end
+                    end
+                    MMIO_MULT_SCALER: begin
+                        mmio_mult_scaler <= picorv_mem_wdata[1:0];
+                    end
+                    MMIO_MULT_IN_LO: begin
+                        mmio_mult_operands[31:0] <= picorv_mem_wdata;
+                    end
+                    MMIO_MULT_IN_HI: begin
+                        mmio_mult_operands[63:32] <= picorv_mem_wdata;
+                    end
+                    MMIO_MULT_OUT_LO: begin
+                        mmio_data_out <= mmio_mult_out[31:0];
+                    end
+                    MMIO_MULT_OUT_HI: begin
+                        mmio_data_out <= mmio_mult_out[63:32];
                     end
                     MMIO_TIMER: begin
                         mmio_data_out <= timer;
