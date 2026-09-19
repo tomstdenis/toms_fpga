@@ -1,14 +1,12 @@
 #include "lt1000.h"
 
-void main(void)
+TCM_FUNC void demo(void)
 {
 	volatile uint32_t a, b, r;
 	volatile uint64_t ab;
 	
 	uint32_t t0, t1, t2;
 	
-	getc();
-
 	// calibrate
 	t0 = TIMER;
 	t1 = TIMER;
@@ -22,7 +20,7 @@ void main(void)
 	r = ab >> 8;
 	t1 = TIMER;
 	t1 = t1 - t0 - t2;
-	puts("SW MULT took "); puts_dec(t1); puts("\r\nr == 0x"); puts_hex(r, 4);
+	puts("SW MULT took "); puts_dec(t1); puts("\r\nr = 0x"); puts_hex(r, 4);
 	
 	// let's do 24.8 mult in HW
 	MULT_SCALER = 1;
@@ -33,7 +31,14 @@ void main(void)
 	t1 = TIMER;
 	t1 = t1 - t0 - t2;
 	puts("\r\nHW MULT took "); puts_dec(t1); puts("\r\nr = 0x"); puts_hex(r, 4); puts("\r\n");
-	
+}
+
+void main(void)
+{
+	getc();
+	demo();
+	demo();
+	demo();
 	void (*bios_entry)(void) = (void (*)(void))ROM_ADDR;
 	bios_entry();
 }

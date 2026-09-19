@@ -32,11 +32,12 @@ Example config I did for Console60K
 module lt1000soc
 #(
     // *** SOC parameters ***
-    parameter CORE_FREQ_KHZ   = 50_000,         // core clock
-    parameter BIOS_SIZE_BITS  = 13,             // BIOS ROM region
-    parameter CACHE_SIZE_BITS = 13,             // cache for PSRAM region
-    parameter TCM_SIZE_BITS   = 16,             // TCM region
-    parameter SRAM_ADDR_WIDTH = 24,
+    parameter CORE_FREQ_KHZ    = 50_000,         // core clock
+    parameter BIOS_SIZE_BITS   = 13,             // BIOS ROM region
+    parameter CACHE_SIZE_BITS  = 13,             // cache for PSRAM region
+    parameter TCM_SIZE_BITS    = 16,             // TCM region
+    parameter SRAM_ADDR_WIDTH  = 24,
+    parameter MMIO_MULT_ENABLE = 1,
 
     // *** RV parameters ***
     parameter RV_ENABLE_COUNTERS=0,             // 32/64 bit counters
@@ -379,7 +380,8 @@ localparam
 
     reg  [63:0] mmio_mult_operands;
     reg  [1:0]  mmio_mult_scaler;
-    wire [63:0] mmio_mult_out = (mmio_mult_operands[63:32] * mmio_mult_operands[31:0]) >> (mmio_mult_scaler * 8);
+    reg [63:0]  mmio_mult_out;
+    reg [63:0]  mmio_mult_out_tmp;
 
     // driver of ready signal
     reg [1:0] bus_cycle;
@@ -442,6 +444,12 @@ localparam
         timer                <= timer + 1'b1;
         bus_ready            <= 1'b0;
         psram_valid          <= 1'b0;
+
+        // multiplier
+        if (MMIO_MULT_ENABLE == 1) begin
+            mmio_mult_out_tmp <= (mmio_mult_operands[63:32] * mmio_mult_operands[31:0]) >> (mmio_mult_scaler * 8);
+            mmio_mult_out     <= mmio_mult_out_tmp;
+        end
 
         // respond to valid only if ready is already low
         if (~picorv_mem_ready & picorv_mem_valid) begin
@@ -609,10 +617,14 @@ localparam
                         mmio_mult_operands[63:32] <= picorv_mem_wdata;
                     end
                     MMIO_MULT_OUT_LO: begin
-                        mmio_data_out <= mmio_mult_out[31:0];
+                        if (MMIO_MULT_ENABLE == 1) begin
+                            mmio_data_out <= mmio_mult_out[31:0];
+                        end
                     end
                     MMIO_MULT_OUT_HI: begin
-                        mmio_data_out <= mmio_mult_out[63:32];
+                        if (MMIO_MULT_ENABLE == 1) begin
+                            mmio_data_out <= mmio_mult_out[63:32];
+                        end
                     end
                     MMIO_TIMER: begin
                         mmio_data_out <= timer;
