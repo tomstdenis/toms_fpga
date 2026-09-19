@@ -287,7 +287,8 @@ static void copy_psram_to_vga(void) {
 static uint32_t frames = 0;
 static void fps_counter(uint32_t data)
 {
-	printf("FPS: %x\n", frames);
+	putstr("\r\nFPS: "); puts_dec(frames);
+//	printf("FPS: %x\n", frames);
     frames = 0;
 }
 
@@ -305,8 +306,7 @@ static void uart_handler(uint32_t data)
 		uint32_t v = UART_DATA;
 		UART_DATA = v;
 		if (v == 27) { 
-			void (*bios_entry)(void) = (void (*)(void))ROM_ADDR;
-			bios_entry();
+			exit(0);
 		}
 	}
 }	

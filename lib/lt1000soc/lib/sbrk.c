@@ -2,6 +2,7 @@
 
 #include <errno.h>
 #include <sys/types.h>
+#include <sys/stat.h>
 #include <stddef.h>
 
 extern char _end;      /* Linker symbol: end of BSS / start of heap */
@@ -28,10 +29,6 @@ void *_sbrk(ptrdiff_t incr) {
     heap_ptr += incr;
     return (void *)prev_heap_ptr;
 }
-
-#include <sys/stat.h>
-#include <errno.h>
-#include "lt1000.h" // Includes your custom UART putch/getch prototypes
 
 /*
  * Low-level write syscall for Newlib.
@@ -96,3 +93,9 @@ int _lseek(int fd, int ptr, int dir) {
 int _close(int fd) {
     return -1;
 }
+
+void _exit(int status) {
+	(void)status;
+	void (*bios_entry)(void) = (void (*)(void))0x01000000;
+	bios_entry();
+}	
