@@ -36,8 +36,8 @@ module lt1000soc
     parameter BIOS_SIZE_BITS   = 13,             // BIOS ROM region
     parameter CACHE_SIZE_BITS  = 13,             // cache for PSRAM region
     parameter TCM_SIZE_BITS    = 16,             // TCM region
-    parameter SRAM_ADDR_WIDTH  = 24,
-    parameter MMIO_MULT_ENABLE = 1,
+    parameter SRAM_ADDR_WIDTH  = 24,             // PSRAM address width
+    parameter MMIO_MULT_ENABLE = 1,              // 32x32=>64 scaled (>>(scaler*8)) multiplier in MMIO space
 
     // *** RV parameters ***
     parameter RV_ENABLE_COUNTERS=0,             // 32/64 bit counters
@@ -608,22 +608,38 @@ localparam
                         end
                     end
                     MMIO_MULT_SCALER: begin
-                        mmio_mult_scaler <= picorv_mem_wdata[1:0];
+                        if (MMIO_MULT_ENABLE == 1) begin
+                            mmio_mult_scaler <= picorv_mem_wdata[1:0];
+                        end else begin
+                            mmio_data_out <= 32'hBEBEBEEF;
+                        end
                     end
                     MMIO_MULT_IN_LO: begin
-                        mmio_mult_operands[31:0] <= picorv_mem_wdata;
+                        if (MMIO_MULT_ENABLE == 1) begin
+                            mmio_mult_operands[31:0] <= picorv_mem_wdata;
+                        end else begin
+                            mmio_data_out <= 32'hBEBEBEEF;
+                        end
                     end
                     MMIO_MULT_IN_HI: begin
-                        mmio_mult_operands[63:32] <= picorv_mem_wdata;
+                        if (MMIO_MULT_ENABLE == 1) begin
+                            mmio_mult_operands[63:32] <= picorv_mem_wdata;
+                        end else begin
+                            mmio_data_out <= 32'hBEBEBEEF;
+                        end
                     end
                     MMIO_MULT_OUT_LO: begin
                         if (MMIO_MULT_ENABLE == 1) begin
                             mmio_data_out <= mmio_mult_out[31:0];
+                        end else begin
+                            mmio_data_out <= 32'hBEBEBEEF;
                         end
                     end
                     MMIO_MULT_OUT_HI: begin
                         if (MMIO_MULT_ENABLE == 1) begin
                             mmio_data_out <= mmio_mult_out[63:32];
+                        end else begin
+                            mmio_data_out <= 32'hBEBEBEEF;
                         end
                     end
                     MMIO_TIMER: begin

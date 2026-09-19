@@ -9,5 +9,6 @@
 #include "sd.h"
 #include "string.h"
 #include "yield.h"
+#include "gfx.h"
 
 #endif
