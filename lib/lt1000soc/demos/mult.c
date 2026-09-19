@@ -18,8 +18,12 @@ TCM_FUNC void demo(void)
 	b = 0x55667788;
 	ab = (uint64_t)a * b;
 	r = ab >> 8;
+	a = 0x11223344;
+	b = 0x55667788;
+	ab = (uint64_t)a * b;
+	r = ab >> 8;
 	t1 = TIMER;
-	t1 = t1 - t0 - t2;
+	t1 = (t1 - t0 - t2) >> 1;
 	puts("SW MULT took "); puts_dec(t1); puts("\r\nr = 0x"); puts_hex(r, 4);
 	
 	// let's do 24.8 mult in HW
@@ -28,8 +32,11 @@ TCM_FUNC void demo(void)
 	MULT_IN_LO = 0x11223344;
 	MULT_IN_HI = 0x55667788;
 	r = MULT_OUT_LO;
+	MULT_IN_LO = 0x11223344;
+	MULT_IN_HI = 0x55667788;
+	r = MULT_OUT_LO;
 	t1 = TIMER;
-	t1 = t1 - t0 - t2;
+	t1 = (t1 - t0 - t2)>>1;
 	puts("\r\nHW MULT took "); puts_dec(t1); puts("\r\nr = 0x"); puts_hex(r, 4); puts("\r\n");
 }
 
