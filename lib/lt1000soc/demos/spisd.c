@@ -2,19 +2,19 @@
 #include "lt1000.h"
 
 #define INIT_DIV 15
-#define OPER_DIV 3
+#define OPER_DIV 7
 
 void main(void)
 {
-	uint8_t csd[16], buf[512];
-	uint32_t sectors, x;
+	uint8_t buf[512];
+	uint32_t x;
 	
 	// wait for a key to be pressed
 	getch();
 
-	if (sd_init(0, INIT_DIV, OPER_DIV, csd, &sectors) == 1) {
+	if (sd_init(0, INIT_DIV, OPER_DIV) == 1) {
 		putstr("SD SPI initialized...");
-		puts_hex(sectors, 4);
+		puts_hex(sd_sectors, 4);
 		putstr(" sectors.\n\r");
 		if (sd_sector_op(0, OPER_DIV, 0, buf, 0) == 0) {
 			putstr("Sector #0 contents\r\n");

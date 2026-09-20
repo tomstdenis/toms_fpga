@@ -30,6 +30,18 @@ void *_sbrk(ptrdiff_t incr) {
     return (void *)prev_heap_ptr;
 }
 
+// SD card access
+static int _sd_read(int fd, char *buf, int count)
+{
+}
+static int _sd_write(int fd, const char *buf, int count)
+{
+}
+
+static int _sd_lseek(int fd, int ptr, int dir)
+{
+}
+
 /*
  * Low-level write syscall for Newlib.
  * Handles stdout (1) and stderr (2) by forwarding characters to UART putch.
@@ -46,10 +58,14 @@ int _write(int fd, const char *buf, int count) {
         }
         return count;
     }
+    if (fd == 3) {
+		return _sd_write(fd, buf, count);
+	}
 
     errno = EBADF;
     return -1;
 }
+
 
 /*
  * Low-level read syscall for Newlib.
@@ -69,6 +85,9 @@ int _read(int fd, char *buf, int count) {
         }
         return bytes_read;
     }
+    if (fd == 3) {
+		return _sd_read(fd, buf, count);
+	}
 
     errno = EBADF;
     return -1;
@@ -87,6 +106,9 @@ int _fstat(int fd, struct stat *st) {
 }
 
 int _lseek(int fd, int ptr, int dir) {
+	if (fd == 3) {
+		return _sd_lseek(fd, ptr, dir);
+	}
     return 0; // Seeking isn't supported on UART streams
 }
 

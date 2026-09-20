@@ -70,9 +70,12 @@ static int sd_read_block(uint8_t cs_sel, uint8_t div, unsigned char *dst, unsign
 }
 
 // initialize an SD card
-int sd_init(uint8_t cs_sel, uint8_t init_div, uint8_t oper_div, uint8_t *csd, uint32_t *sectors)
+static int sd_is_init = 0;
+uint32_t sd_sectors;
+int sd_init(uint8_t cs_sel, uint8_t init_div, uint8_t oper_div)
 {
 	uint32_t tries, x, y, t;
+	uint8_t csd[16];
 	tries = 0;
 top:	
 	for (; tries < 16; tries++) {
@@ -138,13 +141,14 @@ top:
 		}
 		
 		// # of sectors is bits 69:48 shifted left 10 bits (the data is transmitted big endian...)
-		*sectors = (((uint32_t)csd[15-6])                     | // bits 55:48
-		           ((uint32_t)csd[15-7] << 8)                 | // bits 63:56
-		           ((uint32_t)(csd[15-8] & 0x1F) << 16)) << 10; // bits 69:64
+		sd_sectors = (((uint32_t)csd[15-6])                     | // bits 55:48
+		             ((uint32_t)csd[15-7] << 8)                 | // bits 63:56
+		             ((uint32_t)(csd[15-8] & 0x1F) << 16)) << 10; // bits 69:64
 
 		// raise CS and clock out
 		spi_transfer(0xFF, oper_div, 1, 1, cs_sel);
 		spi_transfer(0xFF, oper_div, 1, 1, cs_sel);
+		sd_is_init = 1;
 		return 1;
 	}
 	return 0;
@@ -154,6 +158,12 @@ int sd_sector_op(uint8_t cs_sel, uint8_t div, uint32_t sector, unsigned char *ds
 {
 	uint32_t r, x;
 	int ret;
+	
+	if (!sd_is_init) {
+		if (sd_init(cs_sel, 0xF, div)) {
+			return -1;
+		}
+	}
 	
 	ret = -1;
 	r = 0;

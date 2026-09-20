@@ -2,7 +2,9 @@
 
 int getch(void)
 {
-	while (!(UART_STATUS & UART_STATUS_RX_READY));
+	while (!(UART_STATUS & UART_STATUS_RX_READY)) {
+		yield();
+	}
 	return UART_DATA & 0xFF;
 }
 
@@ -25,7 +27,9 @@ char *getstr(char *s)
 
 void putch(const char c)
 {
-	while (UART_STATUS & UART_STATUS_TX_FULL);
+	while (UART_STATUS & UART_STATUS_TX_FULL) {
+		yield();
+	}
 	UART_DATA = c;
 }
 	
