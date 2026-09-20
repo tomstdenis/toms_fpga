@@ -220,16 +220,20 @@ static void update_boids(void) {
 }
 
 // In-place spatial sort by Y-coordinate to keep memory accesses local
+static int boids_cmp(const void *a, const void *b)
+{
+	const boid_t *A = (const boid_t*)a, *B = (const boid_t*)b;
+	if (A->y > B->y) {
+		return 1;
+	}
+	if (A->y < B->y) {
+		return -1;
+	}
+	return 0;
+}
+
 static void sort_boids_by_y(void) {
-    for (int i = 1; i < NUM_BOIDS; i++) {
-        boid_t temp = boids[i];
-        int j = i - 1;
-        while (j >= 0 && boids[j].y > temp.y) {
-            boids[j + 1] = boids[j];
-            j--;
-        }
-        boids[j + 1] = temp;
-    }
+	qsort(boids, NUM_BOIDS, sizeof(boids[0]), boids_cmp);
 }
 
 static void render_to_psram(void) {
