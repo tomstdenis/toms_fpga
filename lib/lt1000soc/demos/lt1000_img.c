@@ -6940,6 +6940,5 @@ void main(void)
 		fb[x] = (r << 5) | (g << 2) | b;
 	}
 
-	void (*bios_entry)(void) = (void (*)(void))0x01000000;
-	bios_entry();
+	getch();
 }
