@@ -79,8 +79,8 @@ static int _sd_read(int fd, char *buf, int count)
 		if (_sd_sec_valid) {
 			rem = (_sd_sec_offset + count) & ~511UL ? 512 - _sd_sec_offset : count;
 		} else {
-			// SD sector isn't valid this means we're in init
-			if (_sd_lseek(3, (_sd_sec_no<<9) + _sd_sec_offset, SEEK_SET)) {
+			// SD sector isn't valid so just read it
+			if (sd_sector_op(0, 3, _sd_sec_no, _sd_sec, 0)) {
 				return -1;
 			}
 			rem = count > 512 ? 512 : count;
@@ -111,10 +111,13 @@ static int _sd_write(int fd, const char *buf, int count)
 		if (_sd_sec_valid) {
 			rem = (_sd_sec_offset + count) & ~511UL ? 512 - _sd_sec_offset : count;
 		} else {
-			// SD sector isn't valid this means we're in init
-			if (_sd_lseek(3, (_sd_sec_no<<9) + _sd_sec_offset, SEEK_SET)) {
-				return -1;
+			// SD sector isn't valid so just read it if count < 512
+			if (count < 512) {
+				if (sd_sector_op(0, 3, _sd_sec_no, _sd_sec, 0)) {
+					return -1;
+				}
 			}
+			_sd_sec_valid = 1;
 			rem = count > 512 ? 512 : count;
 		}
 		
@@ -127,10 +130,16 @@ static int _sd_write(int fd, const char *buf, int count)
 		tot_write      += rem;
 
 		if (_sd_sec_offset == 512) {
+			// hit the end of the sector always write it out
+			if (sd_sector_op(0, 3, _sd_sec_no, _sd_sec, 1)) {
+				return -1;
+			}
+			_sd_sec_dirty = 0;			
+
 			// move to next sector
 			_sd_sec_offset = 0;
 			if (count >= 512) {
-				// at least a sector left so skip cache fill
+				// if we're writing a full sector next we don't need to read it first
 				++_sd_sec_no;
 			} else if (count) {
 				// we're writing a partial sector cache page so we need to fill it first

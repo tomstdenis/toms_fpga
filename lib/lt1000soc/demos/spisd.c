@@ -47,6 +47,9 @@ void main(void)
 		if (!((x+1)&15)) { printf("\n"); }
 	}	
 	
+	// clear buf
+	memset(buf, 0, 512);	
+
 	// let's read it back offset by 256 bytes
 	printf("lseek(14,+256) == %d\n", lseek(fd, 512 * 14 + 256, SEEK_SET));
 	printf("read() == %d\n", read(fd, buf, 512));	
@@ -57,6 +60,22 @@ void main(void)
 		if (!((x+1)&15)) { printf("\n"); }
 	}
 	
+	// use stdio  on our file cuz like why not
+	FILE *f = fdopen(fd, "r+");
+	printf("lseek(14) == %d\n", fseek(f, 512*14, SEEK_SET));
+	printf("fprintf() == %d\n", fprintf(f, "Tom was here boyo heyo!\n"));
+	fflush(f);
+	
+	// let's read it back
+	printf("lseek(14) == %d\n", lseek(fd, 512 * 14, SEEK_SET));
+	printf("read() == %d\n", read(fd, buf, 512));	
+	
+	// print it out
+	for (x = 0; x < 512; x++) {
+		printf("%02x ", buf[x]);
+		if (!((x+1)&15)) { printf("\n"); }
+	}	
+
 	close(fd);
 
 	exit(0);
