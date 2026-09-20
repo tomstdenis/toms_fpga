@@ -1,13 +1,7 @@
-#include <stdint.h>
-
-#define UART_DATA     *((volatile uint32_t *)0x10000018)
-#define UART_STATUS   *((volatile uint32_t *)0x1000001C)
-#define UART_STATUS_TX_FULL  1
-#define UART_STATUS_TX_EMPTY 2
-#define UART_STATUS_RX_READY 4
+#include "lt1000.h"
 
 // Simple blocking UART read
-uint8_t uart_read_byte(int echo)
+static uint8_t uart_read_byte(int echo)
 {
 	uint8_t b;
     while (!(UART_STATUS & UART_STATUS_RX_READY)); // Poll until RX ready
@@ -19,7 +13,7 @@ uint8_t uart_read_byte(int echo)
 }
 
 // Read a 32-bit little-endian integer over UART, we expect 0x1B, 0x55, 0xAA before the length
-uint32_t uart_read_u32(void) {
+static uint32_t uart_read_u32(void) {
     uint32_t val = 0;
 top:
     val = ((uint32_t)uart_read_byte(1));
