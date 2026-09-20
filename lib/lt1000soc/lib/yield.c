@@ -1,6 +1,6 @@
 #include "lt1000.h"
 
-uint64_t yield_cycles;
+uint64_t yield_cycles = 0;
 
 static struct {
 	uint32_t
@@ -36,17 +36,25 @@ void yield_init(void)
 	yd.last_gpio_read   = GPIO_DATA;
 	yd.last_vga_read    = VGA_CTRL;
 	yd.irq_enabled      = 0;
-	yd.last_cycle_count = TIMER;
+	yield_cycles        = yd.last_cycle_count = TIMER;
+	
 }
 
 uint64_t yield_usec_to_cycles(void)
 {
+	if (!yield_cycles) {
+		yield_init();
+	}
 	return yd.cycles_per_usec;
 }
 
 TCM_FUNC void yield(void)
 {
 	uint32_t t;
+	
+	if (!yield_cycles) {
+		yield_init();
+	}
 	
 	// handle soft IRQs
 	if (yd.irq_enabled && !yd.in_yield) {
@@ -170,6 +178,7 @@ void delay_usec(uint32_t usec)
 int yield_add_irq(enum yield_irq_type type, uint64_t data, uint64_t data2, irq_handler_t handler)
 {
 	uint32_t x;
+	yield();
 	for (x = 0; x < MAX_IRQ; x++) {
 		if (irqs[x].type == YIELD_IRQ_INACTIVE) {
 			irqs[x].type    = type;
@@ -197,10 +206,12 @@ void yield_del_irq(irq_handler_t handler)
 
 void yield_cli(void)
 {
+	yield();
 	yd.irq_enabled = 0;
 }
 
 void yield_sei(void)
 {
+	yield();
 	yd.irq_enabled = 1;
 }

@@ -338,7 +338,6 @@ int main(void)
     GPIO_OE   = 0xFFFFFFFF;
 
 	// init, enable, and add IRQs to drive demo
-    yield_init();
     yield_sei();
     yield_add_irq(YIELD_IRQ_TIMER, 1000000UL * yield_usec_to_cycles(), 0, fps_counter);
     yield_add_irq(YIELD_IRQ_TIMER, 250UL * 1000UL * yield_usec_to_cycles(), 0, timer_250msec);
