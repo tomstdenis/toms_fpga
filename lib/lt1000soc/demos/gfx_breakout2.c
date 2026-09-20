@@ -44,7 +44,7 @@ static uint8_t bricks[BRICK_ROWS][BRICK_COLS];
 // Dirty tracker counter: 2 = erase on both buffers, 1 = erase on second buffer, 0 = clean
 static uint8_t dirty_erase[BRICK_ROWS][BRICK_COLS]; 
 
-TCM_FUNC static inline void clear_vga_buffer(volatile uint32_t *fb32) {
+TCM_FUNC static void clear_vga_buffer(volatile uint32_t *fb32) {
     for (int i = 0; i < (WIDTH * HEIGHT) / 4; i++) {
         fb32[i] = 0;
     }
