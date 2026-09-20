@@ -7,43 +7,57 @@
 void main(void)
 {
 	uint8_t buf[512];
-	uint32_t x;
+	uint32_t x, t1;
+	int fd;
+	
+	// fill buf with some fun contents 
+	for (x = 0; x < 512; x++) {
+		buf[x] = x >> 4;
+	}
 	
 	// wait for a key to be pressed
 	getch();
-
-	if (sd_init(0, INIT_DIV, OPER_DIV) == 1) {
-		putstr("SD SPI initialized...");
-		puts_hex(sd_sectors, 4);
-		putstr(" sectors.\n\r");
-		if (sd_sector_op(0, OPER_DIV, 0, buf, 0) == 0) {
-			putstr("Sector #0 contents\r\n");
-			for (x = 0; x < 512; x++) {
-				puts_hex((uint32_t)buf[x] << 24, 1); putch(' ');
-				if (!((x+1)&15)) putstr("\r\n");
-			}
-			if (sd_sector_op(0, OPER_DIV, 1, buf, 1) == 0) {
-				putstr("Sector #1 written\r\n");
-				if (sd_sector_op(0, OPER_DIV, 1, buf, 0) == 0) {
-					putstr("Sector #1 contents\r\n");
-					for (x = 0; x < 512; x++) {
-						puts_hex((uint32_t)buf[x] << 24, 1); putch(' ');
-						if (!((x+1)&15)) putstr("\r\n");
-					}
-				} else {
-					putstr("Error reading sector #1\n\r");
-				}
-			} else {
-				putstr("Error writing sector #1\n\r");
-			}
-		} else {
-			putstr("Error reading sector #0...\r\n");
-		}		
-	} else {
-		putstr("SD SPI failed to initialize.\n\r");
+	
+	fd = open("/dev/sda", O_RDONLY);
+	printf("fd == %d\n", fd);
+	
+	// let's write this to sector 14
+	printf("lseek(14) == %d\n", lseek(fd, 512 * 14, SEEK_SET));
+	printf("write() == %d\n", write(fd, buf, 512));
+	
+	// write the reverse 
+	for (x = 0; x < 512; x++) {
+		buf[x] = (511 - x) >> 4;
 	}
 
-	// jump back to the BIOS
-	void (*bios_entry)(void) = (void (*)(void))0x01000000;
-	bios_entry();
+	// let's write this to sector 15
+	printf("lseek(15) == %d\n", lseek(fd, 512 * 15, SEEK_SET));
+	printf("write() == %d\n", write(fd, buf, 512));
+	
+	// clear buf
+	memset(buf, 0, 512);	
+	
+	// let's read it back
+	printf("lseek(14) == %d\n", lseek(fd, 512 * 14, SEEK_SET));
+	printf("read() == %d\n", read(fd, buf, 512));	
+	
+	// print it out
+	for (x = 0; x < 512; x++) {
+		printf("%02x ", buf[x]);
+		if (!((x+1)&15)) { printf("\n"); }
+	}	
+	
+	// let's read it back offset by 256 bytes
+	printf("lseek(14,+256) == %d\n", lseek(fd, 512 * 14 + 256, SEEK_SET));
+	printf("read() == %d\n", read(fd, buf, 512));	
+	
+	// print it out
+	for (x = 0; x < 512; x++) {
+		printf("%02x ", buf[x]);
+		if (!((x+1)&15)) { printf("\n"); }
+	}
+	
+	close(fd);
+
+	exit(0);
 }

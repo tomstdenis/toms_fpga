@@ -40,6 +40,7 @@ static uint32_t sd_cmd(uint8_t cs_sel, uint8_t div, uint8_t cmd, uint32_t param,
 	
 	// try to read R1 byte
 	for (tries = 0; tries < 1024; tries++) {
+		yield();
 		r1 = spi_transfer(0xFF, div, 0, 0, cs_sel);
 		if (!(r1 & 0x80)) {
 			return r1 & 0xFF;
@@ -54,6 +55,7 @@ static int sd_read_block(uint8_t cs_sel, uint8_t div, unsigned char *dst, unsign
 	unsigned x, t;
 	
 	for (x = 0; x < 8192; x++) {
+		yield();
 		t = spi_transfer(0xFF, div, 0, 0, cs_sel);
 		if (t == 0xFE) {
 			// ready
@@ -63,6 +65,7 @@ static int sd_read_block(uint8_t cs_sel, uint8_t div, unsigned char *dst, unsign
 			// skip CRC
 			spi_transfer(0xFF, div, 0, 0, cs_sel);
 			spi_transfer(0xFF, div, 0, 0, cs_sel);
+			yield();
 			return 0;
 		}
 	}
@@ -79,6 +82,8 @@ int sd_init(uint8_t cs_sel, uint8_t init_div, uint8_t oper_div)
 	tries = 0;
 top:	
 	for (; tries < 16; tries++) {
+		yield();
+
 		// toggle SCK 80 times while CS is high (exit with CS low)
 		for (x = 0; x < 10; x++) {
 			spi_transfer(0xFF, init_div, 1, (x == 9) ? 0 : 1, cs_sel);
@@ -102,6 +107,7 @@ top:
 		
 		// loop on ACMD41
 		for (x = 0; x < 256; x++) {
+			yield();
 			if (sd_cmd(cs_sel, init_div, 55, 0x00000000, 0x00) != 0x01) {
 				++tries;
 				goto top;
@@ -115,6 +121,7 @@ top:
 		}
 
 		for (x = 0; x < 256; x++) {
+			yield();
 			if (sd_cmd(cs_sel, init_div, 58, 0x00000000, 0x00) != 0) {
 				++tries;
 				goto top;
@@ -169,6 +176,7 @@ int sd_sector_op(uint8_t cs_sel, uint8_t div, uint32_t sector, unsigned char *ds
 	r = 0;
 
 retry:
+	yield();
 	spi_transfer(0xFF, div, 1, 0, cs_sel); // lower CS after clocking a byte
 	if (sd_cmd(cs_sel, div, wr_en ? 24 : 17, sector, 0) != 0) { goto error; }
 
@@ -177,15 +185,18 @@ retry:
 		for (x = 0; x < 512; x++) {
 			spi_transfer(dst[x], div, 0, 0, cs_sel);
 		}
+		yield();
 		spi_transfer(0xFF, div, 0, 0, cs_sel); // CRC
 		spi_transfer(0xFF, div, 0, 0, cs_sel);
 		if ((spi_transfer(0xFF, div, 0, 0, cs_sel) & 0x1F) != 0x05) { goto error; }
 		for (x = 8193; --x;) {
+			yield();
 			if (spi_transfer(0xFF, div, 0, 0, cs_sel)) { break; }
 		}
 		if (x == 0) { goto error; }
 	} else {
 		if (sd_read_block(cs_sel, div, dst, 512) != 0) { goto error; }
+		yield();
 	}
 
 	ret = 0;
