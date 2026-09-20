@@ -35,7 +35,7 @@ module lt1000soc
     parameter CORE_FREQ_KHZ    = 50_000,         // core clock
     parameter BIOS_SIZE_BITS   = 13,             // BIOS ROM region
     parameter CACHE_SIZE_BITS  = 13,             // cache for PSRAM region
-    parameter TCM_SIZE_BITS    = 16,             // TCM region
+    parameter TCM_SIZE_BITS    = 8'd16,          // TCM region
     parameter SRAM_ADDR_WIDTH  = 24,             // PSRAM address width
 
     // *** RV parameters ***
@@ -369,7 +369,7 @@ localparam
         MMIO_SPI_TRANSFER = 8'h24,
         MMIO_TIMER        = 8'h28;
 
-    reg  [31:0] mmio_reg_mcfg;
+    reg  [7:0] mmio_reg_mcfg;
     reg  [31:0] mmio_data_out;
 
     // driver of ready signal
@@ -379,12 +379,6 @@ localparam
 
     // combinatorially connect bus to blocks
     always @(*) begin
-        // assign mmio wires
-        mmio_reg_mcfg[31:24] = CORE_FREQ_KHZ / 1000;
-        mmio_reg_mcfg[23:16] = `LT1000SOC_REV;
-        mmio_reg_mcfg[15:8]  = TCM_SIZE_BITS;
-        mmio_reg_mcfg[7:0]   = 8'h00;
-
         // addresses 
         bios_mem_addr   = picorv_mem_addr[12:0];
         tcm_addr        = picorv_mem_addr[TCM_SIZE_BITS-1:0];
@@ -424,6 +418,7 @@ localparam
             picorv_mem_rdata = mmio_data_out;
         end
     end
+    wire [7:0] CORE_FREQ_MHZ = CORE_FREQ_KHZ / 1000;
 
     always @(posedge core_clk) begin
         // always reset various signals
@@ -458,7 +453,10 @@ localparam
                 bus_ready <= 1'b1;
                 case (picorv_mem_addr[7:0])
                     MMIO_MCFG: begin
-                        mmio_data_out <= mmio_reg_mcfg;
+                        mmio_data_out <= {CORE_FREQ_MHZ, `LT1000SOC_REV, TCM_SIZE_BITS, mmio_reg_mcfg};
+                        if (picorv_mem_wstrb[0]) begin
+                            mmio_reg_mcfg <= picorv_mem_wdata[7:0];
+                        end
                     end
                     MMIO_GPIO_DATA: begin
                         if (picorv_mem_wstrb[0]) begin
@@ -611,6 +609,7 @@ localparam
             cvga_video_mode    <= 1'b0;
             gpio_dout          <= 32'b0;
             gpio_oe            <= 32'b0;
+            mmio_reg_mcfg[7:0] <= 8'h00;
         end
     end
 endmodule

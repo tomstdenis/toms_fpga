@@ -34,9 +34,62 @@ topAA:
     return val;
 }
 
+static void bios_putc(char c)
+{
+	while ((UART_STATUS & UART_STATUS_TX_FULL));
+	UART_DATA = c;
+}	
+
+static void bios_puts(char *s) 
+{
+	while (*s) {
+		bios_putc(*s++);
+	}
+}
+
+static void init_sys(void)
+{
+	uint32_t *p;
+	int32_t x;
+	
+	bios_puts("\r\nInitializing device...\r\n");
+	
+	// set text mode and clear memories
+	VGA_CTRL = 0;
+
+	bios_puts("Clearing VGA memory...\r\n");
+	p = (uint32_t*)VGA_ADDR;
+	for (x = 0; x < (128 * 1024UL); x += 4) { *p++ = 0; }
+
+	bios_puts("Clearing PSRAM memory...\r\n");
+	p = (uint32_t*)PSRAM_ADDR;
+	for (x = 0; x < (16UL * 1024UL * 1024UL); x += 4) { *p++ = 0; }
+	
+	// try and detect PSRAM size (write MiB counter at start of every 
+	bios_puts("Sizing PSRAM (down to MiB)...\r\n");
+	p = (uint32_t*)PSRAM_ADDR;
+	for (x = 15; x >= 0; x--) {
+		p[(x * 1024UL * 1024UL) >> 2] = x;
+	}
+	bios_puts("Total memory: ");
+	for (x = 15; x >= 0; x--) {
+		if (p[(x * 1024UL * 1024UL) >> 2] == x) {
+			++x;
+			bios_putc('0' + (x / 10));
+			bios_putc('0' + (x % 10));
+			// store PSRAM size
+			MCFG_DATA = x;
+			break;
+		}
+	}
+	bios_puts(" MiB\r\nDone.\r\n");
+}	
+
 void bios_main(void)
 {
-    uint8_t *psram_base = (uint8_t *)0x08000000;
+	init_sys();
+	
+    uint8_t *psram_base = (uint8_t *)PSRAM_ADDR;
 
     // 1. Receive 4-byte payload size from host
     uint32_t binary_size = uart_read_u32();
@@ -47,6 +100,6 @@ void bios_main(void)
     }
 
     // 3. Cast PSRAM address to function pointer and execute!
-    void (*app_entry)(void) = (void (*)(void))0x08000000;
+    void (*app_entry)(void) = (void (*)(void))PSRAM_ADDR;
     app_entry();
 }

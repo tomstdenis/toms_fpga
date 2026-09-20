@@ -9,6 +9,8 @@
 #define MCFG_SOC_REV(x)  (((x) >> 16) & 0xFF)
 // TCM bits (TCM is 2**TCM_BITS bytes long)
 #define MCFG_TCM_BITS(x) (((x) >> 8) & 0xFF)
+// PSRAM size in MiB
+#define MCFG_PSRAM_MIB(x) ((x) & 0xFF)
 
 // GPIO
 // 32 GPIO lanes

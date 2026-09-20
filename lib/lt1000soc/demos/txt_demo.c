@@ -10,8 +10,7 @@ void main(void)
 	delay_ms(2000);
 	txt_clrscr();	
 	for (x = 0; x < 30; x++) {
-		txt_printf("line %d\n\r", x);
+		fprintf(stderr, "line %d\n\r", x);
 		delay_ms(250);
 	}
-	exit(0);
 }

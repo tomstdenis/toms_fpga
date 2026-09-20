@@ -11,13 +11,14 @@ __stack_top = ORIGIN(TCM) + LENGTH(TCM);
 
 SECTIONS
 {
-    .text : ALIGN(4) {
-        KEEP(*(.text ._start))
-        *(.rodata .rodata.*)
+	.text : ALIGN(4) {
+        KEEP(*(.text.init))          /* Pin startup code right at ORIGIN(ROM) */
+        *(.text .text.*)             /* All other executable code */
+        *(.rodata .rodata.*)         /* Read-only data / string literals */
         *(.srodata .srodata.*)
         . = ALIGN(4);
     } > ROM
-
+    
     __data_load_start = LOADADDR(.data);
 
     .data : ALIGN(4) {

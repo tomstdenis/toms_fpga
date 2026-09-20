@@ -40,5 +40,6 @@ tcm_copy_done:
     /* 6. Jump to application main */
     jal ra, main
 
-    /* 7. Infinite loop if main returns */
-1:  j 1b
+	/* 7. Jump to BIOS ROM */
+    lui     t0, 0x01000
+    jalr    ra, t0, 0

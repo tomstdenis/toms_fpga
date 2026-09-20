@@ -182,13 +182,24 @@ static int _sd_close(int fd)
  */
 int _write(int fd, const char *buf, int count) {
     // Only handle stdout and stderr
-    if (fd == 1 || fd == 2) {
+    if (fd == 1) {
         for (int i = 0; i < count; i++) {
             // Translate standard '\n' to '\r\n' for terminal compatibility
             if (buf[i] == '\n') {
                 putch('\r');
             }
             putch(buf[i]);
+        }
+        return count;
+    }
+    if (fd == 2) {
+		// VGA text output
+        for (int i = 0; i < count; i++) {
+            // Translate standard '\n' to '\r\n' for terminal compatibility
+            if (buf[i] == '\n') {
+                txt_putc('\r');
+            }
+            txt_putc(buf[i]);
         }
         return count;
     }
