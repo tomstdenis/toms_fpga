@@ -32,29 +32,31 @@ Example config I did for Console60K
 module lt1000soc
 #(
     // *** SOC parameters ***
-    parameter CORE_FREQ_KHZ    = 50_000,         // core clock
-    parameter BIOS_SIZE_BITS   = 13,             // BIOS ROM region
-    parameter CACHE_SIZE_BITS  = 13,             // cache for PSRAM region
-    parameter TCM_SIZE_BITS    = 8'd16,          // TCM region
-    parameter SRAM_ADDR_WIDTH  = 24,             // PSRAM address width
+    parameter CORE_FREQ_KHZ        = 50_000,       // core clock
+    parameter BIOS_SIZE_BITS       = 13,           // BIOS ROM region
+    parameter CACHE_SIZE_BITS      = 13,           // cache for PSRAM region
+    parameter TCM_SIZE_BITS        = 8'd16,        // TCM region
+    parameter SRAM_ADDR_WIDTH      = 24,           // PSRAM address width
 
     // *** RV parameters ***
-    parameter RV_ENABLE_COUNTERS=0,             // 32/64 bit counters
-    parameter RV_TWO_CYCLE_COMPARE=0,
-    parameter RV_TWO_CYCLE_ALU=0,
- 	parameter RV_TWO_STAGE_SHIFT=0,
-	parameter RV_BARREL_SHIFTER=1,
-    parameter RV_LATCHED_MEM_RDATA=1,
-    parameter RV_COMPRESSED_ISA=0,
-    parameter RV_ENABLE_MUL=0,
-    parameter RV_ENABLE_FAST_MUL=1,
-    parameter RV_ENABLE_DIV=1,
-    parameter RV_PROGADDR_RESET=32'h0100_0000,
-    parameter RV_STACKADDR=32'h0200_8000,
+    parameter RV_ENABLE_COUNTERS   = 0,            // 32/64 bit counters
+    parameter RV_TWO_CYCLE_COMPARE = 0,
+    parameter RV_TWO_CYCLE_ALU     = 0,
+ 	parameter RV_TWO_STAGE_SHIFT   = 0,
+	parameter RV_BARREL_SHIFTER    = 1,
+    parameter RV_LATCHED_MEM_RDATA = 1,
+    parameter RV_COMPRESSED_ISA    = 0,
+    parameter RV_CATCH_MISALIGN    = 1,
+    parameter RV_CATCH_ILLINSN     = 1,
+    parameter RV_ENABLE_MUL        = 0,
+    parameter RV_ENABLE_FAST_MUL   = 1,
+    parameter RV_ENABLE_DIV        = 1,
+    parameter RV_PROGADDR_RESET    = 32'h0100_0000,
+    parameter RV_STACKADDR         = 32'h0200_8000,
 
     // *** UART parameters ***
-    parameter UART_BAUD       = 1_000_000,
-    parameter UART_FIFO_DEPTH = 64
+    parameter UART_BAUD            = 1_000_000,
+    parameter UART_FIFO_DEPTH      = 64
 ) 
 (
     // *** Clocks ***
@@ -340,6 +342,8 @@ localparam
         .TWO_CYCLE_ALU(RV_TWO_CYCLE_ALU),
  	    .TWO_STAGE_SHIFT(RV_TWO_STAGE_SHIFT),
 	    .BARREL_SHIFTER(RV_BARREL_SHIFTER),
+        .CATCH_MISALIGN(RV_CATCH_MISALIGN),
+        .CATCH_ILLINSN(RV_CATCH_ILLINSN),
         .LATCHED_MEM_RDATA(RV_LATCHED_MEM_RDATA),
         .COMPRESSED_ISA(RV_COMPRESSED_ISA),
         .ENABLE_MUL(RV_ENABLE_MUL),
