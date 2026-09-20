@@ -1,5 +1,15 @@
 `default_nettype none
 
+`ifdef USE_80x25
+`define TXT_ROWS 16'd25
+`define FONT_HEIGHT 16
+`define Y_SCOPE 3:1
+`else
+`define TXT_ROWS 16'd50
+`define FONT_HEIGHT 8
+`define Y_SCOPE 2:0
+`endif
+
 // All-in-one VGA module provides 80x25 text mode, and 320x200 8bpp mode (332)
 // along with a 128KB memory which has a host access port suitable for a 32-bit
 // bus.  Supports dual clock domains.  Memory is registered on the host side.
@@ -68,9 +78,9 @@ module vga
     
 	// text mode parameter
 	localparam TEXTCOLS   = 16'd80;					// number of text columns
-	localparam TEXTROWS   = 16'd50;					// number of text rows
+	localparam TEXTROWS   = `TXT_ROWS;					// number of text rows
 	localparam FONTWIDTH  = 8;					// font width in pixels
-	localparam FONTHEIGHT = 8;					// font height in pixels (doubled, we're using an 8x8 font)
+	localparam FONTHEIGHT = `FONT_HEIGHT;					// font height in pixels (doubled, we're using an 8x8 font)
 	
 	// memory config
 	localparam X_FETCH_DELAY = 2;
@@ -130,7 +140,7 @@ module vga
     wire [9:0] vga_y_p1 = (vga_y + (vga_x == (H_TOTAL-1) ? 1'b1 : 1'b0));
     wire   text_out;
 	reg [15:0] vga_symbol;
-    assign font_addr = {vga_symbol[7:0], vga_y_p1[2:0]};     // address into the rom, it's 11 bits of which the top 8 are the symbol and bottom 3 are the row
+    assign font_addr = {vga_symbol[7:0], vga_y_p1[`Y_SCOPE]};     // address into the rom, it's 11 bits of which the top 8 are the symbol and bottom 3 are the row
     assign text_out  = font_dout[7 - vga_x[2:0]];            // bit of output indexed from the ROM output
 
 	// vga memory organized as four lanes of 32KB
