@@ -20,7 +20,11 @@ void txt_cursor(uint32_t x, uint32_t y, uint32_t col)
 void txt_clrscr(void)
 {
 	uint8_t *txt = (uint8_t*)VGA_ADDR;
-	memset(txt, 0, TXT_COLS * TXT_ROWS * 2);
+	uint32_t x;
+	for (x = 0; x < TXT_COLS * TXT_ROWS; x++) {
+		*txt++ = 0;
+		*txt++ = txt_col;
+	}
 	txt_cursor(0, 0, txt_col);
 }
 
@@ -28,8 +32,14 @@ void txt_clrscr(void)
 void txt_scroll(void)
 {
 	uint8_t *txt = (uint8_t*)VGA_ADDR;
+	uint32_t x;
+	
 	memcpy(txt, txt + TXT_COLS*2, TXT_COLS * (TXT_ROWS - 1) * 2);
-	memset(txt + TXT_COLS * (TXT_ROWS - 1) * 2, 0, TXT_COLS * 2);
+	txt += TXT_COLS * (TXT_ROWS - 1) * 2;
+	for (x = 0; x < TXT_COLS; x++) {
+		*txt++ = 0x00;
+		*txt++ = txt_col;
+	}
 }
 
 // output char
