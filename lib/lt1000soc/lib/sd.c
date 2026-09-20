@@ -160,7 +160,7 @@ int sd_sector_op(uint8_t cs_sel, uint8_t div, uint32_t sector, unsigned char *ds
 	int ret;
 	
 	if (!sd_is_init) {
-		if (sd_init(cs_sel, 0xF, div)) {
+		if (!sd_init(cs_sel, 0xF, div)) {
 			return -1;
 		}
 	}
