@@ -23,8 +23,9 @@ loader: loader.c
 
 # Pattern rule for cross-compiled RISC-V binaries
 %.bin: %.c crt0.s ../lib/lt1000.a
-	$(CC) $(CFLAGS) crt0.s $< $(LDFLAGS) -o $*.elf
-	$(OBJCOPY) -O binary $*.elf $@
+	@echo "Building $*.elf ..."
+	@$(CC) $(CFLAGS) crt0.s $< $(LDFLAGS) -o $*.elf
+	@$(OBJCOPY) -O binary $*.elf $@
 
 clean:
 	rm -f *.bin *.elf loader
