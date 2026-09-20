@@ -1,6 +1,9 @@
 #ifndef LT1000_TXT_H
 #define LT1000_TXT_H
 
+#define TXT_ROWS 50
+#define TXT_COLS 80
+
 void txt_init(void);
 void txt_cursor(uint32_t x, uint32_t y, uint32_t col);
 void txt_clrscr(void);

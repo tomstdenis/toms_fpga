@@ -68,9 +68,9 @@ module vga
     
 	// text mode parameter
 	localparam TEXTCOLS   = 16'd80;					// number of text columns
-	localparam TEXTROWS   = 16'd25;					// number of text rows
+	localparam TEXTROWS   = 16'd50;					// number of text rows
 	localparam FONTWIDTH  = 8;					// font width in pixels
-	localparam FONTHEIGHT = 16;					// font height in pixels (doubled, we're using an 8x8 font)
+	localparam FONTHEIGHT = 8;					// font height in pixels (doubled, we're using an 8x8 font)
 	
 	// memory config
 	localparam X_FETCH_DELAY = 2;
@@ -130,7 +130,7 @@ module vga
     wire [9:0] vga_y_p1 = (vga_y + (vga_x == (H_TOTAL-1) ? 1'b1 : 1'b0));
     wire   text_out;
 	reg [15:0] vga_symbol;
-    assign font_addr = {vga_symbol[7:0], vga_y_p1[3:1]};     // address into the rom, it's 11 bits of which the top 8 are the symbol and bottom 3 are the row
+    assign font_addr = {vga_symbol[7:0], vga_y_p1[2:0]};     // address into the rom, it's 11 bits of which the top 8 are the symbol and bottom 3 are the row
     assign text_out  = font_dout[7 - vga_x[2:0]];            // bit of output indexed from the ROM output
 
 	// vga memory organized as four lanes of 32KB

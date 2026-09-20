@@ -20,7 +20,7 @@ void txt_cursor(uint32_t x, uint32_t y, uint32_t col)
 void txt_clrscr(void)
 {
 	uint8_t *txt = (uint8_t*)VGA_ADDR;
-	memset(txt, 0, 80 * 25 * 2);
+	memset(txt, 0, TXT_COLS * TXT_ROWS * 2);
 	txt_cursor(0, 0, txt_col);
 }
 
@@ -28,8 +28,8 @@ void txt_clrscr(void)
 void txt_scroll(void)
 {
 	uint8_t *txt = (uint8_t*)VGA_ADDR;
-	memcpy(txt, txt + 160, 80 * 25 * 2 - 160);
-	memset(txt + 80 * 24 * 2, 0, 160);
+	memcpy(txt, txt + TXT_COLS*2, TXT_COLS * (TXT_ROWS - 1) * 2);
+	memset(txt + TXT_COLS * (TXT_ROWS - 1) * 2, 0, TXT_COLS * 2);
 }
 
 // output char
@@ -49,9 +49,9 @@ void txt_putc(char c)
 	// newline
 	if (c == '\n') {
 		++txt_y;
-		if (txt_y == 25) {
+		if (txt_y == TXT_ROWS) {
 			txt_scroll();
-			txt_y = 24;
+			txt_y = TXT_ROWS - 1;
 		}
 		return;
 	}
@@ -62,12 +62,12 @@ void txt_putc(char c)
 	
 	if (c != 8) {
 		++txt_x;
-		if (txt_x == 80) {
+		if (txt_x == TXT_COLS) {
 			++txt_y;
 			txt_x = 0;
-			if (txt_y == 25) {
+			if (txt_y == TXT_ROWS) {
 				txt_scroll();
-				txt_y = 24;
+				txt_y = TXT_ROWS-1;
 			}
 		}
 	}
