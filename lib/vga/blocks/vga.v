@@ -10,11 +10,11 @@
 `define Y_SCOPE 2:0
 `endif
 
-// All-in-one VGA module provides 80x25 text mode, and 320x200 8bpp mode (332)
+// All-in-one VGA module provides 80x25/80x50 text mode, and 320x200 8bpp mode (332)
 // along with a 128KB memory which has a host access port suitable for a 32-bit
 // bus.  Supports dual clock domains.  Memory is registered on the host side.
 //
-// For the 80x25 this module includes a 8x8 CP437 IBM PC font.  The module should
+// For the 80x25/80x50 text mode this module includes a 8x8 CP437 IBM PC font.  The module should
 // infer one 18Kbit BRAM (ROM) for the font, and 64 18Kbit BRAMS (dual ported) for the 
 // video memory.
 //
@@ -27,8 +27,8 @@
 // Page swapping is provided by the page_sel pin which tells the driver which 64KB half of the video
 // memory to read from.  Toggling that during VBLANK will allow tear-free buffer swapping
 //
-// The underlying signal is a 640x480 timing signal.  In text mode we use a 8x16 font spacing
-// (with the 8x8 font) to make up the 80x25 display which occupies 640x400 region of the display.  The
+// The underlying signal is a 640x480 timing signal.  In text mode we use a 8x16/8x8 font spacing
+// (with the 8x8 font) to make up the 80x25/80x50 display which occupies 640x400 region of the display.  The
 // 320x200 mode uses pixel dubbling occupying the same 640x400 region of the display.  Because it doesn't
 // stretch the vertical the pixels are still square.
 //
