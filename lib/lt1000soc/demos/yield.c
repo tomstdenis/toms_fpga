@@ -44,6 +44,7 @@ void main(void)
 	uint32_t x;
 	
 	yield_init();
+	yield_sei();
 	
 	GPIO_DATA = ~1UL;
 	GPIO_OE   = 0xFFFFFFFF;
@@ -56,7 +57,6 @@ void main(void)
 		delay_ms(500);
 	}
 	
-	yield_sei();
 	if (yield_add_irq(YIELD_IRQ_GPIO_POSEDGE, 1 << 4, 0, gpio_irq) == 0) {
 		putstr("Installed GPIO IRQ...\n\r");
 		if (yield_add_irq(YIELD_IRQ_UART_RX_READY, 0, 0, uart_irq) == 0) {
