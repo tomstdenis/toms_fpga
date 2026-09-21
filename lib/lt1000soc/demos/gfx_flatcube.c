@@ -248,7 +248,7 @@ CODE_SEC void demo(void) {
         }
 #endif
         // 5. Swap Pages
-        wait_vblank();
+        gfx_vsync();
         ++frames;
         active_page = !active_page;
         VGA_CTRL = VGA_CTRL_GFX_MODE | (active_page ? VGA_CTRL_PAGE_SEL : 0);

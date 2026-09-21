@@ -335,7 +335,7 @@ int main(void)
 	PSRAM_BACK_BUFFER = malloc(64000);
 	
 	// set GFX mode
-    VGA_CTRL = VGA_CTRL_GFX_MODE;
+	gfx_set_mode(1);
 
 	// turn on one LED for a fun blinky too
     GPIO_DATA = ~1UL;
