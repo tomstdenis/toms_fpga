@@ -5,7 +5,7 @@
 //Part Number: GW5AT-LV60PG484AC1/I0
 //Device: GW5AT-60
 //Device Version: B
-//Created Time: Thu Sep 17 20:56:13 2026
+//Created Time: Mon Sep 21 16:32:00 2026
 
 //Change the instance name and port connections to the signal names
 //--------Copy here to design--------
@@ -14,6 +14,7 @@
         .lock(lock), //output lock
         .clkout0(clkout0), //output clkout0
         .clkout1(clkout1), //output clkout1
+        .clkout2(clkout2), //output clkout2
         .mdrdo(mdrdo), //output [7:0] mdrdo
         .clkin(clkin), //input clkin
         .reset(reset), //input reset

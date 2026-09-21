@@ -71,6 +71,8 @@ module lt1000soc
     output wire [3:0] vga_b,                     // VGA blue channel
     output wire       vga_v_pulse,               // VGA vertical blank pulse
     output wire       vga_h_pulse,               // VGA horizontal blank pulse
+    output wire       vga_h_blank,               // in hblank region
+    output wire       vga_v_blank,               // in vblank region
 
     // *** PSRAM ***
     input wire [3:0]  psram_sio_din,             // PSRAM QPI output
@@ -208,8 +210,6 @@ localparam
 	reg         cvga_page_sel;
     reg         vga_h_blank_l;
     reg         vga_v_blank_l;
-    wire        vga_h_blank;
-    wire        vga_v_blank;
     reg [1:0]   cvga_h_blank;
     reg [1:0]   cvga_v_blank;
     reg [1:0]   vga_video_mode;

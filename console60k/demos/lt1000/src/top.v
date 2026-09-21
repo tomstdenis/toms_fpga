@@ -1,5 +1,9 @@
 `default_nettype none
-`define FREQ 100_000
+`define FREQ 110_000
+
+// use DVI output, uncomment to use the VGA pins
+`define USE_DVI
+
 
 module top
 (
@@ -26,6 +30,12 @@ module top
     output reg       vga_h_pulse,
     output reg       vga_v_pulse,
 
+    // DVI
+    output wire       tmds_clk_n,
+    output wire       tmds_clk_p,
+    output wire [2:0] tmds_d_n,
+    output wire [2:0] tmds_d_p,
+
     // UART
     input wire uart_rx,
     output wire uart_tx
@@ -46,11 +56,13 @@ module top
 
     wire core_clk;
     wire vga_clk;
+    wire dvi_serial_clk;
 
     lt1000clk daysofourlives(
         .clkin(clk), //input  clkin
         .clkout0(core_clk), //output  clkout0
-        .clkout1(vga_clk) //output  clkout1
+        .clkout1(vga_clk), //output  clkout1
+        .clkout2(dvi_serial_clk)
     );
 
     reg crst_n;
@@ -60,7 +72,7 @@ module top
     end
 
     reg vrst_n;
-    initial vrst_n = 4'b0000;
+    initial vrst_n = 1'b0;
     always @(posedge vga_clk) begin
         vrst_n <= 1'b1;
     end
@@ -91,7 +103,10 @@ module top
     wire [3:0] ltvga_b;
     wire       ltvga_h_pulse;
     wire       ltvga_v_pulse;
+    wire       ltvga_h_blank;
+    wire       ltvga_v_blank;
 
+`ifndef USE_DVI
     always @(posedge vga_clk) begin
         vga_r       <= ltvga_r[3:2];
         vga_g       <= ltvga_g[3:2];
@@ -99,6 +114,40 @@ module top
         vga_h_pulse <= ltvga_h_pulse;
         vga_v_pulse <= ltvga_v_pulse;
     end
+`else
+    reg [7:0] dvi_r;
+    reg [7:0] dvi_g;
+    reg [7:0] dvi_b;
+    reg       dvi_vs;
+    reg       dvi_hs;
+    reg       dvi_de;
+
+    always @(posedge vga_clk) begin
+        dvi_r  <= {ltvga_r, ltvga_r};
+        dvi_g  <= {ltvga_g, ltvga_g};
+        dvi_b  <= {ltvga_b, ltvga_b};
+        dvi_vs <= ltvga_v_pulse;
+        dvi_hs <= ltvga_h_pulse;
+        dvi_de <= !(ltvga_h_blank | ltvga_v_blank);
+    end
+
+	DVI_TX MrFancyPants(
+		.I_rst_n(vrst_n), //input I_rst_n
+		.I_serial_clk(dvi_serial_clk), //input I_serial_clk
+		.I_rgb_clk(vga_clk), //input I_rgb_clk
+		.I_rgb_vs(dvi_vs), //input I_rgb_vs
+		.I_rgb_hs(dvi_hs), //input I_rgb_hs
+		.I_rgb_de(dvi_de), //input I_rgb_de
+		.I_rgb_r(dvi_r), //input [7:0] I_rgb_r
+		.I_rgb_g(dvi_g), //input [7:0] I_rgb_g
+		.I_rgb_b(dvi_b), //input [7:0] I_rgb_b
+		.O_tmds_clk_p(tmds_clk_p), //output O_tmds_clk_p
+		.O_tmds_clk_n(tmds_clk_n), //output O_tmds_clk_n
+		.O_tmds_data_p(tmds_d_p), //output [2:0] O_tmds_data_p
+		.O_tmds_data_n(tmds_d_n) //output [2:0] O_tmds_data_n
+	);
+`endif
+
 
     lt1000soc #(
         .CORE_FREQ_KHZ(`FREQ),
@@ -119,6 +168,7 @@ module top
         .gpio_din(gpio_din), .gpio_dout(gpio_dout), .gpio_oe(gpio_oe),
 
         // VGA
-        .vga_r(ltvga_r), .vga_g(ltvga_g), .vga_b(ltvga_b), .vga_h_pulse(ltvga_h_pulse), .vga_v_pulse(ltvga_v_pulse)
+        .vga_r(ltvga_r), .vga_g(ltvga_g), .vga_b(ltvga_b), .vga_h_pulse(ltvga_h_pulse), .vga_v_pulse(ltvga_v_pulse),
+        .vga_h_blank(ltvga_h_blank), .vga_v_blank(ltvga_v_blank)
     );
 endmodule
