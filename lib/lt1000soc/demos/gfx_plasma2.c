@@ -98,8 +98,8 @@ static uint8_t anim_v = 0;
 TCM_FUNC static void render_tunnel_fast(void) {
     uint8_t *buf = VGA_BACK_BUFFER;
 
-    anim_u += 2;
-    anim_v += 3;
+    anim_u += 1;
+    anim_v += 2;
 
     // Direct pointer walking across flat arrays
     const uint8_t *sum_ptr = &sum_lut[0][0];
