@@ -196,12 +196,12 @@ localparam
             tcm_lane3[tcm_addr[TCM_SIZE_BITS-1:2]] <= tcm_din3;
         end
         tcm_dout0_tmp <= tcm_lane0[tcm_addr[TCM_SIZE_BITS-1:2]];
-        tcm_dout0     <= tcm_dout0_tmp;
         tcm_dout1_tmp <= tcm_lane1[tcm_addr[TCM_SIZE_BITS-1:2]];
-        tcm_dout1     <= tcm_dout1_tmp;
         tcm_dout2_tmp <= tcm_lane2[tcm_addr[TCM_SIZE_BITS-1:2]];
-        tcm_dout2     <= tcm_dout2_tmp;
         tcm_dout3_tmp <= tcm_lane3[tcm_addr[TCM_SIZE_BITS-1:2]];
+        tcm_dout0     <= tcm_dout0_tmp;
+        tcm_dout1     <= tcm_dout1_tmp;
+        tcm_dout2     <= tcm_dout2_tmp;
         tcm_dout3     <= tcm_dout3_tmp;
     end
 
@@ -360,6 +360,7 @@ localparam
     );
 
 // *** BUS ***
+    // MMIO regs which begin at the 32'h1000_0000 address space
     localparam
         MMIO_MCFG         = 8'h00,
         MMIO_GPIO_DATA    = 8'h04,
@@ -373,12 +374,17 @@ localparam
         MMIO_SPI_TRANSFER = 8'h24,
         MMIO_TIMER        = 8'h28;
 
+    // lower 8 bits of machine config reg (used to store the PSRAM size in MiB
     reg  [7:0] mmio_reg_mcfg;
+
+    // MMIO data out reg
     reg  [31:0] mmio_data_out;
 
     // driver of ready signal
     reg [1:0] bus_cycle;
     reg       bus_ready;
+
+    // free running cycle counter
     reg [31:0] timer;
 
     // combinatorially connect bus to blocks
@@ -409,9 +415,11 @@ localparam
             picorv_mem_rdata = { bios_mem_dout3, bios_mem_dout2, bios_mem_dout1, bios_mem_dout0 };
         end else if (picorv_mem_addr[MEM_16M_TCM]) begin
             tcm_wren         = picorv_mem_valid ? picorv_mem_wstrb : 4'b0000;
+            picorv_mem_ready = picorv_mem_valid & |{bus_ready, picorv_mem_wstrb};
             picorv_mem_rdata = { tcm_dout3, tcm_dout2, tcm_dout1, tcm_dout0 };
         end else if (picorv_mem_addr[MEM_16M_VGA]) begin
             vga_wren         = picorv_mem_valid ? picorv_mem_wstrb : 4'b0000;
+            picorv_mem_ready = picorv_mem_valid & |{bus_ready, picorv_mem_wstrb};
             picorv_mem_rdata = vga_data_out;
         end else if (picorv_mem_addr[MEM_16M_PSRAM]) begin
             psram_write_mask = picorv_mem_valid ? { picorv_mem_wstrb[0], picorv_mem_wstrb[1], picorv_mem_wstrb[2], picorv_mem_wstrb[3] } : 4'b0000;
@@ -429,9 +437,11 @@ localparam
         uart_tx_start        <= 1'b0;
         uart_rx_read         <= 1'b0;
         spi_valid            <= 1'b0;
-        timer                <= timer + 1'b1;
         bus_ready            <= 1'b0;
         psram_valid          <= 1'b0;
+
+        // update cycle counter
+        timer                <= timer + 1'b1;
 
         // respond to valid only if ready is already low
         if (~picorv_mem_ready & picorv_mem_valid) begin
@@ -441,7 +451,7 @@ localparam
                 if (|picorv_mem_wstrb) begin
                     bus_ready        <= 1'b1;
                 end else begin
-                    // memory address is set, now we wait two cycles
+                    // memory address is set, now we wait one cycle (since data out is combed to the picorv_mem_rdata)
                     bus_cycle[0]     <= ~bus_cycle[0];
                     bus_ready        <= bus_cycle[0];
                 end
