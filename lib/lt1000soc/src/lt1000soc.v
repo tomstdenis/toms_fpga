@@ -448,13 +448,9 @@ localparam
             if (picorv_mem_addr[MEM_16M_BIOS] | picorv_mem_addr[MEM_16M_TCM] | picorv_mem_addr[MEM_16M_VGA]) begin
 // *** BIOS, TCM, VGA ***
             // simple memories with 1 cycle delay on reads
-                if (|picorv_mem_wstrb) begin
-                    bus_ready        <= 1'b1;
-                end else begin
-                    // memory address is set, now we wait one cycle (since data out is combed to the picorv_mem_rdata)
-                    bus_cycle[0]     <= ~bus_cycle[0];
-                    bus_ready        <= bus_cycle[0];
-                end
+                // memory address is set, now we wait one cycle (since data out is combed to the picorv_mem_rdata)
+                bus_cycle[0]     <= ~bus_cycle[0];
+                bus_ready        <= bus_cycle[0];
             end else if (picorv_mem_addr[MEM_16M_PSRAM]) begin
 // *** PSRAM ***
                 if (~bus_cycle[0] & psram_idle) begin
