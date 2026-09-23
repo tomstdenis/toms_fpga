@@ -424,10 +424,10 @@ localparam
                 if (~cvga_write_mask) begin
                     vga_wren = picorv_mem_wstrb;
                 end else begin
-                    vga_wren[0] = picorv_mem_wstrb[0] & (picorv_mem_wdata[7:0]   == VGA_WRITE_MASK ? 1'b0 : 1'b1);
-                    vga_wren[1] = picorv_mem_wstrb[1] & (picorv_mem_wdata[15:8]  == VGA_WRITE_MASK ? 1'b0 : 1'b1);
-                    vga_wren[2] = picorv_mem_wstrb[2] & (picorv_mem_wdata[23:16] == VGA_WRITE_MASK ? 1'b0 : 1'b1);
-                    vga_wren[3] = picorv_mem_wstrb[3] & (picorv_mem_wdata[31:24] == VGA_WRITE_MASK ? 1'b0 : 1'b1);
+                    vga_wren[0] = picorv_mem_wstrb[0] & ((picorv_mem_wdata[7:0]   == VGA_WRITE_MASK) ? 1'b0 : 1'b1);
+                    vga_wren[1] = picorv_mem_wstrb[1] & ((picorv_mem_wdata[15:8]  == VGA_WRITE_MASK) ? 1'b0 : 1'b1);
+                    vga_wren[2] = picorv_mem_wstrb[2] & ((picorv_mem_wdata[23:16] == VGA_WRITE_MASK) ? 1'b0 : 1'b1);
+                    vga_wren[3] = picorv_mem_wstrb[3] & ((picorv_mem_wdata[31:24] == VGA_WRITE_MASK) ? 1'b0 : 1'b1);
                 end
             end                    
             picorv_mem_ready = picorv_mem_valid & |{bus_ready, picorv_mem_wstrb};
