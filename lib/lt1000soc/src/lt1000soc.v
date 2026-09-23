@@ -37,6 +37,7 @@ module lt1000soc
     parameter CACHE_SIZE_BITS      = 13,           // cache for PSRAM region
     parameter TCM_SIZE_BITS        = 8'd16,        // TCM region
     parameter SRAM_ADDR_WIDTH      = 24,           // PSRAM address width
+    parameter VGA_WRITE_MASK       = 8'b11100011,  // Write mask pattern for when VGA_CTRL[2] is 1
 
     // *** RV parameters ***
     parameter RV_ENABLE_COUNTERS   = 0,            // 32/64 bit counters
@@ -206,8 +207,9 @@ localparam
     end
 
 // *** VGA ***
-	reg         cvga_video_mode;
-	reg         cvga_page_sel;
+	reg         cvga_video_mode;            // 0 == text, 1 == gfx
+	reg         cvga_page_sel;              // 0 == first 64K, 1 == 2nd 64K
+    reg         cvga_write_mask;            // 0 == normal write, 1 == mask off byte 8'b11100011 for sprites
     reg         vga_h_blank_l;
     reg         vga_v_blank_l;
     reg [1:0]   cvga_h_blank;
@@ -418,7 +420,16 @@ localparam
             picorv_mem_ready = picorv_mem_valid & |{bus_ready, picorv_mem_wstrb};
             picorv_mem_rdata = { tcm_dout3, tcm_dout2, tcm_dout1, tcm_dout0 };
         end else if (picorv_mem_addr[MEM_16M_VGA]) begin
-            vga_wren         = picorv_mem_valid ? picorv_mem_wstrb : 4'b0000;
+            if (picorv_mem_valid) begin
+                if (~cvga_write_mask) begin
+                    vga_wren = picorv_mem_wstrb;
+                end else begin
+                    vga_wren[0] = picorv_mem_wstrb[0] & (picorv_mem_wdata[7:0]   == VGA_WRITE_MASK ? 1'b0 : 1'b1);
+                    vga_wren[1] = picorv_mem_wstrb[1] & (picorv_mem_wdata[15:8]  == VGA_WRITE_MASK ? 1'b0 : 1'b1);
+                    vga_wren[2] = picorv_mem_wstrb[2] & (picorv_mem_wdata[23:16] == VGA_WRITE_MASK ? 1'b0 : 1'b1);
+                    vga_wren[3] = picorv_mem_wstrb[3] & (picorv_mem_wdata[31:24] == VGA_WRITE_MASK ? 1'b0 : 1'b1);
+                end
+            end                    
             picorv_mem_ready = picorv_mem_valid & |{bus_ready, picorv_mem_wstrb};
             picorv_mem_rdata = vga_data_out;
         end else if (picorv_mem_addr[MEM_16M_PSRAM]) begin
@@ -581,10 +592,11 @@ localparam
                         mmio_data_out <= { 29'b0, uart_rx_ready, uart_tx_fifo_empty, uart_tx_fifo_full };
                     end
                     MMIO_VGA_CTRL: begin
-                        mmio_data_out  <= { 28'b0, cvga_v_blank[1], cvga_h_blank[1], cvga_page_sel, cvga_video_mode };
+                        mmio_data_out  <= { 28'b0, cvga_v_blank[1], cvga_h_blank[1], cvga_write_mask, cvga_page_sel, cvga_video_mode };
                         if (picorv_mem_wstrb[0]) begin
                             cvga_video_mode <= picorv_mem_wdata[0];
                             cvga_page_sel   <= picorv_mem_wdata[1];
+                            cvga_write_mask <= picorv_mem_wdata[2];
                         end
                     end
                     MMIO_SPI_TRANSFER: begin
@@ -617,6 +629,7 @@ localparam
             uart_rx_read       <= 1'b0;
             cvga_page_sel      <= 1'b0;
             cvga_video_mode    <= 1'b0;
+            cvga_write_mask    <= 1'b0;
             gpio_dout          <= 32'b0;
             gpio_oe            <= 32'b0;
             mmio_reg_mcfg[7:0] <= 8'h00;

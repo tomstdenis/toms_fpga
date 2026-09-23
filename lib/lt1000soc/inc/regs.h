@@ -37,10 +37,12 @@
 #define VGA_CTRL_GFX_MODE    1
 // Which 64KB half of VRAM should be displayed (0=0x00000, 1=0x10000)
 #define VGA_CTRL_PAGE_SEL    2
+// When this is set any hot pink (0xE3) byte written over the bus is masked off allowing for transparent writes
+#define VGA_CTRL_WRITE_MASK  4
 // High when in H blank region
-#define VGA_CTRL_HBLANK      4
+#define VGA_CTRL_HBLANK      8
 // High when in V blank region
-#define VGA_CTRL_VBLANK      8
+#define VGA_CTRL_VBLANK      16
 
 // SPI
 //                  write   |   read         |
