@@ -96,8 +96,7 @@ All peripheral registers are mapped under the MMIO base address `0x1000_0000`.
 * `[31:24]`: System Core Clock Frequency in MHz (`CORE_FREQ_MHZ`).
 * `[23:16]`: SoC Revision Identifier (`0x00`).
 * `[15:8]`: TCM Size parameter in bits (`TCM_SIZE_BITS`, e.g., `16` = 64 KiB).
-* `[7:0]`: General Scratchpad / Config Register (`mmio_reg_mcfg`).
-
+* `[7:0]`: General Scratchpad / PSRAM size in MiB (`mmio_reg_mcfg`).
 
 * **Write Format**: Byte 0 sets `mmio_reg_mcfg[7:0]`.
 
@@ -115,30 +114,27 @@ All peripheral registers are mapped under the MMIO base address `0x1000_0000`.
 * **Write (Byte 0)**: Pushes byte `picorv_mem_wdata[7:0]` to TX FIFO.
 * **Read**: Reads and pops byte from RX FIFO. Returns `0xFFFFFFFF` if no byte is available.
 
-
 * **`MMIO_UART_STATUS` (`0x1C`)** *(Read-Only)*:
 * `Bit 0`: `uart_tx_fifo_full`
 * `Bit 1`: `uart_tx_fifo_empty`
 * `Bit 2`: `uart_rx_ready` (Data available in RX FIFO)
 * `[31:3]`: Reserved (`0`)
 
-
-
 #### 4. VGA Control Register (`MMIO_VGA_CTRL` - `0x1000_0020`)
 
 * **Read Format**:
-* `Bit 0`: Current Video Mode (`cvga_video_mode`).
-* `Bit 1`: Active Display Page Select (`cvga_page_sel`).
-* `Bit 2`: Horizontal Blanking Status (`cvga_h_blank`).
-* `Bit 3`: Vertical Blanking Status (`cvga_v_blank`).
-* `[31:4]`: Reserved (`0`).
+* `Bit 0`: Current Video Mode (`cvga_video_mode`).  0 for 80x50 Text Mode, 1 for 320x200 GFX mode.
+* `Bit 1`: Active Display Page Select (`cvga_page_sel`).  0 for the first 64KB of VRAM, 1 for the second 64KB.
+* `Bit 2`: VGA Write Mask Enable (`cvga_write_mask`). 0 for normal writes, 1 for masking off any hot pink (`VGA_WRITE_MASK`, default: 0xE3) byte from the write for transparent sprites
+* `Bit 3`: Horizontal Blanking Status (`cvga_h_blank`).
+* `Bit 4`: Vertical Blanking Status (`cvga_v_blank`).
+* `[31:5]`: Reserved (`0`).
 
 
-* **Write Format (Byte 0)**:
+* **Write Format**:
 * `Bit 0`: Sets `cvga_video_mode` (0 = Standard, 1 = Alternate/High-res).
 * `Bit 1`: Sets `cvga_page_sel` (Page Flipping bit).
-
-
+* `Bit 2`: Sets `cvga_write_mask` (sprite pixel masking)
 
 #### 5. SPI Control & Data Register (`MMIO_SPI_TRANSFER` - `0x1000_0024`)
 
@@ -158,11 +154,7 @@ All peripheral registers are mapped under the MMIO base address `0x1000_0000`.
 * `01` -> CS1 active (`spi_cs_pin = 4'b1101`)
 * `10` -> CS2 active (`spi_cs_pin = 4'b1011`)
 * `11` -> CS3 active (`spi_cs_pin = 4'b0111`)
-
-
 * `Bit 16`: Trigger Transfer Valid flag (`spi_valid`).
-
-
 
 #### 6. System Timer (`MMIO_TIMER` - `0x1000_0028`)
 
@@ -179,6 +171,7 @@ All peripheral registers are mapped under the MMIO base address `0x1000_0000`.
 | `CACHE_SIZE_BITS` | `int` | `13` | Cache size in bits for external PSRAM (13 = 8 KiB) |
 | `TCM_SIZE_BITS` | `int` | `16` | Bit width for internal TCM (16 = 64 KiB) |
 | `SRAM_ADDR_WIDTH` | `int` | `24` | Address width for external PSRAM (24 = 16 MiB) |
+| `VGA_WRITE_MASK` | `int` | 8'b11100011 | Value that is used to determine if VGA write is masked when `cvga_write_mask` is high. |
 | `RV_ENABLE_COUNTERS` | `bit` | `0` | Enable RV32 hardware performance counters |
 | `RV_BARREL_SHIFTER` | `bit` | `1` | Enable PicoRV32 full barrel shifter |
 | `RV_ENABLE_FAST_MUL` | `bit` | `1` | Enable PicoRV32 fast hardware multiplier |
@@ -206,6 +199,8 @@ All peripheral registers are mapped under the MMIO base address `0x1000_0000`.
 * `output wire [3:0] vga_b`: Blue color channel output (4-bit DAC).
 * `output wire vga_h_pulse`: VGA Horizontal Sync signal.
 * `output wire vga_v_pulse`: VGA Vertical Sync signal.
+* `output wire vga_h_blank`: VGA Horizontal Sync blanking signal. (high when in the HBLANK region)
+* `output wire vga_v_blank`: VGA Vertical Sync blanking signal. (high when in the VBLANK region)
 
 ### PSRAM (QPI Bus) Interface
 
