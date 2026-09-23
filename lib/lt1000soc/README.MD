@@ -130,7 +130,6 @@ All peripheral registers are mapped under the MMIO base address `0x1000_0000`.
 * `Bit 4`: Vertical Blanking Status (`cvga_v_blank`).
 * `[31:5]`: Reserved (`0`).
 
-
 * **Write Format**:
 * `Bit 0`: Sets `cvga_video_mode` (0 = Standard, 1 = Alternate/High-res).
 * `Bit 1`: Sets `cvga_page_sel` (Page Flipping bit).
@@ -140,21 +139,20 @@ All peripheral registers are mapped under the MMIO base address `0x1000_0000`.
 
 * **Read Format**:
 * `[7:0]`: Received SPI Byte (`spi_miso_byte`).
-* `Bit 8`: SPI Bus Idle Flag (`spi_idle`).
+* `Bit 8`: SPI Bus Idle Flag (`spi_idle`).  A high value means the SPI master is idle (potentially a MISO byte to read)
 * `[31:9]`: Reserved (`0`).
-
 
 * **Write Format** *(Requires 3-byte write enable, `wstrb[2:0] == 3'b111`)*:
 * `[7:0]`: Data byte to transmit (`spi_mosi_byte`).
-* `[11:8]`: Clock Divider (`spi_div`).
-* `Bit 12`: Assert Chip Select Start (`spi_cs_start`).
-* `Bit 13`: Assert Chip Select End (`spi_cs_end`).
+* `[11:8]`: Clock Divider (`spi_div`).  Divides core clock by 2 * (`spi_div` + 1) to generate SPI SCK.
+* `Bit 12`: Assert Chip Select Start (`spi_cs_start`). Value CS should be when starting transfer.
+* `Bit 13`: Assert Chip Select End (`spi_cs_end`). Value CS should be after shifting the last bit.
 * `[15:14]`: SPI Slave Target Select (`spi_cs_sel`):
 * `00` -> CS0 active (`spi_cs_pin = 4'b1110`)
 * `01` -> CS1 active (`spi_cs_pin = 4'b1101`)
 * `10` -> CS2 active (`spi_cs_pin = 4'b1011`)
 * `11` -> CS3 active (`spi_cs_pin = 4'b0111`)
-* `Bit 16`: Trigger Transfer Valid flag (`spi_valid`).
+* `Bit 16`: Trigger Transfer Valid flag (`spi_valid`).  Set to 1 to start a transfer.
 
 #### 6. System Timer (`MMIO_TIMER` - `0x1000_0028`)
 
