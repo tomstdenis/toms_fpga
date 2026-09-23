@@ -75,6 +75,45 @@ TCM_FUNC void draw_tile_map_unrolled(uint32_t *fb, const uint8_t *map, const uin
     }
 }
 
+TCM_FUNC void draw_tile_map_overlay(
+    uint32_t *fb,           // Base pointer to VRAM frame buffer
+    const uint8_t *map,     // Pointer to mini/cropped tile map array
+    const uint32_t *tile_gfx, // Base pointer to 8x8 tile graphics
+    int start_x, int start_y, // Screen tile coordinates (e.g., tile X=5, Y=2)
+    int map_w, int map_h    // Dimensions of the mini tilemap (in tiles)
+) {
+    // 1. Calculate destination starting scanline word address in VRAM
+    uint32_t *row_ptr = fb + (start_y * 640) + (start_x << 1);
+
+    for (int y = 0; y < map_h; y++) {
+        // Quick vertical bounds check against 320x200 screen (25 tiles tall)
+        if ((start_y + y) >= 0 && (start_y + y) < 25) {
+            
+            uint32_t *dst = row_ptr;
+            for (int x = 0; x < map_w; x++) {
+                // Quick horizontal bounds check (40 tiles wide)
+                if ((start_x + x) >= 0 && (start_x + x) < 40) {
+                    
+                    size_t tile_id = map[y * map_w + x];
+                    const uint32_t *tex = &tile_gfx[tile_id << 4];
+
+                    // Unrolled 8x8 tile store (Hardware byte masking handles 0xE3 transparency!)
+                    dst[0]   = tex[0];  dst[1]   = tex[1];
+                    dst[80]  = tex[2];  dst[81]  = tex[3];
+                    dst[160] = tex[4];  dst[161] = tex[5];
+                    dst[240] = tex[6];  dst[241] = tex[7];
+                    dst[320] = tex[8];  dst[321] = tex[9];
+                    dst[400] = tex[10]; dst[401] = tex[11];
+                    dst[480] = tex[12]; dst[481] = tex[13];
+                    dst[560] = tex[14]; dst[561] = tex[15];
+                }
+                dst += 2; // Move 2 words right in VRAM
+            }
+        }
+        row_ptr += 640; // Advance down 8 scanlines (8 * 80 words)
+    }
+}
+
 TCM_FUNC void demo(void)
 {
 	volatile uint32_t *p1, *p2, t1;
@@ -266,6 +305,10 @@ TCM_FUNC void demo(void)
 	t1 = TIMER - t1;
 	printf("draw_sprite_8x8(sprite=PSRAM+0x8000), took %lu cycles\n", t1);
 
+	t1 = TIMER;
+	draw_tile_map_overlay(VGA_ADDR, PSRAM_ADDR+0xA000, PSRAM_ADDR+0xC000, 0, 20, 40, 5);
+	t1 = TIMER - t1;
+	printf("draw_tile_map_overlay(ALL=PSRAM at offsets, bottom 5x40), took %lu cycles\n", t1);
 }
 
 void main(void)
