@@ -5,7 +5,40 @@ typedef struct {
     uint32_t phase[4][8][3]; // [shift 0..3][row 0..7][dword 0..2]
 } Sprite12x8;
 
-TCM_FUNC void draw_sprite_8x8(uint32_t *vram_base, const Sprite12x8 *sprite, int x, int y) {
+/**
+ * @brief Converts an 8x8 row-major image into a 12x8 pre-shifted sprite structure.
+ * 
+ * @param src_8x8 Pointer to 64 bytes of row-major pixel data.
+ * @param dst_sprite Pointer to target Sprite12x8 destination structure.
+ */
+void gfx_convert_8x8_to_sprite12x8(const uint8_t *src_8x8, Sprite12x8 *dst_sprite) {
+    for (int shift = 0; shift < 4; shift++) {
+        for (int row = 0; row < 8; row++) {
+            uint8_t row_bytes[12];
+
+            // Fill 12-byte wide row with transparent padding
+            memset(row_bytes, 0xE3, 12);
+
+            // Copy 8 pixels from source into the shifted horizontal offset
+            for (int col = 0; col < 8; col++) {
+                row_bytes[shift + col] = src_8x8[row * 8 + col];
+            }
+
+            // Pack 12 bytes into 3 dwords (uint32_t) for fast 32-bit stores
+            // Assumes little-endian target: byte 0 is LSB, byte 3 is MSB
+            for (int dw = 0; dw < 3; dw++) {
+                int b = dw * 4;
+                dst_sprite->phase[shift][row][dw] = 
+                    ((uint32_t)row_bytes[b + 0] << 0)  |
+                    ((uint32_t)row_bytes[b + 1] << 8)  |
+                    ((uint32_t)row_bytes[b + 2] << 16) |
+                    ((uint32_t)row_bytes[b + 3] << 24);
+            }
+        }
+    }
+}
+
+TCM_FUNC void gfx_draw_sprite_8x8(uint32_t *vram_base, const Sprite12x8 *sprite, int x, int y) {
     // Basic screen bounds check (Y dimension)
     if (y < 0 || y > 192) return; 
 
@@ -42,7 +75,7 @@ TCM_FUNC void draw_sprite_8x8(uint32_t *vram_base, const Sprite12x8 *sprite, int
         src += 3;
     }
 }
-TCM_FUNC void draw_tile_map_unrolled(uint32_t *fb, const uint8_t *map, const uint32_t *tile_gfx) {
+TCM_FUNC void gfx_draw_tile_map_unrolled(uint32_t *fb, const uint8_t *map, const uint32_t *tile_gfx) {
     // fb is uint32_t* targeting VRAM or TCM (320x200 = 80 words per line)
     
 	uint32_t *row_ptr = fb;
@@ -75,7 +108,7 @@ TCM_FUNC void draw_tile_map_unrolled(uint32_t *fb, const uint8_t *map, const uin
     }
 }
 
-TCM_FUNC void draw_tile_map_overlay(
+TCM_FUNC void gfx_draw_tile_map_overlay(
     uint32_t *fb,           // Base pointer to VRAM frame buffer
     const uint8_t *map,     // Pointer to mini/cropped tile map array
     const uint32_t *tile_gfx, // Base pointer to 8x8 tile graphics
@@ -276,37 +309,37 @@ TCM_FUNC void demo(void)
 	printf("unroll32, PSRAM => VGA copy took %lu cycles\n", t1);
 
 	t1 = TIMER;
-	draw_tile_map_unrolled(VGA_ADDR, VGA_ADDR, VGA_ADDR);
+	gfx_draw_tile_map_unrolled(VGA_ADDR, VGA_ADDR, VGA_ADDR);
 	t1 = TIMER - t1;
 	printf("draw_tile_map_unrolled(ALL_VGA), took %lu cycles\n", t1);
 
 	t1 = TIMER;
-	draw_tile_map_unrolled(VGA_ADDR, PSRAM_ADDR, VGA_ADDR);
+	gfx_draw_tile_map_unrolled(VGA_ADDR, PSRAM_ADDR, VGA_ADDR);
 	t1 = TIMER - t1;
 	printf("draw_tile_map_unrolled(tile_map=PSRAM), took %lu cycles\n", t1);
 
 	t1 = TIMER;
-	draw_tile_map_unrolled(VGA_ADDR, VGA_ADDR, PSRAM_ADDR+0x2000);
+	gfx_draw_tile_map_unrolled(VGA_ADDR, VGA_ADDR, PSRAM_ADDR+0x2000);
 	t1 = TIMER - t1;
 	printf("draw_tile_map_unrolled(tile_map=TCM, tile_data=PSRAM+0x2000), took %lu cycles\n", t1);
 
 	t1 = TIMER;
-	draw_tile_map_unrolled(VGA_ADDR, PSRAM_ADDR+0x4000, PSRAM_ADDR+0x6000);
+	gfx_draw_tile_map_unrolled(VGA_ADDR, PSRAM_ADDR+0x4000, PSRAM_ADDR+0x6000);
 	t1 = TIMER - t1;
 	printf("draw_tile_map_unrolled(tile_map=PSRAM+0x4000, tile_data=PSRAM+0x6000), took %lu cycles\n", t1);
 
 	t1 = TIMER;
-	draw_sprite_8x8(VGA_ADDR, TCM_ADDR, 0, 0);
+	gfx_draw_sprite_8x8(VGA_ADDR, TCM_ADDR, 0, 0);
 	t1 = TIMER - t1;
 	printf("draw_sprite_8x8(sprite=TCM), took %lu cycles\n", t1);
 
 	t1 = TIMER;
-	draw_sprite_8x8(VGA_ADDR, PSRAM_ADDR+0x8000, 0, 0);
+	gfx_draw_sprite_8x8(VGA_ADDR, PSRAM_ADDR+0x8000, 0, 0);
 	t1 = TIMER - t1;
 	printf("draw_sprite_8x8(sprite=PSRAM+0x8000), took %lu cycles\n", t1);
 
 	t1 = TIMER;
-	draw_tile_map_overlay(VGA_ADDR, PSRAM_ADDR+0xA000, PSRAM_ADDR+0xC000, 0, 20, 40, 5);
+	gfx_draw_tile_map_overlay(VGA_ADDR, PSRAM_ADDR+0xA000, PSRAM_ADDR+0xC000, 0, 20, 40, 5);
 	t1 = TIMER - t1;
 	printf("draw_tile_map_overlay(ALL=PSRAM at offsets, bottom 5x40), took %lu cycles\n", t1);
 }
