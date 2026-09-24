@@ -16,8 +16,8 @@
 
 #define CTRL_MODE_GFX       (1 << 0)
 #define CTRL_PAGE_1         (1 << 1)
-#define CTRL_VBLANK         (1 << 3)
-#define CTRL_HBLANK         (1 << 2) // Assuming Bit 2 reflects HBLANK status
+#define CTRL_HBLANK         (1 << 3)
+#define CTRL_VBLANK         (1 << 4)
 
 static inline void wait_vblank(void) {
     while (!(*VGA_CTRL & CTRL_VBLANK));
