@@ -3,7 +3,7 @@
 #include "gfx.h"
 
 // --- Hardware Control ---
-TCM_FUNC void gfx_set_mode(int mode) {
+TCM_FUNC(gfx_set_mode) void gfx_set_mode(int mode) {
     if (mode) {
         VGA_CTRL |= VGA_CTRL_GFX_MODE;
     } else {
@@ -12,27 +12,27 @@ TCM_FUNC void gfx_set_mode(int mode) {
 }
 
 // Wait for VBLANK edge (low-to-high transition)
-TCM_FUNC void gfx_vsync(void) {
+TCM_FUNC(gfx_vsync) void gfx_vsync(void) {
     while (VGA_CTRL & VGA_CTRL_VBLANK);  // Wait if currently in VBLANK
     while (!(VGA_CTRL & VGA_CTRL_VBLANK)); // Wait until VBLANK starts
 }
 
 // Wait for HBLANK edge
-TCM_FUNC void gfx_hsync(void) {
+TCM_FUNC(gfx_hsync) void gfx_hsync(void) {
     while (VGA_CTRL & VGA_CTRL_HBLANK);
     while (!(VGA_CTRL & VGA_CTRL_HBLANK));
 }
 
 // --- Polygon Rendering ---
 
-TCM_FUNC void gfx_triangle(int x0, int y0, int x1, int y1, int x2, int y2, uint8_t color) {
+TCM_FUNC(gfx_triangle) void gfx_triangle(int x0, int y0, int x1, int y1, int x2, int y2, uint8_t color) {
     gfx_line(x0, y0, x1, y1, color);
     gfx_line(x1, y1, x2, y2, color);
     gfx_line(x2, y2, x0, y0, color);
 }
 
 // Standard Standard Flat-Top / Flat-Bottom Scanline Rasterizer
-TCM_FUNC void gfx_fill_triangle(int x0, int y0, int x1, int y1, int x2, int y2, uint8_t color) {
+TCM_FUNC(gfx_fill_triangle) void gfx_fill_triangle(int x0, int y0, int x1, int y1, int x2, int y2, uint8_t color) {
     // Sort vertices by Y (y0 <= y1 <= y2)
     if (y0 > y1) { int t; t=x0; x0=x1; x1=t; t=y0; y0=y1; y1=t; }
     if (y1 > y2) { int t; t=x1; x1=x2; x2=t; t=y1; y1=y2; y2=t; }
@@ -62,7 +62,7 @@ TCM_FUNC void gfx_fill_triangle(int x0, int y0, int x1, int y1, int x2, int y2, 
 // --- Sprite Sheet Blitting ---
 
 // Blit a sub-region (sx, sy, sw, sh) from a larger texture/atlas sheet
-TCM_FUNC void gfx_bitblit_rect(int dx, int dy, int sx, int sy, int sw, int sh, 
+TCM_FUNC(gfx_bitblit_rect) void gfx_bitblit_rect(int dx, int dy, int sx, int sy, int sw, int sh, 
                                const uint8_t *src, int src_stride, uint8_t key_color) {
     const uint8_t *sub_src = src + (sy * src_stride) + sx;
     gfx_bitblit_transparent(dx, dy, sw, sh, sub_src, src_stride, key_color);
@@ -133,7 +133,7 @@ static const uint8_t font8x8_basic[95][8] = {
     {0x7E,0x06,0x0C,0x18,0x30,0x60,0x7E,0x00}, // 'Z'
 };
 
-TCM_FUNC void gfx_draw_char(int x, int y, char c, uint8_t color, uint8_t bg_color, int transparent_bg) {
+TCM_FUNC(gfx_draw_char) void gfx_draw_char(int x, int y, char c, uint8_t color, uint8_t bg_color, int transparent_bg) {
     if (c < 32 || c > 90) c = '?'; // Cap uppercase/basic printable ascii
     const uint8_t *glyph = font8x8_basic[c - 32];
 
@@ -149,7 +149,7 @@ TCM_FUNC void gfx_draw_char(int x, int y, char c, uint8_t color, uint8_t bg_colo
     }
 }
 
-TCM_FUNC void gfx_puts(int x, int y, const char *str, uint8_t color, uint8_t bg_color, int transparent_bg) {
+TCM_FUNC(gfx_puts) void gfx_puts(int x, int y, const char *str, uint8_t color, uint8_t bg_color, int transparent_bg) {
     int cur_x = x;
     while (*str) {
         if (*str == '\n') {
@@ -164,7 +164,7 @@ TCM_FUNC void gfx_puts(int x, int y, const char *str, uint8_t color, uint8_t bg_
 }
 
 // Helper to get active off-screen buffer
-TCM_FUNC uint8_t *gfx_get_draw_buffer(void) {
+TCM_FUNC(gfx_get_draw_buffer) uint8_t *gfx_get_draw_buffer(void) {
     // VGA_CTRL_PAGE_SEL (bit 1) tells us which page is currently displayed.
     // If bit 1 is set (Page 1 visible), we draw to Page 0 (VGA_ADDR).
     // If bit 1 is clear (Page 0 visible), we draw to Page 1 (VGA_ADDR + 64KB).
@@ -176,25 +176,25 @@ TCM_FUNC uint8_t *gfx_get_draw_buffer(void) {
 }
 
 // Flip visible page to display what was just drawn
-TCM_FUNC uint8_t *gfx_flip_page(void) {
+TCM_FUNC(gfx_flip_page) uint8_t *gfx_flip_page(void) {
     VGA_CTRL ^= VGA_CTRL_PAGE_SEL;
     return gfx_get_draw_buffer();
 }
 
 // Fast clear using memset
-TCM_FUNC void gfx_clear(uint8_t color) {
+TCM_FUNC(gfx_clear) void gfx_clear(uint8_t color) {
     memset(gfx_get_draw_buffer(), color, GFX_WIDTH * GFX_HEIGHT);
 }
 
 // Single pixel plot with bounds checking
-TCM_FUNC void gfx_putpixel(int x, int y, uint8_t color) {
+TCM_FUNC(gfx_putpixel) void gfx_putpixel(int x, int y, uint8_t color) {
     if ((unsigned int)x >= GFX_WIDTH || (unsigned int)y >= GFX_HEIGHT) return;
     uint8_t *buf = gfx_get_draw_buffer();
     buf[y * GFX_WIDTH + x] = color;
 }
 
 // Fast horizontal line
-TCM_FUNC void gfx_hline(int x, int y, int w, uint8_t color) {
+TCM_FUNC(gfx_hline) void gfx_hline(int x, int y, int w, uint8_t color) {
     if (y < 0 || y >= GFX_HEIGHT || w <= 0) return;
     if (x < 0) { w += x; x = 0; }
     if (x + w > GFX_WIDTH) { w = GFX_WIDTH - x; }
@@ -205,7 +205,7 @@ TCM_FUNC void gfx_hline(int x, int y, int w, uint8_t color) {
 }
 
 // Fast vertical line
-TCM_FUNC void gfx_vline(int x, int y, int h, uint8_t color) {
+TCM_FUNC(gfx_vline) void gfx_vline(int x, int y, int h, uint8_t color) {
     if (x < 0 || x >= GFX_WIDTH || h <= 0) return;
     if (y < 0) { h += y; y = 0; }
     if (y + h > GFX_HEIGHT) { h = GFX_HEIGHT - y; }
@@ -219,7 +219,7 @@ TCM_FUNC void gfx_vline(int x, int y, int h, uint8_t color) {
 }
 
 // Bresenham's Line Algorithm
-TCM_FUNC void gfx_line(int x0, int y0, int x1, int y1, uint8_t color) {
+TCM_FUNC(gfx_line) void gfx_line(int x0, int y0, int x1, int y1, uint8_t color) {
     int dx = x1 > x0 ? x1 - x0 : x0 - x1;
     int sx = x0 < x1 ? 1 : -1;
     int dy = y1 > y0 ? y0 - y1 : y1 - y0; // negative dy
@@ -236,7 +236,7 @@ TCM_FUNC void gfx_line(int x0, int y0, int x1, int y1, uint8_t color) {
 }
 
 // Rectangle outline
-TCM_FUNC void gfx_rect(int x, int y, int w, int h, uint8_t color) {
+TCM_FUNC(gfx_rect) void gfx_rect(int x, int y, int w, int h, uint8_t color) {
     if (w <= 0 || h <= 0) return;
     gfx_hline(x, y, w, color);
     gfx_hline(x, y + h - 1, w, color);
@@ -245,14 +245,14 @@ TCM_FUNC void gfx_rect(int x, int y, int w, int h, uint8_t color) {
 }
 
 // Filled rectangle
-TCM_FUNC void gfx_fill_rect(int x, int y, int w, int h, uint8_t color) {
+TCM_FUNC(gfx_fill_rect) void gfx_fill_rect(int x, int y, int w, int h, uint8_t color) {
     for (int i = 0; i < h; i++) {
         gfx_hline(x, y + i, w, color);
     }
 }
 
 // Midpoint Circle Algorithm (Outline)
-TCM_FUNC void gfx_circle(int cx, int cy, int radius, uint8_t color) {
+TCM_FUNC(gfx_circle) void gfx_circle(int cx, int cy, int radius, uint8_t color) {
     int x = radius;
     int y = 0;
     int err = 0;
@@ -279,7 +279,7 @@ TCM_FUNC void gfx_circle(int cx, int cy, int radius, uint8_t color) {
 }
 
 // Midpoint Circle Algorithm (Filled)
-TCM_FUNC void gfx_fill_circle(int cx, int cy, int radius, uint8_t color) {
+TCM_FUNC(gfx_fill_circle) void gfx_fill_circle(int cx, int cy, int radius, uint8_t color) {
     int x = radius;
     int y = 0;
     int err = 0;
@@ -302,7 +302,7 @@ TCM_FUNC void gfx_fill_circle(int cx, int cy, int radius, uint8_t color) {
 }
 
 // Opaque BitBlt with full boundary clipping
-TCM_FUNC void gfx_bitblit(int dx, int dy, int w, int h, const uint8_t *src, int src_stride) {
+TCM_FUNC(gfx_bitblit) void gfx_bitblit(int dx, int dy, int w, int h, const uint8_t *src, int src_stride) {
     if (src_stride <= 0) src_stride = w;
 
     // Boundary Clipping
@@ -322,7 +322,7 @@ TCM_FUNC void gfx_bitblit(int dx, int dy, int w, int h, const uint8_t *src, int 
 }
 
 // Transparent BitBlt (Color Keying) with clipping
-TCM_FUNC void gfx_bitblit_transparent(int dx, int dy, int w, int h, const uint8_t *src, int src_stride, uint8_t key_color) {
+TCM_FUNC(gfx_bitblit_transparent) void gfx_bitblit_transparent(int dx, int dy, int w, int h, const uint8_t *src, int src_stride, uint8_t key_color) {
     if (src_stride <= 0) src_stride = w;
 
     if (dx < 0) { w += dx; src -= dx; dx = 0; }
@@ -378,7 +378,7 @@ void gfx_convert_8x8_to_sprite12x8(const uint8_t *src_8x8, Sprite12x8 *dst_sprit
     }
 }
 
-TCM_FUNC void gfx_draw_sprite_8x8(uint32_t *vram_base, const Sprite12x8 *sprite, int x, int y) {
+TCM_FUNC(gfx_draw_sprite_8x8) void gfx_draw_sprite_8x8(uint32_t *vram_base, const Sprite12x8 *sprite, int x, int y) {
     // Basic screen bounds check (Y dimension)
     if (y < 0 || y > 192) return; 
 
@@ -416,7 +416,7 @@ TCM_FUNC void gfx_draw_sprite_8x8(uint32_t *vram_base, const Sprite12x8 *sprite,
     }
 }
 
-TCM_FUNC void gfx_draw_tile_map(uint32_t *fb, const uint8_t *map, const uint32_t *tile_gfx) {
+TCM_FUNC(gfx_draw_tile_map) void gfx_draw_tile_map(uint32_t *fb, const uint8_t *map, const uint32_t *tile_gfx) {
     // fb is uint32_t* targeting VRAM or TCM (320x200 = 80 words per line)
     
 	uint32_t *row_ptr = fb;
@@ -449,7 +449,7 @@ TCM_FUNC void gfx_draw_tile_map(uint32_t *fb, const uint8_t *map, const uint32_t
     }
 }
 
-TCM_FUNC void gfx_draw_tile_map_overlay(
+TCM_FUNC(gfx_draw_tile_map_overlay) void gfx_draw_tile_map_overlay(
     uint32_t *fb,           // Base pointer to VRAM frame buffer
     const uint8_t *map,     // Pointer to mini/cropped tile map array
     const uint32_t *tile_gfx, // Base pointer to 8x8 tile graphics

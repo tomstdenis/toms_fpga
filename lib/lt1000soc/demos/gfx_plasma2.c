@@ -95,7 +95,7 @@ static void init_demo_tables(void) {
 static uint8_t anim_u = 0;
 static uint8_t anim_v = 0;
 
-TCM_FUNC static void render_tunnel_fast(void) {
+TCM_FUNC(render_tunnel_fast) static void render_tunnel_fast(void) {
     uint8_t *buf = VGA_BACK_BUFFER;
 
     anim_u += 1;

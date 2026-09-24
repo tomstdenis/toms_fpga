@@ -41,7 +41,7 @@ static void uart_handler(uint32_t data) {
 // Fixed-Point Math & 3D Pyramid Model
 // -----------------------------------------------------------------------------
 
-TCM_FUNC static int fast_sin(int angle) {
+TCM_FUNC(fast_sin) static int fast_sin(int angle) {
     angle = angle & 255;
     if (angle < 64)  return (angle * 2);
     if (angle < 128) return ((128 - angle) * 2);
@@ -49,7 +49,7 @@ TCM_FUNC static int fast_sin(int angle) {
     return (-(256 - angle) * 2);
 }
 
-TCM_FUNC static int fast_cos(int angle) {
+TCM_FUNC(fast_cos) static int fast_cos(int angle) {
     return fast_sin(angle + 64);
 }
 
@@ -77,7 +77,7 @@ static const Face pyramid_faces[6] = {
     {1, 3, 2, 0b11100011}  // Base Tri 2 (Purple)
 };
 
-TCM_FUNC static void draw_rotating_pyramid(int cx, int cy, int rx, int ry, int rz) {
+TCM_FUNC(draw_rotating_pyramid) static void draw_rotating_pyramid(int cx, int cy, int rx, int ry, int rz) {
     int transformed[5][3];
     int projected[5][2];
 

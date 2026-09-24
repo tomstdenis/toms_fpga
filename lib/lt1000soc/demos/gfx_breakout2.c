@@ -44,7 +44,7 @@ static uint8_t bricks[BRICK_ROWS][BRICK_COLS];
 // Dirty tracker counter: 2 = erase on both buffers, 1 = erase on second buffer, 0 = clean
 static uint8_t dirty_erase[BRICK_ROWS][BRICK_COLS]; 
 
-TCM_FUNC static void clear_vga_buffer(volatile uint32_t *fb32) {
+static void clear_vga_buffer(volatile uint32_t *fb32) {
     for (int i = 0; i < (WIDTH * HEIGHT) / 4; i++) {
         fb32[i] = 0;
     }
@@ -61,7 +61,7 @@ static void init_board(void) {
     clear_vga_buffer(VGA_FB32 + (PAGE_SIZE / 4));
 }
 
-TCM_FUNC static void draw_rect_vga(volatile uint8_t *fb, int16_t rx, int16_t ry, int16_t rw, int16_t rh, uint8_t color) {
+TCM_FUNC(draw_rect_vga) static void draw_rect_vga(volatile uint8_t *fb, int16_t rx, int16_t ry, int16_t rw, int16_t rh, uint8_t color) {
     if (rx < 0 || ry < 0 || rx + rw > WIDTH || ry + rh > HEIGHT) return;
     
     for (int16_t y = ry; y < ry + rh; y++) {

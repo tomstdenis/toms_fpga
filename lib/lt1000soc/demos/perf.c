@@ -1,6 +1,6 @@
 #include "lt1000.h"
 
-TCM_FUNC void demo(void)
+TCM_FUNC(demo) void demo(void)
 {
 	volatile uint32_t *p1, *p2, t1;
 	uint32_t x;

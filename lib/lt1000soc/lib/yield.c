@@ -48,7 +48,7 @@ uint64_t yield_usec_to_cycles(void)
 	return yd.cycles_per_usec;
 }
 
-TCM_FUNC void yield(void)
+TCM_FUNC(yield) void yield(void)
 {
 	uint32_t t;
 	
