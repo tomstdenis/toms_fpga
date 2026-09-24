@@ -26,6 +26,16 @@ loader: loader.c
 	@echo "Building $*.elf ..."
 	@$(CC) $(CFLAGS) crt0.s $< $(LDFLAGS) -o $*.elf
 	@$(OBJCOPY) -O binary $*.elf $@
-
+	
+disk.img: all
+	mkdir disk
+	mkdir disk/APPS
+	cp *.bin disk/APPS/
+	echo "hello tom" > disk/README.TXT
+	truncate --size 32M disk.img
+	mkfs.fat -F 32 disk.img
+	mcopy -i disk.img disk/* ::/
+	
 clean:
 	rm -f *.bin *.elf loader
+	rm -rf disk disk.img

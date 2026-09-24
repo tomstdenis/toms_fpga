@@ -21,5 +21,6 @@
 #include "yield.h"
 #include "gfx.h"
 #include "txt.h"
+#include "fat32.h"
 
 #endif
