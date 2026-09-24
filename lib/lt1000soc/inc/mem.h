@@ -22,7 +22,11 @@ extern uint32_t __tcm_code_start, __tcm_code_end, __tcm_code_load_start;
 
 // place a function in TCM memory for faster
 // more predictable execution
+#ifndef LT_NO_TCM_FUNC
 #define TCM_FUNC(name) __attribute__((section(".tcm_code." #name), noinline))
+#else
+#define TCM_FUNC(name)
+#endif
 
 // reload .tcm_code section into TCM memory from where it was initially loaded in PSRAM
 // handy if you need to scrap over parts of .tcm_code temporarily

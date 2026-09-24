@@ -203,7 +203,7 @@
 	bios_lane_0[202] = 8'h30;
 	bios_lane_0[203] = 8'h20;
 	bios_lane_0[204] = 8'h32;
-	bios_lane_0[205] = 8'h32;
+	bios_lane_0[205] = 8'h35;
 	bios_lane_0[206] = 8'h0;
 	bios_lane_0[207] = 8'hd;
 	bios_lane_0[208] = 8'h69;

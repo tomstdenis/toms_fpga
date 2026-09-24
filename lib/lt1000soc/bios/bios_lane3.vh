@@ -202,8 +202,8 @@
 	bios_lane_3[201] = 8'h32;
 	bios_lane_3[202] = 8'h0;
 	bios_lane_3[203] = 8'h0;
-	bios_lane_3[204] = 8'h31;
-	bios_lane_3[205] = 8'h30;
+	bios_lane_3[204] = 8'h34;
+	bios_lane_3[205] = 8'h35;
 	bios_lane_3[206] = 8'h0;
 	bios_lane_3[207] = 8'h6e;
 	bios_lane_3[208] = 8'h61;
