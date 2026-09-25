@@ -19,7 +19,7 @@ struct fat32_disk *fat32_init_disk(uint32_t cs_sel, uint32_t oper_div)
     // Verify that partition 1 is a FAT32 volume (type 0x0B or 0x0C)
     uint8_t part_type = secbuf[0x1C2];
     if (part_type != 0x0B && part_type != 0x0C) {
-        fat32_errno = FAT32_ERR_INV_VBR; // reuse VBR error code
+        fat32_errno = FAT32_ERR_INV_PART_TYPE;
         return NULL;
     }
 
@@ -53,8 +53,9 @@ struct fat32_disk *fat32_init_disk(uint32_t cs_sel, uint32_t oper_div)
 	}
 
 	// parse fields
+    dsk->vbr.bytes_per_sector       = secbuf[0xB] | ((uint32_t)secbuf[0xC] << 8);                   // bytes 0xB..0xC
     if (dsk->vbr.bytes_per_sector != 512) {
-        fat32_errno = FAT32_ERR_INV_VBR;
+        fat32_errno = FAT32_ERR_INV_SEC_SIZE;
         free(dsk);
         return NULL;
     }

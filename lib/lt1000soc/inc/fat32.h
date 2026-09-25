@@ -8,6 +8,8 @@
 #define FAT32_ERR_OOM				-5
 #define FAT32_ERR_INV_PATH          -6
 #define FAT32_ERR_PATH_NOT_FOUND	-7
+#define FAT32_ERR_INV_SEC_SIZE      -8
+#define FAT32_ERR_INV_PART_TYPE     -9
 
 #define FAT32_F_RDONLY 0x01
 #define FAT32_F_HIDDEN 0x02
