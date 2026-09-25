@@ -37,6 +37,8 @@ int main(void)
 	if (!dsk) {
 		printf("err == %d\n", fat32_errno);
 	} else {
+		struct fat32_file *file;
+		
 		printf("Disk info:\n");
 		printf("Bytes per sector: %u\n", dsk->vbr.bytes_per_sector);
 		printf("Sector per cluster: %u\n", dsk->vbr.sectors_per_cluster);
@@ -50,5 +52,16 @@ int main(void)
 		printf("Data start: %u\n", dsk->data_region_sector);
 		
 		walk_dir(dsk, "", 0);
+		
+		file = fat32_open(dsk, "/README.TXT");
+		printf("file == %p\n", file);
+		if (file) {
+			char buf[128];
+			uint32_t x; 
+			memset(buf, 0, 128);
+			x = fat32_read(file, buf, 128);
+			printf("Read %u bytes from the file [%s]\n", x, buf);
+			fat32_close(file);
+		}
 	}
 }

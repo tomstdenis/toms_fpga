@@ -58,7 +58,7 @@ struct fat32_dirent {
 
 struct fat32_file {
 	struct fat32_disk       *dsk;			// the disk
-	struct fat32_dirent_raw de;				// directory entry for this file
+	struct fat32_dirent_raw *de;			// directory entry for this file
 	uint32_t
 		fpos,								// byte offset into file
 		sec_no,								// which sector of the cluster are we in
@@ -74,6 +74,7 @@ struct fat32_dirent_raw *fat32_readdir(struct fat32_dirent *de);
 
 struct fat32_dirent_raw *fat32_find_path(struct fat32_disk *dsk, const char *path);
 struct fat32_file *fat32_open(struct fat32_disk *dsk, char *fpath);
+void fat32_close(struct fat32_file *file);
 uint32_t fat32_read(struct fat32_file *file, uint8_t *dst, uint32_t len);
 int fat32_seek(struct fat32_file *file, uint32_t offset);
 

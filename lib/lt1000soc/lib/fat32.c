@@ -87,6 +87,11 @@ static uint32_t next_cluster(struct fat32_disk *dsk, uint32_t cluster)
 	uint32_t raw_entry;
 	uint8_t secbuf[512];
 	
+	// identity map for error clusters
+	if (cluster >= 0x0FFFFFF8) {
+		return cluster;
+	}
+
 	fat32_errno = 0;
 	
 	// 128 entries per 512-byte sector (512 / 4 = 128)
@@ -267,11 +272,88 @@ top:
 // open up a file
 struct fat32_file *fat32_open(struct fat32_disk *dsk, char *fpath)
 {
+	struct fat32_file *file;
+	
+	file = calloc(1, sizeof *file);
+	if (!file) {
+		fat32_errno = FAT32_ERR_OOM;
+		return NULL;
+	}
+	file->dsk = dsk;
+	file->de  = fat32_find_path(dsk, fpath);
+	if (!file->de) {
+		free(file);
+		return NULL;
+	}
+	
+	// prime first sector
+	file->cur_cluster = file->de->start_cluster;
+	if (file->de->file_size) {
+		if (data_region_sector_op(dsk, file->cur_cluster, 0, file->secbuf, 0)) {
+			free(file->de);
+			free(file);
+			return NULL;
+		}
+	}
+	return file;
+}
+
+void fat32_close(struct fat32_file *file)
+{
+	free(file->de);
+	free(file);
 }
 
 // read from a file
 uint32_t fat32_read(struct fat32_file *file, uint8_t *dst, uint32_t len)
 {
+	uint32_t bread = 0;
+	
+	// if we're at the end of the file do nothing
+	if (file->cur_cluster >= 0x0FFFFFF8) {
+		return 0;
+	}
+	while (file->fpos != file->de->file_size && len) {
+		uint32_t cnt, secoff;
+		secoff = file->fpos & 511;
+		
+		// does the read cross a sector boundary?
+		if ((secoff + len) > 512) {
+			cnt = 512 - secoff;
+		} else {
+			if ((file->fpos + len) >= file->de->file_size) {
+				cnt = file->de->file_size - file->fpos;
+			} else {
+				cnt = len;
+			}
+		}
+		
+		memcpy(dst, &file->secbuf[secoff], cnt);
+		file->fpos += cnt;
+		bread      += cnt;
+		secoff      = file->fpos & 511;
+		len        -= cnt;
+		
+		if (!secoff) {
+			// end of sector
+			++(file->sec_no);
+			if (file->sec_no == file->dsk->vbr.sectors_per_cluster) {
+				// next sector
+				file->sec_no = 0;
+				file->cur_cluster = next_cluster(file->dsk, file->cur_cluster);
+				if (file->cur_cluster >= 0x0FFFFFF8) {
+					// end of file
+					return bread;
+				}
+			}
+			// read next sector in
+			if (data_region_sector_op(file->dsk, file->cur_cluster, file->sec_no, file->secbuf, 0)) {
+				fat32_errno = FAT32_ERR_SEC_READ;
+				return bread;
+			}
+		}
+	}
+	return bread;
 }
 
 int fat32_seek(struct fat32_file *file, uint32_t offset)
