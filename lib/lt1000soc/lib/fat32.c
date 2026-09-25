@@ -1,12 +1,13 @@
 #include "lt1000.h"
 
+// uses from newlib: calloc, free, memcpy, memset, strcmp
+
 int fat32_errno;
 
 // initialize a disk by reading the MBR and configuring local params
 struct fat32_disk *fat32_init_disk(uint32_t cs_sel, uint32_t oper_div)
 {
 	struct fat32_disk *dsk;
-	uint32_t x;
 	uint8_t secbuf[512];
 	
 	// read MBR
@@ -15,11 +16,13 @@ struct fat32_disk *fat32_init_disk(uint32_t cs_sel, uint32_t oper_div)
 		return NULL;
 	}
 	
-	// is it valid?
-	if (secbuf[510] != 0x55 || secbuf[511] != 0xAA) {
-		fat32_errno = FAT32_ERR_INV_MBR;
-		return NULL;
-	}
+    // Verify that partition 1 is a FAT32 volume (type 0x0B or 0x0C)
+    uint8_t part_type = secbuf[0x1C2];
+    if (part_type != 0x0B && part_type != 0x0C) {
+        fat32_errno = FAT32_ERR_INV_VBR; // reuse VBR error code
+        return NULL;
+    }
+
 
 	dsk = calloc(1, sizeof *dsk);
 	if (!dsk) {
@@ -50,7 +53,12 @@ struct fat32_disk *fat32_init_disk(uint32_t cs_sel, uint32_t oper_div)
 	}
 
 	// parse fields
-	dsk->vbr.bytes_per_sector       = secbuf[0xB] | ((uint32_t)secbuf[0xC] << 8);			// bytes 0xB..0xC
+    if (dsk->vbr.bytes_per_sector != 512) {
+        fat32_errno = FAT32_ERR_INV_VBR;
+        free(dsk);
+        return NULL;
+    }
+
 	dsk->vbr.sectors_per_cluster    = secbuf[0xD];											// bytes 0xD
 	dsk->vbr.reserved_sectors       = secbuf[0xE] | ((uint32_t)secbuf[0xF] << 8);			// bytes 0xE..0xF
 	dsk->vbr.number_of_fats         = secbuf[0x10];											// bytes 0x10
@@ -281,10 +289,14 @@ struct fat32_file *fat32_open(struct fat32_disk *dsk, char *fpath)
 	}
 	file->dsk = dsk;
 	file->de  = fat32_find_path(dsk, fpath);
-	if (!file->de) {
-		free(file);
-		return NULL;
-	}
+    if (file->de->flags & FAT32_F_DIR) {
+        /* Opening a directory as a file is not supported */
+        fat32_errno = FAT32_ERR_INV_PATH;
+        free(file->de);
+        free(file);
+        return NULL;
+    }
+
 	
 	// prime first sector
 	file->cur_cluster = file->de->start_cluster;
@@ -358,6 +370,43 @@ uint32_t fat32_read(struct fat32_file *file, uint8_t *dst, uint32_t len)
 
 int fat32_seek(struct fat32_file *file, uint32_t offset)
 {
+    if (!file || !file->de)
+        return -1;
+
+    /* Clamp offset to file size – seeking past EOF just positions at EOF */
+    if (offset > file->de->file_size)
+        offset = file->de->file_size;
+
+    file->fpos = offset;
+
+    if (offset == file->de->file_size) {
+        /* EOF: set marker so subsequent reads return 0 */
+        file->cur_cluster = 0x0FFFFFFF;
+        file->sec_no = 0;
+        return 0;
+    }
+
+    /* Compute sector index relative to start of file */
+    uint32_t sector_index = offset >> 9;          /* divide by 512 */
+    file->sec_no = sector_index % file->dsk->vbr.sectors_per_cluster;
+    uint32_t clusters_to_advance = sector_index / file->dsk->vbr.sectors_per_cluster;
+
+    /* Walk the FAT chain to the target cluster */
+    file->cur_cluster = file->de->start_cluster;
+    for (uint32_t i = 0; i < clusters_to_advance; ++i) {
+        file->cur_cluster = next_cluster(file->dsk, file->cur_cluster);
+        if (file->cur_cluster >= 0x0FFFFFF8) {
+            /* Unexpected end of chain */
+            return -1;
+        }
+    }
+
+    /* Load the sector that contains the new offset (if the file is non‑empty) */
+    if (data_region_sector_op(file->dsk, file->cur_cluster, file->sec_no, file->secbuf, 0)) {
+        fat32_errno = FAT32_ERR_SEC_READ;
+        return -1;
+    }
+    return 0;
 }
 
 
