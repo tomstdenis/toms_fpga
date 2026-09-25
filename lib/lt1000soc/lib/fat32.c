@@ -191,6 +191,77 @@ top:
 	goto top;
 }
 
+// find the directory entry for a given path
+struct fat32_dirent_raw *fat32_find_path(struct fat32_disk *dsk, const char *path)
+{
+	uint32_t cluster = 0;
+	struct fat32_dirent *di = NULL;
+	struct fat32_dirent_raw *resde, *de = NULL;
+	char tgtfilename[9], tgtfileext[4];
+	uint32_t x;
+	
+top:
+	// skip any leading slashes
+	while (*path == '/') ++path;
+	
+	free(di);
+	memset(tgtfilename, 0, sizeof tgtfilename);
+	memset(tgtfileext, 0, sizeof tgtfileext);
+	
+	// parse path into filename/ext upto NUL or /
+	x = 0;
+	while (x < 8 && *path != '/' && *path) {
+		tgtfilename[x++] = *path++;
+	}
+	
+	if (*path == '.') {
+		++path;
+		x = 0;
+		while (x < 3 && *path != '/' && *path) {
+			tgtfileext[x++] = *path++;
+		}
+	}
+	
+	// now let's read this directory until we find this pattern
+	di = fat32_opendir(dsk, cluster);
+	if (!di) {
+		return NULL;
+	}
+	
+	while ((de = fat32_readdir(di))) {
+		if (!strcmp(de->filename, tgtfilename) && !strcmp(de->fileext, tgtfileext)) {
+			// entry is a directory and the path isn't completed yet
+			if ((de->flags & FAT32_F_DIR) && (*path == '/')) {
+				cluster = de->start_cluster;
+				goto top;
+			}
+			
+			// we're done if NUL
+			if (*path == 0) {
+				resde = calloc(1, sizeof *resde);
+				if (!resde) {
+					free(di);
+					fat32_errno = FAT32_ERR_OOM;
+					return NULL;
+				}
+				*resde = *de;
+				free(di);
+				return resde;
+			}
+			
+			// path isn't complete but entry isn't a directory...
+			free(di);
+			fat32_errno = FAT32_ERR_INV_PATH;
+			return NULL;
+		}
+	}
+	
+	// we hit the end ..
+	free(di);
+	fat32_errno = FAT32_ERR_PATH_NOT_FOUND;
+	return NULL;
+}
+
 // open up a file
 struct fat32_file *fat32_open(struct fat32_disk *dsk, char *fpath)
 {
