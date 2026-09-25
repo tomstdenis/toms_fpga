@@ -1,6 +1,47 @@
 #include "lt1000.h"
 
-// uses from newlib: calloc, free, memcpy, memset, strcmp
+#ifdef LT1000_BIOS
+// local copies since we don't heap in BIOS
+static struct fat32_disk       bios_dsk;
+static struct fat32_dirent     bios_de;
+static struct fat32_dirent_raw bios_de_raw;
+static struct fat32_file       bios_file;
+
+// local copies of functions to avoid importing too much from newlib
+
+#define free bios_free
+static void bios_free(void *) {}
+
+#define memcpy bios_memcpy
+static void bios_memcpy(void *dst, void *src, uint32_t len)
+{
+	uint8_t *d = dst, *s = src;
+	while (len--) {
+		*d++ = *s++;
+	}
+}
+
+#define memset bios_memset
+static void bios_memset(void *dst, uint8_t v, uint32_t len)
+{
+	uint8_t *d = dst;
+	while (len--) {
+		*d++ = v;
+	}
+}
+
+#define strcmp bios_strcmp
+static int bios_strcmp(char *str1, char *str2)
+{
+	while (*str1) {
+		if (*str1 < *str2) return -1;
+		if (*str1 > *str2) return 1;
+		++str1;
+		++str2;
+	}
+	return 0;
+}
+#endif
 
 int fat32_errno;
 
@@ -23,8 +64,11 @@ struct fat32_disk *fat32_init_disk(uint32_t cs_sel, uint32_t oper_div)
         return NULL;
     }
 
-
+#ifdef LT1000_BIOS
+	dsk = &bios_dsk;
+#else
 	dsk = calloc(1, sizeof *dsk);
+#endif
 	if (!dsk) {
 		fat32_errno = FAT32_ERR_OOM;
 		return NULL;
@@ -128,8 +172,14 @@ static uint32_t next_cluster(struct fat32_disk *dsk, uint32_t cluster)
 struct fat32_dirent *fat32_opendir(struct fat32_disk *dsk, uint32_t cluster)
 {
 	struct fat32_dirent *de;
-	
+	if (!dsk) {
+		return NULL;
+	}
+#ifdef LT1000_BIOS
+	de = &bios_de;
+#else
 	de = calloc(1, sizeof *de);
+#endif	
 	if (!de) {
 		fat32_errno = FAT32_ERR_OOM;
 		return NULL;
@@ -147,6 +197,9 @@ struct fat32_dirent *fat32_opendir(struct fat32_disk *dsk, uint32_t cluster)
 // return the next directory entry in the directory
 struct fat32_dirent_raw *fat32_readdir(struct fat32_dirent *de)
 {
+	if (!de) {
+		return NULL;
+	}
 top:
 	if (de->dir_pos < 16) {
 		// load the de->dir_pos'th directory entry from this secbuf
@@ -216,6 +269,10 @@ struct fat32_dirent_raw *fat32_find_path(struct fat32_disk *dsk, const char *pat
 	char tgtfilename[9], tgtfileext[4];
 	uint32_t x;
 	
+	if (!dsk || !path) {
+		return NULL;
+	}
+	
 top:
 	// skip any leading slashes
 	while (*path == '/') ++path;
@@ -254,7 +311,11 @@ top:
 			
 			// we're done if NUL
 			if (*path == 0) {
+#ifdef LT1000_BIOS
+				resde = &bios_de_raw;
+#else				
 				resde = calloc(1, sizeof *resde);
+#endif				
 				if (!resde) {
 					free(di);
 					fat32_errno = FAT32_ERR_OOM;
@@ -283,7 +344,15 @@ struct fat32_file *fat32_open(struct fat32_disk *dsk, char *fpath)
 {
 	struct fat32_file *file;
 	
+	if (!dsk || !fpath) {
+		return NULL;
+	}
+	
+#ifdef LT1000_BIOS
+	file = &bios_file;
+#else	
 	file = calloc(1, sizeof *file);
+#endif	
 	if (!file) {
 		fat32_errno = FAT32_ERR_OOM;
 		return NULL;
@@ -313,7 +382,9 @@ struct fat32_file *fat32_open(struct fat32_disk *dsk, char *fpath)
 
 void fat32_close(struct fat32_file *file)
 {
-	free(file->de);
+	if (file) {
+		free(file->de);
+	}
 	free(file);
 }
 
@@ -321,6 +392,10 @@ void fat32_close(struct fat32_file *file)
 uint32_t fat32_read(struct fat32_file *file, uint8_t *dst, uint32_t len)
 {
 	uint32_t bread = 0;
+
+	if (!file || !file->de) {
+		return 0;
+	}
 	
 	// if we're at the end of the file do nothing
 	if (file->cur_cluster >= 0x0FFFFFF8) {

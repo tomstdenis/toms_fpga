@@ -7,14 +7,14 @@ bios_lane0.vh: ../lib/lt1000.a bios.bin
 .PHONY: ../lib/lt1000.a
 ../lib/lt1000.a:
 	@make -C ../lib clean
-	@CFLAGS=-DLT_NO_TCM_FUNC make -C ../lib
+	@CFLAGS=-DLT1000_BIOS make -C ../lib
 
 bios.bin: bios.elf
 	@size bios.elf
 	@riscv32-unknown-elf-objcopy -O binary --pad-to=0x01002000 --gap-fill=0x00 bios.elf bios.bin
 
 bios.elf: bios.c crt0.s bios.ld
-	@riscv32-unknown-elf-gcc ${CFLAGS} crt0.s bios.c -o bios.elf
+	@riscv32-unknown-elf-gcc ${CFLAGS} crt0.s bios.c ../lib/lt1000.a -o bios.elf
 
 .PHONY: clean	
 clean:

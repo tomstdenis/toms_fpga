@@ -87,14 +87,33 @@ static void init_sys(void)
 
 	bios_puts("Clearing PSRAM memory...\r\n");
 	p = (uint32_t*)PSRAM_ADDR;
-	for (x = 0; x < (y * 1024UL * 1024UL); x += 4) { *p++ = 0; }
-	
+	for (x = 0; x < (y * 1024UL * 1024UL); x += 64) { 
+		*p++ = 0; *p++ = 0; *p++ = 0; *p++ = 0; 
+		*p++ = 0; *p++ = 0; *p++ = 0; *p++ = 0; 
+		*p++ = 0; *p++ = 0; *p++ = 0; *p++ = 0; 
+		*p++ = 0; *p++ = 0; *p++ = 0; *p++ = 0; 
+	}
 	bios_puts("Done.\r\n\r\n");
 }	
 
 void bios_main(void)
 {
+	struct fat32_disk *dsk;
+	struct fat32_file *file;
+	
 	init_sys();
+	
+	dsk = fat32_init_disk(0, 4);
+	file = fat32_open(dsk, "/README.TXT");
+	if (file) {
+		char buf[128];
+		uint32_t x;
+		for (x = 0; x < 128; x++) buf[x] = 0;
+		bios_puts("File found...[");
+		fat32_read(file, buf, 128);
+		bios_puts(buf);
+		bios_puts("]\r\n\r\n");
+	}	
 	
     uint8_t *psram_base = (uint8_t *)PSRAM_ADDR;
 
