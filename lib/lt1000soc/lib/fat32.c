@@ -30,8 +30,10 @@ struct fat32_disk *fat32_init_disk(uint32_t cs_sel, uint32_t oper_div)
 	dsk->oper_div = oper_div;
 
 	// get start of partition 1
-	dsk->lba_start = secbuf[0x1C6] | ((uint32_t)secbuf[0x1C7] << 8) | 						// bytes 0x1C6..0x1C9
-					 ((uint32_t)secbuf[0x1C8] << 16) | ((uint32_t)secbuf[0x1C9] << 24);
+	dsk->lba_start = secbuf[0x1C6] |
+					 ((uint32_t)secbuf[0x1C7] << 8) | 						// bytes 0x1C6..0x1C9
+					 ((uint32_t)secbuf[0x1C8] << 16) |
+					 ((uint32_t)secbuf[0x1C9] << 24);
 
 	// now read VBR of partition 1
 	if (sd_sector_op(cs_sel, oper_div, dsk->lba_start, secbuf, 0)) {
@@ -208,9 +210,9 @@ top:
 	memset(tgtfilename, 0, sizeof tgtfilename);
 	memset(tgtfileext, 0, sizeof tgtfileext);
 	
-	// parse path into filename/ext upto NUL or /
+	// parse path into filename/ext upto NUL or / or .
 	x = 0;
-	while (x < 8 && *path != '/' && *path) {
+	while (x < 8 && *path != '/' && *path != '.' && *path) {
 		tgtfilename[x++] = *path++;
 	}
 	
