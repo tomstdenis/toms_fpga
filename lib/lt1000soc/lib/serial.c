@@ -15,7 +15,7 @@ char *getstr(char *s)
 		c = getch();
 		if (c == 10 || c == 13) {
 			break;
-		} else if (c == 8 && os != s) {
+		} else if ((c == 8 || c == 0x7f) && os != s) {
 			--s;
 		} else if (c > 13) {
 			*s++ = c;

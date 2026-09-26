@@ -13,7 +13,9 @@ void txt_init(void)
 
 void txt_cursor(uint32_t x, uint32_t y, uint32_t col)
 {
-	txt_x = x; txt_y = y; txt_col = col;
+	txt_x   = (x == 0xFFFFFFFF) ? txt_x : x;
+	txt_y   = (y == 0xFFFFFFFF) ? txt_y : y;
+	txt_col = (col == 0xFFFFFFFF) ? txt_col : col;
 }
 
 // clear back buffer

@@ -7,9 +7,13 @@ void main(void)
 	
 	txt_init();
 	txt_puts("Hello world!\n");
+	txt_cursor(0xFFFFFFFF, 0xFFFFFFFF, 0x80 | (1 << 5)); // bright green
 	txt_puts("LT1000 Lives!\n\r");
+	txt_cursor(0xFFFFFFFF, 0xFFFFFFFF, (1 << 4)); // blue
 	fprintf(stderr, "Screen config: %d x %d\nEnter your name: ", TXT_COLS, TXT_ROWS);
+	txt_cursor(0xFFFFFFFF, 0xFFFFFFFF, (1 << 6) | (1<<2) | (1<<1)); // red on yellow
 	txt_gets(buf);
+	txt_cursor(0xFFFFFFFF, 0xFFFFFFFF, 0x70); // white
 	fprintf(stderr, "\nHello %s\n", buf);
 	delay_ms(2000);
 	return;

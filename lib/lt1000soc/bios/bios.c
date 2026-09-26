@@ -36,6 +36,7 @@ topAA:
 
 static void bios_putc(char c)
 {
+	txt_putc(c);
 	while ((UART_STATUS & UART_STATUS_TX_FULL));
 	UART_DATA = c;
 }	
@@ -52,18 +53,13 @@ static void init_sys(void)
 	uint32_t *p;
 	int32_t x, y;
 	
+	txt_init();
+	
 	bios_puts("\r\n\r\nBooting up BIOS ROM build: ");
 	bios_puts(__DATE__);
 	bios_puts(" ");
 	bios_puts(__TIME__);
 	bios_puts("\r\nInitializing device...\r\n");
-	
-	// set text mode and clear memories
-	VGA_CTRL = 0;
-
-	bios_puts("Clearing VGA memory...\r\n");
-	p = (uint32_t*)VGA_ADDR;
-	for (x = 0; x < (128 * 1024UL); x += 4) { *p++ = 0; }
 	
 	// try and detect PSRAM size (write MiB counter at start of every 
 	bios_puts("Sizing PSRAM (down to MiB)...\r\n");
@@ -104,17 +100,23 @@ void bios_main(void)
 	init_sys();
 	
 	dsk = fat32_init_disk(0, 4);
-	file = fat32_open(dsk, "/README.TXT");
-	if (file) {
-		char buf[128];
-		uint32_t x;
-		for (x = 0; x < 128; x++) buf[x] = 0;
-		bios_puts("File found...[");
-		fat32_read(file, buf, 128);
-		bios_puts(buf);
-		bios_puts("]\r\n\r\n");
-	}	
+	if (!dsk) {
+		bios_puts("Could not open VFAT from partition 1 of SD card\r\n");
+	} else {
+		bios_puts("SD card open...\n\r");
+		file = fat32_open(dsk, "/BOOT.BIN");
+		if (file) {
+			bios_puts("Loading /BOOT.BIN...");
+			fat32_read(file, (uint8_t*)PSRAM_ADDR, file->de->file_size);
+			bios_puts("done.\r\n");
+			goto exec;
+		} else {
+			bios_puts("/BOOT.BIN not found on disk.\r\n");
+		}
+	}
 	
+	bios_puts("Reverting to serial uploader (1Mbit/8N1)...\r\n");
+		
     uint8_t *psram_base = (uint8_t *)PSRAM_ADDR;
 
     // 1. Receive 4-byte payload size from host
@@ -125,6 +127,7 @@ void bios_main(void)
         psram_base[i] = uart_read_byte(0);
     }
 
+exec:
     // 3. Cast PSRAM address to function pointer and execute!
     void (*app_entry)(void) = (void (*)(void))PSRAM_ADDR;
     app_entry();
