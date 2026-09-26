@@ -6,6 +6,67 @@ TCM_FUNC(launch_app) static void launch_app(uint32_t *base, uint32_t len)
 {
 }
 
+// walk modpath against path
+static void apply_path(char *path, char *modpath)
+{
+	char newpath[1024];
+	memset(newpath, 0, sizeof newpath);
+	
+	if (modpath[0] == '/') {
+		// it's an absolute path
+		strcpy(path, modpath);
+		return;
+	}
+	
+	// skip leading spaces
+	while (*modpath == ' ') {
+		++modpath;
+	}
+	
+	// it's a relative path
+	strcpy(newpath, path);
+	
+	while (*modpath) {
+		// strip trailing '/' from path
+		while (newpath[strlen(newpath)-1] == '/') {
+			newpath[strlen(newpath)-1] = 0;
+		}
+		newpath[0] = '/'; // enforce paths start with a slash
+		
+		// strip leading slashes
+		while (*modpath == '/') {
+			++modpath;
+		}
+		if (!*modpath) {
+			break;
+		}
+		
+		// now apply next sequence from mod path
+		if (modpath[0] == '.' && (modpath[1] == '/' || modpath[1] == 0)) {
+			// no-op
+			++modpath;
+		} else if (modpath[0] == '.' && modpath[1] == '.') {
+			// walk backwards
+			uint32_t x = strlen(newpath);
+			if (x) {
+				--x;
+				while (x && newpath[x] != '/') {
+					newpath[x--] = 0;
+				}
+			}
+			modpath += 2;
+		} else {
+			// it's a relative modifier
+			uint32_t x = strlen(newpath) - 1;
+			newpath[x++] = '/'; // add directory separator
+			while (*modpath != 0 && *modpath != '/') {
+				newpath[x++] = *modpath++;
+			}
+		}
+	}
+	strcpy(path, newpath);
+}
+
 static void do_dir(struct fat32_disk *dsk, char *path, char *cmd)
 {
 	struct fat32_dirent *dir;
@@ -30,10 +91,28 @@ static void do_dir(struct fat32_disk *dsk, char *path, char *cmd)
 	
 	dir = fat32_opendir(dsk, dircluster);
 	if (dir) {
-		txt_printf("Contents of directory: %s\n\r   NAME\t\tEXT\tFILESIZE\tFLAGS\r\n", path);
+		txt_printf("Contents of directory: %s\n\r   Name\t\t\tFile size\tFLAGS\r\n", path);
 		while ((de = fat32_readdir(dir))) {
 			if (strcmp(de->filename, ".") && strcmp(de->filename, "..")) {
-				txt_printf("%8s\t%3s\t%10u\t%x\r\n", de->filename, de->fileext, de->file_size, de->flags);
+				char fname[16];
+				if (de->flags & FAT32_F_DIR) {
+					sprintf(fname, "<%s", de->filename);
+					if (de->fileext[0]) {
+						strcat(fname, ".");
+						strcat(fname, de->fileext);
+					}
+					strcat(fname, ">");
+				} else {
+					strcpy(fname, de->filename);
+					if (de->fileext[0]) {
+						strcat(fname, ".");
+						strcat(fname, de->fileext);
+					}
+				}
+				txt_printf("%-13s\t%10u\t%x\r\n", 
+					fname,
+					de->file_size,
+					de->flags);
 			}
 		}
 		free(dir);
@@ -45,25 +124,25 @@ static void do_cd(struct fat32_disk *dsk, char *path, char *cmd)
 	struct fat32_dirent_raw *de;
 	char newpath[1024];
 
-	if (cmd[0] == '/') {
-		strcpy(newpath, cmd);
-	} else {
-// TODO: need to "apply" cmd to path not simple concat (should hoist that out)
-		sprintf(newpath, "%s/%s", strlen(path) > 1 ? path : "", cmd);
-	}
+	strcpy(newpath, path);
+	apply_path(newpath, cmd);
 	
-	de = fat32_find_path(dsk, newpath);
-	if (!de) {
-		txt_printf("! Path [%s] not found on disk\r\n", newpath);
-		return;
-	}
-	
-	if (!(de->flags & FAT32_F_DIR)) {
-		txt_printf("! Path [%s] is not a directory\r\n", newpath);
+	if (strcmp(newpath, "/")) {
+		txt_printf("Looking up path [%s]\n\r", newpath);
+
+		de = fat32_find_path(dsk, newpath);
+		if (!de) {
+			txt_printf("! Path [%s] not found on disk\r\n", newpath);
+			return;
+		}
+		
+		if (!(de->flags & FAT32_F_DIR)) {
+			txt_printf("! Path [%s] is not a directory\r\n", newpath);
+			free(de);
+			return;
+		}
 		free(de);
-		return;
 	}
-	free(de);
 	strcpy(path, newpath);
 }
 
@@ -124,6 +203,8 @@ void main(void)
 			do_cat(dsk, path, cmd + 4);
 		} else if (!memcmp(cmd, "exit", 4)) {
 			return;
+		} else if (!memcmp(cmd, "cls", 4)) {
+			txt_init();
 		} else {
 			do_exec(dsk, path, cmd);
 		}

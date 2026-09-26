@@ -280,6 +280,7 @@ top:
 	free(di);
 	memset(tgtfilename, 0, sizeof tgtfilename);
 	memset(tgtfileext, 0, sizeof tgtfileext);
+	tgtfilename[0] = '.';
 	
 	// parse path into filename/ext upto NUL or / or .
 	x = 0;
@@ -287,20 +288,21 @@ top:
 		tgtfilename[x++] = *path++;
 	}
 	
-	if (*path == '.' && path[1] != '.') {
+	if (x && *path == '.' && path[1] != '.') {
 		++path;
 		x = 0;
 		while (x < 3 && *path != '/' && *path) {
 			tgtfileext[x++] = *path++;
 		}
-	} else if (x == 0) {
+	} else if (x == 0 && path[0] == '.' && path[1] == '.') {
 		// special case filename is ".."
 		strcpy(tgtfilename, "..");
 		path += 2;
 	}
 	
 //	txt_printf("tgtfilename == [%s]\n\r", tgtfilename);
-//	txt_printf("tgtfileext == [%s]\n\r", tgtfileext);
+//	txt_printf("tgtfileext  == [%s]\n\r", tgtfileext);
+//	txt_printf("path        == [%s]\n\r", path);
 	
 	// now let's read this directory until we find this pattern
 	di = fat32_opendir(dsk, cluster);
