@@ -10,6 +10,7 @@ void txt_clrscr(void);
 void txt_scroll(void);
 void txt_putc(char c);
 void txt_puts(char *s);
+char *txt_gets(char *s);
 void txt_vprintf(const char *fmt, va_list args);
 void txt_printf(const char *fmt, ...);
 

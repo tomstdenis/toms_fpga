@@ -1568,7 +1568,7 @@
 	bios_lane_2[1567] = 8'h36;
 	bios_lane_2[1568] = 8'h0;
 	bios_lane_2[1569] = 8'h3a;
-	bios_lane_2[1570] = 8'h32;
+	bios_lane_2[1570] = 8'h34;
 	bios_lane_2[1571] = 8'h0;
 	bios_lane_2[1572] = 8'h49;
 	bios_lane_2[1573] = 8'h69;

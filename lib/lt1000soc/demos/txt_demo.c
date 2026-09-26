@@ -3,12 +3,16 @@
 void main(void)
 {
 	uint32_t x;
+	char buf[32];
 	
 	txt_init();
 	txt_puts("Hello world!\n");
 	txt_puts("LT1000 Lives!\n\r");
-	fprintf(stderr, "Screen config: %d x %d\n", TXT_COLS, TXT_ROWS);
+	fprintf(stderr, "Screen config: %d x %d\nEnter your name: ", TXT_COLS, TXT_ROWS);
+	txt_gets(buf);
+	fprintf(stderr, "\nHello %s\n", buf);
 	delay_ms(2000);
+	return;
 	txt_clrscr();	
 	for (x = 0; x < 100; x++) {
 		fprintf(stderr, "line %d\n", x); fflush(stderr);

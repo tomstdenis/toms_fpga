@@ -484,5 +484,3 @@ int fat32_seek(struct fat32_file *file, uint32_t offset)
     }
     return 0;
 }
-
-

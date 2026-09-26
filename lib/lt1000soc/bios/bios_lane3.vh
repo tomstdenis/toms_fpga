@@ -1567,8 +1567,8 @@
 	bios_lane_3[1566] = 8'h32;
 	bios_lane_3[1567] = 8'h0;
 	bios_lane_3[1568] = 8'h0;
-	bios_lane_3[1569] = 8'h33;
-	bios_lane_3[1570] = 8'h36;
+	bios_lane_3[1569] = 8'h32;
+	bios_lane_3[1570] = 8'h30;
 	bios_lane_3[1571] = 8'h0;
 	bios_lane_3[1572] = 8'h6e;
 	bios_lane_3[1573] = 8'h61;

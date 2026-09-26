@@ -46,7 +46,7 @@ void txt_scroll(void)
 void txt_putc(char c)
 {
 	// backup for BS
-	if (c == 8 && txt_x) {
+	if ((c == 8 || c == 0x7f) && txt_x) {
 		--txt_x;
 	}
 	
@@ -67,10 +67,10 @@ void txt_putc(char c)
 	}
 
 	uint8_t *txt = (uint8_t*)VGA_ADDR + (txt_y * 160 + txt_x * 2);
-	txt[0] = (c == 8 ? ' ' : c);
+	txt[0] = ((c == 8 || c == 0x7f) ? ' ' : c);
 	txt[1] = txt_col;
 	
-	if (c != 8) {
+	if ((c != 8) && (c != 0x7F)) {
 		++txt_x;
 		if (txt_x == TXT_COLS) {
 			++txt_y;
@@ -88,6 +88,30 @@ void txt_puts(char *s)
 	while (*s) {
 		txt_putc(*s++);
 	}
+}
+
+char *txt_gets(char *s)
+{
+	char *os = s, c;
+	
+	while (1) {
+		c = getch();
+		if (c == 8 || c == 0x7F) {
+			if (s != os) {
+				txt_putc(c);
+				--s;
+			}
+		} else if (c == '\n' || c == '\r') {
+			txt_putc(c == '\n' ? '\r' : '\n');
+			txt_putc(c);
+			break;
+		} else {
+			txt_putc(c);
+			*s++ = c;
+		}
+	}
+	*s = 0;
+	return os;
 }
 
 void txt_vprintf(const char *fmt, va_list args)
