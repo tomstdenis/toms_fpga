@@ -30,12 +30,14 @@ loader: loader.c
 disk.img: all
 	mkdir disk
 	mkdir disk/APPS
+	mkdir disk/APPS/SUB
+	echo "subdirfile" > disk/APPS/SUB/README.TXT
 	cp *.bin disk/APPS/
 	cp boot.bin disk/BOOT.BIN
 	echo "hello tom" > disk/README.TXT
 	truncate --size 32M disk.img
 	mkfs.fat -F 32 disk.img
-	mcopy -i disk.img disk/* ::/
+	mcopy -s -i disk.img disk/* ::/
 	
 clean:
 	rm -f *.bin *.elf loader

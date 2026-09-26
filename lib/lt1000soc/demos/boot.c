@@ -67,13 +67,15 @@ static void apply_path(char *path, char *modpath)
 		} else {
 			// it's a relative modifier
 			uint32_t x = strlen(newpath);
-			newpath[x++] = '/'; // add directory separator
+			if (newpath[x] != '/') {
+				newpath[x++] = '/'; // add directory separator
+			}
 			while (*modpath != 0 && *modpath != '/') {
 				newpath[x++] = *modpath++;
 			}
 		}
 	}
-	strcpy(path, newpath);
+	strcpy(path, newpath + (memcmp(newpath, "//", 2) ? 0 : 1));
 }
 
 static void do_dir(struct fat32_disk *dsk, char *path, char *cmd)
@@ -107,7 +109,7 @@ static void do_dir(struct fat32_disk *dsk, char *path, char *cmd)
 	t_files = t_dirs = t_bytes = 0;
 	dir = fat32_opendir(dsk, dircluster);
 	if (dir) {
-		txt_printf("Contents of directory: %s\n\r   Name\t\t\tFile size\tFLAGS\r\n", path);
+		txt_printf("Contents of directory: %s\n\r   Name\t\t\tFile size\tFLAGS\r\n", newpath);
 		while ((de = fat32_readdir(dir))) {
 			if (strcmp(de->filename, ".") && strcmp(de->filename, "..")) {
 				char fname[16];
