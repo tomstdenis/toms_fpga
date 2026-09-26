@@ -287,13 +287,20 @@ top:
 		tgtfilename[x++] = *path++;
 	}
 	
-	if (*path == '.') {
+	if (*path == '.' && path[1] != '.') {
 		++path;
 		x = 0;
 		while (x < 3 && *path != '/' && *path) {
 			tgtfileext[x++] = *path++;
 		}
+	} else if (x == 0) {
+		// special case filename is ".."
+		strcpy(tgtfilename, "..");
+		path += 2;
 	}
+	
+//	txt_printf("tgtfilename == [%s]\n\r", tgtfilename);
+//	txt_printf("tgtfileext == [%s]\n\r", tgtfileext);
 	
 	// now let's read this directory until we find this pattern
 	di = fat32_opendir(dsk, cluster);
@@ -302,7 +309,8 @@ top:
 	}
 	
 	while ((de = fat32_readdir(di))) {
-		if (!strcmp(de->filename, tgtfilename) && !strcmp(de->fileext, tgtfileext)) {
+//		txt_printf("de: [%s] [%s]\n\r", de->filename, de->fileext);
+		if (!strcmp(de->filename, tgtfilename) && (!tgtfileext[0] || !strcmp(de->fileext, tgtfileext))) {
 			// entry is a directory and the path isn't completed yet
 			if ((de->flags & FAT32_F_DIR) && (*path == '/')) {
 				cluster = de->start_cluster;

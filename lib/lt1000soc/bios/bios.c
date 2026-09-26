@@ -61,6 +61,10 @@ static void init_sys(void)
 	bios_puts(__TIME__);
 	bios_puts("\r\nInitializing device...\r\n");
 	
+	// reset GPIO
+	GPIO_OE   = 0;
+	GPIO_DATA = 0;
+	
 	// try and detect PSRAM size (write MiB counter at start of every 
 	bios_puts("Sizing PSRAM (down to MiB)...\r\n");
 	p = (uint32_t*)PSRAM_ADDR;

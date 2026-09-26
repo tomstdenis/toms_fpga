@@ -47,6 +47,15 @@ void txt_scroll(void)
 // output char
 void txt_putc(char c)
 {
+	// handle tab
+	if (c == '\t') {
+		// align to next column of 4
+		do {
+			txt_putc(' ');
+		} while (txt_x & 3);
+		return;
+	}
+
 	// backup for BS
 	if ((c == 8 || c == 0x7f) && txt_x) {
 		--txt_x;
