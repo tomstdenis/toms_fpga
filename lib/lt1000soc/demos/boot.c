@@ -6,7 +6,6 @@ TCM_FUNC(launch_app) static void launch_app(uint32_t *base, uint32_t len)
 {
 	uint32_t *dst;
 	dst = (uint32_t*)PSRAM_ADDR;
-txt_printf("Copying %p to %p of len %u\r\n", base, dst, len);
 	while (len--) {
 		*dst++ = *base++;
 	}

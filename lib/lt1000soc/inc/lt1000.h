@@ -22,5 +22,6 @@
 #include "gfx.h"
 #include "txt.h"
 #include "fat32.h"
+#include "env.h"
 
 #endif
