@@ -427,6 +427,7 @@ uint32_t fat32_read(struct fat32_file *file, uint8_t *dst, uint32_t len)
 		}
 		
 		memcpy(dst, &file->secbuf[secoff], cnt);
+		dst        += cnt;
 		file->fpos += cnt;
 		bread      += cnt;
 		secoff      = file->fpos & 511;

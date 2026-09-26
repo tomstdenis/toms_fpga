@@ -31,6 +31,7 @@ disk.img: all
 	mkdir disk
 	mkdir disk/APPS
 	cp *.bin disk/APPS/
+	cp boot.bin disk/BOOT.BIN
 	echo "hello tom" > disk/README.TXT
 	truncate --size 32M disk.img
 	mkfs.fat -F 32 disk.img

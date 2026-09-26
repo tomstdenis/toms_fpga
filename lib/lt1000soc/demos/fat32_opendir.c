@@ -52,7 +52,7 @@ int main(void)
 		printf("Data start: %u\n", dsk->data_region_sector);
 		
 		walk_dir(dsk, "", 0);
-		
+	
 		file = fat32_open(dsk, "/README.TXT");
 		printf("file == %p\n", file);
 		if (file) {
@@ -63,5 +63,6 @@ int main(void)
 			printf("Read %u bytes from the file [%s]\n", x, buf);
 			fat32_close(file);
 		}
+		delay_ms(5000);
 	}
 }
