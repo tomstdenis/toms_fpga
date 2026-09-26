@@ -192,10 +192,27 @@ static void do_cat(struct fat32_disk *dsk, char *path, char *cmd)
 static void do_exec(struct fat32_disk *dsk, char *path, char *cmd)
 {
 	struct fat32_file *file;
-	char newpath[1024];
+	char newpath[1024], comm[1024], cmdline[1024];
+	uint32_t x, y;
 	
+	memset(comm, 0, sizeof comm);
+	memset(cmdline, 0, sizeof cmdline);
+	
+	x = y = 0;
+	while (cmd[x] != ' ' && cmd[x]) {
+		comm[x++] = cmd[x];
+	}
+	if (cmd[x] == ' ') {
+		++x;
+		while (cmd[x]) {
+			cmdline[y++] = cmd[x++];
+		}
+	}
+	
+	lt1000_env_update(ENV_ADDR, NULL, comm, cmdline, NULL);
+
 	strcpy(newpath, path);
-	apply_path(newpath, cmd);
+	apply_path(newpath, comm);
 
 	file = fat32_open(dsk, newpath);
 	if (file) {
@@ -245,8 +262,18 @@ void main(void)
 	// initial path
 	memset(path, 0, sizeof path);
 	strcpy(path, "/");
+
+	if (lt1000_env_validate(ENV_ADDR)) {
+		lt1000_env_init(ENV_ADDR);
+		txt_printf("Environment initialized...\n\r");
+	} else {
+		strcpy(path, ENV_ADDR->env.cwd);
+	}
 	
 	for (;;) {
+		// update the cwd
+		lt1000_env_update(ENV_ADDR, path, NULL, NULL, NULL);
+		
 		memset(cmd, 0, sizeof cmd);
 		txt_printf("%s$ ", path);
 		txt_gets(cmd);

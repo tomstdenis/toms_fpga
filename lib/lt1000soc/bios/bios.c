@@ -66,32 +66,35 @@ static void init_sys(void)
 	GPIO_DATA = 0;
 	
 	// try and detect PSRAM size (write MiB counter at start of every 
-	bios_puts("Sizing PSRAM (down to MiB)...\r\n");
-	p = (uint32_t*)PSRAM_ADDR;
-	for (x = 15; x >= 0; x--) {
-		p[(x * 1024UL * 1024UL) >> 2] = x;
-	}
-	bios_puts("Total memory: ");
-	for (x = 15; x >= 0; x--) {
-		if (p[(x * 1024UL * 1024UL) >> 2] == x) {
-			++x;
-			bios_putc('0' + (x / 10));
-			bios_putc('0' + (x % 10));
-			// store PSRAM size
-			MCFG_DATA = y = x;
-			break;
+	y = MCFG_PSRAM_MIB(MCFG_DATA);
+	if (!y) {
+		bios_puts("Sizing PSRAM (down to MiB)...\r\n");
+		p = (uint32_t*)PSRAM_ADDR;
+		for (x = 15; x >= 0; x--) {
+			p[(x * 1024UL * 1024UL) >> 2] = x;
 		}
-	}
+		bios_puts("Total memory: ");
+		for (x = 15; x >= 0; x--) {
+			if (p[(x * 1024UL * 1024UL) >> 2] == x) {
+				++x;
+				bios_putc('0' + (x / 10));
+				bios_putc('0' + (x % 10));
+				// store PSRAM size
+				MCFG_DATA = y = x;
+				break;
+			}
+		}
 
-	bios_puts(" MiB\r\n");
+		bios_puts(" MiB\r\n");
 
-	bios_puts("Clearing PSRAM memory...\r\n");
-	p = (uint32_t*)PSRAM_ADDR;
-	for (x = 0; x < (y * 1024UL * 1024UL); x += 64) { 
-		*p++ = 0; *p++ = 0; *p++ = 0; *p++ = 0; 
-		*p++ = 0; *p++ = 0; *p++ = 0; *p++ = 0; 
-		*p++ = 0; *p++ = 0; *p++ = 0; *p++ = 0; 
-		*p++ = 0; *p++ = 0; *p++ = 0; *p++ = 0; 
+		bios_puts("Clearing PSRAM memory...\r\n");
+		p = (uint32_t*)PSRAM_ADDR;
+		for (x = 0; x < (y * 1024UL * 1024UL); x += 64) { 
+			*p++ = 0; *p++ = 0; *p++ = 0; *p++ = 0; 
+			*p++ = 0; *p++ = 0; *p++ = 0; *p++ = 0; 
+			*p++ = 0; *p++ = 0; *p++ = 0; *p++ = 0; 
+			*p++ = 0; *p++ = 0; *p++ = 0; *p++ = 0; 
+		}
 	}
 	bios_puts("Done.\r\n\r\n");
 }	

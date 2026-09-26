@@ -33,9 +33,9 @@ disk.img: all
 	mkdir disk/APPS/SUB
 	echo "subdirfile" > disk/APPS/SUB/README.TXT
 	cp *.bin disk/APPS/
-	cp boot.bin disk/BOOT.BIN
+#	cp boot.bin disk/BOOT.BIN
 	echo "hello tom" > disk/README.TXT
-	truncate --size 32M disk.img
+	truncate --size 128M disk.img
 	mkfs.fat -F 32 disk.img
 	mcopy -s -i disk.img disk/* ::/
 	

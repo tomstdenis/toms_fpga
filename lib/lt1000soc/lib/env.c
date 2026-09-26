@@ -7,7 +7,9 @@ static uint32_t chksum(const uint8_t *data, uint32_t len)
 	r = 0x4C54316B; // LT1k
 	while (len--) {
 		r += *data++;
-		r = (r << 7) | (r >> 25);
+		r ^= (r << 3);
+		r ^= (r >> 7);
+		r ^= (r << 12);
 	}
 	return r;
 }

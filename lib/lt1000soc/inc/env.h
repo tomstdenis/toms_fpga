@@ -16,6 +16,8 @@ __attribute__((packed)) struct lt1000_chk_env  {
 	uint32_t chksum;
 };
 
+#define ENV_ADDR ((struct lt1000_chk_env *)(PSRAM_ADDR + ((MCFG_PSRAM_MIB(MCFG_DATA) << 20UL) - 4096)))
+
 // create a blank valid environment
 void lt1000_env_init(struct lt1000_chk_env *env);
 
