@@ -1,3 +1,4 @@
+`default_nettype none
 module fdiv_serial (
     input wire         clk,
     input wire         rst,
