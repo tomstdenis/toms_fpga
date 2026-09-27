@@ -8,8 +8,6 @@ uint32_t fadd(uint32_t a, uint32_t b)
 	uint32_t b_sign, b_exp, b_mant;
 	uint32_t issub;
 	
-	printf("a == %08lx\nb == %08lx\n", a, b);
-	
 	// unpack 
 	issub  = (a ^ b) >> 31; // XOR signs and extract
 
@@ -65,6 +63,63 @@ uint32_t fsub(uint32_t a, uint32_t b)
 	return fadd(a, b ^ 0x80000000);
 }
 
+
+uint32_t fmul(uint32_t a, uint32_t b)
+{
+    // 1. Unpack
+    uint32_t a_sign = a >> 31, a_exp = (a >> 23) & 0xFF;
+    uint32_t b_sign = b >> 31, b_exp = (b >> 23) & 0xFF;
+    
+    uint64_t a_sig = (a & 0x7FFFFF) | (1UL << 23);
+    uint64_t b_sig = (b & 0x7FFFFF) | (1UL << 23);
+
+    // 2. Compute Sign & Exponent
+    uint32_t res_sign = a_sign ^ b_sign;
+    int32_t  res_exp  = (int32_t)a_exp + (int32_t)b_exp - 127;
+
+    // 3. 24x24 Multiply -> 48-bit product
+    uint64_t prod = a_sig * b_sig;
+
+    // 4. Renormalize (Single-bit check)
+    if (prod & (1ULL << 47)) {
+        prod >>= 1;
+        res_exp += 1;
+    }
+
+    // 5. Pack (drop implicit bit 46)
+    uint32_t res_mant = (prod >> 23) & 0x7FFFFF;
+
+    return (res_sign << 31) | ((res_exp & 0xFF) << 23) | res_mant;
+}
+
+uint32_t fdiv(uint32_t a, uint32_t b)
+{
+    // 1. Unpack
+    uint32_t a_sign = a >> 31, a_exp = (a >> 23) & 0xFF;
+    uint32_t b_sign = b >> 31, b_exp = (b >> 23) & 0xFF;
+
+    uint64_t a_sig = (a & 0x7FFFFF) | (1UL << 23);
+    uint64_t b_sig = (b & 0x7FFFFF) | (1UL << 23);
+
+    // 2. Compute Sign & Exponent
+    uint32_t res_sign = a_sign ^ b_sign;
+    int32_t  res_exp  = (int32_t)a_exp - (int32_t)b_exp + 127;
+
+    // 3. Scale Dividend and Divide (64-bit / 32-bit integer div)
+    uint64_t quot = (a_sig << 23) / b_sig;
+
+    // 4. Renormalize (Single-bit check)
+    if (!(quot & (1UL << 23))) { // Top bit is 0 -> Result < 1.0
+        quot <<= 1;
+        res_exp -= 1;
+    }
+
+    // 5. Pack (drop implicit bit 23)
+    uint32_t res_mant = quot & 0x7FFFFF;
+
+    return (res_sign << 31) | ((res_exp & 0xFF) << 23) | res_mant;
+}
+
 int main(void)
 {
 	float a, b, *c;
@@ -74,13 +129,17 @@ int main(void)
 	B = (uint32_t *)&b;
 	c = (float *)&r;
 	
-	a = 1.337;
-	b = 2.111;
+	a = 1.2345;
+	b = 2.3456;
 	
 	r = fadd(*A, *B);
-	printf("%f + %f == %f\n", a, b, *c);
+	printf("%f + %f == %f (ref: %f)\n", a, b, *c, a + b);
 	r = fsub(*A, *B);
-	printf("%f - %f == %f\n", a, b, *c);
+	printf("%f - %f == %f (ref: %f)\n", a, b, *c, a - b);
+	r = fmul(*A, *B);
+	printf("%f * %f == %f (ref: %f)\n", a, b, *c, a * b);
+	r = fdiv(*A, *B);
+	printf("%f / %f == %f (ref: %f)\n", a, b, *c, a / b);
 
 	return 0;
 }
