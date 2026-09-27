@@ -1,0 +1,61 @@
+`default_nettype none
+module fmul(
+	input wire clk,
+	input wire rst_n,
+	
+	input wire [31:0] in_a,
+	input wire [31:0] in_b,
+	input wire        valid,		// command valid
+	
+	output reg [31:0] out,			// result
+	output reg        ready			// result is valid
+);
+	reg        a_sign;
+	reg [7:0]  a_exp;
+	reg [24:0] a_mant;
+	reg [23:0] b_mant;
+	reg [1:0]  fsm_state;
+	
+	wire [47:0] product;
+	assign product = a_mant * b_mant;
+
+	localparam
+		FSM_IDLE  = 0,
+		FSM_CORE  = 1,
+		FSM_NORM  = 2;
+	
+	always @(posedge clk) begin
+		ready     <= 1'b0;
+		fsm_state <= fsm_state + 1'b1;
+		case (fsm_state)
+			FSM_IDLE: begin
+				if (valid) begin
+					a_sign    <= in_a[31] ^ in_b[31];  // sign of product
+					a_mant    <= {1'b1, in_a[22:0]};
+					a_exp     <= in_a[30:23] + in_b[30:23] - 127;
+					b_mant    <= {1'b1, in_b[22:0]};
+				end else begin
+					fsm_state <= fsm_state;			// stay in IDLE state
+				end
+			end
+			FSM_CORE: begin
+				a_mant        <= product[47:23];
+			end
+			FSM_NORM: begin
+				fsm_state <= fsm_state;				// default to staying in this state
+				if (a_mant[24]) begin
+					a_mant    <= a_mant >> 1;
+					a_exp     <= a_exp + 1'b1;
+				end else begin
+					out       <= {a_sign, a_exp, a_mant[22:0]};
+					ready     <= 1'b1;
+					fsm_state <= FSM_IDLE;
+				end
+			end
+		endcase	
+		if (~rst_n) begin
+			fsm_state <= FSM_IDLE;
+			out       <= 32'b0;
+		end
+	end
+endmodule

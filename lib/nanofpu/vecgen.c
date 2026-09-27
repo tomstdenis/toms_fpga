@@ -42,13 +42,12 @@ uint32_t fadd(uint32_t a, uint32_t b)
         return 0;
     }
 
-    // Normalize Overflow (bit 24 set)
     if (a_mant & (1UL << 24)) {
+		// Normalize Overflow (bit 24 set)
         a_mant >>= 1;
         a_exp += 1;
-    } 
-    // Normalize Underflow (bit 23 not set)
-    else {
+    } else {
+		// Normalize Underflow (bit 23 not set)
         while (!(a_mant & (1UL << 23))) {
             a_mant <<= 1;
             a_exp -= 1;
@@ -196,6 +195,16 @@ int main(int argc, char **argv)
 			opcode = rand() & 1;
 			res    = opcode ? fsub(opa, opb) : fadd(opa, opb);
 			fres   = opcode ? *fa - *fb : *fa + *fb;
+		}
+		if (!strcmp(argv[1], "mul")) {
+			opcode = 2;
+			res    = fmul(opa, opb);
+			fres   = *fa * *fb;
+		}
+		if (!strcmp(argv[1], "div")) {
+			opcode = 3;
+			res    = fdiv(opa, opb);
+			fres   = *fa / *fb;
 		}
 		if (0 && *ufres != res) {
 			printf("vector: %u %x %x, has mismatching outputs %x vs expt=%x\n", opcode, opa, opb, res, *ufres);
