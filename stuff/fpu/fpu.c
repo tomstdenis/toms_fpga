@@ -92,31 +92,63 @@ uint32_t fmul(uint32_t a, uint32_t b)
     return (res_sign << 31) | ((res_exp & 0xFF) << 23) | res_mant;
 }
 
+uint32_t fdiv_serial(uint32_t sig_a, uint32_t sig_b)
+{
+    // rem: 25-bit remainder register (upper half of acc)
+    // quot: 25-bit quotient register (lower half of acc)
+    uint32_t rem = sig_a & 0xFFFFFF;
+    uint32_t quot = 0;
+    uint32_t div_reg = sig_b & 0xFFFFFF;
+
+    for (int count = 25; count > 0; count--) {
+        // wire [24:0] sub_res = acc[49:25] - div_reg;
+        uint32_t sub_res = rem - div_reg;
+
+        // Check sub_res[24] == 0 (no borrow / subtraction fits)
+        if ((sub_res & (1UL << 24)) == 0) {
+            // acc <= {sub_res[23:0], acc[24:0], 1'b1};
+            rem = (sub_res << 1) | ((quot >> 24) & 1);
+            quot = (quot << 1) | 1UL;
+        } else {
+            // acc <= {acc[48:0], 1'b0};
+            rem = (rem << 1) | ((quot >> 24) & 1);
+            quot = (quot << 1);
+        }
+    }
+
+    return quot & 0x1FFFFFF; // Return 25-bit quotient
+}
+
 uint32_t fdiv(uint32_t a, uint32_t b)
 {
-    // 1. Unpack
-    uint32_t a_sign = a >> 31, a_exp = (a >> 23) & 0xFF;
-    uint32_t b_sign = b >> 31, b_exp = (b >> 23) & 0xFF;
+    // 1. Unpack & Restore Hidden Bit
+    uint32_t a_sign = a >> 31;
+    uint32_t a_exp  = (a >> 23) & 0xFF;
+    uint32_t a_sig  = (a & 0x7FFFFF) | (1UL << 23);
 
-    uint64_t a_sig = (a & 0x7FFFFF) | (1UL << 23);
-    uint64_t b_sig = (b & 0x7FFFFF) | (1UL << 23);
+    uint32_t b_sign = b >> 31;
+    uint32_t b_exp  = (b >> 23) & 0xFF;
+    uint32_t b_sig  = (b & 0x7FFFFF) | (1UL << 23);
 
-    // 2. Compute Sign & Exponent
+    // 2. Sign & Initial Exponent
     uint32_t res_sign = a_sign ^ b_sign;
     int32_t  res_exp  = (int32_t)a_exp - (int32_t)b_exp + 127;
 
-    // 3. Scale Dividend and Divide (64-bit / 32-bit integer div)
-    uint64_t quot = (a_sig << 23) / b_sig;
+    // 3. Hardware-identical Serial Divide Loop
+    uint32_t quot = fdiv_serial(a_sig, b_sig);
 
-    // 4. Renormalize (Single-bit check)
-    if (!(quot & (1UL << 23))) { // Top bit is 0 -> Result < 1.0
-        quot <<= 1;
-        res_exp -= 1;
+    // 4. Renormalize Output
+    uint32_t res_mant;
+    if (quot & (1UL << 24)) {
+        // Quotient >= 1.0 (Bit 24 is 1)
+        res_mant = (quot >> 1) & 0x7FFFFF; // Drop implicit bit 24
+    } else {
+        // Quotient < 1.0 (Bit 23 is 1)
+        res_mant = quot & 0x7FFFFF;        // Drop implicit bit 23
+        res_exp -= 1;                      // Decrement exponent
     }
 
-    // 5. Pack (drop implicit bit 23)
-    uint32_t res_mant = quot & 0x7FFFFF;
-
+    // 5. Pack
     return (res_sign << 31) | ((res_exp & 0xFF) << 23) | res_mant;
 }
 
