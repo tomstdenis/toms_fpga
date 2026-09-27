@@ -1,5 +1,9 @@
 `default_nettype none
-module fmul(
+module fmul
+#(
+	parameter USE_MULT=0
+)
+(
 	input wire clk,
 	input wire rst_n,
 	
@@ -24,6 +28,10 @@ module fmul(
 		FSM_CORE  = 1,
 		FSM_NORM  = 2;
 	
+	reg [47:0] da_prod;
+	reg [47:0] da_opa;
+	reg [4:0]  da_cnt;
+	
 	always @(posedge clk) begin
 		ready     <= 1'b0;
 		fsm_state <= fsm_state + 1'b1;
@@ -34,12 +42,31 @@ module fmul(
 					a_mant    <= {1'b1, in_a[22:0]};
 					a_exp     <= in_a[30:23] + in_b[30:23] - 127;
 					b_mant    <= {1'b1, in_b[22:0]};
+					if (USE_MULT == 0) begin
+						da_opa  <= {24'b0, 1'b1, in_a[22:0]};
+						da_prod <= 0;
+						da_cnt  <= 24;
+					end
 				end else begin
 					fsm_state <= fsm_state;			// stay in IDLE state
 				end
 			end
 			FSM_CORE: begin
-				a_mant        <= product[47:23];
+				if (USE_MULT == 1) begin
+					a_mant     <= product[47:23];
+				end else begin
+					fsm_state  <= fsm_state;
+					b_mant <= b_mant >> 1;
+					da_opa <= da_opa << 1;
+					if (b_mant[0]) begin
+						da_prod <= da_prod + da_opa;
+					end
+					da_cnt <= da_cnt - 1;
+					if (da_cnt == 0) begin
+						a_mant <= da_prod[47:23];
+						fsm_state <= fsm_state + 1;
+					end
+				end
 			end
 			FSM_NORM: begin
 				fsm_state <= fsm_state;				// default to staying in this state
