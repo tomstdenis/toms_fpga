@@ -35,7 +35,6 @@ module fmul
 	
 	always @(posedge clk) begin
 		ready     <= 1'b0;
-		fsm_state <= fsm_state + 1'b1;
 		case (fsm_state)
 			FSM_IDLE: begin
 				if (valid) begin
@@ -48,15 +47,14 @@ module fmul
 						da_prod <= 0;
 						da_cnt  <= 24;
 					end
-				end else begin
-					fsm_state <= fsm_state;			// stay in IDLE state
+					fsm_state <= FSM_CORE;
 				end
 			end
 			FSM_CORE: begin
 				if (USE_MULT == 1) begin
 					da_prod     <= product[47:23];
+					fsm_state   <= FSM_REG;
 				end else begin
-					fsm_state  <= fsm_state;
 					b_mant <= b_mant >> 1;
 					da_opa <= da_opa << 1;
 					if (b_mant[0]) begin
@@ -65,15 +63,15 @@ module fmul
 					da_cnt <= da_cnt - 1;
 					if (da_cnt == 0) begin
 						a_mant <= da_prod[47:23];
-						fsm_state <= fsm_state + 2;
+						fsm_state <= FSM_NORM;
 					end
 				end
 			end
 			FSM_REG: begin
-				a_mant <= da_prod;
+				a_mant    <= da_prod;
+				fsm_state <= FSM_NORM;
 			end
 			FSM_NORM: begin
-				fsm_state <= fsm_state;				// default to staying in this state
 				if (a_mant[24]) begin
 					a_mant    <= a_mant >> 1;
 					a_exp     <= a_exp + 1'b1;

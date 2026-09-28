@@ -59,7 +59,6 @@ module nanofpu
 		.in_a(in_a), .valid((valid && opcode == 5) ? ENABLE_FSTI : 1'b0),
 		.out(fsti_out), .ready(fsti_ready));
 
-
 	always @(posedge clk) begin
 		ready <= 1'b0;
 		if (fadd_ready) begin
