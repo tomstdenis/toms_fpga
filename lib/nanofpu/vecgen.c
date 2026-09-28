@@ -159,7 +159,17 @@ uint32_t fdiv(uint32_t a, uint32_t b)
         res_exp -= 1;
     }
 
-    // 5. Pack
+    // 5. Overflow / Underflow Handling (evaluated AFTER normalization)
+    if (res_exp >= 255) {
+        // Overflow -> Infinity (or max float 0x7F7FFFFF depending on rounding mode)
+        return (res_sign << 31) | 0x7F7FFFFF;
+    }
+    if (res_exp <= 0) {
+        // Underflow -> Flush to zero (preserving sign)
+        return (res_sign << 31);
+    }
+
+    // 6. Pack
     return (res_sign << 31) | ((res_exp & 0xFF) << 23) | res_mant;
 }
 

@@ -13,7 +13,7 @@ module fdiv
     output reg        ready         // result is valid
 );
     reg        a_sign;
-    reg [7:0]  a_exp;
+    reg [9:0]  a_exp;
     reg [23:0] a_mant;
     reg [23:0] b_mant;
     reg [22:0] res_frac;
@@ -46,7 +46,7 @@ module fdiv
             FSM_IDLE: begin
                 if (valid) begin
                     a_sign        <= in_a[31] ^ in_b[31];
-                    a_exp         <= in_a[30:23] - in_b[30:23] + 8'd127;
+                    a_exp         <= {2'b0, in_a[30:23]} - {2'b0, in_b[30:23]} + 10'd127;
                     a_mant        <= {1'b1, in_a[22:0]};
                     b_mant        <= {1'b1, in_b[22:0]};
 					divider_valid <= 1'b1;
@@ -69,7 +69,15 @@ module fdiv
             end
             
             FSM_NORM: begin
-                out       <= {a_sign, a_exp, res_frac};
+				if ($signed(a_exp) >= $signed(10'd255)) begin
+					// handle overflow
+					out       <= {in_a[31] ^ in_b[31], 8'hFE, 23'h7FFFFF};
+				end else if ($signed(a_exp) <= $signed(10'd0)) begin
+					// handle underflow
+					out       <= {in_a[31] ^ in_b[31], 31'b0};
+				end else begin
+					out       <= {a_sign, a_exp[7:0], res_frac};
+				end
                 ready     <= 1'b1;
                 fsm_state <= FSM_IDLE;
             end
