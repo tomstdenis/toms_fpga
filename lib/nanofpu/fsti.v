@@ -1,7 +1,7 @@
 `default_nettype none
 
-// load an int32_t into a float
-module fldi
+// load a float into an int32_t
+module fsti
 (
 	input wire clk,
 	input wire rst_n,
@@ -26,24 +26,30 @@ module fldi
 		case (fsm_state)
 			FSM_IDLE: begin
 				if (~ready & valid) begin
-					fsm_state  <= FSM_NORM;
-					if (in_a == 0) begin
+					a_sign <= in_a[31];
+					a_exp  <= in_a[30:23] - 127;
+					a_mant <= {1'b1, in_a[22:0]};
+					if (in_a[30:23] < 127) begin
 						out    <= 0;
 						ready  <= 1;
+					end else if (in_a[30:23] >= 158) begin
+						ready  <= 1;
+						out    <= in_a[31] ? 32'h8000_0000 : 32'h7FFF_FFFF;
 					end else begin
-						a_sign <= in_a[31];
-						a_exp  <= 127 + 31;
-						a_mant <= in_a[31] ? -in_a : in_a;
-					end
+						fsm_state  <= FSM_NORM;
+					end					
 				end
 			end
 			FSM_NORM: begin
-				if (~a_mant[31]) begin
-					a_mant <= a_mant << 1;
-					a_exp  <= a_exp - 1;
+				if (a_exp > 23) begin
+					a_mant    <= a_mant << 1;
+					a_exp     <= a_exp - 1;
+				end else if (a_exp < 23) begin
+					a_mant    <= a_mant >> 1;
+					a_exp     <= a_exp + 1;
 				end else begin
-					out       <= { a_sign, a_exp, a_mant[30:8] };
-					ready     <= 1'b1;
+					out       <= a_sign ? -a_mant : a_mant;
+					ready     <= 1;
 					fsm_state <= FSM_IDLE;
 				end
 			end

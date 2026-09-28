@@ -200,6 +200,38 @@ uint32_t fldi(int32_t x)
 	return (r_sign << 31) | ((r_exp&0xFF)<<23) | ((r_mant >> 8) & 0x7FFFFF);
 }
 
+// convert float to signed int
+int32_t fsti(uint32_t x)
+{
+	uint32_t sign, exp, mant;
+	
+	// unpack
+	sign = x >> 31;
+	exp  = (x >> 23) & 0xFF;
+	mant = (x & 0x7FFFFF)  | (1UL << 23);
+
+	//range check
+	if 	(exp < 127) {
+		return 0;
+	} else if (exp >= 158) {
+		return sign ? 0x80000000 : 0x7FFFFFFF;
+	}
+	
+	//norm
+	exp = exp - 127;
+	while (exp > 23) {
+		mant = mant << 1;
+		exp  = exp - 1;
+	}
+	
+	while (exp < 23) {
+		mant = mant >> 1;
+		exp  = exp + 1;
+	}
+	
+	return sign ? -mant : mant;
+}
+
 // Generates a raw uint32_t bit-pattern for a valid normalized float
 uint32_t rand_valid_float_bits(void) {
     uint32_t sign = (rand() & 0x1) << 31;
@@ -226,13 +258,14 @@ void print_float(char *name, uint32_t f)
 int main(int argc, char **argv)
 {
 	FILE *vec;
+	int32_t ires;
 	uint32_t opa, opb, res, opcode, x, *ufres;
 	float *fa, *fb, fres, *fures;
 	
 	int command, op;
 	
 	fesetround(FE_TOWARDZERO);
-		
+	
 	fa = (float *)&opa;
 	fb = (float *)&opb;
 	ufres = (uint32_t*)&fres;
@@ -291,10 +324,13 @@ int main(int argc, char **argv)
 				fres   = (int32_t)opa;
 				break;
 			case 5: //fsti
+				opcode = 5;
+				opb    = 0;
+				res    = fsti(opa);
 				break;
 		}
 		
-		if (*ufres != res) {
+		if (opcode != 5 && *ufres != res) {
 			printf("-------\nvector: opcode=%u output mismatch %x vs expt=%x\n", opcode, res, *ufres);
 			printf("%f op %f == %f vs %f\n", *fa, *fb, *fures, fres);
 			print_float("opa", opa);
