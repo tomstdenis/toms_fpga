@@ -1,3 +1,12 @@
+/*
+	Float load int32_t into float
+	
+	Takes 3 cycles.
+	
+	ICE40: 183 LUT4, ~75 DFF, 36 CARRY
+	ECP5:  119 LUT4, 75 DFF, 20 CARRY
+
+*/
 `default_nettype none
 
 // load an int32_t into a float

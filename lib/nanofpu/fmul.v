@@ -1,3 +1,13 @@
+/*
+	float multiply, rounds to zero, tracks overflow/underflow does not track subnorm
+	
+	On ICE40, takes ~28 cycles (243 LUT4, ~200 DFF, 74 CARRY) with USE_MULT=0
+
+	On ECP5, takes ~28 cycles (178 LUT4, 197 DFF, 41 carry) with USE_MULT=0, or 
+~5 cycles (125 LUT4, 121 FF, 4 MULT) with USE_MULT=1.
+
+*/
+
 `default_nettype none
 module fmul
 #(

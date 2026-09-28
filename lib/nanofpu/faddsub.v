@@ -1,3 +1,12 @@
+/*
+	float add/subtract, rounds to zero, does not track GRS
+	
+	On ICE40, Takes ~28 cycles (356 LUT4, ~100 DFF, bit more CARRY) with USE_BARREL=0, or ~4 cycles (449 LUT4, ~100 DFF, 98 CARRY) with USE_BARREL=1
+	
+	On ECP5, Takes ~28 cycles (536 LUT4, 104 DFF, 57 CARRY) with USE_BARREL=0, or ~4 cycles (551 LUT4, 105 DFF, 53 CARRY) with USE_BARREL=1
+
+*/
+
 `default_nettype none
 
 module faddsub
