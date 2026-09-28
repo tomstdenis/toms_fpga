@@ -1,8 +1,12 @@
 `default_nettype none
 module nanofpu
 #(
-	parameter USE_MULT=1,
-	parameter USE_BARREL=0,
+	parameter ENABLE_FADDSUB = 1'b1,	// enable faddsub
+	parameter ENABLE_FMUL    = 1'b1,	// enable fmul
+	parameter ENABLE_FDIV    = 1'b1,	// enable fdiv
+
+	parameter USE_MULT       = 0,		// Use inferred multiplier 
+	parameter USE_BARREL     = 0,		// Use barrel shifter (for faddsub/etc)
 )
 (
 	input wire clk,
@@ -22,21 +26,21 @@ module nanofpu
 
 	faddsub #(.USE_BARREL(USE_BARREL)) faddsub(
 		.clk(clk), .rst_n(rst_n),
-		.in_a(in_a), .in_b(in_b), .sub_op(opcode[0]), .valid((valid && opcode < 2) ? 1'b1 : 1'b0),
+		.in_a(in_a), .in_b(in_b), .sub_op(opcode[0]), .valid((valid && opcode < 2) ? ENABLE_FADDSUB : 1'b0),
 		.out(fadd_out), .ready(fadd_ready));
 
 	wire fmul_ready;
 	wire [31:0] fmul_out;
 	fmul #(.USE_MULT(USE_MULT)) fmul (
 		.clk(clk), .rst_n(rst_n),
-		.in_a(in_a), .in_b(in_b), .valid((valid && opcode == 2) ? 1'b1 : 1'b0),
+		.in_a(in_a), .in_b(in_b), .valid((valid && opcode == 2) ? ENABLE_FMUL : 1'b0),
 		.out(fmul_out), .ready(fmul_ready));
 
 	wire fdiv_ready;
 	wire [31:0] fdiv_out;
 	fdiv fdiv (
 		.clk(clk), .rst_n(rst_n),
-		.in_a(in_a), .in_b(in_b), .valid((valid && opcode == 3) ? 1'b1 : 1'b0),
+		.in_a(in_a), .in_b(in_b), .valid((valid && opcode == 3) ? ENABLE_FDIV : 1'b0),
 		.out(fdiv_out), .ready(fdiv_ready));
 
 	always @(posedge clk) begin

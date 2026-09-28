@@ -71,10 +71,10 @@ module fdiv
             FSM_NORM: begin
 				if ($signed(a_exp) >= $signed(10'd255)) begin
 					// handle overflow
-					out       <= {in_a[31] ^ in_b[31], 8'hFE, 23'h7FFFFF};
+					out       <= {a_sign, 8'hFE, 23'h7FFFFF};
 				end else if ($signed(a_exp) <= $signed(10'd0)) begin
 					// handle underflow
-					out       <= {in_a[31] ^ in_b[31], 31'b0};
+					out       <= {a_sign, 31'b0};
 				end else begin
 					out       <= {a_sign, a_exp[7:0], res_frac};
 				end
