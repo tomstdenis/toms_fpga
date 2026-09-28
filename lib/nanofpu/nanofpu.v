@@ -1,7 +1,8 @@
 `default_nettype none
 module nanofpu
 #(
-	parameter USE_MULT=0
+	parameter USE_MULT=0,
+	parameter USE_BARREL=0,
 )
 (
 	input wire clk,
@@ -19,7 +20,7 @@ module nanofpu
 	wire fadd_ready;
 	wire [31:0] fadd_out;
 
-	faddsub faddsub(
+	faddsub #(.USE_BARREL(USE_BARREL)) faddsub(
 		.clk(clk), .rst_n(rst_n),
 		.in_a(in_a), .in_b(in_b), .sub_op(opcode[0]), .valid((valid && opcode < 2) ? 1'b1 : 1'b0),
 		.out(fadd_out), .ready(fadd_ready));

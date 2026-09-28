@@ -1,6 +1,10 @@
 `default_nettype none
 
-module faddsub(
+module faddsub
+#(
+	parameter USE_BARREL=0			// use a barrel shifter (drops from ~30 to ~3 cycles)
+)
+(
 	input wire clk,
 	input wire rst_n,
 	
@@ -20,6 +24,8 @@ module faddsub(
 	reg [7:0]  b_exp;
 	reg [24:0] b_mant;
 	reg [1:0]  fsm_state;
+	
+	reg [7:0]  exp_delta;
 
 	localparam
 		FSM_IDLE  = 0,
@@ -42,6 +48,7 @@ module faddsub(
 						a_exp  <= in_b[30:23];
 						b_mant <= {1'b0, 1'b1, in_a[22:0]};
 						b_exp  <= in_a[30:23];
+						exp_delta <= in_b[30:23] - in_a[30:23];
 					end else begin
 						// normal order
 						a_sign <= in_a[31];
@@ -49,17 +56,22 @@ module faddsub(
 						a_exp  <= in_a[30:23];
 						b_mant <= {1'b0, 1'b1, in_b[22:0]};
 						b_exp  <= in_b[30:23];
+						exp_delta <= in_a[30:23] - in_b[30:23];
 					end
 				end else begin
 					fsm_state <= fsm_state;			// stay in IDLE state
 				end
 			end
 			FSM_ALIGN: begin
-				if (b_mant != 0 && b_exp < a_exp) begin
-					b_mant    <= b_mant >> 1;
-					b_exp     <= b_exp + 1'b1;
-					fsm_state <= fsm_state;			// stay in ALIGN state
-				end 
+				if (USE_BARREL == 1) begin
+					b_mant        <= b_mant >> exp_delta;
+				end else begin
+					if (b_mant != 0 && b_exp < a_exp) begin
+						b_mant    <= b_mant >> 1;
+						b_exp     <= b_exp + 1'b1;
+						fsm_state <= fsm_state;			// stay in ALIGN state
+					end
+				end
 			end
 			FSM_CORE: begin
 				if (issub) begin
