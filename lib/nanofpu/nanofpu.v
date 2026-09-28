@@ -7,8 +7,8 @@ module nanofpu
 	parameter ENABLE_FLDI    = 1'b1,	// enable fldi
 	parameter ENABLE_FSTI    = 1'b1,	// enable fsti
 
-	parameter USE_MULT       = 1,		// Use inferred multiplier 
-	parameter USE_BARREL     = 1		// Use barrel shifter (for faddsub/etc)
+	parameter USE_MULT       = 0,		// Use inferred multiplier 
+	parameter USE_BARREL     = 0		// Use barrel shifter (for faddsub/etc)
 )
 (
 	input wire clk,

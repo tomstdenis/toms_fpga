@@ -35,7 +35,6 @@ module faddsub
 	
 	always @(posedge clk) begin
 		ready     <= 1'b0;
-		fsm_state <= fsm_state + 1'b1;
 		case (fsm_state)
 			FSM_IDLE: begin
 				if (valid) begin
@@ -58,11 +57,11 @@ module faddsub
 						b_exp  <= in_b[30:23];
 						exp_delta <= in_a[30:23] - in_b[30:23];
 					end
-				end else begin
-					fsm_state <= fsm_state;			// stay in IDLE state
+					fsm_state <= FSM_ALIGN;
 				end
 			end
 			FSM_ALIGN: begin
+				fsm_state     <= FSM_CORE;
 				if (USE_BARREL == 1) begin
 					b_mant        <= b_mant >> exp_delta;
 				end else begin
@@ -79,9 +78,9 @@ module faddsub
 				end else begin
 					a_mant <= a_mant + b_mant;
 				end
+				fsm_state  <= FSM_NORM;
 			end
 			FSM_NORM: begin
-				fsm_state <= fsm_state;				// default to staying in this state
 				if (a_mant[24]) begin
 					a_mant <= a_mant >> 1;
 					a_exp  <= a_exp + 1'b1;
