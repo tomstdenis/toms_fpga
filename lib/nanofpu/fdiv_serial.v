@@ -1,12 +1,12 @@
 `default_nettype none
 module fdiv_serial (
     input wire         clk,
-    input wire         rst,
-    input wire         start,
+    input wire         rst_n,
+    input wire         valid,
     input wire [23:0]  sig_a,   // Dividend (24 bits)
     input wire [23:0]  sig_b,   // Divisor  (24 bits)
     output wire [24:0] quot,    // Quotient (25 bits: bit 24 or 23 will be MSB)
-    output reg         done
+    output reg         ready
 );
     reg [49:0] acc;            // 25-bit upper remainder, 25-bit quotient accumulator
     reg [23:0] div_reg;
@@ -18,14 +18,14 @@ module fdiv_serial (
     assign quot = acc[24:0];
 
     always @(posedge clk) begin
-        if (rst) begin
-            done  <= 0;
+        if (~rst_n) begin
+            ready  <= 0;
             count <= 0;
-        end else if (start) begin
+        end else if (valid) begin
             acc     <= {26'b0, sig_a[23:0]}; // Align dividend
             div_reg <= sig_b;
             count   <= 25;                  // 25 iterations
-            done    <= 0;
+            ready    <= 0;
         end else if (count > 0) begin
             if (sub_res[24] == 0) begin // Subtract fits
                 acc <= {sub_res[23:0], acc[24:0], 1'b1};
@@ -35,10 +35,10 @@ module fdiv_serial (
             
             count <= count - 1;
             if (count == 1) begin
-                done <= 1;
+                ready <= 1;
             end
         end else begin
-            done <= 0;
+            ready <= 0;
         end
     end
 endmodule
