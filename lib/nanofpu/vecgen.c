@@ -94,29 +94,25 @@ uint32_t fmul(uint32_t a, uint32_t b)
 
 uint32_t fdiv_serial(uint32_t sig_a, uint32_t sig_b)
 {
-    // rem: 25-bit remainder register (upper half of acc)
-    // quot: 25-bit quotient register (lower half of acc)
-    uint32_t rem = sig_a & 0xFFFFFF;
-    uint32_t quot = 0;
+    // sig_a and sig_b are 24-bit numbers [1.0, 2.0)
+    uint64_t rem = (uint64_t)(sig_a & 0xFFFFFF) << 24; // Align dividend
     uint32_t div_reg = sig_b & 0xFFFFFF;
+    uint32_t quot = 0;
 
     for (int count = 25; count > 0; count--) {
-        // wire [24:0] sub_res = acc[49:25] - div_reg;
-        uint32_t sub_res = rem - div_reg;
+        quot <<= 1;
+        uint32_t upper_rem = (uint32_t)(rem >> 24);
 
-        // Check sub_res[24] == 0 (no borrow / subtraction fits)
-        if ((sub_res & (1UL << 24)) == 0) {
-            // acc <= {sub_res[23:0], acc[24:0], 1'b1};
-            rem = (sub_res << 1) | ((quot >> 24) & 1);
-            quot = (quot << 1) | 1UL;
-        } else {
-            // acc <= {acc[48:0], 1'b0};
-            rem = (rem << 1) | ((quot >> 24) & 1);
-            quot = (quot << 1);
+        if (upper_rem >= div_reg) {
+            upper_rem -= div_reg;
+            quot |= 1;
         }
+
+        rem = ((uint64_t)upper_rem << 24) | (rem & 0xFFFFFF);
+        rem <<= 1;
     }
 
-    return quot & 0x1FFFFFF; // Return 25-bit quotient
+    return quot; // Returns 25-bit quotient
 }
 
 uint32_t fdiv(uint32_t a, uint32_t b)
@@ -134,18 +130,19 @@ uint32_t fdiv(uint32_t a, uint32_t b)
     uint32_t res_sign = a_sign ^ b_sign;
     int32_t  res_exp  = (int32_t)a_exp - (int32_t)b_exp + 127;
 
-    // 3. Hardware-identical Serial Divide Loop
+    // 3. Serial Divide
     uint32_t quot = fdiv_serial(a_sig, b_sig);
 
     // 4. Renormalize Output
     uint32_t res_mant;
     if (quot & (1UL << 24)) {
-        // Quotient >= 1.0 (Bit 24 is 1)
-        res_mant = (quot >> 1) & 0x7FFFFF; // Drop implicit bit 24
+        // Quotient in [1.0, 2.0): Bit 24 is implicit 1.
+        // We drop bit 24 to keep 23 fractional bits [23:1] or [22:0].
+        res_mant = (quot >> 1) & 0x7FFFFF; 
     } else {
-        // Quotient < 1.0 (Bit 23 is 1)
-        res_mant = quot & 0x7FFFFF;        // Drop implicit bit 23
-        res_exp -= 1;                      // Decrement exponent
+        // Quotient in [0.5, 1.0): Bit 23 is implicit 1.
+        res_mant = quot & 0x7FFFFF;
+        res_exp -= 1;
     }
 
     // 5. Pack
@@ -191,6 +188,8 @@ int main(int argc, char **argv)
 	for (x = 0; x < NUM_OF_TESTS; x++) {
 		opa = rand_valid_float_bits();
 		opb = rand_valid_float_bits();
+//		*fa = 5;
+//		*fb = 2;
 		if (!strcmp(argv[1], "addsub")) {
 			opcode = rand() & 1;
 			res    = opcode ? fsub(opa, opb) : fadd(opa, opb);
@@ -206,10 +205,10 @@ int main(int argc, char **argv)
 			res    = fdiv(opa, opb);
 			fres   = *fa / *fb;
 		}
-		if (0 && *ufres != res) {
+		if (*ufres != res) {
 			printf("vector: %u %x %x, has mismatching outputs %x vs expt=%x\n", opcode, opa, opb, res, *ufres);
 			printf("%f op %f == %f vs %f\n", *fa, *fb, *fures, fres);
-			return -1;
+//			return -1;
 		}
 		
 		fprintf(vec, "%02x%08x%08x%08x\n", opcode, res, opb, opa);
