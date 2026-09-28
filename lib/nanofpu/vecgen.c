@@ -301,6 +301,7 @@ int main(int argc, char **argv)
 		opa = rand_valid_float_bits();
 		opb = rand_valid_float_bits();
 		switch (op) {
+			case 1:
 			case 0: //addsub
 				opcode = rand() & 1;
 				res    = opcode ? fsub(opa, opb) : fadd(opa, opb);

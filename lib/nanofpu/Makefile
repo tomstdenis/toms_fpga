@@ -1,6 +1,6 @@
 NUMTESTS=100000
 
-all: vecgen test_fsti.pass test_fldi.pass test_fdiv.pass test_fmul.pass test_faddsub.pass
+all: vecgen test_fsti.pass test_fldi.pass test_fdiv.pass test_fmul.pass test_faddsub.pass test_nanofpu.pass
 
 test_faddsub.pass: faddsub_tb.v
 	./vecgen addsub
@@ -24,6 +24,11 @@ test_fsti.pass: fsti_tb.v
 
 test_fdiv.pass: fdiv_tb.v
 	./vecgen div
+	iverilog ${F} -D MODEL_SIM -D NUM_OF_TESTS=${NUMTESTS} -o sim.vvp $^
+	(vvp sim.vvp -fst > $@.log && touch $@) || cat $@.log
+
+test_nanofpu.pass: nanofpu_tb.v
+	./vecgen any
 	iverilog ${F} -D MODEL_SIM -D NUM_OF_TESTS=${NUMTESTS} -o sim.vvp $^
 	(vvp sim.vvp -fst > $@.log && touch $@) || cat $@.log
 
