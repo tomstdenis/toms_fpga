@@ -1,7 +1,7 @@
 `default_nettype none
 module nanofpu
 #(
-	parameter USE_MULT=0,
+	parameter USE_MULT=1,
 	parameter USE_BARREL=0,
 )
 (

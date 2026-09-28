@@ -26,7 +26,8 @@ module fmul
 	localparam
 		FSM_IDLE  = 0,
 		FSM_CORE  = 1,
-		FSM_NORM  = 2;
+		FSM_REG   = 2,
+		FSM_NORM  = 3;
 	
 	reg [47:0] da_prod;
 	reg [47:0] da_opa;
@@ -53,7 +54,7 @@ module fmul
 			end
 			FSM_CORE: begin
 				if (USE_MULT == 1) begin
-					a_mant     <= product[47:23];
+					da_prod     <= product[47:23];
 				end else begin
 					fsm_state  <= fsm_state;
 					b_mant <= b_mant >> 1;
@@ -64,9 +65,12 @@ module fmul
 					da_cnt <= da_cnt - 1;
 					if (da_cnt == 0) begin
 						a_mant <= da_prod[47:23];
-						fsm_state <= fsm_state + 1;
+						fsm_state <= fsm_state + 2;
 					end
 				end
+			end
+			FSM_REG: begin
+				a_mant <= da_prod;
 			end
 			FSM_NORM: begin
 				fsm_state <= fsm_state;				// default to staying in this state
