@@ -70,10 +70,15 @@ uint32_t fmul(uint32_t a, uint32_t b)
     uint32_t a_sign = a >> 31, a_exp = (a >> 23) & 0xFF;
     uint32_t b_sign = b >> 31, b_exp = (b >> 23) & 0xFF;
     
+    // Check for explicit/implicit zero (or subnormal, flush-to-zero)
+    if (a_exp == 0 || b_exp == 0) {
+        return (a_sign ^ b_sign) << 31; // Flush subnormals/zeroes to signed zero
+    }
+
     uint64_t a_sig = (a & 0x7FFFFF) | (1UL << 23);
     uint64_t b_sig = (b & 0x7FFFFF) | (1UL << 23);
 
-    // 2. Compute Sign & Exponent
+    // 2. Compute Sign & Initial Exponent
     uint32_t res_sign = a_sign ^ b_sign;
     int32_t  res_exp  = (int32_t)a_exp + (int32_t)b_exp - 127;
 
@@ -86,12 +91,21 @@ uint32_t fmul(uint32_t a, uint32_t b)
         res_exp += 1;
     }
 
-    // 5. Pack (drop implicit bit 46)
+    // 5. Overflow / Underflow Handling (evaluated AFTER normalization)
+    if (res_exp >= 255) {
+        // Overflow -> Infinity (or max float 0x7F7FFFFF depending on rounding mode)
+        return (res_sign << 31) | 0x7F7FFFFF;
+    }
+    if (res_exp <= 0) {
+        // Underflow -> Flush to zero (preserving sign)
+        return (res_sign << 31);
+    }
+
+    // 6. Pack (drop implicit bit 46)
     uint32_t res_mant = (prod >> 23) & 0x7FFFFF;
 
-    return (res_sign << 31) | ((res_exp & 0xFF) << 23) | res_mant;
+    return (res_sign << 31) | ((uint32_t)res_exp << 23) | res_mant;
 }
-
 uint32_t fdiv_serial(uint32_t sig_a, uint32_t sig_b)
 {
     // sig_a and sig_b are 24-bit numbers [1.0, 2.0)
@@ -166,6 +180,12 @@ uint32_t rand_valid_float_bits(void) {
 #define _GNU_SOURCE
 #include <fenv.h>
 
+void print_float(char *name, uint32_t f)
+{
+	float *ff = (float *)&f;
+	printf("%s (0x%08x, %f): sign=%u, exp=%u(0x%x), mant=%u(0x%x)\n", name, f, *ff, f >> 31, (f >> 23) & 0xFF, (f >> 23) & 0xFF, f & 0x7FFFFF, f & 0x7FFFFF);
+}
+
 int main(int argc, char **argv)
 {
 	FILE *vec;
@@ -206,8 +226,13 @@ int main(int argc, char **argv)
 			fres   = *fa / *fb;
 		}
 		if (*ufres != res) {
-			printf("vector: %u %x %x, has mismatching outputs %x vs expt=%x\n", opcode, opa, opb, res, *ufres);
+			printf("-------\nvector: opcode=%u output mismatch %x vs expt=%x\n", opcode, res, *ufres);
 			printf("%f op %f == %f vs %f\n", *fa, *fb, *fures, fres);
+			print_float("opa", opa);
+			print_float("opb", opb);
+			print_float("res", res);
+			print_float("ufres", *ufres);
+			printf("-------\n\n");
 //			return -1;
 		}
 		

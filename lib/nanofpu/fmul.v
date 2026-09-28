@@ -15,7 +15,7 @@ module fmul
 	output reg        ready			// result is valid
 );
 	reg        a_sign;
-	reg [7:0]  a_exp;
+	reg [9:0]  a_exp;
 	reg [24:0] a_mant;
 	reg [23:0] b_mant;
 	reg [1:0]  fsm_state;
@@ -40,7 +40,7 @@ module fmul
 				if (valid) begin
 					a_sign    <= in_a[31] ^ in_b[31];  // sign of product
 					a_mant    <= {1'b1, in_a[22:0]};
-					a_exp     <= in_a[30:23] + in_b[30:23] - 127;
+					a_exp     <= {2'b0, in_a[30:23]} + {2'b0, in_b[30:23]} - 10'd127;
 					b_mant    <= {1'b1, in_b[22:0]};
 					if (USE_MULT == 0) begin
 						da_opa  <= {24'b0, 1'b1, in_a[22:0]};
@@ -74,7 +74,15 @@ module fmul
 					a_mant    <= a_mant >> 1;
 					a_exp     <= a_exp + 1'b1;
 				end else begin
-					out       <= {a_sign, a_exp, a_mant[22:0]};
+					if ($signed(a_exp) >= $signed(10'd255)) begin
+						// handle overflow
+						out       <= {in_a[31] ^ in_b[31], 8'hFE, 23'h7FFFFF};
+					end else if ($signed(a_exp) <= $signed(10'd0)) begin
+						// handle underflow
+						out       <= {in_a[31] ^ in_b[31], 31'b0};
+					end else begin
+						out       <= {a_sign, a_exp[7:0], a_mant[22:0]};
+					end
 					ready     <= 1'b1;
 					fsm_state <= FSM_IDLE;
 				end
