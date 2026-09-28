@@ -173,6 +173,33 @@ uint32_t fdiv(uint32_t a, uint32_t b)
     return (res_sign << 31) | ((res_exp & 0xFF) << 23) | res_mant;
 }
 
+// convert signed int to float
+uint32_t fldi(int32_t x)
+{
+	uint32_t r_sign, r_exp, r_mant;
+	
+	if (!x) return 0;
+	
+	// figure out sign
+	if (x < 0) {
+		r_sign = 1;
+		r_mant = -x;
+	} else {
+		r_sign = 0;
+		r_mant = x;
+	}
+	
+	r_exp = 127 + 31; // max size
+	
+	// normalize
+	while (!(r_mant & (1UL << 31))) {
+		r_mant <<= 1;
+		r_exp   -= 1;
+	}
+	
+	return (r_sign << 31) | ((r_exp&0xFF)<<23) | ((r_mant >> 8) & 0x7FFFFF);
+}
+
 // Generates a raw uint32_t bit-pattern for a valid normalized float
 uint32_t rand_valid_float_bits(void) {
     uint32_t sign = (rand() & 0x1) << 31;
@@ -202,8 +229,10 @@ int main(int argc, char **argv)
 	uint32_t opa, opb, res, opcode, x, *ufres;
 	float *fa, *fb, fres, *fures;
 	
-	fesetround(FE_TOWARDZERO);
+	int command, op;
 	
+	fesetround(FE_TOWARDZERO);
+		
 	fa = (float *)&opa;
 	fb = (float *)&opb;
 	ufres = (uint32_t*)&fres;
@@ -215,26 +244,56 @@ int main(int argc, char **argv)
 	}
 	vec = fopen("fpu.hex", "w");
 	
+	if (!strcmp(argv[1], "addsub")) {
+		command = 0;
+	} else if (!strcmp(argv[1], "mul")) {
+		command = 2;
+	} else if (!strcmp(argv[1], "div")) {
+		command = 3;
+	} else if (!strcmp(argv[1], "fldi")) {
+		command = 4;
+	} else if (!strcmp(argv[1], "fsti")) {
+		command = 5;
+	} else if (!strcmp(argv[1], "any")) {
+		command = 6;
+	}
+	
 	for (x = 0; x < NUM_OF_TESTS; x++) {
+		if (command != 6) {
+			op = command;
+		} else {
+			op = rand() % 6;
+		}		
+		
 		opa = rand_valid_float_bits();
 		opb = rand_valid_float_bits();
-//		*fa = 5;
-//		*fb = 2;
-		if (!strcmp(argv[1], "addsub")) {
-			opcode = rand() & 1;
-			res    = opcode ? fsub(opa, opb) : fadd(opa, opb);
-			fres   = opcode ? *fa - *fb : *fa + *fb;
+		switch (op) {
+			case 0: //addsub
+				opcode = rand() & 1;
+				res    = opcode ? fsub(opa, opb) : fadd(opa, opb);
+				fres   = opcode ? *fa - *fb : *fa + *fb;
+				break;
+			case 2: //mul
+				opcode = 2;
+				res    = fmul(opa, opb);
+				fres   = *fa * *fb;
+				break;
+			case 3: //div
+				opcode = 3;
+				res    = fdiv(opa, opb);
+				fres   = *fa / *fb;
+				break;
+			case 4: //fldi
+				opcode = 4;
+				opb    = 0;
+				opa    = (rand() << 15) ^ rand();
+				res    = fldi(opa);
+				fres   = (int32_t)opa;
+				break;
+			case 5: //fsti
+				break;
 		}
-		if (!strcmp(argv[1], "mul")) {
-			opcode = 2;
-			res    = fmul(opa, opb);
-			fres   = *fa * *fb;
-		}
-		if (!strcmp(argv[1], "div")) {
-			opcode = 3;
-			res    = fdiv(opa, opb);
-			fres   = *fa / *fb;
-		}
+		
 		if (*ufres != res) {
 			printf("-------\nvector: opcode=%u output mismatch %x vs expt=%x\n", opcode, res, *ufres);
 			printf("%f op %f == %f vs %f\n", *fa, *fb, *fures, fres);

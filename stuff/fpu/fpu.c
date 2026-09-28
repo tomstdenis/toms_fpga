@@ -20,7 +20,6 @@ swapped:
 	b_exp  = (b >> 23) & 0xFF;
 	b_mant = (b & ((1UL << 23) - 1)) | (1UL << 23);
 	
-	
 	// sort 
 	if (a_exp < b_exp || (a_exp == b_exp && a_mant < b_mant)) {
 		uint32_t t;
@@ -152,10 +151,15 @@ uint32_t fdiv(uint32_t a, uint32_t b)
     return (res_sign << 31) | ((res_exp & 0xFF) << 23) | res_mant;
 }
 
+#define _GNU_SOURCE
+#include <fenv.h>
+
 int main(void)
 {
 	float a, b, *c;
 	uint32_t *A, *B, r;
+	
+	fesetround(FE_TOWARDZERO);
 	
 	A = (uint32_t *)&a;
 	B = (uint32_t *)&b;
