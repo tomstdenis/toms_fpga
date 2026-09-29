@@ -237,8 +237,8 @@ uint32_t myfsqrt(uint32_t x)
 {
     // Unpack
     uint32_t sign = x >> 31;
-    int      exp  = (x >> 23) & 0xFF;
-    uint64_t mant = (x & 0x7FFFFF) | (1UL << 23);
+    int      exp  = (x >> 23) & 0xFF;			  // exp is 8 bits
+    uint64_t mant = (x & 0x7FFFFF) | (1UL << 23); // mant/res are 49 bits...
     uint64_t res;
     
     if (sign) return 0xffc00000; // NaN
