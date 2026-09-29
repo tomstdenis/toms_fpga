@@ -9,7 +9,7 @@ module nanofpu
 	parameter ENABLE_FLDI    = 1'b1,	// enable fldi
 	parameter ENABLE_FSTI    = 1'b1,	// enable fsti
 
-	parameter USE_MULT       = 1,		// Use inferred multiplier 
+	parameter USE_MULT       = 2,		// 0 -- serial shifter, 1 == 36x36 DSP, 2 == 18x18 DSP
 	parameter USE_BARREL     = 1		// Use barrel shifter (for faddsub/etc)
 )
 (
