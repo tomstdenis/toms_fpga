@@ -1,7 +1,8 @@
 /*
 	float multiply, rounds to zero, tracks overflow/underflow does not track subnorm
 	
-	On ICE40, takes ~28 cycles (243 LUT4, ~200 DFF, 74 CARRY) with USE_MULT=0
+	On ICE40, takes ~28 cycles (243 LUT4, ~200 DFF, 74 CARRY) with USE_MULT=0, (you can enable USE_MULT but your
+Fmax and logic count will suffer).
 
 	On ECP5, takes ~28 cycles (178 LUT4, 197 DFF, 41 carry) with USE_MULT=0, or 
 ~5 cycles (125 LUT4, 121 FF, 4 MULT) with USE_MULT=1.

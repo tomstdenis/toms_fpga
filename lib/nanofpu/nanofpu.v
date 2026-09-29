@@ -1,3 +1,5 @@
+`include "nanofpu.vh"
+
 `default_nettype none
 module nanofpu
 #(
@@ -7,8 +9,8 @@ module nanofpu
 	parameter ENABLE_FLDI    = 1'b1,	// enable fldi
 	parameter ENABLE_FSTI    = 1'b1,	// enable fsti
 
-	parameter USE_MULT       = 0,		// Use inferred multiplier 
-	parameter USE_BARREL     = 0		// Use barrel shifter (for faddsub/etc)
+	parameter USE_MULT       = 1,		// Use inferred multiplier 
+	parameter USE_BARREL     = 1		// Use barrel shifter (for faddsub/etc)
 )
 (
 	input wire clk,
@@ -28,35 +30,35 @@ module nanofpu
 
 	faddsub #(.USE_BARREL(USE_BARREL)) faddsub(
 		.clk(clk), .rst_n(rst_n),
-		.in_a(in_a), .in_b(in_b), .sub_op(opcode[0]), .valid((valid && opcode < 2) ? ENABLE_FADDSUB : 1'b0),
+		.in_a(in_a), .in_b(in_b), .sub_op(opcode[0]), .valid((valid && opcode < `NANOFPU_OP_FMUL) ? ENABLE_FADDSUB : 1'b0),
 		.out(fadd_out), .ready(fadd_ready));
 
 	wire fmul_ready;
 	wire [31:0] fmul_out;
 	fmul #(.USE_MULT(USE_MULT)) fmul (
 		.clk(clk), .rst_n(rst_n),
-		.in_a(in_a), .in_b(in_b), .valid((valid && opcode == 2) ? ENABLE_FMUL : 1'b0),
+		.in_a(in_a), .in_b(in_b), .valid((valid && opcode == `NANOFPU_OP_FMUL) ? ENABLE_FMUL : 1'b0),
 		.out(fmul_out), .ready(fmul_ready));
 
 	wire fdiv_ready;
 	wire [31:0] fdiv_out;
 	fdiv fdiv (
 		.clk(clk), .rst_n(rst_n),
-		.in_a(in_a), .in_b(in_b), .valid((valid && opcode == 3) ? ENABLE_FDIV : 1'b0),
+		.in_a(in_a), .in_b(in_b), .valid((valid && opcode == `NANOFPU_OP_FDIV) ? ENABLE_FDIV : 1'b0),
 		.out(fdiv_out), .ready(fdiv_ready));
 
 	wire fldi_ready;
 	wire [31:0] fldi_out;
 	fldi fldi (
 		.clk(clk), .rst_n(rst_n),
-		.in_a(in_a), .valid((valid && opcode == 4) ? ENABLE_FLDI : 1'b0),
+		.in_a(in_a), .valid((valid && opcode == `NANOFPU_OP_FLDI) ? ENABLE_FLDI : 1'b0),
 		.out(fldi_out), .ready(fldi_ready));
 
 	wire fsti_ready;
 	wire [31:0] fsti_out;
 	fsti fsti (
 		.clk(clk), .rst_n(rst_n),
-		.in_a(in_a), .valid((valid && opcode == 5) ? ENABLE_FSTI : 1'b0),
+		.in_a(in_a), .valid((valid && opcode == `NANOFPU_OP_FSTI) ? ENABLE_FSTI : 1'b0),
 		.out(fsti_out), .ready(fsti_ready));
 
 	always @(posedge clk) begin

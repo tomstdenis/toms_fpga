@@ -1,7 +1,7 @@
 /*
 	Float load float into int32_t
 	
-	Takes 1-24 cycles (depends on many exp bits to shift
+	Takes 1-24 cycles (depends on many exp bits to shift)
 	
 	ICE40: 183 LUT4, ~75 DFF, 36 CARRY
 	ECP5:  119 LUT4, 75 DFF, 20 CARRY
