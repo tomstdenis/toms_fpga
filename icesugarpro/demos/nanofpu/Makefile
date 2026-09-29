@@ -1,7 +1,7 @@
 TARGET=nanofpu
 TOP=top
 FREQ=120
-NUMTESTS=32
+NUMTESTS=50
 
 OBJS+=${TARGET}.v pll.v ../../../lib/nanofpu/nanofpu.v \
 ../../../lib/uart/blocks/tx_uart.v ../../../lib/uart/blocks/rx_uart.v ../../../lib/uart/blocks/uart.v

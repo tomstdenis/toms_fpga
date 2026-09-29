@@ -2,8 +2,9 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <string.h>
+#include <math.h>
 
-uint32_t fadd(uint32_t a, uint32_t b)
+uint32_t myfadd(uint32_t a, uint32_t b)
 {
     uint32_t a_sign = a >> 31, a_exp = (a >> 23) & 0xFF;
     uint32_t b_sign = b >> 31, b_exp = (b >> 23) & 0xFF;
@@ -58,13 +59,13 @@ uint32_t fadd(uint32_t a, uint32_t b)
     return (a_sign << 31) | ((a_exp & 0xFF) << 23) | (a_mant & 0x7FFFFF);
 }
 
-uint32_t fsub(uint32_t a, uint32_t b)
+uint32_t myfsub(uint32_t a, uint32_t b)
 {
-	return fadd(a, b ^ 0x80000000);
+	return myfadd(a, b ^ 0x80000000);
 }
 
 
-uint32_t fmul(uint32_t a, uint32_t b)
+uint32_t myfmul(uint32_t a, uint32_t b)
 {
     // 1. Unpack
     uint32_t a_sign = a >> 31, a_exp = (a >> 23) & 0xFF;
@@ -106,7 +107,7 @@ uint32_t fmul(uint32_t a, uint32_t b)
 
     return (res_sign << 31) | ((uint32_t)res_exp << 23) | res_mant;
 }
-uint32_t fdiv_serial(uint32_t sig_a, uint32_t sig_b)
+uint32_t myfdiv_serial(uint32_t sig_a, uint32_t sig_b)
 {
     // sig_a and sig_b are 24-bit numbers [1.0, 2.0)
     uint64_t rem = (uint64_t)(sig_a & 0xFFFFFF) << 24; // Align dividend
@@ -129,7 +130,7 @@ uint32_t fdiv_serial(uint32_t sig_a, uint32_t sig_b)
     return quot; // Returns 25-bit quotient
 }
 
-uint32_t fdiv(uint32_t a, uint32_t b)
+uint32_t myfdiv(uint32_t a, uint32_t b)
 {
     // 1. Unpack & Restore Hidden Bit
     uint32_t a_sign = a >> 31;
@@ -145,7 +146,7 @@ uint32_t fdiv(uint32_t a, uint32_t b)
     int32_t  res_exp  = (int32_t)a_exp - (int32_t)b_exp + 127;
 
     // 3. Serial Divide
-    uint32_t quot = fdiv_serial(a_sig, b_sig);
+    uint32_t quot = myfdiv_serial(a_sig, b_sig);
 
     // 4. Renormalize Output
     uint32_t res_mant;
@@ -232,7 +233,7 @@ int32_t fsti(uint32_t x)
 	return sign ? -mant : mant;
 }
 
-uint32_t fsqrt(uint32_t x)
+uint32_t myfsqrt(uint32_t x)
 {
     // Unpack
     uint32_t sign = x >> 31;
@@ -240,38 +241,56 @@ uint32_t fsqrt(uint32_t x)
     uint32_t mant = (x & 0x7FFFFF) | (1UL << 23);
     uint32_t res;
     
-    if (sign) return 0x7FFFFFFF; // NaN
+    if (sign) return 0xffc00000; // NaN
     if (exp == 0) return 0;
     
-    // Unbias exponent
-    exp = exp - 127;
+	// unbias and half the exponent (sub 1 and shift mantissa if exp is odd)
+    if (exp & 1) {
+		exp = (exp - 128) >> 1;
+		mant = mant << 1;
+	} else {
+		exp = (exp - 127) >> 1;
+	}
+       
+	// Digit-by-digit square root extraction (Restoring method)
+    // 
+    // Invariants per step testing bit k (from k=13 down to 0):
+    //   - mant : Remaining remainder = X - (R_{k+1})^2
+    //   - one  : Candidate bit weight squared = (2^k)^2 = 2^(2k)
+    //   - res  : Pre-scaled cross-term        = 2 * R_{k+1} * 2^k
+    //
+    // Candidate expansion: (R_{k+1} + 2^k)^2 = (R_{k+1})^2 + [2 * R_{k+1} * 2^k + (2^k)^2]
+    // The required extra delta to subtract is:  res + one
     
-    // Check if exponent is odd (if even in unbiased, adjust for odd power)
-    if (!(exp & 1)) {
-        mant <<= 1; // mantissa becomes [2.0, 4.0)
-        exp -= 1;   // make exponent even
-    }
-    
-    // Halve the even exponent
-    exp >>= 1; 
-        
-    // Area-optimized digit-by-digit root extraction (14 iterations, no barrel shifter)
-    uint32_t one = 1UL << 26; // 2^(2*13)
-    res = 0;
+    uint32_t one = 1UL << 26; // (2^13)^2 — starting mask for MSB (bit 13)
+    res = 0;                  // Initial cross-term = 2 * R_14 * 2^13 = 0
 
     while (one != 0) {
+        // Test if adding 2^k to the root keeps (candidate_root)^2 <= mantissa
         if (mant >= res + one) {
+            // Bit k fits (1): deduct (2*R_{k+1}*2^k + 2^(2k)) from remainder
             mant -= res + one;
+
+            // Prepare 'res' for step k-1 where R_k = R_{k+1} + 2^k:
+            // Next res = 2 * R_k * 2^(k-1)
+            //          = 2 * (R_{k+1} + 2^k) * 2^(k-1)
+            //          = (2 * R_{k+1} * 2^k) / 2 + (2^k)^2
+            //          = (res >> 1) + one
             res = (res >> 1) + one;
         } else {
+            // Bit k does not fit (0): root remains R_k = R_{k+1}
+            // Prepare 'res' for step k-1:
+            // Next res = 2 * R_{k+1} * 2^(k-1) = res / 2
             res >>= 1;
         }
+
+        // Scale mask down for step k-1: (2^(k-1))^2 = (2^2k) / 4
         one >>= 2;
     }
-
     // Align 24-bit result (bit 23 is the explicit 1.x leading bit)
     res <<= 12;
 
+	// overflow
     if (res & (1UL << 24)) {
         res >>= 1;
         exp += 1;
@@ -327,11 +346,10 @@ int main(int argc, char **argv)
 	ufres = (uint32_t*)&fres;
 	fures = (float *)&res;
 	
-	*fa = 4.0; print_float("4.0", opa); *fa = *fa * *fa; print_float("**2", opa); opa = fsqrt(opa); print_float("sqrt(**2)", opa);
-	*fa = 10.0; print_float("10.0", opa); *fa = *fa * *fa; print_float("**2", opa); opa = fsqrt(opa); print_float("sqrt(**2)", opa);
-	*fa = 0.25; print_float("0.25", opa); *fa = *fa * *fa; print_float("**2", opa); opa = fsqrt(opa); print_float("sqrt(**2)", opa);
-
-	return 0;
+//	*fa = 4.0; print_float("4.0", opa); *fa = *fa * *fa; print_float("**2", opa); opa = myfsqrt(opa); print_float("sqrt(**2)", opa);
+//	*fa = 10.0; print_float("10.0", opa); *fa = *fa * *fa; print_float("**2", opa); opa = myfsqrt(opa); print_float("sqrt(**2)", opa);
+//	*fa = 0.25; print_float("0.25", opa); *fa = *fa * *fa; print_float("**2", opa); opa = myfsqrt(opa); print_float("sqrt(**2)", opa);
+//	return 0;
 	
 	
 	if (argc == 1) {
@@ -350,15 +368,17 @@ int main(int argc, char **argv)
 		command = 4;
 	} else if (!strcmp(argv[1], "fsti")) {
 		command = 5;
-	} else if (!strcmp(argv[1], "any")) {
+	} else if (!strcmp(argv[1], "fsqrt")) {
 		command = 6;
+	} else if (!strcmp(argv[1], "any")) {
+		command = 7;
 	}
 	
 	for (x = 0; x < NUM_OF_TESTS; x++) {
-		if (command != 6) {
+		if (command != 7) {
 			op = command;
 		} else {
-			op = rand() % 6;
+			op = rand() % 7;
 		}		
 		
 		opa = rand_valid_float_bits();
@@ -367,17 +387,17 @@ int main(int argc, char **argv)
 			case 1:
 			case 0: //addsub
 				opcode = rand() & 1;
-				res    = opcode ? fsub(opa, opb) : fadd(opa, opb);
+				res    = opcode ? myfsub(opa, opb) : myfadd(opa, opb);
 				fres   = opcode ? *fa - *fb : *fa + *fb;
 				break;
 			case 2: //mul
 				opcode = 2;
-				res    = fmul(opa, opb);
+				res    = myfmul(opa, opb);
 				fres   = *fa * *fb;
 				break;
 			case 3: //div
 				opcode = 3;
-				res    = fdiv(opa, opb);
+				res    = myfdiv(opa, opb);
 				fres   = *fa / *fb;
 				break;
 			case 4: //fldi
@@ -391,6 +411,12 @@ int main(int argc, char **argv)
 				opcode = 5;
 				opb    = 0;
 				res    = fsti(opa);
+				break;
+			case 6: //fsqrt
+				opcode = 6;
+				opb    = 0;
+				res    = myfsqrt(opa);
+				fres   = sqrtf(*fa);
 				break;
 		}
 		
