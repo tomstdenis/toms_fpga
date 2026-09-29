@@ -234,7 +234,7 @@ int32_t fsti(uint32_t x)
 
 uint32_t fsqrt(uint32_t x)
 {
-	// unpack
+    // Unpack
     uint32_t sign = x >> 31;
     int      exp  = (x >> 23) & 0xFF;
     uint32_t mant = (x & 0x7FFFFF) | (1UL << 23);
@@ -246,7 +246,7 @@ uint32_t fsqrt(uint32_t x)
     // Unbias exponent
     exp = exp - 127;
     
-    // Check if biased exponent is odd (we subtracted an odd so test for even)
+    // Check if exponent is odd (if even in unbiased, adjust for odd power)
     if (!(exp & 1)) {
         mant <<= 1; // mantissa becomes [2.0, 4.0)
         exp -= 1;   // make exponent even
@@ -254,16 +254,21 @@ uint32_t fsqrt(uint32_t x)
     
     // Halve the even exponent
     exp >>= 1; 
-       
-    // Binary search for root (naive DSP way)
-    res = 0;
-    for (int k = 13; k >= 0; k--) {
-        res |= (1UL << k);
-        if ((res * res) > mant) {
-            res ^= (1ULL << k);
-        }
-    }
         
+    // Area-optimized digit-by-digit root extraction (14 iterations, no barrel shifter)
+    uint32_t one = 1UL << 26; // 2^(2*13)
+    res = 0;
+
+    while (one != 0) {
+        if (mant >= res + one) {
+            mant -= res + one;
+            res = (res >> 1) + one;
+        } else {
+            res >>= 1;
+        }
+        one >>= 2;
+    }
+
     // Align 24-bit result (bit 23 is the explicit 1.x leading bit)
     res <<= 12;
 
@@ -272,11 +277,11 @@ uint32_t fsqrt(uint32_t x)
         exp += 1;
     }
     
-    // normalize
+    // Normalize
     while (!(res & (1UL << 23))) {
-		res <<= 1;
-		exp -= 1;
-	}
+        res <<= 1;
+        exp -= 1;
+    }
     
     // Re-bias exponent and pack
     exp = exp + 127;
@@ -326,8 +331,7 @@ int main(int argc, char **argv)
 	*fa = 10.0; print_float("10.0", opa); *fa = *fa * *fa; print_float("**2", opa); opa = fsqrt(opa); print_float("sqrt(**2)", opa);
 	*fa = 0.25; print_float("0.25", opa); *fa = *fa * *fa; print_float("**2", opa); opa = fsqrt(opa); print_float("sqrt(**2)", opa);
 
-
-	//return 0;
+	return 0;
 	
 	
 	if (argc == 1) {
