@@ -8,6 +8,7 @@ module nanofpu
 	parameter ENABLE_FDIV    = 1'b1,	// enable fdiv
 	parameter ENABLE_FLDI    = 1'b1,	// enable fldi
 	parameter ENABLE_FSTI    = 1'b1,	// enable fsti
+	parameter ENABLE_FSQRT   = 1'b1,    // enable fsqrt
 
 	parameter USE_MULT       		 = 2,	// 0 -- serial shifter, 1 == 36x36 DSP, 2 == 18x18 DSP
 	parameter USE_FADDSUB_BARREL     = 1,	// Use barrel shifter for faddsub
@@ -62,6 +63,13 @@ module nanofpu
 		.in_a(in_a), .valid((valid && opcode == `NANOFPU_OP_FSTI) ? ENABLE_FSTI : 1'b0),
 		.out(fsti_out), .ready(fsti_ready));
 
+	wire fsqrt_ready;
+	wire [31:0] fsqrt_out;
+	fsqrt fsqrt (
+		.clk(clk), .rst_n(rst_n),
+		.in_a(in_a), .valid((valid && opcode == `NANOFPU_OP_FSQRT) ? ENABLE_FSQRT : 1'b0),
+		.out(fsqrt_out), .ready(fsqrt_ready));
+
 	always @(posedge clk) begin
 		ready <= 1'b0;
 		if (fadd_ready) begin
@@ -84,6 +92,10 @@ module nanofpu
 			out   <= fsti_out;
 			ready <= 1'b1;
 		end
+		if (fsqrt_ready) begin
+			out   <= fsqrt_out;
+			ready <= 1'b1;
+		end
 		if (~rst_n) begin
 			out   <= 32'b0;
 			ready <= 1'b0;
@@ -96,3 +108,4 @@ endmodule
 `include "fdiv.v"
 `include "fldi.v"
 `include "fsti.v"
+`include "fsqrt.v"
