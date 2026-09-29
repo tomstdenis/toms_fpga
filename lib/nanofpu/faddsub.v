@@ -1,9 +1,9 @@
 /*
 	float add/subtract, rounds to zero, does not track GRS
 	
-	On ICE40, Takes ~28 cycles (356 LUT4, ~100 DFF, bit more CARRY) with USE_BARREL=0, or ~4 cycles (449 LUT4, ~100 DFF, 98 CARRY) with USE_BARREL=1
+	On ICE40, Takes ~28 cycles (356 LUT4, ~100 DFF, bit more CARRY) with USE_BARREL=0, or ~4 cycles (444 LUT4, ~100 DFF, 102 CARRY) with USE_BARREL=1
 	
-	On ECP5, Takes ~28 cycles (536 LUT4, 104 DFF, 57 CARRY) with USE_BARREL=0, or ~4 cycles (551 LUT4, 105 DFF, 53 CARRY) with USE_BARREL=1
+	On ECP5, Takes ~28 cycles (536 LUT4, 104 DFF, 57 CARRY) with USE_BARREL=0, or ~4 cycles (482 LUT4, 105 DFF, 55 CARRY) with USE_BARREL=1
 
 */
 
@@ -11,7 +11,7 @@
 
 module faddsub
 #(
-	parameter USE_BARREL=0			// use a barrel shifter (drops from ~30 to ~3 cycles)
+	parameter USE_BARREL=1			// use a barrel shifter (drops from ~30 to ~3 cycles)
 )
 (
 	input wire clk,
@@ -72,7 +72,11 @@ module faddsub
 			FSM_ALIGN: begin
 				fsm_state     <= FSM_CORE;
 				if (USE_BARREL == 1) begin
-					b_mant        <= b_mant >> exp_delta;
+					if (exp_delta < 24) begin
+						b_mant    <= b_mant >> exp_delta[4:0];
+					end else begin
+						b_mant    <= 0;
+					end
 				end else begin
 					if (b_mant != 0 && b_exp < a_exp) begin
 						b_mant    <= b_mant >> 1;
