@@ -238,8 +238,8 @@ uint32_t myfsqrt(uint32_t x)
     // Unpack
     uint32_t sign = x >> 31;
     int      exp  = (x >> 23) & 0xFF;
-    uint32_t mant = (x & 0x7FFFFF) | (1UL << 23);
-    uint32_t res;
+    uint64_t mant = (x & 0x7FFFFF) | (1UL << 23);
+    uint64_t res;
     
     if (sign) return 0xffc00000; // NaN
     if (exp == 0) return 0;
@@ -262,7 +262,10 @@ uint32_t myfsqrt(uint32_t x)
     // Candidate expansion: (R_{k+1} + 2^k)^2 = (R_{k+1})^2 + [2 * R_{k+1} * 2^k + (2^k)^2]
     // The required extra delta to subtract is:  res + one
     
-    uint32_t one = 1UL << 26; // (2^13)^2 — starting mask for MSB (bit 13)
+    // scale mantissa up
+	mant <<= 24;
+
+    uint64_t one = 1ULL << 48; // (2^25)^2 — starting mask for MSB (bit 13)
     res = 0;                  // Initial cross-term = 2 * R_14 * 2^13 = 0
 
     while (one != 0) {
@@ -287,8 +290,9 @@ uint32_t myfsqrt(uint32_t x)
         // Scale mask down for step k-1: (2^(k-1))^2 = (2^2k) / 4
         one >>= 2;
     }
+
     // Align 24-bit result (bit 23 is the explicit 1.x leading bit)
-    res <<= 12;
+//    res <<= 12;
 
 	// overflow
     if (res & (1UL << 24)) {
@@ -350,7 +354,6 @@ int main(int argc, char **argv)
 //	*fa = 10.0; print_float("10.0", opa); *fa = *fa * *fa; print_float("**2", opa); opa = myfsqrt(opa); print_float("sqrt(**2)", opa);
 //	*fa = 0.25; print_float("0.25", opa); *fa = *fa * *fa; print_float("**2", opa); opa = myfsqrt(opa); print_float("sqrt(**2)", opa);
 //	return 0;
-	
 	
 	if (argc == 1) {
 		printf("%s: addsub | mul | div\n\r", argv[0]);
