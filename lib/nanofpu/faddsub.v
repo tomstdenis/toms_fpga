@@ -1,9 +1,9 @@
 /*
 	float add/subtract, rounds to zero, does not track GRS
 	
-	On ICE40, Takes ~28 cycles (356 LUT4, ~100 DFF, bit more CARRY) with USE_BARREL=0, or ~4 cycles (444 LUT4, ~100 DFF, 102 CARRY) with USE_BARREL=1
+	On ICE40, Takes ~28 cycles (353 LUT4, 73 DFF, 105 CARRY) with USE_BARREL=0, or ~4 cycles (442 LUT4, 73 DFF, 102 CARRY) with USE_BARREL=1
 	
-	On ECP5, Takes ~28 cycles (536 LUT4, 104 DFF, 57 CARRY) with USE_BARREL=0, or ~4 cycles (482 LUT4, 105 DFF, 55 CARRY) with USE_BARREL=1
+	On ECP5, Takes ~28 cycles (530 LUT4, 72 DFF, 57 CARRY) with USE_BARREL=0, or ~4 cycles (399 LUT4, 73 DFF, 55 CARRY) with USE_BARREL=1
 
 */
 
@@ -22,7 +22,7 @@ module faddsub
 	input wire        sub_op,		// 0 == addition, 1 == sub
 	input wire        valid,		// command valid
 	
-	output reg [31:0] out,			// result
+	output wire [31:0] out,			// result
 	output reg        ready			// result is valid
 );
 
@@ -35,6 +35,8 @@ module faddsub
 	reg [1:0]  fsm_state;
 	
 	reg [7:0]  exp_delta;
+	
+	assign out = {a_sign, a_exp, a_mant[22:0]};
 
 	localparam
 		FSM_IDLE  = 0,
@@ -102,7 +104,6 @@ module faddsub
 						a_mant <= a_mant << 1;
 						a_exp  <= a_exp - 1'b1;
 					end else begin
-						out       <= {a_sign, a_exp, a_mant[22:0]};
 						ready     <= 1'b1;
 						fsm_state <= FSM_IDLE;
 					end
@@ -112,7 +113,6 @@ module faddsub
 		if (~rst_n) begin
 			fsm_state <= FSM_IDLE;
 			issub     <= 1'b0;
-			out       <= 32'b0;
 		end
 	end
 endmodule

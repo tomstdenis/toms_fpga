@@ -374,7 +374,7 @@ int main(int argc, char **argv)
 		if (command != 7) {
 			op = command;
 		} else {
-			op = rand() % 7;
+			op = x % 7;
 		}		
 		
 		opa = rand_valid_float_bits();
@@ -411,7 +411,10 @@ int main(int argc, char **argv)
 			case 6: //fsqrt
 				opcode = 6;
 				opb    = 0;
-				res    = myfsqrt(opa);
+				do {
+					opa = rand_valid_float_bits();
+					res    = myfsqrt(opa);
+				} while (command == 7 && *fa <0.0);
 				fres   = sqrtf(*fa);
 				break;
 		}

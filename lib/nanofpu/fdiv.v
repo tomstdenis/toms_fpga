@@ -1,9 +1,9 @@
 /*
 	float divide, rounds to zero, tracks overflow/underflow does not track subnorm
 	
-	On ICE40, takes ~28 cycles (249 LUT4, ~200 DFF, 59 CARRY)
+	On ICE40, takes ~28 cycles (250 LUT4, 166 DFF, 59 CARRY)
 	
-	On ECP5, takes ~28 cycles (182 LUT4, 197 DFF, 35 CARRY)
+	On ECP5, takes ~28 cycles (184 LUT4, 165 DFF, 35 CARRY)
 
 */
 
@@ -18,7 +18,7 @@ module fdiv
     input wire [31:0] in_b,
     input wire        valid,        // command valid
     
-    output reg [31:0] out,          // result
+    output wire [31:0] out,          // result
     output reg        ready         // result is valid
 );
     reg        a_sign;
@@ -26,6 +26,8 @@ module fdiv
     reg [23:0] a_mant;
     reg [23:0] b_mant;
     reg [22:0] res_frac;
+    
+    assign out = {a_sign, a_exp[7:0], res_frac};
     
     wire [24:0] quot;
     reg [1:0]  fsm_state;
@@ -80,12 +82,12 @@ module fdiv
             FSM_NORM: begin
 				if ($signed(a_exp) >= $signed(10'd255)) begin
 					// handle overflow
-					out       <= {a_sign, 8'hFE, 23'h7FFFFF};
+					a_exp    <= 8'hFE;
+					res_frac <= 23'h7FFFFF;
 				end else if ($signed(a_exp) <= $signed(10'd0)) begin
 					// handle underflow
-					out       <= {a_sign, 31'b0};
-				end else begin
-					out       <= {a_sign, a_exp[7:0], res_frac};
+					a_exp    <= 0;
+					res_frac <= 0;
 				end
                 ready     <= 1'b1;
                 fsm_state <= FSM_IDLE;
@@ -96,7 +98,6 @@ module fdiv
             ready         <= 1'b0;
             divider_valid <= 1'b0;
             fsm_state     <= FSM_IDLE;
-            out           <= 32'b0;
         end
     end
 endmodule

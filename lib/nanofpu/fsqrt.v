@@ -3,9 +3,9 @@
 	
 	Takes 30 cycles.
 	
-	ICE40: 375 LUT4, 168 DFF, 157 CARRY
-	ECP5 : 342 LUT4, 168 DFF, 83 CARRY, 36 L6MUX21
-	
+	ICE40: 364 LUT4, 136 DFF, 157 CARRY
+	ECP5 : 294 LUT4, 136 DFF, 83 CARRY, 34 L6MUX21
+
 */
 `default_nettype none
 
@@ -17,7 +17,7 @@ module fsqrt
 	input wire [31:0] in_a,			// float
 	input wire        valid,		// command valid
 	
-	output reg [31:0] out,			// sqrt(float)
+	output wire [31:0] out,			// sqrt(float)
 	output reg        ready			// result is valid
 );
 	reg [7:0]  a_exp;
@@ -32,6 +32,8 @@ module fsqrt
 		FSM_REDUCE = 2,
 		FSM_NORM   = 3;
 
+	assign out = res[31:0];
+
 	always @(posedge clk) begin
 		ready     <= 1'b0;
 		case (fsm_state)
@@ -39,11 +41,11 @@ module fsqrt
 				if (~ready & valid) begin
 					if (in_a[31]) begin
 						// only positive
-						out       <= 32'hffc00000;
+						res[31:0] <= 32'hffc00000;
 						ready     <= 1'b1;
 					end else if (in_a[30:23] == 8'h00) begin
 						// handle zero
-						out       <= 32'b0;
+						res[31:0] <= 32'b0;
 						ready     <= 1'b1;
 					end else begin
 						// prepare for handling 
@@ -89,15 +91,15 @@ module fsqrt
 					res[23:0]  <= {res[22:0], 1'b0};
 					a_exp      <= a_exp - 1;
 				end else begin
-					out       <= {1'b0, a_exp, res[22:0]};
-					ready     <= 1;
-					fsm_state <= FSM_IDLE;
+					res[31:0]  <= {1'b0, a_exp, res[22:0]};
+					ready      <= 1;
+					fsm_state  <= FSM_IDLE;
 				end
 			end
 		endcase	
 		if (~rst_n) begin
 			fsm_state <= FSM_IDLE;
-			out       <= 32'b0;
+			res[31:0] <= 32'b0;
 		end
 	end
 endmodule

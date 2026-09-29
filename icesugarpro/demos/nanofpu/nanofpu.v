@@ -79,7 +79,6 @@ module top(
 		STATE_DELAY = 3,
 		STATE_DELAY2 = 4;
 		
-		
     always @(posedge pll_clk) begin
 		fp_valid         <= 0;
 		uart_tx_start    <= 0;
@@ -93,16 +92,16 @@ module top(
         end else begin
             case (test_state)
 				STATE_DELAY: begin
-					test_state <= STATE_DELAY2;
+					test_state          <= STATE_DELAY2;
 				end
 				STATE_DELAY2: begin
-					test_state <= STATE_ISSUE;
+					test_state          <= STATE_ISSUE;
 					cur_command_latched <= cur_command;
 				end
 				STATE_ISSUE:
 					begin
-						test_state    <= STATE_WAIT;
-						fp_valid      <= 1;
+						test_state      <= STATE_WAIT;
+						fp_valid        <= 1;
 					end
 				STATE_WAIT:
 					begin

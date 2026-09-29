@@ -1,18 +1,20 @@
 /*
 	float multiply, rounds to zero, tracks overflow/underflow does not track subnorm
 	
-	On ICE40, takes ~28 cycles (243 LUT4, ~200 DFF, 74 CARRY) with USE_MULT=0, (you can enable USE_MULT but your
-Fmax and logic count will suffer).
+	On ICE40, 
+		USE_MULT=0: takes ~28 cycles (221 LUT4, 165 DFF, 74 CARRY)
 
-	On ECP5, takes ~28 cycles (178 LUT4, 197 DFF, 41 carry) with USE_MULT=0, or 
-~5 cycles (125 LUT4, 121 FF, 4 MULT) with USE_MULT=1.
+	On ECP5, takes 
+		USE_MULT=0: ~28 cycles (178 LUT4, 197 DFF, 41 carry)
+		USE_MULT=1: ~5 cycles (123 LUT4, 89 FF, 4 MULT)
+		USE_MULT=2: ~6 cycles (125 LUT4, 186 FF, 4 MULT)
 
 */
 
 `default_nettype none
 module fmul
 #(
-	parameter USE_MULT=2
+	parameter USE_MULT=0
 )
 (
 	input wire clk,
@@ -22,7 +24,7 @@ module fmul
 	input wire [31:0] in_b,
 	input wire        valid,		// command valid
 	
-	output reg [31:0] out,			// result
+	output wire [31:0] out,			// result
 	output reg        ready			// result is valid
 );
 	reg        a_sign;
@@ -33,6 +35,8 @@ module fmul
 	
 	wire [47:0] product;
 	assign product = a_mant[23:0] * b_mant[23:0];
+	
+	assign out = {a_sign, a_exp[7:0], a_mant[22:0]};
 
 	localparam
 		FSM_IDLE  = 0,
@@ -109,12 +113,12 @@ module fmul
 				end else begin
 					if ($signed(a_exp) >= $signed(10'd255)) begin
 						// handle overflow
-						out       <= {a_sign, 8'hFE, 23'h7FFFFF};
+						a_exp     <= 8'hFE;
+						a_mant    <= 23'h7FFFFF;
 					end else if ($signed(a_exp) <= $signed(10'd0)) begin
 						// handle underflow
-						out       <= {a_sign, 31'b0};
-					end else begin
-						out       <= {a_sign, a_exp[7:0], a_mant[22:0]};
+						a_exp     <= 0;
+						a_mant    <= 0;
 					end
 					ready     <= 1'b1;
 					fsm_state <= FSM_IDLE;
@@ -123,7 +127,6 @@ module fmul
 		endcase	
 		if (~rst_n) begin
 			fsm_state <= FSM_IDLE;
-			out       <= 32'b0;
 		end
 	end
 endmodule
