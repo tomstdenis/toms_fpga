@@ -238,7 +238,7 @@ uint32_t myfsqrt(uint32_t x)
     // Unpack
     uint32_t sign = x >> 31;
     int      exp  = (x >> 23) & 0xFF;			  // exp is 8 bits
-    uint64_t mant = (x & 0x7FFFFF) | (1UL << 23); // mant/res are 49 bits...
+    uint64_t mant = ((x & 0x7FFFFFULL) | (1ULL << 23)) << 24; // mant/res are 49 bits...
     uint64_t res;
     
     if (sign) return 0xffc00000; // NaN
@@ -262,9 +262,6 @@ uint32_t myfsqrt(uint32_t x)
     // Candidate expansion: (R_{k+1} + 2^k)^2 = (R_{k+1})^2 + [2 * R_{k+1} * 2^k + (2^k)^2]
     // The required extra delta to subtract is:  res + one
     
-    // scale mantissa up
-	mant <<= 24;
-
     uint64_t one = 1ULL << 48; // (2^24)^2 — starting mask for MSB (bit 13)
     res = 0;                  // Initial cross-term = 2 * R_14 * 2^13 = 0
 

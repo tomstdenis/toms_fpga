@@ -22,6 +22,11 @@ test_fsti.pass: fsti_tb.v
 	iverilog ${F} -D MODEL_SIM -D NUM_OF_TESTS=${NUMTESTS} -o sim.vvp $^
 	(vvp sim.vvp -fst > $@.log && touch $@) || cat $@.log
 
+test_fsqrt.pass: fsqrt_tb.v
+	./vecgen fsqrt
+	iverilog ${F} -D MODEL_SIM -D NUM_OF_TESTS=${NUMTESTS} -o sim.vvp $^
+	(vvp sim.vvp -fst > $@.log && touch $@) || cat $@.log
+
 test_fdiv.pass: fdiv_tb.v
 	./vecgen div
 	iverilog ${F} -D MODEL_SIM -D NUM_OF_TESTS=${NUMTESTS} -o sim.vvp $^
