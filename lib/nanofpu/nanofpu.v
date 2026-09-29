@@ -34,6 +34,28 @@
      1637   LUT4
       331   PFUMX
       689   TRELLIS_FF
+      
+      Configured for Perf (MULT=1, both barrel) on Gowin we get
+      
+      1555  LUT
+       575  DFF
+       351  MUX
+         1  MULT36X36
+       463  ALU
+       
+       Configured the same for Xilinx
+
+        1   BUFG
+        2   DSP48E1
+       70   IBUF
+      131   INV
+      281   LUT2
+      181   LUT3
+      174   LUT4
+      358   LUT5
+      266   LUT6
+       33   OBUF
+	Estimated number of LCs:        979
 
 */
 
@@ -49,7 +71,7 @@ module nanofpu
 	parameter ENABLE_FSTI    = 1'b1,	// enable fsti
 	parameter ENABLE_FSQRT   = 1'b1,    // enable fsqrt
 
-	parameter USE_MULT       		 = 2,	// 0 -- serial shifter, 1 == 36x36 DSP, 2 == 18x18 DSP
+	parameter USE_MULT       		 = 1,	// 0 -- serial shifter, 1 == 36x36 DSP, 2 == 18x18 DSP
 	parameter USE_FADDSUB_BARREL     = 1,	// Use barrel shifter for faddsub
 	parameter USE_FSTI_BARREL        = 1	// Use barrel shifter for fsti (it's kinda big)
 )

@@ -65,22 +65,22 @@ module fsqrt
 					a_mant[48:24] <= a_mant[48:24] << 1;
 				end else begin
 					// even exponents
-					a_exp  <= (a_exp - 127) >> 1;
+					a_exp         <= (a_exp - 127) >> 1;
 				end
 			end
 			FSM_REDUCE: begin
 				if (one != 0) begin
 					if (a_mant >= (res + one)) begin
 						a_mant <= a_mant - (res + one);
-						res  <= (res >> 1) + one;
+						res    <= (res >> 1) + one;
 					end else begin
-						res  <= res >> 1;
+						res    <= res >> 1;
 					end
-					one <= one >> 2;
+					one        <= one >> 2;
 				end else begin
 					// normalize
-					a_exp     <= a_exp + 127;
-					fsm_state <= FSM_NORM;
+					a_exp      <= a_exp + 127;
+					fsm_state  <= FSM_NORM;
 				end
 			end
 			FSM_NORM: begin
