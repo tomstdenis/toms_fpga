@@ -8,8 +8,8 @@
 	ECP5:  119 LUT4, 75 DFF, 20 CARRY
 	
 	USE_BARREL=1
-	ICE40: 524 LUT4, ~100 DFF, 59 CARRY
-	ECP5:  1092 LUT4, 91 DFF, 34 CARRY, 311 L6MUX
+	ICE40: 488 LUT4, 85 DFF, 53 CARRY
+	ECP5:  559 LUT4, 85 DFF, 30 CARRY, 26 L6MUX
 
 */
 `default_nettype none
@@ -17,7 +17,7 @@
 // load a float into an int32_t
 module fsti
 #(
-	parameter USE_BARREL=1			// enable a (large) barrel shifter drops cycle count down quite a bit
+	parameter USE_BARREL=1			// enable a (large, rooughly 3-5x larger) barrel shifter drops cycle count down quite a bit
 )
 (
 	input wire clk,
@@ -34,8 +34,8 @@ module fsti
 	reg [31:0] a_mant;
 	reg        fsm_state;
 	
-	reg [7:0]  a_exp_over;
-	reg [7:0]  a_exp_under;
+	reg [4:0]  a_exp_over;
+	reg [4:0]  a_exp_under;
 
 	localparam
 		FSM_IDLE  = 0,

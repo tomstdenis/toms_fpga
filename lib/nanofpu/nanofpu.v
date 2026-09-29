@@ -9,9 +9,9 @@ module nanofpu
 	parameter ENABLE_FLDI    = 1'b1,	// enable fldi
 	parameter ENABLE_FSTI    = 1'b1,	// enable fsti
 
-	parameter USE_MULT       		 = 2,		// 0 -- serial shifter, 1 == 36x36 DSP, 2 == 18x18 DSP
-	parameter USE_FADDSUB_BARREL     = 1,		// Use barrel shifter for faddsub
-	parameter USE_FSTI_BARREL        = 1		// Use barrel shifter for fsti (it's kinda big)
+	parameter USE_MULT       		 = 2,	// 0 -- serial shifter, 1 == 36x36 DSP, 2 == 18x18 DSP
+	parameter USE_FADDSUB_BARREL     = 1,	// Use barrel shifter for faddsub
+	parameter USE_FSTI_BARREL        = 1	// Use barrel shifter for fsti (it's kinda big)
 )
 (
 	input wire clk,
@@ -19,7 +19,7 @@ module nanofpu
 	
 	input wire [31:0] in_a,
 	input wire [31:0] in_b,
-	input wire [2:0]  opcode,		// 0=ADD, 1=SUB, 2=MUL, 3=DIV
+	input wire [2:0]  opcode,		// 0=ADD, 1=SUB, 2=MUL, 3=DIV, 4=FLDI, 5=FSTI
 	input wire        valid,		// command valid
 	
 	output reg [31:0] out,			// result
