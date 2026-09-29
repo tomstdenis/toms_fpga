@@ -1,6 +1,6 @@
 TARGET=nanofpu
 TOP=top
-FREQ=115
+FREQ=120
 NUMTESTS=32
 
 OBJS+=${TARGET}.v pll.v ../../../lib/nanofpu/nanofpu.v \

@@ -63,7 +63,7 @@ module top(
 	
 	nanofpu #(
 		.USE_BARREL(0),
-		.USE_MULT(0)
+		.USE_MULT(2)
 	) nanofpu_dut(
 		.clk(pll_clk), .rst_n(rst_n),
 		.in_a(oper_a), .in_b(oper_b), .opcode(opcode[2:0]), .valid(fp_valid),

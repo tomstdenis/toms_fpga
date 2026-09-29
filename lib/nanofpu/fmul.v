@@ -12,7 +12,7 @@ Fmax and logic count will suffer).
 `default_nettype none
 module fmul
 #(
-	parameter USE_MULT=0
+	parameter USE_MULT=2
 )
 (
 	input wire clk,
@@ -29,20 +29,26 @@ module fmul
 	reg [9:0]  a_exp;
 	reg [24:0] a_mant;
 	reg [23:0] b_mant;
-	reg [1:0]  fsm_state;
+	reg [2:0]  fsm_state;
 	
 	wire [47:0] product;
-	assign product = a_mant * b_mant;
+	assign product = a_mant[23:0] * b_mant[23:0];
 
 	localparam
 		FSM_IDLE  = 0,
 		FSM_CORE  = 1,
 		FSM_REG   = 2,
-		FSM_NORM  = 3;
+		FSM_REG2  = 3,
+		FSM_NORM  = 4;
 	
 	reg [47:0] da_prod;
 	reg [47:0] da_opa;
 	reg [4:0]  da_cnt;
+	
+	reg [35:0] p00_prod;
+	reg [35:0] p01_prod;
+	reg [35:0] p10_prod;
+	reg [35:0] p11_prod;
 	
 	always @(posedge clk) begin
 		ready     <= 1'b0;
@@ -62,8 +68,14 @@ module fmul
 				end
 			end
 			FSM_CORE: begin
-				if (USE_MULT == 1) begin
-					da_prod     <= product[47:23];
+				if (USE_MULT == 2) begin
+					p00_prod <= a_mant[17:0] * b_mant[17:0];
+					p01_prod <= a_mant[17:0] * b_mant[23:18];
+					p10_prod <= a_mant[23:18] * b_mant[17:0];
+					p11_prod <= a_mant[23:18] * b_mant[23:18];
+					fsm_state <= FSM_REG2;
+				end else if (USE_MULT == 1) begin
+					da_prod     <= a_mant[23:0] * b_mant[23:0];
 					fsm_state   <= FSM_REG;
 				end else begin
 					b_mant <= b_mant >> 1;
@@ -78,9 +90,17 @@ module fmul
 					end
 				end
 			end
+			FSM_REG2: begin
+				if (USE_MULT == 2) begin
+					da_prod   <= p00_prod + ((p01_prod + p10_prod) << 18) + (p11_prod << 36);
+					fsm_state <= FSM_REG;
+				end
+			end
 			FSM_REG: begin
-				a_mant    <= da_prod;
-				fsm_state <= FSM_NORM;
+				if (USE_MULT != 0) begin
+					a_mant    <= da_prod[47:23];
+					fsm_state <= FSM_NORM;
+				end
 			end
 			FSM_NORM: begin
 				if (a_mant[24]) begin
