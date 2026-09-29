@@ -17,7 +17,7 @@
 // load a float into an int32_t
 module fsti
 #(
-	parameter USE_BARREL=1
+	parameter USE_BARREL=1			// enable a (large) barrel shifter drops cycle count down quite a bit
 )
 (
 	input wire clk,
@@ -46,17 +46,17 @@ module fsti
 		case (fsm_state)
 			FSM_IDLE: begin
 				if (~ready & valid) begin
-					a_sign <= in_a[31];
-					a_exp  <= in_a[30:23] - 127;
+					a_sign      <= in_a[31];
+					a_exp       <= in_a[30:23] - 127;
 					a_exp_over  <= (in_a[30:23] - 127) - 23;
 					a_exp_under <= 23 - (in_a[30:23] - 127);
-					a_mant <= {1'b1, in_a[22:0]};
+					a_mant      <= {1'b1, in_a[22:0]};
 					if (in_a[30:23] < 127) begin
-						out    <= 0;
-						ready  <= 1;
+						out     <= 0;
+						ready   <= 1;
 					end else if (in_a[30:23] >= 158) begin
-						ready  <= 1;
-						out    <= in_a[31] ? 32'h8000_0000 : 32'h7FFF_FFFF;
+						ready   <= 1;
+						out     <= in_a[31] ? 32'h8000_0000 : 32'h7FFF_FFFF;
 					end else begin
 						fsm_state  <= FSM_NORM;
 					end					
