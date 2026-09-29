@@ -232,6 +232,57 @@ int32_t fsti(uint32_t x)
 	return sign ? -mant : mant;
 }
 
+uint32_t fsqrt(uint32_t x)
+{
+	// unpack
+    uint32_t sign = x >> 31;
+    int      exp  = (x >> 23) & 0xFF;
+    uint32_t mant = (x & 0x7FFFFF) | (1UL << 23);
+    uint32_t res;
+    
+    if (sign) return 0x7FFFFFFF; // NaN
+    if (exp == 0) return 0;
+    
+    // Unbias exponent
+    exp = exp - 127;
+    
+    // Check if biased exponent is odd (we subtracted an odd so test for even)
+    if (!(exp & 1)) {
+        mant <<= 1; // mantissa becomes [2.0, 4.0)
+        exp -= 1;   // make exponent even
+    }
+    
+    // Halve the even exponent
+    exp >>= 1; 
+       
+    // Binary search for root (naive DSP way)
+    res = 0;
+    for (int k = 13; k >= 0; k--) {
+        res |= (1UL << k);
+        if ((res * res) > mant) {
+            res ^= (1ULL << k);
+        }
+    }
+        
+    // Align 24-bit result (bit 23 is the explicit 1.x leading bit)
+    res <<= 12;
+
+    if (res & (1UL << 24)) {
+        res >>= 1;
+        exp += 1;
+    }
+    
+    // normalize
+    while (!(res & (1UL << 23))) {
+		res <<= 1;
+		exp -= 1;
+	}
+    
+    // Re-bias exponent and pack
+    exp = exp + 127;
+    return ((exp & 0xFF) << 23) | (res & 0x7FFFFF);
+}
+
 // Generates a raw uint32_t bit-pattern for a valid normalized float
 uint32_t rand_valid_float_bits(void) {
     uint32_t sign = (rand() & 0x1) << 31;
@@ -270,6 +321,14 @@ int main(int argc, char **argv)
 	fb = (float *)&opb;
 	ufres = (uint32_t*)&fres;
 	fures = (float *)&res;
+	
+	*fa = 4.0; print_float("4.0", opa); *fa = *fa * *fa; print_float("**2", opa); opa = fsqrt(opa); print_float("sqrt(**2)", opa);
+	*fa = 10.0; print_float("10.0", opa); *fa = *fa * *fa; print_float("**2", opa); opa = fsqrt(opa); print_float("sqrt(**2)", opa);
+	*fa = 0.25; print_float("0.25", opa); *fa = *fa * *fa; print_float("**2", opa); opa = fsqrt(opa); print_float("sqrt(**2)", opa);
+
+
+	//return 0;
+	
 	
 	if (argc == 1) {
 		printf("%s: addsub | mul | div\n\r", argv[0]);
