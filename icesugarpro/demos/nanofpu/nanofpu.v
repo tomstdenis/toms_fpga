@@ -62,7 +62,8 @@ module top(
 	wire        fp_ready;
 	
 	nanofpu #(
-		.USE_BARREL(1),
+		.USE_FADDSUB_BARREL(1),
+		.USE_FSTI_BARREL(1),
 		.USE_MULT(2)
 	) nanofpu_dut(
 		.clk(pll_clk), .rst_n(rst_n),

@@ -9,8 +9,9 @@ module nanofpu
 	parameter ENABLE_FLDI    = 1'b1,	// enable fldi
 	parameter ENABLE_FSTI    = 1'b1,	// enable fsti
 
-	parameter USE_MULT       = 2,		// 0 -- serial shifter, 1 == 36x36 DSP, 2 == 18x18 DSP
-	parameter USE_BARREL     = 1		// Use barrel shifter (for faddsub/etc)
+	parameter USE_MULT       		 = 2,		// 0 -- serial shifter, 1 == 36x36 DSP, 2 == 18x18 DSP
+	parameter USE_FADDSUB_BARREL     = 1,		// Use barrel shifter for faddsub
+	parameter USE_FSTI_BARREL        = 1		// Use barrel shifter for fsti (it's kinda big)
 )
 (
 	input wire clk,
@@ -28,7 +29,7 @@ module nanofpu
 	wire fadd_ready;
 	wire [31:0] fadd_out;
 
-	faddsub #(.USE_BARREL(USE_BARREL)) faddsub(
+	faddsub #(.USE_BARREL(USE_FADDSUB_BARREL)) faddsub(
 		.clk(clk), .rst_n(rst_n),
 		.in_a(in_a), .in_b(in_b), .sub_op(opcode[0]), .valid((valid && opcode < `NANOFPU_OP_FMUL) ? ENABLE_FADDSUB : 1'b0),
 		.out(fadd_out), .ready(fadd_ready));
@@ -56,7 +57,7 @@ module nanofpu
 
 	wire fsti_ready;
 	wire [31:0] fsti_out;
-	fsti fsti (
+	fsti #(.USE_BARREL(USE_FSTI_BARREL)) fsti (
 		.clk(clk), .rst_n(rst_n),
 		.in_a(in_a), .valid((valid && opcode == `NANOFPU_OP_FSTI) ? ENABLE_FSTI : 1'b0),
 		.out(fsti_out), .ready(fsti_ready));
