@@ -265,7 +265,7 @@ uint32_t myfsqrt(uint32_t x)
     // scale mantissa up
 	mant <<= 24;
 
-    uint64_t one = 1ULL << 48; // (2^25)^2 — starting mask for MSB (bit 13)
+    uint64_t one = 1ULL << 48; // (2^24)^2 — starting mask for MSB (bit 13)
     res = 0;                  // Initial cross-term = 2 * R_14 * 2^13 = 0
 
     while (one != 0) {
@@ -290,9 +290,6 @@ uint32_t myfsqrt(uint32_t x)
         // Scale mask down for step k-1: (2^(k-1))^2 = (2^2k) / 4
         one >>= 2;
     }
-
-    // Align 24-bit result (bit 23 is the explicit 1.x leading bit)
-//    res <<= 12;
 
 	// overflow
     if (res & (1UL << 24)) {
@@ -337,7 +334,6 @@ void print_float(char *name, uint32_t f)
 int main(int argc, char **argv)
 {
 	FILE *vec;
-	int32_t ires;
 	uint32_t opa, opb, res, opcode, x, *ufres;
 	float *fa, *fb, fres, *fures;
 	
