@@ -1,3 +1,42 @@
+/* Tom's One of a Kind almost FPU ...
+
+	The FPU has enables for each of the instructions, and some use options.
+
+	For faddsub there is the USE_FADDSUB_BARREL option which enables a normalization barrel shifter.  With that enabled
+	fadd or fsub takes 4 cycles.  Without it takes about 28 cycles.
+	
+	For fmul there is USE_MULT which may be 0 (serial multiplier), 1 (36x36 DSP), 2 (18x18 DSP).  The serial multiplier
+	takes 24 cycles which combined with the rest of the operation takes about 28 cycles per fmul.  The 36x36 DSP takes
+	about 4 cycles, and the 18x18 DSP takes 5 cycles.  The 18x18 option is useful for older FPGAs that have at least an 18x18
+	multiplier like the ECP5.
+	
+	For fsti there is the USE_FSTI_BARREL option which similarly reduces normalization down to a 2 cycle operation.  Without it
+	it can take anywhere from 2-24 cycles.
+	
+	To use drive in_a, in_b (for opcodes that use it), opcode, and valid steady for 1 cycle, then wait for ready to go high
+	and read out.  The core is not pipelined so you cannot raise valid again until at least ready goes high.
+
+	Configured for an ICE40 (so no barrel/mult/etc) we get
+	
+	  490   SB_CARRY
+       16   SB_DFF
+      330   SB_DFFE
+      295   SB_DFFESR
+        8   SB_DFFESS
+        8   SB_DFFSR
+     1619   SB_LUT4
+         
+     Configured for perf (MULT=2, both barrel) on ECP5 we get
+     
+        4   MULT18X18D
+      271   CCU2C
+       59   L6MUX21
+     1637   LUT4
+      331   PFUMX
+      689   TRELLIS_FF
+
+*/
+
 `include "nanofpu.vh"
 
 `default_nettype none
