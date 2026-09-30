@@ -39,6 +39,9 @@ The execution cycles depend on parameter configuration:
 | **FSTI** | `USE_FSTI_BARREL = 1` | 1 – 2 cycles |
 | | `USE_FSTI_BARREL = 0` | 2 – 24 cycles |
 | **FLDI** | Standard | 2 – 24 cycles |
+| **FSQRT** | Standard | 28 – 29 cycles (`*`) |
+
+`*` FSQRT takes 1 cycle to report an error.
 
 ## Module Parameters
 
