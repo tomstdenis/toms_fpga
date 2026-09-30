@@ -31,11 +31,11 @@ module fsqrt
 	reg [2:0]  fsm_state;
 
 	localparam
-		FSM_IDLE   = 0,
-		FSM_EXP    = 1,
+		FSM_IDLE       = 0,
+		FSM_EXP        = 1,
 		FSM_REDUCE_MID = 2,
-		FSM_REDUCE = 3,
-		FSM_NORM   = 4;
+		FSM_REDUCE     = 3,
+		FSM_NORM       = 4;
 
 	assign out = res[31:0];
 
@@ -62,6 +62,7 @@ module fsqrt
 					end
 				end
 			end
+			// fix up the exponent and if needed the mantissa
 			FSM_EXP: begin
 				if (TWO_STAGE == 1) begin
 					fsm_state <= FSM_REDUCE_MID;
@@ -78,15 +79,18 @@ module fsqrt
 				end
 			end
 			FSM_REDUCE_MID: begin
+				// Pipelining the 48-bit add can help timing...
 				if (TWO_STAGE == 1) begin
 					tmp       <= res + one;
 					fsm_state <= FSM_REDUCE;
 				end
 			end
+			// reduction loop
 			FSM_REDUCE: begin
 				if (one != 0) begin
 					if (TWO_STAGE == 1) begin
 						fsm_state <= FSM_REDUCE_MID;
+						// the next guess fits or not
 						if (a_mant >= tmp) begin
 							a_mant <= a_mant - tmp;
 							res    <= (res >> 1) + one;
@@ -103,19 +107,23 @@ module fsqrt
 					end
 					one        <= one >> 2;
 				end else begin
-					// normalize
+					// jump to normalize, also re-bias the exponent here
 					a_exp      <= a_exp + 127;
 					fsm_state  <= FSM_NORM;
 				end
 			end
+			// normalize the output
 			FSM_NORM: begin
 				if (res[24]) begin
+					// overflow
 					res[24:0]  <= res[25:1];
 					a_exp      <= a_exp + 1;
 				end else if (~res[23]) begin
+					// underflow
 					res[23:0]  <= {res[22:0], 1'b0};
 					a_exp      <= a_exp - 1;
 				end else begin
+					// done
 					res[31:0]  <= {1'b0, a_exp, res[22:0]};
 					ready      <= 1;
 					fsm_state  <= FSM_IDLE;

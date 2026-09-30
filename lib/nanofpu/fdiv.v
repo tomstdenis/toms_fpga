@@ -97,6 +97,7 @@ module fdiv
         if (~rst_n) begin
             ready         <= 1'b0;
             divider_valid <= 1'b0;
+			{ a_sign, a_exp[7:0], res_frac } <= 32'b0;  // reset output
             fsm_state     <= FSM_IDLE;
         end
     end

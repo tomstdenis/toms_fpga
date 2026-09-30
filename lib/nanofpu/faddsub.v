@@ -118,8 +118,9 @@ module faddsub
 			end
 		endcase	
 		if (~rst_n) begin
-			fsm_state <= FSM_IDLE;
-			issub     <= 1'b0;
+			fsm_state               <= FSM_IDLE;
+			issub                   <= 1'b0;
+			{a_sign, a_exp, a_mant} <= 0; // reset output
 		end
 	end
 endmodule
