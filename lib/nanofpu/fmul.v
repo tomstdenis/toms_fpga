@@ -3,6 +3,7 @@
 	
 	On ICE40, 
 		USE_MULT=0: takes ~28 cycles (221 LUT4, 165 DFF, 74 CARRY)
+		USE_MULT=3: takes ~14 cycles (499 LUT4, 164 DFF, 165 CARRY)
 
 	On ECP5, takes 
 		USE_MULT=0: ~28 cycles (178 LUT4, 197 DFF, 41 carry)
@@ -14,7 +15,7 @@
 `default_nettype none
 module fmul
 #(
-	parameter USE_MULT=2
+	parameter USE_MULT=3
 )
 (
 	input wire clk,
@@ -63,7 +64,7 @@ module fmul
 					a_mant    <= {1'b1, in_a[22:0]};
 					a_exp     <= {2'b0, in_a[30:23]} + {2'b0, in_b[30:23]} - 10'd127;
 					b_mant    <= {1'b1, in_b[22:0]};
-					if (USE_MULT == 0) begin
+					if (USE_MULT == 0 || USE_MULT == 3) begin
 						da_opa  <= {24'b0, 1'b1, in_a[22:0]};
 						da_prod <= 0;
 						da_cnt  <= 24;
@@ -81,12 +82,29 @@ module fmul
 				end else if (USE_MULT == 1) begin
 					da_prod     <= a_mant[23:0] * b_mant[23:0];
 					fsm_state   <= FSM_REG;
-				end else begin
+				end else if (USE_MULT == 3) begin
+					// 2-bit double and add
+					b_mant <= b_mant >> 2;
+					da_opa <= da_opa << 2;
+					case (b_mant[1:0])
+						2'b00: da_prod <= da_prod;
+						2'b01: da_prod <= da_prod + da_opa;
+						2'b10: da_prod <= da_prod + (da_opa << 1);
+						2'b11: da_prod <= da_prod + (da_opa + (da_opa << 1));
+					endcase;
+					da_cnt <= da_cnt - 2;
+					if (da_cnt == 0) begin
+						a_mant <= da_prod[47:23];
+						fsm_state <= FSM_NORM;
+					end
+				end else begin // (USE_MULT == 0)
+					// 1-bit double and add
 					b_mant <= b_mant >> 1;
 					da_opa <= da_opa << 1;
-					if (b_mant[0]) begin
-						da_prod <= da_prod + da_opa;
-					end
+					case (b_mant[0])
+						1'b0: da_prod <= da_prod;
+						1'b1: da_prod <= da_prod + da_opa;
+					endcase;
 					da_cnt <= da_cnt - 1;
 					if (da_cnt == 0) begin
 						a_mant <= da_prod[47:23];
@@ -101,7 +119,7 @@ module fmul
 				end
 			end
 			FSM_REG: begin
-				if (USE_MULT != 0) begin
+				if (USE_MULT == 1 || USE_MULT == 2) begin
 					a_mant    <= da_prod[47:23];
 					fsm_state <= FSM_NORM;
 				end

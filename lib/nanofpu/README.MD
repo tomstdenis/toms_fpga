@@ -31,20 +31,21 @@ The core operates on a 3-bit opcode (`opcode[2:0]`):
 
 The execution cycles depend on parameter configuration:
 
-| Instruction | Configuration / Parameter | Latency (Clock Cycles) |
-| :--- | :--- | :--- |
-| **FADD / FSUB** | `USE_FADDSUB_BARREL = 1` | 3 cycles |
-| | `USE_FADDSUB_BARREL = 0` | ~27 cycles |
-| **FMUL** | `USE_FMUL_DSP = 1` (36x36 DSP) | 3 – 4 cycles |
-| | `USE_FMUL_DSP = 2` (18x18 DSP) | 4 – 5 cycles |
-| | `USE_FMUL_DSP = 0` (Serial Shift Multiplier) | 28 – 29 cycles |
-| **FDIV** | Standard | 28 cycles |
-| **FSTI** | `USE_FSTI_BARREL = 1` | 1 – 2 cycles |
-| | `USE_FSTI_BARREL = 0` | 2 – 24 cycles |
-| **FLDI** | Standard | 2 – 24 cycles |
-| **FSQRT** | `USE_FSQRT_TWO_STAGE = 0` | 28 – 29 cycles (`*`) |
-|  | `USE_FSQRT_TWO_STAGE = 1` | 54 – 55 cycles (`**`) |
-| **FCMP** | Standard | 1 Cycle |
+| Instruction | Configuration / Parameter | Latency (Clock Cycles) | Notes |
+| :--- | :--- | :--- | :--- |
+| **FADD / FSUB** | `USE_FADDSUB_BARREL = 1` | 3 cycles | Larger but faster. |
+| | `USE_FADDSUB_BARREL = 0` | ~27 cycles | Compact and variable cycle timing |
+| **FMUL** | `USE_FMUL_DSP = 1` (36x36 DSP) | 3 – 4 cycles | For Gowin/Xilinx etc with wide DSP mults |
+| | `USE_FMUL_DSP = 2` (18x18 DSP) | 4 – 5 cycles | For smaller DSP blocks |
+| | `USE_FMUL_DSP = 0` (Serial Shift Multiplier) | 28 – 29 cycles | Compact 1-bit at a time double and add |
+| | `USE_FMUL_DSP = 3` (2-bit Serial Shift Multiplier) | 14 – 15 cycles | Larger 2-bit at a time that takes half the time |
+| **FDIV** | Standard | 28 cycles | Standard reduction |
+| **FSTI** | `USE_FSTI_BARREL = 1` | 1 – 2 cycles | Larger but faster |
+| | `USE_FSTI_BARREL = 0` | 2 – 24 cycles | Compact and variable cycle timing |
+| **FLDI** | Standard | 2 – 24 cycles | Variable cycle timing |
+| **FSQRT** | `USE_FSQRT_TWO_STAGE = 0` | 28 – 29 cycles (`*`) | Faster but harder to hit timing with |
+|  | `USE_FSQRT_TWO_STAGE = 1` | 54 – 55 cycles (`**`) | Slower but easier to hit timing also slightly larger |
+| **FCMP** | Standard | 1 Cycle | It compares things. |
 
 `*` FSQRT takes 1 cycle to report an error.
 `**` The two stage option is for achieving a higher Fmax.
@@ -60,7 +61,7 @@ The execution cycles depend on parameter configuration:
 | `ENABLE_FSTI` | `1'b1` | `0` / `1` | Enable `FSTI` operation |
 | `ENABLE_FSQRT` | `1'b1` | `0` / `1` | Enable `FSQRT` operation |
 | `ENABLE_FCMP` | `1'b1` | `0` / `1` | Enable `FCMP` operation |
-| `USE_FMUL_DSP` | `1` | `0`, `1`, `2` | Multiplier target: `0` = Serial, `1` = 36x36 DSP, `2` = 18x18 DSP |
+| `USE_FMUL_DSP` | `1` | `0`, `1`, `2` | Multiplier target: `0` = Serial, `1` = 36x36 DSP, `2` = 18x18 DSP, `3` = 2-bit wide double-add |
 | `USE_FADDSUB_BARREL`| `1` | `0` / `1` | Enable normalization barrel shifter for `FADD`/`FSUB` |
 | `USE_FSTI_BARREL` | `1` | `0` / `1` | Enable barrel shifter for `FSTI` Normalization |
 | `USE_FSQRT_TWO_STAGE` | `1` | `0` / `1` | Enable higher latency but faster timing two stage FSQRT core |
