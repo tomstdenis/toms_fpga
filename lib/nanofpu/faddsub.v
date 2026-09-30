@@ -1,9 +1,11 @@
 /*
 	float add/subtract, rounds to zero, does not track GRS
 	
-	On ICE40, Takes ~28 cycles (353 LUT4, 73 DFF, 105 CARRY) with USE_BARREL=0, or ~4 cycles (442 LUT4, 73 DFF, 102 CARRY) with USE_BARREL=1
+	ICE40: BARREL=1 (494 LUT4, 81 DFF, 113 CARRY)
+	ICE40: BARREL=0 (399 LUT4, 88 DFF, 127 CARRY)
 	
-	On ECP5, Takes ~28 cycles (530 LUT4, 72 DFF, 57 CARRY) with USE_BARREL=0, or ~4 cycles (399 LUT4, 73 DFF, 55 CARRY) with USE_BARREL=1
+	ECP5 : BARREL=1 (492 LUT4, 81 DFF, 61 CARRY, 49 L6MUX21, 108 PFUMX)
+	ECP5 : BARREL=0 (298 LUT4, 88 DFF, 69 CARRY, 6 L6MUX21, 98 PFUMX)
 
 */
 
@@ -11,7 +13,7 @@
 
 module faddsub
 #(
-	parameter USE_BARREL=0			// use a barrel shifter (drops from ~30 to ~3 cycles)
+	parameter USE_BARREL=1			// use a barrel shifter (drops from ~30 to ~3 cycles)
 )
 (
 	input wire clk,
@@ -29,14 +31,15 @@ module faddsub
 	reg        issub;
 	reg        a_sign;
 	reg [7:0]  a_exp;
-	reg [24:0] a_mant;
+	reg [28:0] a_mant;
 	reg [7:0]  b_exp;
-	reg [24:0] b_mant;
+	reg [28:0] b_mant;
 	reg [1:0]  fsm_state;
 	
 	reg [7:0]  exp_delta;
+	reg        sticky;
 	
-	assign out = {a_sign, a_exp, a_mant[22:0]};
+	assign out = {a_sign, a_exp, a_mant[26:4]};
 
 	localparam
 		FSM_IDLE  = 0,
@@ -54,17 +57,17 @@ module faddsub
 					if ((in_a[30:23] < in_b[30:23]) || ((in_a[30:23] == in_b[30:23]) && (in_a[22:0] < in_b[22:0]))) begin
 						// swap operands (a,b) => (b,a)
 						a_sign <= in_b[31] ^ sub_op;
-						a_mant <= {1'b0, 1'b1, in_b[22:0]};
+						a_mant <= {1'b0, 1'b1, in_b[22:0], 4'b0};
 						a_exp  <= in_b[30:23];
-						b_mant <= {1'b0, 1'b1, in_a[22:0]};
+						b_mant <= {1'b0, 1'b1, in_a[22:0], 4'b0};
 						b_exp  <= in_a[30:23];
 						exp_delta <= in_b[30:23] - in_a[30:23];
 					end else begin
 						// normal order
 						a_sign <= in_a[31];
-						a_mant <= {1'b0, 1'b1, in_a[22:0]};
+						a_mant <= {1'b0, 1'b1, in_a[22:0], 4'b0};
 						a_exp  <= in_a[30:23];
-						b_mant <= {1'b0, 1'b1, in_b[22:0]};
+						b_mant <= {1'b0, 1'b1, in_b[22:0], 4'b0};
 						b_exp  <= in_b[30:23];
 						exp_delta <= in_a[30:23] - in_b[30:23];
 					end
@@ -74,16 +77,20 @@ module faddsub
 			FSM_ALIGN: begin
 				fsm_state     <= FSM_CORE;
 				if (USE_BARREL == 1) begin
-					if (exp_delta < 24) begin
+					if (exp_delta < 31) begin
 						b_mant    <= b_mant >> exp_delta[4:0];
 					end else begin
-						b_mant    <= 0;
+						b_mant    <= |b_mant;
 					end
 				end else begin
-					if (b_mant != 0 && b_exp < a_exp) begin
-						b_mant    <= b_mant >> 1;
-						b_exp     <= b_exp + 1'b1;
-						fsm_state <= fsm_state;			// stay in ALIGN state
+					if (exp_delta < 31) begin
+						if (b_mant != 0 && b_exp < a_exp) begin
+							b_mant    <= b_mant >> 1;
+							b_exp     <= b_exp + 1'b1;
+							fsm_state <= fsm_state;			// stay in ALIGN state
+						end
+					end else begin
+						b_mant <= |b_mant;
 					end
 				end
 			end
@@ -96,11 +103,11 @@ module faddsub
 				fsm_state  <= FSM_NORM;
 			end
 			FSM_NORM: begin
-				if (a_mant[24]) begin
-					a_mant <= a_mant >> 1;
+				if (a_mant[28]) begin
+					a_mant <= (a_mant >> 1) | a_mant[0];
 					a_exp  <= a_exp + 1'b1;
 				end else begin
-					if (a_mant != 0 && ~a_mant[23]) begin
+					if (~a_mant[27]) begin
 						a_mant <= a_mant << 1;
 						a_exp  <= a_exp - 1'b1;
 					end else begin

@@ -18,22 +18,22 @@
 
 	Configured for an ICE40 (so no barrel/mult/etc) we get
 	
-      489   SB_CARRY
+      504   SB_CARRY
        17   SB_DFF
-      330   SB_DFFE
-      297   SB_DFFESR
+      338   SB_DFFE
+      305   SB_DFFESR
         9   SB_DFFESS
         8   SB_DFFSR
-     1699   SB_LUT4
+     1724   SB_LUT4
          
      Configured for perf (MULT=2, both barrel) on ECP5 we get
      
         4   MULT18X18D
-      271   CCU2C
-       52   L6MUX21
-     1774   LUT4
-      486   PFUMX
-      743   TRELLIS_FF
+      277   CCU2C
+       58   L6MUX21
+     1828   LUT4
+      514   PFUMX
+      751   TRELLIS_FF
 
 */
 
@@ -50,10 +50,10 @@ module nanofpu
 	parameter ENABLE_FSQRT   = 1'b1,    // enable fsqrt
 	parameter ENABLE_FCMP    = 1'b1,    // enable fcmp
 
-	parameter USE_FMUL_DSP     		 = 2,	// 0 -- serial shifter, 1 == 36x36 DSP, 2 == 18x18 DSP
-	parameter USE_FADDSUB_BARREL     = 1,	// Use barrel shifter for faddsub
-	parameter USE_FSTI_BARREL        = 1,	// Use barrel shifter for fsti (it's kinda big)
-	parameter USE_FSQRT_TWO_STAGE    = 1
+	parameter USE_FMUL_DSP     		 = 0,	// 0 -- serial shifter, 1 == 36x36 DSP, 2 == 18x18 DSP
+	parameter USE_FADDSUB_BARREL     = 0,	// Use barrel shifter for faddsub
+	parameter USE_FSTI_BARREL        = 0,	// Use barrel shifter for fsti (it's kinda big)
+	parameter USE_FSQRT_TWO_STAGE    = 0
 )
 (
 	input wire clk,

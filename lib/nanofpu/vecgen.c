@@ -6,29 +6,34 @@
 
 uint32_t myfadd(uint32_t a, uint32_t b)
 {
+    // Handle subnormals/zeros simply (or strip sign/exp)
     uint32_t a_sign = a >> 31, a_exp = (a >> 23) & 0xFF;
     uint32_t b_sign = b >> 31, b_exp = (b >> 23) & 0xFF;
 
-    uint32_t a_mant = (a & 0x7FFFFF) | (1UL << 23);
-    uint32_t b_mant = (b & 0x7FFFFF) | (1UL << 23);
+    // Handle 0 inputs quickly
+    if ((a & 0x7FFFFFFF) == 0) return b;
+    if ((b & 0x7FFFFFFF) == 0) return a;
 
-    // Is this an internal subtraction? (a_sign != b_sign)
+    // Bit 27 is the hidden '1' bit (23 + 4)
+    uint32_t a_mant = ((a & 0x7FFFFF) | (1UL << 23)) << 4;
+    uint32_t b_mant = ((b & 0x7FFFFF) | (1UL << 23)) << 4;
+
     uint32_t issub = a_sign ^ b_sign;
 
     // Magnitude Sort: Ensure |A| >= |B|
     if (a_exp < b_exp || (a_exp == b_exp && a_mant < b_mant)) {
-        // Swap operands: Result sign takes B's sign (which is a_sign in the new order)
         uint32_t t_exp = a_exp;   a_exp = b_exp;   b_exp = t_exp;
         uint32_t t_mant = a_mant; a_mant = b_mant; b_mant = t_mant;
-        a_sign = b_sign; // Result takes larger magnitude sign
+        a_sign = b_sign;
     }
 
-    // Exponent Alignment
+    // Exponent Alignment with Sticky Bit
     uint32_t exp_diff = a_exp - b_exp;
-    if (exp_diff >= 25) {
-        b_mant = 0;
-    } else {
-        b_mant >>= exp_diff;
+    if (exp_diff >= 31) {
+        b_mant = (b_mant != 0) ? 1 : 0;
+    } else if (exp_diff > 0) {
+        uint32_t sticky = 0; // (b_mant & ((1UL << exp_diff) - 1)) != 0;
+        b_mant = (b_mant >> exp_diff) | sticky;
     }
 
     // Core Add/Subtract
@@ -43,19 +48,24 @@ uint32_t myfadd(uint32_t a, uint32_t b)
         return 0;
     }
 
-    if (a_mant & (1UL << 24)) {
-		// Normalize Overflow (bit 24 set)
-        a_mant >>= 1;
+    // Renormalization in 28-bit space (Bit 27 is hidden bit)
+    if (a_mant & (1UL << 28)) { 
+        // Overflow (e.g. 1.x + 1.y = 10.z) -> Shift right, preserve sticky
+        uint32_t sticky = a_mant & 1;
+        a_mant = (a_mant >> 1) | sticky;
         a_exp += 1;
     } else {
-		// Normalize Underflow (bit 23 not set)
-        while (!(a_mant & (1UL << 23))) {
+        // Underflow -> Shift left until hidden bit is back at bit 27
+        while (!(a_mant & (1UL << 27))) {
             a_mant <<= 1;
             a_exp -= 1;
         }
     }
 
-    // Pack
+    // Drop the 4 guard/extra bits (Truncate for Round-to-Zero)
+    a_mant >>= 4;
+
+    // Pack result
     return (a_sign << 31) | ((a_exp & 0xFF) << 23) | (a_mant & 0x7FFFFF);
 }
 
@@ -386,12 +396,14 @@ int main(int argc, char **argv)
 	fb = (float *)&opb;
 	ufres = (uint32_t*)&fres;
 	fures = (float *)&res;
-	
-//	*fa = 4.0; print_float("4.0", opa); *fa = *fa * *fa; print_float("**2", opa); opa = myfsqrt(opa); print_float("sqrt(**2)", opa);
-//	*fa = 10.0; print_float("10.0", opa); *fa = *fa * *fa; print_float("**2", opa); opa = myfsqrt(opa); print_float("sqrt(**2)", opa);
-//	*fa = 0.25; print_float("0.25", opa); *fa = *fa * *fa; print_float("**2", opa); opa = myfsqrt(opa); print_float("sqrt(**2)", opa);
-//	return 0;
-	
+
+#if 0	
+	*fa = 4.0; print_float("4.0", opa); *fa = *fa * *fa; print_float("**2", opa); opa = myfsqrt(opa); print_float("sqrt(**2)", opa);
+	*fa = 10.0; print_float("10.0", opa); *fa = *fa * *fa; print_float("**2", opa); opa = myfsqrt(opa); print_float("sqrt(**2)", opa);
+	*fa = 0.25; print_float("0.25", opa); *fa = *fa * *fa; print_float("**2", opa); opa = myfsqrt(opa); print_float("sqrt(**2)", opa);
+	return 0;
+#endif
+
 	if (argc == 1) {
 		printf("%s: addsub | mul | div\n\r", argv[0]);
 		return 0;

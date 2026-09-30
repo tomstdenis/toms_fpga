@@ -1,10 +1,12 @@
 # nanoFPU
 
-A highly configurable, multi-target IEEE-754 single-precision Floating Point Unit (FPU) written in Verilog. **nanoFPU** is engineered for FPGA architectures ranging from low-cost targets with limited resources (e.g., Lattice iCE40) to high-performance targets with DSP slices (e.g., Lattice ECP5, Gowin, Xilinx).
+A highly configurable, multi-target "IEEE-754 like" single-precision Floating Point Unit (FPU) written in Verilog. **nanoFPU** is engineered for FPGA architectures ranging from low-cost targets with limited resources (e.g., Lattice iCE40) to high-performance targets with DSP slices (e.g., Lattice ECP5, Gowin, Xilinx).
+
+The goal is reasonable size/speed tradeoffs all the while being mostly precise floating point math.  It doesn't currently implement any subnormal/GRS like rounding so the precision isn't 100% IEEE and probably never will be.  Precision errors may be fixed in the future as I learn more about floats :)
 
 ## Key Features
 
-- **IEEE-754 Single Precision Format**: Standard 32-bit floating-point support.
+- **IEEE-754 Single Precision Format**: "Standard" 32-bit floating-point support.
 - **Modular Instruction Enables**: Unused functional blocks can be disabled at compile time via Verilog parameters to save logic.
 - **Flexible Area vs. Latency Trade-offs**: Options to select between serial shifters/multipliers and barrel shifters or dedicated hardware DSPs.
 - **Broad FPGA Vendor Support**: Fully synthesizable for Lattice (iCE40, ECP5), Gowin, Xilinx, and standard Yosys toolchains.
@@ -87,13 +89,13 @@ The execution cycles depend on parameter configuration:
 
 
 ```
-      489   SB_CARRY
+      504   SB_CARRY
        17   SB_DFF
-      330   SB_DFFE
-      297   SB_DFFESR
+      338   SB_DFFE
+      305   SB_DFFESR
         9   SB_DFFESS
         8   SB_DFFSR
-     1699   SB_LUT4
+     1724   SB_LUT4
 ```
 
 ### Lattice ECP5 (Performance Configuration)
@@ -102,11 +104,11 @@ The execution cycles depend on parameter configuration:
 
 ```
         4   MULT18X18D
-      271   CCU2C
-       52   L6MUX21
-     1774   LUT4
-      486   PFUMX
-      743   TRELLIS_FF
+      277   CCU2C
+       58   L6MUX21
+     1828   LUT4
+      514   PFUMX
+      751   TRELLIS_FF
 ```
 
 ## File Structure
