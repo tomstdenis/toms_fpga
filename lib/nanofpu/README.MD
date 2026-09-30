@@ -59,6 +59,7 @@ The execution cycles depend on parameter configuration:
 | `ENABLE_FLDI` | `1'b1` | `0` / `1` | Enable `FLDI` operation |
 | `ENABLE_FSTI` | `1'b1` | `0` / `1` | Enable `FSTI` operation |
 | `ENABLE_FSQRT` | `1'b1` | `0` / `1` | Enable `FSQRT` operation |
+| `ENABLE_FCMP` | `1'b1` | `0` / `1` | Enable `FCMP` operation |
 | `USE_FMUL_DSP` | `1` | `0`, `1`, `2` | Multiplier target: `0` = Serial, `1` = 36x36 DSP, `2` = 18x18 DSP |
 | `USE_FADDSUB_BARREL`| `1` | `0` / `1` | Enable normalization barrel shifter for `FADD`/`FSUB` |
 | `USE_FSTI_BARREL` | `1` | `0` / `1` | Enable barrel shifter for `FSTI` Normalization |
