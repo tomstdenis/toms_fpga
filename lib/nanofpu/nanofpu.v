@@ -81,7 +81,7 @@ module nanofpu
 	
 	input wire [31:0] in_a,
 	input wire [31:0] in_b,
-	input wire [2:0]  opcode,		// 0=ADD, 1=SUB, 2=MUL, 3=DIV, 4=FLDI, 5=FSTI
+	input wire [2:0]  opcode,		// 0=ADD, 1=SUB, 2=MUL, 3=DIV, 4=FLDI, 5=FSTI, 6=FSQRT
 	input wire        valid,		// command valid
 	
 	output reg [31:0] out,			// result
@@ -93,7 +93,9 @@ module nanofpu
 
 	faddsub #(.USE_BARREL(USE_FADDSUB_BARREL)) faddsub(
 		.clk(clk), .rst_n(rst_n),
-		.in_a(in_a), .in_b(in_b), .sub_op(opcode[0]), .valid((valid && opcode < `NANOFPU_OP_FMUL) ? ENABLE_FADDSUB : 1'b0),
+		.in_a(in_a), .in_b(in_b), 
+		.sub_op(opcode[0]), // 0 == fadd, 1 == fsub
+		.valid((valid && opcode < `NANOFPU_OP_FMUL) ? ENABLE_FADDSUB : 1'b0),
 		.out(fadd_out), .ready(fadd_ready));
 
 	wire fmul_ready;
