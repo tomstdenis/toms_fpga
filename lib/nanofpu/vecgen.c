@@ -305,6 +305,50 @@ uint32_t myfsqrt(uint32_t x)
     return ((exp & 0xFF) << 23) | (res & 0x7FFFFF);
 }
 
+uint32_t mycmp(uint32_t a, uint32_t b)
+{
+    uint32_t a_sign = a >> 31;
+    uint32_t a_exp  = (a >> 23) & 0xFF;
+    uint32_t a_sig  = a & 0x7FFFFF;
+
+    uint32_t b_sign = b >> 31;
+    uint32_t b_exp  = (b >> 23) & 0xFF;
+    uint32_t b_sig  = b & 0x7FFFFF;
+
+    // Special case for IEEE +0.0 == -0.0
+    if ((a & 0x7FFFFFFF) == 0 && (b & 0x7FFFFFFF) == 0) {
+        return 4; // EQ
+    }
+
+    // A is positive, B is negative -> A > B (GT = 2)
+    if (!a_sign && b_sign) {
+        return 2;
+    }
+    
+    // A is negative, B is positive -> A < B (LT = 1)
+    if (a_sign && !b_sign) {
+        return 1;
+    }
+
+    // Both have the same sign
+    if (a_exp < b_exp) {
+        return a_sign ? 2 : 1; // If negative: GT (2), else: LT (1)
+    } 
+    if (a_exp > b_exp) {
+        return a_sign ? 1 : 2; // If negative: LT (1), else: GT (2)
+    }
+
+    // Exponents are equal, compare mantissa/significand
+    if (a_sig < b_sig) {
+        return a_sign ? 2 : 1; // If negative: GT (2), else: LT (1)
+    } 
+    if (a_sig > b_sig) {
+        return a_sign ? 1 : 2; // If negative: LT (1), else: GT (2)
+    }
+
+    return 4; // EQ
+}
+
 // Generates a raw uint32_t bit-pattern for a valid normalized float
 uint32_t rand_valid_float_bits(void) {
     uint32_t sign = (rand() & 0x1) << 31;
@@ -366,15 +410,17 @@ int main(int argc, char **argv)
 		command = 5;
 	} else if (!strcmp(argv[1], "fsqrt")) {
 		command = 6;
-	} else if (!strcmp(argv[1], "any")) {
+	} else if (!strcmp(argv[1], "fcmp")) {
 		command = 7;
+	} else if (!strcmp(argv[1], "any")) {
+		command = 8;
 	}
 	
 	for (x = 0; x < NUM_OF_TESTS; x++) {
-		if (command != 7) {
+		if (command != 8) {
 			op = command;
 		} else {
-			op = x % 7;
+			op = x % 8;
 		}		
 		
 		opa = rand_valid_float_bits();
@@ -417,9 +463,13 @@ int main(int argc, char **argv)
 				} while (command == 7 && *fa <0.0);
 				fres   = sqrtf(*fa);
 				break;
+			case 7: //cmp
+				opcode = 7;
+				res    = mycmp(opa, opb);
+				break;
 		}
 		
-		if (opcode != 5 && *ufres != res) {
+		if (opcode != 7 && opcode != 5 && *ufres != res) {
 			printf("-------\nvector: opcode=%u output mismatch %x vs expt=%x\n", opcode, res, *ufres);
 			printf("%f op %f == %f vs %f\n", *fa, *fb, *fures, fres);
 			print_float("opa", opa);

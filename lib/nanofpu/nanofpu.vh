@@ -7,4 +7,5 @@
 `define NANOFPU_OP_FLDI  3'd4
 `define NANOFPU_OP_FSTI  3'd5
 `define NANOFPU_OP_FSQRT 3'd6
+`define NANOFPU_OP_FCMP  3'd7
 `endif

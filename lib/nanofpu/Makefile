@@ -12,6 +12,11 @@ test_fmul.pass: fmul_tb.v
 	iverilog ${F} -D MODEL_SIM -D NUM_OF_TESTS=${NUMTESTS} -o sim.vvp $^
 	(vvp sim.vvp -fst > $@.log && touch $@) || cat $@.log
 
+test_fcmp.pass: fcmp_tb.v
+	./vecgen fcmp
+	iverilog ${F} -D MODEL_SIM -D NUM_OF_TESTS=${NUMTESTS} -o sim.vvp $^
+	(vvp sim.vvp -fst > $@.log && touch $@) || cat $@.log
+
 test_fldi.pass: fldi_tb.v
 	./vecgen fldi
 	iverilog ${F} -D MODEL_SIM -D NUM_OF_TESTS=${NUMTESTS} -o sim.vvp $^

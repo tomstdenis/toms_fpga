@@ -18,44 +18,22 @@
 
 	Configured for an ICE40 (so no barrel/mult/etc) we get
 	
-	  490   SB_CARRY
-       16   SB_DFF
+      489   SB_CARRY
+       17   SB_DFF
       330   SB_DFFE
-      295   SB_DFFESR
-        8   SB_DFFESS
+      297   SB_DFFESR
+        9   SB_DFFESS
         8   SB_DFFSR
-     1619   SB_LUT4
+     1699   SB_LUT4
          
      Configured for perf (MULT=2, both barrel) on ECP5 we get
      
         4   MULT18X18D
       271   CCU2C
-       59   L6MUX21
-     1637   LUT4
-      331   PFUMX
-      689   TRELLIS_FF
-      
-      Configured for Perf (MULT=1, both barrel) on Gowin we get
-      
-      1555  LUT
-       575  DFF
-       351  MUX
-         1  MULT36X36
-       463  ALU
-       
-       Configured the same for Xilinx
-
-        1   BUFG
-        2   DSP48E1
-       70   IBUF
-      131   INV
-      281   LUT2
-      181   LUT3
-      174   LUT4
-      358   LUT5
-      266   LUT6
-       33   OBUF
-	Estimated number of LCs:        979
+       52   L6MUX21
+     1774   LUT4
+      486   PFUMX
+      743   TRELLIS_FF
 
 */
 
@@ -70,6 +48,7 @@ module nanofpu
 	parameter ENABLE_FLDI    = 1'b1,	// enable fldi
 	parameter ENABLE_FSTI    = 1'b1,	// enable fsti
 	parameter ENABLE_FSQRT   = 1'b1,    // enable fsqrt
+	parameter ENABLE_FCMP    = 1'b1,    // enable fcmp
 
 	parameter USE_FMUL_DSP     		 = 2,	// 0 -- serial shifter, 1 == 36x36 DSP, 2 == 18x18 DSP
 	parameter USE_FADDSUB_BARREL     = 1,	// Use barrel shifter for faddsub
@@ -134,6 +113,13 @@ module nanofpu
 		.in_a(in_a), .valid((valid && opcode == `NANOFPU_OP_FSQRT) ? ENABLE_FSQRT : 1'b0),
 		.out(fsqrt_out), .ready(fsqrt_ready));
 
+	wire fcmp_ready;
+	wire [31:0] fcmp_out;
+	fcmp fcmp (
+		.clk(clk), .rst_n(rst_n),
+		.in_a(in_a), .in_b(in_b), .valid((valid && opcode == `NANOFPU_OP_FCMP) ? ENABLE_FCMP : 1'b0),
+		.out(fcmp_out), .ready(fcmp_ready));
+
 	always @(posedge clk) begin
 		ready <= 1'b0;
 		if (fadd_ready) begin
@@ -160,6 +146,10 @@ module nanofpu
 			out   <= fsqrt_out;
 			ready <= 1'b1;
 		end
+		if (fcmp_ready) begin
+			out   <= fcmp_out;
+			ready <= 1'b1;
+		end
 		if (~rst_n) begin
 			out   <= 32'b0;
 			ready <= 1'b0;
@@ -173,3 +163,4 @@ endmodule
 `include "fldi.v"
 `include "fsti.v"
 `include "fsqrt.v"
+`include "fcmp.v"

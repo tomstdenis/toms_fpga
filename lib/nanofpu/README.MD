@@ -23,6 +23,7 @@ The core operates on a 3-bit opcode (`opcode[2:0]`):
 | `4` | **FLDI** | $out = \text{float}(in\_a)$ | Load integer: Converts signed 32-bit integer to float |
 | `5` | **FSTI** | $out = \text{int}(in\_a)$ | Store integer: Converts float to signed 32-bit integer |
 | `6` | **FSQRT**| $out = \sqrt{in\_a}$ | Floating-point square root |
+| `7` | **FCMP** | out = 4 if EQ, 2 if LT, 1 if GT | Floating point comparison |
 
 ## Performance & Latency Options
 
@@ -41,6 +42,7 @@ The execution cycles depend on parameter configuration:
 | **FLDI** | Standard | 2 – 24 cycles |
 | **FSQRT** | `USE_FSQRT_TWO_STAGE = 0` | 28 – 29 cycles (`*`) |
 |  | `USE_FSQRT_TWO_STAGE = 1` | 54 – 55 cycles (`**`) |
+| **FCMP** | Standard | 1 Cycle |
 
 `*` FSQRT takes 1 cycle to report an error.
 `**` The two stage option is for achieving a higher Fmax.
@@ -85,13 +87,13 @@ The execution cycles depend on parameter configuration:
 
 
 ```
-490  SB_CARRY
-16   SB_DFF
-330  SB_DFFE
-295  SB_DFFESR
-8    SB_DFFESS
-8    SB_DFFSR
-1619 SB_LUT4
+      489   SB_CARRY
+       17   SB_DFF
+      330   SB_DFFE
+      297   SB_DFFESR
+        9   SB_DFFESS
+        8   SB_DFFSR
+     1699   SB_LUT4
 ```
 
 ### Lattice ECP5 (Performance Configuration)
@@ -99,41 +101,12 @@ The execution cycles depend on parameter configuration:
 
 
 ```
-4    MULT18X18D
-271  CCU2C
-59   L6MUX21
-1637 LUT4
-331  PFUMX
-689  TRELLIS_FF
-```
-
-### Gowin (Performance Configuration)
-*Configured with `USE_MULT=1` (36x36 DSP) and barrel shifters enabled.*
-
-
-```
-1555 LUT
-575  DFF
-351  MUX
-1    MULT36X36
-463  ALU
-```
-
-### Xilinx 7-Series / UltraScale (Performance Configuration)
-*Configured with DSP48 enabled and barrel shifters enabled (Estimated Logic Cells: ~979).*
-
-
-```
-1    BUFG
-2    DSP48E1
-70   IBUF
-131  INV
-281  LUT2
-181  LUT3
-174  LUT4
-358  LUT5
-266  LUT6
-33   OBUF
+        4   MULT18X18D
+      271   CCU2C
+       52   L6MUX21
+     1774   LUT4
+      486   PFUMX
+      743   TRELLIS_FF
 ```
 
 ## File Structure
@@ -146,3 +119,4 @@ The execution cycles depend on parameter configuration:
 - `fldi.v` - Integer-to-float converter
 - `fsti.v` - Float-to-integer converter
 - `fsqrt.v` - Floating-point square root core
+- `fcmp.v` - Floating-point comparison
