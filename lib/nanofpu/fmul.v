@@ -14,7 +14,7 @@
 `default_nettype none
 module fmul
 #(
-	parameter USE_MULT=0
+	parameter USE_MULT=2
 )
 (
 	input wire clk,

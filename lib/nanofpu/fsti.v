@@ -17,7 +17,7 @@
 // load a float into an int32_t
 module fsti
 #(
-	parameter USE_BARREL=0			// enable a (large, rooughly 3-5x larger) barrel shifter drops cycle count down quite a bit
+	parameter USE_BARREL=1			// enable a (large, rooughly 3-5x larger) barrel shifter drops cycle count down quite a bit
 )
 (
 	input wire clk,

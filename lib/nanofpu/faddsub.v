@@ -11,7 +11,7 @@
 
 module faddsub
 #(
-	parameter USE_BARREL=1			// use a barrel shifter (drops from ~30 to ~3 cycles)
+	parameter USE_BARREL=0			// use a barrel shifter (drops from ~30 to ~3 cycles)
 )
 (
 	input wire clk,

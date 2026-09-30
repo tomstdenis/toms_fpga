@@ -30,13 +30,15 @@ The execution cycles depend on parameter configuration:
 
 | Instruction | Configuration / Parameter | Latency (Clock Cycles) |
 | :--- | :--- | :--- |
-| **FADD / FSUB** | `USE_FADDSUB_BARREL = 1` | 4 cycles |
-| | `USE_FADDSUB_BARREL = 0` | ~28 cycles |
-| **FMUL** | `USE_MULT = 1` (36x36 DSP) | ~4 cycles |
-| | `USE_MULT = 2` (18x18 DSP) | 5 cycles |
-| | `USE_MULT = 0` (Serial Shift Multiplier) | ~28 cycles (24 cycle mult phase) |
-| **FSTI** | `USE_FSTI_BARREL = 1` | 2 cycles |
+| **FADD / FSUB** | `USE_FADDSUB_BARREL = 1` | 3 cycles |
+| | `USE_FADDSUB_BARREL = 0` | ~27 cycles |
+| **FMUL** | `USE_MULT = 1` (36x36 DSP) | 3 – 4 cycles |
+| | `USE_MULT = 2` (18x18 DSP) | 4 – 5 cycles |
+| | `USE_MULT = 0` (Serial Shift Multiplier) | 28 – 29 cycles |
+| **FDIV** | Standard | 28 cycles |
+| **FSTI** | `USE_FSTI_BARREL = 1` | 1 – 2 cycles |
 | | `USE_FSTI_BARREL = 0` | 2 – 24 cycles |
+| **FLDI** | Standard | 2 – 24 cycles |
 
 ## Module Parameters
 
