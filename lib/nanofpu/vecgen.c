@@ -87,7 +87,7 @@ uint32_t myfmul(uint32_t a, uint32_t b)
     uint64_t prod = a_sig * b_sig;
 
     // 4. Renormalize (Single-bit check)
-    if (prod & (1ULL << 47)) {
+    while (prod & (1ULL << 47)) {
         prod >>= 1;
         res_exp += 1;
     }

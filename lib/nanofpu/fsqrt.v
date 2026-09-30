@@ -10,6 +10,9 @@
 `default_nettype none
 
 module fsqrt
+#(
+	parameter TWO_STAGE=0
+)
 (
 	input wire clk,
 	input wire rst_n,
@@ -24,13 +27,15 @@ module fsqrt
 	reg [48:0] a_mant;
 	reg [48:0] one;
 	reg [48:0] res;
-	reg [1:0]  fsm_state;
+	reg [48:0] tmp;
+	reg [2:0]  fsm_state;
 
 	localparam
 		FSM_IDLE   = 0,
 		FSM_EXP    = 1,
-		FSM_REDUCE = 2,
-		FSM_NORM   = 3;
+		FSM_REDUCE_MID = 2,
+		FSM_REDUCE = 3,
+		FSM_NORM   = 4;
 
 	assign out = res[31:0];
 
@@ -58,7 +63,11 @@ module fsqrt
 				end
 			end
 			FSM_EXP: begin
-				fsm_state <= FSM_REDUCE;
+				if (TWO_STAGE == 1) begin
+					fsm_state <= FSM_REDUCE_MID;
+				end else begin
+					fsm_state <= FSM_REDUCE;
+				end
 				if (a_exp[0]) begin
 					// handle odd exponents
 					a_exp         <= (a_exp - 128) >> 1;
@@ -68,13 +77,29 @@ module fsqrt
 					a_exp         <= (a_exp - 127) >> 1;
 				end
 			end
+			FSM_REDUCE_MID: begin
+				if (TWO_STAGE == 1) begin
+					tmp       <= res + one;
+					fsm_state <= FSM_REDUCE;
+				end
+			end
 			FSM_REDUCE: begin
 				if (one != 0) begin
-					if (a_mant >= (res + one)) begin
-						a_mant <= a_mant - (res + one);
-						res    <= (res >> 1) + one;
+					if (TWO_STAGE == 1) begin
+						fsm_state <= FSM_REDUCE_MID;
+						if (a_mant >= tmp) begin
+							a_mant <= a_mant - tmp;
+							res    <= (res >> 1) + one;
+						end else begin
+							res    <= res >> 1;
+						end
 					end else begin
-						res    <= res >> 1;
+						if (a_mant >= res + one) begin
+							a_mant <= a_mant - (res + one);
+							res    <= (res >> 1) + one;
+						end else begin
+							res    <= res >> 1;
+						end
 					end
 					one        <= one >> 2;
 				end else begin

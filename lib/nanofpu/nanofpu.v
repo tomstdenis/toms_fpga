@@ -71,9 +71,10 @@ module nanofpu
 	parameter ENABLE_FSTI    = 1'b1,	// enable fsti
 	parameter ENABLE_FSQRT   = 1'b1,    // enable fsqrt
 
-	parameter USE_MULT       		 = 1,	// 0 -- serial shifter, 1 == 36x36 DSP, 2 == 18x18 DSP
+	parameter USE_FMUL_DSP     		 = 2,	// 0 -- serial shifter, 1 == 36x36 DSP, 2 == 18x18 DSP
 	parameter USE_FADDSUB_BARREL     = 1,	// Use barrel shifter for faddsub
-	parameter USE_FSTI_BARREL        = 1	// Use barrel shifter for fsti (it's kinda big)
+	parameter USE_FSTI_BARREL        = 1,	// Use barrel shifter for fsti (it's kinda big)
+	parameter USE_FSQRT_TWO_STAGE    = 1
 )
 (
 	input wire clk,
@@ -100,7 +101,7 @@ module nanofpu
 
 	wire fmul_ready;
 	wire [31:0] fmul_out;
-	fmul #(.USE_MULT(USE_MULT)) fmul (
+	fmul #(.USE_MULT(USE_FMUL_DSP)) fmul (
 		.clk(clk), .rst_n(rst_n),
 		.in_a(in_a), .in_b(in_b), .valid((valid && opcode == `NANOFPU_OP_FMUL) ? ENABLE_FMUL : 1'b0),
 		.out(fmul_out), .ready(fmul_ready));
@@ -128,7 +129,7 @@ module nanofpu
 
 	wire fsqrt_ready;
 	wire [31:0] fsqrt_out;
-	fsqrt fsqrt (
+	fsqrt #(.TWO_STAGE(USE_FSQRT_TWO_STAGE)) fsqrt (
 		.clk(clk), .rst_n(rst_n),
 		.in_a(in_a), .valid((valid && opcode == `NANOFPU_OP_FSQRT) ? ENABLE_FSQRT : 1'b0),
 		.out(fsqrt_out), .ready(fsqrt_ready));

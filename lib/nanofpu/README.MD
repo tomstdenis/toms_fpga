@@ -32,16 +32,18 @@ The execution cycles depend on parameter configuration:
 | :--- | :--- | :--- |
 | **FADD / FSUB** | `USE_FADDSUB_BARREL = 1` | 3 cycles |
 | | `USE_FADDSUB_BARREL = 0` | ~27 cycles |
-| **FMUL** | `USE_MULT = 1` (36x36 DSP) | 3 – 4 cycles |
-| | `USE_MULT = 2` (18x18 DSP) | 4 – 5 cycles |
-| | `USE_MULT = 0` (Serial Shift Multiplier) | 28 – 29 cycles |
+| **FMUL** | `USE_FMUL_DSP = 1` (36x36 DSP) | 3 – 4 cycles |
+| | `USE_FMUL_DSP = 2` (18x18 DSP) | 4 – 5 cycles |
+| | `USE_FMUL_DSP = 0` (Serial Shift Multiplier) | 28 – 29 cycles |
 | **FDIV** | Standard | 28 cycles |
 | **FSTI** | `USE_FSTI_BARREL = 1` | 1 – 2 cycles |
 | | `USE_FSTI_BARREL = 0` | 2 – 24 cycles |
 | **FLDI** | Standard | 2 – 24 cycles |
-| **FSQRT** | Standard | 28 – 29 cycles (`*`) |
+| **FSQRT** | `USE_FSQRT_TWO_STAGE = 0` | 28 – 29 cycles (`*`) |
+|  | `USE_FSQRT_TWO_STAGE = 1` | 54 – 55 cycles (`**`) |
 
 `*` FSQRT takes 1 cycle to report an error.
+`**` The two stage option is for achieving a higher Fmax.
 
 ## Module Parameters
 
@@ -53,9 +55,10 @@ The execution cycles depend on parameter configuration:
 | `ENABLE_FLDI` | `1'b1` | `0` / `1` | Enable `FLDI` operation |
 | `ENABLE_FSTI` | `1'b1` | `0` / `1` | Enable `FSTI` operation |
 | `ENABLE_FSQRT` | `1'b1` | `0` / `1` | Enable `FSQRT` operation |
-| `USE_MULT` | `1` | `0`, `1`, `2` | Multiplier target: `0` = Serial, `1` = 36x36 DSP, `2` = 18x18 DSP |
+| `USE_FMUL_DSP` | `1` | `0`, `1`, `2` | Multiplier target: `0` = Serial, `1` = 36x36 DSP, `2` = 18x18 DSP |
 | `USE_FADDSUB_BARREL`| `1` | `0` / `1` | Enable normalization barrel shifter for `FADD`/`FSUB` |
-| `USE_FSTI_BARREL` | `1` | `0` / `1` | Enable barrel shifter for `FSTI` normalization |
+| `USE_FSTI_BARREL` | `1` | `0` / `1` | Enable barrel shifter for `FSTI` Normalization |
+| `USE_FSQRT_TWO_STAGE` | `1` | `0` / `1` | Enable higher latency but faster timing two stage FSQRT core |
 
 ## Interface Signal Description
 
