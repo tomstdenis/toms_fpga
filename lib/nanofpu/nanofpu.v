@@ -42,13 +42,14 @@
 `default_nettype none
 module nanofpu
 #(
-	parameter ENABLE_FADDSUB = 1'b1,	// enable faddsub
-	parameter ENABLE_FMUL    = 1'b1,	// enable fmul
-	parameter ENABLE_FDIV    = 1'b1,	// enable fdiv
-	parameter ENABLE_FLDI    = 1'b1,	// enable fldi
-	parameter ENABLE_FSTI    = 1'b1,	// enable fsti
-	parameter ENABLE_FSQRT   = 1'b1,    // enable fsqrt
-	parameter ENABLE_FCMP    = 1'b1,    // enable fcmp
+	parameter ENABLE_FUNCS   = `NANOFPU_FUNCS_ALL,   // enable all functions
+	parameter ENABLE_FADDSUB = ENABLE_FUNCS[`NANOFPU_OP_FADD],	// enable faddsub
+	parameter ENABLE_FMUL    = ENABLE_FUNCS[`NANOFPU_OP_FMUL],	// enable fmul
+	parameter ENABLE_FDIV    = ENABLE_FUNCS[`NANOFPU_OP_FDIV],	// enable fdiv
+	parameter ENABLE_FLDI    = ENABLE_FUNCS[`NANOFPU_OP_FLDI],	// enable fldi
+	parameter ENABLE_FSTI    = ENABLE_FUNCS[`NANOFPU_OP_FSTI],	// enable fsti
+	parameter ENABLE_FSQRT   = ENABLE_FUNCS[`NANOFPU_OP_FSQRT], // enable fsqrt
+	parameter ENABLE_FCMP    = ENABLE_FUNCS[`NANOFPU_OP_FCMP],  // enable fcmp
 
 	parameter USE_FMUL_DSP     		 = 0,	// 0 -- serial shifter, 1 == 36x36 DSP, 2 == 18x18 DSP
 	parameter USE_FADDSUB_BARREL     = 0,	// Use barrel shifter for faddsub
