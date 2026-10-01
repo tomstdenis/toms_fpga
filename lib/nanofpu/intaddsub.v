@@ -1,8 +1,8 @@
 /*
 	Saturating parallel 8/16 bit add/subtraction
 	
-	ICE40: 250 LUT4, 33 DFF, 156 CARRY
-	ECP5:  165 LUT4, 33 DFF, 84 CARRY, 19 L6MUX21, 51 PFUMX
+	ICE40: 255 LUT4, 33 DFF, 128 CARRY
+	ECP5:  141 LUT4, 33 DFF, 70 CARRY, 4 L6MUX21, 22 PFUMX
 
 */
 `default_nettype none
@@ -71,12 +71,12 @@ module iaddsub
 					end
 				end
 				2'b10: begin // satadd16
-					if ((in_a[15:0] + in_b[15:0]) > 9'd65535) begin
+					if ((in_a[15:0] + in_b[15:0]) > 17'd65535) begin
 						out[15:0] <= 65535;
 					end else begin
 						out[15:0] <= in_a[15:0] + in_b[15:0];
 					end
-					if ((in_a[31:16] + in_b[31:16]) > 9'd65535) begin
+					if ((in_a[31:16] + in_b[31:16]) > 17'd65535) begin
 						out[31:16] <= 65535;
 					end else begin
 						out[31:16] <= in_a[31:16] + in_b[31:16];

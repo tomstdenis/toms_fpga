@@ -62,7 +62,7 @@ module nanofpu_tb();
 	
 	nanofpu nanofpu_dut(
 		.clk(clk), .rst_n(rst_n),
-		.in_a(oper_a), .in_b(oper_b), .opcode(opcode[2:0]), .valid(fp_valid),
+		.in_a(oper_a), .in_b(oper_b), .opcode(opcode[3:0]), .valid(fp_valid),
 		.out(fp_res), .ready(fp_ready));
 
     localparam
