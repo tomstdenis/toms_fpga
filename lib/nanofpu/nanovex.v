@@ -35,15 +35,15 @@
 
 module nanovex
 #(
-	parameter ENABLE_F00=`NANOFPU_FUNCS_ALL,
-	parameter ENABLE_F01=`NANOFPU_FUNCS_ALL,
-	parameter ENABLE_F02=`NANOFPU_FUNCS_ALL,
-	parameter ENABLE_F03=`NANOFPU_FUNCS_ALL,
-	parameter ENABLE_F10=`NANOFPU_FUNCS_ALL,
-	parameter ENABLE_F11=`NANOFPU_FUNCS_ALL,
-	parameter ENABLE_F20=`NANOFPU_FUNCS_ALL,
+	parameter ENABLE_F00=(`NANOFPU_FL_FADD|`NANOFPU_FL_FMUL|`NANOFPU_FL_FSTI|`NANOFPU_FL_FLDI),
+	parameter ENABLE_F01=(`NANOFPU_FL_FADD|`NANOFPU_FL_FMUL),
+	parameter ENABLE_F02=(`NANOFPU_FL_FADD|`NANOFPU_FL_FMUL|`NANOFPU_FL_FSTI|`NANOFPU_FL_FLDI),
+	parameter ENABLE_F03=(`NANOFPU_FL_FADD|`NANOFPU_FL_FMUL),
+	parameter ENABLE_F10=`NANOFPU_FL_FADD,
+	parameter ENABLE_F11=`NANOFPU_FL_FADD,
+	parameter ENABLE_F20=`NANOFPU_FL_FADD,
 
-	parameter USE_FMUL_DSP     		 = 2,	// 0 == serial shifter, 1 == 36x36 DSP, 2 == 18x18 DSP, 3 == 2-bit serial multiplier
+	parameter USE_FMUL_DSP     		 = 1,	// 0 == serial shifter, 1 == 36x36 DSP, 2 == 18x18 DSP, 3 == 2-bit serial multiplier
 	parameter USE_FADDSUB_BARREL     = 1,	// Use barrel shifter for faddsub
 	parameter USE_FSTI_BARREL        = 1,	// Use barrel shifter for fsti (it's kinda big)
 	parameter USE_FSQRT_TWO_STAGE    = 1    // Use two stage (better fmax) FSQRT logic

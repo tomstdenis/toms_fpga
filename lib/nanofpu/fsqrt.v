@@ -1,8 +1,12 @@
 /*
 	Float sqrt
 	
-	Takes 30 cycles.
+	Takes 24, 48, 72 cycles plus overhead depending on STAGES=0,1,2
 	
+	Higher stage counts increases Fmax at a cost in cycle count.  Handy if you don't do a lot of FSQRT
+but want to have it around.  
+	
+	STAGES=0 synth:
 	ICE40: 364 LUT4, 136 DFF, 157 CARRY
 	ECP5 : 294 LUT4, 136 DFF, 83 CARRY, 34 L6MUX21
 
@@ -11,7 +15,7 @@
 
 module fsqrt
 #(
-	parameter TWO_STAGE=0
+	parameter STAGES=2
 )
 (
 	input wire clk,
@@ -31,13 +35,16 @@ module fsqrt
 	reg [2:0]  fsm_state;
 
 	localparam
-		FSM_IDLE       = 0,
-		FSM_EXP        = 1,
-		FSM_REDUCE_MID = 2,
-		FSM_REDUCE     = 3,
-		FSM_NORM       = 4;
+		FSM_IDLE        = 0,
+		FSM_EXP         = 1,
+		FSM_REDUCE_PREP = 2,
+		FSM_REDUCE_CMP  = 3,
+		FSM_REDUCE      = 4,
+		FSM_NORM        = 5;
 
 	assign out = res[31:0];
+	
+	reg [49:0] reduce_cmp;
 
 	always @(posedge clk) begin
 		ready     <= 1'b0;
@@ -64,8 +71,8 @@ module fsqrt
 			end
 			// fix up the exponent and if needed the mantissa
 			FSM_EXP: begin
-				if (TWO_STAGE == 1) begin
-					fsm_state <= FSM_REDUCE_MID;
+				if (STAGES != 0) begin
+					fsm_state <= FSM_REDUCE_PREP;
 				end else begin
 					fsm_state <= FSM_REDUCE;
 				end
@@ -78,24 +85,45 @@ module fsqrt
 					a_exp         <= (a_exp - 127) >> 1;
 				end
 			end
-			FSM_REDUCE_MID: begin
+			FSM_REDUCE_PREP: begin
 				// Pipelining the 48-bit add can help timing...
-				if (TWO_STAGE == 1) begin
+				if (STAGES != 0) begin
 					tmp       <= res + one;
-					fsm_state <= FSM_REDUCE;
+					if (STAGES == 1) begin
+						fsm_state <= FSM_REDUCE;
+					end else begin
+						fsm_state <= FSM_REDUCE_CMP;
+					end
+				end
+			end
+			FSM_REDUCE_CMP: begin
+				if (STAGES == 2) begin
+					reduce_cmp <= a_mant - tmp;
+					fsm_state  <= FSM_REDUCE;
 				end
 			end
 			// reduction loop
 			FSM_REDUCE: begin
 				if (one != 0) begin
-					if (TWO_STAGE == 1) begin
-						fsm_state <= FSM_REDUCE_MID;
+					if (STAGES != 0) begin
+						fsm_state <= FSM_REDUCE_PREP;
 						// the next guess fits or not
-						if (a_mant >= tmp) begin
-							a_mant <= a_mant - tmp;
-							res    <= (res >> 1) + one;
+						if (STAGES == 1) begin
+							// two stage
+							if (a_mant >= tmp) begin
+								a_mant <= a_mant - tmp;
+								res    <= (res >> 1) + one;
+							end else begin
+								res    <= res >> 1;
+							end
 						end else begin
-							res    <= res >> 1;
+							// three stage
+							if (~reduce_cmp[49]) begin
+								a_mant <= a_mant - tmp;
+								res    <= (res >> 1) + one;
+							end else begin
+								res    <= res >> 1;
+							end
 						end
 					end else begin
 						if (a_mant >= res + one) begin
