@@ -171,32 +171,30 @@ module nanovex
 		// handle inner layers by accumulating the readies into pairs in fxy_deps[1:0]
 		// This allows the FPUs to finish on their own time and the next level only starts
 		// when both are ready
+		f10_deps <= f10_deps | {fpu_readies[0], fpu_readies[1]};
+		f11_deps <= f11_deps | {fpu_readies[2], fpu_readies[3]};
+		f20_deps <= f20_deps | {fpu_readies[4], fpu_readies[5]};
+
 		if (fpu_readies[0]) begin
-			f10_deps[0] <= 1;
 			out[31:0]   <= fpu_outs[31:0];
 		end
 		if (fpu_readies[1]) begin
-			f10_deps[1] <= 1;
 			out[63:32]   <= fpu_outs[63:32];
 		end
 		if (fpu_readies[2]) begin
-			f11_deps[0] <= 1;
 			out[95:64]   <= fpu_outs[95:64];
 		end
 		if (fpu_readies[3]) begin
-			f11_deps[1] <= 1;
 			out[127:96]   <= fpu_outs[127:96];
 		end
 		if (fpu_readies[4]) begin
-			f20_deps[0] <= 1;
 			out[159:128]   <= f10_out;
 		end
 		if (fpu_readies[5]) begin
-			f20_deps[1] <= 1;
-			out[195:160]   <= f11_out;
+			out[191:160]   <= f11_out;
 		end
 		if (fpu_readies[6]) begin
-			out[223:196]   <= f20_out;
+			out[223:192]   <= f20_out;
 		end
 
 		// reset inners (fxy_valid is combinatorial so in the cycle where it goes high
