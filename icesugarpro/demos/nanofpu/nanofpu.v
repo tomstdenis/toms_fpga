@@ -65,10 +65,11 @@ module top(
 		.USE_FADDSUB_BARREL(1),
 		.USE_FSTI_BARREL(1),
 		.USE_FMUL_DSP(2),
-		.USE_FSQRT_TWO_STAGE(1)
+		.USE_FSQRT_TWO_STAGE(1),
+		.ENABLE_FSQRT(1)
 	) nanofpu_dut(
 		.clk(pll_clk), .rst_n(rst_n),
-		.in_a(oper_a), .in_b(oper_b), .opcode(opcode[2:0]), .valid(fp_valid),
+		.in_a(oper_a), .in_b(oper_b), .opcode(opcode[3:0]), .valid(fp_valid),
 		.out(fp_res), .ready(fp_ready));
 
     reg [3:0] test_state;
