@@ -26,6 +26,8 @@ The core operates on a 3-bit opcode (`opcode[2:0]`):
 | `5` | **FSTI** | $out = \text{int}(in\_a)$ | Store integer: Converts float to signed 32-bit integer |
 | `6` | **FSQRT**| $out = \sqrt{in\_a}$ | Floating-point square root |
 | `7` | **FCMP** | out = 4 if EQ, 2 if LT, 1 if GT | Floating point comparison |
+| `8`..`11` | **IADD** | 8-bit saturated add and sub, 16-bit saturated add and sub |
+| `15` | **NOP** | No operation | Idle the FPU, returns `ready` immediately |
 
 ## Performance & Latency Options
 
@@ -46,6 +48,8 @@ The execution cycles depend on parameter configuration:
 | **FSQRT** | `USE_FSQRT_TWO_STAGE = 0` | 28 – 29 cycles (`*`) | Faster but harder to hit timing with |
 |  | `USE_FSQRT_TWO_STAGE = 1` | 54 – 55 cycles (`**`) | Slower but easier to hit timing also slightly larger |
 | **FCMP** | Standard | 1 Cycle | It compares things. |
+| **IADD** | Standard | 1 Cycle | It adds ints |
+| **NOP** | Standard | 1 Cycle | No op |
 
 `*` FSQRT takes 1 cycle to report an error.
 `**` The two stage option is for achieving a higher Fmax.
@@ -61,6 +65,7 @@ The execution cycles depend on parameter configuration:
 | `ENABLE_FSTI` | `1'b1` | `0` / `1` | Enable `FSTI` operation |
 | `ENABLE_FSQRT` | `1'b1` | `0` / `1` | Enable `FSQRT` operation |
 | `ENABLE_FCMP` | `1'b1` | `0` / `1` | Enable `FCMP` operation |
+| `ENABLE_IADD` | `1'b1` | `0` / `1` | Enable `IADD` operations |
 | `USE_FMUL_DSP` | `1` | `0`, `1`, `2` | Multiplier target: `0` = Serial, `1` = 36x36 DSP, `2` = 18x18 DSP, `3` = 2-bit wide double-add |
 | `USE_FADDSUB_BARREL`| `1` | `0` / `1` | Enable normalization barrel shifter for `FADD`/`FSUB` |
 | `USE_FSTI_BARREL` | `1` | `0` / `1` | Enable barrel shifter for `FSTI` Normalization |
@@ -89,15 +94,14 @@ The execution cycles depend on parameter configuration:
 ### Lattice iCE40 (Area-Optimized Configuration)
 *Configured without barrel shifters or hardware DSP multipliers (`USE_MULT=0`, barrel shifters disabled).*
 
-
 ```
-      504   SB_CARRY
-       17   SB_DFF
-      338   SB_DFFE
-      305   SB_DFFESR
-        9   SB_DFFESS
+      660   SB_CARRY
+       18   SB_DFF
+      182   SB_DFFE
+      494   SB_DFFESR
+        8   SB_DFFESS
         8   SB_DFFSR
-     1724   SB_LUT4
+     1959   SB_LUT4
 ```
 
 ### Lattice ECP5 (Performance Configuration)
@@ -106,11 +110,12 @@ The execution cycles depend on parameter configuration:
 
 ```
         4   MULT18X18D
-      277   CCU2C
-       58   L6MUX21
-     1828   LUT4
-      514   PFUMX
-      751   TRELLIS_FF
+     3536 submodules
+      361   CCU2C
+       66   L6MUX21
+     1896   LUT4
+      429   PFUMX
+      784   TRELLIS_FF
 ```
 
 ## File Structure
