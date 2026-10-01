@@ -1,5 +1,5 @@
 `default_nettype none
-`define FREQ 110_000
+`define FREQ 100_000
 
 // use DVI output, uncomment to use the VGA pins
 `define USE_DVI

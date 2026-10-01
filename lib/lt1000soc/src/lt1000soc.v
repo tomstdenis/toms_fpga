@@ -1,4 +1,6 @@
 // Little Timmy 1000 SOC
+`include "../../nanofpu/nanofpu.vh"
+
 `default_nettype none
 /*
 Example config I did for Console60K                                                                          
@@ -326,6 +328,29 @@ localparam
         .div(spi_div), .cs_start(spi_cs_start), .cs_end(spi_cs_end), .mosi_byte(spi_mosi_byte), .miso_byte(spi_miso_byte),
         .cs_pin(spi_m_cs), .sck_pin(spi_sck_pin), .mosi_pin(spi_mosi_pin), .miso_pin(spi_miso_pin));
 
+// *** NANOFPU ***
+    reg [31:0]  fpu_in_a;
+    reg [31:0]  fpu_in_b;
+    reg [3:0]   fpu_opcode;
+    reg         fpu_valid;
+    wire [31:0] fpu_out;
+    wire        fpu_ready;
+    reg         fpu_auto_fire;
+    reg         fpu_ready_l;
+
+    nanofpu #(
+        .ENABLE_FUNCS(`NANOFPU_FUNCS_ALL),
+        .USE_FMUL_DSP(1),
+        .USE_FADDSUB_BARREL(1),
+        .USE_FSTI_BARREL(1),
+        .USE_FSQRT_STAGES(2)) mr_math
+    (
+        .clk(core_clk), .rst_n(crst_n),
+        .in_a(fpu_in_a), .in_b(fpu_in_b), .opcode(fpu_opcode), .valid(fpu_valid),
+        .out(fpu_out), .ready(fpu_ready)
+    );
+
+
 // *** RISCV core ***   
     wire picorv_trap;
 
@@ -374,7 +399,12 @@ localparam
         MMIO_UART_STATUS  = 8'h1C,
         MMIO_VGA_CTRL     = 8'h20,
         MMIO_SPI_TRANSFER = 8'h24,
-        MMIO_TIMER        = 8'h28;
+        MMIO_TIMER        = 8'h28,
+
+        MMIO_FPU_IN_A     = 8'h2C,
+        MMIO_FPU_IN_B     = 8'h30,
+        MMIO_FPU_OUT      = 8'h34,
+        MMIO_FPU_CTRL     = 8'h38;
 
     // lower 8 bits of machine config reg (used to store the PSRAM size in MiB
     reg  [7:0] mmio_reg_mcfg;
@@ -450,6 +480,8 @@ localparam
         spi_valid            <= 1'b0;
         bus_ready            <= 1'b0;
         psram_valid          <= 1'b0;
+        fpu_valid            <= 0;
+        fpu_ready_l          <= fpu_ready_l | fpu_ready;
 
         // update cycle counter
         timer                <= timer + 1'b1;
@@ -613,6 +645,34 @@ localparam
                     MMIO_TIMER: begin
                         mmio_data_out <= timer;
                     end
+                    MMIO_FPU_IN_A: begin
+                        mmio_data_out <= fpu_in_a;
+                        if (picorv_mem_wstrb == 4'b1111) begin
+                            fpu_in_a <= picorv_mem_wdata;
+                        end
+                    end
+                    MMIO_FPU_IN_B: begin
+                        mmio_data_out <= fpu_in_b;
+                        if (picorv_mem_wstrb == 4'b1111) begin
+                            fpu_in_b <= picorv_mem_wdata;
+                            if (fpu_auto_fire) begin
+                                fpu_valid <= 1'b1;
+                            end
+                        end
+                    end
+                    MMIO_FPU_OUT: begin
+                        mmio_data_out <= fpu_out;
+                    end
+                    MMIO_FPU_CTRL: begin
+                        mmio_data_out <= { fpu_auto_fire, fpu_opcode, fpu_ready_l };
+                        if (picorv_mem_wstrb == 4'b1111) begin
+                            fpu_valid     <= picorv_mem_wdata[0];
+                            fpu_opcode    <= picorv_mem_wdata[4:1];
+                            fpu_auto_fire <= picorv_mem_wdata[5];
+                        end else begin
+                            fpu_ready_l <= 0;
+                        end
+                    end
                     default: mmio_data_out <= 32'hBEBEBEEF;
                 endcase
             end else begin // default 16M region that isn't mapped to anything
@@ -633,6 +693,7 @@ localparam
             gpio_dout          <= 32'b0;
             gpio_oe            <= 32'b0;
             mmio_reg_mcfg[7:0] <= 8'h00;
+            fpu_auto_fire      <= 1'b0;
         end
     end
 endmodule
@@ -649,3 +710,4 @@ endmodule
 `include "../../vga/blocks/vga.v"
 `include "../../timer/blocks/timer.v"
 `include "../../spi/spi.v"
+`include "../../nanofpu/nanofpu.v"

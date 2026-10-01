@@ -57,4 +57,22 @@
 // TIMER (32-bit Cycle Counter)
 #define TIMER               *((volatile uint32_t *)0x10000028)
 
+// FPU
+#define FPU_IN_A            *((volatile float *)0x1000002C)
+#define FPU_IN_B            *((volatile float *)0x10000030)
+#define FPU_OUT             *((volatile float *)0x10000034)
+#define FPU_CTRL            *((volatile uint32_t *)0x10000038)
+#define FPU_CTRL_VALID      1
+#define FPU_CTRL_OP_FADD    (0<<1)
+#define FPU_CTRL_OP_FSUB    (1<<1)
+#define FPU_CTRL_OP_FMUL    (2<<1)
+#define FPU_CTRL_OP_FDIV    (3<<1)
+#define FPU_CTRL_OP_FLDI    (4<<1)
+#define FPU_CTRL_OP_FSTI    (5<<1)
+#define FPU_CTRL_OP_FSQRT   (6<<1)
+#define FPU_CTRL_OP_FCMP    (7<<1)
+#define FPU_CTRL_OP_IADD    (8<<1)
+#define FPU_CTRL_OP_NOP     (15<<1)
+#define FPU_CTRL_AUTO_FIRE  (1<<5)
+
 #endif

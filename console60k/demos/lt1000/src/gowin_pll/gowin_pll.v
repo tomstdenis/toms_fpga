@@ -1,3 +1,4 @@
+`default_nettype wire
 module lt1000clk(
     clkin,
     clkout0,
@@ -54,7 +55,7 @@ wire pll_rst;
         .MDWDI(8'h0)
     );
     defparam u_pll_init.CLK_PERIOD = 20;
-    defparam u_pll_init.MULTI_FAC = 55;
+    defparam u_pll_init.MULTI_FAC = 20;
 
 
 endmodule
