@@ -43,7 +43,7 @@ module nanovex
 	parameter ENABLE_F11=`NANOFPU_FUNCS_ALL,
 	parameter ENABLE_F20=`NANOFPU_FUNCS_ALL,
 
-	parameter USE_FMUL_DSP     		 = 1,	// 0 -- serial shifter, 1 == 36x36 DSP, 2 == 18x18 DSP
+	parameter USE_FMUL_DSP     		 = 2,	// 0 -- serial shifter, 1 == 36x36 DSP, 2 == 18x18 DSP
 	parameter USE_FADDSUB_BARREL     = 1,	// Use barrel shifter for faddsub
 	parameter USE_FSTI_BARREL        = 1,	// Use barrel shifter for fsti (it's kinda big)
 	parameter USE_FSQRT_TWO_STAGE    = 1
@@ -170,7 +170,7 @@ module nanovex
 		// when both are ready
 		f10_deps <= f10_deps | {fpu_readies[0], fpu_readies[1]};
 		f11_deps <= f11_deps | {fpu_readies[2], fpu_readies[3]};
-		f20_deps <= f20_deps | {fpu_readies[4], fpu_readies[5]};
+		f20_deps <= f20_deps | {~fpu_enables[0] | fpu_readies[4], ~fpu_enables[1] | fpu_readies[5]};
 
 		if (fpu_readies[0]) begin
 			out[31:0]   <= fpu_outs[31:0];
