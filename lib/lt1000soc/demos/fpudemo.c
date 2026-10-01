@@ -12,6 +12,7 @@ TCM_FUNC(demo) void demo(void)
 
 	getch();
 	
+	// Single fire float add
 	t1 = TIMER;
 	a = 3.14;
 	b = 1.5;
@@ -27,6 +28,7 @@ TCM_FUNC(demo) void demo(void)
 	printf("float: 3.14 + 1.5 == %f in %lu cycles\n", r, t1-t);
 	printf("nano : 3.14 + 1.5 == %f in %lu cycles\n", r2, t2-t);
 	
+	// Single fire float multiply
 	t1 = TIMER;
 	a = 3.14;
 	b = 1.5;
@@ -42,6 +44,7 @@ TCM_FUNC(demo) void demo(void)
 	printf("float: 3.14 * 1.5 == %f in %lu cycles\n", r, t1-t);
 	printf("nano : 3.14 * 1.5 == %f in %lu cycles\n", r2, t2-t);
 
+	// Auto fire float multiply, writes to FPU_IN_B trigger the last programmed job in FPU_CTRL
 	FPU_CTRL = FPU_CTRL_AUTO_FIRE | FPU_CTRL_OP_FMUL;
 	t2 = TIMER;
 	FPU_IN_A = 3.14;
@@ -52,6 +55,7 @@ TCM_FUNC(demo) void demo(void)
 	printf("nano : 3.14 * 1.5 == %f in %lu cycles (AUTO FIRE ENABLED!!! PEW PEW)\n", r2, t2-t);
 	FPU_CTRL = 0;
 	
+	// Single fire float divide
 	t1 = TIMER;
 	a = 3.14;
 	b = 1.5;
@@ -67,6 +71,7 @@ TCM_FUNC(demo) void demo(void)
 	printf("float: 3.14 / 1.5 == %f in %lu cycles\n", r, t1-t);
 	printf("nano : 3.14 / 1.5 == %f in %lu cycles\n", r2, t2-t);
 
+	// Single fire float square root
 	t1 = TIMER;
 	a = 3.14;
 	r = sqrtf(a);
@@ -79,7 +84,6 @@ TCM_FUNC(demo) void demo(void)
 	t2 = TIMER - t2;
 	printf("float: sqrt(3.14) == %f in %lu cycles\n", r, t1-t);
 	printf("nano : sqrt(3.14) == %f in %lu cycles\n", r2, t2-t);
-
 
 	delay_ms(5000);
 }

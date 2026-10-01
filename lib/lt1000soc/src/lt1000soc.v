@@ -350,7 +350,6 @@ localparam
         .out(fpu_out), .ready(fpu_ready)
     );
 
-
 // *** RISCV core ***   
     wire picorv_trap;
 

@@ -17,14 +17,14 @@
 -mdrp_en true
 -rst_o false
 -fclkin 50
--idiv_sel 1
+-idiv_sel 2
 -clkfb_sel 0
 -fbdiv_sel 1
 -en_lock true
 -dyn_dpa_en false
 -clkout0_bypass false
--odiv0_sel 10
--odiv0_frac_sel 0
+-odiv0_sel 12
+-odiv0_frac_sel 4
 -clkout0_dt_dir 1
 -clkout0_dt_step 0
 -dyn_pe0_sel false
@@ -35,7 +35,7 @@
 -clkout0_dt_step 0
 -en_clkout1 true
 -clkout1_bypass false
--odiv1_sel 40
+-odiv1_sel 55
 -clkout1_dt_dir 1
 -clkout1_dt_step 0
 -dyn_pe1_sel false
@@ -44,7 +44,7 @@
 -de1_en false
 -en_clkout2 true
 -clkout2_bypass false
--odiv2_sel 8
+-odiv2_sel 11
 -clkout2_dt_dir 1
 -clkout2_dt_step 0
 -dyn_pe2_sel false
@@ -56,5 +56,5 @@
 -en_clkout5 false
 -en_clkout6 false
 -en_clkfbout false
--mdiv_sel 20
+-mdiv_sel 55
 -mdiv_frac_sel 0
