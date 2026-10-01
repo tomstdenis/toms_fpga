@@ -51,10 +51,10 @@ module nanofpu
 	parameter ENABLE_FSQRT   = ENABLE_FUNCS[`NANOFPU_OP_FSQRT], // enable fsqrt
 	parameter ENABLE_FCMP    = ENABLE_FUNCS[`NANOFPU_OP_FCMP],  // enable fcmp
 
-	parameter USE_FMUL_DSP     		 = 0,	// 0 -- serial shifter, 1 == 36x36 DSP, 2 == 18x18 DSP
-	parameter USE_FADDSUB_BARREL     = 0,	// Use barrel shifter for faddsub
-	parameter USE_FSTI_BARREL        = 0,	// Use barrel shifter for fsti (it's kinda big)
-	parameter USE_FSQRT_TWO_STAGE    = 0
+	parameter USE_FMUL_DSP     		 = 2,	// 0 -- serial shifter, 1 == 36x36 DSP, 2 == 18x18 DSP
+	parameter USE_FADDSUB_BARREL     = 1,	// Use barrel shifter for faddsub
+	parameter USE_FSTI_BARREL        = 1,	// Use barrel shifter for fsti (it's kinda big)
+	parameter USE_FSQRT_TWO_STAGE    = 1
 )
 (
 	input wire clk,
