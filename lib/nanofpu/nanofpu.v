@@ -50,6 +50,7 @@ module nanofpu
 	parameter ENABLE_FSTI    = ENABLE_FUNCS[`NANOFPU_OP_FSTI],	// enable fsti
 	parameter ENABLE_FSQRT   = ENABLE_FUNCS[`NANOFPU_OP_FSQRT], // enable fsqrt
 	parameter ENABLE_FCMP    = ENABLE_FUNCS[`NANOFPU_OP_FCMP],  // enable fcmp
+	parameter ENABLE_IADD    = ENABLE_FUNCS[`NANOFPU_OP_IADD],  // enable iaddsub
 
 	parameter USE_FMUL_DSP     		 = 2,	// 0 -- serial shifter, 1 == 36x36 DSP, 2 == 18x18 DSP
 	parameter USE_FADDSUB_BARREL     = 1,	// Use barrel shifter for faddsub
@@ -62,7 +63,7 @@ module nanofpu
 	
 	input wire [31:0] in_a,
 	input wire [31:0] in_b,
-	input wire [2:0]  opcode,		// 0=ADD, 1=SUB, 2=MUL, 3=DIV, 4=FLDI, 5=FSTI, 6=FSQRT
+	input wire [3:0]  opcode,		// 0=ADD, 1=SUB, 2=MUL, 3=DIV, 4=FLDI, 5=FSTI, 6=FSQRT, 7=FCMP, 8=IADD
 	input wire        valid,		// command valid
 	
 	output reg [31:0] out,			// result
@@ -121,6 +122,13 @@ module nanofpu
 		.in_a(in_a), .in_b(in_b), .valid((valid && opcode == `NANOFPU_OP_FCMP) ? ENABLE_FCMP : 1'b0),
 		.out(fcmp_out), .ready(fcmp_ready));
 
+	wire iaddsub_ready;
+	wire [31:0] iaddsub_out;
+	iaddsub iaddsub (
+		.clk(clk), .rst_n(rst_n), .sub_op(opcode - `NANOFPU_OP_IADD),
+		.in_a(in_a), .in_b(in_b), .valid((valid && opcode >= `NANOFPU_OP_IADD && opcode <= (`NANOFPU_OP_IADD + 3)) ? ENABLE_IADD : 1'b0),
+		.out(iaddsub_out), .ready(iaddsub_ready));
+
 	always @(posedge clk) begin
 		ready <= 1'b0;
 		if (fadd_ready) begin
@@ -151,6 +159,13 @@ module nanofpu
 			out   <= fcmp_out;
 			ready <= 1'b1;
 		end
+		if (iaddsub_ready) begin
+			out   <= iaddsub_out;
+			ready <= 1'b1;
+		end
+		if (valid && opcode == `NANOFPU_OP_NOP) begin
+			ready <= 1'b1;
+		end
 		if (~rst_n) begin
 			out   <= 32'b0;
 			ready <= 1'b0;
@@ -165,3 +180,4 @@ endmodule
 `include "fsti.v"
 `include "fsqrt.v"
 `include "fcmp.v"
+`include "intaddsub.v"

@@ -43,23 +43,21 @@ module nanovex
 	parameter ENABLE_F11=`NANOFPU_FUNCS_ALL,
 	parameter ENABLE_F20=`NANOFPU_FUNCS_ALL,
 
-	parameter USE_FMUL_DSP     		 = 2,	// 0 -- serial shifter, 1 == 36x36 DSP, 2 == 18x18 DSP
+	parameter USE_FMUL_DSP     		 = 2,	// 0 == serial shifter, 1 == 36x36 DSP, 2 == 18x18 DSP, 3 == 2-bit serial multiplier
 	parameter USE_FADDSUB_BARREL     = 1,	// Use barrel shifter for faddsub
 	parameter USE_FSTI_BARREL        = 1,	// Use barrel shifter for fsti (it's kinda big)
-	parameter USE_FSQRT_TWO_STAGE    = 1
+	parameter USE_FSQRT_TWO_STAGE    = 1    // Use two stage (better fmax) FSQRT logic
 )
 (
 	input wire clk,
 	input wire rst_n,
 	
-	input wire [127:0] in_a,		// quad of 32-bits per F0y left hand side
-	input wire [127:0] in_b,		// quad of 32-bits per F0y right hand side
-	input wire [7*3-1:0]  opcode,	// sept of 3 bits ... 0=ADD, 1=SUB, 2=MUL, 3=DIV, 4=FLDI, 5=FSTI, 6=FSQRT
-	input wire [3:0]    valid,		// command valid
+	input wire [127:0] in_a,		// quad of 32-bits per F0y left hand side {F03, F02, F01, F00}
+	input wire [127:0] in_b,		// quad of 32-bits per F0y right hand side {F03, F02, F01, F00}
+	input wire [7*4-1:0]  opcode,	// sept of 4 bits ... 0=ADD, 1=SUB, 2=MUL, 3=DIV, 4=FLDI, 5=FSTI, 6=FSQRT, 7=FCMP, 8=IADD, 15=NOP
+	input wire [3:0]    valid,		// command valid {F03, F02, F01, F00}
 	output reg [7*32-1:0] out,		// result data {f20, f11, f10, f03, f02, f01, f00}
-	output reg [6:0]    ready,		// result is ready {f20, f11, f10, f03, f02, f01, f00}
-	
-	input wire [2:0]    fpu_enables // enables for {f20, f11, f10}
+	output reg [6:0]    ready,		// result strobe: output is ready {f20, f11, f10, f03, f02, f01, f00}
 );
 
 	wire [6:0]      fpu_readies;
@@ -74,7 +72,7 @@ module nanovex
 		.USE_FSQRT_TWO_STAGE(USE_FSQRT_TWO_STAGE)) nanofpu_f00
 	(
 		.clk(clk), .rst_n(rst_n),
-		.in_a(in_a[31:0]), .in_b(in_b[31:0]), .opcode(opcode[2:0]),
+		.in_a(in_a[31:0]), .in_b(in_b[31:0]), .opcode(opcode[3:0]),
 		.valid(valid[0]), .out(fpu_outs[31:0]), .ready(fpu_readies[0])
 	);
 		
@@ -86,7 +84,7 @@ module nanovex
 		.USE_FSQRT_TWO_STAGE(USE_FSQRT_TWO_STAGE)) nanofpu_f01
 	(
 		.clk(clk), .rst_n(rst_n),
-		.in_a(in_a[63:32]), .in_b(in_b[63:32]), .opcode(opcode[5:3]),
+		.in_a(in_a[63:32]), .in_b(in_b[63:32]), .opcode(opcode[7:4]),
 		.valid(valid[1]), .out(fpu_outs[63:32]), .ready(fpu_readies[1])
 	);
 
@@ -98,7 +96,7 @@ module nanovex
 		.USE_FSQRT_TWO_STAGE(USE_FSQRT_TWO_STAGE)) nanofpu_f02
 	(
 		.clk(clk), .rst_n(rst_n),
-		.in_a(in_a[95:64]), .in_b(in_b[95:64]), .opcode(opcode[8:6]),
+		.in_a(in_a[95:64]), .in_b(in_b[95:64]), .opcode(opcode[11:8]),
 		.valid(valid[2]), .out(fpu_outs[95:64]), .ready(fpu_readies[2])
 	);
 		
@@ -110,7 +108,7 @@ module nanovex
 		.USE_FSQRT_TWO_STAGE(USE_FSQRT_TWO_STAGE)) nanofpu_f03
 	(
 		.clk(clk), .rst_n(rst_n),
-		.in_a(in_a[127:96]), .in_b(in_b[127:96]), .opcode(opcode[11:9]),
+		.in_a(in_a[127:96]), .in_b(in_b[127:96]), .opcode(opcode[15:12]),
 		.valid(valid[3]), .out(fpu_outs[127:96]), .ready(fpu_readies[3])
 	);
 	
@@ -121,9 +119,9 @@ module nanovex
 	wire f10_valid;
 	wire f11_valid;
 	wire f20_valid;
-	assign f10_valid = fpu_enables[0] & &f10_deps;
-	assign f11_valid = fpu_enables[1] & &f11_deps;
-	assign f20_valid = fpu_enables[2] & &f20_deps;
+	assign f10_valid = ((opcode[19:16] != `NANOFPU_OP_NOP) && &f10_deps) ? 1'b1 : 1'b0;
+	assign f11_valid = ((opcode[23:20] != `NANOFPU_OP_NOP) && &f11_deps) ? 1'b1 : 1'b0;
+	assign f20_valid = ((opcode[27:24] != `NANOFPU_OP_NOP) && &f20_deps) ? 1'b1 : 1'b0;
 
 	// F10 takes in F00 and F01 as inputs
 	nanofpu #( 
@@ -134,7 +132,7 @@ module nanovex
 		.USE_FSQRT_TWO_STAGE(USE_FSQRT_TWO_STAGE)) nanofpu_f10
 	(
 		.clk(clk), .rst_n(rst_n),
-		.in_a(fpu_outs[31:0]), .in_b(fpu_outs[63:32]), .opcode(opcode[14:12]),
+		.in_a(fpu_outs[31:0]), .in_b(fpu_outs[63:32]), .opcode(opcode[19:16]),
 		.valid(f10_valid), .out(fpu_outs[159:128]), .ready(fpu_readies[4])
 	);
 	
@@ -147,7 +145,7 @@ module nanovex
 		.USE_FSQRT_TWO_STAGE(USE_FSQRT_TWO_STAGE)) nanofpu_f11
 	(
 		.clk(clk), .rst_n(rst_n),
-		.in_a(fpu_outs[95:64]), .in_b(fpu_outs[127:96]), .opcode(opcode[17:15]),
+		.in_a(fpu_outs[95:64]), .in_b(fpu_outs[127:96]), .opcode(opcode[23:20]),
 		.valid(f11_valid), .out(fpu_outs[191:160]), .ready(fpu_readies[5])
 	);
 
@@ -160,7 +158,7 @@ module nanovex
 		.USE_FSQRT_TWO_STAGE(USE_FSQRT_TWO_STAGE)) nanofpu_f20
 	(
 		.clk(clk), .rst_n(rst_n),
-		.in_a(fpu_outs[159:128]), .in_b(fpu_outs[191:160]), .opcode(opcode[20:18]),
+		.in_a(fpu_outs[159:128]), .in_b(fpu_outs[191:160]), .opcode(opcode[27:24]),
 		.valid(f20_valid), .out(fpu_outs[223:192]), .ready(fpu_readies[6])
 	);
 
@@ -170,10 +168,13 @@ module nanovex
 		// when both are ready
 		f10_deps <= f10_deps | {fpu_readies[0], fpu_readies[1]};
 		f11_deps <= f11_deps | {fpu_readies[2], fpu_readies[3]};
-		f20_deps <= f20_deps | {~fpu_enables[0] | fpu_readies[4], ~fpu_enables[1] | fpu_readies[5]};
+		f20_deps <= f20_deps | {
+								((opcode[19:16] == `NANOFPU_OP_NOP) ? 1'b1 : 1'b0) | fpu_readies[4],
+								((opcode[23:20] == `NANOFPU_OP_NOP) ? 1'b1 : 1'b0) | fpu_readies[5]
+							   };
 
 		if (fpu_readies[0]) begin
-			out[31:0]   <= fpu_outs[31:0];
+			out[31:0]    <= fpu_outs[31:0];
 		end
 		if (fpu_readies[1]) begin
 			out[63:32]   <= fpu_outs[63:32];
@@ -182,16 +183,16 @@ module nanovex
 			out[95:64]   <= fpu_outs[95:64];
 		end
 		if (fpu_readies[3]) begin
-			out[127:96]   <= fpu_outs[127:96];
+			out[127:96]  <= fpu_outs[127:96];
 		end
 		if (fpu_readies[4]) begin
-			out[159:128]   <= fpu_outs[159:128];
+			out[159:128] <= fpu_outs[159:128];
 		end
 		if (fpu_readies[5]) begin
-			out[191:160]   <= fpu_outs[191:160];
+			out[191:160] <= fpu_outs[191:160];
 		end
 		if (fpu_readies[6]) begin
-			out[223:192]   <= fpu_outs[223:192];
+			out[223:192] <= fpu_outs[223:192];
 		end
 
 		// reset inners (fxy_valid is combinatorial so in the cycle where it goes high
