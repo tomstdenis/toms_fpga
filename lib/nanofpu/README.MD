@@ -79,7 +79,7 @@ The execution cycles depend on parameter configuration:
 | `rst_n` | Input | 1 | Active-low asynchronous/synchronous reset |
 | `in_a` | Input | 32 | Operand A (IEEE-754 Float or Signed 32-bit Int for `FLDI`) |
 | `in_b` | Input | 32 | Operand B (IEEE-754 Float, used for `FADD`, `FSUB`, `FMUL`, `FDIV`) |
-| `opcode` | Input | 3 | Operation selector (0–6) |
+| `opcode` | Input | 4 | Operation selector (0–15) |
 | `valid` | Input | 1 | Asserts operation start (must be held steady for 1 cycle) |
 | `out` | Output | 32 | Result output (valid when `ready` is high) |
 | `ready` | Output | 1 | High for 1 cycle when execution completes and `out` is valid |
@@ -198,7 +198,8 @@ input  wire [3:0]   valid,       // Start triggers for leaf FPUs {F03..F00}
 
 // Outputs
 output reg  [223:0] out,         // Concatenated 32-bit results {F20, F11, F10, F03..F00}
-output reg  [6:0]   ready        // Output valid strobes {F20, F11, F10, F03..F00}
+output reg  [6:0]   ready,       // Output valid strobes {F20, F11, F10, F03..F00}
+output reg  [6:0]   busy         // busy status of {F20, F11, F10, F03..F00}
 
 ```
 

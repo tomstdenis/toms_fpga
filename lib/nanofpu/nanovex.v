@@ -52,12 +52,13 @@ module nanovex
 	input wire clk,
 	input wire rst_n,
 	
-	input wire [127:0] in_a,		// quad of 32-bits per F0y left hand side {F03, F02, F01, F00}
-	input wire [127:0] in_b,		// quad of 32-bits per F0y right hand side {F03, F02, F01, F00}
-	input wire [7*4-1:0]  opcode,	// sept of 4 bits ... 0=ADD, 1=SUB, 2=MUL, 3=DIV, 4=FLDI, 5=FSTI, 6=FSQRT, 7=FCMP, 8=IADD, 15=NOP
-	input wire [3:0]    valid,		// command valid {F03, F02, F01, F00}
-	output reg [7*32-1:0] out,		// result data {f20, f11, f10, f03, f02, f01, f00}
-	output reg [6:0]    ready,		// result strobe: output is ready {f20, f11, f10, f03, f02, f01, f00}
+	input wire [127:0]     in_a,	// quad of 32-bits per F0y left hand side {F03, F02, F01, F00}
+	input wire [127:0]     in_b,	// quad of 32-bits per F0y right hand side {F03, F02, F01, F00}
+	input wire [7*4-1:0] opcode,	// sept of 4 bits ... 0=ADD, 1=SUB, 2=MUL, 3=DIV, 4=FLDI, 5=FSTI, 6=FSQRT, 7=FCMP, 8..11=IADD, 15=NOP
+	input wire [3:0]      valid,	// command valid {F03, F02, F01, F00}
+	output reg [7*32-1:0]   out,	// result data {f20, f11, f10, f03, f02, f01, f00}
+	output reg [6:0]      ready,	// result strobe: output is ready {f20, f11, f10, f03, f02, f01, f00}
+	output reg [6:0]      busy		// busy status of {f20, f11, f10, f03, f02, f01, f00}
 );
 
 	wire [6:0]      fpu_readies;
@@ -119,9 +120,9 @@ module nanovex
 	wire f10_valid;
 	wire f11_valid;
 	wire f20_valid;
-	assign f10_valid = ((opcode[19:16] != `NANOFPU_OP_NOP) && &f10_deps) ? 1'b1 : 1'b0;
-	assign f11_valid = ((opcode[23:20] != `NANOFPU_OP_NOP) && &f11_deps) ? 1'b1 : 1'b0;
-	assign f20_valid = ((opcode[27:24] != `NANOFPU_OP_NOP) && &f20_deps) ? 1'b1 : 1'b0;
+	assign f10_valid = &f10_deps & ~busy[4];
+	assign f11_valid = &f11_deps & ~busy[5];
+	assign f20_valid = &f20_deps & ~busy[6];
 
 	// F10 takes in F00 and F01 as inputs
 	nanofpu #( 
@@ -163,47 +164,68 @@ module nanovex
 	);
 
 	always @(posedge clk) begin
+		// handle busy for F0x
+		if (valid[0]) begin
+			busy[0] <= 1;
+		end
+		if (valid[1]) begin
+			busy[1] <= 1;
+		end
+		if (valid[2]) begin
+			busy[2] <= 1;
+		end
+		if (valid[3]) begin
+			busy[3] <= 1;
+		end
+
 		// handle inner layers by accumulating the readies into pairs in fxy_deps[1:0]
 		// This allows the FPUs to finish on their own time and the next level only starts
 		// when both are ready
 		f10_deps <= f10_deps | {fpu_readies[0], fpu_readies[1]};
 		f11_deps <= f11_deps | {fpu_readies[2], fpu_readies[3]};
-		f20_deps <= f20_deps | {
-								((opcode[19:16] == `NANOFPU_OP_NOP) ? 1'b1 : 1'b0) | fpu_readies[4],
-								((opcode[23:20] == `NANOFPU_OP_NOP) ? 1'b1 : 1'b0) | fpu_readies[5]
-							   };
+		f20_deps <= f20_deps | {fpu_readies[4],	fpu_readies[5]};
 
 		if (fpu_readies[0]) begin
+			busy[0]      <= 0;
 			out[31:0]    <= fpu_outs[31:0];
 		end
 		if (fpu_readies[1]) begin
+			busy[1]      <= 0;
 			out[63:32]   <= fpu_outs[63:32];
 		end
 		if (fpu_readies[2]) begin
+			busy[2]      <= 0;
 			out[95:64]   <= fpu_outs[95:64];
 		end
 		if (fpu_readies[3]) begin
+			busy[3]      <= 0;
 			out[127:96]  <= fpu_outs[127:96];
 		end
 		if (fpu_readies[4]) begin
+			busy[4]      <= 0;
 			out[159:128] <= fpu_outs[159:128];
 		end
 		if (fpu_readies[5]) begin
+			busy[5]      <= 0;
 			out[191:160] <= fpu_outs[191:160];
 		end
 		if (fpu_readies[6]) begin
+			busy[6]      <= 0;
 			out[223:192] <= fpu_outs[223:192];
 		end
 
 		// reset inners (fxy_valid is combinatorial so in the cycle where it goes high
 		// we want to clear the deps so that valid goes low the next cycle)
 		if (f10_valid) begin
+			busy[4]  <= 1;
 			f10_deps <= 0;
 		end
 		if (f11_valid) begin
+			busy[5]  <= 1;
 			f11_deps <= 0;
 		end
 		if (f20_valid) begin
+			busy[6]  <= 1;
 			f20_deps <= 0;
 		end
 		
@@ -216,6 +238,7 @@ module nanovex
 			f10_deps <= 0;
 			f11_deps <= 0;
 			f20_deps <= 0;
+			busy     <= 0;
 		end	
 	end
 endmodule
