@@ -107,7 +107,7 @@ module faddsub
 					a_mant <= (a_mant >> 1) | a_mant[0];
 					a_exp  <= a_exp + 1'b1;
 				end else begin
-					if (~a_mant[27]) begin
+					if (|a_mant[26:0] & ~a_mant[27]) begin
 						a_mant <= a_mant << 1;
 						a_exp  <= a_exp - 1'b1;
 					end else begin

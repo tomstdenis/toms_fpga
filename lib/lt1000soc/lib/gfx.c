@@ -13,8 +13,8 @@ TCM_FUNC(gfx_set_mode) void gfx_set_mode(int mode) {
 
 // Wait for VBLANK edge (low-to-high transition)
 TCM_FUNC(gfx_vsync) void gfx_vsync(void) {
-    while (VGA_CTRL & VGA_CTRL_VBLANK);  // Wait if currently in VBLANK
-    while (!(VGA_CTRL & VGA_CTRL_VBLANK)); // Wait until VBLANK starts
+    while (VGA_CTRL & VGA_CTRL_VBLANK) yield();     // Wait if currently in VBLANK
+    while (!(VGA_CTRL & VGA_CTRL_VBLANK)) yield();  // Wait until VBLANK starts
 }
 
 // Wait for HBLANK edge
