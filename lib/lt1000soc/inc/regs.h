@@ -64,6 +64,7 @@
 #define FPU_IN_B            *((volatile float *)0x10000030)
 // output value
 #define FPU_OUT             *((volatile float *)0x10000034)
+#define FPU_OUT_RAW         *((volatile uint32_t *)0x10000034)
 #define FPU_CTRL            *((volatile uint32_t *)0x10000038)
 // This value when written starts a job, when you're reading you test for this value.
 #define FPU_CTRL_VALID      1
@@ -86,6 +87,11 @@
 // set this at the same time you set FPU_CTRL_OP_* and all writes to FPU_IN_B will auto
 // fire a job without needing to write to FPU_CTRL to start a job.
 #define FPU_CTRL_AUTO_FIRE  (1<<5)
+
+// outputs of FCMP
+#define FPU_LT               1
+#define FPU_GT               2
+#define FPU_EQ               4
 
 // you can program a [say] FMUL job by
 // writing left hand side to to FPU_IN_A
