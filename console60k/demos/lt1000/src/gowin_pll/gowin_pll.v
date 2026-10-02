@@ -1,3 +1,4 @@
+`default_nettype wire
 module lt1000clk(
     clkin,
     clkout0,
