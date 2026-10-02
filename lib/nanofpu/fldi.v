@@ -38,10 +38,10 @@ module fldi
 			FSM_IDLE: begin
 				if (~ready & valid) begin
 					if (in_a == 0) begin
-						a_sign <= 0;
-						a_exp  <= 0;
+						a_sign       <= 0;
+						a_exp        <= 0;
 						a_mant[30:8] <= 0;
-						ready  <= 1;
+						ready        <= 1;
 					end else begin
 						fsm_state  <= FSM_NORM;
 						a_sign     <= in_a[31];
@@ -52,8 +52,8 @@ module fldi
 			end
 			FSM_NORM: begin
 				if (~a_mant[31]) begin
-					a_mant <= a_mant << 1;
-					a_exp  <= a_exp - 1;
+					a_mant    <= a_mant << 1;
+					a_exp     <= a_exp - 1;
 				end else begin
 					ready     <= 1'b1;
 					fsm_state <= FSM_IDLE;

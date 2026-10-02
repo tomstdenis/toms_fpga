@@ -16,9 +16,9 @@ The **Little Timmy 1000 (LT1000)** is a lightweight, customizable RISC-V System-
  │ │ IO Buf │ │              │BIOS 8KB ││Cache 8KB││ ├─────►│PSRAM 16MiB│ 
  │ └────────┘ │              └─────────┘└─────────┘│ │      └───────────┘ 
  │            │    SOC Bus                         │ │      ┌───────────┐ 
- │            │     Fabric   ┌─────────┐           │ ├─────►│SD Card/Etc│ 
- │            │              │ 4CS SPI │           │ │      └───────────┘ 
- │            │              └─────────┘           │ │                    
+ │            │     Fabric   ┌─────────┐┌─────────┐│ ├─────►│SD Card/Etc│ 
+ │            │              │ 4CS SPI │| NanoFPU |│ │      └───────────┘ 
+ │            │              └─────────┘└─────────┘│ │                    
  │            │              ┌─────────┐           │ │                    
  │            │              │8N1 UART │           │ │                    
  │            │              └─────────┘           │ │                    
@@ -35,7 +35,7 @@ The **Little Timmy 1000 (LT1000)** is a lightweight, customizable RISC-V System-
 
 ## Architecture Overview
 
-* **CPU Core**: 32-bit PicoRV32 RISC-V core supporting configurable RV32I / RV32IM instruction set features, fast hardware multiplication, hardware division, and configurable trap catching.
+* **CPU Core**: 32-bit PicoRV32 RISC-V core supporting configurable RV32I / RV32IM instruction set features, fast hardware multiplication, hardware division, and custom FPU instructions (see inc/fpu.h)
 * **Memory Architecture**:
 * **BIOS ROM**: Up to 8 KiB (configurable) bootloader region loaded from include vector files (`bios_lane0.vh` .. `bios_lane3.vh`).
 * **Tightly Coupled Memory (TCM)**: On-chip SRAM (default 64 KiB) for fast zero-wait-state data and code execution.
@@ -243,5 +243,5 @@ The SoC top-level integrates the following submodule dependencies (via Verilog i
 `include "../../vga/blocks/vga.v"
 `include "../../timer/blocks/timer.v"
 `include "../../spi/spi.v"
-
+`include "../../nanofpu/nanofpu.v"
 ```
