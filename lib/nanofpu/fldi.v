@@ -37,16 +37,16 @@ module fldi
 		case (fsm_state)
 			FSM_IDLE: begin
 				if (~ready & valid) begin
-					fsm_state  <= FSM_NORM;
 					if (in_a == 0) begin
 						a_sign <= 0;
 						a_exp  <= 0;
 						a_mant[30:8] <= 0;
 						ready  <= 1;
 					end else begin
-						a_sign <= in_a[31];
-						a_exp  <= 127 + 31;
-						a_mant <= in_a[31] ? -in_a : in_a;
+						fsm_state  <= FSM_NORM;
+						a_sign     <= in_a[31];
+						a_exp      <= 127 + 31;
+						a_mant     <= in_a[31] ? -in_a : in_a;
 					end
 				end
 			end

@@ -86,6 +86,16 @@ static inline uint32_t fcmp(float a, float b) {
 }
 
 float fsin(float x);
+float fcos(float x);
+float ftan(float x);
+float fatan2(float y, float x);
+float fdeg2rad(float deg);
+float frad2deg(float rad);
+void fpu_init_sin_lut(float *lut, int entries);
+float flog2(float x);
+float flog(float x);
+float fexp2(float x);
+float fpow(float x, float y);
 
 #endif
 

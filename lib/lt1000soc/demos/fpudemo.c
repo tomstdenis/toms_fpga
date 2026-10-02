@@ -6,6 +6,7 @@ TCM_FUNC(demo) void demo(void)
 	volatile float a, b, r, r2;
 	volatile uint32_t t, t1, t2;
 	
+	
 	// calibrate timing
 	t = TIMER;
 	t = TIMER - t;
@@ -82,6 +83,28 @@ TCM_FUNC(demo) void demo(void)
 	printf("float: sin(1.11) == %f in %lu cycles\n", r, t1-t);
 	printf("nano : sin(1.11) == %f in %lu cycles\n", r2, t2-t);
 
+	// float log
+	t1 = TIMER;
+	a = 1.11;
+	r = logf(a);
+	t1 = TIMER - t1;
+	t2 = TIMER;
+	r2 = flog(1.11);
+	t2 = TIMER - t2;
+	printf("float: log(1.11) == %f in %lu cycles\n", r, t1-t);
+	printf("nano : log(1.11) == %f in %lu cycles\n", r2, t2-t);
+
+	// float pow
+	t1 = TIMER;
+	a = 3.14;
+	b = 1.5;
+	r = powf(a, b);
+	t1 = TIMER - t1;
+	t2 = TIMER;
+	r2 = fpow(3.14, 1.5);
+	t2 = TIMER - t2;
+	printf("float: 3.14 ** 1.5 == %f in %lu cycles\n", r, t1-t);
+	printf("nano : 3.14 ** 1.5 == %f in %lu cycles\n", r2, t2-t);
 
 	delay_ms(5000);
 }
