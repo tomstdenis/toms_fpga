@@ -75,7 +75,6 @@ static inline float fpu_sqrt(float a) {
     return FPU_OUT;
 }
 
-
 // Enable Autofire for sequence multiplication
 static inline void fpu_enable_autofire_mul(float fixed_a) {
     FPU_IN_A = fixed_a;
@@ -266,7 +265,7 @@ TCM_FUNC(demo) void demo(void) {
 
         // 5. Page Flip & VSYNC
         ++frames;
-        gfx_vsync();
+//        gfx_vsync();
         gfx_flip_page();
 
         // 6. Advance Rotation Angles (Automatic uint8_t 0..255 wrap-around!)

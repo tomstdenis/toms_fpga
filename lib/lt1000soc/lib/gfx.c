@@ -183,7 +183,15 @@ TCM_FUNC(gfx_flip_page) uint8_t *gfx_flip_page(void) {
 
 // Fast clear using memset
 TCM_FUNC(gfx_clear) void gfx_clear(uint8_t color) {
-    memset(gfx_get_draw_buffer(), color, GFX_WIDTH * GFX_HEIGHT);
+	uint32_t *p = (uint32_t *)gfx_get_draw_buffer();
+	uint32_t  c = color | (color << 8) | (color << 16) | (color << 24);
+	uint32_t  x;
+	for (x = 0; x < (320 * 200) / 64; x++) {
+		*p++ = c; *p++ = c; *p++ = c; *p++ = c;
+		*p++ = c; *p++ = c; *p++ = c; *p++ = c;
+		*p++ = c; *p++ = c; *p++ = c; *p++ = c;
+		*p++ = c; *p++ = c; *p++ = c; *p++ = c;
+	}
 }
 
 // Single pixel plot with bounds checking
@@ -201,7 +209,9 @@ TCM_FUNC(gfx_hline) void gfx_hline(int x, int y, int w, uint8_t color) {
     if (w <= 0) return;
 
     uint8_t *dest = gfx_get_draw_buffer() + (y * GFX_WIDTH) + x;
-    memset(dest, color, w);
+    while (w--) {
+		*dest++ = color;
+	}	
 }
 
 // Fast vertical line
