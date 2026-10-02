@@ -157,17 +157,17 @@ static const Vec3 cube_vertices[8] = {
 // 12 Triangles forming 6 cube faces (2 per face)
 static const Triangle cube_indices[12] = {
     // Front face (Red)
-    { 4, 5, 6, 0x28 }, { 4, 6, 7, 0x28 },
+    { 4, 5, 6, 0xC0 }, { 4, 6, 7, 0xC0 },
     // Back face (Green)
     { 1, 0, 3, 0x1C }, { 1, 3, 2, 0x1C },
     // Top face (Blue)
     { 3, 7, 6, 0x03 }, { 3, 6, 2, 0x03 },
     // Bottom face (Yellow)
-    { 4, 0, 1, 0x3C }, { 4, 1, 5, 0x3C },
+    { 4, 0, 1, 0xFC }, { 4, 1, 5, 0xFC },
     // Right face (Cyan)
     { 5, 1, 2, 0x1F }, { 5, 2, 6, 0x1F },
     // Left face (Magenta)
-    { 0, 4, 7, 0x23 }, { 0, 7, 3, 0x23 }
+    { 0, 4, 7, 0xC3 }, { 0, 7, 3, 0xC3 }
 };
 
 // -----------------------------------------------------------------------------
@@ -227,7 +227,8 @@ static void timer(uint32_t data) {
     frames = 0;
 }
 
-TCM_FUNC(demo) void demo(void) {
+//TCM_FUNC(demo)
+void demo(void) {
     // 1. Initialize LUT & Interrupts
     init_trig_lut();
     frames = 0;
@@ -265,7 +266,7 @@ TCM_FUNC(demo) void demo(void) {
 
         // 5. Page Flip & VSYNC
         ++frames;
-//        gfx_vsync();
+        gfx_vsync();
         gfx_flip_page();
 
         // 6. Advance Rotation Angles (Automatic uint8_t 0..255 wrap-around!)
