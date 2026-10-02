@@ -45,14 +45,16 @@ The execution cycles depend on parameter configuration:
 | **FSTI** | `USE_FSTI_BARREL = 1` | 1 – 2 cycles | Larger but faster |
 | | `USE_FSTI_BARREL = 0` | 2 – 24 cycles | Compact and variable cycle timing |
 | **FLDI** | Standard | 2 – 24 cycles | Variable cycle timing |
-| **FSQRT** | `USE_FSQRT_TWO_STAGE = 0` | 28 – 29 cycles (`*`) | Faster but harder to hit timing with |
-|  | `USE_FSQRT_TWO_STAGE = 1` | 54 – 55 cycles (`**`) | Slower but easier to hit timing also slightly larger |
+| **FSQRT** (`*`) | `USE_FSQRT_STAGES = 0` | 28 – 29 cycles | Faster but harder to hit timing with |
+|  | `USE_FSQRT_STAGES = 1` | 54 – 55 cycles (`**`) | Slower but easier to hit timing also slightly larger |
+|  | `USE_FSQRT_STAGES = 2` | 79 – 80 cycles (`***`) | Way slower but basically becomes on par with other instructions for timing |
 | **FCMP** | Standard | 1 Cycle | It compares things. |
 | **IADD** | Standard | 1 Cycle | It adds ints |
 | **NOP** | Standard | 1 Cycle | No op |
 
-`*` FSQRT takes 1 cycle to report an error.
-`**` The two stage option is for achieving a higher Fmax.
+- (`*`) FSQRT takes 1 cycle to report an error.
+- (`**`) The default STAGES==0 is very hard to meet the timing of the other FPU opcodes.  STAGES==1 helps close the gap while still being somewhat performant.
+- (`***`) The three stage option (STAGES==2) takes 3x the cycles of the one stage option but has comparable timing closure to the other FPU opcodes.  Use this option when FSQRT latency is less important than overall FPU Fmax.
 
 ## Module Parameters
 
@@ -69,7 +71,7 @@ The execution cycles depend on parameter configuration:
 | `USE_FMUL_DSP` | `1` | `0`, `1`, `2` | Multiplier target: `0` = Serial, `1` = 36x36 DSP, `2` = 18x18 DSP, `3` = 2-bit wide double-add |
 | `USE_FADDSUB_BARREL`| `1` | `0` / `1` | Enable normalization barrel shifter for `FADD`/`FSUB` |
 | `USE_FSTI_BARREL` | `1` | `0` / `1` | Enable barrel shifter for `FSTI` Normalization |
-| `USE_FSQRT_TWO_STAGE` | `1` | `0` / `1` | Enable higher latency but faster timing two stage FSQRT core |
+| `USE_FSQRT_STAGES` | `0` | `0` / `1` | Changes how many FSQRT stages there are STAGES={0,1,2} maps to 1, 2, or 3-stages. |
 
 ## Interface Signal Description
 
