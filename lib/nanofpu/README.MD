@@ -25,7 +25,7 @@ The core operates on a 3-bit opcode (`opcode[2:0]`):
 | `4` | **FLDI** | $out = \text{float}(in\_a)$ | Load integer: Converts signed 32-bit integer to float |
 | `5` | **FSTI** | $out = \text{int}(in\_a)$ | Store integer: Converts float to signed 32-bit integer |
 | `6` | **FSQRT**| $out = \sqrt{in\_a}$ | Floating-point square root |
-| `7` | **FCMP** | out = 4 if EQ, 2 if LT, 1 if GT | Floating point comparison |
+| `7` | **FCMP** | out = 4 if EQ, 2 if GT, 1 if LT | Floating point comparison |
 | `8`..`11` | **IADD** | 8-bit saturated add and sub, 16-bit saturated add and sub |
 | `15` | **NOP** | No operation | Idle the FPU, returns `ready` immediately |
 
