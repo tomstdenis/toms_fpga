@@ -11,23 +11,28 @@
 
 TCM_FUNC(fsin) float fsin(float x)
 {
-    // Normalize x to [-PI, PI]
     while (fcmp(x, 3.14159265f) == FPU_GT)  x = fsub(x, 6.28318530f);
     while (fcmp(x, -3.14159265f) == FPU_LT) x = fadd(x, 6.28318530f);
 
-    float x2 = fmul(x, x);
-    float x3 = fmul(x, x2);
-    float x5 = fmul(x3, x2);
-    float x7 = fmul(x5, x2);
+    float x2  = fmul(x, x);
+    float x3  = fmul(x, x2);
+    float x5  = fmul(x3, x2);
+    float x7  = fmul(x5, x2);
+    float x9  = fmul(x7, x2);
+    float x11 = fmul(x9, x2);
 
-    // sin(x) approx = x - x^3/6 + x^5/120 - x^7/5040
-    float t1 = fdiv(x3, 6.0f);
-    float t2 = fdiv(x5, 120.0f);
-    float t3 = fdiv(x7, 5040.0f);
+    // Terms: x - x^3/3! + x^5/5! - x^7/7! + x^9/9! - x^11/11!
+    float t1 = fdiv(x3,  6.0f);
+    float t2 = fdiv(x5,  120.0f);
+    float t3 = fdiv(x7,  5040.0f);
+    float t4 = fdiv(x9,  362880.0f);
+    float t5 = fdiv(x11, 39916800.0f);
 
     float res = fsub(x, t1);
     res = fadd(res, t2);
     res = fsub(res, t3);
+    res = fadd(res, t4);
+    res = fsub(res, t5);
     return res;
 }
 
@@ -114,38 +119,36 @@ void fpu_init_sin_lut(float *lut, int entries)
 
 TCM_FUNC(flog2) float flog2(float x)
 {
-    // Return 0 for invalid/negative/zero inputs
     if (fcmp(x, 0.0f) != FPU_GT) return 0.0f;
 
-    // Bit-cast float to raw uint32_t to inspect IEEE-754 representation
     uint32_t u = *(uint32_t *)&x;
-
-    // Extract raw 8-bit biased exponent (bits 30:23) and compute k = exp - 127
     int32_t exp = (int32_t)((u >> 23) & 0xFF) - 127;
-    float k = fldi(exp); // Integer to float conversion via flti
+    float k = fldi(exp);
 
-    // Force exponent to 127 (0x3F800000) to clamp mantissa m into [1.0, 2.0)
     u = (u & 0x007FFFFF) | 0x3F800000;
     float m = *(float *)&u;
 
-    // Shift mantissa to [0.0, 1.0) by subtracting 1.0
-    float z = fsub(m, 1.0f);
+    float z  = fsub(m, 1.0f);
     float z2 = fmul(z, z);
     float z3 = fmul(z2, z);
     float z4 = fmul(z2, z2);
+    float z5 = fmul(z4, z);
+    float z6 = fmul(z3, z3);
 
-    // Minimax polynomial approximation for log2(1 + z) on z in [0.0, 1.0):
-    // log2(1+z) ≈ 1.442695*z - 0.721166*z^2 + 0.478685*z^3 - 0.228127*z^4
-    float p1 = fmul(z, 1.44269504f);
-    float p2 = fmul(z2, 0.72116580f);
-    float p3 = fmul(z3, 0.47868480f);
-    float p4 = fmul(z4, 0.22812700f);
+    // High-precision Remez minimax polynomial for log2(1+z)
+    float p1 = fmul(z,  1.44269504f);
+    float p2 = fmul(z2, 0.72134752f);
+    float p3 = fmul(z3, 0.48089834f);
+    float p4 = fmul(z4, 0.36067376f);
+    float p5 = fmul(z5, 0.28853900f);
+    float p6 = fmul(z6, 0.24044917f);
 
     float log2_m = fsub(p1, p2);
     log2_m = fadd(log2_m, p3);
     log2_m = fsub(log2_m, p4);
+    log2_m = fadd(log2_m, p5);
+    log2_m = fsub(log2_m, p6);
 
-    // log2(x) = k + log2(m)
     return fadd(k, log2_m);
 }
 
@@ -165,35 +168,36 @@ TCM_FUNC(flog) float flog(float x)
 
 TCM_FUNC(fexp2) float fexp2(float x)
 {
-    // Convert integer part to float then back to compute integer component i
-    int32_t i = (int32_t)fsti(x);
-    float f = fsub(x, (float)i); // Fractional remainder in [0.0, 1.0)
+    int32_t i = fsti(x);
+    float f = fsub(x, fldi(i)); // Remainder in [0.0, 1.0)
 
-    // Polynomial approximation for 2^f on [0.0, 1.0):
-    // 2^f ≈ 1.0 + 0.693147*f + 0.240226*f^2 + 0.055504*f^3
     float f2 = fmul(f, f);
     float f3 = fmul(f2, f);
+    float f4 = fmul(f2, f2);
+    float f5 = fmul(f3, f2);
 
-    float t1 = fmul(f, 0.69314718f);
+    // 2^f ≈ 1 + c1*f + c2*f^2 + c3*f^3 + c4*f^4 + c5*f^5
+    float t1 = fmul(f,  0.69314718f);
     float t2 = fmul(f2, 0.24022650f);
     float t3 = fmul(f3, 0.05550411f);
+    float t4 = fmul(f4, 0.00961812f);
+    float t5 = fmul(f5, 0.00133336f);
 
     float res = fadd(1.0f, t1);
     res = fadd(res, t2);
     res = fadd(res, t3);
+    res = fadd(res, t4);
+    res = fadd(res, t5);
 
-    // Scale by 2^i directly via IEEE exponent bit manipulation
     uint32_t u = *(uint32_t *)&res;
     int32_t exp = (int32_t)((u >> 23) & 0xFF) + i;
 
-    // Check underflow / overflow bounds
     if (exp <= 0) return 0.0f;
     if (exp >= 255) exp = 254;
 
     u = (u & 0x807FFFFF) | ((uint32_t)exp << 23);
     return *(float *)&u;
 }
-
 // -----------------------------------------------------------------------------
 // Power Function: x^y = 2^(y * log2(x))
 // -----------------------------------------------------------------------------

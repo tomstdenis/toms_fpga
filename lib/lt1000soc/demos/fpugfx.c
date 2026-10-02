@@ -11,30 +11,10 @@
 #define SIN_LUT_SIZE 256
 static float sin_lut[SIN_LUT_SIZE];
 
-// Slow Taylor series used ONLY during table startup initialization
-static float fsin_init(float x) {
-    while (fcmp(x, 3.14159265f) == FPU_GT)  x = fsub(x, 6.28318530f);
-    while (fcmp(x, -3.14159265f) == FPU_LT) x = fadd(x, 6.28318530f);
-
-    float x2 = fmul(x, x);
-    float x3 = fmul(x, x2);
-    float x5 = fmul(x3, x2);
-    float x7 = fmul(x5, x2);
-
-    float t1 = fdiv(x3, 6.0f);
-    float t2 = fdiv(x5, 120.0f);
-    float t3 = fdiv(x7, 5040.0f);
-
-    float res = fsub(x, t1);
-    res = fadd(res, t2);
-    res = fsub(res, t3);
-    return res;
-}
-
 static void init_trig_lut(void) {
     for (int i = 0; i < SIN_LUT_SIZE; i++) {
-        float angle = fdiv(fmul(i, 6.28318530f), (float)SIN_LUT_SIZE);
-        sin_lut[i] = fsin_init(angle);
+        float angle = fdiv(fmul(fldi(i), 6.28318530f), (float)SIN_LUT_SIZE);
+        sin_lut[i] = fsin(angle);
     }
 }
 
@@ -97,7 +77,7 @@ TCM_FUNC(transform_and_project) static void transform_and_project(const Vec3 *in
     float sin_y = lut_sin(rot_y);
     float cos_y = lut_cos(rot_y);
 
-    const float fov = 160.0f; // Focal length / scale factor
+    const float fov = 180.0f; // Focal length / scale factor
     const float distance = 3.5f; // Camera offset along Z axis
 
     for (int i = 0; i < count; i++) {
@@ -188,7 +168,7 @@ void demo(void) {
 
         // 6. Advance Rotation Angles (Automatic uint8_t 0..255 wrap-around!)
         angle_x += 1;
-        angle_y += 2;
+        angle_y += 1;
 
         yield();
     }
