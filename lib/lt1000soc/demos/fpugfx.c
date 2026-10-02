@@ -1,10 +1,5 @@
 /*
  * lt1000_3d_cube.c - Hardware-Accelerated 3D Rotating Cube Demo for LT1000 SoC
- *
- * Direct Hardware MMIO FPU Integration:
- *   - Fast inline helper functions targeting FPU_IN_A / FPU_IN_B / FPU_CTRL registers.
- *   - LUT-based Sine/Cosine routines in memory.
- *   - Double-buffered VGA rendering (320x200x8bpp).
  */
 
 #include "lt1000.h"

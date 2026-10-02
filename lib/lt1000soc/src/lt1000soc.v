@@ -335,8 +335,6 @@ localparam
     reg         fpu_valid;
     wire [31:0] fpu_out;
     wire        fpu_ready;
-    reg         fpu_auto_fire;
-    reg         fpu_ready_l;
 
     nanofpu #(
         .ENABLE_FUNCS(`NANOFPU_FUNCS_ALL),
@@ -492,7 +490,6 @@ localparam
         picorv_pcpi_wr       <= 1'b0;
         psram_valid          <= 1'b0;
         fpu_valid            <= 0;
-        fpu_ready_l          <= fpu_ready_l | fpu_ready;
 
         // update cycle counter
         timer                <= timer + 1'b1;
@@ -509,8 +506,7 @@ localparam
                     fpu_opcode       <= picorv_pcpi_insn[28:25]; // use lower 4 bits of funct7
                 end
             end else begin
-                if (fpu_ready_l | fpu_ready) begin
-                    fpu_ready_l       <= 1'b0;
+                if (fpu_ready) begin
                     picorv_pcpi_ready <= 1'b1;
                     picorv_pcpi_wait  <= 1'b0;
                     picorv_pcpi_wr    <= 1'b1;
@@ -699,7 +695,6 @@ localparam
             gpio_dout          <= 32'b0;
             gpio_oe            <= 32'b0;
             mmio_reg_mcfg[7:0] <= 8'h00;
-            fpu_auto_fire      <= 1'b0;
         end
     end
 endmodule
