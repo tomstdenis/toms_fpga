@@ -663,7 +663,7 @@ localparam
                         mmio_data_out <= fpu_out;
                     end
                     MMIO_FPU_CTRL: begin
-                        mmio_data_out <= { fpu_auto_fire, fpu_opcode, fpu_ready_l };
+                        mmio_data_out <= { fpu_auto_fire, fpu_opcode, fpu_ready_l | fpu_ready };
                         if (picorv_mem_wstrb == 4'b1111) begin
                             fpu_valid     <= picorv_mem_wdata[0];
                             fpu_opcode    <= picorv_mem_wdata[4:1];
