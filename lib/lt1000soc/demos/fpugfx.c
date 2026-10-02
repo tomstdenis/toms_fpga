@@ -68,6 +68,14 @@ static inline float fpu_fldi(int32_t a) {
     return FPU_OUT;
 }
 
+static inline float fpu_sqrt(float a) {
+    FPU_IN_A = a;
+    FPU_CTRL = FPU_CTRL_VALID | FPU_CTRL_OP_FSQRT;
+    while (!(FPU_CTRL & FPU_CTRL_VALID));
+    return FPU_OUT;
+}
+
+
 // Enable Autofire for sequence multiplication
 static inline void fpu_enable_autofire_mul(float fixed_a) {
     FPU_IN_A = fixed_a;
