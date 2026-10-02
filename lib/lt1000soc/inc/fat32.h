@@ -70,14 +70,28 @@ struct fat32_file {
 
 extern int fat32_errno;
 
+// initialize the SD card (typically using cs_sel==0, oper_div==4
 struct fat32_disk *fat32_init_disk(uint32_t cs_sel, uint32_t oper_div);
+
+// open a directory
 struct fat32_dirent *fat32_opendir(struct fat32_disk *dsk, uint32_t cluster);
+
+// return the next entry in the directory or NULL if at the end
 struct fat32_dirent_raw *fat32_readdir(struct fat32_dirent *de);
 
+// return the directory entry of a path or file
 struct fat32_dirent_raw *fat32_find_path(struct fat32_disk *dsk, const char *path);
+
+// open a file
 struct fat32_file *fat32_open(struct fat32_disk *dsk, char *fpath);
+
+// close the file
 void fat32_close(struct fat32_file *file);
+
+// read upto len bytes from file, returns # of bytes transferred
 uint32_t fat32_read(struct fat32_file *file, uint8_t *dst, uint32_t len);
+
+// move the file pointer within the file
 int fat32_seek(struct fat32_file *file, uint32_t offset);
 
 

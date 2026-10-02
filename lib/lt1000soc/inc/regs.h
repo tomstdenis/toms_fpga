@@ -58,11 +58,16 @@
 #define TIMER               *((volatile uint32_t *)0x10000028)
 
 // FPU
+// left hand side input
 #define FPU_IN_A            *((volatile float *)0x1000002C)
+// right hand side input
 #define FPU_IN_B            *((volatile float *)0x10000030)
+// output value
 #define FPU_OUT             *((volatile float *)0x10000034)
 #define FPU_CTRL            *((volatile uint32_t *)0x10000038)
+// This value when written starts a job, when you're reading you test for this value.
 #define FPU_CTRL_VALID      1
+// opcodes 
 #define FPU_CTRL_OP_FADD    (0<<1)
 #define FPU_CTRL_OP_FSUB    (1<<1)
 #define FPU_CTRL_OP_FMUL    (2<<1)
@@ -70,9 +75,23 @@
 #define FPU_CTRL_OP_FLDI    (4<<1)
 #define FPU_CTRL_OP_FSTI    (5<<1)
 #define FPU_CTRL_OP_FSQRT   (6<<1)
+// output is 4 - EQ, 2 - LT, 1 - GT
 #define FPU_CTRL_OP_FCMP    (7<<1)
-#define FPU_CTRL_OP_IADD    (8<<1)
+// these are packed 8 or 16 bit saturated add or subtractions.
+#define FPU_CTRL_OP_IADD_8ADD (8<<1)
+#define FPU_CTRL_OP_IADD_8SUB (9<<1)
+#define FPU_CTRL_OP_IADD_16ADD (10<<1)
+#define FPU_CTRL_OP_IADD_16SUB (11<<1)
 #define FPU_CTRL_OP_NOP     (15<<1)
+// set this at the same time you set FPU_CTRL_OP_* and all writes to FPU_IN_B will auto
+// fire a job without needing to write to FPU_CTRL to start a job.
 #define FPU_CTRL_AUTO_FIRE  (1<<5)
+
+// you can program a [say] FMUL job by
+// writing left hand side to to FPU_IN_A
+// writing right hand side to to FPU_IN_B
+// writing FPU_CTRL_VALID | FPU_CTRL_OP_FMUL to FPU_CTRL
+// poll FPU_CTRL & 1 until non-zero
+// read FPU_OUT to get the result
 
 #endif

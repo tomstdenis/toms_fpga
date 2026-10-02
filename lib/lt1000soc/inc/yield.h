@@ -13,7 +13,7 @@ enum yield_irq_type {
 	YIELD_IRQ_GPIO_LEVEL_LOW,  // trigger on any selected GPIO is low
 	YIELD_IRQ_GPIO_POSEDGE,    // trigger on any selected GPIO positive edge
 	YIELD_IRQ_GPIO_NEGEDGE,    // trigger on any selected GPIO negedge 
-	YIELD_IRQ_UART_RX_READY,   // triggers as long as RX READY is high
+	YIELD_IRQ_UART_RX_READY,   // triggers when RX READY is high
 	YIELD_IRQ_TIMER,           // data is the # of clock cycles per event
 	YIELD_IRQ_VBLANK,          // triggers on posedge of vertical blank
 	YIELD_IRQ_HBLANK,          // triggers on posedge of horizontal blank
@@ -25,7 +25,7 @@ enum yield_irq_type {
 // 64-bit count of cycles since yield_init()
 extern uint64_t yield_cycles;
 
-// initialize yield library
+// initialize yield library (note interrupts are disabled by default so call yield_sei())
 void yield_init(void);
 
 // call this to yield to timer and soft IRQs (must call at least once every 42 seconds (@100MHz)... ideally sooner)
@@ -37,7 +37,7 @@ void delay_ms(uint32_t ms);
 // delay microseconds
 void delay_usec(uint32_t usec);
 
-// insert a new IRQ (-1 == error)
+// insert a new IRQ (-1 == error) (see above for use of data/data2)
 int yield_add_irq(enum yield_irq_type type, uint64_t data, uint64_t data2, irq_handler_t handler);
 
 // remove any IRQ that has this as a handler

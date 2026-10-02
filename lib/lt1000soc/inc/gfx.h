@@ -6,8 +6,10 @@ typedef struct {
     uint32_t phase[4][8][3]; // [shift 0..3][row 0..7][dword 0..2]
 } Sprite12x8;
 
+// VGA screen is 320x200 
 #define GFX_WIDTH  320
 #define GFX_HEIGHT 200
+// VGA uses 64KB pages though
 #define GFX_PAGE_SIZE 0x10000
 
 // Hardware & Synchronization
