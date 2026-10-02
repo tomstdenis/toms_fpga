@@ -123,31 +123,34 @@ TCM_FUNC(flog2) float flog2(float x)
 
     uint32_t u = *(uint32_t *)&x;
     int32_t exp = (int32_t)((u >> 23) & 0xFF) - 127;
-    float k = fldi(exp);
 
+    // Extract mantissa into [1.0, 2.0)
     u = (u & 0x007FFFFF) | 0x3F800000;
     float m = *(float *)&u;
 
-    float z  = fsub(m, 1.0f);
-    float z2 = fmul(z, z);
-    float z3 = fmul(z2, z);
-    float z4 = fmul(z2, z2);
-    float z5 = fmul(z4, z);
-    float z6 = fmul(z3, z3);
+    // Range reduction: If m > SQRT2 (1.41421356f), scale m down by 0.5 and bump exponent k
+    if (fcmp(m, 1.41421356f) == FPU_GT) {
+        m = fmul(m, 0.5f);
+        exp++;
+    }
 
-    // High-precision Remez minimax polynomial for log2(1+z)
-    float p1 = fmul(z,  1.44269504f);
-    float p2 = fmul(z2, 0.72134752f);
-    float p3 = fmul(z3, 0.48089834f);
-    float p4 = fmul(z4, 0.36067376f);
-    float p5 = fmul(z5, 0.28853900f);
-    float p6 = fmul(z6, 0.24044917f);
+    float k = fldi(exp);
 
-    float log2_m = fsub(p1, p2);
-    log2_m = fadd(log2_m, p3);
-    log2_m = fsub(log2_m, p4);
-    log2_m = fadd(log2_m, p5);
-    log2_m = fsub(log2_m, p6);
+    // Transform to s = (m - 1) / (m + 1)
+    // For m in [1/SQRT2, SQRT2], s is in [-0.17157, +0.17157]
+    float num = fsub(m, 1.0f);
+    float den = fadd(m, 1.0f);
+    float s   = fdiv(num, den);
+    float s2  = fmul(s, s);
+
+    // log2(m) = (2 / ln(2)) * s * (1 + s^2/3 + s^4/5 + s^6/7)
+    // 2 / ln(2) ≈ 2.885390081777927
+    // Horner's method for (1 + s2 * (1/3 + s2 * (1/5 + s2 * 1/7)))
+    float poly = fadd(0.14285714f, fmul(s2, 0.20f));         // 1/7 + s2 * 1/5
+    poly       = fadd(0.33333333f, fmul(s2, poly));         // 1/3 + s2 * poly
+    poly       = fadd(1.0f,         fmul(s2, poly));         // 1.0 + s2 * poly
+
+    float log2_m = fmul(fmul(s, 2.88539008f), poly);
 
     return fadd(k, log2_m);
 }
