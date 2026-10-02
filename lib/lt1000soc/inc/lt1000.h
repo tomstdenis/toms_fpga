@@ -13,6 +13,7 @@
 #include <fcntl.h>
 #include <unistd.h>
 
+#include "fpu.h"
 #include "mem.h"
 #include "regs.h"
 #include "serial.h"

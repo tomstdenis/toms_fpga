@@ -10,84 +10,6 @@
 #include "lt1000.h"
 
 // -----------------------------------------------------------------------------
-// Low-Level Hardware FPU Helpers
-// -----------------------------------------------------------------------------
-
-static inline float fpu_add(float a, float b) {
-    FPU_IN_A = a;
-    FPU_IN_B = b;
-    FPU_CTRL = FPU_CTRL_VALID | FPU_CTRL_OP_FADD;
-    while (!(FPU_CTRL & FPU_CTRL_VALID));
-    return FPU_OUT;
-}
-
-static inline float fpu_sub(float a, float b) {
-    FPU_IN_A = a;
-    FPU_IN_B = b;
-    FPU_CTRL = FPU_CTRL_VALID | FPU_CTRL_OP_FSUB;
-    while (!(FPU_CTRL & FPU_CTRL_VALID));
-    return FPU_OUT;
-}
-
-static inline float fpu_mul(float a, float b) {
-    FPU_IN_A = a;
-    FPU_IN_B = b;
-    FPU_CTRL = FPU_CTRL_VALID | FPU_CTRL_OP_FMUL;
-    while (!(FPU_CTRL & FPU_CTRL_VALID));
-    return FPU_OUT;
-}
-
-static inline float fpu_div(float a, float b) {
-    FPU_IN_A = a;
-    FPU_IN_B = b;
-    FPU_CTRL = FPU_CTRL_VALID | FPU_CTRL_OP_FDIV;
-    while (!(FPU_CTRL & FPU_CTRL_VALID));
-    return FPU_OUT;
-}
-
-static inline uint32_t fpu_cmp(float a, float b) {
-    FPU_IN_A = a;
-    FPU_IN_B = b;
-    FPU_CTRL = FPU_CTRL_VALID | FPU_CTRL_OP_FCMP;
-    while (!(FPU_CTRL & FPU_CTRL_VALID));
-    return FPU_OUT_RAW;
-}
-
-static inline int32_t fpu_fsti(float a) {
-    FPU_IN_A = a;
-    FPU_CTRL = FPU_CTRL_VALID | FPU_CTRL_OP_FSTI;
-    while (!(FPU_CTRL & FPU_CTRL_VALID));
-    return (int32_t)FPU_OUT_RAW;
-}
-
-static inline float fpu_fldi(int32_t a) {
-	float *b = (float *)&a;
-    FPU_IN_A = *b; // just copy raw data let the core do the conversion
-    FPU_CTRL = FPU_CTRL_VALID | FPU_CTRL_OP_FLDI;
-    while (!(FPU_CTRL & FPU_CTRL_VALID));
-    return FPU_OUT;
-}
-
-static inline float fpu_sqrt(float a) {
-    FPU_IN_A = a;
-    FPU_CTRL = FPU_CTRL_VALID | FPU_CTRL_OP_FSQRT;
-    while (!(FPU_CTRL & FPU_CTRL_VALID));
-    return FPU_OUT;
-}
-
-// Enable Autofire for sequence multiplication
-static inline void fpu_enable_autofire_mul(float fixed_a) {
-    FPU_IN_A = fixed_a;
-    FPU_CTRL = FPU_CTRL_OP_FMUL | FPU_CTRL_AUTO_FIRE;
-}
-
-static inline float fpu_autofire_mul(float b) {
-    FPU_IN_B = b; // Writing B triggers execution automatically
-    while (!(FPU_CTRL & FPU_CTRL_VALID));
-    return FPU_OUT;
-}
-
-// -----------------------------------------------------------------------------
 // Sine / Cosine Lookup Table (256-entry float table)
 // -----------------------------------------------------------------------------
 
@@ -95,29 +17,29 @@ static inline float fpu_autofire_mul(float b) {
 static float sin_lut[SIN_LUT_SIZE];
 
 // Slow Taylor series used ONLY during table startup initialization
-static float fpu_sin_init(float x) {
-    while (fpu_cmp(x, 3.14159265f) == FPU_GT)  x = fpu_sub(x, 6.28318530f);
-    while (fpu_cmp(x, -3.14159265f) == FPU_LT) x = fpu_add(x, 6.28318530f);
+static float fsin_init(float x) {
+    while (fcmp(x, 3.14159265f) == FPU_GT)  x = fsub(x, 6.28318530f);
+    while (fcmp(x, -3.14159265f) == FPU_LT) x = fadd(x, 6.28318530f);
 
-    float x2 = fpu_mul(x, x);
-    float x3 = fpu_mul(x, x2);
-    float x5 = fpu_mul(x3, x2);
-    float x7 = fpu_mul(x5, x2);
+    float x2 = fmul(x, x);
+    float x3 = fmul(x, x2);
+    float x5 = fmul(x3, x2);
+    float x7 = fmul(x5, x2);
 
-    float t1 = fpu_div(x3, 6.0f);
-    float t2 = fpu_div(x5, 120.0f);
-    float t3 = fpu_div(x7, 5040.0f);
+    float t1 = fdiv(x3, 6.0f);
+    float t2 = fdiv(x5, 120.0f);
+    float t3 = fdiv(x7, 5040.0f);
 
-    float res = fpu_sub(x, t1);
-    res = fpu_add(res, t2);
-    res = fpu_sub(res, t3);
+    float res = fsub(x, t1);
+    res = fadd(res, t2);
+    res = fsub(res, t3);
     return res;
 }
 
 static void init_trig_lut(void) {
     for (int i = 0; i < SIN_LUT_SIZE; i++) {
-        float angle = fpu_div(fpu_mul(i, 6.28318530f), (float)SIN_LUT_SIZE);
-        sin_lut[i] = fpu_sin_init(angle);
+        float angle = fdiv(fmul(i, 6.28318530f), (float)SIN_LUT_SIZE);
+        sin_lut[i] = fsin_init(angle);
     }
 }
 
@@ -185,28 +107,28 @@ TCM_FUNC(transform_and_project) static void transform_and_project(const Vec3 *in
 
     for (int i = 0; i < count; i++) {
         // Yaw Rotation around Y axis
-        float x1 = fpu_add(fpu_mul(in[i].x, cos_y), fpu_mul(in[i].z, sin_y));
+        float x1 = fadd(fmul(in[i].x, cos_y), fmul(in[i].z, sin_y));
         float y1 = in[i].y;
-        float z1 = fpu_sub(fpu_mul(in[i].z, cos_y), fpu_mul(in[i].x, sin_y));
+        float z1 = fsub(fmul(in[i].z, cos_y), fmul(in[i].x, sin_y));
 
         // Pitch Rotation around X axis
         float x2 = x1;
-        float y2 = fpu_sub(fpu_mul(y1, cos_x), fpu_mul(z1, sin_x));
-        float z2 = fpu_add(fpu_mul(y1, sin_x), fpu_mul(z1, cos_x));
+        float y2 = fsub(fmul(y1, cos_x), fmul(z1, sin_x));
+        float z2 = fadd(fmul(y1, sin_x), fmul(z1, cos_x));
 
         // World Translation
-        float z_final = fpu_add(z2, distance);
+        float z_final = fadd(z2, distance);
 
         // Perspective Divide using hardware FDIV
-        float proj_factor = fpu_div(fov, z_final);
+        float proj_factor = fdiv(fov, z_final);
 
         // Screen coordinate projection
-        float screen_x = fpu_add(fpu_mul(x2, proj_factor), 160.0f); // Center X = 160
-        float screen_y = fpu_add(fpu_mul(y2, proj_factor), 100.0f); // Center Y = 100
+        float screen_x = fadd(fmul(x2, proj_factor), 160.0f); // Center X = 160
+        float screen_y = fadd(fmul(y2, proj_factor), 100.0f); // Center Y = 100
 
         // Convert Float to Integer (FSTI)
-        out[i].x = fpu_fsti(screen_x);
-        out[i].y = fpu_fsti(screen_y);
+        out[i].x = fsti(screen_x);
+        out[i].y = fsti(screen_y);
     }
 }
 

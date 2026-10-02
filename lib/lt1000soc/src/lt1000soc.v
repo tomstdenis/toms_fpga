@@ -361,6 +361,15 @@ localparam
     wire [3:0]  picorv_mem_wstrb;
     reg  [31:0] picorv_mem_rdata;
 
+    wire picorv_pcpi_valid;
+    wire [31:0] picorv_pcpi_insn;
+    wire [31:0] picorv_pcpi_rs1;
+    wire [31:0] picorv_pcpi_rs2;
+    reg         picorv_pcpi_wr;
+    reg  [31:0] picorv_pcpi_rd;
+    reg         picorv_pcpi_wait;
+    reg         picorv_pcpi_ready;
+
     picorv32 #(
         .ENABLE_COUNTERS(RV_ENABLE_COUNTERS),
         .ENABLE_COUNTERS64(RV_ENABLE_COUNTERS),
@@ -376,13 +385,19 @@ localparam
         .ENABLE_FAST_MUL(RV_ENABLE_FAST_MUL),
         .ENABLE_DIV(RV_ENABLE_DIV),
         .PROGADDR_RESET(RV_PROGADDR_RESET),
-        .STACKADDR(RV_STACKADDR)
+        .STACKADDR(RV_STACKADDR),
+        .ENABLE_PCPI(1)
     ) picorv32 (
         .clk(core_clk), .resetn(crst_n), .trap(picorv_trap),
         .mem_valid(picorv_mem_valid), .mem_instr(picorv_mem_instr),
         .mem_ready(picorv_mem_ready), .mem_addr(picorv_mem_addr),
         .mem_wdata(picorv_mem_wdata), .mem_wstrb(picorv_mem_wstrb),
-        .mem_rdata(picorv_mem_rdata)
+        .mem_rdata(picorv_mem_rdata),
+
+        .pcpi_valid(picorv_pcpi_valid), .pcpi_insn(picorv_pcpi_insn),
+        .pcpi_rs1(picorv_pcpi_rs1), .pcpi_rs2(picorv_pcpi_rs2),
+        .pcpi_wr(picorv_pcpi_wr), .pcpi_rd(picorv_pcpi_rd),
+        .pcpi_wait(picorv_pcpi_wait), .pcpi_ready(picorv_pcpi_ready)
     );
 
 // *** BUS ***
@@ -398,12 +413,7 @@ localparam
         MMIO_UART_STATUS  = 8'h1C,
         MMIO_VGA_CTRL     = 8'h20,
         MMIO_SPI_TRANSFER = 8'h24,
-        MMIO_TIMER        = 8'h28,
-
-        MMIO_FPU_IN_A     = 8'h2C,
-        MMIO_FPU_IN_B     = 8'h30,
-        MMIO_FPU_OUT      = 8'h34,
-        MMIO_FPU_CTRL     = 8'h38;
+        MMIO_TIMER        = 8'h28;
 
     // lower 8 bits of machine config reg (used to store the PSRAM size in MiB
     reg  [7:0] mmio_reg_mcfg;
@@ -478,12 +488,36 @@ localparam
         uart_rx_read         <= 1'b0;
         spi_valid            <= 1'b0;
         bus_ready            <= 1'b0;
+        picorv_pcpi_ready    <= 1'b0;
+        picorv_pcpi_wr       <= 1'b0;
         psram_valid          <= 1'b0;
         fpu_valid            <= 0;
         fpu_ready_l          <= fpu_ready_l | fpu_ready;
 
         // update cycle counter
         timer                <= timer + 1'b1;
+
+        // respond to pcpi requests
+        if (~picorv_pcpi_ready & picorv_pcpi_valid) begin
+            if (~picorv_pcpi_wait) begin
+                // we use custom-0 for nanofpu and only the lower 4 bits of funct7
+                if (picorv_pcpi_insn[6:0] == 7'b0001011 && picorv_pcpi_insn[31:29] == 3'b000) begin
+                    picorv_pcpi_wait <= 1'b1;
+                    fpu_valid        <= 1'b1;
+                    fpu_in_a         <= picorv_pcpi_rs1;
+                    fpu_in_b         <= picorv_pcpi_rs2;
+                    fpu_opcode       <= picorv_pcpi_insn[28:25]; // use lower 4 bits of funct7
+                end
+            end else begin
+                if (fpu_ready_l | fpu_ready) begin
+                    fpu_ready_l       <= 1'b0;
+                    picorv_pcpi_ready <= 1'b1;
+                    picorv_pcpi_wait  <= 1'b0;
+                    picorv_pcpi_wr    <= 1'b1;
+                    picorv_pcpi_rd    <= fpu_out;
+                end
+            end
+        end
 
         // respond to valid only if ready is already low
         if (~picorv_mem_ready & picorv_mem_valid) begin
@@ -644,34 +678,6 @@ localparam
                     MMIO_TIMER: begin
                         mmio_data_out <= timer;
                     end
-                    MMIO_FPU_IN_A: begin
-                        mmio_data_out <= fpu_in_a;
-                        if (picorv_mem_wstrb == 4'b1111) begin
-                            fpu_in_a <= picorv_mem_wdata;
-                        end
-                    end
-                    MMIO_FPU_IN_B: begin
-                        mmio_data_out <= fpu_in_b;
-                        if (picorv_mem_wstrb == 4'b1111) begin
-                            fpu_in_b <= picorv_mem_wdata;
-                            if (fpu_auto_fire) begin
-                                fpu_valid <= 1'b1;
-                            end
-                        end
-                    end
-                    MMIO_FPU_OUT: begin
-                        mmio_data_out <= fpu_out;
-                    end
-                    MMIO_FPU_CTRL: begin
-                        mmio_data_out <= { fpu_auto_fire, fpu_opcode, fpu_ready_l | fpu_ready };
-                        if (picorv_mem_wstrb == 4'b1111) begin
-                            fpu_valid     <= picorv_mem_wdata[0];
-                            fpu_opcode    <= picorv_mem_wdata[4:1];
-                            fpu_auto_fire <= picorv_mem_wdata[5];
-                        end else begin
-                            fpu_ready_l <= 0;
-                        end
-                    end
                     default: mmio_data_out <= 32'hBEBEBEEF;
                 endcase
             end else begin // default 16M region that isn't mapped to anything
@@ -683,6 +689,7 @@ localparam
             bus_cycle <= 0;
         end
         if (!crst_n) begin
+            picorv_pcpi_wait   <= 1'b0;
             bus_cycle          <= 1'b0;
             uart_tx_start      <= 1'b0;
             uart_rx_read       <= 1'b0;
