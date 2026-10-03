@@ -82,9 +82,9 @@ module fsti
 						a_exp     <= 23;
 					end
 				end else begin
-					a_mant       <= a_sign ? -a_mant : a_mant;
-					ready     <= 1;
-					fsm_state <= FSM_IDLE;
+					a_mant        <= a_sign ? -a_mant : a_mant;
+					ready         <= 1;
+					fsm_state     <= FSM_IDLE;
 				end
 			end
 		endcase	

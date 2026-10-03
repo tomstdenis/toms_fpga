@@ -6,12 +6,12 @@ TCM_FUNC(demo) void demo(void)
 	volatile float a, b, r, r2;
 	volatile uint32_t t, t1, t2, t3 = 4, r3, r4;
 	
-	
 	// calibrate timing
 	t = TIMER;
 	t = TIMER - t;
 
 	getch();
+	printf("Calibration: %u\n", t);
 	
 	// float add
 	t1 = TIMER;
