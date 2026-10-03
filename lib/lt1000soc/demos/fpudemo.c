@@ -34,8 +34,8 @@ TCM_FUNC(demo) void demo(void)
 	t2 = TIMER;
 	r2 = fsub(3.14, 1.5);
 	t2 = TIMER - t2;
-	printf("float: 3.14 + 1.5 == %f in %lu cycles\n", r, t1-t);
-	printf("nano : 3.14 + 1.5 == %f in %lu cycles\n", r2, t2-t);
+	printf("float: 3.14 - 1.5 == %f in %lu cycles\n", r, t1-t);
+	printf("nano : 3.14 - 1.5 == %f in %lu cycles\n", r2, t2-t);
 
 	// float mul
 	t1 = TIMER;
