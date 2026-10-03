@@ -55,6 +55,7 @@ module nanofpu
 	parameter USE_FMUL_DSP     		 = 2,	// 0 -- serial shifter, 1 == 36x36 DSP, 2 == 18x18 DSP
 	parameter USE_FADDSUB_BARREL     = 1,	// Use barrel shifter for faddsub
 	parameter USE_FSTI_BARREL        = 1,	// Use barrel shifter for fsti (it's kinda big)
+	parameter USE_FLDI_BIG_STEP      = 1,   // use big step hunt in FLDI to reduce max time
 	parameter USE_FSQRT_STAGES 		 = 2	// 0 -- 24 cycle SQRT, 1 -- 48 cycles, 2 -- 72 cycles (all + overhead)
 )
 (
@@ -96,7 +97,7 @@ module nanofpu
 
 	wire fldi_ready;
 	wire [31:0] fldi_out;
-	fldi fldi (
+	fldi #(.USE_BIG_SHIFT(USE_FLDI_BIG_STEP)) fldi (
 		.clk(clk), .rst_n(rst_n),
 		.in_a(in_a), .valid((valid && opcode == `NANOFPU_OP_FLDI) ? ENABLE_FLDI : 1'b0),
 		.out(fldi_out), .ready(fldi_ready));

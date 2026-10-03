@@ -39,15 +39,16 @@ The execution cycles depend on parameter configuration:
 | | `USE_FADDSUB_BARREL = 0` | ~27 cycles | Compact and variable cycle timing |
 | **FMUL** | `USE_FMUL_DSP = 1` (36x36 DSP) | 3 – 4 cycles | For Gowin/Xilinx etc with wide DSP mults |
 | | `USE_FMUL_DSP = 2` (18x18 DSP) | 4 – 5 cycles | For smaller DSP blocks |
-| | `USE_FMUL_DSP = 0` (Serial Shift Multiplier) | 28 – 29 cycles | Compact 1-bit at a time double and add |
 | | `USE_FMUL_DSP = 3` (2-bit Serial Shift Multiplier) | 14 – 15 cycles | Larger 2-bit at a time that takes half the time |
+| | `USE_FMUL_DSP = 0` (Serial Shift Multiplier) | 28 – 29 cycles | Compact 1-bit at a time double and add |
 | **FDIV** | Standard | 28 cycles | Standard reduction |
 | **FSTI** | `USE_FSTI_BARREL = 1` | 1 – 2 cycles | Larger but faster |
 | | `USE_FSTI_BARREL = 0` | 2 – 24 cycles | Compact and variable cycle timing |
-| **FLDI** | Standard | 2 – 24 cycles | Variable cycle timing |
+| **FLDI** | `USE_FLDI_BIG_STEP = 1` | 3 - 14 cycles | Slightly faster as it hunts by steps of 4 first |
+| | `USE_FLDI_BIG_STEP = 0` | 2 – 24 cycles | Variable cycle timing |
 | **FSQRT** (`*`) | `USE_FSQRT_STAGES = 0` | 28 – 29 cycles | Faster but harder to hit timing with |
-|  | `USE_FSQRT_STAGES = 1` | 54 – 55 cycles (`**`) | Slower but easier to hit timing also slightly larger |
-|  | `USE_FSQRT_STAGES = 2` | 79 – 80 cycles (`***`) | Way slower but basically becomes on par with other instructions for timing |
+| | `USE_FSQRT_STAGES = 1` | 54 – 55 cycles (`**`) | Slower but easier to hit timing also slightly larger |
+| | `USE_FSQRT_STAGES = 2` | 79 – 80 cycles (`***`) | Way slower but basically becomes on par with other instructions for timing |
 | **FCMP** | Standard | 1 Cycle | It compares things. |
 | **IADD** | Standard | 1 Cycle | It adds ints |
 | **NOP** | Standard | 1 Cycle | No op |
@@ -71,7 +72,8 @@ The execution cycles depend on parameter configuration:
 | `USE_FMUL_DSP` | `1` | `0`, `1`, `2` | Multiplier target: `0` = Serial, `1` = 36x36 DSP, `2` = 18x18 DSP, `3` = 2-bit wide double-add |
 | `USE_FADDSUB_BARREL`| `1` | `0` / `1` | Enable normalization barrel shifter for `FADD`/`FSUB` |
 | `USE_FSTI_BARREL` | `1` | `0` / `1` | Enable barrel shifter for `FSTI` Normalization |
-| `USE_FSQRT_STAGES` | `0` | `0` / `1` | Changes how many FSQRT stages there are STAGES={0,1,2} maps to 1, 2, or 3-stages. |
+| `UES_FLDI_BIGSTEP` | `1` | `0` / `1` | Enable big step hunt for MSB, reduces latency but can increase critical path |
+| `USE_FSQRT_STAGES` | `2` | `0` .. s`2` | Changes how many FSQRT stages there are STAGES={0,1,2} maps to 1, 2, or 3-stages. |
 
 ## Interface Signal Description
 
@@ -181,7 +183,8 @@ The 7 sub-FPUs are organized across three cascade layers ($F_{0y} \rightarrow F_
 | `USE_FMUL_DSP` | Integer | `2` | Multiplier target: `0` = Serial, `1` = $36\times36$ DSP, `2` = $18\times18$ DSP, `3` = 2-bit Serial |
 | `USE_FADDSUB_BARREL` | Bit | `1` | Enable barrel shifter for floating-point alignment add/sub |
 | `USE_FSTI_BARREL` | Bit | `1` | Enable barrel shifter for float-to-int conversion |
-| `USE_FSQRT_TWO_STAGE` | Bit | `1` | Enable 2-stage pipelined square root for higher $F_{\max}$ |
+| `UES_FLDI_BIGSTEP` | Bit | `1` | Enable big step hunt for MSB, reduces latency but can increase critical path |
+| `USE_FSQRT_STAGES` | Integer | `2` | Changes how many FSQRT stages there are STAGES={0,1,2} maps to 1, 2, or 3-stages. |
 
 
 ## Signal Interface

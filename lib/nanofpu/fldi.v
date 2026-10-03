@@ -11,6 +11,9 @@
 
 // load an int32_t into a float
 module fldi
+#(
+	parameter USE_BIG_SHIFT=1
+)
 (
 	input wire clk,
 	input wire rst_n,
@@ -24,13 +27,14 @@ module fldi
 	reg        a_sign;
 	reg [7:0]  a_exp;
 	reg [31:0] a_mant;
-	reg        fsm_state;
+	reg [1:0]  fsm_state;
 	
 	assign out = { a_sign, a_exp, a_mant[30:8] };
 
 	localparam
-		FSM_IDLE  = 0,
-		FSM_NORM  = 1;
+		FSM_IDLE      = 0,
+		FSM_BIG_SHIFT = 1,
+		FSM_NORM      = 2;
 
 	always @(posedge clk) begin
 		ready     <= 1'b0;
@@ -43,10 +47,20 @@ module fldi
 						a_mant[30:8] <= 0;
 						ready        <= 1;
 					end else begin
-						fsm_state  <= FSM_NORM;
+						fsm_state  <= (USE_BIG_SHIFT == 1) ? FSM_BIG_SHIFT : FSM_NORM;
 						a_sign     <= in_a[31];
 						a_exp      <= 127 + 31;
 						a_mant     <= in_a[31] ? -in_a : in_a;
+					end
+				end
+			end
+			FSM_BIG_SHIFT: begin
+				if (USE_BIG_SHIFT == 1) begin
+					if (a_mant[31:28] == 4'b0000) begin
+						a_mant <= a_mant << 4;
+						a_exp  <= a_exp - 4;
+					end else begin
+						fsm_state <= FSM_NORM;
 					end
 				end
 			end
