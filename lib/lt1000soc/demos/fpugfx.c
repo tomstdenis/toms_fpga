@@ -12,9 +12,11 @@
 static float sin_lut[SIN_LUT_SIZE];
 
 static void init_trig_lut(void) {
+	float sum = 0.0f;
     for (int i = 0; i < SIN_LUT_SIZE; i++) {
-        float angle = fdiv(fmul(fldi(i), 6.28318530f), (float)SIN_LUT_SIZE);
-        sin_lut[i] = fsin(angle);
+        sin_lut[i] = fsin(sum);
+//        printf("sin_lut[%d] == %f (angle == %f)\n", i, sin_lut[i], sum);
+        sum = fadd(sum, 6.28318530f / (float)SIN_LUT_SIZE);
     }
 }
 

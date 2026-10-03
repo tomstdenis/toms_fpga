@@ -15,7 +15,7 @@
 `default_nettype none
 module fmul
 #(
-	parameter USE_MULT=3
+	parameter USE_MULT=1
 )
 (
 	input wire clk,
@@ -59,7 +59,7 @@ module fmul
 		ready     <= 1'b0;
 		case (fsm_state)
 			FSM_IDLE: begin
-				if (valid) begin
+				if (~ready & valid) begin
 					a_sign    <= in_a[31] ^ in_b[31];  // sign of product
 					if (in_a[30:23] == 0 || in_b[30:23] == 0) begin
 						a_exp  <= 0;

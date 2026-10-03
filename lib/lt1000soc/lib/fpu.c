@@ -20,7 +20,7 @@ TCM_FUNC(fsin) float fsin(float x)
     float x7  = fmul(x5, x2);
     float x9  = fmul(x7, x2);
     float x11 = fmul(x9, x2);
-
+    
     // Terms: x - x^3/3! + x^5/5! - x^7/7! + x^9/9! - x^11/11!
     float t1 = fdiv(x3,  6.0f);
     float t2 = fdiv(x5,  120.0f);
@@ -28,11 +28,21 @@ TCM_FUNC(fsin) float fsin(float x)
     float t4 = fdiv(x9,  362880.0f);
     float t5 = fdiv(x11, 39916800.0f);
 
+//	printf("x,x2,3,5,7,9,11 == %e, %e, %e, %e, %e, %e, %e\n", x, x2, x3, x5, x7, x9, x11);
+//	printf("t1,2,3,4,5 == %e, %e, %e, %e, %e\n", t1, t2, t3, t4, t5);
+
+ 
+    //printf("res = ");
     float res = fsub(x, t1);
+    //printf("%e, ", res);
     res = fadd(res, t2);
+    //printf("%e, ", res);
     res = fsub(res, t3);
+    //printf("%e, ", res);
     res = fadd(res, t4);
+    //printf("%e, ", res);
     res = fsub(res, t5);
+    //printf("%e\n", res);
     return res;
 }
 

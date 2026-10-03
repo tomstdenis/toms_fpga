@@ -65,14 +65,20 @@ module fdiv
         
         case (fsm_state)
             FSM_IDLE: begin
-                if (valid) begin
+                if (~ready & valid) begin
                     a_sign        <= in_a[31] ^ in_b[31];
-                    a_exp         <= $signed({2'b0, in_a[30:23]}) - $signed({2'b0, in_b[30:23]}) + 10'sd127;
-                    a_mant        <= {1'b1, in_a[22:0]};
-                    b_mant        <= {1'b1, in_b[22:0]};
-                    divider_valid <= 1'b1;
-                    fsm_state     <= FSM_CORE;
-                end
+					if (in_a[30:23] == 0) begin
+						a_exp          <= 0;
+						res_frac[22:0] <= 0;
+						ready          <= 1;
+					end else begin
+						a_exp         <= $signed({2'b0, in_a[30:23]}) - $signed({2'b0, in_b[30:23]}) + 10'sd127;
+						a_mant        <= {1'b1, in_a[22:0]};
+						b_mant        <= {1'b1, in_b[22:0]};
+						divider_valid <= 1'b1;
+						fsm_state     <= FSM_CORE;
+					end
+				end
             end
                         
 			FSM_CORE: begin
