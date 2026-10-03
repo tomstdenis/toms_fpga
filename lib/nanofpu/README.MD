@@ -71,7 +71,8 @@ The execution cycles depend on parameter configuration:
 | `ENABLE_FCMP` | `1'b1` | `0` / `1` | Enable `FCMP` operation |
 | `ENABLE_IADD` | `1'b1` | `0` / `1` | Enable `IADD` operations |
 | `USE_FMUL_DSP` | `1` | `0`, `1`, `2` | Multiplier target: `0` = Serial, `1` = 36x36 DSP, `2` = 18x18 DSP, `3` = 2-bit wide double-add |
-| `USE_FADDSUB_BARREL`| `1` | `0` / `1` | Enable normalization barrel shifter for `FADD`/`FSUB` |
+| `USE_FADDSUB_BARREL`| `1` | `0` / `1` | Enable normalization barrel shifter (fewer cycles but larger area) |
+| `USE_FADDSUB_TWO_STAGE_CMP`| `1` | `0` / `1` | Enable pipelined comparisons, adds a cycle but shortens the critical path |
 | `USE_FSTI_BARREL` | `1` | `0` / `1` | Enable barrel shifter for `FSTI` Normalization |
 | `UES_FLDI_BIGSTEP` | `1` | `0` / `1` | Enable big step hunt for MSB, reduces latency but can increase critical path |
 | `USE_FSQRT_STAGES` | `2` | `0` .. s`2` | Changes how many FSQRT stages there are STAGES={0,1,2} maps to 1, 2, or 3-stages. |
