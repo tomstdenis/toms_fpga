@@ -78,7 +78,7 @@ TCM_FUNC(transform_and_project) static void transform_and_project(const Vec3 *in
     float cos_y = lut_cos(rot_y);
 
     const float fov = 180.0f; // Focal length / scale factor
-    const float distance = 3.5f; // Camera offset along Z axis
+    const float distance = 4.0f; // Camera offset along Z axis
 
     for (int i = 0; i < count; i++) {
         // Yaw Rotation around Y axis
@@ -104,6 +104,8 @@ TCM_FUNC(transform_and_project) static void transform_and_project(const Vec3 *in
         // Convert Float to Integer (FSTI)
         out[i].x = fsti(screen_x);
         out[i].y = fsti(screen_y);
+        if (out[i].x < 0 || out[i].x > 319) out[i].x = 0;
+        if (out[i].y < 0 || out[i].y > 199) out[i].y = 0;
     }
 }
 
@@ -175,6 +177,7 @@ void demo(void) {
 }
 
 int main(void) {
+	getch();
     demo();
     return 0;
 }

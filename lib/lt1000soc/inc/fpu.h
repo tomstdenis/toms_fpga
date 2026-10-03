@@ -5,6 +5,20 @@
 #define FPU_GT 2
 #define FPU_EQ 4
 
+#if 0
+#define DEBUGI1 printf("%s: %d %f\n", __func__, a, res);
+#define DEBUGF1 printf("%s: %f %d\n", __func__, a, res);
+#define DEBUG1 printf("%s: %f %f\n", __func__, a, res);
+#define DEBUG2 printf("%s: %f %f %f\n", __func__, a, b, res);
+#define DEBUGI2 printf("%s: %f %f %d\n", __func__, a, b, res);
+#else
+#define DEBUGI1
+#define DEBUGF1
+#define DEBUG1
+#define DEBUG2
+#define DEBUGI2
+#endif
+
 static inline float fadd(float a, float b) {
     float res;
     asm volatile (
@@ -12,6 +26,7 @@ static inline float fadd(float a, float b) {
         : "=r" (res)
         : "r" (a), "r" (b)
     );
+    DEBUG2
     return res;
 }
 
@@ -22,6 +37,7 @@ static inline float fsub(float a, float b) {
         : "=r" (res)
         : "r" (a), "r" (b)
     );
+    DEBUG2
     return res;
 }
 
@@ -32,6 +48,7 @@ static inline float fmul(float a, float b) {
         : "=r" (res)
         : "r" (a), "r" (b)
     );
+    DEBUG2
     return res;
 }
 
@@ -42,6 +59,7 @@ static inline float fdiv(float a, float b) {
         : "=r" (res)
         : "r" (a), "r" (b)
     );
+    DEBUG2
     return res;
 }
 
@@ -52,6 +70,7 @@ static inline float fldi(int32_t a) {
         : "=r" (res)
         : "r" (a)
     );
+	DEBUGI1
     return res;
 }
 
@@ -62,6 +81,7 @@ static inline int32_t fsti(float a) {
         : "=r" (res)
         : "r" (a)
     );
+	DEBUGF1
     return res;
 }
 
@@ -72,6 +92,7 @@ static inline float fsqrt(float a) {
         : "=r" (res)
         : "r" (a)
     );
+    DEBUG1
     return res;
 }
 
@@ -82,6 +103,7 @@ static inline uint32_t fcmp(float a, float b) {
         : "=r" (res)
         : "r" (a), "r" (b)
     );
+    DEBUGI2
     return res;
 }
 

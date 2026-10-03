@@ -29,7 +29,7 @@ module fdiv
     output reg        ready
 );
     reg               a_sign;
-    reg signed [9:0]  a_exp;     // Declared SIGNED
+    reg signed [9:0]  a_exp;
     reg [23:0]        a_mant;
     reg [23:0]        b_mant;
     reg [23:0]        res_frac;  // 24 bits: includes implicit 1 bit [23]
@@ -57,7 +57,7 @@ module fdiv
         FSM_NORM      = 2'd2,
         FSM_OUT       = 2'd3;
         
-    reg signed [9:0] shift; // Declared SIGNED
+    reg signed [9:0] shift;
     
     always @(posedge clk) begin
         ready         <= 1'b0;
@@ -98,8 +98,8 @@ module fdiv
 						a_exp     <= 10'sd0;
 						fsm_state <= FSM_OUT;
 					end else if (shift > 10'sd0) begin
-						res_frac <= res_frac >> 1; // Drag implicit 1 down
-						shift    <= shift - 1'b1;
+						res_frac  <= res_frac >> 1; // Drag implicit 1 down
+						shift     <= shift - 1'b1;
 					end else begin
 						a_exp     <= 10'sd0;
 						fsm_state <= FSM_OUT;
@@ -153,8 +153,8 @@ module fdiv_serial (
     wire        sub_fits    = ~sub_res[24]; // 1 if current_rem >= div_reg
 
     always @(posedge clk) begin
+		ready   <= 1'b0;
         if (~rst_n) begin
-            ready   <= 1'b0;
             count   <= 5'd0;
             rem     <= 25'b0;
             q_reg   <= 25'b0;
@@ -164,7 +164,6 @@ module fdiv_serial (
             q_reg   <= 25'b0;
             div_reg <= sig_b;
             count   <= 5'd25;
-            ready   <= 1'b0;
         end else if (count > 5'd0) begin
             if (sub_fits) begin
                 rem <= sub_res;
@@ -178,8 +177,6 @@ module fdiv_serial (
             if (count == 5'd1) begin
                 ready <= 1'b1;
             end
-        end else begin
-            ready <= 1'b0;
         end
     end
 endmodule

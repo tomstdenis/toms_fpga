@@ -61,15 +61,21 @@ module fmul
 			FSM_IDLE: begin
 				if (valid) begin
 					a_sign    <= in_a[31] ^ in_b[31];  // sign of product
-					a_mant    <= {1'b1, in_a[22:0]};
-					a_exp     <= {2'b0, in_a[30:23]} + {2'b0, in_b[30:23]} - 10'd127;
-					b_mant    <= {1'b1, in_b[22:0]};
-					if (USE_MULT == 0 || USE_MULT == 3) begin
-						da_opa  <= {24'b0, 1'b1, in_a[22:0]};
-						da_prod <= 0;
-						da_cnt  <= 24;
+					if (in_a[30:23] == 0 || in_b[30:23] == 0) begin
+						a_exp  <= 0;
+						a_mant <= 0;
+						ready  <= 1'b1;
+					end else begin
+						a_mant    <= {1'b1, in_a[22:0]};
+						a_exp     <= {2'b0, in_a[30:23]} + {2'b0, in_b[30:23]} - 10'd127;
+						b_mant    <= {1'b1, in_b[22:0]};
+						if (USE_MULT == 0 || USE_MULT == 3) begin
+							da_opa  <= {24'b0, 1'b1, in_a[22:0]};
+							da_prod <= 0;
+							da_cnt  <= 24;
+						end
+						fsm_state <= FSM_CORE;
 					end
-					fsm_state <= FSM_CORE;
 				end
 			end
 			FSM_CORE: begin

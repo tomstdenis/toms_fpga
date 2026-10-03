@@ -680,7 +680,7 @@ localparam
                 endcase
             end else begin // default 16M region that isn't mapped to anything
                 // unmapped memory just return ready better than hanging I guess 
-                bus_ready <= 1'b1;
+                bus_ready     <= 1'b1;
                 mmio_data_out <= 32'hBEBEBEEF;
             end
         end else begin // ready & valid (reset things before the next bus access)
