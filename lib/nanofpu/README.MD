@@ -98,30 +98,29 @@ The execution cycles depend on parameter configuration:
 ## Synthesis & Area Usage Benchmarks
 
 ### Lattice iCE40 (Area-Optimized Configuration)
-*Configured without barrel shifters or hardware DSP multipliers (`USE_MULT=0`, barrel shifters disabled).*
+*Configured without barrel shifters or hardware DSP multipliers (`USE_FMUL_DSP=0`, barrel shifters disabled, `USE_FADDSUB_TWO_STAGE_CMP=0`, and `USE_FSQRT_STAGES=0`).*
 
 ```
-      660   SB_CARRY
-       18   SB_DFF
-      182   SB_DFFE
+      632   SB_CARRY
+       19   SB_DFF
+      187   SB_DFFE
       494   SB_DFFESR
         8   SB_DFFESS
-        8   SB_DFFSR
-     1959   SB_LUT4
+        9   SB_DFFSR
+     1989   SB_LUT4
 ```
 
 ### Lattice ECP5 (Performance Configuration)
-*Configured with `USE_MULT=2` (18x18 DSP) and barrel shifters enabled.*
+*Configured with `USE_MULT=2` (18x18 DSP) and barrel shifters enabled, `USE_FADDSUB_TWO_STAGE_CMP=1`, and `USE_FSQRT_STAGES=2`.*
 
 
 ```
         4   MULT18X18D
-     3536 submodules
-      361   CCU2C
-       66   L6MUX21
-     1896   LUT4
-      429   PFUMX
-      784   TRELLIS_FF
+      350   CCU2C
+       58   L6MUX21
+     1967   LUT4
+      436   PFUMX
+      798   TRELLIS_FF
 ```
 
 ## File Structure
@@ -177,17 +176,13 @@ The 7 sub-FPUs are organized across three cascade layers ($F_{0y} \rightarrow F_
 
 ## Module Parameters
 
-| Parameter | Type | Default | Description |
+| Parameter (`*`) | Type | Default | Description |
 | --- | --- | --- | --- |
 | `ENABLE_F00` .. `ENABLE_F03` | Macro | ``NANOFPU_FUNCS_ALL` | Enabled opcodes for leaf layer nodes $F_{00}$–$F_{03}$ |
 | `ENABLE_F10`, `ENABLE_F11` | Macro | ``NANOFPU_FUNCS_ALL` | Enabled opcodes for intermediate layer nodes $F_{10}$, $F_{11}$ |
 | `ENABLE_F20` | Macro | ``NANOFPU_FUNCS_ALL` | Enabled opcodes for root output node $F_{20}$ |
-| `USE_FMUL_DSP` | Integer | `2` | Multiplier target: `0` = Serial, `1` = $36\times36$ DSP, `2` = $18\times18$ DSP, `3` = 2-bit Serial |
-| `USE_FADDSUB_BARREL` | Bit | `1` | Enable barrel shifter for floating-point alignment add/sub |
-| `USE_FSTI_BARREL` | Bit | `1` | Enable barrel shifter for float-to-int conversion |
-| `UES_FLDI_BIGSTEP` | Bit | `1` | Enable big step hunt for MSB, reduces latency but can increase critical path |
-| `USE_FSQRT_STAGES` | Integer | `2` | Changes how many FSQRT stages there are STAGES={0,1,2} maps to 1, 2, or 3-stages. |
 
+- (`*`) nanovex has the same USE_XXX parameters as nanofpu and it broadcasts them to all 7 FPU cores.
 
 ## Signal Interface
 
