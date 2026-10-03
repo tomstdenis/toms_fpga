@@ -52,11 +52,12 @@ module nanofpu
 	parameter ENABLE_FCMP    = ENABLE_FUNCS[`NANOFPU_OP_FCMP],  // enable fcmp
 	parameter ENABLE_IADD    = ENABLE_FUNCS[`NANOFPU_OP_IADD],  // enable iaddsub
 
-	parameter USE_FMUL_DSP     		 = 2,	// 0 -- serial shifter, 1 == 36x36 DSP, 2 == 18x18 DSP
-	parameter USE_FADDSUB_BARREL     = 1,	// Use barrel shifter for faddsub
-	parameter USE_FSTI_BARREL        = 1,	// Use barrel shifter for fsti (it's kinda big)
-	parameter USE_FLDI_BIG_STEP      = 1,   // use big step hunt in FLDI to reduce max time
-	parameter USE_FSQRT_STAGES 		 = 2	// 0 -- 24 cycle SQRT, 1 -- 48 cycles, 2 -- 72 cycles (all + overhead)
+	parameter USE_FMUL_DSP     		    = 2,   // 0 -- serial shifter, 1 == 36x36 DSP, 2 == 18x18 DSP
+	parameter USE_FADDSUB_BARREL        = 1,   // Use barrel shifter for faddsub
+	parameter USE_FADDSUB_TWO_STAGE_CMP = 1,   // Use pipelined comparison for sorting
+	parameter USE_FSTI_BARREL           = 1,   // Use barrel shifter for fsti (it's kinda big)
+	parameter USE_FLDI_BIG_STEP         = 1,   // use big step hunt in FLDI to reduce max time
+	parameter USE_FSQRT_STAGES 		    = 2	   // 0 -- 24 cycle SQRT, 1 -- 48 cycles, 2 -- 72 cycles (all + overhead)
 )
 (
 	input wire clk,
@@ -74,7 +75,10 @@ module nanofpu
 	wire fadd_ready;
 	wire [31:0] fadd_out;
 
-	faddsub #(.USE_BARREL(USE_FADDSUB_BARREL)) faddsub(
+	faddsub #(
+		.USE_BARREL(USE_FADDSUB_BARREL),
+		.USE_TWO_STAGE_CMP(USE_FADDSUB_TWO_STAGE_CMP)
+	) faddsub(
 		.clk(clk), .rst_n(rst_n),
 		.in_a(in_a), .in_b(in_b), 
 		.sub_op(opcode[0]), // 0 == fadd, 1 == fsub

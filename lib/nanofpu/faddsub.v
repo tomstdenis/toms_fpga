@@ -13,7 +13,8 @@
 
 module faddsub
 #(
-	parameter USE_BARREL=1			// use a barrel shifter (drops from ~30 to ~3 cycles)
+	parameter USE_BARREL=1,			// use a barrel shifter (drops from ~30 to ~3 cycles)
+	parameter USE_TWO_STAGE_CMP=1   // use a pipelined compare for higher Fmax
 )
 (
 	input wire clk,
@@ -34,7 +35,7 @@ module faddsub
 	reg [28:0] a_mant;
 	reg [7:0]  b_exp;
 	reg [28:0] b_mant;
-	reg [1:0]  fsm_state;
+	reg [2:0]  fsm_state;
 	
 	reg [7:0]  exp_delta;
 	reg        sticky;
@@ -43,18 +44,58 @@ module faddsub
 
 	localparam
 		FSM_IDLE  = 0,
-		FSM_ALIGN = 1,
-		FSM_CORE  = 2,
-		FSM_NORM  = 3;
+		FSM_SORT  = 1,
+		FSM_ALIGN = 2,
+		FSM_CORE  = 3,
+		FSM_NORM  = 4;
+	
+	reg explt;
+	reg expeq;
+	reg mantlt;
+	
+	wire explt_next  = (in_a[30:23] < in_b[30:23]) ? 1'b1 : 1'b0;
+	wire expeq_next  = (in_a[30:23] == in_b[30:23]) ? 1'b1 : 1'b0;
+	wire mantlt_next = (in_a[22:0] < in_b[22:0]) ? 1'b1 : 1'b0;
 	
 	always @(posedge clk) begin
 		ready     <= 1'b0;
 		case (fsm_state)
 			FSM_IDLE: begin
 				if (valid) begin
-					// sort and latch input 
-					issub <= in_a[31] ^ in_b[31] ^ sub_op;		// is this a subtract?
-					if ((in_a[30:23] < in_b[30:23]) || ((in_a[30:23] == in_b[30:23]) && (in_a[22:0] < in_b[22:0]))) begin
+					// perform all the compares in parallel here
+					issub     <= in_a[31] ^ in_b[31] ^ sub_op;	// is this a subtract?
+					if (USE_TWO_STAGE_CMP == 1) begin
+						explt     <= explt_next;
+						expeq     <= expeq_next;
+						mantlt    <= mantlt_next;
+						fsm_state <= FSM_SORT;
+					end else begin
+						fsm_state <= FSM_ALIGN;
+						if (explt_next || (expeq_next && mantlt_next)) begin
+							// swap operands (a,b) => (b,a)
+							a_sign <= in_b[31] ^ sub_op;
+							a_mant <= {1'b0, 1'b1, in_b[22:0], 4'b0};
+							a_exp  <= in_b[30:23];
+							b_mant <= {1'b0, 1'b1, in_a[22:0], 4'b0};
+							b_exp  <= in_a[30:23];
+							exp_delta <= in_b[30:23] - in_a[30:23];
+						end else begin
+							// normal order
+							a_sign <= in_a[31];
+							a_mant <= {1'b0, 1'b1, in_a[22:0], 4'b0};
+							a_exp  <= in_a[30:23];
+							b_mant <= {1'b0, 1'b1, in_b[22:0], 4'b0};
+							b_exp  <= in_b[30:23];
+							exp_delta <= in_a[30:23] - in_b[30:23];
+						end
+					end
+				end
+			end
+			FSM_SORT: begin
+				if (USE_TWO_STAGE_CMP == 1) begin
+					// sort the input based on the compares from the previous cycle
+					fsm_state <= FSM_ALIGN;
+					if (explt || (expeq && mantlt)) begin
 						// swap operands (a,b) => (b,a)
 						a_sign <= in_b[31] ^ sub_op;
 						a_mant <= {1'b0, 1'b1, in_b[22:0], 4'b0};
@@ -71,9 +112,9 @@ module faddsub
 						b_exp  <= in_b[30:23];
 						exp_delta <= in_a[30:23] - in_b[30:23];
 					end
-					fsm_state <= FSM_ALIGN;
 				end
 			end
+			
 			FSM_ALIGN: begin
 				fsm_state     <= FSM_CORE;
 				if (USE_BARREL == 1) begin

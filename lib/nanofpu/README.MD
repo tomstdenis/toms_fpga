@@ -35,7 +35,8 @@ The execution cycles depend on parameter configuration:
 
 | Instruction | Configuration / Parameter | Latency (Clock Cycles) | Notes |
 | :--- | :--- | :--- | :--- |
-| **FADD / FSUB** | `USE_FADDSUB_BARREL = 1` | 3 cycles | Larger but faster. |
+| **FADD / FSUB** | `USE_FADDSUB_BARREL = 1` && `USE_FADDSUB_TWO_STAGE_CMP = 0`| 3 – 4 cycles | Larger but faster. |
+| | `USE_FADDSUB_BARREL = 1` && `USE_FADDSUB_TWO_STAGE_CMP = 1`| 4 – 5 cycles | Larger, extra cycle for pipelined compare to help Fmax |
 | | `USE_FADDSUB_BARREL = 0` | ~27 cycles | Compact and variable cycle timing |
 | **FMUL** | `USE_FMUL_DSP = 1` (36x36 DSP) | 3 – 4 cycles | For Gowin/Xilinx etc with wide DSP mults |
 | | `USE_FMUL_DSP = 2` (18x18 DSP) | 4 – 5 cycles | For smaller DSP blocks |
@@ -49,7 +50,7 @@ The execution cycles depend on parameter configuration:
 | **FSQRT** (`*`) | `USE_FSQRT_STAGES = 0` | 28 – 29 cycles | Faster but harder to hit timing with |
 | | `USE_FSQRT_STAGES = 1` | 54 – 55 cycles (`**`) | Slower but easier to hit timing also slightly larger |
 | | `USE_FSQRT_STAGES = 2` | 79 – 80 cycles (`***`) | Way slower but basically becomes on par with other instructions for timing |
-| **FCMP** | Standard | 1 Cycle | It compares things. |
+| **FCMP** | Standard | 2 Cycles | It compares things. |
 | **IADD** | Standard | 1 Cycle | It adds ints |
 | **NOP** | Standard | 1 Cycle | No op |
 

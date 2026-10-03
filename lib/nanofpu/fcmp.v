@@ -22,7 +22,6 @@ module fcmp
 	output wire [31:0] out,			// cmp ([2] = EQ, [1] = GT, [0] = LT)
 	output reg        ready			// result is valid
 );
-	reg fsm_state;
 	reg [2:0] cmp;
 	
 	assign out = {29'b0, cmp};
@@ -42,34 +41,63 @@ module fcmp
 	assign b_exp  = in_b[30:23];
 	assign b_sig  = in_b[22:0];
 
+	reg iszero;
+	reg explt;
+	reg expgt;
+	reg mantlt;
+	reg mantgt;
+	reg fsm_state;
+	
+	localparam
+		FSM_IDLE = 0,
+		FSM_CMP  = 1;
+
 	always @(posedge clk) begin
 		ready <= 1'b0;
-		if (~ready & valid) begin
-			ready <= 1'b1;
-			cmp   <= 3'b000;
-			
-			// Special handling for IEEE +0.0 == -0.0
-			if ((in_a[30:0] == 31'b0) && (in_b[30:0] == 31'b0)) begin
-				cmp <= 3'b100; // EQ (4)
-			end else if (~a_sign & b_sign) begin
-				cmp <= 3'b010; // A > 0, B < 0 -> GT (2)
-			end else if (a_sign & ~b_sign) begin
-				cmp <= 3'b001; // A < 0, B > 0 -> LT (1)
-			end else if (a_sign == b_sign) begin
-				if (a_exp < b_exp) begin
-					cmp <= a_sign ? 3'b010 : 3'b001; // If neg: GT (2), else: LT (1)
-				end else if (a_exp > b_exp) begin
-					cmp <= a_sign ? 3'b001 : 3'b010; // If neg: LT (1), else: GT (2)
-				end else begin
-					if (a_sig < b_sig) begin
-						cmp <= a_sign ? 3'b010 : 3'b001; // If neg: GT (2), else: LT (1)
-					end else if (a_sig > b_sig) begin
-						cmp <= a_sign ? 3'b001 : 3'b010; // If neg: LT (1), else: GT (2)
-					end else begin
-						cmp <= 3'b100; // EQ (4)
-					end
+		case (fsm_state)
+			FSM_IDLE: begin
+				if (~ready & valid) begin
+					// do all the compares in parallel here
+					iszero    <= ((in_a[30:0] == 31'b0) && (in_b[30:0] == 31'b0)) ? 1'b1 : 1'b0;
+					explt     <= (a_exp < b_exp) ? 1'b1 : 1'b0;
+					expgt     <= (a_exp > b_exp) ? 1'b1 : 1'b0;
+					mantlt    <= (a_sig < b_sig) ? 1'b1 : 1'b0;
+					mantgt    <= (a_sig > b_sig) ? 1'b1 : 1'b0;
+					fsm_state <= FSM_CMP;
 				end
 			end
+			FSM_CMP: begin
+				// use all the compares we computed in the previous cycle
+				ready <= 1'b1;
+				cmp   <= 3'b000;
+			
+				// Special handling for IEEE +0.0 == -0.0
+				if (iszero) begin
+					cmp <= 3'b100; // EQ (4)
+				end else if (~a_sign & b_sign) begin
+					cmp <= 3'b010; // A > 0, B < 0 -> GT (2)
+				end else if (a_sign & ~b_sign) begin
+					cmp <= 3'b001; // A < 0, B > 0 -> LT (1)
+				end else if (a_sign == b_sign) begin
+					if (explt) begin
+						cmp <= a_sign ? 3'b010 : 3'b001; // If neg: GT (2), else: LT (1)
+					end else if (expgt) begin
+						cmp <= a_sign ? 3'b001 : 3'b010; // If neg: LT (1), else: GT (2)
+					end else begin
+						if (mantlt) begin
+							cmp <= a_sign ? 3'b010 : 3'b001; // If neg: GT (2), else: LT (1)
+						end else if (mantgt) begin
+							cmp <= a_sign ? 3'b001 : 3'b010; // If neg: LT (1), else: GT (2)
+						end else begin
+							cmp <= 3'b100; // EQ (4)
+						end
+					end
+				end
+				fsm_state <= FSM_IDLE;
+			end
+		endcase
+		if (~rst_n) begin
+			fsm_state <= FSM_IDLE;
 		end
 	end
 endmodule
