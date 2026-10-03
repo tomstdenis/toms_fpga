@@ -1,0 +1,30 @@
+        7 ports
+      100 port bits
+        - memories
+        - memory bits
+        - processes
+      177 cells
+        1   GND
+       67   IBUF
+       11   LUT1
+        8   LUT2
+        1   LUT3
+       44   LUT4
+       11   MUX2_LUT5
+       33   OBUF
+        1   VCC
+       41 submodules
+       31   ALU
+        1   DFF
+        5   DFFE
+        1   DFFR
+        2   DFFRE
+        1   DFFSE
+
+2.51. Executing CHECK pass (checking for obvious problems).
+Checking module fcmp...
+Found and reported 0 problems.
+
+End of script. Logfile hash: de5f5d4126, time: 0.44s, user: 0.20s, system: 0.19s, MEM: 35.71 MB peak
+Yosys 0.68+182 (git sha1 0bf55a858-dirty, Release, Clang /usr/bin/clang++ 21.1.8)
+Time spent: 24% 1x synth_gowin (0 sec), 16% 26x read_verilog (0 sec), ...

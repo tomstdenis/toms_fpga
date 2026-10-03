@@ -1,0 +1,30 @@
+        +----------Count including submodules.
+        | 
+        - fldi
+
+        +----------Count including submodules.
+        | 
+      201 wires
+      571 wire bits
+      201 public wires
+      571 public wire bits
+        6 ports
+       68 port bits
+        - memories
+        - memory bits
+        - processes
+        - cells
+      267 submodules
+       23   CCU2C
+        2   L6MUX21
+      151   LUT4
+       46   PFUMX
+       45   TRELLIS_FF
+
+3.52. Executing CHECK pass (checking for obvious problems).
+Checking module fldi...
+Found and reported 0 problems.
+
+End of script. Logfile hash: 627bdaa1f4, time: 0.49s, user: 0.33s, system: 0.11s, MEM: 36.40 MB peak
+Yosys 0.68+182 (git sha1 0bf55a858-dirty, Release, Clang /usr/bin/clang++ 21.1.8)
+Time spent: 41% 21x read_verilog (0 sec), 13% 1x abc9_exe (0 sec), ...

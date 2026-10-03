@@ -1,0 +1,30 @@
+       68 port bits
+        - memories
+        - memory bits
+        - processes
+      449 cells
+        1   GND
+       35   IBUF
+       28   LUT1
+       34   LUT2
+       84   LUT3
+      127   LUT4
+       85   MUX2_LUT5
+       21   MUX2_LUT6
+       33   OBUF
+        1   VCC
+      299 submodules
+      163   ALU
+        4   DFF
+       31   DFFE
+        1   DFFR
+       98   DFFRE
+        2   DFFSE
+
+3.51. Executing CHECK pass (checking for obvious problems).
+Checking module fsqrt...
+Found and reported 0 problems.
+
+End of script. Logfile hash: 07fe03c4a7, time: 0.79s, user: 0.38s, system: 0.23s, MEM: 40.95 MB peak
+Yosys 0.68+182 (git sha1 0bf55a858-dirty, Release, Clang /usr/bin/clang++ 21.1.8)
+Time spent: 23% 1x abc9_exe (0 sec), 15% 47x opt_clean (0 sec), ...

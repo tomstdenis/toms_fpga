@@ -1,0 +1,30 @@
+      100 port bits
+        - memories
+        - memory bits
+        - processes
+      223 cells
+        1   GND
+       67   IBUF
+        1   LUT1
+       27   LUT2
+       14   LUT3
+       68   LUT4
+        3   MULT18X18
+        1   MULT9X9
+        7   MUX2_LUT5
+       33   OBUF
+        1   VCC
+      289 submodules
+      103   ALU
+        5   DFF
+      147   DFFE
+        1   DFFR
+       33   DFFRE
+
+3.51. Executing CHECK pass (checking for obvious problems).
+Checking module fmul...
+Found and reported 0 problems.
+
+End of script. Logfile hash: a094152587, time: 0.53s, user: 0.26s, system: 0.20s, MEM: 40.43 MB peak
+Yosys 0.68+182 (git sha1 0bf55a858-dirty, Release, Clang /usr/bin/clang++ 21.1.8)
+Time spent: 20% 1x synth_gowin (0 sec), 14% 1x abc9_exe (0 sec), ...

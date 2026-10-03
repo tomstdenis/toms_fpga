@@ -1,0 +1,30 @@
+        6 ports
+       68 port bits
+        - memories
+        - memory bits
+        - processes
+      208 cells
+        1   GND
+       35   IBUF
+        2   LUT1
+        9   LUT2
+        4   LUT3
+       85   LUT4
+       37   MUX2_LUT5
+        1   MUX2_LUT6
+       33   OBUF
+        1   VCC
+       84 submodules
+       40   ALU
+        2   DFF
+        8   DFFE
+        1   DFFR
+       33   DFFRE
+
+3.51. Executing CHECK pass (checking for obvious problems).
+Checking module fldi...
+Found and reported 0 problems.
+
+End of script. Logfile hash: 53c20cb4d0, time: 0.44s, user: 0.21s, system: 0.19s, MEM: 36.71 MB peak
+Yosys 0.68+182 (git sha1 0bf55a858-dirty, Release, Clang /usr/bin/clang++ 21.1.8)
+Time spent: 24% 1x synth_gowin (0 sec), 16% 26x read_verilog (0 sec), ...

@@ -1,0 +1,30 @@
+        +----------Count including submodules.
+        | 
+        - iaddsub
+
+        +----------Count including submodules.
+        | 
+      270 wires
+      672 wire bits
+      270 public wires
+      672 public wire bits
+        8 ports
+      102 port bits
+        - memories
+        - memory bits
+        - processes
+        - cells
+      270 submodules
+       70   CCU2C
+        4   L6MUX21
+      141   LUT4
+       22   PFUMX
+       33   TRELLIS_FF
+
+2.52. Executing CHECK pass (checking for obvious problems).
+Checking module iaddsub...
+Found and reported 0 problems.
+
+End of script. Logfile hash: 2c4b3e03e0, time: 0.58s, user: 0.35s, system: 0.10s, MEM: 34.46 MB peak
+Yosys 0.68+182 (git sha1 0bf55a858-dirty, Release, Clang /usr/bin/clang++ 21.1.8)
+Time spent: 35% 21x read_verilog (0 sec), 22% 1x abc9_exe (0 sec), ...

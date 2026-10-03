@@ -1,0 +1,30 @@
+        +----------Count including submodules.
+        | 
+        - fsqrt
+
+        +----------Count including submodules.
+        | 
+      585 wires
+     1550 wire bits
+      585 public wires
+     1550 public wire bits
+        6 ports
+       68 port bits
+        - memories
+        - memory bits
+        - processes
+        - cells
+      740 submodules
+       83   CCU2C
+       43   L6MUX21
+      364   LUT4
+      114   PFUMX
+      136   TRELLIS_FF
+
+3.52. Executing CHECK pass (checking for obvious problems).
+Checking module fsqrt...
+Found and reported 0 problems.
+
+End of script. Logfile hash: 518d7f045e, time: 0.92s, user: 0.49s, system: 0.14s, MEM: 49.08 MB peak
+Yosys 0.68+182 (git sha1 0bf55a858-dirty, Release, Clang /usr/bin/clang++ 21.1.8)
+Time spent: 32% 1x abc9_exe (0 sec), 22% 21x read_verilog (0 sec), ...

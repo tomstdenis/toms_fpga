@@ -1,0 +1,30 @@
+        1 fdiv
+
+        +----------Count including submodules.
+        | 
+      360 wires
+     1091 wire bits
+      360 public wires
+     1091 public wire bits
+        7 ports
+      100 port bits
+        - memories
+        - memory bits
+        - processes
+        1 cells
+        1   $scopeinfo
+      564 submodules
+       85   SB_CARRY
+        4   SB_DFF
+       56   SB_DFFE
+      114   SB_DFFESR
+        3   SB_DFFSR
+      302   SB_LUT4
+
+2.51. Executing CHECK pass (checking for obvious problems).
+Checking module fdiv...
+Found and reported 0 problems.
+
+End of script. Logfile hash: 21d4ba522f, time: 0.65s, user: 0.48s, system: 0.09s, MEM: 33.82 MB peak
+Yosys 0.68+182 (git sha1 0bf55a858-dirty, Release, Clang /usr/bin/clang++ 21.1.8)
+Time spent: 47% 21x read_verilog (0 sec), 13% 1x abc9_exe (0 sec), ...

@@ -1,0 +1,30 @@
+        +----------Count including submodules.
+        | 
+        - fsti
+
+        +----------Count including submodules.
+        | 
+      851 wires
+     1654 wire bits
+      851 public wires
+     1654 public wire bits
+        6 ports
+       68 port bits
+        - memories
+        - memory bits
+        - processes
+        - cells
+     1095 submodules
+       30   CCU2C
+       88   L6MUX21
+      715   LUT4
+      209   PFUMX
+       53   TRELLIS_FF
+
+3.52. Executing CHECK pass (checking for obvious problems).
+Checking module fsti...
+Found and reported 0 problems.
+
+End of script. Logfile hash: 1de0f3fde2, time: 0.81s, user: 0.49s, system: 0.11s, MEM: 65.77 MB peak
+Yosys 0.68+182 (git sha1 0bf55a858-dirty, Release, Clang /usr/bin/clang++ 21.1.8)
+Time spent: 26% 1x abc9_exe (0 sec), 25% 21x read_verilog (0 sec), ...

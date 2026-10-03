@@ -1,0 +1,30 @@
+        - memory bits
+        - processes
+     1464 cells
+        1   GND
+       68   IBUF
+      198   LUT1
+      201   LUT2
+      158   LUT3
+      264   LUT4
+      350   MUX2_LUT5
+      122   MUX2_LUT6
+       53   MUX2_LUT7
+       15   MUX2_LUT8
+       33   OBUF
+        1   VCC
+      202 submodules
+      121   ALU
+        4   DFF
+       31   DFFE
+        1   DFFR
+       44   DFFRE
+        1   DFFSE
+
+4.51. Executing CHECK pass (checking for obvious problems).
+Checking module faddsub...
+Found and reported 0 problems.
+
+End of script. Logfile hash: f5773e5c08, time: 0.84s, user: 0.43s, system: 0.23s, MEM: 78.25 MB peak
+Yosys 0.68+182 (git sha1 0bf55a858-dirty, Release, Clang /usr/bin/clang++ 21.1.8)
+Time spent: 23% 1x abc9_exe (0 sec), 23% 14x techmap (0 sec), ...

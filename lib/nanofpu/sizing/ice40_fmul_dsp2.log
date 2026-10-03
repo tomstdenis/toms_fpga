@@ -1,0 +1,30 @@
+        | 
+        - fmul
+
+        +----------Count including submodules.
+        | 
+     1071 wires
+     3141 wire bits
+     1071 public wires
+     3141 public wire bits
+        7 ports
+      100 port bits
+        - memories
+        - memory bits
+        - processes
+        - cells
+     1849 submodules
+      155   SB_CARRY
+        5   SB_DFF
+      129   SB_DFFE
+       33   SB_DFFESR
+        1   SB_DFFSR
+     1526   SB_LUT4
+
+3.51. Executing CHECK pass (checking for obvious problems).
+Checking module fmul...
+Found and reported 0 problems.
+
+End of script. Logfile hash: 9fe2fce95f, time: 4.08s, user: 1.06s, system: 0.11s, MEM: 51.39 MB peak
+Yosys 0.68+182 (git sha1 0bf55a858-dirty, Release, Clang /usr/bin/clang++ 21.1.8)
+Time spent: 71% 1x abc9_exe (2 sec), 7% 21x read_verilog (0 sec), ...

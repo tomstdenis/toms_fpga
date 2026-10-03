@@ -1,0 +1,30 @@
+        8 ports
+      102 port bits
+        - memories
+        - memory bits
+        - processes
+      518 cells
+        1   GND
+       69   IBUF
+       91   LUT1
+        4   LUT2
+       52   LUT3
+      101   LUT4
+      103   MUX2_LUT5
+       45   MUX2_LUT6
+       12   MUX2_LUT7
+        6   MUX2_LUT8
+       33   OBUF
+        1   VCC
+      167 submodules
+      134   ALU
+        1   DFF
+       32   DFFRE
+
+2.51. Executing CHECK pass (checking for obvious problems).
+Checking module iaddsub...
+Found and reported 0 problems.
+
+End of script. Logfile hash: 35701519e8, time: 0.57s, user: 0.26s, system: 0.19s, MEM: 40.23 MB peak
+Yosys 0.68+182 (git sha1 0bf55a858-dirty, Release, Clang /usr/bin/clang++ 21.1.8)
+Time spent: 23% 1x abc9_exe (0 sec), 18% 1x synth_gowin (0 sec), ...

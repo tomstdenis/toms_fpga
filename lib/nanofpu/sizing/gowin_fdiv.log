@@ -1,0 +1,30 @@
+        - memories
+        - memory bits
+        - processes
+      539 cells
+        1   $scopeinfo
+        1   GND
+       67   IBUF
+       89   LUT1
+       23   LUT2
+       66   LUT3
+      120   LUT4
+      103   MUX2_LUT5
+       30   MUX2_LUT6
+        5   MUX2_LUT7
+       33   OBUF
+        1   VCC
+      279 submodules
+      102   ALU
+        4   DFF
+       56   DFFE
+        3   DFFR
+      114   DFFRE
+
+2.51. Executing CHECK pass (checking for obvious problems).
+Checking module fdiv...
+Found and reported 0 problems.
+
+End of script. Logfile hash: 066f57e569, time: 0.66s, user: 0.35s, system: 0.21s, MEM: 44.11 MB peak
+Yosys 0.68+182 (git sha1 0bf55a858-dirty, Release, Clang /usr/bin/clang++ 21.1.8)
+Time spent: 18% 1x abc9_exe (0 sec), 17% 1x synth_gowin (0 sec), ...
