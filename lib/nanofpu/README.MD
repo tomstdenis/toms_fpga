@@ -110,6 +110,18 @@ The execution cycles depend on parameter configuration:
      1989   SB_LUT4
 ```
 
+When configured just for FADD, FSUB, and FMUL:
+
+```
+      237   SB_CARRY
+        8   SB_DFF
+      102   SB_DFFE
+      248   SB_DFFESR
+        5   SB_DFFESS
+        6   SB_DFFSR
+      830   SB_LUT4
+```
+
 ### Lattice ECP5 (Performance Configuration)
 *Configured with `USE_MULT=2` (18x18 DSP) and barrel shifters enabled, `USE_FADDSUB_TWO_STAGE_CMP=1`, and `USE_FSQRT_STAGES=2`.*
 
