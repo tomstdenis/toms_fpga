@@ -1,16 +1,6 @@
 /*
 	Float load float into int32_t
 	
-	Takes 1-24 cycles (depends on many exp bits to shift) with USE_BARREL=0, otherwise it's 3 cycles
-	
-	USE_BARREL=0
-	ICE40: 196 LUT4, 43 DFF, 59 CARRY
-	ECP5:  343 LUT4, 43 DFF, 34 CARRY
-	
-	USE_BARREL=1
-	ICE40: 483 LUT4, 53 DFF, 53 CARRY
-	ECP5:  686 LUT4, 53 DFF, 30 CARRY, 26 L6MUX
-
 */
 `default_nettype none
 

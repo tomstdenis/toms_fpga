@@ -1,15 +1,6 @@
 /*
 	Float sqrt
 	
-	Takes 24, 48, 72 cycles plus overhead depending on STAGES=0,1,2
-	
-	Higher stage counts increases Fmax at a cost in cycle count.  Handy if you don't do a lot of FSQRT
-but want to have it around.  
-	
-	STAGES=0 synth:
-	ICE40: 364 LUT4, 136 DFF, 157 CARRY
-	ECP5 : 294 LUT4, 136 DFF, 83 CARRY, 34 L6MUX21
-
 */
 `default_nettype none
 

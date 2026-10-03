@@ -16,25 +16,6 @@
 	To use drive in_a, in_b (for opcodes that use it), opcode, and valid steady for 1 cycle, then wait for ready to go high
 	and read out.  The core is not pipelined so you cannot raise valid again until at least ready goes high.
 
-	Configured for an ICE40 (so no barrel/mult/etc) we get
-	
-      504   SB_CARRY
-       17   SB_DFF
-      338   SB_DFFE
-      305   SB_DFFESR
-        9   SB_DFFESS
-        8   SB_DFFSR
-     1724   SB_LUT4
-         
-     Configured for perf (MULT=2, both barrel) on ECP5 we get
-     
-        4   MULT18X18D
-      277   CCU2C
-       58   L6MUX21
-     1828   LUT4
-      514   PFUMX
-      751   TRELLIS_FF
-
 */
 
 `include "nanofpu.vh"

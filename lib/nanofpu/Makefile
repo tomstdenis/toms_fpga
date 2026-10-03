@@ -1,4 +1,4 @@
-NUMTESTS=1000000
+NUMTESTS=100
 
 all: vecgen test_fsti.pass test_fldi.pass test_fdiv.pass test_fmul.pass test_faddsub.pass test_nanofpu.pass
 

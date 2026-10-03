@@ -2,11 +2,6 @@
 
 	Float compare, outputs 1 for LT, 2 for GT, and 4 for EQ
 	
-	Takes 1 cycle.
-	
-	ICE40: 100 LUT4, 4 DFF, 31 CARRY
-	ECP5:   80 LUT4, 4 DFF, 15 CARRY, 7 L6MUX, 17 PFUMX
-
 */
 `default_nettype none
 

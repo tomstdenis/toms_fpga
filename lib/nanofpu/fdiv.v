@@ -1,10 +1,6 @@
 /*
 	float divide, rounds to zero, tracks overflow/underflow does not track subnorm
 	
-	On ICE40, takes ~28 cycles (250 LUT4, 166 DFF, 59 CARRY)
-	
-	On ECP5, takes ~28 cycles (184 LUT4, 165 DFF, 35 CARRY)
-
 */
 
 `default_nettype none

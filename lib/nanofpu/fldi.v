@@ -1,11 +1,6 @@
 /*
 	Float load int32_t into float
 	
-	Takes 3+ cycles.
-	
-	ICE40: 158 LUT4, 43 DFF, 36 CARRY
-	ECP5:  125 LUT4, 43 DFF, 20 CARRY
-
 */
 `default_nettype none
 

@@ -1,9 +1,5 @@
 /*
 	Saturating parallel 8/16 bit add/subtraction
-	
-	ICE40: 255 LUT4, 33 DFF, 128 CARRY
-	ECP5:  141 LUT4, 33 DFF, 70 CARRY, 4 L6MUX21, 22 PFUMX
-
 */
 `default_nettype none
 
