@@ -117,6 +117,7 @@ uint32_t myfmul(uint32_t a, uint32_t b)
 
     return (res_sign << 31) | ((uint32_t)res_exp << 23) | res_mant;
 }
+
 uint32_t myfdiv_serial(uint32_t sig_a, uint32_t sig_b)
 {
     // sig_a and sig_b are 24-bit numbers [1.0, 2.0)
@@ -142,7 +143,7 @@ uint32_t myfdiv_serial(uint32_t sig_a, uint32_t sig_b)
 
 uint32_t myfdiv(uint32_t a, uint32_t b)
 {
-    // 1. Unpack & Restore Hidden Bit
+    // 1. Unpack
     uint32_t a_sign = a >> 31;
     uint32_t a_exp  = (a >> 23) & 0xFF;
     uint32_t a_sig  = (a & 0x7FFFFF) | (1UL << 23);
@@ -151,37 +152,46 @@ uint32_t myfdiv(uint32_t a, uint32_t b)
     uint32_t b_exp  = (b >> 23) & 0xFF;
     uint32_t b_sig  = (b & 0x7FFFFF) | (1UL << 23);
 
-    // 2. Sign & Initial Exponent
     uint32_t res_sign = a_sign ^ b_sign;
     int32_t  res_exp  = (int32_t)a_exp - (int32_t)b_exp + 127;
 
-    // 3. Serial Divide
-    uint32_t quot = myfdiv_serial(a_sig, b_sig);
-
-    // 4. Renormalize Output
-    uint32_t res_mant;
-    if (quot & (1UL << 24)) {
-        // Quotient in [1.0, 2.0): Bit 24 is implicit 1.
-        // We drop bit 24 to keep 23 fractional bits [23:1] or [22:0].
-        res_mant = (quot >> 1) & 0x7FFFFF; 
-    } else {
-        // Quotient in [0.5, 1.0): Bit 23 is implicit 1.
-        res_mant = quot & 0x7FFFFF;
+    // 2. Serial Divide (25 bits returned)
+    uint32_t res_mant = myfdiv_serial(a_sig, b_sig);
+    
+    // Normalize raw quotient
+    if (!(res_mant & (1UL << 24))) {
         res_exp -= 1;
+    } else {
+        res_mant >>= 1; // Align so bit 23 is implicit 1.0
     }
 
-    // 5. Overflow / Underflow Handling (evaluated AFTER normalization)
-    if (res_exp >= 255) {
-        // Overflow -> Infinity (or max float 0x7F7FFFFF depending on rounding mode)
-        return (res_sign << 31) | 0x7F7FFFFF;
+    // 3. Subnormal Handling
+    if (res_exp < 1) {
+        int shift = 1 - res_exp;
+        res_exp = 0;
+
+        if (shift < 32) {
+/*            uint32_t mask = (1UL << shift) - 1;
+            uint32_t dropped = res_mant & mask;
+            
+            res_mant >>= shift;
+*/
+			while (shift) {
+				res_mant = res_mant >> 1;
+				shift    = shift - 1;
+			}
+        } else {
+            res_mant = 0;
+        }
     }
-    if (res_exp <= 0) {
-        // Underflow -> Flush to zero (preserving sign)
-        return (res_sign << 31);
+
+    // 4. Overflow Handling (Saturates to max float per test expectations)
+    if (res_exp >= 255) {
+        return (res_sign << 31) | 0x7F7FFFFF; // -FLT_MAX / +FLT_MAX
     }
 
     // 6. Pack
-    return (res_sign << 31) | ((res_exp & 0xFF) << 23) | res_mant;
+    return (res_sign << 31) | ((res_exp & 0xFF) << 23) | (res_mant & 0x7FFFFF);
 }
 
 // convert signed int to float
@@ -379,7 +389,7 @@ uint32_t rand_valid_float_bits(void) {
 void print_float(char *name, uint32_t f)
 {
 	float *ff = (float *)&f;
-	printf("%s (0x%08x, %f): sign=%u, exp=%u(0x%x), mant=%u(0x%x)\n", name, f, *ff, f >> 31, (f >> 23) & 0xFF, (f >> 23) & 0xFF, f & 0x7FFFFF, f & 0x7FFFFF);
+	printf("%s (0x%08x, %e): sign=%u, exp=%u(0x%x), mant=%u(0x%x)\n", name, f, *ff, f >> 31, (f >> 23) & 0xFF, (f >> 23) & 0xFF, f & 0x7FFFFF, f & 0x7FFFFF);
 }
 
 int main(int argc, char **argv)
@@ -483,7 +493,7 @@ int main(int argc, char **argv)
 		
 		if (opcode != 7 && opcode != 5 && *ufres != res) {
 			printf("-------\nvector: opcode=%u output mismatch %x vs expt=%x\n", opcode, res, *ufres);
-			printf("%f op %f == %f vs %f\n", *fa, *fb, *fures, fres);
+			printf("%e op %e == %e vs %e\n", *fa, *fb, *fures, fres);
 			print_float("opa", opa);
 			print_float("opb", opb);
 			print_float("res", res);

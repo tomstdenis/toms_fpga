@@ -9,6 +9,13 @@
 
 `default_nettype none
 
+/*
+	float divide, rounds to zero, tracks overflow/underflow/subnormal shifting
+	
+	On ICE40, takes ~28 cycles
+	On ECP5, takes ~28 cycles
+*/
+
 module fdiv
 (
     input wire clk,
@@ -16,23 +23,23 @@ module fdiv
     
     input wire [31:0] in_a,
     input wire [31:0] in_b,
-    input wire        valid,        // command valid
+    input wire        valid,
     
-    output wire [31:0] out,          // result
-    output reg        ready         // result is valid
+    output wire [31:0] out,
+    output reg        ready
 );
-    reg        a_sign;
-    reg [9:0]  a_exp;
-    reg [23:0] a_mant;
-    reg [23:0] b_mant;
-    reg [22:0] res_frac;
+    reg               a_sign;
+    reg signed [9:0]  a_exp;     // Declared SIGNED
+    reg [23:0]        a_mant;
+    reg [23:0]        b_mant;
+    reg [23:0]        res_frac;  // 24 bits: includes implicit 1 bit [23]
     
-    assign out = {a_sign, a_exp[7:0], res_frac};
+    assign out = {a_sign, a_exp[7:0], res_frac[22:0]};
     
     wire [24:0] quot;
-    reg [1:0]  fsm_state;
-    reg        divider_valid;
-    wire       divider_ready;
+    reg [1:0]   fsm_state;
+    reg         divider_valid;
+    wire        divider_ready;
     
     fdiv_serial fdiv_serial(
         .clk(clk), 
@@ -47,7 +54,10 @@ module fdiv
     localparam
         FSM_IDLE      = 2'd0,
         FSM_CORE      = 2'd1,
-        FSM_NORM      = 2'd2;
+        FSM_NORM      = 2'd2,
+        FSM_OUT       = 2'd3;
+        
+    reg signed [9:0] shift; // Declared SIGNED
     
     always @(posedge clk) begin
         ready         <= 1'b0;
@@ -57,38 +67,54 @@ module fdiv
             FSM_IDLE: begin
                 if (valid) begin
                     a_sign        <= in_a[31] ^ in_b[31];
-                    a_exp         <= {2'b0, in_a[30:23]} - {2'b0, in_b[30:23]} + 10'd127;
+                    a_exp         <= $signed({2'b0, in_a[30:23]}) - $signed({2'b0, in_b[30:23]}) + 10'sd127;
                     a_mant        <= {1'b1, in_a[22:0]};
                     b_mant        <= {1'b1, in_b[22:0]};
-					divider_valid <= 1'b1;
+                    divider_valid <= 1'b1;
                     fsm_state     <= FSM_CORE;
                 end
             end
-                       
-            FSM_CORE: begin
-                if (divider_ready) begin
-                    fsm_state <= FSM_NORM;
-                    if (quot[24]) begin
-                        // Q in [1.0, 2.0): Bit 24 is implicit 1, fraction is quot[23:1]
-                        res_frac <= quot[23:1];
-                    end else begin
-                        // Q in [0.5, 1.0): Bit 23 is implicit 1, fraction is quot[22:0]
-                        res_frac <= quot[22:0];
-                        a_exp    <= a_exp - 1'b1;
-                    end
-                end
-            end
-            
-            FSM_NORM: begin
-				if ($signed(a_exp) >= $signed(10'd255)) begin
-					// handle overflow
-					a_exp    <= 8'hFE;
-					res_frac <= 23'h7FFFFF;
-				end else if ($signed(a_exp) <= $signed(10'd0)) begin
-					// handle underflow
-					a_exp    <= 0;
-					res_frac <= 0;
+                        
+			FSM_CORE: begin
+				if (divider_ready) begin
+					fsm_state <= FSM_NORM;
+					if (quot[24]) begin
+						// Bit 24 is implicit 1, fraction is in quot[23:1]
+						res_frac <= {1'b1, quot[23:1]};
+						shift    <= 10'sd1 - a_exp;
+					end else begin
+						// Bit 23 is implicit 1, fraction is in quot[22:0]
+						res_frac <= {1'b1, quot[22:0]};
+						a_exp    <= a_exp - 1'b1;
+						shift    <= 10'sd2 - a_exp;
+					end
 				end
+			end
+
+			FSM_NORM: begin
+				if (a_exp < 10'sd1) begin
+					if (shift >= 10'sd32) begin
+						res_frac  <= 24'd0;
+						a_exp     <= 10'sd0;
+						fsm_state <= FSM_OUT;
+					end else if (shift > 10'sd0) begin
+						res_frac <= res_frac >> 1; // Drag implicit 1 down
+						shift    <= shift - 1'b1;
+					end else begin
+						a_exp     <= 10'sd0;
+						fsm_state <= FSM_OUT;
+					end
+				end else begin
+					// Normal number: no shift needed
+					fsm_state <= FSM_OUT;
+				end
+			end
+
+            FSM_OUT: begin
+                if (a_exp >= 10'sd255) begin
+                    a_exp    <= 10'sd254;   // Set exponent to 0xFE (max finite float)
+                    res_frac <= 24'h7FFFFF; // Max finite mantissa
+                end
                 ready     <= 1'b1;
                 fsm_state <= FSM_IDLE;
             end
@@ -97,7 +123,9 @@ module fdiv
         if (~rst_n) begin
             ready         <= 1'b0;
             divider_valid <= 1'b0;
-			{ a_sign, a_exp[7:0], res_frac } <= 32'b0;  // reset output
+            a_sign        <= 1'b0;
+            a_exp         <= 10'sd0;
+            res_frac      <= 24'd0;
             fsm_state     <= FSM_IDLE;
         end
     end
@@ -155,4 +183,3 @@ module fdiv_serial (
         end
     end
 endmodule
-

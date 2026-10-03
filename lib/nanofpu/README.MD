@@ -75,7 +75,7 @@ The execution cycles depend on parameter configuration:
 | `USE_FADDSUB_TWO_STAGE_CMP`| `1` | `0` / `1` | Enable pipelined comparisons, adds a cycle but shortens the critical path |
 | `USE_FSTI_BARREL` | `1` | `0` / `1` | Enable barrel shifter for `FSTI` Normalization |
 | `UES_FLDI_BIGSTEP` | `1` | `0` / `1` | Enable big step hunt for MSB, reduces latency but can increase critical path |
-| `USE_FSQRT_STAGES` | `2` | `0` .. s`2` | Changes how many FSQRT stages there are STAGES={0,1,2} maps to 1, 2, or 3-stages. |
+| `USE_FSQRT_STAGES` | `2` | `0` .. `2` | Changes how many FSQRT stages there are STAGES={0,1,2} maps to 1, 2, or 3-stages. |
 
 ## Interface Signal Description
 
