@@ -161,51 +161,63 @@ module fdiv_serial #(
     reg [24:0] q_reg;
     reg [23:0] div_reg;
     reg [4:0]  count;
+    reg        fsm_state;
 
     assign quot = q_reg;
 
-    // Cycle 1 compares rem directly; subsequent cycles shift rem left by 1 first
     wire [24:0] current_rem = (count == 5'd25) ? rem : {rem[23:0], 1'b0};
     wire [24:0] sub_res     = current_rem - {1'b0, div_reg};
     wire        sub_fits    = ~sub_res[24]; // 1 if current_rem >= div_reg
 
+    localparam
+        FSM_IDLE   = 0,
+        FSM_REDUCE = 1;
+
     always @(posedge clk) begin
 		ready       <= 1'b0;
 
-        if (~ready & valid) begin
-            rem     <= {1'b0, sig_a}; // Pre-load dividend into remainder
-            q_reg   <= 25'b0;
-            div_reg <= sig_b;
-            count   <= 5'd25;
-        end else if (count > 5'd0) begin
-            // so in a schoolbook approach you'd shift both left by X bits 
-            // and then shift the divisor right one bit each step
-            //
-            // instead, this version shifts the remainder left by one bit
-            // and keeps the divisor in place.  So it brings the remainder to
-            // the divisor instead of bringing the divisor to the remainder.
-            //
-            // as a result we don't need a 48-bit compare/subtract
-            if (sub_fits) begin
-                rem <= sub_res;      // rem = (rem << 1) - div_reg
-            end else begin
-                rem <= current_rem;  // rem = (rem << 1)
+        case (fsm_state)
+            FSM_IDLE: begin
+                if (~ready & valid) begin
+                    rem       <= {1'b0, sig_a}; // Pre-load dividend into remainder
+                    q_reg     <= 25'b0;
+                    div_reg   <= sig_b;
+                    count     <= 5'd25;
+                    fsm_state <= FSM_REDUCE;
+                end
             end
+            FSM_REDUCE: begin
+                // In a schoolbook approach you'd shift both left by X bits 
+                // and then shift the divisor right one bit each step
+                //
+                // instead, this version shifts the remainder left by one bit
+                // and keeps the divisor in place.  So it brings the remainder to
+                // the divisor instead of bringing the divisor to the remainder.
+                //
+                // as a result we don't need a 48-bit compare/subtract
+                if (sub_fits) begin
+                    rem <= sub_res;      // rem = (rem << 1) - div_reg
+                end else begin
+                    rem <= current_rem;  // rem = (rem << 1)
+                end
 
-            // store whether divisor fits
-            q_reg <= {q_reg[23:0], sub_fits};
+                // store whether divisor fits
+                q_reg <= {q_reg[23:0], sub_fits};
 
-            count <= count - 1'b1;
-            if (count == 5'd1) begin
-                ready <= 1'b1;
+                count <= count - 1'b1;
+                if (count == 5'd1) begin
+                    ready     <= 1'b1;
+                    fsm_state <= FSM_IDLE;
+                end
             end
-        end
+        endcase
 
         if (~rst_n) begin
-            count   <= 5'd0;
-            rem     <= 25'b0;
-            q_reg   <= 25'b0;
-            div_reg <= 24'b0;
+            fsm_state <= FSM_IDLE;
+            count     <= 5'd0;
+            rem       <= 25'b0;
+            q_reg     <= 25'b0;
+            div_reg   <= 24'b0;
         end
     end
 endmodule

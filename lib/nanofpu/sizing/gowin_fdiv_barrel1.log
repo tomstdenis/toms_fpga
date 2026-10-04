@@ -1,24 +1,24 @@
-        - memories
         - memory bits
         - processes
-      664 cells
+      616 cells
         1   $scopeinfo
         1   GND
        67   IBUF
-       96   LUT1
-       43   LUT2
-      146   LUT3
+       52   LUT1
+       66   LUT2
+      156   LUT3
       121   LUT4
-      118   MUX2_LUT5
-       32   MUX2_LUT6
-        5   MUX2_LUT7
+       93   MUX2_LUT5
+       18   MUX2_LUT6
+        6   MUX2_LUT7
+        1   MUX2_LUT8
        33   OBUF
         1   VCC
-      268 submodules
+      269 submodules
        91   ALU
         4   DFF
        56   DFFE
-        3   DFFR
+        4   DFFR
       114   DFFRE
 
 4.51. Executing CHECK pass (checking for obvious problems).
