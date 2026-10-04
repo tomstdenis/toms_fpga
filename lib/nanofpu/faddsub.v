@@ -46,7 +46,12 @@ module faddsub
 	reg explt;
 	reg expeq;
 	reg mantlt;
+	reg expaz;
+	reg expbz;
 	
+	// various comparisons to pipeline
+	wire expaz_next  = (in_a[30:23] == 8'h00) ? 1'b1 : 1'b0;
+	wire expbz_next  = (in_b[30:23] == 8'h00) ? 1'b1 : 1'b0;
 	wire explt_next  = (in_a[30:23] < in_b[30:23]) ? 1'b1 : 1'b0;
 	wire expeq_next  = (in_a[30:23] == in_b[30:23]) ? 1'b1 : 1'b0;
 	wire mantlt_next = (in_a[22:0] < in_b[22:0]) ? 1'b1 : 1'b0;
@@ -55,32 +60,53 @@ module faddsub
 		ready     <= 1'b0;
 		case (fsm_state)
 			FSM_IDLE: begin
-				if (valid) begin
+				if (~ready & valid) begin
 					// perform all the compares in parallel here
 					issub     <= in_a[31] ^ in_b[31] ^ sub_op;	// is this a subtract?
 					if (USE_TWO_STAGE_CMP == 1) begin
+						expaz     <= expaz_next;
+						expbz     <= expbz_next;
 						explt     <= explt_next;
 						expeq     <= expeq_next;
 						mantlt    <= mantlt_next;
 						fsm_state <= FSM_SORT;
 					end else begin
-						fsm_state <= FSM_ALIGN;
-						if (explt_next || (expeq_next && mantlt_next)) begin
-							// swap operands (a,b) => (b,a)
-							a_sign <= in_b[31] ^ sub_op;
-							a_mant <= {1'b0, 1'b1, in_b[22:0], 4'b0};
-							a_exp  <= in_b[30:23];
-							b_mant <= {1'b0, 1'b1, in_a[22:0], 4'b0};
-							b_exp  <= in_a[30:23];
-							exp_delta <= in_b[30:23] - in_a[30:23];
+						if (expaz_next && expbz_next) begin
+							// both zero
+							a_sign       <= in_a[31] ^ in_b[31] ^ sub_op;
+							a_exp        <= 0;
+							a_mant       <= 0;
+							ready        <= 1;
+						end else if (expaz_next) begin
+							a_sign       <= in_b[31] ^ sub_op;
+							a_exp        <= in_b[30:23];
+							a_mant[26:4] <= in_b[22:0];
+							ready        <= 1;
+						end else if (expbz_next) begin
+							a_sign       <= in_a[31] ^ sub_op;
+							a_exp        <= in_a[30:23];
+							a_mant[26:4] <= in_a[22:0];
+							ready        <= 1;
 						end else begin
-							// normal order
-							a_sign <= in_a[31];
-							a_mant <= {1'b0, 1'b1, in_a[22:0], 4'b0};
-							a_exp  <= in_a[30:23];
-							b_mant <= {1'b0, 1'b1, in_b[22:0], 4'b0};
-							b_exp  <= in_b[30:23];
-							exp_delta <= in_a[30:23] - in_b[30:23];
+							if (explt_next || (expeq_next && mantlt_next)) begin
+								fsm_state <= FSM_ALIGN;
+								// swap operands (a,b) => (b,a)
+								a_sign    <= in_b[31] ^ sub_op;
+								a_mant    <= {1'b0, 1'b1, in_b[22:0], 4'b0};
+								a_exp     <= in_b[30:23];
+								b_mant    <= {1'b0, 1'b1, in_a[22:0], 4'b0};
+								b_exp     <= in_a[30:23];
+								exp_delta <= in_b[30:23] - in_a[30:23];
+							end else begin
+								fsm_state <= FSM_ALIGN;
+								// normal order
+								a_sign    <= in_a[31];
+								a_mant    <= {1'b0, 1'b1, in_a[22:0], 4'b0};
+								a_exp     <= in_a[30:23];
+								b_mant    <= {1'b0, 1'b1, in_b[22:0], 4'b0};
+								b_exp     <= in_b[30:23];
+								exp_delta <= in_a[30:23] - in_b[30:23];
+							end
 						end
 					end
 				end
@@ -89,22 +115,43 @@ module faddsub
 				if (USE_TWO_STAGE_CMP == 1) begin
 					// sort the input based on the compares from the previous cycle
 					fsm_state <= FSM_ALIGN;
-					if (explt || (expeq && mantlt)) begin
-						// swap operands (a,b) => (b,a)
-						a_sign <= in_b[31] ^ sub_op;
-						a_mant <= {1'b0, 1'b1, in_b[22:0], 4'b0};
-						a_exp  <= in_b[30:23];
-						b_mant <= {1'b0, 1'b1, in_a[22:0], 4'b0};
-						b_exp  <= in_a[30:23];
-						exp_delta <= in_b[30:23] - in_a[30:23];
+					if (expaz && expbz) begin
+						// both zero
+						a_sign       <= in_a[31] ^ in_b[31] ^ sub_op;
+						a_exp        <= 0;
+						a_mant       <= 0;
+						ready        <= 1;
+						fsm_state <= FSM_IDLE;
+					end else if (expaz) begin
+						a_sign       <= in_b[31] ^ sub_op;
+						a_exp        <= in_b[30:23];
+						a_mant[26:4] <= in_b[22:0];
+						ready        <= 1;
+						fsm_state    <= FSM_IDLE;
+					end else if (expbz) begin
+						a_sign       <= in_a[31] ^ sub_op;
+						a_exp        <= in_a[30:23];
+						a_mant[26:4] <= in_a[22:0];
+						ready        <= 1;
+						fsm_state    <= FSM_IDLE;
 					end else begin
-						// normal order
-						a_sign <= in_a[31];
-						a_mant <= {1'b0, 1'b1, in_a[22:0], 4'b0};
-						a_exp  <= in_a[30:23];
-						b_mant <= {1'b0, 1'b1, in_b[22:0], 4'b0};
-						b_exp  <= in_b[30:23];
-						exp_delta <= in_a[30:23] - in_b[30:23];
+						if (explt || (expeq && mantlt)) begin
+							// swap operands (a,b) => (b,a)
+							a_sign    <= in_b[31] ^ sub_op;
+							a_mant    <= {1'b0, 1'b1, in_b[22:0], 4'b0};
+							a_exp     <= in_b[30:23];
+							b_mant    <= {1'b0, 1'b1, in_a[22:0], 4'b0};
+							b_exp     <= in_a[30:23];
+							exp_delta <= in_b[30:23] - in_a[30:23];
+						end else begin
+							// normal order
+							a_sign    <= in_a[31];
+							a_mant    <= {1'b0, 1'b1, in_a[22:0], 4'b0};
+							a_exp     <= in_a[30:23];
+							b_mant    <= {1'b0, 1'b1, in_b[22:0], 4'b0};
+							b_exp     <= in_b[30:23];
+							exp_delta <= in_a[30:23] - in_b[30:23];
+						end
 					end
 				end
 			end
