@@ -1,15 +1,15 @@
         - memories
         - memory bits
         - processes
-      539 cells
+      542 cells
         1   $scopeinfo
         1   GND
        67   IBUF
-       89   LUT1
-       23   LUT2
-       66   LUT3
-      120   LUT4
-      103   MUX2_LUT5
+       93   LUT1
+       19   LUT2
+       69   LUT3
+      118   LUT4
+      105   MUX2_LUT5
        30   MUX2_LUT6
         5   MUX2_LUT7
        33   OBUF
@@ -21,7 +21,7 @@
         3   DFFR
       114   DFFRE
 
-2.51. Executing CHECK pass (checking for obvious problems).
+4.51. Executing CHECK pass (checking for obvious problems).
 Checking module fdiv...
 Found and reported 0 problems.
 

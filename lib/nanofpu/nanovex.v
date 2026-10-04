@@ -43,10 +43,12 @@ module nanovex
 	parameter ENABLE_F11=`NANOFPU_FL_FADD,
 	parameter ENABLE_F20=`NANOFPU_FL_FADD,
 
-	parameter USE_FMUL_DSP     		 = 1,	// 0 == serial shifter, 1 == 36x36 DSP, 2 == 18x18 DSP, 3 == 2-bit serial multiplier
-	parameter USE_FADDSUB_BARREL     = 1,	// Use barrel shifter for faddsub
-	parameter USE_FSTI_BARREL        = 1,	// Use barrel shifter for fsti (it's kinda big)
-	parameter USE_FSQRT_TWO_STAGE    = 1    // Use two stage (better fmax) FSQRT logic
+	parameter USE_FMUL_DSP     		    = 1,   // 0 == serial shifter, 1 == 36x36 DSP, 2 == 18x18 DSP, 3 == 2-bit serial multiplier
+	parameter USE_FDIV_BARREL           = 1,   // 0 == serial shifter, 1 == barrel shifter
+	parameter USE_FADDSUB_BARREL        = 1,   // Use barrel shifter for faddsub
+	parameter USE_FADDSUB_TWO_STAGE_CMP = 1,   // Use pipelined comparison for sorting
+	parameter USE_FSTI_BARREL           = 1,   // Use barrel shifter for fsti (it's kinda big)
+	parameter USE_FSQRT_STAGES          = 1    // Use two stage (better fmax) FSQRT logic
 )
 (
 	input wire clk,
@@ -68,9 +70,11 @@ module nanovex
 	nanofpu #( 
 		.ENABLE_FUNCS(ENABLE_F00),
 		.USE_FMUL_DSP(USE_FMUL_DSP),
+		.USE_FDIV_BARREL(USE_FDIV_BARREL),
 		.USE_FADDSUB_BARREL(USE_FADDSUB_BARREL),
+		.USE_FADDSUB_TWO_STAGE_CMP(USE_FADDSUB_TWO_STAGE_CMP),
 		.USE_FSTI_BARREL(USE_FSTI_BARREL),
-		.USE_FSQRT_TWO_STAGE(USE_FSQRT_TWO_STAGE)) nanofpu_f00
+		.USE_FSQRT_STAGES(USE_FSQRT_STAGES)) nanofpu_f00
 	(
 		.clk(clk), .rst_n(rst_n),
 		.in_a(in_a[31:0]), .in_b(in_b[31:0]), .opcode(opcode[3:0]),
@@ -80,9 +84,11 @@ module nanovex
 	nanofpu #( 
 		.ENABLE_FUNCS(ENABLE_F01),
 		.USE_FMUL_DSP(USE_FMUL_DSP),
+		.USE_FDIV_BARREL(USE_FDIV_BARREL),
 		.USE_FADDSUB_BARREL(USE_FADDSUB_BARREL),
+		.USE_FADDSUB_TWO_STAGE_CMP(USE_FADDSUB_TWO_STAGE_CMP),
 		.USE_FSTI_BARREL(USE_FSTI_BARREL),
-		.USE_FSQRT_TWO_STAGE(USE_FSQRT_TWO_STAGE)) nanofpu_f01
+		.USE_FSQRT_STAGES(USE_FSQRT_STAGES)) nanofpu_f01
 	(
 		.clk(clk), .rst_n(rst_n),
 		.in_a(in_a[63:32]), .in_b(in_b[63:32]), .opcode(opcode[7:4]),
@@ -92,9 +98,11 @@ module nanovex
 	nanofpu #( 
 		.ENABLE_FUNCS(ENABLE_F02),
 		.USE_FMUL_DSP(USE_FMUL_DSP),
+		.USE_FDIV_BARREL(USE_FDIV_BARREL),
 		.USE_FADDSUB_BARREL(USE_FADDSUB_BARREL),
+		.USE_FADDSUB_TWO_STAGE_CMP(USE_FADDSUB_TWO_STAGE_CMP),
 		.USE_FSTI_BARREL(USE_FSTI_BARREL),
-		.USE_FSQRT_TWO_STAGE(USE_FSQRT_TWO_STAGE)) nanofpu_f02
+		.USE_FSQRT_STAGES(USE_FSQRT_STAGES)) nanofpu_f02
 	(
 		.clk(clk), .rst_n(rst_n),
 		.in_a(in_a[95:64]), .in_b(in_b[95:64]), .opcode(opcode[11:8]),
@@ -104,9 +112,11 @@ module nanovex
 	nanofpu #( 
 		.ENABLE_FUNCS(ENABLE_F03),
 		.USE_FMUL_DSP(USE_FMUL_DSP),
+		.USE_FDIV_BARREL(USE_FDIV_BARREL),
 		.USE_FADDSUB_BARREL(USE_FADDSUB_BARREL),
+		.USE_FADDSUB_TWO_STAGE_CMP(USE_FADDSUB_TWO_STAGE_CMP),
 		.USE_FSTI_BARREL(USE_FSTI_BARREL),
-		.USE_FSQRT_TWO_STAGE(USE_FSQRT_TWO_STAGE)) nanofpu_f03
+		.USE_FSQRT_STAGES(USE_FSQRT_STAGES)) nanofpu_f03
 	(
 		.clk(clk), .rst_n(rst_n),
 		.in_a(in_a[127:96]), .in_b(in_b[127:96]), .opcode(opcode[15:12]),
@@ -128,9 +138,11 @@ module nanovex
 	nanofpu #( 
 		.ENABLE_FUNCS(ENABLE_F10),
 		.USE_FMUL_DSP(USE_FMUL_DSP),
+		.USE_FDIV_BARREL(USE_FDIV_BARREL),
 		.USE_FADDSUB_BARREL(USE_FADDSUB_BARREL),
+		.USE_FADDSUB_TWO_STAGE_CMP(USE_FADDSUB_TWO_STAGE_CMP),
 		.USE_FSTI_BARREL(USE_FSTI_BARREL),
-		.USE_FSQRT_TWO_STAGE(USE_FSQRT_TWO_STAGE)) nanofpu_f10
+		.USE_FSQRT_STAGES(USE_FSQRT_STAGES)) nanofpu_f10
 	(
 		.clk(clk), .rst_n(rst_n),
 		.in_a(fpu_outs[31:0]), .in_b(fpu_outs[63:32]), .opcode(opcode[19:16]),
@@ -141,9 +153,11 @@ module nanovex
 	nanofpu #( 
 		.ENABLE_FUNCS(ENABLE_F11),
 		.USE_FMUL_DSP(USE_FMUL_DSP),
+		.USE_FDIV_BARREL(USE_FDIV_BARREL),
 		.USE_FADDSUB_BARREL(USE_FADDSUB_BARREL),
+		.USE_FADDSUB_TWO_STAGE_CMP(USE_FADDSUB_TWO_STAGE_CMP),
 		.USE_FSTI_BARREL(USE_FSTI_BARREL),
-		.USE_FSQRT_TWO_STAGE(USE_FSQRT_TWO_STAGE)) nanofpu_f11
+		.USE_FSQRT_STAGES(USE_FSQRT_STAGES)) nanofpu_f11
 	(
 		.clk(clk), .rst_n(rst_n),
 		.in_a(fpu_outs[95:64]), .in_b(fpu_outs[127:96]), .opcode(opcode[23:20]),
@@ -154,9 +168,11 @@ module nanovex
 	nanofpu #( 
 		.ENABLE_FUNCS(ENABLE_F20),
 		.USE_FMUL_DSP(USE_FMUL_DSP),
+		.USE_FDIV_BARREL(USE_FDIV_BARREL),
 		.USE_FADDSUB_BARREL(USE_FADDSUB_BARREL),
+		.USE_FADDSUB_TWO_STAGE_CMP(USE_FADDSUB_TWO_STAGE_CMP),
 		.USE_FSTI_BARREL(USE_FSTI_BARREL),
-		.USE_FSQRT_TWO_STAGE(USE_FSQRT_TWO_STAGE)) nanofpu_f20
+		.USE_FSQRT_STAGES(USE_FSQRT_STAGES)) nanofpu_f20
 	(
 		.clk(clk), .rst_n(rst_n),
 		.in_a(fpu_outs[159:128]), .in_b(fpu_outs[191:160]), .opcode(opcode[27:24]),

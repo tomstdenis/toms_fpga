@@ -1,18 +1,14 @@
 /*
-	float divide, rounds to zero, tracks overflow/underflow does not track subnorm
-	
+	float divide, rounds to zero, tracks overflow/underflow, and subnorm
+
 */
 
 `default_nettype none
 
-/*
-	float divide, rounds to zero, tracks overflow/underflow/subnormal shifting
-	
-	On ICE40, takes ~28 cycles
-	On ECP5, takes ~28 cycles
-*/
-
 module fdiv
+#(
+	parameter USE_BARREL = 1
+)
 (
     input wire clk,
     input wire rst_n,
@@ -100,8 +96,14 @@ module fdiv
 						a_exp     <= 10'sd0;
 						fsm_state <= FSM_OUT;
 					end else if (shift > 10'sd0) begin
-						res_frac  <= res_frac >> 1; // Drag implicit 1 down
-						shift     <= shift - 1'b1;
+						if (USE_BARREL == 0) begin
+							res_frac  <= res_frac >> 1; // Drag implicit 1 down
+							shift     <= shift - 1'b1;
+						end else begin
+							res_frac  <= res_frac >> shift[4:0];
+							a_exp     <= 0;
+							fsm_state <= FSM_OUT;
+						end
 					end else begin
 						a_exp     <= 10'sd0;
 						fsm_state <= FSM_OUT;
@@ -133,7 +135,10 @@ module fdiv
     end
 endmodule
 
-module fdiv_serial (
+module fdiv_serial #(
+	parameter USE_BARREL=1
+)
+(
     input  wire        clk,
     input  wire        rst_n,
     input  wire        valid,
