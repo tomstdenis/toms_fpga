@@ -4,22 +4,22 @@
 
         +----------Count including submodules.
         | 
-      420 wires
-     1079 wire bits
-      420 public wires
-     1079 public wire bits
+      467 wires
+     1169 wire bits
+      467 public wires
+     1169 public wire bits
         8 ports
       101 port bits
         - memories
         - memory bits
         - processes
         - cells
-      521 submodules
+      593 submodules
        69   CCU2C
-        4   L6MUX21
-      291   LUT4
-       63   PFUMX
-       94   TRELLIS_FF
+       11   L6MUX21
+      345   LUT4
+       72   PFUMX
+       96   TRELLIS_FF
 
 4.52. Executing CHECK pass (checking for obvious problems).
 Checking module faddsub...

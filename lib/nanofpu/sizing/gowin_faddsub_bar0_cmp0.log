@@ -1,16 +1,16 @@
-      101 port bits
         - memories
         - memory bits
         - processes
-      554 cells
+      692 cells
         1   GND
        68   IBUF
-       43   LUT1
-       12   LUT2
-      139   LUT3
-      138   LUT4
-      110   MUX2_LUT5
-        9   MUX2_LUT6
+       69   LUT1
+       38   LUT2
+      162   LUT3
+      149   LUT4
+      142   MUX2_LUT5
+       23   MUX2_LUT6
+        6   MUX2_LUT7
        33   OBUF
         1   VCC
       225 submodules

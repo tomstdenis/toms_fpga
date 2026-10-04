@@ -43,6 +43,8 @@ module faddsub
 		FSM_CORE  = 3,
 		FSM_NORM  = 4;
 	
+	reg isnan_a;
+	reg isnan_b;
 	reg explt;
 	reg expeq;
 	reg mantlt;
@@ -50,11 +52,13 @@ module faddsub
 	reg expbz;
 	
 	// various comparisons to pipeline
-	wire expaz_next  = (in_a[30:23] == 8'h00) ? 1'b1 : 1'b0;
-	wire expbz_next  = (in_b[30:23] == 8'h00) ? 1'b1 : 1'b0;
-	wire explt_next  = (in_a[30:23] < in_b[30:23]) ? 1'b1 : 1'b0;
-	wire expeq_next  = (in_a[30:23] == in_b[30:23]) ? 1'b1 : 1'b0;
-	wire mantlt_next = (in_a[22:0] < in_b[22:0]) ? 1'b1 : 1'b0;
+	wire isnan_a_next = (in_a[30:23] == 8'hFF && (|in_a[22:0] == 1'b1)) ? 1'b1 : 1'b0;
+	wire isnan_b_next = (in_b[30:23] == 8'hFF && (|in_b[22:0] == 1'b1)) ? 1'b1 : 1'b0;
+	wire expaz_next   = (in_a[30:23] == 8'h00) ? 1'b1 : 1'b0;
+	wire expbz_next   = (in_b[30:23] == 8'h00) ? 1'b1 : 1'b0;
+	wire explt_next   = (in_a[30:23] < in_b[30:23]) ? 1'b1 : 1'b0;
+	wire expeq_next   = (in_a[30:23] == in_b[30:23]) ? 1'b1 : 1'b0;
+	wire mantlt_next  = (in_a[22:0] < in_b[22:0]) ? 1'b1 : 1'b0;
 	
 	always @(posedge clk) begin
 		ready     <= 1'b0;
@@ -64,6 +68,8 @@ module faddsub
 					issub     <= in_a[31] ^ in_b[31] ^ sub_op;	// is this a subtract?
 					if (USE_TWO_STAGE_CMP == 1) begin
 						// perform all the compares in parallel here
+						isnan_a   <= isnan_a_next;
+						isnan_b   <= isnan_b_next;
 						expaz     <= expaz_next;
 						expbz     <= expbz_next;
 						explt     <= explt_next;
@@ -72,7 +78,12 @@ module faddsub
 						fsm_state <= FSM_SORT;
 					end else begin
 						// not pipelining comparisons so we use *_next directly here
-						if (expaz_next && expbz_next) begin
+						if (isnan_a_next || isnan_b_next) begin
+							a_sign       <= in_a[31] ^ in_b[31] ^ sub_op;
+							a_exp        <= 8'hFF;
+							a_mant       <= {1'b1, 22'b0, 4'b0000};
+							ready        <= 1;
+						end else if (expaz_next && expbz_next) begin
 							// both zero
 							a_sign       <= in_a[31] ^ in_b[31] ^ sub_op;
 							a_exp        <= 0;
@@ -121,7 +132,12 @@ module faddsub
 				if (USE_TWO_STAGE_CMP == 1) begin
 					// sort the input based on the compares from the previous cycle
 					fsm_state <= FSM_ALIGN;
-					if (expaz && expbz) begin
+					if (isnan_a || isnan_b) begin
+						a_sign       <= in_a[31] ^ in_b[31] ^ sub_op;
+						a_exp        <= 8'hFF;
+						a_mant       <= {1'b1, 22'b0, 4'b0000};
+						ready        <= 1;
+					end else if (expaz && expbz) begin
 						// both zero
 						a_sign       <= in_a[31] ^ in_b[31] ^ sub_op;
 						a_exp        <= 0;

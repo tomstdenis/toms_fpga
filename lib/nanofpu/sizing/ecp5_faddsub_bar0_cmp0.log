@@ -4,21 +4,21 @@
 
         +----------Count including submodules.
         | 
-      507 wires
-     1212 wire bits
-      507 public wires
-     1212 public wire bits
+      596 wires
+     1346 wire bits
+      596 public wires
+     1346 public wire bits
         8 ports
       101 port bits
         - memories
         - memory bits
         - processes
         - cells
-      604 submodules
+      710 submodules
        69   CCU2C
-        7   L6MUX21
-      330   LUT4
-      110   PFUMX
+       35   L6MUX21
+      397   LUT4
+      121   PFUMX
        88   TRELLIS_FF
 
 4.52. Executing CHECK pass (checking for obvious problems).
