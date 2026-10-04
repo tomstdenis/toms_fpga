@@ -71,12 +71,12 @@ The execution cycles depend on parameter configuration:
 | `ENABLE_FSQRT` | `1'b1` | `0` / `1` | Enable `FSQRT` operation |
 | `ENABLE_FCMP` | `1'b1` | `0` / `1` | Enable `FCMP` operation |
 | `ENABLE_IADD` | `1'b1` | `0` / `1` | Enable `IADD` operations |
-| `USE_FMUL_DSP` | `1` | `0`, `1`, `2` | Multiplier target: `0` = Serial, `1` = 36x36 DSP, `2` = 18x18 DSP, `3` = 2-bit wide double-add |
+| `USE_FMUL_DSP` | `1` | `0` .. `3` | Multiplier target: `0` = Serial, `1` = 36x36 DSP, `2` = 18x18 DSP, `3` = 2-bit wide double-add |
 | `USE_FADDSUB_BARREL`| `1` | `0` / `1` | Enable normalization barrel shifter (fewer cycles but larger area) |
 | `USE_FADDSUB_TWO_STAGE_CMP`| `1` | `0` / `1` | Enable pipelined comparisons, adds a cycle but shortens the critical path |
 | `USE_FSTI_BARREL` | `1` | `0` / `1` | Enable barrel shifter for `FSTI` Normalization |
 | `UES_FLDI_BIGSTEP` | `1` | `0` / `1` | Enable big step hunt for MSB, reduces latency but can increase critical path |
-| `USE_FSQRT_STAGES` | `2` | `0` .. s`2` | Changes how many FSQRT stages there are STAGES={0,1,2} maps to 1, 2, or 3-stages. |
+| `USE_FSQRT_STAGES` | `2` | `0` .. `2` | Changes how many FSQRT stages there are STAGES={0,1,2} maps to 1, 2, or 3-stages. |
 
 ## Interface Signal Description
 
@@ -96,46 +96,6 @@ The execution cycles depend on parameter configuration:
 2. **Execution**: The core is non-pipelined. Do not assert `valid` again until `ready` goes high.
 3. **Completion**: Read `out` on the clock edge where `ready == 1`.
 
-## Synthesis & Area Usage Benchmarks
-
-### Lattice iCE40 (Area-Optimized Configuration)
-*Configured without barrel shifters or hardware DSP multipliers (`USE_FMUL_DSP=0`, barrel shifters disabled, `USE_FADDSUB_TWO_STAGE_CMP=0`, and `USE_FSQRT_STAGES=0`).*
-
-```
-      632   SB_CARRY
-       19   SB_DFF
-      187   SB_DFFE
-      494   SB_DFFESR
-        8   SB_DFFESS
-        9   SB_DFFSR
-     1989   SB_LUT4
-```
-
-When configured just for FADD, FSUB, and FMUL:
-
-```
-      237   SB_CARRY
-        8   SB_DFF
-      102   SB_DFFE
-      248   SB_DFFESR
-        5   SB_DFFESS
-        6   SB_DFFSR
-      830   SB_LUT4
-```
-
-### Lattice ECP5 (Performance Configuration)
-*Configured with `USE_MULT=2` (18x18 DSP) and barrel shifters enabled, `USE_FADDSUB_TWO_STAGE_CMP=1`, and `USE_FSQRT_STAGES=2`.*
-
-
-```
-        4   MULT18X18D
-      350   CCU2C
-       58   L6MUX21
-     1967   LUT4
-      436   PFUMX
-      798   TRELLIS_FF
-```
-
 ## File Structure
 
 - `nanofpu.v` - Top-level module wrapper
@@ -147,6 +107,7 @@ When configured just for FADD, FSUB, and FMUL:
 - `fsti.v` - Float-to-integer converter
 - `fsqrt.v` - Floating-point square root core
 - `fcmp.v` - Floating-point comparison
+- `intaddsub.v` - Int parallel 8/16-bit saturated add/sub
 
 # NanoVEX (4:2:1 Reduction Vector Engine)
 
