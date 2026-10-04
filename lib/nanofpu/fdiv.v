@@ -170,30 +170,42 @@ module fdiv_serial #(
     wire        sub_fits    = ~sub_res[24]; // 1 if current_rem >= div_reg
 
     always @(posedge clk) begin
-		ready   <= 1'b0;
-        if (~rst_n) begin
-            count   <= 5'd0;
-            rem     <= 25'b0;
-            q_reg   <= 25'b0;
-            div_reg <= 24'b0;
-        end else if (valid) begin
+		ready       <= 1'b0;
+
+        if (~ready & valid) begin
             rem     <= {1'b0, sig_a}; // Pre-load dividend into remainder
             q_reg   <= 25'b0;
             div_reg <= sig_b;
             count   <= 5'd25;
         end else if (count > 5'd0) begin
+            // so in a schoolbook approach you'd shift both left by X bits 
+            // and then shift the divisor right one bit each step
+            //
+            // instead, this version shifts the remainder left by one bit
+            // and keeps the divisor in place.  So it brings the remainder to
+            // the divisor instead of bringing the divisor to the remainder.
+            //
+            // as a result we don't need a 48-bit compare/subtract
             if (sub_fits) begin
-                rem <= sub_res;
+                rem <= sub_res;      // rem = (rem << 1) - div_reg
             end else begin
-                rem <= current_rem;
+                rem <= current_rem;  // rem = (rem << 1)
             end
 
+            // store whether divisor fits
             q_reg <= {q_reg[23:0], sub_fits};
 
             count <= count - 1'b1;
             if (count == 5'd1) begin
                 ready <= 1'b1;
             end
+        end
+
+        if (~rst_n) begin
+            count   <= 5'd0;
+            rem     <= 25'b0;
+            q_reg   <= 25'b0;
+            div_reg <= 24'b0;
         end
     end
 endmodule
