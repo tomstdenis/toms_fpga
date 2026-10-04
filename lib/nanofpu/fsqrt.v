@@ -37,16 +37,19 @@ module fsqrt
 	
 	reg [49:0] reduce_cmp;
 
+	wire isnan_a_next = (in_a[30:23] == 8'hFF && (|in_a[22:0] == 1'b1)) ? 1'b1 : 1'b0;
+    wire isaz_next    = (in_a[30:23] == 0) ? 1'b1 : 1'b0;
+
 	always @(posedge clk) begin
 		ready     <= 1'b0;
 		case (fsm_state)
 			FSM_IDLE: begin
 				if (~ready & valid) begin
-					if (in_a[31]) begin
-						// only positive
+					if (in_a[31] || isnan_a_next) begin
+						// only positive and not NaN
 						res[31:0] <= 32'hffc00000;
 						ready     <= 1'b1;
-					end else if (in_a[30:23] == 8'h00) begin
+					end else if (isaz_next) begin
 						// handle zero
 						res[31:0] <= 32'b0;
 						ready     <= 1'b1;

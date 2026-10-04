@@ -13,6 +13,15 @@ TCM_FUNC(demo) void demo(void)
 	getch();
 	printf("Calibration: %u\n", t);
 	
+	// some sanity tests
+	printf("x/0 == %f\n", a = fdiv(1.0f, 0.0f)); // test x/0 and also put NaN in a float
+	printf("1.0 + NaN == %f\n", fadd(1.0f, a));
+	printf("NaN + 1.0 == %f\n", fadd(a, 1.0f));
+	printf("1.0 * NaN == %f\n", fmul(1.0f, a));
+	printf("NaN * 1.0 == %f\n", fmul(a, 1.0f));
+	printf("fsqrt(-1) == %f\n", fsqrt(-1.0f));
+	printf("fsqrt(NaN) == %f\n", fsqrt(a));
+	
 	// float add
 	t1 = TIMER;
 	a = 3.14;

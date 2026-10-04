@@ -2,24 +2,24 @@
 
         +----------Count including submodules.
         | 
-      531 wires
-     1310 wire bits
-      531 public wires
-     1310 public wire bits
+      539 wires
+     1331 wire bits
+      539 public wires
+     1331 public wire bits
         6 ports
        68 port bits
         - memories
         - memory bits
         - processes
         - cells
-      755 submodules
+      770 submodules
       157   SB_CARRY
         5   SB_DFF
        80   SB_DFFE
        98   SB_DFFESR
         2   SB_DFFESS
         1   SB_DFFSR
-      412   SB_LUT4
+      427   SB_LUT4
 
 3.51. Executing CHECK pass (checking for obvious problems).
 Checking module fsqrt...
