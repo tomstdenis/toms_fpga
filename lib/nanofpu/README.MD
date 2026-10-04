@@ -31,34 +31,41 @@ The core operates on a 3-bit opcode (`opcode[2:0]`):
 
 ## Performance & Latency Options
 
-The execution cycles depend on parameter configuration:
+The execution cycles depend on parameter configurations.  Here are the timings for the configuration found in the Little Timmy 1000 SOC (over 100,000 test vectors):
 
-| Instruction | Configuration / Parameter | Latency (Clock Cycles) | Notes |
-| :--- | :--- | :--- | :--- |
-| **FADD / FSUB** | `USE_FADDSUB_BARREL = 1` && `USE_FADDSUB_TWO_STAGE_CMP = 0`| 3 – 4 cycles | Larger but faster. |
-| | `USE_FADDSUB_BARREL = 1` && `USE_FADDSUB_TWO_STAGE_CMP = 1`| 4 – 5 cycles | Larger, extra cycle for pipelined compare to help Fmax |
-| | `USE_FADDSUB_BARREL = 0` | ~27 cycles | Compact and variable cycle timing |
-| **FMUL** `****`| `USE_FMUL_DSP = 1` (36x36 DSP) | 3 – 4 cycles | For Gowin/Xilinx etc with wide DSP mults |
-| | `USE_FMUL_DSP = 2` (18x18 DSP) | 4 – 5 cycles | For smaller DSP blocks |
-| | `USE_FMUL_DSP = 3` (2-bit Serial Shift Multiplier) | 14 – 15 cycles | Larger 2-bit at a time that takes half the time |
-| | `USE_FMUL_DSP = 0` (Serial Shift Multiplier) | 28 – 29 cycles | Compact 1-bit at a time double and add |
-| **FDIV**  `****` | `USE_FDIV_BARREL = 1` | 29 cycles | Larger, potentially worse Fmax but much faster |
-| |`USE_FDIV_BARREL = 0` | 29-58 cycles | Standard reduction |
-| **FSTI** | `USE_FSTI_BARREL = 1` | 1 – 2 cycles | Larger but faster |
-| | `USE_FSTI_BARREL = 0` | 2 – 24 cycles | Compact and variable cycle timing |
-| **FLDI** | `USE_FLDI_BIG_STEP = 1` | 3 - 14 cycles | Slightly faster as it hunts by steps of 4 first |
-| | `USE_FLDI_BIG_STEP = 0` | 2 – 24 cycles | Variable cycle timing |
-| **FSQRT** (`*`) | `USE_FSQRT_STAGES = 0` | 28 – 29 cycles | Faster but harder to hit timing with |
-| | `USE_FSQRT_STAGES = 1` | 54 – 55 cycles (`**`) | Slower but easier to hit timing also slightly larger |
-| | `USE_FSQRT_STAGES = 2` | 79 – 80 cycles (`***`) | Way slower but basically becomes on par with other instructions for timing |
-| **FCMP** | Standard | 2 Cycles | It compares things. |
-| **IADD** | Standard | 1 Cycle | It adds ints |
-| **NOP** | Standard | 1 Cycle | No op |
-
-- (`*`) FSQRT takes 1 cycle to report an error.
-- (`**`) The default STAGES==0 is very hard to meet the timing of the other FPU opcodes.  STAGES==1 helps close the gap while still being somewhat performant.
-- (`***`) The three stage option (STAGES==2) takes 3x the cycles of the one stage option but has comparable timing closure to the other FPU opcodes.  Use this option when FSQRT latency is less important than overall FPU Fmax.
-- (`****`) The FMUL and FDIV options USE_FMUL_TWO_STAGE_CMP and USE_FDIV_TWO_STAGE_CMP add an extra cycle but shortens the critical path.
+```
+Op     FADD( 0):
+          6 cycles == 12325 times
+          7 cycles ==   184 times
+          8 cycles ==    18 times
+          9 cycles ==     9 times
+Op     FSUB( 1):
+          6 cycles == 12272 times
+          7 cycles ==   165 times
+          8 cycles ==    24 times
+          9 cycles ==     3 times
+Op     FMUL( 2):
+          6 cycles ==  4841 times
+          7 cycles ==  7659 times
+Op     FDIV( 3):
+         32 cycles == 12500 times
+Op     FLDI( 4):
+          5 cycles ==  7045 times
+          6 cycles ==  3626 times
+          7 cycles ==  1707 times
+          8 cycles ==   112 times
+          9 cycles ==    10 times
+Op     FSTI( 5):
+          2 cycles == 10958 times
+          3 cycles ==    54 times
+          4 cycles ==  1488 times
+Op    FSQRT( 6):
+          2 cycles ==  6259 times
+         82 cycles ==  3076 times
+         83 cycles ==  3165 times
+Op     FCMP( 7):
+          3 cycles == 12500 times
+```
 
 ## Module Parameters
 
@@ -78,6 +85,7 @@ The execution cycles depend on parameter configuration:
 | `USE_FDIV_TWO_STAGE_CMP` | `1` | `0` / `1` | Enables two stage comparison to shorten critical path |
 | `USE_FADDSUB_BARREL`| `1` | `0` / `1` | Enable normalization barrel shifter (fewer cycles but larger area) |
 | `USE_FADDSUB_TWO_STAGE_CMP`| `1` | `0` / `1` | Enable pipelined comparisons, adds a cycle but shortens the critical path |
+| `USE_FADDSUB_BIG_STEP`| `1` | `0` / `1` | Enable a 4-bit step in the output norm, helps latency, costs area |
 | `USE_FSTI_BARREL` | `1` | `0` / `1` | Enable barrel shifter for `FSTI` Normalization |
 | `UES_FLDI_BIGSTEP` | `1` | `0` / `1` | Enable big step hunt for MSB, reduces latency but can increase critical path |
 | `USE_FSQRT_STAGES` | `2` | `0` .. `2` | Changes how many FSQRT stages there are STAGES={0,1,2} maps to 1, 2, or 3-stages. |

@@ -16,15 +16,17 @@ module nanofpu
 	parameter ENABLE_IADD    = ENABLE_FUNCS[`NANOFPU_OP_IADD],  // enable iaddsub
 
 	parameter USE_FMUL_DSP     		    = 2,   // 0 == serial shifter, 1 == 36x36 DSP, 2 == 18x18 DSP, 3 == 2-bit serial shifter
-	parameter USE_FMUL_TWO_STAGE_CMP    = 1,   // 1 == pipeline the compares
-	parameter USE_FDIV_BARREL           = 1,   // 0 == serial shifter, 1 == barrel shifter
-	parameter USE_FDIV_TWO_STAGE_CMP    = 1,   // 1 == pipeline the compares
-	parameter USE_FADDSUB_BARREL        = 1,   // Use barrel shifter for faddsub
-	parameter USE_FADDSUB_TWO_STAGE_CMP = 1,   // Use pipelined comparison for sorting
+	parameter USE_FMUL_TWO_STAGE_CMP    = 1,   // 1 == pipeline the compares, helps timing
+	parameter USE_FDIV_BARREL           = 1,   // 0 == serial shifter, 1 == barrel shifter, lower latency, costs area
+	parameter USE_FDIV_TWO_STAGE_CMP    = 1,   // 1 == pipeline the compares, helps timing
+	parameter USE_FADDSUB_BARREL        = 1,   // Use barrel shifter for faddsub, lowers latency, costs area
+	parameter USE_FADDSUB_TWO_STAGE_CMP = 1,   // Use pipelined comparison for sorting, helps timing
 	parameter USE_FADDSUB_BIG_STEP      = 1,   // Enable a 4-bit stride in the final norm, costs area
-	parameter USE_FSTI_BARREL           = 1,   // Use barrel shifter for fsti (it's kinda big)
-	parameter USE_FLDI_BIG_STEP         = 1,   // use big step hunt in FLDI to reduce max time
+	parameter USE_FSTI_BARREL           = 1,   // Use barrel shifter for fsti, lower latency, costs area
+	parameter USE_FLDI_BIG_STEP         = 1,   // use big step hunt, lowers latency, costs area
 	parameter USE_FSQRT_STAGES 		    = 2	   // 0 == 24 cycle SQRT, 1 == 48 cycles, 2 == 72 cycles (all + overhead)
+	                                           // These are all for helping timing, each has a small incremental
+											   // cost in area
 )
 (
 	input wire clk,
