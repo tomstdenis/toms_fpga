@@ -339,6 +339,7 @@ localparam
     nanofpu #(
         .ENABLE_FUNCS(`NANOFPU_FUNCS_ALL),
         .USE_FMUL_DSP(1),
+        .USE_FDIV_BARREL(1),
         .USE_FADDSUB_BARREL(1),
         .USE_FADDSUB_TWO_STAGE_CMP(1),
         .USE_FSTI_BARREL(1),

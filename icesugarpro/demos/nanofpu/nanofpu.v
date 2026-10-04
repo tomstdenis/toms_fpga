@@ -63,8 +63,10 @@ module top(
 	
 	nanofpu #(
 		.USE_FADDSUB_BARREL(1),
+		.USE_FADDSUB_TWO_STAGE_CMP(1),
 		.USE_FSTI_BARREL(1),
 		.USE_FMUL_DSP(2),
+		.USE_FDIV_BARREL(1),
 		.USE_FSQRT_STAGES(2)
 	) nanofpu_dut(
 		.clk(pll_clk), .rst_n(rst_n),
