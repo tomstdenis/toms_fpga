@@ -1,25 +1,25 @@
-        7 ports
       100 port bits
         - memories
         - memory bits
         - processes
-      177 cells
+      201 cells
         1   GND
        67   IBUF
-       11   LUT1
-        8   LUT2
-        1   LUT3
-       44   LUT4
-       11   MUX2_LUT5
+       17   LUT1
+       10   LUT2
+        6   LUT3
+       47   LUT4
+       13   MUX2_LUT5
+        5   MUX2_LUT6
+        1   MUX2_LUT7
        33   OBUF
         1   VCC
-       41 submodules
+       43 submodules
        31   ALU
         1   DFF
-        5   DFFE
+        7   DFFE
         1   DFFR
-        2   DFFRE
-        1   DFFSE
+        3   DFFRE
 
 2.51. Executing CHECK pass (checking for obvious problems).
 Checking module fcmp...

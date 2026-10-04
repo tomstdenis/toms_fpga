@@ -21,6 +21,8 @@ TCM_FUNC(demo) void demo(void)
 	printf("NaN * 1.0 == %f\n", fmul(a, 1.0f));
 	printf("fsqrt(-1) == %f\n", fsqrt(-1.0f));
 	printf("fsqrt(NaN) == %f\n", fsqrt(a));
+	printf("fcmp(1.0, NaN) == %d\n", fcmp(1.0f, a));
+	printf("fcmp(NaN, 1.0) == %d\n", fcmp(a, 1.0f));
 	
 	// float add
 	t1 = TIMER;

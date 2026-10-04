@@ -4,22 +4,22 @@
 
         +----------Count including submodules.
         | 
-      168 wires
-      395 wire bits
-      168 public wires
-      395 public wire bits
+      154 wires
+      391 wire bits
+      154 public wires
+      391 public wire bits
         7 ports
       100 port bits
         - memories
         - memory bits
         - processes
         - cells
-      154 submodules
+      135 submodules
        15   CCU2C
-       13   L6MUX21
-       91   LUT4
-       25   PFUMX
-       10   TRELLIS_FF
+        5   L6MUX21
+       83   LUT4
+       20   PFUMX
+       12   TRELLIS_FF
 
 2.52. Executing CHECK pass (checking for obvious problems).
 Checking module fcmp...

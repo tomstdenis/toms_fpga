@@ -47,13 +47,22 @@ module fcmp
 		FSM_IDLE = 0,
 		FSM_CMP  = 1;
 
+	reg isnan_a;
+    reg isnan_b;
+	wire isnan_a_next = (in_a[30:23] == 8'hFF && (|in_a[22:0] == 1'b1)) ? 1'b1 : 1'b0;
+	wire isnan_b_next = (in_b[30:23] == 8'hFF && (|in_b[22:0] == 1'b1)) ? 1'b1 : 1'b0;
+	wire isaz_next    = (in_a[30:23] == 0) ? 1'b1 : 1'b0;
+	wire isbz_next    = (in_b[30:23] == 0) ? 1'b1 : 1'b0;
+
 	always @(posedge clk) begin
 		ready <= 1'b0;
 		case (fsm_state)
 			FSM_IDLE: begin
 				if (~ready & valid) begin
 					// do all the compares in parallel here
-					iszero    <= ((in_a[30:0] == 31'b0) && (in_b[30:0] == 31'b0)) ? 1'b1 : 1'b0;
+					isnan_a   <= isnan_a_next;
+					isnan_b   <= isnan_b_next;
+					iszero    <= isaz_next && isbz_next;
 					explt     <= (a_exp < b_exp) ? 1'b1 : 1'b0;
 					expgt     <= (a_exp > b_exp) ? 1'b1 : 1'b0;
 					mantlt    <= (a_sig < b_sig) ? 1'b1 : 1'b0;
@@ -65,9 +74,10 @@ module fcmp
 				// use all the compares we computed in the previous cycle
 				ready <= 1'b1;
 				cmp   <= 3'b000;
-			
-				// Special handling for IEEE +0.0 == -0.0
-				if (iszero) begin
+				if (isnan_a || isnan_b) begin
+					cmp <= 3'b000; // comparing anything to NaN should leave all three clear
+				end else if (iszero) begin
+					// Special handling for IEEE +0.0 == -0.0
 					cmp <= 3'b100; // EQ (4)
 				end else if (~a_sign & b_sign) begin
 					cmp <= 3'b010; // A > 0, B < 0 -> GT (2)
