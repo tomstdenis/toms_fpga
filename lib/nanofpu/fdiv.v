@@ -83,11 +83,14 @@ module fdiv
 					if (quot[24]) begin
 						// Bit 24 is implicit 1, fraction is in quot[23:1]
 						res_frac <= {1'b1, quot[23:1]};
+                        // we shift until exp==1 (before implied bias)
 						shift    <= 10'sd1 - a_exp;
 					end else begin
 						// Bit 23 is implicit 1, fraction is in quot[22:0]
 						res_frac <= {1'b1, quot[22:0]};
 						a_exp    <= a_exp - 1'b1;
+                        // shift changes because we moved the starting point
+                        // of the quotient since bit 24 was 0
 						shift    <= 10'sd2 - a_exp;
 					end
 				end
@@ -95,18 +98,23 @@ module fdiv
 
 			FSM_NORM: begin
 				if (a_exp < 10'sd1) begin
+                    // here we're handling the case that the final exponent was 
+                    // smaller than -127 so we shift the quotient right while 
+                    // adding to the exponent until it's in range.  This captures
+                    // subnormal data
 					if (shift >= 10'sd32) begin
                         // excessive shift just zero out
 						res_frac  <= 24'd0;
 						a_exp     <= 10'sd0;
 						fsm_state <= FSM_OUT;
 					end else if (shift > 10'sd0) begin
-                        // shift quotient right shif bits
+                        // shift quotient right shift bits
 						if (USE_BARREL == 0) begin
-                            // with a barrel shifter
+                            // without a barrel shifter
 							res_frac  <= res_frac >> 1; // Drag implicit 1 down
 							shift     <= shift - 1'b1;
 						end else begin // (USE_BARREL == 1)
+                            // use a barrel shifter in one shot
 							res_frac  <= res_frac >> shift[4:0];
 							a_exp     <= 0;
 							fsm_state <= FSM_OUT;
