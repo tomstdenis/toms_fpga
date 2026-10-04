@@ -15,10 +15,12 @@ make clean
 for arch in ice40 ecp5 gowin; do
 
 	# faddsub
-	for barrel in 0 1; do
-		for twostage in 0 1; do
-			echo "faddsub ${arch} barrel=${barrel} twostage=${twostage}"
-			yosys -p " read_verilog faddsub.v ; chparam -set USE_BARREL ${barrel} ; chparam -set USE_TWO_STAGE_CMP ${twostage} ; synth_${arch} " | tail -n ${TL} | head -n ${KEEP} > sizing/${arch}_faddsub_bar${barrel}_cmp${twostage}.log
+	for bigstep in 0 1; do
+		for barrel in 0 1; do
+			for twostage in 0 1; do
+				echo "faddsub ${arch} barrel=${barrel} twostage=${twostage} bigstep=${bigstep}"
+				yosys -p " read_verilog faddsub.v ; chparam -set USE_BIG_STEP ${bigstep} ; chparam -set USE_BARREL ${barrel} ; chparam -set USE_TWO_STAGE_CMP ${twostage} ; synth_${arch} " | tail -n ${TL} | head -n ${KEEP} > sizing/${arch}_faddsub_bar${barrel}_cmp${twostage}_bigstep${bigstep}.log
+			done
 		done
 	done
 	

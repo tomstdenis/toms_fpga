@@ -1,19 +1,14 @@
 FST info: dumpfile nanofpu.vcd opened for output.
 Op     FADD( 0):
 	  6 cycles == 12325 times
-	  7 cycles ==   182 times
-	  8 cycles ==    14 times
-	  9 cycles ==     8 times
-	 10 cycles ==     2 times
-	 11 cycles ==     4 times
-	 15 cycles ==     1 times
+	  7 cycles ==   184 times
+	  8 cycles ==    18 times
+	  9 cycles ==     9 times
 Op     FSUB( 1):
 	  6 cycles == 12272 times
-	  7 cycles ==   161 times
-	  8 cycles ==    21 times
+	  7 cycles ==   165 times
+	  8 cycles ==    24 times
 	  9 cycles ==     3 times
-	 10 cycles ==     4 times
-	 11 cycles ==     3 times
 Op     FMUL( 2):
 	  6 cycles ==  4841 times
 	  7 cycles ==  7659 times
@@ -43,4 +38,4 @@ Op      N/A(12):
 Op      N/A(13):
 Op      N/A(14):
 Op      NOP(15):
-nanofpu_tb.v:73: $finish called at 29921530000 (1ps)
+nanofpu_tb.v:73: $finish called at 29920630000 (1ps)

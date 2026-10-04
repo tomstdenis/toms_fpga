@@ -21,6 +21,7 @@ module nanofpu
 	parameter USE_FDIV_TWO_STAGE_CMP    = 1,   // 1 == pipeline the compares
 	parameter USE_FADDSUB_BARREL        = 1,   // Use barrel shifter for faddsub
 	parameter USE_FADDSUB_TWO_STAGE_CMP = 1,   // Use pipelined comparison for sorting
+	parameter USE_FADDSUB_BIG_STEP      = 1,   // Enable a 4-bit stride in the final norm, costs area
 	parameter USE_FSTI_BARREL           = 1,   // Use barrel shifter for fsti (it's kinda big)
 	parameter USE_FLDI_BIG_STEP         = 1,   // use big step hunt in FLDI to reduce max time
 	parameter USE_FSQRT_STAGES 		    = 2	   // 0 == 24 cycle SQRT, 1 == 48 cycles, 2 == 72 cycles (all + overhead)
@@ -43,7 +44,8 @@ module nanofpu
 
 	faddsub #(
 		.USE_BARREL(USE_FADDSUB_BARREL),
-		.USE_TWO_STAGE_CMP(USE_FADDSUB_TWO_STAGE_CMP)
+		.USE_TWO_STAGE_CMP(USE_FADDSUB_TWO_STAGE_CMP),
+		.USE_BIG_STEP(USE_FADDSUB_BIG_STEP)
 	) faddsub(
 		.clk(clk), .rst_n(rst_n),
 		.in_a(in_a), .in_b(in_b), 

@@ -8,7 +8,8 @@
 module faddsub
 #(
 	parameter USE_BARREL=1,			// use a barrel shifter (drops from ~30 to ~3 cycles)
-	parameter USE_TWO_STAGE_CMP=1   // use a pipelined compare for higher Fmax
+	parameter USE_TWO_STAGE_CMP=1,   // use a pipelined compare for higher Fmax
+	parameter USE_BIG_STEP=1        // use a 4-bit comparator, adds area but reduces the spread of cycle counts
 )
 (
 	input wire clk,
@@ -222,7 +223,10 @@ module faddsub
 					a_mant <= (a_mant >> 1) | a_mant[0];
 					a_exp  <= a_exp + 1'b1;
 				end else begin
-					if (|a_mant[26:0] & ~a_mant[27]) begin
+					if (USE_BIG_STEP == 1 && |a_mant[26:0] && a_mant[27:24] == 4'b0000) begin
+						a_mant <= a_mant << 4;
+						a_exp  <= a_exp - 4;
+					end else if (|a_mant[26:0] & ~a_mant[27]) begin
 						a_mant <= a_mant << 1;
 						a_exp  <= a_exp - 1'b1;
 					end else begin
