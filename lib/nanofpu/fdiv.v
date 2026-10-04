@@ -7,6 +7,7 @@
 
 module fdiv
 #(
+    parameter USE_TWO_STAGE_CMP = 1,
 	parameter USE_BARREL = 1
 )
 (
@@ -29,7 +30,7 @@ module fdiv
     assign out = {a_sign, a_exp[7:0], res_frac[22:0]};
     
     wire [24:0] quot;
-    reg [1:0]   fsm_state;
+    reg [2:0]   fsm_state;
     reg         divider_valid;
     wire        divider_ready;
     
@@ -44,12 +45,24 @@ module fdiv
     );
 
     localparam
-        FSM_IDLE      = 2'd0,
-        FSM_CORE      = 2'd1,
-        FSM_NORM      = 2'd2,
-        FSM_OUT       = 2'd3;
+        FSM_IDLE      = 3'd0,
+        FSM_CMP       = 3'd1,
+        FSM_CORE      = 3'd2,
+        FSM_NORM      = 3'd3,
+        FSM_OUT       = 3'd4;
         
     reg signed [9:0] shift;
+
+    reg isnan_a;
+    reg isnan_b;
+    reg isaz;
+    reg isbz;
+    reg [31:0] in_a_l;
+    reg [31:0] in_b_l;
+	wire isnan_a_next = (in_a[30:23] == 8'hFF && (|in_a[22:0] == 1'b1)) ? 1'b1 : 1'b0;
+	wire isnan_b_next = (in_b[30:23] == 8'hFF && (|in_b[22:0] == 1'b1)) ? 1'b1 : 1'b0;
+    wire isaz_next    = (in_a[30:23] == 0) ? 1'b1 : 1'b0;
+    wire isbz_next    = (in_b[30:23] == 0) ? 1'b1 : 1'b0;
     
     always @(posedge clk) begin
         ready         <= 1'b0;
@@ -59,20 +72,57 @@ module fdiv
             FSM_IDLE: begin
                 if (~ready & valid) begin
                     a_sign        <= in_a[31] ^ in_b[31];
-					if (in_a[30:23] == 0) begin
-                        // dividing zero by something shortcut to output zero
-						a_exp          <= 0;
-						res_frac[22:0] <= 0;
-						ready          <= 1;
-					end else begin
-                        // doing division prepare inputs to serial divider
-						a_exp         <= $signed({2'b0, in_a[30:23]}) - $signed({2'b0, in_b[30:23]}) + 10'sd127;
-						a_mant        <= {1'b1, in_a[22:0]};
-						b_mant        <= {1'b1, in_b[22:0]};
-						divider_valid <= 1'b1;
-						fsm_state     <= FSM_CORE;
-					end
+                    if (USE_TWO_STAGE_CMP == 1) begin
+                        isnan_a   <= isnan_a_next;
+                        isnan_b   <= isnan_b_next;
+                        isaz      <= isaz_next;
+                        isbz      <= isbz_next;
+                        fsm_state <= FSM_CMP;
+                    end else begin
+                        if (isbz_next || isnan_a_next || isnan_b_next) begin
+                            // one of the terms is NaN
+                            a_exp          <= 8'hFF;
+                            res_frac       <= {1'b1, 22'b0};
+                            ready          <= 1;
+                        end else if (isaz_next) begin
+                            // dividing zero by something shortcut to output zero
+                            a_exp          <= 0;
+                            res_frac[22:0] <= 0;
+                            ready          <= 1;
+                        end else begin
+                            // doing division prepare inputs to serial divider
+                            a_exp         <= $signed({2'b0, in_a[30:23]}) - $signed({2'b0, in_b[30:23]}) + 10'sd127;
+                            a_mant        <= {1'b1, in_a[22:0]};
+                            b_mant        <= {1'b1, in_b[22:0]};
+                            divider_valid <= 1'b1;
+                            fsm_state     <= FSM_CORE;
+                        end
+                    end
 				end
+            end
+            FSM_CMP: begin
+                if (USE_TWO_STAGE_CMP == 1) begin
+                    if (isbz || isnan_a || isnan_b) begin
+                        // one of the terms is NaN
+                        a_exp          <= 8'hFF;
+                        res_frac       <= {1'b1, 22'b0};
+                        ready          <= 1;
+                        fsm_state      <= FSM_IDLE;
+                    end else if (isaz) begin
+                        // dividing zero by something shortcut to output zero
+                        a_exp          <= 0;
+                        res_frac[22:0] <= 0;
+                        ready          <= 1;
+                        fsm_state      <= FSM_IDLE;
+                    end else begin
+                        // doing division prepare inputs to serial divider
+                        a_exp         <= $signed({2'b0, in_a[30:23]}) - $signed({2'b0, in_b[30:23]}) + 10'sd127;
+                        a_mant        <= {1'b1, in_a[22:0]};
+                        b_mant        <= {1'b1, in_b[22:0]};
+                        divider_valid <= 1'b1;
+                        fsm_state     <= FSM_CORE;
+                    end
+                end
             end
             
             // wait for serial divide to finish then normalize mantissa
@@ -154,6 +204,7 @@ module fdiv
 endmodule
 
 module fdiv_serial #(
+    parameter USE_TWO_STAGE_CMP = 1,
 	parameter USE_BARREL=1
 )
 (

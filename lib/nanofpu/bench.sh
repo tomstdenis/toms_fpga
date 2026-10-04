@@ -22,9 +22,11 @@ for arch in ice40 ecp5 gowin; do
 	yosys -p " read_verilog fcmp.v ; synth_${arch} " | tail -n ${TL} | head -n ${KEEP} > sizing/${arch}_fcmp.log
 
 	# fdiv
-	for barrel in 0 1; do
-		echo "fdiv ${arch} barrel=${barrel}"
-		yosys -p " read_verilog fdiv.v ; chparam -set USE_BARREL ${barrel} ; synth_${arch} -top fdiv " | tail -n ${TL} | head -n ${KEEP} > sizing/${arch}_fdiv_barrel${barrel}.log
+	for twostage in 0 1; do
+		for barrel in 0 1; do
+			echo "fdiv ${arch} barrel=${barrel} twostage=${twostage}"
+			yosys -p " read_verilog fdiv.v ; chparam -set USE_TWO_STAGE_CMP ${twostage} ; chparam -set USE_BARREL ${barrel} ; synth_${arch} -top fdiv " | tail -n ${TL} | head -n ${KEEP} > sizing/${arch}_fdiv_barrel${barrel}_cmp${twostage}.log
+		done
 	done
 
 	#fldi

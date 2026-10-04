@@ -35,6 +35,7 @@ module nanofpu
 
 	parameter USE_FMUL_DSP     		    = 2,   // 0 == serial shifter, 1 == 36x36 DSP, 2 == 18x18 DSP
 	parameter USE_FDIV_BARREL           = 1,   // 0 == serial shifter, 1 == barrel shifter
+	parameter USE_FDIV_TWO_STAGE_CMP    = 1,   // 1 == pipeline the compares
 	parameter USE_FADDSUB_BARREL        = 1,   // Use barrel shifter for faddsub
 	parameter USE_FADDSUB_TWO_STAGE_CMP = 1,   // Use pipelined comparison for sorting
 	parameter USE_FSTI_BARREL           = 1,   // Use barrel shifter for fsti (it's kinda big)
@@ -76,7 +77,10 @@ module nanofpu
 
 	wire fdiv_ready;
 	wire [31:0] fdiv_out;
-	fdiv #(.USE_BARREL(USE_FDIV_BARREL)) fdiv (
+	fdiv #(
+		.USE_BARREL(USE_FDIV_BARREL),
+		.USE_TWO_STAGE_CMP(USE_FDIV_TWO_STAGE_CMP)
+	) fdiv (
 		.clk(clk), .rst_n(rst_n),
 		.in_a(in_a), .in_b(in_b), .valid((valid && opcode == `NANOFPU_OP_FDIV) ? ENABLE_FDIV : 1'b0),
 		.out(fdiv_out), .ready(fdiv_ready));

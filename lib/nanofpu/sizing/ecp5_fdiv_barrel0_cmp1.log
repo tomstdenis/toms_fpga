@@ -1,0 +1,27 @@
+        | 
+        1 fdiv
+
+        +----------Count including submodules.
+        | 
+      413 wires
+     1177 wire bits
+      413 public wires
+     1177 public wire bits
+        7 ports
+      100 port bits
+        - memories
+        - memory bits
+        - processes
+        1 cells
+        1   $scopeinfo
+      622 submodules
+       53   CCU2C
+        6   L6MUX21
+      300   LUT4
+       80   PFUMX
+      183   TRELLIS_FF
+
+6.52. Executing CHECK pass (checking for obvious problems).
+Checking module fdiv...
+Found and reported 0 problems.
+
