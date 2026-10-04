@@ -38,11 +38,11 @@ The execution cycles depend on parameter configuration:
 | **FADD / FSUB** | `USE_FADDSUB_BARREL = 1` && `USE_FADDSUB_TWO_STAGE_CMP = 0`| 3 – 4 cycles | Larger but faster. |
 | | `USE_FADDSUB_BARREL = 1` && `USE_FADDSUB_TWO_STAGE_CMP = 1`| 4 – 5 cycles | Larger, extra cycle for pipelined compare to help Fmax |
 | | `USE_FADDSUB_BARREL = 0` | ~27 cycles | Compact and variable cycle timing |
-| **FMUL** | `USE_FMUL_DSP = 1` (36x36 DSP) | 3 – 4 cycles | For Gowin/Xilinx etc with wide DSP mults |
+| **FMUL** `****`| `USE_FMUL_DSP = 1` (36x36 DSP) | 3 – 4 cycles | For Gowin/Xilinx etc with wide DSP mults |
 | | `USE_FMUL_DSP = 2` (18x18 DSP) | 4 – 5 cycles | For smaller DSP blocks |
 | | `USE_FMUL_DSP = 3` (2-bit Serial Shift Multiplier) | 14 – 15 cycles | Larger 2-bit at a time that takes half the time |
 | | `USE_FMUL_DSP = 0` (Serial Shift Multiplier) | 28 – 29 cycles | Compact 1-bit at a time double and add |
-| **FDIV** | `USE_FDIV_BARREL = 1` | 29 cycles | Larger, potentially worse Fmax but much faster |
+| **FDIV**  `****` | `USE_FDIV_BARREL = 1` | 29 cycles | Larger, potentially worse Fmax but much faster |
 | |`USE_FDIV_BARREL = 0` | 29-58 cycles | Standard reduction |
 | **FSTI** | `USE_FSTI_BARREL = 1` | 1 – 2 cycles | Larger but faster |
 | | `USE_FSTI_BARREL = 0` | 2 – 24 cycles | Compact and variable cycle timing |
@@ -58,6 +58,7 @@ The execution cycles depend on parameter configuration:
 - (`*`) FSQRT takes 1 cycle to report an error.
 - (`**`) The default STAGES==0 is very hard to meet the timing of the other FPU opcodes.  STAGES==1 helps close the gap while still being somewhat performant.
 - (`***`) The three stage option (STAGES==2) takes 3x the cycles of the one stage option but has comparable timing closure to the other FPU opcodes.  Use this option when FSQRT latency is less important than overall FPU Fmax.
+- (`****`) The FMUL and FDIV options USE_FMUL_TWO_STAGE_CMP and USE_FDIV_TWO_STAGE_CMP add an extra cycle but shortens the critical path.
 
 ## Module Parameters
 
@@ -72,6 +73,9 @@ The execution cycles depend on parameter configuration:
 | `ENABLE_FCMP` | `1'b1` | `0` / `1` | Enable `FCMP` operation |
 | `ENABLE_IADD` | `1'b1` | `0` / `1` | Enable `IADD` operations |
 | `USE_FMUL_DSP` | `1` | `0` .. `3` | Multiplier target: `0` = Serial, `1` = 36x36 DSP, `2` = 18x18 DSP, `3` = 2-bit wide double-add |
+| `USE_FMUL_TWO_STAGE_CMP` | `1` | `0` / `1` | Enables two stage comparison to shorten critical path |
+| `USE_FDIV_BARREL` | `1` | `0` / `1` | Enables barrel shifter to handle normalizing result in a single cycle |
+| `USE_FDIV_TWO_STAGE_CMP` | `1` | `0` / `1` | Enables two stage comparison to shorten critical path |
 | `USE_FADDSUB_BARREL`| `1` | `0` / `1` | Enable normalization barrel shifter (fewer cycles but larger area) |
 | `USE_FADDSUB_TWO_STAGE_CMP`| `1` | `0` / `1` | Enable pipelined comparisons, adds a cycle but shortens the critical path |
 | `USE_FSTI_BARREL` | `1` | `0` / `1` | Enable barrel shifter for `FSTI` Normalization |
