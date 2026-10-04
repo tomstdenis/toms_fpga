@@ -25,6 +25,3 @@
 Checking module fcmp...
 Found and reported 0 problems.
 
-End of script. Logfile hash: 2bdf5b70dc, time: 0.46s, user: 0.30s, system: 0.11s, MEM: 34.58 MB peak
-Yosys 0.68+182 (git sha1 0bf55a858-dirty, Release, Clang /usr/bin/clang++ 21.1.8)
-Time spent: 45% 21x read_verilog (0 sec), 13% 1x synth_lattice (0 sec), ...

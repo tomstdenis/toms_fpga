@@ -25,6 +25,3 @@
 Checking module fsqrt...
 Found and reported 0 problems.
 
-End of script. Logfile hash: 2736dba2da, time: 0.75s, user: 0.55s, system: 0.11s, MEM: 34.38 MB peak
-Yosys 0.68+182 (git sha1 0bf55a858-dirty, Release, Clang /usr/bin/clang++ 21.1.8)
-Time spent: 40% 21x read_verilog (0 sec), 13% 1x abc9_exe (0 sec), ...

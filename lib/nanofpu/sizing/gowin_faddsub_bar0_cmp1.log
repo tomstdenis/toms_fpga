@@ -2,21 +2,21 @@
         - memories
         - memory bits
         - processes
-      459 cells
+      491 cells
         1   GND
        68   IBUF
-       32   LUT1
-       17   LUT2
-       58   LUT3
-      177   LUT4
-       66   MUX2_LUT5
-        6   MUX2_LUT6
+       31   LUT1
+       13   LUT2
+       95   LUT3
+      167   LUT4
+       75   MUX2_LUT5
+        7   MUX2_LUT6
        33   OBUF
         1   VCC
-      229 submodules
+      231 submodules
       137   ALU
         5   DFF
-       42   DFFE
+       44   DFFE
         1   DFFR
        43   DFFRE
         1   DFFSE
@@ -25,6 +25,3 @@
 Checking module faddsub...
 Found and reported 0 problems.
 
-End of script. Logfile hash: e993f988da, time: 0.59s, user: 0.31s, system: 0.17s, MEM: 43.46 MB peak
-Yosys 0.68+182 (git sha1 0bf55a858-dirty, Release, Clang /usr/bin/clang++ 21.1.8)
-Time spent: 18% 1x synth_gowin (0 sec), 18% 1x abc9_exe (0 sec), ...

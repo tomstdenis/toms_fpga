@@ -25,6 +25,3 @@
 Checking module fldi...
 Found and reported 0 problems.
 
-End of script. Logfile hash: 53c20cb4d0, time: 0.44s, user: 0.21s, system: 0.19s, MEM: 36.71 MB peak
-Yosys 0.68+182 (git sha1 0bf55a858-dirty, Release, Clang /usr/bin/clang++ 21.1.8)
-Time spent: 24% 1x synth_gowin (0 sec), 16% 26x read_verilog (0 sec), ...

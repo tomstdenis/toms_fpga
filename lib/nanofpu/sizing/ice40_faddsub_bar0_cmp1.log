@@ -2,29 +2,26 @@
 
         +----------Count including submodules.
         | 
-      439 wires
-     1033 wire bits
-      439 public wires
-     1033 public wire bits
+      451 wires
+     1076 wire bits
+      451 public wires
+     1076 public wire bits
         8 ports
       101 port bits
         - memories
         - memory bits
         - processes
         - cells
-      630 submodules
+      652 submodules
       127   SB_CARRY
         5   SB_DFF
-       42   SB_DFFE
+       44   SB_DFFE
        43   SB_DFFESR
         1   SB_DFFESS
         1   SB_DFFSR
-      411   SB_LUT4
+      431   SB_LUT4
 
 4.51. Executing CHECK pass (checking for obvious problems).
 Checking module faddsub...
 Found and reported 0 problems.
 
-End of script. Logfile hash: 3052c3ad73, time: 0.65s, user: 0.49s, system: 0.08s, MEM: 33.32 MB peak
-Yosys 0.68+182 (git sha1 0bf55a858-dirty, Release, Clang /usr/bin/clang++ 21.1.8)
-Time spent: 47% 21x read_verilog (0 sec), 14% 1x abc9_exe (0 sec), ...

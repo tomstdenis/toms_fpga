@@ -25,6 +25,3 @@
 Checking module fdiv...
 Found and reported 0 problems.
 
-End of script. Logfile hash: b548393d55, time: 0.60s, user: 0.40s, system: 0.11s, MEM: 43.15 MB peak
-Yosys 0.68+182 (git sha1 0bf55a858-dirty, Release, Clang /usr/bin/clang++ 21.1.8)
-Time spent: 34% 21x read_verilog (0 sec), 16% 1x abc9_exe (0 sec), ...

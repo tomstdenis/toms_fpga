@@ -25,6 +25,3 @@
 Checking module fsti...
 Found and reported 0 problems.
 
-End of script. Logfile hash: 5497ccddbe, time: 0.91s, user: 0.44s, system: 0.23s, MEM: 80.92 MB peak
-Yosys 0.68+182 (git sha1 0bf55a858-dirty, Release, Clang /usr/bin/clang++ 21.1.8)
-Time spent: 27% 1x abc9_exe (0 sec), 22% 14x techmap (0 sec), ...

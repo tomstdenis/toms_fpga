@@ -25,6 +25,3 @@
 Checking module fmul...
 Found and reported 0 problems.
 
-End of script. Logfile hash: ed65102a70, time: 0.56s, user: 0.37s, system: 0.12s, MEM: 39.88 MB peak
-Yosys 0.68+182 (git sha1 0bf55a858-dirty, Release, Clang /usr/bin/clang++ 21.1.8)
-Time spent: 37% 21x read_verilog (0 sec), 13% 1x abc9_exe (0 sec), ...

@@ -25,6 +25,3 @@
 Checking module iaddsub...
 Found and reported 0 problems.
 
-End of script. Logfile hash: 6b006e0200, time: 0.63s, user: 0.47s, system: 0.08s, MEM: 32.81 MB peak
-Yosys 0.68+182 (git sha1 0bf55a858-dirty, Release, Clang /usr/bin/clang++ 21.1.8)
-Time spent: 50% 21x read_verilog (0 sec), 13% 1x abc9_exe (0 sec), ...
