@@ -42,7 +42,8 @@ The execution cycles depend on parameter configuration:
 | | `USE_FMUL_DSP = 2` (18x18 DSP) | 4 – 5 cycles | For smaller DSP blocks |
 | | `USE_FMUL_DSP = 3` (2-bit Serial Shift Multiplier) | 14 – 15 cycles | Larger 2-bit at a time that takes half the time |
 | | `USE_FMUL_DSP = 0` (Serial Shift Multiplier) | 28 – 29 cycles | Compact 1-bit at a time double and add |
-| **FDIV** | Standard | 29-58 cycles | Standard reduction |
+| **FDIV** | `USE_FDIV_BARREL = 1` | 29 cycles | Larger, potentially worse Fmax but much faster |
+| |`USE_FDIV_BARREL = 0` | 29-58 cycles | Standard reduction |
 | **FSTI** | `USE_FSTI_BARREL = 1` | 1 – 2 cycles | Larger but faster |
 | | `USE_FSTI_BARREL = 0` | 2 – 24 cycles | Compact and variable cycle timing |
 | **FLDI** | `USE_FLDI_BIG_STEP = 1` | 3 - 14 cycles | Slightly faster as it hunts by steps of 4 first |
