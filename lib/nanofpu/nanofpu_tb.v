@@ -17,11 +17,40 @@ module nanofpu_tb();
     // simple test go to address 16'h1234 and write 16 bytes starting at value 8'h55 increasing by 1 per bytes
     reg [3:0] test_state;
     reg [3:0] test_tag;
+
+	reg [31:0] total_ops[0:15][0:127];
+
+	integer i, j;
     
+	reg [63:0] opnames[0:15];
+
 	initial begin
+		opnames[0] = "FADD";
+		opnames[1] = "FSUB";
+		opnames[2] = "FMUL";
+		opnames[3] = "FDIV";
+		opnames[4] = "FLDI";
+		opnames[5] = "FSTI";
+		opnames[6] = "FSQRT";
+		opnames[7] = "FCMP";
+		opnames[8] = "IADD";
+		opnames[9] = "N/A";
+		opnames[10] = "N/A";
+		opnames[11] = "N/A";
+		opnames[12] = "N/A";
+		opnames[13] = "N/A";
+		opnames[14] = "N/A";
+		opnames[15] = "NOP";
+
         // Waveform setup
         $dumpfile("nanofpu.vcd");
         $dumpvars(0, nanofpu_tb);
+
+		for (i = 0; i < 16; i = i + 1) begin
+			for (j = 0; j < 128; j = j + 1) begin
+				total_ops[i][j] = 0;
+			end
+		end
 
 		rst_n = 0;
 		clk   = 0;
@@ -32,6 +61,15 @@ module nanofpu_tb();
 			$fatal;
 		end
 		repeat(10) @(posedge clk);
+
+		for (i = 0; i < 16; i = i + 1) begin
+			$display("Op %s(%2d):", opnames[i], i);
+			for (j = 0; j < 128; j = j + 1) begin
+				if (total_ops[i][j] > 0) begin
+					$display("\t%3d cycles == %5d times", j, total_ops[i][j]);
+				end
+			end
+		end
         $finish;
 	end
 	
@@ -60,7 +98,18 @@ module nanofpu_tb();
 	reg         fp_valid;
 	wire        fp_ready;
 	
-	nanofpu nanofpu_dut(
+	nanofpu #(
+	    .ENABLE_FUNCS(`NANOFPU_FUNCS_ALL),
+        .USE_FADDSUB_BARREL(1),
+        .USE_FADDSUB_TWO_STAGE_CMP(1),
+        .USE_FMUL_DSP(1),
+        .USE_FMUL_TWO_STAGE_CMP(1),
+        .USE_FDIV_BARREL(1),
+        .USE_FDIV_TWO_STAGE_CMP(1),
+        .USE_FSTI_BARREL(1),
+        .USE_FLDI_BIG_STEP(1),
+        .USE_FSQRT_STAGES(2)
+	) nanofpu_dut(
 		.clk(clk), .rst_n(rst_n),
 		.in_a(oper_a), .in_b(oper_b), .opcode(opcode[3:0]), .valid(fp_valid),
 		.out(fp_res), .ready(fp_ready));
@@ -96,6 +145,7 @@ module nanofpu_tb();
 								test_pass <= 0;
 								$display("Result mismatch cmd=%d opa=%x opb=%x got==%x vs expected==%x", opcode, oper_a, oper_b, fp_res, result);
 							end else begin
+								total_ops[opcode][cycle_counter] <= total_ops[opcode][cycle_counter] + 1;
 								command_num <= command_num + 1;
 								test_state  <= (command_num == TOTAL_TESTS-1) ? STATE_DONE : STATE_ISSUE;
 							end

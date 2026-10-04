@@ -7,6 +7,11 @@ mkdir -p sizing
 TL=30
 KEEP=`expr ${TL} - 3`
 
+make clean
+make vecgen test_nanofpu.pass
+grep -v Running *log > lt1k_timing.txt
+make clean
+
 for arch in ice40 ecp5 gowin; do
 
 	# faddsub

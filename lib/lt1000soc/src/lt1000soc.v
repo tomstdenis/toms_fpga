@@ -346,8 +346,8 @@ localparam
         .USE_FADDSUB_TWO_STAGE_CMP(1),
         .USE_FSTI_BARREL(1),
         .USE_FLDI_BIG_STEP(1),
-        .USE_FSQRT_STAGES(2)) mr_math
-    (
+        .USE_FSQRT_STAGES(2)
+    ) mr_math (
         .clk(core_clk), .rst_n(crst_n),
         .in_a(fpu_in_a), .in_b(fpu_in_b), .opcode(fpu_opcode), .valid(fpu_valid),
         .out(fpu_out), .ready(fpu_ready)
