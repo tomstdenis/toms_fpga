@@ -61,9 +61,9 @@ module faddsub
 		case (fsm_state)
 			FSM_IDLE: begin
 				if (~ready & valid) begin
-					// perform all the compares in parallel here
 					issub     <= in_a[31] ^ in_b[31] ^ sub_op;	// is this a subtract?
 					if (USE_TWO_STAGE_CMP == 1) begin
+						// perform all the compares in parallel here
 						expaz     <= expaz_next;
 						expbz     <= expbz_next;
 						explt     <= explt_next;
@@ -71,6 +71,7 @@ module faddsub
 						mantlt    <= mantlt_next;
 						fsm_state <= FSM_SORT;
 					end else begin
+						// not pipelining comparisons so we use *_next directly here
 						if (expaz_next && expbz_next) begin
 							// both zero
 							a_sign       <= in_a[31] ^ in_b[31] ^ sub_op;
@@ -78,16 +79,19 @@ module faddsub
 							a_mant       <= 0;
 							ready        <= 1;
 						end else if (expaz_next) begin
+							// a is zero
 							a_sign       <= in_b[31] ^ sub_op;
 							a_exp        <= in_b[30:23];
 							a_mant[26:4] <= in_b[22:0];
 							ready        <= 1;
 						end else if (expbz_next) begin
+							// b is zero
 							a_sign       <= in_a[31] ^ sub_op;
 							a_exp        <= in_a[30:23];
 							a_mant[26:4] <= in_a[22:0];
 							ready        <= 1;
 						end else begin
+							// a != 0 && b != 0
 							if (explt_next || (expeq_next && mantlt_next)) begin
 								fsm_state <= FSM_ALIGN;
 								// swap operands (a,b) => (b,a)
@@ -111,6 +115,8 @@ module faddsub
 					end
 				end
 			end
+			// if we're pipelining the compare then this FSM stage does the
+			// sort we'd otherwise do in FSM_IDLE
 			FSM_SORT: begin
 				if (USE_TWO_STAGE_CMP == 1) begin
 					// sort the input based on the compares from the previous cycle
@@ -123,18 +129,21 @@ module faddsub
 						ready        <= 1;
 						fsm_state <= FSM_IDLE;
 					end else if (expaz) begin
+						// a is zero
 						a_sign       <= in_b[31] ^ sub_op;
 						a_exp        <= in_b[30:23];
 						a_mant[26:4] <= in_b[22:0];
 						ready        <= 1;
 						fsm_state    <= FSM_IDLE;
 					end else if (expbz) begin
+						// b is zero
 						a_sign       <= in_a[31] ^ sub_op;
 						a_exp        <= in_a[30:23];
 						a_mant[26:4] <= in_a[22:0];
 						ready        <= 1;
 						fsm_state    <= FSM_IDLE;
 					end else begin
+						// a != 0 && b != 0
 						if (explt || (expeq && mantlt)) begin
 							// swap operands (a,b) => (b,a)
 							a_sign    <= in_b[31] ^ sub_op;
@@ -156,26 +165,32 @@ module faddsub
 				end
 			end
 			
+			// align b so it has the same exponent as a
 			FSM_ALIGN: begin
 				fsm_state     <= FSM_CORE;
 				if (USE_BARREL == 1) begin
 					if (exp_delta < 31) begin
+						// barrel shift
 						b_mant    <= b_mant >> exp_delta[4:0];
 					end else begin
+						// it's zero just grab a sticky bit
 						b_mant    <= |b_mant;
 					end
-				end else begin
+				end else begin // USE_BARREL == 0
 					if (exp_delta < 31) begin
 						if (b_mant != 0 && b_exp < a_exp) begin
+							// repeatedly shift b by not zero
 							b_mant    <= b_mant >> 1;
 							b_exp     <= b_exp + 1'b1;
 							fsm_state <= fsm_state;			// stay in ALIGN state
 						end
 					end else begin
+						// shift is excess just sticky it
 						b_mant <= |b_mant;
 					end
 				end
 			end
+			// do the add or sub
 			FSM_CORE: begin
 				if (issub) begin
 					a_mant <= a_mant - b_mant;
@@ -184,8 +199,10 @@ module faddsub
 				end
 				fsm_state  <= FSM_NORM;
 			end
+			// normalize the sum and implicitly shift right 4
 			FSM_NORM: begin
 				if (a_mant[28]) begin
+					// bit 24 set so shift right and grab sticky bit
 					a_mant <= (a_mant >> 1) | a_mant[0];
 					a_exp  <= a_exp + 1'b1;
 				end else begin

@@ -60,10 +60,12 @@ module fdiv
                 if (~ready & valid) begin
                     a_sign        <= in_a[31] ^ in_b[31];
 					if (in_a[30:23] == 0) begin
+                        // dividing zero by something shortcut to output zero
 						a_exp          <= 0;
 						res_frac[22:0] <= 0;
 						ready          <= 1;
 					end else begin
+                        // doing division prepare inputs to serial divider
 						a_exp         <= $signed({2'b0, in_a[30:23]}) - $signed({2'b0, in_b[30:23]}) + 10'sd127;
 						a_mant        <= {1'b1, in_a[22:0]};
 						b_mant        <= {1'b1, in_b[22:0]};
@@ -72,9 +74,11 @@ module fdiv
 					end
 				end
             end
-                        
+            
+            // wait for serial divide to finish then normalize mantissa
 			FSM_CORE: begin
 				if (divider_ready) begin
+                    // divider is ready and quotient is stored in quot
 					fsm_state <= FSM_NORM;
 					if (quot[24]) begin
 						// Bit 24 is implicit 1, fraction is in quot[23:1]
@@ -92,30 +96,36 @@ module fdiv
 			FSM_NORM: begin
 				if (a_exp < 10'sd1) begin
 					if (shift >= 10'sd32) begin
+                        // excessive shift just zero out
 						res_frac  <= 24'd0;
 						a_exp     <= 10'sd0;
 						fsm_state <= FSM_OUT;
 					end else if (shift > 10'sd0) begin
+                        // shift quotient right shif bits
 						if (USE_BARREL == 0) begin
+                            // with a barrel shifter
 							res_frac  <= res_frac >> 1; // Drag implicit 1 down
 							shift     <= shift - 1'b1;
-						end else begin
+						end else begin // (USE_BARREL == 1)
 							res_frac  <= res_frac >> shift[4:0];
 							a_exp     <= 0;
 							fsm_state <= FSM_OUT;
 						end
 					end else begin
+                        // done (via serial shift)
 						a_exp     <= 10'sd0;
 						fsm_state <= FSM_OUT;
 					end
-				end else begin
+				end else begin // (a_exp >= 10'sd1)
 					// Normal number: no shift needed
 					fsm_state <= FSM_OUT;
 				end
 			end
 
+            // generate output
             FSM_OUT: begin
                 if (a_exp >= 10'sd255) begin
+                    // exponent is overflow just output max
                     a_exp    <= 10'sd254;   // Set exponent to 0xFE (max finite float)
                     res_frac <= 24'h7FFFFF; // Max finite mantissa
                 end

@@ -44,16 +44,21 @@ module fsti
 					a_exp_under <= 23 - (in_a[30:23] - 127);
 					a_mant      <= {1'b1, in_a[22:0]};
 					if (in_a[30:23] < 127) begin
+						// number is below zero just output zero
 						a_mant  <= 0;
 						ready   <= 1;
 					end else if (in_a[30:23] >= 158) begin
+						// number exceeds INT_MAX 
 						ready   <= 1;
 						a_mant  <= in_a[31] ? 32'h8000_0000 : 32'h7FFF_FFFF;
 					end else begin
+						// number has bits in range so let's normalize it
 						fsm_state  <= FSM_NORM;
 					end					
 				end
 			end
+
+			// normalize to an integer range
 			FSM_NORM: begin
 				if (a_exp > 23) begin
 					if (USE_BARREL == 0) begin
@@ -72,6 +77,7 @@ module fsti
 						a_exp     <= 23;
 					end
 				end else begin
+					// no more bits to shift
 					a_mant        <= a_sign ? -a_mant : a_mant;
 					ready         <= 1;
 					fsm_state     <= FSM_IDLE;

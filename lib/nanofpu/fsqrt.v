@@ -76,6 +76,7 @@ module fsqrt
 					a_exp         <= (a_exp - 127) >> 1;
 				end
 			end
+			// Precompute res + one
 			FSM_REDUCE_PREP: begin
 				// Pipelining the 48-bit add can help timing...
 				if (STAGES != 0) begin
@@ -87,6 +88,7 @@ module fsqrt
 					end
 				end
 			end
+			// Precompute a_mant >= tmp comparison
 			FSM_REDUCE_CMP: begin
 				if (STAGES == 2) begin
 					reduce_cmp <= a_mant - tmp;
@@ -107,7 +109,7 @@ module fsqrt
 							end else begin
 								res    <= res >> 1;
 							end
-						end else begin
+						end else begin // STAGES == 2
 							// three stage
 							if (~reduce_cmp[49]) begin
 								a_mant <= a_mant - tmp;
@@ -116,7 +118,10 @@ module fsqrt
 								res    <= res >> 1;
 							end
 						end
-					end else begin
+					end else begin // STAGES == 0
+						// this is the non-pipelined version we stay in FSM_REDUCE
+						// this takes the fewest # of cycles but has the longest
+						// critical path
 						if (a_mant >= res + one) begin
 							a_mant <= a_mant - (res + one);
 							res    <= (res >> 1) + one;
@@ -125,7 +130,7 @@ module fsqrt
 						end
 					end
 					one        <= one >> 2;
-				end else begin
+				end else begin // one == 0
 					// jump to normalize, also re-bias the exponent here
 					a_exp      <= a_exp + 127;
 					fsm_state  <= FSM_NORM;

@@ -53,6 +53,7 @@ module fmul
 				if (~ready & valid) begin
 					a_sign    <= in_a[31] ^ in_b[31];  // sign of product
 					if (in_a[30:23] == 0 || in_b[30:23] == 0) begin
+						// multiplying by zero, short cut to zero result
 						a_exp  <= 0;
 						a_mant <= 0;
 						ready  <= 1'b1;
@@ -71,18 +72,23 @@ module fmul
 			end
 			FSM_CORE: begin
 				if (USE_MULT == 2) begin
+					// using 18x18 multipliers we break the 24x24 mult into
+					// four pieces
 					p00_prod <= a_mant[17:0] * b_mant[17:0];
 					p01_prod <= a_mant[17:0] * b_mant[23:18];
 					p10_prod <= a_mant[23:18] * b_mant[17:0];
 					p11_prod <= a_mant[23:18] * b_mant[23:18];
 					fsm_state <= FSM_REG2;
 				end else if (USE_MULT == 1) begin
+					// using 36x36 multipliers 
 					da_prod     <= a_mant[23:0] * b_mant[23:0];
 					fsm_state   <= FSM_REG;
 				end else if (USE_MULT == 3) begin
 					// 2-bit double and add
 					b_mant <= b_mant >> 2;
 					da_opa <= da_opa << 2;
+					// in theory we could precompute 2x and 3x but this
+					// path seems to be fine on my ECP5/GW5A-60B
 					case (b_mant[1:0])
 						2'b00: da_prod <= da_prod;
 						2'b01: da_prod <= da_prod + da_opa;
@@ -109,18 +115,21 @@ module fmul
 					end
 				end
 			end
+			// register the product when in 18x18 mode by summing the smaller products
 			FSM_REG2: begin
 				if (USE_MULT == 2) begin
 					da_prod   <= p00_prod + ((p01_prod + p10_prod) << 18) + (p11_prod << 36);
 					fsm_state <= FSM_REG;
 				end
 			end
+			// register the 48-bit product into the mantissa
 			FSM_REG: begin
 				if (USE_MULT == 1 || USE_MULT == 2) begin
 					a_mant    <= da_prod[47:23];
 					fsm_state <= FSM_NORM;
 				end
 			end
+			// normalize the product and return
 			FSM_NORM: begin
 				if (a_mant[24]) begin
 					a_mant    <= a_mant >> 1;
