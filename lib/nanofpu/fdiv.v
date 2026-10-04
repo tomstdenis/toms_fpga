@@ -57,8 +57,6 @@ module fdiv
     reg isnan_b;
     reg isaz;
     reg isbz;
-    reg [31:0] in_a_l;
-    reg [31:0] in_b_l;
 	wire isnan_a_next = (in_a[30:23] == 8'hFF && (|in_a[22:0] == 1'b1)) ? 1'b1 : 1'b0;
 	wire isnan_b_next = (in_b[30:23] == 8'hFF && (|in_b[22:0] == 1'b1)) ? 1'b1 : 1'b0;
     wire isaz_next    = (in_a[30:23] == 0) ? 1'b1 : 1'b0;

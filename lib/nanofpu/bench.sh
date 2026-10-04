@@ -36,9 +36,11 @@ for arch in ice40 ecp5 gowin; do
 	done
 
 	#fmul
-	for dsp in 0 1 2 3; do
-		echo "fmul ${arch} dsp=${dsp}"
-		yosys -p " read_verilog fmul.v ; chparam -set USE_MULT ${dsp} ; synth_${arch} " | tail -n ${TL} | head -n ${KEEP} > sizing/${arch}_fmul_dsp${dsp}.log
+	for twostage in 0 1; do
+		for dsp in 0 1 2 3; do
+			echo "fmul ${arch} dsp=${dsp} twostage=${twostage}"
+			yosys -p " read_verilog fmul.v ; chparam -set USE_TWO_STAGE_CMP ${twostage} ; chparam -set USE_MULT ${dsp} ; synth_${arch} " | tail -n ${TL} | head -n ${KEEP} > sizing/${arch}_fmul_dsp${dsp}_cmp${twostage}.log
+		done
 	done
 
 	#fsqrt

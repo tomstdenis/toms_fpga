@@ -34,6 +34,7 @@ module nanofpu
 	parameter ENABLE_IADD    = ENABLE_FUNCS[`NANOFPU_OP_IADD],  // enable iaddsub
 
 	parameter USE_FMUL_DSP     		    = 2,   // 0 == serial shifter, 1 == 36x36 DSP, 2 == 18x18 DSP
+	parameter USE_FMUL_TWO_STAGE_CMP    = 1,   // 1 == pipeline the compares
 	parameter USE_FDIV_BARREL           = 1,   // 0 == serial shifter, 1 == barrel shifter
 	parameter USE_FDIV_TWO_STAGE_CMP    = 1,   // 1 == pipeline the compares
 	parameter USE_FADDSUB_BARREL        = 1,   // Use barrel shifter for faddsub
@@ -70,7 +71,10 @@ module nanofpu
 
 	wire fmul_ready;
 	wire [31:0] fmul_out;
-	fmul #(.USE_MULT(USE_FMUL_DSP)) fmul (
+	fmul #(
+		.USE_MULT(USE_FMUL_DSP),
+		.USE_TWO_STAGE_CMP(USE_FMUL_TWO_STAGE_CMP)
+	) fmul (
 		.clk(clk), .rst_n(rst_n),
 		.in_a(in_a), .in_b(in_b), .valid((valid && opcode == `NANOFPU_OP_FMUL) ? ENABLE_FMUL : 1'b0),
 		.out(fmul_out), .ready(fmul_ready));

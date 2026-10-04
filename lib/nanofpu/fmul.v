@@ -6,6 +6,7 @@
 `default_nettype none
 module fmul
 #(
+	parameter USE_TWO_STAGE_CMP=1,
 	parameter USE_MULT=1
 )
 (
@@ -28,14 +29,13 @@ module fmul
 	wire [47:0] product;
 	assign product = a_mant[23:0] * b_mant[23:0];
 	
-	assign out = {a_sign, a_exp[7:0], a_mant[22:0]};
-
 	localparam
 		FSM_IDLE  = 0,
-		FSM_CORE  = 1,
-		FSM_REG   = 2,
-		FSM_REG2  = 3,
-		FSM_NORM  = 4;
+		FSM_CMP   = 1,
+		FSM_CORE  = 2,
+		FSM_REG   = 3,
+		FSM_REG2  = 4,
+		FSM_NORM  = 5;
 	
 	reg [47:0] da_prod;
 	reg [47:0] da_opa;
@@ -45,18 +45,68 @@ module fmul
 	reg [35:0] p01_prod;
 	reg [35:0] p10_prod;
 	reg [35:0] p11_prod;
-	
+
+	reg isnan_a;
+    reg isnan_b;
+    reg isaz;
+    reg isbz;
+	wire isnan_a_next = (in_a[30:23] == 8'hFF && (|in_a[22:0] == 1'b1)) ? 1'b1 : 1'b0;
+	wire isnan_b_next = (in_b[30:23] == 8'hFF && (|in_b[22:0] == 1'b1)) ? 1'b1 : 1'b0;
+	wire isaz_next    = (in_a[30:23] == 0) ? 1'b1 : 1'b0;
+	wire isbz_next    = (in_b[30:23] == 0) ? 1'b1 : 1'b0;
+
+	assign out = {a_sign, a_exp[7:0], a_mant[22:0]};
+
 	always @(posedge clk) begin
 		ready     <= 1'b0;
 		case (fsm_state)
 			FSM_IDLE: begin
 				if (~ready & valid) begin
 					a_sign    <= in_a[31] ^ in_b[31];  // sign of product
-					if (in_a[30:23] == 0 || in_b[30:23] == 0) begin
+					if (USE_TWO_STAGE_CMP == 1) begin
+                        isnan_a   <= isnan_a_next;
+                        isnan_b   <= isnan_b_next;
+                        isaz      <= isaz_next;
+                        isbz      <= isbz_next;
+                        fsm_state <= FSM_CMP;
+					end else begin
+						if (isnan_a_next || isnan_b_next) begin
+							a_exp  <= 8'hFF;
+							a_mant <= {1'b1, 22'b0};
+							ready  <= 1'b1;
+						end else if (isaz_next || isbz_next) begin
+							// multiplying by zero, short cut to zero result
+							a_exp  <= 0;
+							a_mant <= 0;
+							ready  <= 1'b1;
+						end else begin
+							a_mant    <= {1'b1, in_a[22:0]};
+							a_exp     <= {2'b0, in_a[30:23]} + {2'b0, in_b[30:23]} - 10'd127;
+							b_mant    <= {1'b1, in_b[22:0]};
+							if (USE_MULT == 0 || USE_MULT == 3) begin
+								da_opa  <= {24'b0, 1'b1, in_a[22:0]};
+								da_prod <= 0;
+								da_cnt  <= 24;
+							end
+							fsm_state <= FSM_CORE;
+						end
+					end
+				end
+			end
+
+			FSM_CMP: begin
+				if (USE_TWO_STAGE_CMP == 1) begin
+					if (isnan_a || isnan_b) begin
+						a_exp     <= 8'hFF;
+						a_mant    <= {1'b1, 22'b0};
+						ready     <= 1'b1;
+						fsm_state <= FSM_IDLE;
+					end else if (isaz || isbz) begin
 						// multiplying by zero, short cut to zero result
-						a_exp  <= 0;
-						a_mant <= 0;
-						ready  <= 1'b1;
+						a_exp     <= 0;
+						a_mant    <= 0;
+						ready     <= 1'b1;
+						fsm_state <= FSM_IDLE;
 					end else begin
 						a_mant    <= {1'b1, in_a[22:0]};
 						a_exp     <= {2'b0, in_a[30:23]} + {2'b0, in_b[30:23]} - 10'd127;
@@ -70,6 +120,7 @@ module fmul
 					end
 				end
 			end
+
 			FSM_CORE: begin
 				if (USE_MULT == 2) begin
 					// using 18x18 multipliers we break the 24x24 mult into

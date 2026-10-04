@@ -1,0 +1,27 @@
+        7 ports
+      100 port bits
+        - memories
+        - memory bits
+        - processes
+      544 cells
+        1   GND
+       67   IBUF
+       13   LUT1
+       33   LUT2
+      145   LUT3
+      190   LUT4
+       61   MUX2_LUT5
+       33   OBUF
+        1   VCC
+      340 submodules
+      176   ALU
+        3   DFF
+       46   DFFE
+        1   DFFR
+      111   DFFRE
+        3   DFFSE
+
+4.51. Executing CHECK pass (checking for obvious problems).
+Checking module fmul...
+Found and reported 0 problems.
+

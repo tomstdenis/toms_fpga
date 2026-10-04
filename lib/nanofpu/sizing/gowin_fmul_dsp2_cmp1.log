@@ -2,26 +2,26 @@
         - memories
         - memory bits
         - processes
-      223 cells
+      254 cells
         1   GND
        67   IBUF
-        1   LUT1
-       27   LUT2
-       14   LUT3
-       68   LUT4
+        7   LUT1
+       34   LUT2
+       16   LUT3
+       84   LUT4
         3   MULT18X18
         1   MULT9X9
         7   MUX2_LUT5
        33   OBUF
         1   VCC
-      289 submodules
+      294 submodules
       103   ALU
-        5   DFF
-      147   DFFE
+        6   DFF
+      151   DFFE
         1   DFFR
        33   DFFRE
 
-3.51. Executing CHECK pass (checking for obvious problems).
+4.51. Executing CHECK pass (checking for obvious problems).
 Checking module fmul...
 Found and reported 0 problems.
 
