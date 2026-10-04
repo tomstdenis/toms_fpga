@@ -112,7 +112,7 @@ module fsqrt
 						end else begin // STAGES == 2
 							// three stage
 							if (~reduce_cmp[49]) begin
-								a_mant <= a_mant - tmp;
+								a_mant <= reduce_cmp[48:0];
 								res    <= (res >> 1) + one;
 							end else begin
 								res    <= res >> 1;

@@ -2,15 +2,15 @@
         - memories
         - memory bits
         - processes
-      459 cells
+      453 cells
         1   GND
        35   IBUF
-       30   LUT1
-       32   LUT2
-       82   LUT3
-      134   LUT4
-       89   MUX2_LUT5
-       22   MUX2_LUT6
+       27   LUT1
+       36   LUT2
+       85   LUT3
+      127   LUT4
+       87   MUX2_LUT5
+       21   MUX2_LUT6
        33   OBUF
         1   VCC
       349 submodules
