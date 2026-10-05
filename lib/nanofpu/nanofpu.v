@@ -147,6 +147,7 @@ module nanofpu
 			ready <= 1'b1;
 		end
 		if (valid && opcode == `NANOFPU_OP_NOP) begin
+			out   <= in_a;
 			ready <= 1'b1;
 		end
 		if (~rst_n) begin
