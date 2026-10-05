@@ -27,6 +27,7 @@ The core operates on a 3-bit opcode (`opcode[2:0]`):
 | `6` | **FSQRT**| $out = \sqrt{in\_a}$ | Floating-point square root |
 | `7` | **FCMP** | out = 4 if EQ, 2 if GT, 1 if LT | Floating point comparison |
 | `8`..`11` | **IADD** | 8-bit saturated add and sub, 16-bit saturated add and sub |
+| `12` | **FPMUL** | 16.16 Fixed Point Multiplication |
 | `15` | **NOP** | No operation | Idle the FPU, returns `ready` immediately |
 
 ## Performance & Latency Options
@@ -35,36 +36,46 @@ The execution cycles depend on parameter configurations.  Here are the timings f
 
 ```
 Op     FADD( 0):
-          6 cycles == 12325 times
-          7 cycles ==   184 times
-          8 cycles ==    18 times
-          9 cycles ==     9 times
+	  6 cycles ==  7574 times
+	  7 cycles ==   101 times
+	  8 cycles ==    12 times
+	  9 cycles ==     7 times
 Op     FSUB( 1):
-          6 cycles == 12272 times
-          7 cycles ==   165 times
-          8 cycles ==    24 times
-          9 cycles ==     3 times
+	  6 cycles ==  7564 times
+	  7 cycles ==   111 times
+	  8 cycles ==    13 times
+	  9 cycles ==     4 times
 Op     FMUL( 2):
-          6 cycles ==  4841 times
-          7 cycles ==  7659 times
+	  6 cycles ==  2962 times
+	  7 cycles ==  4731 times
 Op     FDIV( 3):
-         32 cycles == 12500 times
+	 32 cycles ==  7693 times
 Op     FLDI( 4):
-          5 cycles ==  7045 times
-          6 cycles ==  3626 times
-          7 cycles ==  1707 times
-          8 cycles ==   112 times
-          9 cycles ==    10 times
+	  5 cycles ==  4313 times
+	  6 cycles ==  2165 times
+	  7 cycles ==  1128 times
+	  8 cycles ==    84 times
+	  9 cycles ==     2 times
 Op     FSTI( 5):
-          2 cycles == 10958 times
-          3 cycles ==    54 times
-          4 cycles ==  1488 times
+	  2 cycles ==  6735 times
+	  3 cycles ==    29 times
+	  4 cycles ==   928 times
 Op    FSQRT( 6):
-          2 cycles ==  6259 times
-         82 cycles ==  3076 times
-         83 cycles ==  3165 times
+	  2 cycles ==  3878 times
+	 82 cycles ==  1859 times
+	 83 cycles ==  1955 times
 Op     FCMP( 7):
-          3 cycles == 12500 times
+	  3 cycles ==  7692 times
+Op    IADD8( 8):
+	  2 cycles ==  7692 times
+Op    ISUB8( 9):
+	  2 cycles ==  7692 times
+Op   IADD16(10):
+	  2 cycles ==  7692 times
+Op   ISUB16(11):
+	  2 cycles ==  7692 times
+Op  FPMUL16(12):
+	  3 cycles ==  7692 times
 ```
 
 ## Module Parameters
@@ -80,6 +91,7 @@ Op     FCMP( 7):
 | `ENABLE_FSQRT` | `1'b1` | `0` / `1` | Enable `FSQRT` operation |
 | `ENABLE_FCMP` | `1'b1` | `0` / `1` | Enable `FCMP` operation |
 | `ENABLE_IADD` | `1'b1` | `0` / `1` | Enable `IADD` operations |
+| `ENABLE_FPMUL` | `1'b1` | `0` / `1` | Enable `FPMUL16` operation |
 | `USE_FMUL_DSP` | `1` | `0` .. `3` | Multiplier target: `0` = Serial, `1` = 36x36 DSP, `2` = 18x18 DSP, `3` = 2-bit wide double-add |
 | `USE_FMUL_TWO_STAGE_CMP` | `1` | `0` / `1` | Enables two stage comparison to shorten critical path |
 | `USE_FDIV_BARREL` | `1` | `0` / `1` | Enables barrel shifter to handle normalizing result in a single cycle |
@@ -90,6 +102,7 @@ Op     FCMP( 7):
 | `USE_FSTI_BARREL` | `1` | `0` / `1` | Enable barrel shifter for `FSTI` Normalization |
 | `UES_FLDI_BIGSTEP` | `1` | `0` / `1` | Enable big step hunt for MSB, reduces latency but can increase critical path |
 | `USE_FSQRT_STAGES` | `2` | `0` .. `2` | Changes how many FSQRT stages there are STAGES={0,1,2} maps to 1, 2, or 3-stages. |
+| `USE_FPMUL_DSP_MULT` | `0` | `0` .. `1` | 0 = 16x16 DSP Mult, 1 = 32x32 DSP mult |
 
 ## Interface Signal Description
 
@@ -121,6 +134,7 @@ Op     FCMP( 7):
 - `fsqrt.v` - Floating-point square root core
 - `fcmp.v` - Floating-point comparison
 - `intaddsub.v` - Int parallel 8/16-bit saturated add/sub
+- `fpmul16.v` - Fixed point 16.16 multiplier
 
 # NanoVEX (4:2:1 Reduction Vector Engine)
 
@@ -192,7 +206,7 @@ output reg  [6:0]   busy         // busy status of {F20, F11, F10, F03..F00}
 
 ```
 
-### Opcode Mapping (3 bits per FPU)
+### Opcode Mapping (4 bits per FPU)
 
 * `0000` (`0`): **`FADD`** — Floating-Point Addition
 * `0001` (`1`): **`FSUB`** — Floating-Point Subtraction
@@ -206,6 +220,7 @@ output reg  [6:0]   busy         // busy status of {F20, F11, F10, F03..F00}
 * `1001` (`9`): **`IADD`**  — Parallel 8-bit saturated subs
 * `1010` (`10`): **`IADD`**  — Parallel 16-bit saturated adds
 * `1011` (`11`): **`IADD`**  — Parallel 16-bit saturated subs
+* `1100` (`12`): **`FPMUL`**  — 16.16 fixed Point Multiplication
 * `1111` (`15`): **`NOP`**  — No-Op signals `ready` immediately.
 
 ## Example Usage: 2D Euclidean Distance $\sqrt{x^2 + y^2}$

@@ -14,6 +14,7 @@ module nanofpu
 	parameter ENABLE_FSQRT   = ENABLE_FUNCS[`NANOFPU_OP_FSQRT], // enable fsqrt
 	parameter ENABLE_FCMP    = ENABLE_FUNCS[`NANOFPU_OP_FCMP],  // enable fcmp
 	parameter ENABLE_IADD    = ENABLE_FUNCS[`NANOFPU_OP_IADD],  // enable iaddsub
+	parameter ENABLE_FPMUL   = ENABLE_FUNCS[`NANOFPU_OP_FPMUL],  // enable fpmul16
 
 	parameter HANDLE_INVALID_OP         = 1,   // 1 == signals when an invalid opcode hits (0 == locks up)
 	parameter USE_FMUL_DSP     		    = 2,   // 0 == serial shifter, 1 == 36x36 DSP, 2 == 18x18 DSP, 3 == 2-bit serial shifter
@@ -25,9 +26,10 @@ module nanofpu
 	parameter USE_FADDSUB_BIG_STEP      = 1,   // Enable a 4-bit stride in the final norm, costs area
 	parameter USE_FSTI_BARREL           = 1,   // Use barrel shifter for fsti, lower latency, costs area
 	parameter USE_FLDI_BIG_STEP         = 1,   // use big step hunt, lowers latency, costs area
-	parameter USE_FSQRT_STAGES 		    = 2	   // 0 == 24 cycle SQRT, 1 == 48 cycles, 2 == 72 cycles (all + overhead)
+	parameter USE_FSQRT_STAGES 		    = 2,   // 0 == 24 cycle SQRT, 1 == 48 cycles, 2 == 72 cycles (all + overhead)
 	                                           // These are all for helping timing, each has a small incremental
 											   // cost in area
+	parameter USE_FPMUL16_DSP_MULT      = 0    // 0 == use 16x16 multipliers, 1 == use 32x32 multipliers										   
 )
 (
 	input wire clk,
@@ -113,6 +115,13 @@ module nanofpu
 		.in_a(in_a), .in_b(in_b), .valid((valid && opcode >= `NANOFPU_OP_IADD && opcode <= (`NANOFPU_OP_IADD + 3)) ? ENABLE_IADD : 1'b0),
 		.out(iaddsub_out), .ready(iaddsub_ready));
 
+	wire fpmul16_ready;
+	wire [31:0] fpmul16_out;
+	fpmul16 #(.DSP_MULT(USE_FPMUL16_DSP_MULT)) fpmul16 (
+		.clk(clk), .rst_n(rst_n), 
+		.in_a(in_a), .in_b(in_b), .valid((valid && opcode == `NANOFPU_OP_FPMUL) ? ENABLE_FPMUL : 1'b0),
+		.out(fpmul16_out), .ready(fpmul16_ready));
+
 	always @(posedge clk) begin
 		ready <= 1'b0;
 		if (fadd_ready) begin
@@ -147,6 +156,10 @@ module nanofpu
 			out   <= iaddsub_out;
 			ready <= 1'b1;
 		end
+		if (fpmul16_ready) begin
+			out   <= fpmul16_out;
+			ready <= 1'b1;
+		end
 		if (valid && opcode == `NANOFPU_OP_NOP) begin
 			out   <= in_a;
 			ready <= 1'b1;
@@ -175,3 +188,4 @@ endmodule
 `include "fsqrt.v"
 `include "fcmp.v"
 `include "intaddsub.v"
+`include "fpmul16.v"

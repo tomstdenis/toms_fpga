@@ -1,41 +1,46 @@
 FST info: dumpfile nanofpu.vcd opened for output.
 Op     FADD( 0):
-	  6 cycles == 12325 times
-	  7 cycles ==   184 times
-	  8 cycles ==    18 times
-	  9 cycles ==     9 times
+	  6 cycles ==  7574 times
+	  7 cycles ==   101 times
+	  8 cycles ==    12 times
+	  9 cycles ==     7 times
 Op     FSUB( 1):
-	  6 cycles == 12272 times
-	  7 cycles ==   165 times
-	  8 cycles ==    24 times
-	  9 cycles ==     3 times
+	  6 cycles ==  7564 times
+	  7 cycles ==   111 times
+	  8 cycles ==    13 times
+	  9 cycles ==     4 times
 Op     FMUL( 2):
-	  6 cycles ==  4841 times
-	  7 cycles ==  7659 times
+	  6 cycles ==  2962 times
+	  7 cycles ==  4731 times
 Op     FDIV( 3):
-	 32 cycles == 12500 times
+	 32 cycles ==  7693 times
 Op     FLDI( 4):
-	  5 cycles ==  7045 times
-	  6 cycles ==  3626 times
-	  7 cycles ==  1707 times
-	  8 cycles ==   112 times
-	  9 cycles ==    10 times
+	  5 cycles ==  4313 times
+	  6 cycles ==  2165 times
+	  7 cycles ==  1128 times
+	  8 cycles ==    84 times
+	  9 cycles ==     2 times
 Op     FSTI( 5):
-	  2 cycles == 10958 times
-	  3 cycles ==    54 times
-	  4 cycles ==  1488 times
+	  2 cycles ==  6735 times
+	  3 cycles ==    29 times
+	  4 cycles ==   928 times
 Op    FSQRT( 6):
-	  2 cycles ==  6259 times
-	 82 cycles ==  3076 times
-	 83 cycles ==  3165 times
+	  2 cycles ==  3878 times
+	 82 cycles ==  1859 times
+	 83 cycles ==  1955 times
 Op     FCMP( 7):
-	  3 cycles == 12500 times
-Op     IADD( 8):
-Op      N/A( 9):
-Op      N/A(10):
-Op      N/A(11):
-Op      N/A(12):
+	  3 cycles ==  7692 times
+Op    IADD8( 8):
+	  2 cycles ==  7692 times
+Op    ISUB8( 9):
+	  2 cycles ==  7692 times
+Op   IADD16(10):
+	  2 cycles ==  7692 times
+Op   ISUB16(11):
+	  2 cycles ==  7692 times
+Op  FPMUL16(12):
+	  3 cycles ==  7692 times
 Op      N/A(13):
 Op      N/A(14):
 Op      NOP(15):
-nanofpu_tb.v:73: $finish called at 29920630000 (1ps)
+nanofpu_tb.v:73: $finish called at 21604910000 (1ps)

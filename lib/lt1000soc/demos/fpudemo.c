@@ -1,6 +1,11 @@
 #include <math.h>
 #include "lt1000.h"
 
+TCM_FUNC(sfpmul16) uint32_t sfpmul16(uint32_t x, uint32_t y)
+{
+	return (((uint64_t)x * y) >> 16);
+}
+
 TCM_FUNC(demo) void demo(void)
 {
 	volatile float a, b, r, r2;
@@ -12,6 +17,15 @@ TCM_FUNC(demo) void demo(void)
 
 	getch();
 	printf("Calibration: %u\n", t);
+	
+	t1 = TIMER;
+	r3 = sfpmul16((65536 * 2 + 32768), (65536 * 2));
+	t1 = TIMER - t1;
+	printf("16.16 SW FP mult = %lu in %u cycles\n", r3, t1 - t);
+	t1 = TIMER;
+	r3 = fpmul16((65536 * 2 + 32768), (65536 * 2));
+	t1 = TIMER - t1;
+	printf("16.16 HW FP mult = %lu in %u cycles\n", r3, t1 - t);
 	
 	// some sanity tests
 	printf("x/0 == %f\n", a = fdiv(1.0f, 0.0f)); // test x/0 and also put NaN in a float

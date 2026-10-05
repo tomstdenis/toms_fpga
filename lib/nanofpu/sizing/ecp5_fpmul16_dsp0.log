@@ -1,0 +1,27 @@
+
+        +----------Count including submodules.
+        | 
+        4 fpmul16
+
+        +----------Count including submodules.
+        | 
+      113 wires
+      658 wire bits
+      113 public wires
+      658 public wire bits
+        7 ports
+      100 port bits
+        - memories
+        - memory bits
+        - processes
+        4 cells
+        4   MULT18X18D
+      190 submodules
+       40   CCU2C
+        3   LUT4
+      147   TRELLIS_FF
+
+3.52. Executing CHECK pass (checking for obvious problems).
+Checking module fpmul16...
+Found and reported 0 problems.
+

@@ -107,6 +107,64 @@ static inline uint32_t fcmp(float a, float b) {
     return res;
 }
 
+static inline uint32_t iadd8(uint32_t a, uint32_t b) {
+    uint32_t res;
+    asm volatile (
+        ".insn r 0x0B, 0, 0x08, %0, %1, %2\n\t"
+        : "=r" (res)
+        : "r" (a), "r" (b)
+    );
+    DEBUGI2
+    return res;
+}
+
+static inline uint32_t isub8(uint32_t a, uint32_t b) {
+    uint32_t res;
+    asm volatile (
+        ".insn r 0x0B, 0, 0x09, %0, %1, %2\n\t"
+        : "=r" (res)
+        : "r" (a), "r" (b)
+    );
+    DEBUGI2
+    return res;
+}
+
+static inline uint32_t iadd16(uint32_t a, uint32_t b) {
+    uint32_t res;
+    asm volatile (
+        ".insn r 0x0B, 0, 0x0A, %0, %1, %2\n\t"
+        : "=r" (res)
+        : "r" (a), "r" (b)
+    );
+    DEBUGI2
+    return res;
+}
+
+static inline uint32_t isub16(uint32_t a, uint32_t b) {
+    uint32_t res;
+    asm volatile (
+        ".insn r 0x0B, 0, 0x0B, %0, %1, %2\n\t"
+        : "=r" (res)
+        : "r" (a), "r" (b)
+    );
+    DEBUGI2
+    return res;
+}
+
+static inline uint32_t fpmul16(uint32_t a, uint32_t b) {
+    uint32_t res;
+    asm volatile (
+        ".insn r 0x0B, 0, 0x0C, %0, %1, %2\n\t"
+        : "=r" (res)
+        : "r" (a), "r" (b)
+    );
+    DEBUGI2
+    return res;
+}
+
+
+
+
 float fsin(float x);
 float fcos(float x);
 float ftan(float x);

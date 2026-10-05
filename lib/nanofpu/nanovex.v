@@ -52,7 +52,8 @@ module nanovex
 	parameter USE_FADDSUB_TWO_STAGE_CMP = 1,   // Use pipelined comparison for sorting
 	parameter USE_FADDSUB_BIG_STEP      = 1,   // Enable a 4-bit stride in the final norm, costs area
 	parameter USE_FSTI_BARREL           = 1,   // Use barrel shifter for fsti (it's kinda big)
-	parameter USE_FSQRT_STAGES          = 1    // Use two stage (better fmax) FSQRT logic
+	parameter USE_FSQRT_STAGES          = 1,    // Use two stage (better fmax) FSQRT logic
+	parameter USE_FPMUL16_DSP_MULT      = 0    // 0 == use 16x16 multipliers, 1 == use 32x32 multipliers										   
 )
 (
 	input wire clk,
@@ -82,6 +83,7 @@ module nanovex
 		.USE_FADDSUB_TWO_STAGE_CMP(USE_FADDSUB_TWO_STAGE_CMP),
 		.USE_FADDSUB_BIG_STEP(USE_FADDSUB_BIG_STEP),
 		.USE_FSTI_BARREL(USE_FSTI_BARREL),
+		.USE_FPMUL16_DSP_MULT(USE_FPMUL16_DSP_MULT),
 		.USE_FSQRT_STAGES(USE_FSQRT_STAGES)) nanofpu_f00
 	(
 		.clk(clk), .rst_n(rst_n),
@@ -100,6 +102,7 @@ module nanovex
 		.USE_FADDSUB_TWO_STAGE_CMP(USE_FADDSUB_TWO_STAGE_CMP),
 		.USE_FADDSUB_BIG_STEP(USE_FADDSUB_BIG_STEP),
 		.USE_FSTI_BARREL(USE_FSTI_BARREL),
+		.USE_FPMUL16_DSP_MULT(USE_FPMUL16_DSP_MULT),
 		.USE_FSQRT_STAGES(USE_FSQRT_STAGES)) nanofpu_f01
 	(
 		.clk(clk), .rst_n(rst_n),
@@ -118,6 +121,7 @@ module nanovex
 		.USE_FADDSUB_TWO_STAGE_CMP(USE_FADDSUB_TWO_STAGE_CMP),
 		.USE_FADDSUB_BIG_STEP(USE_FADDSUB_BIG_STEP),
 		.USE_FSTI_BARREL(USE_FSTI_BARREL),
+		.USE_FPMUL16_DSP_MULT(USE_FPMUL16_DSP_MULT),
 		.USE_FSQRT_STAGES(USE_FSQRT_STAGES)) nanofpu_f02
 	(
 		.clk(clk), .rst_n(rst_n),
@@ -136,6 +140,7 @@ module nanovex
 		.USE_FADDSUB_TWO_STAGE_CMP(USE_FADDSUB_TWO_STAGE_CMP),
 		.USE_FADDSUB_BIG_STEP(USE_FADDSUB_BIG_STEP),
 		.USE_FSTI_BARREL(USE_FSTI_BARREL),
+		.USE_FPMUL16_DSP_MULT(USE_FPMUL16_DSP_MULT),
 		.USE_FSQRT_STAGES(USE_FSQRT_STAGES)) nanofpu_f03
 	(
 		.clk(clk), .rst_n(rst_n),
@@ -166,6 +171,7 @@ module nanovex
 		.USE_FADDSUB_TWO_STAGE_CMP(USE_FADDSUB_TWO_STAGE_CMP),
 		.USE_FADDSUB_BIG_STEP(USE_FADDSUB_BIG_STEP),
 		.USE_FSTI_BARREL(USE_FSTI_BARREL),
+		.USE_FPMUL16_DSP_MULT(USE_FPMUL16_DSP_MULT),
 		.USE_FSQRT_STAGES(USE_FSQRT_STAGES)) nanofpu_f10
 	(
 		.clk(clk), .rst_n(rst_n),
@@ -185,6 +191,7 @@ module nanovex
 		.USE_FADDSUB_TWO_STAGE_CMP(USE_FADDSUB_TWO_STAGE_CMP),
 		.USE_FADDSUB_BIG_STEP(USE_FADDSUB_BIG_STEP),
 		.USE_FSTI_BARREL(USE_FSTI_BARREL),
+		.USE_FPMUL16_DSP_MULT(USE_FPMUL16_DSP_MULT),
 		.USE_FSQRT_STAGES(USE_FSQRT_STAGES)) nanofpu_f11
 	(
 		.clk(clk), .rst_n(rst_n),
@@ -204,6 +211,7 @@ module nanovex
 		.USE_FADDSUB_TWO_STAGE_CMP(USE_FADDSUB_TWO_STAGE_CMP),
 		.USE_FADDSUB_BIG_STEP(USE_FADDSUB_BIG_STEP),
 		.USE_FSTI_BARREL(USE_FSTI_BARREL),
+		.USE_FPMUL16_DSP_MULT(USE_FPMUL16_DSP_MULT),
 		.USE_FSQRT_STAGES(USE_FSQRT_STAGES)) nanofpu_f20
 	(
 		.clk(clk), .rst_n(rst_n),

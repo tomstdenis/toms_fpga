@@ -14,6 +14,16 @@ make clean
 
 for arch in ice40 ecp5 gowin; do
 
+	# iaddsub
+	echo "intaddsub ${arch}"
+	yosys -p " read_verilog intaddsub.v ; synth_${arch} " | tail -n ${TL} | head -n ${KEEP} > sizing/${arch}_intaddsub.log	
+
+	# fpmul16
+	for dsp in 0 1; do
+		echo "fpmul16 ${arch} dsp=${dsp}"
+		yosys -p " read_verilog fpmul16.v ; chparam -set DSP_MULT ${dsp} ; synth_${arch} " | tail -n ${TL} | head -n ${KEEP} > sizing/${arch}_fpmul16_dsp${dsp}.log
+	done
+
 	# faddsub
 	for bigstep in 0 1; do
 		for barrel in 0 1; do

@@ -383,6 +383,50 @@ uint32_t rand_valid_float_bits(void) {
     return sign | exp | mant;
 }
 
+uint32_t iaddsub(uint32_t x, uint32_t y, uint32_t op)
+{
+    uint32_t a, b, c, d, A, B, C, D, j, k, J, K;
+
+    a = x & 0x000000FF;
+    b = (x & 0x0000FF00) >> 8;
+    c = (x & 0x00FF0000) >> 16;
+    d = (x & 0xFF000000) >> 24;
+
+    A = y & 0x000000FF;
+    B = (y & 0x0000FF00) >> 8;
+    C = (y & 0x00FF0000) >> 16;
+    D = (y & 0xFF000000) >> 24;
+
+    j = x & 0x0000FFFF;
+    k = x >> 16;
+
+    J = y & 0x0000FFFF;
+    K = y >> 16;
+
+    switch (op) {
+        case 0: // i8 add
+            a = ((a + A) > 255) ? 255 : (a + A);
+            b = ((b + B) > 255) ? 255 : (b + B);
+            c = ((c + C) > 255) ? 255 : (c + C);
+            d = ((d + D) > 255) ? 255 : (d + D);
+            return a | (b << 8) | (c << 16) | (d << 24);
+        case 1: // i8 sub
+            a = (a < A) ? 0 : (a - A);
+            b = (b < B) ? 0 : (b - B);
+            c = (c < C) ? 0 : (c - C);
+            d = (d < D) ? 0 : (d - D);
+            return a | (b << 8) | (c << 16) | (d << 24);
+        case 2: // i16 add
+            j = ((j + J) > 65535) ? 65535 : (j + J);
+            k = ((k + K) > 65535) ? 65535 : (k + K);
+            return j | (k << 16);
+        case 3: // i16 sub
+            j = (j < J) ? 0 : (j - J);
+            k = (k < K) ? 0 : (k - K);
+            return j | (k << 16);
+    }
+}
+
 #define _GNU_SOURCE
 #include <fenv.h>
 
@@ -434,15 +478,25 @@ int main(int argc, char **argv)
 		command = 6;
 	} else if (!strcmp(argv[1], "fcmp")) {
 		command = 7;
-	} else if (!strcmp(argv[1], "any")) {
+	} else if (!strcmp(argv[1], "i8add")) {
 		command = 8;
+	} else if (!strcmp(argv[1], "i8sub")) {
+		command = 9;
+	} else if (!strcmp(argv[1], "i16add")) {
+		command = 10;
+	} else if (!strcmp(argv[1], "i16sub")) {
+		command = 11;
+	} else if (!strcmp(argv[1], "fpmul")) {
+		command = 12;
+	} else if (!strcmp(argv[1], "any")) {
+		command = 15;
 	}
 	
 	for (x = 0; x < NUM_OF_TESTS; x++) {
-		if (command != 8) {
+		if (command != 15) {
 			op = command;
 		} else {
-			op = x % 8;
+			op = x % 13;
 		}		
 		
 		opa = rand_valid_float_bits();
@@ -489,9 +543,20 @@ int main(int argc, char **argv)
 				opcode = 7;
 				res    = mycmp(opa, opb);
 				break;
+            case 8:
+            case 9:
+            case 10:
+            case 11:
+                opcode = op;
+                res    = iaddsub(opa, opb, opcode - 8);
+                break;
+			case 12: //fpmul
+				opcode = 12;
+				res    = ((uint64_t)opa * opb) >> 16; 
+				break;
 		}
 		
-		if (opcode != 7 && opcode != 5 && *ufres != res) {
+		if (opcode < 7 && opcode != 5 && *ufres != res) {
 			printf("-------\nvector: opcode=%u output mismatch %x vs expt=%x\n", opcode, res, *ufres);
 			printf("%e op %e == %e vs %e\n", *fa, *fb, *fures, fres);
 			print_float("opa", opa);

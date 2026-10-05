@@ -201,7 +201,6 @@ TCM_FUNC(gfx_putpixel) void gfx_putpixel(int x, int y, uint8_t color) {
     buf[y * GFX_WIDTH + x] = color;
 }
 
-// Fast horizontal line
 TCM_FUNC(gfx_hline) void gfx_hline(int x, int y, int w, uint8_t color) {
     if (y < 0 || y >= GFX_HEIGHT || w <= 0) return;
     if (x < 0) { w += x; x = 0; }
@@ -209,9 +208,43 @@ TCM_FUNC(gfx_hline) void gfx_hline(int x, int y, int w, uint8_t color) {
     if (w <= 0) return;
 
     uint8_t *dest = gfx_get_draw_buffer() + (y * GFX_WIDTH) + x;
-    while (w--) {
-		*dest++ = color;
-	}	
+
+    // 1. Align dest to 4-byte boundary
+    while (((uintptr_t)dest & 3) && w > 0) {
+        *dest++ = color;
+        w--;
+    }
+
+    uint32_t color32 = (uint32_t)color * 0x01010101U;
+    uint32_t *dest32 = (uint32_t *)dest;
+    int words = w >> 2;
+
+    // 2. Unrolled 32-bit loop (8 words = 32 bytes per pass)
+    int blocks = words >> 3; // words / 8
+    while (blocks--) {
+        dest32[0] = color32;
+        dest32[1] = color32;
+        dest32[2] = color32;
+        dest32[3] = color32;
+        dest32[4] = color32;
+        dest32[5] = color32;
+        dest32[6] = color32;
+        dest32[7] = color32;
+        dest32 += 8;
+    }
+
+    // 3. Handle leftover 32-bit words (0 to 7 words)
+    int leftover_words = words & 7;
+    while (leftover_words--) {
+        *dest32++ = color32;
+    }
+
+    // 4. Handle leftover tail bytes (0 to 3 bytes)
+    dest = (uint8_t *)dest32;
+    int leftover_bytes = w & 3;
+    while (leftover_bytes--) {
+        *dest++ = color;
+    }
 }
 
 // Fast vertical line
@@ -230,18 +263,72 @@ TCM_FUNC(gfx_vline) void gfx_vline(int x, int y, int h, uint8_t color) {
 
 // Bresenham's Line Algorithm
 TCM_FUNC(gfx_line) void gfx_line(int x0, int y0, int x1, int y1, uint8_t color) {
-    int dx = x1 > x0 ? x1 - x0 : x0 - x1;
-    int sx = x0 < x1 ? 1 : -1;
-    int dy = y1 > y0 ? y0 - y1 : y1 - y0; // negative dy
-    int sy = y0 < y1 ? 1 : -1;
-    int err = dx + dy;
+    // 1. Clip bounds (simple bounding box check)
+    if ((x0 < 0 && x1 < 0) || (x0 >= GFX_WIDTH && x1 >= GFX_WIDTH)) return;
+    if ((y0 < 0 && y1 < 0) || (y0 >= GFX_HEIGHT && y1 >= GFX_HEIGHT)) return;
 
-    while (1) {
-        gfx_putpixel(x0, y0, color);
-        if (x0 == x1 && y0 == y1) break;
-        int e2 = 2 * err;
-        if (e2 >= dy) { err += dy; x0 += sx; }
-        if (e2 <= dx) { err += dx; y0 += sy; }
+    // Fast-path 1: Horizontal lines -> Use fast 32-bit hline
+    if (y0 == y1) {
+        int start_x = x0 < x1 ? x0 : x1;
+        int width   = (x0 < x1 ? x1 - x0 : x0 - x1) + 1;
+        gfx_hline(start_x, y0, width, color);
+        return;
+    }
+
+    uint8_t *fb = gfx_get_draw_buffer();
+
+    // Fast-path 2: Vertical lines -> Simple stride loop
+    if (x0 == x1) {
+        int start_y = y0 < y1 ? y0 : y1;
+        int end_y   = y0 < y1 ? y1 : y0;
+        uint8_t *dest = fb + (start_y * GFX_WIDTH) + x0;
+        int count = end_y - start_y + 1;
+        while (count--) {
+            *dest = color;
+            dest += GFX_WIDTH;
+        }
+        return;
+    }
+
+    // Octant/Major Axis Split Line Drawing
+    int dx = x1 - x0;
+    int dy = y1 - y0;
+    
+    int sx = (dx > 0) ? 1 : -1;
+    int sy_stride = (dy > 0) ? GFX_WIDTH : -GFX_WIDTH;
+
+    if (dx < 0) dx = -dx;
+    if (dy < 0) dy = -dy;
+
+    uint8_t *dest = fb + (y0 * GFX_WIDTH) + x0;
+
+    // X Major Axis (|dx| >= |dy|)
+    if (dx >= dy) {
+        int err = dx >> 1;
+        int count = dx + 1;
+        while (count--) {
+            *dest = color;
+            dest += sx;
+            err -= dy;
+            if (err < 0) {
+                err += dx;
+                dest += sy_stride;
+            }
+        }
+    } 
+    // Y Major Axis (|dy| > |dx|)
+    else {
+        int err = dy >> 1;
+        int count = dy + 1;
+        while (count--) {
+            *dest = color;
+            dest += sy_stride;
+            err -= dx;
+            if (err < 0) {
+                err += dy;
+                dest += sx;
+            }
+        }
     }
 }
 
