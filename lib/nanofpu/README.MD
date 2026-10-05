@@ -71,6 +71,7 @@ Op     FCMP( 7):
 
 | Parameter | Default | Range / Type | Description |
 | :--- | :---: | :---: | :--- |
+| `HANDLE_INVALID_OP` | `1'b1` | `0` / `1` | Enable handling of missing opcodes, places `32'hDEADC0DE` in out |
 | `ENABLE_FADDSUB` | `1'b1` | `0` / `1` | Enable `FADD` and `FSUB` operations |
 | `ENABLE_FMUL` | `1'b1` | `0` / `1` | Enable `FMUL` operation |
 | `ENABLE_FDIV` | `1'b1` | `0` / `1` | Enable `FDIV` operation |

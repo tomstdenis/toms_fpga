@@ -15,6 +15,7 @@ module nanofpu
 	parameter ENABLE_FCMP    = ENABLE_FUNCS[`NANOFPU_OP_FCMP],  // enable fcmp
 	parameter ENABLE_IADD    = ENABLE_FUNCS[`NANOFPU_OP_IADD],  // enable iaddsub
 
+	parameter HANDLE_INVALID_OP         = 1,   // 1 == signals when an invalid opcode hits (0 == locks up)
 	parameter USE_FMUL_DSP     		    = 2,   // 0 == serial shifter, 1 == 36x36 DSP, 2 == 18x18 DSP, 3 == 2-bit serial shifter
 	parameter USE_FMUL_TWO_STAGE_CMP    = 1,   // 1 == pipeline the compares, helps timing
 	parameter USE_FDIV_BARREL           = 1,   // 0 == serial shifter, 1 == barrel shifter, lower latency, costs area
@@ -150,6 +151,15 @@ module nanofpu
 			out   <= in_a;
 			ready <= 1'b1;
 		end
+
+		// handle invalid opcodes
+		if (HANDLE_INVALID_OP == 1) begin
+			if (valid && ENABLE_FUNCS[opcode] == 0) begin
+				out   <= 32'hDEADC0DE;
+				ready <= 1'b1;
+			end				
+		end
+
 		if (~rst_n) begin
 			out   <= 32'b0;
 			ready <= 1'b0;

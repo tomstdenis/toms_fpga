@@ -43,6 +43,7 @@ module nanovex
 	parameter ENABLE_F11=`NANOFPU_FL_FADD,
 	parameter ENABLE_F20=`NANOFPU_FL_FADD,
 
+	parameter HANDLE_INVALID_OP         = 1,   // 1 == signals when an invalid opcode hits (0 == locks up)
 	parameter USE_FMUL_DSP     		    = 1,   // 0 == serial shifter, 1 == 36x36 DSP, 2 == 18x18 DSP, 3 == 2-bit serial multiplier
 	parameter USE_FMUL_TWO_STAGE_CMP    = 1,   // 1 == pipeline the compares
 	parameter USE_FDIV_BARREL           = 1,   // 0 == serial shifter, 1 == barrel shifter
@@ -72,6 +73,7 @@ module nanovex
 	// top layer FPUs
 	nanofpu #( 
 		.ENABLE_FUNCS(ENABLE_F00),
+		.HANDLE_INVALID_OP(HANDLE_INVALID_OP),
 		.USE_FMUL_DSP(USE_FMUL_DSP),
 		.USE_FMUL_TWO_STAGE_CMP(USE_FMUL_TWO_STAGE_CMP),
 		.USE_FDIV_BARREL(USE_FDIV_BARREL),
@@ -89,6 +91,7 @@ module nanovex
 		
 	nanofpu #( 
 		.ENABLE_FUNCS(ENABLE_F01),
+		.HANDLE_INVALID_OP(HANDLE_INVALID_OP),
 		.USE_FMUL_DSP(USE_FMUL_DSP),
 		.USE_FMUL_TWO_STAGE_CMP(USE_FMUL_TWO_STAGE_CMP),
 		.USE_FDIV_BARREL(USE_FDIV_BARREL),
@@ -106,6 +109,7 @@ module nanovex
 
 	nanofpu #( 
 		.ENABLE_FUNCS(ENABLE_F02),
+		.HANDLE_INVALID_OP(HANDLE_INVALID_OP),
 		.USE_FMUL_DSP(USE_FMUL_DSP),
 		.USE_FMUL_TWO_STAGE_CMP(USE_FMUL_TWO_STAGE_CMP),
 		.USE_FDIV_BARREL(USE_FDIV_BARREL),
@@ -123,6 +127,7 @@ module nanovex
 		
 	nanofpu #( 
 		.ENABLE_FUNCS(ENABLE_F03),
+		.HANDLE_INVALID_OP(HANDLE_INVALID_OP),
 		.USE_FMUL_DSP(USE_FMUL_DSP),
 		.USE_FMUL_TWO_STAGE_CMP(USE_FMUL_TWO_STAGE_CMP),
 		.USE_FDIV_BARREL(USE_FDIV_BARREL),
@@ -152,6 +157,7 @@ module nanovex
 	// F10 takes in F00 and F01 as inputs
 	nanofpu #( 
 		.ENABLE_FUNCS(ENABLE_F10),
+		.HANDLE_INVALID_OP(HANDLE_INVALID_OP),
 		.USE_FMUL_DSP(USE_FMUL_DSP),
 		.USE_FMUL_TWO_STAGE_CMP(USE_FMUL_TWO_STAGE_CMP),
 		.USE_FDIV_BARREL(USE_FDIV_BARREL),
@@ -170,6 +176,7 @@ module nanovex
 	// F11 takes in F02 and F03 as inputs
 	nanofpu #( 
 		.ENABLE_FUNCS(ENABLE_F11),
+		.HANDLE_INVALID_OP(HANDLE_INVALID_OP),
 		.USE_FMUL_DSP(USE_FMUL_DSP),
 		.USE_FMUL_TWO_STAGE_CMP(USE_FMUL_TWO_STAGE_CMP),
 		.USE_FDIV_BARREL(USE_FDIV_BARREL),
@@ -188,6 +195,7 @@ module nanovex
 	// F20 takes in F10 and F11 as inputs
 	nanofpu #( 
 		.ENABLE_FUNCS(ENABLE_F20),
+		.HANDLE_INVALID_OP(HANDLE_INVALID_OP),
 		.USE_FMUL_DSP(USE_FMUL_DSP),
 		.USE_FMUL_TWO_STAGE_CMP(USE_FMUL_TWO_STAGE_CMP),
 		.USE_FDIV_BARREL(USE_FDIV_BARREL),
