@@ -154,7 +154,7 @@ module faddsub
 						fsm_state    <= FSM_IDLE;
 					end else if (expbz) begin
 						// b is zero
-						a_sign       <= in_a[31] ^ sub_op;
+						a_sign       <= in_a[31];
 						a_exp        <= in_a[30:23];
 						a_mant[26:4] <= in_a[22:0];
 						ready        <= 1;

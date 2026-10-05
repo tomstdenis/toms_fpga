@@ -2,10 +2,10 @@
 
         +----------Count including submodules.
         | 
-      523 wires
-     1302 wire bits
-      523 public wires
-     1302 public wire bits
+      513 wires
+     1244 wire bits
+      513 public wires
+     1244 public wire bits
         8 ports
       101 port bits
         - memories
