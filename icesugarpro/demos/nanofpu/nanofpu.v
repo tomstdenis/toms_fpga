@@ -1,3 +1,5 @@
+`include "../../../lib/nanofpu/nanofpu.vh"
+
 `default_nettype none
 `timescale 1ns/1ps
 
@@ -62,12 +64,17 @@ module top(
 	wire        fp_ready;
 	
 	nanofpu #(
-		.USE_FADDSUB_BARREL(1),
-		.USE_FADDSUB_TWO_STAGE_CMP(1),
-		.USE_FSTI_BARREL(1),
-		.USE_FMUL_DSP(2),
-		.USE_FDIV_BARREL(1),
-		.USE_FSQRT_STAGES(2)
+        .ENABLE_FUNCS(`NANOFPU_FUNCS_ALL),
+        .USE_FMUL_DSP(2),
+        .USE_FMUL_TWO_STAGE_CMP(1),
+        .USE_FDIV_TWO_STAGE_CMP(1),
+        .USE_FADDSUB_TWO_STAGE_CMP(1),
+        .USE_FDIV_BARREL(1),
+        .USE_FADDSUB_BARREL(1),
+        .USE_FSTI_BARREL(1),
+        .USE_FADDSUB_BIG_STEP(1),
+        .USE_FLDI_BIG_STEP(1),
+        .USE_FSQRT_STAGES(2)
 	) nanofpu_dut(
 		.clk(pll_clk), .rst_n(rst_n),
 		.in_a(oper_a), .in_b(oper_b), .opcode(opcode[3:0]), .valid(fp_valid),
