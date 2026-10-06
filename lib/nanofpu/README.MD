@@ -2,7 +2,7 @@
 
 A highly configurable, multi-target "IEEE-754 like" single-precision Floating Point Unit (FPU) written in Verilog. **nanoFPU** is engineered for FPGA architectures ranging from low-cost targets with limited resources (e.g., Lattice iCE40) to high-performance targets with DSP slices (e.g., Lattice ECP5, Gowin, Xilinx).
 
-The goal is reasonable size/speed tradeoffs all the while being mostly precise floating point math.  It doesn't currently implement any subnormal/GRS like rounding so the precision isn't 100% IEEE and probably never will be.  Precision errors may be fixed in the future as I learn more about floats :)
+The goal is reasonable size/speed tradeoffs all the while being mostly precise floating point math.  It doesn't currently implement subnormal/GRS like rounding for faddsub but does for fdiv/fsqrt so the precision isn't 100% IEEE over all operations, and probably never will be.  Precision errors may be fixed in the future as I learn more about floats :)
 
 ## Key Features
 
