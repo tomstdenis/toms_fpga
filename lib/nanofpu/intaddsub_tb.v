@@ -94,7 +94,7 @@ module intaddsub_tb();
 							if (fp_res != result) begin
 								test_done <= 1;
 								test_pass <= 0;
-								$display("Result mismatch %s %x %x got==%x vs expected==%x", opcode ? "subtracting" : "adding", oper_a, oper_b, fp_res, result);
+								$display("Result mismatch %s %x %x got==%x vs expected==%x", opcode[0] ? "subtracting" : "adding", oper_a, oper_b, fp_res, result);
 							end else begin
 								command_num <= command_num + 1;
 								test_state  <= (command_num == TOTAL_TESTS-1) ? STATE_DONE : STATE_ISSUE;

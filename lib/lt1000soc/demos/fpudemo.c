@@ -6,10 +6,55 @@ TCM_FUNC(sfpmul16) uint32_t sfpmul16(uint32_t x, uint32_t y)
 	return (((uint64_t)x * y) >> 16);
 }
 
+TCM_FUNC(iaddsub) uint32_t iaddsub(uint32_t x, uint32_t y, uint32_t op)
+{
+    uint32_t a, b, c, d, A, B, C, D, j, k, J, K;
+
+    a = x & 0x000000FF;
+    b = (x & 0x0000FF00) >> 8;
+    c = (x & 0x00FF0000) >> 16;
+    d = (x & 0xFF000000) >> 24;
+
+    A = y & 0x000000FF;
+    B = (y & 0x0000FF00) >> 8;
+    C = (y & 0x00FF0000) >> 16;
+    D = (y & 0xFF000000) >> 24;
+
+    j = x & 0x0000FFFF;
+    k = x >> 16;
+
+    J = y & 0x0000FFFF;
+    K = y >> 16;
+
+    switch (op) {
+        case 0: // i8 add
+            a = ((a + A) > 255) ? 255 : (a + A);
+            b = ((b + B) > 255) ? 255 : (b + B);
+            c = ((c + C) > 255) ? 255 : (c + C);
+            d = ((d + D) > 255) ? 255 : (d + D);
+            return a | (b << 8) | (c << 16) | (d << 24);
+        case 1: // i8 sub
+            a = (a < A) ? 0 : (a - A);
+            b = (b < B) ? 0 : (b - B);
+            c = (c < C) ? 0 : (c - C);
+            d = (d < D) ? 0 : (d - D);
+            return a | (b << 8) | (c << 16) | (d << 24);
+        case 2: // i16 add
+            j = ((j + J) > 65535) ? 65535 : (j + J);
+            k = ((k + K) > 65535) ? 65535 : (k + K);
+            return j | (k << 16);
+        case 3: // i16 sub
+            j = (j < J) ? 0 : (j - J);
+            k = (k < K) ? 0 : (k - K);
+            return j | (k << 16);
+    }
+}
+
+
 TCM_FUNC(demo) void demo(void)
 {
 	volatile float a, b, r, r2;
-	volatile uint32_t t, t1, t2, t3 = 4, r3, r4;
+	volatile uint32_t t, t1, t2, t3 = 4, r3, r4, r5;
 	
 	// calibrate timing
 	t = TIMER;
@@ -18,14 +63,27 @@ TCM_FUNC(demo) void demo(void)
 	getch();
 	printf("Calibration: %u\n", t);
 	
+	r4 = (65536 * 2 + 32768);
+	r5 = (65536 * 2);
 	t1 = TIMER;
-	r3 = sfpmul16((65536 * 2 + 32768), (65536 * 2));
+	r3 = sfpmul16(r4, r5);
 	t1 = TIMER - t1;
-	printf("16.16 SW FP mult = %lu in %u cycles\n", r3, t1 - t);
+	printf("soft: 2.5 * 2 FP16.16 mult = %lu in %u cycles\n", r3, t1 - t);
 	t1 = TIMER;
-	r3 = fpmul16((65536 * 2 + 32768), (65536 * 2));
+    r3 = fpmul16((65536 * 2 + 32768), (65536 * 2));
 	t1 = TIMER - t1;
-	printf("16.16 HW FP mult = %lu in %u cycles\n", r3, t1 - t);
+	printf("nano: 2.5 * 2 FP16.16 mult = %lu in %u cycles\n", r3, t1 - t);
+
+	r4 = 0x7F017E02;
+	r5 = 0x017F027E;
+	t1 = TIMER;
+	r3 = iaddsub(r4, r5, 0);
+	t1 = TIMER - t1;
+	printf("soft: iadd8(0x7F017E02, 0x017F027E) = 0x%08lx in %u cycles\n", r3, t1 - t);
+	t1 = TIMER;
+	r3 = iadd8(0x7F017E02, 0x017F027E);
+	t1 = TIMER - t1;
+	printf("nano: iadd8(0x7F017E02, 0x017F027E) = 0x%08lx in %u cycles\n", r3, t1 - t);
 	
 	// some sanity tests
 	printf("x/0 == %f\n", a = fdiv(1.0f, 0.0f)); // test x/0 and also put NaN in a float
@@ -39,78 +97,71 @@ TCM_FUNC(demo) void demo(void)
 	printf("fcmp(NaN, 1.0) == %d\n", fcmp(a, 1.0f));
 	
 	// float add
-	t1 = TIMER;
 	a = 3.14;
 	b = 1.5;
+	t1 = TIMER;
 	r = a + b;
 	t1 = TIMER - t1;
 	t2 = TIMER;
-	r2 = fadd(3.14, 1.5);
+	r2 = fadd(3.14f, 1.5f);
 	t2 = TIMER - t2;
 	printf("float: 3.14 + 1.5 == %f in %lu cycles\n", r, t1-t);
 	printf("nano : 3.14 + 1.5 == %f in %lu cycles\n", r2, t2-t);
 
 	// float sub
 	t1 = TIMER;
-	a = 3.14;
-	b = 1.5;
 	r = a - b;
 	t1 = TIMER - t1;
 	t2 = TIMER;
-	r2 = fsub(3.14, 1.5);
+	r2 = fsub(3.14f, 1.5f);
 	t2 = TIMER - t2;
 	printf("float: 3.14 - 1.5 == %f in %lu cycles\n", r, t1-t);
 	printf("nano : 3.14 - 1.5 == %f in %lu cycles\n", r2, t2-t);
 
 	// float mul
 	t1 = TIMER;
-	a = 3.14;
-	b = 1.5;
 	r = a * b;
 	t1 = TIMER - t1;
 	t2 = TIMER;
-	r2 = fmul(3.14, 1.5);
+	r2 = fmul(3.14f, 1.5f);
 	t2 = TIMER - t2;
 	printf("float: 3.14 * 1.5 == %f in %lu cycles\n", r, t1-t);
 	printf("nano : 3.14 * 1.5 == %f in %lu cycles\n", r2, t2-t);
 
 	// float div
 	t1 = TIMER;
-	a = 3.14;
-	b = 1.5;
 	r = a / b;
 	t1 = TIMER - t1;
 	t2 = TIMER;
-	r2 = fdiv(3.14, 1.5);
+	r2 = fdiv(3.14f, 1.5f);
 	t2 = TIMER - t2;
 	printf("float: 3.14 / 1.5 == %f in %lu cycles\n", r, t1-t);
 	printf("nano : 3.14 / 1.5 == %f in %lu cycles\n", r2, t2-t);
 
 	// float sqrt
 	t1 = TIMER;
-	a = 3.14;
 	r = sqrtf(a);
 	t1 = TIMER - t1;
 	t2 = TIMER;
-	r2 = fsqrt(3.14);
+	r2 = fsqrt(3.14f);
 	t2 = TIMER - t2;
 	printf("float: sqrt(3.14) == %f in %lu cycles\n", r, t1-t);
 	printf("nano : sqrt(3.14) == %f in %lu cycles\n", r2, t2-t);
 
 	// float sin
+	a = 1.11f;
 	t1 = TIMER;
-	a = 1.11;
 	r = sinf(a);
 	t1 = TIMER - t1;
 	t2 = TIMER;
-	r2 = fsin(1.11);
+	r2 = fsin(1.11f);
 	t2 = TIMER - t2;
 	printf("float: sin(1.11) == %f in %lu cycles\n", r, t1-t);
 	printf("nano : sin(1.11) == %f in %lu cycles\n", r2, t2-t);
 
 	// float log2
+	a = 6.28f;
 	t1 = TIMER;
-	a = 6.28;
 	r = log2f(a);
 	t1 = TIMER - t1;
 	t2 = TIMER;
@@ -120,20 +171,20 @@ TCM_FUNC(demo) void demo(void)
 	printf("nano : log2(6.28) == %f in %lu cycles\n", r2, t2-t);
 
 	// float log
+	a = 1.11f;
 	t1 = TIMER;
-	a = 1.11;
 	r = logf(a);
 	t1 = TIMER - t1;
 	t2 = TIMER;
-	r2 = flog(1.11);
+	r2 = flog(1.11f);
 	t2 = TIMER - t2;
 	printf("float: log(1.11) == %f in %lu cycles\n", r, t1-t);
 	printf("nano : log(1.11) == %f in %lu cycles\n", r2, t2-t);
 
 	// float pow
-	t1 = TIMER;
 	a = 3.14;
 	b = 1.5;
+	t1 = TIMER;
 	r = powf(a, b);
 	t1 = TIMER - t1;
 	t2 = TIMER;
