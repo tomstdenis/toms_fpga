@@ -36,12 +36,12 @@ module top(
 		.uart_tx_start(uart_tx_start), .uart_tx_data_in(uart_tx_data_in), .uart_tx_pin(tx), .uart_tx_fifo_full(uart_tx_fifo_full),
 		.uart_rx_pin(rx), .uart_rx_read(uart_rx_read), .uart_rx_ready(uart_rx_ready), .uart_rx_byte(uart_rx_byte));
 
-    
+	
 	localparam
 		TOTAL_TESTS = `NUMTESTS;
 	
 	reg [96+8-1:0] test_commands[0:TOTAL_TESTS-1];
-	reg [31:0]     command_num;
+	reg [31:0]	 command_num;
 	initial begin
 		$readmemh("fpu.hex", test_commands);
 	end
@@ -60,59 +60,59 @@ module top(
 	assign opcode = cur_command_latched[103:96];
 	
 	wire [31:0] fp_res;
-	reg         fp_valid;
-	wire        fp_ready;
+	reg		    fp_valid;
+	wire		fp_ready;
 	
 	nanofpu #(
-        .ENABLE_FUNCS(`NANOFPU_FUNCS_ALL),
-        .USE_FMUL_DSP(2),
-        .USE_FMUL_TWO_STAGE_CMP(1),
-        .USE_FDIV_TWO_STAGE_CMP(1),
-        .USE_FADDSUB_TWO_STAGE_CMP(1),
-        .USE_FDIV_BARREL(1),
-        .USE_FADDSUB_BARREL(1),
-        .USE_FSTI_BARREL(1),
-        .USE_FADDSUB_BIG_STEP(1),
-        .USE_FLDI_BIG_STEP(1),
-        .USE_FSQRT_STAGES(2),
-	.USE_FPMUL16_DSP_MULT(0)
+		.ENABLE_FUNCS(`NANOFPU_FUNCS_ALL),
+		.USE_FMUL_DSP(2),
+		.USE_FMUL_TWO_STAGE_CMP(1),
+		.USE_FDIV_TWO_STAGE_CMP(1),
+		.USE_FADDSUB_TWO_STAGE_CMP(1),
+		.USE_FDIV_BARREL(1),
+		.USE_FADDSUB_BARREL(1),
+		.USE_FSTI_BARREL(1),
+		.USE_FADDSUB_BIG_STEP(1),
+		.USE_FLDI_BIG_STEP(1),
+		.USE_FSQRT_STAGES(2),
+		.USE_FPMUL16_DSP_MULT(0)
 	) nanofpu_dut(
 		.clk(pll_clk), .rst_n(rst_n),
 		.in_a(oper_a), .in_b(oper_b), .opcode(opcode[3:0]), .valid(fp_valid),
 		.out(fp_res), .ready(fp_ready));
 
-    reg [3:0] test_state;
-    reg       test_pass;
-    localparam
+	reg [3:0] test_state;
+	reg	   test_pass;
+	localparam
 		STATE_ISSUE	= 0,
 		STATE_WAIT  = 1,
 		STATE_DONE  = 2,
 		STATE_DELAY = 3,
 		STATE_DELAY2 = 4;
 		
-    always @(posedge pll_clk) begin
-		fp_valid         <= 0;
-		uart_tx_start    <= 0;
-		uart_rx_read     <= 0;
+	always @(posedge pll_clk) begin
+		fp_valid		<= 0;
+		uart_tx_start	<= 0;
+		uart_rx_read	<= 0;
 		
-        if (!rst_n) begin
-            rst_n            <= 1'b1;
-            command_num      <= 0;
-            test_state       <= STATE_DELAY;
-            test_pass        <= 0;
-        end else begin
-            case (test_state)
+		if (!rst_n) begin
+			rst_n 		<= 1'b1;
+			command_num	<= 0;
+			test_state	<= STATE_DELAY;
+			test_pass	<= 0;
+		end else begin
+			case (test_state)
 				STATE_DELAY: begin
-					test_state          <= STATE_DELAY2;
+					test_state		    <= STATE_DELAY2;
 				end
 				STATE_DELAY2: begin
-					test_state          <= STATE_ISSUE;
+					test_state		    <= STATE_ISSUE;
 					cur_command_latched <= cur_command;
 				end
 				STATE_ISSUE:
 					begin
 						test_state      <= STATE_WAIT;
-						fp_valid        <= 1;
+						fp_valid		<= 1;
 					end
 				STATE_WAIT:
 					begin
@@ -132,11 +132,11 @@ module top(
 						if (~uart_tx_fifo_full) begin
 							uart_tx_data_in <= test_pass ? 8'h55 : 8'hAA;
 							uart_tx_start   <= 1;
-							test_state      <= STATE_DELAY;
-							command_num     <= 0;
+							test_state	  <= STATE_DELAY;
+							command_num	 <= 0;
 						end
 					end
 			endcase
-        end
-    end
+		end
+	end
 endmodule
