@@ -109,7 +109,8 @@ module nanofpu_tb();
         .USE_FADDSUB_BARREL(1),
         .USE_FDIV_BARREL(1),
         .USE_FSTI_BARREL(1),
-        .USE_FSQRT_STAGES(2)
+        .USE_FSQRT_STAGES(2),
+		.USE_FPMUL16_DSP_MULT(1)
 	) nanofpu_dut(
 		.clk(clk), .rst_n(rst_n),
 		.in_a(oper_a), .in_b(oper_b), .opcode(opcode[3:0]), .valid(fp_valid),

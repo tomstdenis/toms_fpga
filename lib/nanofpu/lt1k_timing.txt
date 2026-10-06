@@ -39,8 +39,8 @@ Op   IADD16(10):
 Op   ISUB16(11):
 	  2 cycles ==  7692 times
 Op  FPMUL16(12):
-	  3 cycles ==  7692 times
+	  2 cycles ==  7692 times
 Op      N/A(13):
 Op      N/A(14):
 Op      NOP(15):
-nanofpu_tb.v:73: $finish called at 21604910000 (1ps)
+nanofpu_tb.v:73: $finish called at 21451070000 (1ps)
