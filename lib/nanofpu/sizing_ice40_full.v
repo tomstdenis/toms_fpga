@@ -18,11 +18,11 @@ module ice40_full(
         .USE_FMUL_TWO_STAGE_CMP(1),
         .USE_FDIV_TWO_STAGE_CMP(1),
         .USE_FADDSUB_TWO_STAGE_CMP(1),
-		.USE_FADDSUB_BIG_STEP(1),
-        .USE_FLDI_BIG_STEP(1),
+		.USE_FADDSUB_BIG_STEP(0),
+        .USE_FLDI_BIG_STEP(0),
         .USE_FADDSUB_BARREL(1),
-        .USE_FDIV_BARREL(1),
-        .USE_FSTI_BARREL(1),
+        .USE_FDIV_BARREL(0),
+        .USE_FSTI_BARREL(0),
         .USE_FSQRT_STAGES(2),
 		.USE_FPMUL16_DSP_MULT(0)
 	) nanofpu_dut(
