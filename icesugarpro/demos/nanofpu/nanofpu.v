@@ -74,7 +74,8 @@ module top(
         .USE_FSTI_BARREL(1),
         .USE_FADDSUB_BIG_STEP(1),
         .USE_FLDI_BIG_STEP(1),
-        .USE_FSQRT_STAGES(2)
+        .USE_FSQRT_STAGES(2),
+	.USE_FPMUL16_DSP_MULT(0)
 	) nanofpu_dut(
 		.clk(pll_clk), .rst_n(rst_n),
 		.in_a(oper_a), .in_b(oper_b), .opcode(opcode[3:0]), .valid(fp_valid),

@@ -133,14 +133,14 @@ void demo(void) {
 
     // Animation state
     float time = 0.0f;
-    float time_step = 0.03f;
+    float time_step = 0.0075f;
     
     volatile uint32_t render_cycles;
 	uint32_t fno = 0;
 	
     while (1) {
         // Morph the Julia Constant over time using NanoFPU math
-        time = (fno & 0x10) ? fsub(time, time_step) : fadd(time, time_step);
+        time = (fno & 0x20) ? fsub(time, time_step) : fadd(time, time_step);
         ++fno;
         
         // c_re = -0.7 + 0.1 * sin(time)
