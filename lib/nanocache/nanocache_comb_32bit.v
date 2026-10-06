@@ -103,26 +103,34 @@ module nanocache #(
 	reg [CACHE_LINE-1:0] cache_mem_next;
 	reg [3:0]            cache_mem_wren;
 	always @(posedge clk) begin
-		cache_mem_lane1_out_tmp <= cache_mem_lane1[cache_mem_addr_ea[CACHE_SIZE-1:2]];
-		cache_mem_lane2_out_tmp <= cache_mem_lane2[cache_mem_addr_ea[CACHE_SIZE-1:2]];
-		cache_mem_lane3_out_tmp <= cache_mem_lane3[cache_mem_addr_ea[CACHE_SIZE-1:2]];
-		cache_mem_lane4_out_tmp <= cache_mem_lane4[cache_mem_addr_ea[CACHE_SIZE-1:2]];
+		if (cache_mem_wren[0]) begin
+			cache_mem_lane1[cache_mem_addr_ea[CACHE_SIZE-1:2]] <= cache_mem_lane1_in;
+            cache_mem_lane1_out_tmp                            <= cache_mem_lane1_in;
+		end else begin
+            cache_mem_lane1_out_tmp <= cache_mem_lane1[cache_mem_addr_ea[CACHE_SIZE-1:2]];
+        end 
+		if (cache_mem_wren[1]) begin
+			cache_mem_lane2[cache_mem_addr_ea[CACHE_SIZE-1:2]] <= cache_mem_lane2_in;
+            cache_mem_lane2_out_tmp                            <= cache_mem_lane2_in;
+		end else begin
+            cache_mem_lane2_out_tmp <= cache_mem_lane2[cache_mem_addr_ea[CACHE_SIZE-1:2]];
+        end
+		if (cache_mem_wren[2]) begin
+			cache_mem_lane3[cache_mem_addr_ea[CACHE_SIZE-1:2]] <= cache_mem_lane3_in;
+            cache_mem_lane3_out_tmp                            <= cache_mem_lane3_in;
+		end else begin
+            cache_mem_lane3_out_tmp <= cache_mem_lane3[cache_mem_addr_ea[CACHE_SIZE-1:2]];
+        end
+		if (cache_mem_wren[3]) begin
+			cache_mem_lane4[cache_mem_addr_ea[CACHE_SIZE-1:2]] <= cache_mem_lane4_in;
+            cache_mem_lane4_out_tmp                            <= cache_mem_lane4_in;
+		end else begin
+            cache_mem_lane4_out_tmp <= cache_mem_lane4[cache_mem_addr_ea[CACHE_SIZE-1:2]];
+        end
 		cache_mem_lane1_out     <= cache_mem_lane1_out_tmp;
 		cache_mem_lane2_out     <= cache_mem_lane2_out_tmp;
 		cache_mem_lane3_out     <= cache_mem_lane3_out_tmp;
 		cache_mem_lane4_out     <= cache_mem_lane4_out_tmp;
-		if (cache_mem_wren[0]) begin
-			cache_mem_lane1[cache_mem_addr_ea[CACHE_SIZE-1:2]] <= cache_mem_lane1_in;
-		end
-		if (cache_mem_wren[1]) begin
-			cache_mem_lane2[cache_mem_addr_ea[CACHE_SIZE-1:2]] <= cache_mem_lane2_in;
-		end
-		if (cache_mem_wren[2]) begin
-			cache_mem_lane3[cache_mem_addr_ea[CACHE_SIZE-1:2]] <= cache_mem_lane3_in;
-		end
-		if (cache_mem_wren[3]) begin
-			cache_mem_lane4[cache_mem_addr_ea[CACHE_SIZE-1:2]] <= cache_mem_lane4_in;
-		end
 	end
   
     // psram interface

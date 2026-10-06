@@ -188,20 +188,28 @@ localparam
     always @(posedge core_clk) begin
         if (tcm_wren[0]) begin
             tcm_lane0[tcm_addr[TCM_SIZE_BITS-1:2]] <= tcm_din0;
+            tcm_dout0_tmp                          <= tcm_din0;
+        end else begin
+            tcm_dout0_tmp <= tcm_lane0[tcm_addr[TCM_SIZE_BITS-1:2]];
         end
         if (tcm_wren[1]) begin
             tcm_lane1[tcm_addr[TCM_SIZE_BITS-1:2]] <= tcm_din1;
+            tcm_dout1_tmp                          <= tcm_din1;
+        end else begin
+            tcm_dout1_tmp <= tcm_lane1[tcm_addr[TCM_SIZE_BITS-1:2]];
         end
         if (tcm_wren[2]) begin
             tcm_lane2[tcm_addr[TCM_SIZE_BITS-1:2]] <= tcm_din2;
+            tcm_dout2_tmp                          <= tcm_din2;
+        end else begin
+            tcm_dout2_tmp <= tcm_lane2[tcm_addr[TCM_SIZE_BITS-1:2]];
         end
         if (tcm_wren[3]) begin
             tcm_lane3[tcm_addr[TCM_SIZE_BITS-1:2]] <= tcm_din3;
+            tcm_dout3_tmp                          <= tcm_din3;
+        end else begin
+            tcm_dout3_tmp <= tcm_lane3[tcm_addr[TCM_SIZE_BITS-1:2]];
         end
-        tcm_dout0_tmp <= tcm_lane0[tcm_addr[TCM_SIZE_BITS-1:2]];
-        tcm_dout1_tmp <= tcm_lane1[tcm_addr[TCM_SIZE_BITS-1:2]];
-        tcm_dout2_tmp <= tcm_lane2[tcm_addr[TCM_SIZE_BITS-1:2]];
-        tcm_dout3_tmp <= tcm_lane3[tcm_addr[TCM_SIZE_BITS-1:2]];
         tcm_dout0     <= tcm_dout0_tmp;
         tcm_dout1     <= tcm_dout1_tmp;
         tcm_dout2     <= tcm_dout2_tmp;
