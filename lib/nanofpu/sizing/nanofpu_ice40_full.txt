@@ -1,0 +1,40 @@
+       11   $scopeinfo
+     4202 submodules
+      631   SB_CARRY
+       26   SB_DFF
+      306   SB_DFFE
+      502   SB_DFFESR
+       10   SB_DFFESS
+       11   SB_DFFSR
+     2716   SB_LUT4
+
+=== design hierarchy ===
+
+        +----------Count including submodules.
+        | 
+       11 ice40_full
+
+        +----------Count including submodules.
+        | 
+     2857 wires
+     8491 wire bits
+     2857 public wires
+     8491 public wire bits
+        8 ports
+      104 port bits
+        - memories
+        - memory bits
+        - processes
+       11 cells
+       11   $scopeinfo
+     4202 submodules
+      631   SB_CARRY
+       26   SB_DFF
+      306   SB_DFFE
+      502   SB_DFFESR
+       10   SB_DFFESS
+       11   SB_DFFSR
+     2716   SB_LUT4
+
+2.51. Executing CHECK pass (checking for obvious problems).
+Checking module ice40_full...

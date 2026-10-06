@@ -1,0 +1,40 @@
+      104 port bits
+       15 cells
+       11   $scopeinfo
+        4   MULT18X18D
+     1595 submodules
+      127   CCU2C
+       52   L6MUX21
+      876   LUT4
+      175   PFUMX
+      365   TRELLIS_FF
+
+=== design hierarchy ===
+
+        +----------Count including submodules.
+        | 
+       15 ecp5_fmac
+
+        +----------Count including submodules.
+        | 
+     1250 wires
+     4698 wire bits
+     1250 public wires
+     4698 public wire bits
+        8 ports
+      104 port bits
+        - memories
+        - memory bits
+        - processes
+       15 cells
+       11   $scopeinfo
+        4   MULT18X18D
+     1595 submodules
+      127   CCU2C
+       52   L6MUX21
+      876   LUT4
+      175   PFUMX
+      365   TRELLIS_FF
+
+2.52. Executing CHECK pass (checking for obvious problems).
+Checking module ecp5_fmac...

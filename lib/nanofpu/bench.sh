@@ -7,6 +7,16 @@ mkdir -p sizing
 TL=30
 KEEP=`expr ${TL} - 3`
 
+# nanofpu sizing in fieldable configs
+echo -n "Sizing cores: ecp5_full, "
+yosys -p " read_verilog sizing_ecp5_full.v ; synth_ecp5 " | tail -n 45 | head -n 40 > sizing/nanofpu_ecp5_full.txt
+echo -n "ecp5_fmac, "
+yosys -p " read_verilog sizing_ecp5_fmac.v ; synth_ecp5 " | tail -n 45 | head -n 40 > sizing/nanofpu_ecp5_fmac.txt
+echo -n "ice40_full, "
+yosys -p " read_verilog sizing_ice40_full.v ; synth_ice40 " | tail -n 45 | head -n 40 > sizing/nanofpu_ice40_full.txt
+echo "ice40_fmac"
+yosys -p " read_verilog sizing_ice40_fmac.v ; synth_ice40 " | tail -n 45 | head -n 40 > sizing/nanofpu_ice40_fmac.txt
+
 make clean
 make vecgen test_nanofpu.pass
 grep -v Running *log > lt1k_timing.txt
