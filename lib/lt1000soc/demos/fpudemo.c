@@ -63,28 +63,6 @@ TCM_FUNC(demo) void demo(void)
 	getch();
 	printf("Calibration: %u\n", t);
 	
-	r4 = (65536 * 2 + 32768);
-	r5 = (65536 * 2);
-	t1 = TIMER;
-	r3 = sfpmul16(r4, r5);
-	t1 = TIMER - t1;
-	printf("soft: 2.5 * 2 FP16.16 mult = %lu in %u cycles\n", r3, t1 - t);
-	t1 = TIMER;
-    r3 = fpmul16((65536 * 2 + 32768), (65536 * 2));
-	t1 = TIMER - t1;
-	printf("nano: 2.5 * 2 FP16.16 mult = %lu in %u cycles\n", r3, t1 - t);
-
-	r4 = 0x7F017E02;
-	r5 = 0x017F027E;
-	t1 = TIMER;
-	r3 = iaddsub(r4, r5, 0);
-	t1 = TIMER - t1;
-	printf("soft: iadd8(0x7F017E02, 0x017F027E) = 0x%08lx in %u cycles\n", r3, t1 - t);
-	t1 = TIMER;
-	r3 = iadd8(0x7F017E02, 0x017F027E);
-	t1 = TIMER - t1;
-	printf("nano: iadd8(0x7F017E02, 0x017F027E) = 0x%08lx in %u cycles\n", r3, t1 - t);
-	
 	// some sanity tests
 	printf("x/0 == %f\n", a = fdiv(1.0f, 0.0f)); // test x/0 and also put NaN in a float
 	printf("1.0 + NaN == %f\n", fadd(1.0f, a));
@@ -96,57 +74,122 @@ TCM_FUNC(demo) void demo(void)
 	printf("fcmp(1.0, NaN) == %d\n", fcmp(1.0f, a));
 	printf("fcmp(NaN, 1.0) == %d\n", fcmp(a, 1.0f));
 	
+	r4 = (65536 * 2 + 32768);
+	r5 = (65536 * 2);
+	t1 = TIMER;
+	r3 = sfpmul16(r4, r5);
+	t1 = TIMER - t1;
+	printf("soft: 2.5 * 2 FP16.16 mult = %lu in %u cycles\n", r3, t1 - t);
+	t1 = TIMER;
+    fpmul16((65536 * 2 + 32768), (65536 * 2));
+    r3 = fpmul16((65536 * 2 + 32768), (65536 * 2));
+	t1 = TIMER - t1;
+	printf("nano: 2.5 * 2 FP16.16 mult = %lu in %u cycles\n", r3, (t1 - t) >> 1);
+
+	r4 = 0x7F017E02;
+	r5 = 0x017F027E;
+	t1 = TIMER;
+	r3 = iaddsub(r4, r5, 0);
+	t1 = TIMER - t1;
+	printf("soft: iadd8(0x7F017E02, 0x017F027E) = 0x%08lx in %u cycles\n", r3, t1 - t);
+	t1 = TIMER;
+	iadd8(0x7F017E02, 0x017F027E);
+	r3 = iadd8(0x7F017E02, 0x017F027E);
+	t1 = TIMER - t1;
+	printf("nano: iadd8(0x7F017E02, 0x017F027E) = 0x%08lx in %u cycles\n", r3, (t1 - t) >> 1);
+	
+	r4 = 0x7F017E02;
+	r5 = 0x017F027E;
+	t1 = TIMER;
+	r3 = iaddsub(r4, r5, 1);
+	t1 = TIMER - t1;
+	printf("soft: isub8(0x7F017E02, 0x017F027E) = 0x%08lx in %u cycles\n", r3, t1 - t);
+	t1 = TIMER;
+	isub8(0x7F017E02, 0x017F027E);
+	r3 = isub8(0x7F017E02, 0x017F027E);
+	t1 = TIMER - t1;
+	printf("nano: isub8(0x7F017E02, 0x017F027E) = 0x%08lx in %u cycles\n", r3, (t1 - t) >> 1);
+
+	r4 = 0x7F017E02;
+	r5 = 0x017F027E;
+	t1 = TIMER;
+	r3 = iaddsub(r4, r5, 2);
+	t1 = TIMER - t1;
+	printf("soft: iadd16(0x7F017E02, 0x017F027E) = 0x%08lx in %u cycles\n", r3, t1 - t);
+	t1 = TIMER;
+	iadd16(0x7F017E02, 0x017F027E);
+	r3 = iadd16(0x7F017E02, 0x017F027E);
+	t1 = TIMER - t1;
+	printf("nano: iadd16(0x7F017E02, 0x017F027E) = 0x%08lx in %u cycles\n", r3, (t1 - t) >> 1);
+	
+	r4 = 0x7F017E02;
+	r5 = 0x017F027E;
+	t1 = TIMER;
+	r3 = iaddsub(r4, r5, 3);
+	t1 = TIMER - t1;
+	printf("soft: isub16(0x7F017E02, 0x017F027E) = 0x%08lx in %u cycles\n", r3, t1 - t);
+	t1 = TIMER;
+	isub16(0x7F017E02, 0x017F027E);
+	r3 = isub16(0x7F017E02, 0x017F027E);
+	t1 = TIMER - t1;
+	printf("nano: isub16(0x7F017E02, 0x017F027E) = 0x%08lx in %u cycles\n", r3, (t1 - t) >> 1);
+
 	// float add
-	a = 3.14;
-	b = 1.5;
+	a = 3.14f;
+	b = 1.5f;
 	t1 = TIMER;
 	r = a + b;
 	t1 = TIMER - t1;
 	t2 = TIMER;
+	fadd(3.14f, 1.5f);
 	r2 = fadd(3.14f, 1.5f);
 	t2 = TIMER - t2;
 	printf("float: 3.14 + 1.5 == %f in %lu cycles\n", r, t1-t);
-	printf("nano : 3.14 + 1.5 == %f in %lu cycles\n", r2, t2-t);
+	printf("nano : 3.14 + 1.5 == %f in %lu cycles\n", r2, (t2-t)>>1);
 
 	// float sub
 	t1 = TIMER;
 	r = a - b;
 	t1 = TIMER - t1;
 	t2 = TIMER;
+	fsub(3.14f, 1.5f);
 	r2 = fsub(3.14f, 1.5f);
 	t2 = TIMER - t2;
 	printf("float: 3.14 - 1.5 == %f in %lu cycles\n", r, t1-t);
-	printf("nano : 3.14 - 1.5 == %f in %lu cycles\n", r2, t2-t);
+	printf("nano : 3.14 - 1.5 == %f in %lu cycles\n", r2, (t2-t)>>1);
 
 	// float mul
 	t1 = TIMER;
 	r = a * b;
 	t1 = TIMER - t1;
 	t2 = TIMER;
+	fmul(3.14f, 1.5f);
 	r2 = fmul(3.14f, 1.5f);
 	t2 = TIMER - t2;
 	printf("float: 3.14 * 1.5 == %f in %lu cycles\n", r, t1-t);
-	printf("nano : 3.14 * 1.5 == %f in %lu cycles\n", r2, t2-t);
+	printf("nano : 3.14 * 1.5 == %f in %lu cycles\n", r2, (t2-t)>>1);
 
 	// float div
 	t1 = TIMER;
 	r = a / b;
 	t1 = TIMER - t1;
 	t2 = TIMER;
+	fdiv(3.14f, 1.5f);
 	r2 = fdiv(3.14f, 1.5f);
 	t2 = TIMER - t2;
 	printf("float: 3.14 / 1.5 == %f in %lu cycles\n", r, t1-t);
-	printf("nano : 3.14 / 1.5 == %f in %lu cycles\n", r2, t2-t);
+	printf("nano : 3.14 / 1.5 == %f in %lu cycles\n", r2, (t2-t)>>1);
 
 	// float sqrt
 	t1 = TIMER;
 	r = sqrtf(a);
 	t1 = TIMER - t1;
 	t2 = TIMER;
+	fsqrt(3.14f);
 	r2 = fsqrt(3.14f);
 	t2 = TIMER - t2;
 	printf("float: sqrt(3.14) == %f in %lu cycles\n", r, t1-t);
-	printf("nano : sqrt(3.14) == %f in %lu cycles\n", r2, t2-t);
+	printf("nano : sqrt(3.14) == %f in %lu cycles\n", r2, (t2-t)>>1);
 
 	// float sin
 	a = 1.11f;

@@ -75,7 +75,7 @@ Op   IADD16(10):
 Op   ISUB16(11):
 	  2 cycles ==  7692 times
 Op  FPMUL16(12):
-	  3 cycles ==  7692 times
+	  2 cycles ==  7692 times
 ```
 
 ## Module Parameters
