@@ -1,4 +1,4 @@
-//Copyright (C)2014-2025 Gowin Semiconductor Corporation.
+//Copyright (C)2014-2026 Gowin Semiconductor Corporation.
 //All rights reserved.
 //File Title: Template file for instantiation
 //Part Number: GW5AT-LV60PG484AC1/I0
