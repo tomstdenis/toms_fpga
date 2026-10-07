@@ -59,7 +59,7 @@ module lt1000soc
 
     // *** UART parameters ***
     parameter UART_BAUD            = 1_000_000,
-    parameter UART_FIFO_DEPTH      = 64
+    parameter UART_FIFO_DEPTH      = 16
 ) 
 (
     // *** Clocks ***

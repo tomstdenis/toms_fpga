@@ -2,24 +2,24 @@
 
         +----------Count including submodules.
         | 
-      489 wires
-     1238 wire bits
-      489 public wires
-     1238 public wire bits
+      485 wires
+     1231 wire bits
+      485 public wires
+     1231 public wire bits
         8 ports
       101 port bits
         - memories
         - memory bits
         - processes
         - cells
-      743 submodules
+      738 submodules
       113   SB_CARRY
         4   SB_DFF
        31   SB_DFFE
        44   SB_DFFESR
         1   SB_DFFESS
         1   SB_DFFSR
-      549   SB_LUT4
+      544   SB_LUT4
 
 5.51. Executing CHECK pass (checking for obvious problems).
 Checking module faddsub...
