@@ -1,5 +1,5 @@
 `default_nettype none
-`define FREQ 120_000
+`define FREQ 110_000
 
 // use DVI output, uncomment to use the VGA pins
 `define USE_DVI
@@ -122,6 +122,12 @@ module top
     reg       dvi_hs;
     reg       dvi_de;
 
+    reg dvirst_n;
+    initial dvirst_n = 1'b0;
+    always @(posedge dvi_serial_clk) begin
+        dvirst_n <= 1'b1;
+    end
+
     always @(posedge vga_clk) begin
         dvi_r  <= {ltvga_r, ltvga_r};
         dvi_g  <= {ltvga_g, ltvga_g};
@@ -132,7 +138,7 @@ module top
     end
 
 	DVI_TX MrFancyPants(
-		.I_rst_n(vrst_n), //input I_rst_n
+		.I_rst_n(dvirst_n), //input I_rst_n
 		.I_serial_clk(dvi_serial_clk), //input I_serial_clk
 		.I_rgb_clk(vga_clk), //input I_rgb_clk
 		.I_rgb_vs(dvi_vs), //input I_rgb_vs

@@ -6,7 +6,7 @@
 //Part Number: GW5AT-LV60PG484AC1/I0
 //Device: GW5AT-60
 //Device Version: B
-//Created Time: Tue Oct  6 21:35:17 2026
+//Created Time: Wed Oct  7 06:58:56 2026
 
 module lt1000clk_MOD (lock, clkout0, clkout1, clkout2, mdrdo, clkin, reset, mdclk, mdopc, mdainc, mdwdi);
 
@@ -62,18 +62,18 @@ PLLA PLLA_inst (
 );
 
 defparam PLLA_inst.FCLKIN = "50";
-defparam PLLA_inst.IDIV_SEL = 1;
+defparam PLLA_inst.IDIV_SEL = 2;
 defparam PLLA_inst.FBDIV_SEL = 1;
-defparam PLLA_inst.ODIV0_SEL = 6;
-defparam PLLA_inst.ODIV1_SEL = 30;
-defparam PLLA_inst.ODIV2_SEL = 6;
+defparam PLLA_inst.ODIV0_SEL = 12;
+defparam PLLA_inst.ODIV1_SEL = 55;
+defparam PLLA_inst.ODIV2_SEL = 11;
 defparam PLLA_inst.ODIV3_SEL = 8;
 defparam PLLA_inst.ODIV4_SEL = 8;
 defparam PLLA_inst.ODIV5_SEL = 8;
 defparam PLLA_inst.ODIV6_SEL = 8;
-defparam PLLA_inst.MDIV_SEL = 15;
+defparam PLLA_inst.MDIV_SEL = 55;
 defparam PLLA_inst.MDIV_FRAC_SEL = 0;
-defparam PLLA_inst.ODIV0_FRAC_SEL = 2;
+defparam PLLA_inst.ODIV0_FRAC_SEL = 4;
 defparam PLLA_inst.CLKOUT0_EN = "TRUE";
 defparam PLLA_inst.CLKOUT1_EN = "TRUE";
 defparam PLLA_inst.CLKOUT2_EN = "TRUE";
