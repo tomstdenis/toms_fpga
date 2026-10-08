@@ -1,0 +1,91 @@
+Defines:
+   HANDLE_INVALID_OP=1
+   USE_FMUL_DSP=3
+   USE_FMUL_TWO_STAGE_CMP=1
+   USE_FDIV_BARREL=1
+   USE_FDIV_TWO_STAGE_CMP=1
+   USE_FADDSUB_BARREL=1
+   USE_FADDSUB_TWO_STAGE_CMP=1
+   USE_FADDSUB_BIG_STEP=1
+   USE_FSTI_BARREL=0
+   USE_FLDI_BIG_STEP=0
+   USE_FSQRT_STAGES=0
+   USE_FPMUL16_DSP_MULT=0
+   EXTERNAL_PARAM
+   NUM_OF_TESTS=100000
+FST info: dumpfile nanofpu.vcd opened for output.
+Op     FADD( 0):
+	  6 cycles ==  7574 times
+	  7 cycles ==   101 times
+	  8 cycles ==    12 times
+	  9 cycles ==     7 times
+Op     FSUB( 1):
+	  6 cycles ==  7564 times
+	  7 cycles ==   111 times
+	  8 cycles ==    13 times
+	  9 cycles ==     4 times
+Op     FMUL( 2):
+	 17 cycles ==  2962 times
+	 18 cycles ==  4731 times
+Op     FDIV( 3):
+	 32 cycles ==  7693 times
+Op     FLDI( 4):
+	  4 cycles ==  3855 times
+	  5 cycles ==  1890 times
+	  6 cycles ==   996 times
+	  7 cycles ==   458 times
+	  8 cycles ==   241 times
+	  9 cycles ==   111 times
+	 10 cycles ==    77 times
+	 11 cycles ==    34 times
+	 12 cycles ==    18 times
+	 13 cycles ==     5 times
+	 14 cycles ==     2 times
+	 15 cycles ==     3 times
+	 16 cycles ==     2 times
+Op     FSTI( 5):
+	  2 cycles ==  6735 times
+	  3 cycles ==    29 times
+	  4 cycles ==    63 times
+	  5 cycles ==    55 times
+	  6 cycles ==    63 times
+	  7 cycles ==    64 times
+	  8 cycles ==    65 times
+	  9 cycles ==    59 times
+	 10 cycles ==    76 times
+	 11 cycles ==    30 times
+	 12 cycles ==    25 times
+	 13 cycles ==    27 times
+	 14 cycles ==    22 times
+	 15 cycles ==    32 times
+	 16 cycles ==    43 times
+	 17 cycles ==    31 times
+	 18 cycles ==    26 times
+	 19 cycles ==    26 times
+	 20 cycles ==    39 times
+	 21 cycles ==    33 times
+	 22 cycles ==    27 times
+	 23 cycles ==    17 times
+	 24 cycles ==    36 times
+	 25 cycles ==    39 times
+	 26 cycles ==    30 times
+Op    FSQRT( 6):
+	  2 cycles ==  3878 times
+	 30 cycles ==  1859 times
+	 31 cycles ==  1955 times
+Op     FCMP( 7):
+	  3 cycles ==  7692 times
+Op    IADD8( 8):
+	  2 cycles ==  7692 times
+Op    ISUB8( 9):
+	  2 cycles ==  7692 times
+Op   IADD16(10):
+	  2 cycles ==  7692 times
+Op   ISUB16(11):
+	  2 cycles ==  7692 times
+Op  FPMUL16(12):
+	  3 cycles ==  7692 times
+Op      N/A(13):
+Op      N/A(14):
+Op      NOP(15):
+nanofpu_tb.v:89: $finish called at 19407670000 (1ps)

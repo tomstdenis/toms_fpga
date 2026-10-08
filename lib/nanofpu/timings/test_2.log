@@ -1,0 +1,172 @@
+Defines:
+   HANDLE_INVALID_OP=1
+   USE_FMUL_DSP=1
+   USE_FMUL_TWO_STAGE_CMP=0
+   USE_FDIV_BARREL=0
+   USE_FDIV_TWO_STAGE_CMP=0
+   USE_FADDSUB_BARREL=0
+   USE_FADDSUB_TWO_STAGE_CMP=0
+   USE_FADDSUB_BIG_STEP=0
+   USE_FSTI_BARREL=0
+   USE_FLDI_BIG_STEP=0
+   USE_FSQRT_STAGES=0
+   USE_FPMUL16_DSP_MULT=0
+   EXTERNAL_PARAM
+   NUM_OF_TESTS=100000
+FST info: dumpfile nanofpu.vcd opened for output.
+Op     FADD( 0):
+	  5 cycles ==  5946 times
+	  6 cycles ==    28 times
+	  7 cycles ==    82 times
+	  8 cycles ==    77 times
+	  9 cycles ==    81 times
+	 10 cycles ==    54 times
+	 11 cycles ==    64 times
+	 12 cycles ==    61 times
+	 13 cycles ==    64 times
+	 14 cycles ==    56 times
+	 15 cycles ==    70 times
+	 16 cycles ==    61 times
+	 17 cycles ==    49 times
+	 18 cycles ==    50 times
+	 19 cycles ==    60 times
+	 20 cycles ==    61 times
+	 21 cycles ==    49 times
+	 22 cycles ==    62 times
+	 23 cycles ==    66 times
+	 24 cycles ==    51 times
+	 25 cycles ==    51 times
+	 26 cycles ==    57 times
+	 27 cycles ==    64 times
+	 28 cycles ==    40 times
+	 29 cycles ==    56 times
+	 30 cycles ==    59 times
+	 31 cycles ==    46 times
+	 32 cycles ==    47 times
+	 33 cycles ==   182 times
+Op     FSUB( 1):
+	  5 cycles ==  5962 times
+	  6 cycles ==    36 times
+	  7 cycles ==    73 times
+	  8 cycles ==    79 times
+	  9 cycles ==    74 times
+	 10 cycles ==    64 times
+	 11 cycles ==    59 times
+	 12 cycles ==    83 times
+	 13 cycles ==    69 times
+	 14 cycles ==    59 times
+	 15 cycles ==    62 times
+	 16 cycles ==    51 times
+	 17 cycles ==    60 times
+	 18 cycles ==    66 times
+	 19 cycles ==    52 times
+	 20 cycles ==    50 times
+	 21 cycles ==    58 times
+	 22 cycles ==    45 times
+	 23 cycles ==    48 times
+	 24 cycles ==    66 times
+	 25 cycles ==    67 times
+	 26 cycles ==    52 times
+	 27 cycles ==    45 times
+	 28 cycles ==    48 times
+	 29 cycles ==    69 times
+	 30 cycles ==    41 times
+	 31 cycles ==    51 times
+	 32 cycles ==    52 times
+	 33 cycles ==   151 times
+Op     FMUL( 2):
+	  5 cycles ==  2962 times
+	  6 cycles ==  4731 times
+Op     FDIV( 3):
+	 31 cycles ==  7249 times
+	 32 cycles ==     7 times
+	 33 cycles ==    11 times
+	 34 cycles ==    22 times
+	 35 cycles ==    14 times
+	 36 cycles ==    19 times
+	 37 cycles ==    17 times
+	 38 cycles ==    14 times
+	 39 cycles ==    21 times
+	 40 cycles ==    13 times
+	 41 cycles ==    13 times
+	 42 cycles ==    19 times
+	 43 cycles ==    19 times
+	 44 cycles ==    19 times
+	 45 cycles ==    17 times
+	 46 cycles ==    15 times
+	 47 cycles ==    13 times
+	 48 cycles ==    14 times
+	 49 cycles ==    11 times
+	 50 cycles ==    12 times
+	 51 cycles ==    16 times
+	 52 cycles ==    14 times
+	 53 cycles ==    17 times
+	 54 cycles ==    13 times
+	 55 cycles ==    10 times
+	 56 cycles ==    10 times
+	 57 cycles ==    13 times
+	 58 cycles ==    13 times
+	 59 cycles ==    10 times
+	 60 cycles ==    12 times
+	 61 cycles ==    13 times
+	 62 cycles ==    13 times
+Op     FLDI( 4):
+	  4 cycles ==  3855 times
+	  5 cycles ==  1890 times
+	  6 cycles ==   996 times
+	  7 cycles ==   458 times
+	  8 cycles ==   241 times
+	  9 cycles ==   111 times
+	 10 cycles ==    77 times
+	 11 cycles ==    34 times
+	 12 cycles ==    18 times
+	 13 cycles ==     5 times
+	 14 cycles ==     2 times
+	 15 cycles ==     3 times
+	 16 cycles ==     2 times
+Op     FSTI( 5):
+	  2 cycles ==  6735 times
+	  3 cycles ==    29 times
+	  4 cycles ==    63 times
+	  5 cycles ==    55 times
+	  6 cycles ==    63 times
+	  7 cycles ==    64 times
+	  8 cycles ==    65 times
+	  9 cycles ==    59 times
+	 10 cycles ==    76 times
+	 11 cycles ==    30 times
+	 12 cycles ==    25 times
+	 13 cycles ==    27 times
+	 14 cycles ==    22 times
+	 15 cycles ==    32 times
+	 16 cycles ==    43 times
+	 17 cycles ==    31 times
+	 18 cycles ==    26 times
+	 19 cycles ==    26 times
+	 20 cycles ==    39 times
+	 21 cycles ==    33 times
+	 22 cycles ==    27 times
+	 23 cycles ==    17 times
+	 24 cycles ==    36 times
+	 25 cycles ==    39 times
+	 26 cycles ==    30 times
+Op    FSQRT( 6):
+	  2 cycles ==  3878 times
+	 30 cycles ==  1859 times
+	 31 cycles ==  1955 times
+Op     FCMP( 7):
+	  3 cycles ==  7692 times
+Op    IADD8( 8):
+	  2 cycles ==  7692 times
+Op    ISUB8( 9):
+	  2 cycles ==  7692 times
+Op   IADD16(10):
+	  2 cycles ==  7692 times
+Op   ISUB16(11):
+	  2 cycles ==  7692 times
+Op  FPMUL16(12):
+	  3 cycles ==  7692 times
+Op      N/A(13):
+Op      N/A(14):
+Op      NOP(15):
+nanofpu_tb.v:89: $finish called at 18257090000 (1ps)

@@ -1,5 +1,7 @@
 #!/bin/bash
 
+rm timings/*
+
 HANDLE_INVALID_OP=0
 USE_FMUL_DSP=0
 USE_FMUL_TWO_STAGE_CMP=0
@@ -12,6 +14,7 @@ USE_FSTI_BARREL=0
 USE_FLDI_BIG_STEP=0
 USE_FSQRT_STAGES=0
 USE_FPMUL16_DSP_MULT=0
+NUM=0
 
 test_cmd() {
     def="-D HANDLE_INVALID_OP=${HANDLE_INVALID_OP}"
@@ -38,8 +41,15 @@ test_cmd() {
         echo "Failed [${def}]..."
         exit 1
     fi
-
-
+    echo "Defines:" > timings/test_${NUM}.log
+    for d in ${def}; do
+        if [ "${d}"  != "-D" ]; then
+            echo "   ${d}" >> timings/test_${NUM}.log
+        fi
+    done
+    grep -v "Running" test.log >> timings/test_${NUM}.log
+    rm test.log
+    NUM=`expr ${NUM} + 1`
 }
 
 make clean
@@ -47,6 +57,9 @@ make clean
 for HANDLE_INVALID_OP in 0 1; do
     test_cmd
 done
+
+# so far these options have no overlap so the zero test case for most options is already
+# tested above.  If any option does overlap make sure you iterate over all combinations as a n-tuple
 
 for USE_FMUL_DSP in 1 2 3; do
     test_cmd
