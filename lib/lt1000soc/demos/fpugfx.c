@@ -117,6 +117,7 @@ static void timer(uint32_t data) {
     frames = 0;
 }
 
+TCM_FUNC(demo)
 void demo(void) {
     frames = 0;
 

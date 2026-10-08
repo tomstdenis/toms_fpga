@@ -35,6 +35,9 @@
 // Requires fontrom.vh for the CP437 font make sure you include that in your project.
 
 module vga
+#(
+    DOUBLE_REG_MEM    = 1                       // use double registered memory
+)
 (
 	input wire         vga_clk,                 // VGA dot clock (should be 25.170MHz)
 	input wire         host_clk,                // Host clock
@@ -165,28 +168,44 @@ module vga
 		if (host_write_mask[0]) begin
 			vga_mem_lane0[host_addr[16:2]] <= host_data_in[7:0];
 		end else begin
-			vga_mem_lane0_tmp  <= vga_mem_lane0[host_addr[16:2]];         // registered outputs make routing sooo much faster
-			host_data_out[7:0] <= vga_mem_lane0_tmp;
+            if (DOUBLE_REG_MEM == 1) begin
+                vga_mem_lane0_tmp  <= vga_mem_lane0[host_addr[16:2]];         // registered outputs make routing sooo much faster
+                host_data_out[7:0] <= vga_mem_lane0_tmp;
+            end else begin
+                host_data_out[7:0] <= vga_mem_lane0[host_addr[16:2]];         // registered outputs make routing sooo much faster
+            end
 		end
 		
 		if (host_write_mask[1]) begin
 			vga_mem_lane1[host_addr[16:2]] <= host_data_in[15:8];
 		end else begin
-			vga_mem_lane1_tmp   <= vga_mem_lane1[host_addr[16:2]];
-			host_data_out[15:8] <= vga_mem_lane1_tmp;
+            if (DOUBLE_REG_MEM == 1) begin
+                vga_mem_lane0_tmp  <= vga_mem_lane1[host_addr[16:2]];         // registered outputs make routing sooo much faster
+                host_data_out[15:8] <= vga_mem_lane1_tmp;
+            end else begin
+                host_data_out[15:8] <= vga_mem_lane1[host_addr[16:2]];         // registered outputs make routing sooo much faster
+            end
 		end
 		
 		if (host_write_mask[2]) begin
 			vga_mem_lane2[host_addr[16:2]] <= host_data_in[23:16];
 		end else begin
-			vga_mem_lane2_tmp    <= vga_mem_lane2[host_addr[16:2]];
-			host_data_out[23:16] <= vga_mem_lane2_tmp;
+            if (DOUBLE_REG_MEM == 1) begin
+                vga_mem_lane2_tmp  <= vga_mem_lane2[host_addr[16:2]];         // registered outputs make routing sooo much faster
+                host_data_out[23:16] <= vga_mem_lane2_tmp;
+            end else begin
+                host_data_out[23:16] <= vga_mem_lane2[host_addr[16:2]];         // registered outputs make routing sooo much faster
+            end
 		end
 		if (host_write_mask[3]) begin
 			vga_mem_lane3[host_addr[16:2]] <= host_data_in[31:24];
 		end else begin
-			vga_mem_lane3_tmp    <= vga_mem_lane3[host_addr[16:2]];
-			host_data_out[31:24] <= vga_mem_lane3_tmp;
+            if (DOUBLE_REG_MEM == 1) begin
+                vga_mem_lane3_tmp  <= vga_mem_lane3[host_addr[16:2]];         // registered outputs make routing sooo much faster
+                host_data_out[31:24] <= vga_mem_lane3_tmp;
+            end else begin
+                host_data_out[31:24] <= vga_mem_lane3[host_addr[16:2]];         // registered outputs make routing sooo much faster
+            end
 		end
 	end
 	

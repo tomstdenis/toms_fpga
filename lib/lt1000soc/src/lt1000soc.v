@@ -40,6 +40,7 @@ module lt1000soc
     parameter TCM_SIZE_BITS        = 8'd16,        // TCM region
     parameter SRAM_ADDR_WIDTH      = 24,           // PSRAM address width
     parameter VGA_WRITE_MASK       = 8'b11100011,  // Write mask pattern for when VGA_CTRL[2] is 1
+    parameter DOUBLE_REG_MEM       = 0,            // double register BRAMs to help timing
 
     // *** RV parameters ***
     parameter RV_ENABLE_COUNTERS   = 0,            // 32/64 bit counters
@@ -253,7 +254,7 @@ localparam
         end
     end
 
-    vga vga(
+    vga #(.DOUBLE_REG_MEM(DOUBLE_REG_MEM)) vga(
         .vga_clk(vga_clk), .host_clk(core_clk), .rst_n(vrst_n),
         .video_mode(vga_video_mode[1]), .page_sel(vga_page_sel[1]),
         .host_addr(vga_host_addr), .host_data_in(vga_data_in),
@@ -466,11 +467,15 @@ localparam
         picorv_mem_ready  = bus_ready;
 
         if (picorv_mem_addr[MEM_16M_BIOS]) begin
-            picorv_mem_rdata = { bios_mem_dout3, bios_mem_dout2, bios_mem_dout1, bios_mem_dout0 };
+            picorv_mem_rdata = (DOUBLE_REG_MEM == 0) ?
+                                { bios_mem_dout3_tmp, bios_mem_dout2_tmp, bios_mem_dout1_tmp, bios_mem_dout0_tmp } :
+                                { bios_mem_dout3, bios_mem_dout2, bios_mem_dout1, bios_mem_dout0 };
         end else if (picorv_mem_addr[MEM_16M_TCM]) begin
             tcm_wren         = picorv_mem_valid ? picorv_mem_wstrb : 4'b0000;
             picorv_mem_ready = picorv_mem_valid & |{bus_ready, picorv_mem_wstrb};
-            picorv_mem_rdata = { tcm_dout3, tcm_dout2, tcm_dout1, tcm_dout0 };
+            picorv_mem_rdata = (DOUBLE_REG_MEM == 0) ?
+                                { tcm_dout3_tmp, tcm_dout2_tmp, tcm_dout1_tmp, tcm_dout0_tmp } :
+                                { tcm_dout3, tcm_dout2, tcm_dout1, tcm_dout0 };
         end else if (picorv_mem_addr[MEM_16M_VGA]) begin
             if (picorv_mem_valid) begin
                 if (~cvga_write_mask) begin
@@ -534,10 +539,8 @@ localparam
         if (~picorv_mem_ready & picorv_mem_valid) begin
             if (picorv_mem_addr[MEM_16M_BIOS] | picorv_mem_addr[MEM_16M_TCM] | picorv_mem_addr[MEM_16M_VGA]) begin
 // *** BIOS, TCM, VGA ***
-            // simple memories with 1 cycle delay on reads
-                // memory address is set, now we wait one cycle (since data out is combed to the picorv_mem_rdata)
                 bus_cycle[0]     <= ~bus_cycle[0];
-                bus_ready        <= bus_cycle[0];
+                bus_ready        <= (DOUBLE_REG_MEM == 0) ? 1'b1 : bus_cycle[0];
             end else if (picorv_mem_addr[MEM_16M_PSRAM]) begin
 // *** PSRAM ***
                 if (~bus_cycle[0] & psram_idle) begin
