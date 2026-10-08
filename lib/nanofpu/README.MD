@@ -12,6 +12,12 @@ The goal is reasonable size/speed tradeoffs all the while being mostly precise f
 - **Broad FPGA Vendor Support**: Fully synthesizable for Lattice (iCE40, ECP5), Gowin, Xilinx, and standard Yosys toolchains.
 - **Simple Valid/Ready Handshake Protocol**: Straightforward multi-cycle execution interface.
 
+## Testing
+
+The design can be tested by running `test.sh` which will iterate over every per sub module testing them and producing timing data in the timings directory.  You need to first correlate your target design choice to the file that has compatible defines.  Keep in mind flags are per core so any file that contains your subset of flags is valid for comparison.
+
+To get sizing data run `bench.sh`.
+
 ## Instruction Set & Opcodes
 
 The core operates on a 3-bit opcode (`opcode[2:0]`):
