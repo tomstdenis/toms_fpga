@@ -2,6 +2,22 @@
 /* verilator lint_off WIDTHTRUNC */
 `timescale 1ns/1ps
 
+`ifndef EXTERNAL_PARAM
+`define HANDLE_INVALID_OP         1   // 1 == signals when an invalid opcode hits (0 == locks up)
+`define USE_FMUL_DSP     		  2   // 0 == serial shifter, 1 == 36x36 DSP, 2 == 18x18 DSP, 3 == 2-bit serial shifter
+`define USE_FMUL_TWO_STAGE_CMP    1   // 1 == pipeline the compares, helps timing
+`define USE_FDIV_BARREL           1   // 0 == serial shifter, 1 == barrel shifter, lower latency, costs area
+`define USE_FDIV_TWO_STAGE_CMP    1   // 1 == pipeline the compares, helps timing
+`define USE_FADDSUB_BARREL        1   // Use barrel shifter for faddsub, lowers latency, costs area
+`define USE_FADDSUB_TWO_STAGE_CMP 1   // Use pipelined comparison for sorting, helps timing
+`define USE_FADDSUB_BIG_STEP      1   // Enable a 4-bit stride in the final norm, costs area
+`define USE_FSTI_BARREL           1   // Use barrel shifter for fsti, lower latency, costs area
+`define USE_FLDI_BIG_STEP         1   // use big step hunt, lowers latency, costs area
+`define USE_FSQRT_STAGES 		  2   // 0 == 24 cycle SQRT, 1 == 48 cycles, 2 == 72 cycles (all + overhead)
+`define USE_FPMUL16_DSP_MULT      0    // 0 == use 16x16 multipliers, 1 == use 32x32 multipliers										   
+`endif
+
+`include "nanofpu.vh"
 module nanofpu_tb();
 	reg clk;
 	reg rst_n;
@@ -100,17 +116,17 @@ module nanofpu_tb();
 	
 	nanofpu #(
 	    .ENABLE_FUNCS(`NANOFPU_FUNCS_ALL),
-        .USE_FMUL_DSP(1),
-        .USE_FMUL_TWO_STAGE_CMP(1),
-        .USE_FDIV_TWO_STAGE_CMP(1),
-        .USE_FADDSUB_TWO_STAGE_CMP(1),
-		.USE_FADDSUB_BIG_STEP(1),
-        .USE_FLDI_BIG_STEP(1),
-        .USE_FADDSUB_BARREL(1),
-        .USE_FDIV_BARREL(1),
-        .USE_FSTI_BARREL(1),
-        .USE_FSQRT_STAGES(2),
-		.USE_FPMUL16_DSP_MULT(1)
+        .USE_FMUL_DSP(`USE_FMUL_DSP),
+        .USE_FMUL_TWO_STAGE_CMP(`USE_FMUL_TWO_STAGE_CMP),
+        .USE_FDIV_TWO_STAGE_CMP(`USE_FDIV_TWO_STAGE_CMP),
+        .USE_FADDSUB_TWO_STAGE_CMP(`USE_FADDSUB_TWO_STAGE_CMP),
+		.USE_FADDSUB_BIG_STEP(`USE_FADDSUB_BIG_STEP),
+        .USE_FLDI_BIG_STEP(`USE_FLDI_BIG_STEP),
+        .USE_FADDSUB_BARREL(`USE_FADDSUB_BARREL),
+        .USE_FDIV_BARREL(`USE_FDIV_BARREL),
+        .USE_FSTI_BARREL(`USE_FSTI_BARREL),
+        .USE_FSQRT_STAGES(`USE_FSQRT_STAGES),
+		.USE_FPMUL16_DSP_MULT(`USE_FPMUL16_DSP_MULT)
 	) nanofpu_dut(
 		.clk(clk), .rst_n(rst_n),
 		.in_a(oper_a), .in_b(oper_b), .opcode(opcode[3:0]), .valid(fp_valid),

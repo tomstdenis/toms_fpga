@@ -425,6 +425,7 @@ uint32_t iaddsub(uint32_t x, uint32_t y, uint32_t op)
             k = (k < K) ? 0 : (k - K);
             return j | (k << 16);
     }
+    return 0xBEBEBEEF;
 }
 
 #define _GNU_SOURCE
