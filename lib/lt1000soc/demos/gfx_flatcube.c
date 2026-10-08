@@ -215,8 +215,10 @@ CODE_SEC void demo(void) {
             int32_t y3 = (x2 * sz + y1 * cz) >> 8;
 
             int32_t dist = 180 + z2;
-            proj[i].x = 160 + ((x3 * 160) / dist);
-            proj[i].y = 100 + ((y3 * 160) / dist);
+            proj[i].x = 160 + fsti(fdiv(fldi(x3 * 160), dist));
+            proj[i].y = 100 + fsti(fdiv(fldi(y3 * 160), dist));
+//            proj[i].x = 160 + ((x3 * 160) / dist);
+//            proj[i].y = 100 + ((y3 * 160) / dist);
         }
 
         // 3. Backface Cull & Render Solid Quads
