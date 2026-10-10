@@ -40,7 +40,7 @@ module lt1000soc
     parameter TCM_SIZE_BITS        = 8'd16,        // TCM region
     parameter SRAM_ADDR_WIDTH      = 24,           // PSRAM address width
     parameter VGA_WRITE_MASK       = 8'b11100011,  // Write mask pattern for when VGA_CTRL[2] is 1
-    parameter DOUBLE_REG_MEM       = 0,            // double register BRAMs to help timing
+    parameter DOUBLE_REG_MEM       = 1,            // double register BRAMs to help timing
 
     // *** RV parameters ***
     parameter RV_ENABLE_COUNTERS   = 0,            // 32/64 bit counters
@@ -299,6 +299,7 @@ localparam
     wire        psram_idle;
 
     nanocache #(
+        .CACHE_REGISTERED(DOUBLE_REG_MEM),
         .CACHE_SIZE(CACHE_SIZE_BITS), 
         .FREQ(CORE_FREQ_KHZ/1000)
     ) psram_mem (
@@ -539,7 +540,9 @@ localparam
         if (~picorv_mem_ready & picorv_mem_valid) begin
             if (picorv_mem_addr[MEM_16M_BIOS] | picorv_mem_addr[MEM_16M_TCM] | picorv_mem_addr[MEM_16M_VGA]) begin
 // *** BIOS, TCM, VGA ***
-                bus_cycle[0]     <= ~bus_cycle[0];
+                if (DOUBLE_REG_MEM == 1) begin
+                    bus_cycle[0]     <= ~bus_cycle[0];
+                end
                 bus_ready        <= (DOUBLE_REG_MEM == 0) ? 1'b1 : bus_cycle[0];
             end else if (picorv_mem_addr[MEM_16M_PSRAM]) begin
 // *** PSRAM ***

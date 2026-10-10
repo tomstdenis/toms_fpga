@@ -16,7 +16,7 @@ module nanocache #(
     parameter CACHE_SIZE=11,                // log2(cache_bytes)
     parameter CACHE_LINE=5,                 // log2(cache_line_bytes)
     parameter CACHE_DP=1,                   // use dual ported cache memory
-    parameter CACHE_REGISTERED=1,			// use registered cache memory
+    parameter CACHE_REGISTERED=1,			// use double registered cache memory
 
     parameter SRAM_ADDR_WIDTH=24,           // Address width
     parameter DUMMY_BYTES=3,                // number of dummy cycles on a fast read
@@ -132,6 +132,23 @@ module nanocache #(
 		cache_mem_lane3_out     <= cache_mem_lane3_out_tmp;
 		cache_mem_lane4_out     <= cache_mem_lane4_out_tmp;
 	end
+    reg [7:0] cache_mem_lane1_data;
+    reg [7:0] cache_mem_lane2_data;
+    reg [7:0] cache_mem_lane3_data;
+    reg [7:0] cache_mem_lane4_data;
+    always @(*) begin
+        if (CACHE_REGISTERED == 1) begin
+            cache_mem_lane1_data = cache_mem_lane1_out;
+            cache_mem_lane2_data = cache_mem_lane2_out;
+            cache_mem_lane3_data = cache_mem_lane3_out;
+            cache_mem_lane4_data = cache_mem_lane4_out;
+        end else begin
+            cache_mem_lane1_data = cache_mem_lane1_out_tmp;
+            cache_mem_lane2_data = cache_mem_lane2_out_tmp;
+            cache_mem_lane3_data = cache_mem_lane3_out_tmp;
+            cache_mem_lane4_data = cache_mem_lane4_out_tmp;
+        end
+    end
   
     // psram interface
     reg [7:0]                 psram_data_in;             // byte to write to PSRAM memory
@@ -225,7 +242,7 @@ module nanocache #(
                         tag_mem_addr    <= data_line_index;
                         cache_mem_addr  <= {data_line_index, data_line_offset};
 						ctrl_fsm        <= FSM_COMPARE_TAG;
-						ctrl_spin       <= 1'b1;
+						ctrl_spin       <= (CACHE_REGISTERED == 1) ? 1'b1 : 1'b0;
                         ctrl_write_mask <= data_wr_en ? write_mask : 4'b0000;
                         data_out        <= data_in;              // latch the input locally so we only need one shift register
                     end
@@ -243,7 +260,7 @@ module nanocache #(
                     if (tag_mem_out[VALID_BIT] && data_tag == tag_mem_out[TAG_SIZE-1:0]) begin
 						ctrl_fsm <= FSM_IDLE;
 						ready    <= 1'b1;
-						data_out <= {cache_mem_lane4_out, cache_mem_lane3_out, cache_mem_lane2_out, cache_mem_lane1_out};
+						data_out <= {cache_mem_lane4_data, cache_mem_lane3_data, cache_mem_lane2_data, cache_mem_lane1_data};
 						if (ctrl_write_mask != 4'b0000) begin
 							// write the tag as dirty since we wrote to it
 							tag_mem_in               <= tag_mem_out; // tag bits
@@ -273,7 +290,7 @@ module nanocache #(
 			{1'b0, FSM_EVICT_DELAY}:
 				begin
 					ctrl_fsm  <= FSM_EVICT;
-					ctrl_spin <= 1;   // add delay to wait for cache data
+					ctrl_spin <= (CACHE_REGISTERED == 1) ? 1'b1 : 1'b0;   // add delay to wait for cache data
 				end
 
             {1'b0, FSM_EVICT}:
@@ -299,10 +316,10 @@ module nanocache #(
                     if (psram_write_strobe) begin
                         ctrl_idx                           <= ctrl_idx - 1'b1;
                         case (cache_mem_addr[1:0])
-							2'b00: psram_data_in           <= cache_mem_lane1_out;
-							2'b01: psram_data_in           <= cache_mem_lane2_out;
-							2'b10: psram_data_in           <= cache_mem_lane3_out;
-							2'b11: psram_data_in           <= cache_mem_lane4_out;
+							2'b00: psram_data_in           <= cache_mem_lane1_data;
+							2'b01: psram_data_in           <= cache_mem_lane2_data;
+							2'b10: psram_data_in           <= cache_mem_lane3_data;
+							2'b11: psram_data_in           <= cache_mem_lane4_data;
 						endcase
 						cache_mem_addr[CACHE_LINE-1:0]     <= cache_mem_next;
                         if (ctrl_idx == 0) begin

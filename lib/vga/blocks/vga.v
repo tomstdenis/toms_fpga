@@ -149,65 +149,66 @@ module vga
 	// vga memory organized as four lanes of 32KB
 	// we present to the host using a 32-bit friendly map using registered outputs
 	// and to the VGA we present a 128KB lane that is bypassed
-	(* ram_style = "block" *)
 	reg [7:0] vga_mem_lane0[0:32767];
-	(* ram_style = "block" *)
 	reg [7:0] vga_mem_lane1[0:32767];
-	(* ram_style = "block" *)
 	reg [7:0] vga_mem_lane2[0:32767];
-	(* ram_style = "block" *)
 	reg [7:0] vga_mem_lane3[0:32767];
 	reg [7:0] vga_mem_lane0_tmp;
 	reg [7:0] vga_mem_lane1_tmp;
 	reg [7:0] vga_mem_lane2_tmp;
 	reg [7:0] vga_mem_lane3_tmp;
+	reg [7:0] vga_mem_lane0_dat;
+	reg [7:0] vga_mem_lane1_dat;
+	reg [7:0] vga_mem_lane2_dat;
+	reg [7:0] vga_mem_lane3_dat;
 	
 	// host memory access
 	always @(posedge host_clk) begin
 		// write or read, allows tech mapping to BRAM on more FPGAs
 		if (host_write_mask[0]) begin
 			vga_mem_lane0[host_addr[16:2]] <= host_data_in[7:0];
+            vga_mem_lane0_tmp              <= host_data_in[7:0];
 		end else begin
-            if (DOUBLE_REG_MEM == 1) begin
-                vga_mem_lane0_tmp  <= vga_mem_lane0[host_addr[16:2]];         // registered outputs make routing sooo much faster
-                host_data_out[7:0] <= vga_mem_lane0_tmp;
-            end else begin
-                host_data_out[7:0] <= vga_mem_lane0[host_addr[16:2]];         // registered outputs make routing sooo much faster
-            end
+            vga_mem_lane0_tmp              <= vga_mem_lane0[host_addr[16:2]];         // registered outputs make routing sooo much faster
 		end
-		
 		if (host_write_mask[1]) begin
 			vga_mem_lane1[host_addr[16:2]] <= host_data_in[15:8];
+            vga_mem_lane1_tmp              <= host_data_in[15:8];
 		end else begin
-            if (DOUBLE_REG_MEM == 1) begin
-                vga_mem_lane0_tmp  <= vga_mem_lane1[host_addr[16:2]];         // registered outputs make routing sooo much faster
-                host_data_out[15:8] <= vga_mem_lane1_tmp;
-            end else begin
-                host_data_out[15:8] <= vga_mem_lane1[host_addr[16:2]];         // registered outputs make routing sooo much faster
-            end
+            vga_mem_lane1_tmp              <= vga_mem_lane1[host_addr[16:2]];         // registered outputs make routing sooo much faster
 		end
-		
+	
 		if (host_write_mask[2]) begin
 			vga_mem_lane2[host_addr[16:2]] <= host_data_in[23:16];
+            vga_mem_lane2_tmp              <= host_data_in[23:16];
 		end else begin
-            if (DOUBLE_REG_MEM == 1) begin
-                vga_mem_lane2_tmp  <= vga_mem_lane2[host_addr[16:2]];         // registered outputs make routing sooo much faster
-                host_data_out[23:16] <= vga_mem_lane2_tmp;
-            end else begin
-                host_data_out[23:16] <= vga_mem_lane2[host_addr[16:2]];         // registered outputs make routing sooo much faster
-            end
+            vga_mem_lane2_tmp              <= vga_mem_lane2[host_addr[16:2]];         // registered outputs make routing sooo much faster
 		end
 		if (host_write_mask[3]) begin
 			vga_mem_lane3[host_addr[16:2]] <= host_data_in[31:24];
+            vga_mem_lane3_tmp              <= host_data_in[31:24];
 		end else begin
-            if (DOUBLE_REG_MEM == 1) begin
-                vga_mem_lane3_tmp  <= vga_mem_lane3[host_addr[16:2]];         // registered outputs make routing sooo much faster
-                host_data_out[31:24] <= vga_mem_lane3_tmp;
-            end else begin
-                host_data_out[31:24] <= vga_mem_lane3[host_addr[16:2]];         // registered outputs make routing sooo much faster
-            end
+            vga_mem_lane3_tmp              <= vga_mem_lane3[host_addr[16:2]];         // registered outputs make routing sooo much faster
 		end
+        vga_mem_lane0_dat <= vga_mem_lane0_tmp;
+        vga_mem_lane1_dat <= vga_mem_lane1_tmp;
+        vga_mem_lane2_dat <= vga_mem_lane2_tmp;
+        vga_mem_lane3_dat <= vga_mem_lane3_tmp;
 	end
+
+    always @(*) begin
+        if (DOUBLE_REG_MEM == 1) begin
+            host_data_out[7:0]   = vga_mem_lane0_dat;
+            host_data_out[15:8]  = vga_mem_lane1_dat;
+            host_data_out[23:16] = vga_mem_lane2_dat;
+            host_data_out[31:24] = vga_mem_lane3_dat;
+        end else begin
+            host_data_out[7:0]   = vga_mem_lane0_tmp;
+            host_data_out[15:8]  = vga_mem_lane1_tmp;
+            host_data_out[23:16] = vga_mem_lane2_tmp;
+            host_data_out[31:24] = vga_mem_lane3_tmp;
+        end
+    end
 	
 	// VGA driver memory interface
 	reg [15:0] vga_mem_addr;			// the address this module is reading from
