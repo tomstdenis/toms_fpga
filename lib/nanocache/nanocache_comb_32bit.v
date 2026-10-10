@@ -308,7 +308,7 @@ module nanocache #(
                         psram_start_trans                  <= 1'b1;
                         psram_wr_en                        <= 1'b1;
                         psram_addr                         <= {tag_mem_out[TAG_SIZE-1:0], data_line_index, psram_zero};
-                        psram_data_in                      <= cache_mem_lane1_out;
+                        psram_data_in                      <= cache_mem_lane1_data;
                         cache_mem_addr[CACHE_LINE-1:0]     <= cache_mem_next;    // advance cache addr for write strobe
                     end
 

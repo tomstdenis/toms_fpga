@@ -40,7 +40,7 @@ module lt1000soc
     parameter TCM_SIZE_BITS        = 8'd16,        // TCM region
     parameter SRAM_ADDR_WIDTH      = 24,           // PSRAM address width
     parameter VGA_WRITE_MASK       = 8'b11100011,  // Write mask pattern for when VGA_CTRL[2] is 1
-    parameter DOUBLE_REG_MEM       = 1,            // double register BRAMs to help timing
+    parameter DOUBLE_REG_MEM       = 0,            // double register BRAMs to help timing
 
     // *** RV parameters ***
     parameter RV_ENABLE_COUNTERS   = 0,            // 32/64 bit counters
