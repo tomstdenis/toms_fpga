@@ -1,0 +1,13 @@
+[General]
+file=dvi_tx
+ipc_version=4
+module=DVI_TX
+target_device=gw5ast138c-007
+type=dvi_tx
+version=1.0
+
+[Config]
+ELVDS=false
+LANG=0
+Synthesis_tool=GowinSynthesis
+TLVDS=true

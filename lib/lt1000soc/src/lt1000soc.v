@@ -341,7 +341,7 @@ localparam
 // *** NANOFPU ***
     reg [31:0]  fpu_in_a;
     reg [31:0]  fpu_in_b;
-    reg [3:0]   fpu_opcode;
+    reg [4:0]   fpu_opcode;
     reg         fpu_valid;
     wire [31:0] fpu_out;
     wire        fpu_ready;
@@ -518,13 +518,13 @@ localparam
         // respond to pcpi requests
         if (~picorv_pcpi_ready & picorv_pcpi_valid) begin
             if (~picorv_pcpi_wait) begin
-                // we use custom-0 for nanofpu and only the lower 4 bits of funct7
-                if (picorv_pcpi_insn[6:0] == 7'b0001011 && picorv_pcpi_insn[31:29] == 3'b000) begin
+                // we use custom-0 for nanofpu and only the lower 5 bits of funct7
+                if (picorv_pcpi_insn[6:0] == 7'b0001011 && picorv_pcpi_insn[31:30] == 3'b00) begin
                     picorv_pcpi_wait <= 1'b1;
                     fpu_valid        <= 1'b1;
                     fpu_in_a         <= picorv_pcpi_rs1;
                     fpu_in_b         <= picorv_pcpi_rs2;
-                    fpu_opcode       <= picorv_pcpi_insn[28:25]; // use lower 4 bits of funct7
+                    fpu_opcode       <= picorv_pcpi_insn[29:25]; // use lower 5 bits of funct7
                 end
             end else begin
                 if (fpu_ready) begin

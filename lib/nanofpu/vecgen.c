@@ -424,6 +424,14 @@ uint32_t iaddsub(uint32_t x, uint32_t y, uint32_t op)
             j = (j < J) ? 0 : (j - J);
             k = (k < K) ? 0 : (k - K);
             return j | (k << 16);
+        case 4: // add32
+            return x + y;
+        case 5: // sub32
+            return x - y;
+        case 6: // cmp32
+            if (x > y) return 2;
+            if (x < y) return 1;
+            return 4;
     }
     return 0xBEBEBEEF;
 }
@@ -487,14 +495,20 @@ int main(int argc, char **argv)
 		command = 10;
 	} else if (!strcmp(argv[1], "i16sub")) {
 		command = 11;
-	} else if (!strcmp(argv[1], "fpmul")) {
+	} else if (!strcmp(argv[1], "add32")) {
 		command = 12;
-	} else if (!strcmp(argv[1], "any")) {
+	} else if (!strcmp(argv[1], "sub32")) {
+		command = 13;
+	} else if (!strcmp(argv[1], "cmp32")) {
+		command = 14;
+	} else if (!strcmp(argv[1], "fpmul")) {
 		command = 15;
+	} else if (!strcmp(argv[1], "any")) {
+		command = 16;
 	}
 	
 	for (x = 0; x < NUM_OF_TESTS; x++) {
-		if (command != 15) {
+		if (command != 16) {
 			op = command;
 		} else {
 			op = x % 13;
@@ -548,11 +562,14 @@ int main(int argc, char **argv)
             case 9:
             case 10:
             case 11:
+            case 12:
+            case 13:
+            case 14:
                 opcode = op;
                 res    = iaddsub(opa, opb, opcode - 8);
                 break;
-			case 12: //fpmul
-				opcode = 12;
+			case 15: //fpmul
+				opcode = 15;
 				res    = ((uint64_t)opa * opb) >> 16; 
 				break;
 		}

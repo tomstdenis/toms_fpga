@@ -1,25 +1,25 @@
-//Copyright (C)2014-2025 Gowin Semiconductor Corporation.
+//Copyright (C)2014-2026 Gowin Semiconductor Corporation.
 //All rights reserved.
 //File Title: IP file
-//Tool Version: V1.9.11.03 Education
+//Tool Version: V1.9.12.04
+//IP Version: 1.0
 //Part Number: GW5AST-LV138PG484AC1/I0
 //Device: GW5AST-138
 //Device Version: C
-//Created Time: Sun Sep 20 07:55:46 2026
-`default_nettype wire
+//Created Time: Sat Oct 10 11:16:10 2026
 
-module lt1000clk_MOD (lock, clkout0, clkout1, clkin, reset, icpsel, lpfres, lpfcap);
+module lt1000clk_MOD (lock, clkout0, clkout1, clkout2, clkin, reset, icpsel, lpfres, lpfcap);
 
 output lock;
 output clkout0;
 output clkout1;
+output clkout2;
 input clkin;
 input reset;
 input [5:0] icpsel;
 input [2:0] lpfres;
 input [1:0] lpfcap;
 
-wire clkout2;
 wire clkout3;
 wire clkout4;
 wire clkout5;
@@ -85,19 +85,19 @@ PLL PLL_inst (
 defparam PLL_inst.FCLKIN = "50";
 defparam PLL_inst.IDIV_SEL = 1;
 defparam PLL_inst.FBDIV_SEL = 1;
-defparam PLL_inst.ODIV0_SEL = 7;
-defparam PLL_inst.ODIV1_SEL = 28;
+defparam PLL_inst.ODIV0_SEL = 10;
+defparam PLL_inst.ODIV1_SEL = 40;
 defparam PLL_inst.ODIV2_SEL = 8;
 defparam PLL_inst.ODIV3_SEL = 8;
 defparam PLL_inst.ODIV4_SEL = 8;
 defparam PLL_inst.ODIV5_SEL = 8;
 defparam PLL_inst.ODIV6_SEL = 8;
-defparam PLL_inst.MDIV_SEL = 14;
+defparam PLL_inst.MDIV_SEL = 20;
 defparam PLL_inst.MDIV_FRAC_SEL = 0;
 defparam PLL_inst.ODIV0_FRAC_SEL = 0;
 defparam PLL_inst.CLKOUT0_EN = "TRUE";
 defparam PLL_inst.CLKOUT1_EN = "TRUE";
-defparam PLL_inst.CLKOUT2_EN = "FALSE";
+defparam PLL_inst.CLKOUT2_EN = "TRUE";
 defparam PLL_inst.CLKOUT3_EN = "FALSE";
 defparam PLL_inst.CLKOUT4_EN = "FALSE";
 defparam PLL_inst.CLKOUT5_EN = "FALSE";

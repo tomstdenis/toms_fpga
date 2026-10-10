@@ -35,7 +35,7 @@ module nanofpu
 	
 	input wire [31:0] in_a,
 	input wire [31:0] in_b,
-	input wire [3:0]  opcode,		// 0=ADD, 1=SUB, 2=MUL, 3=DIV, 4=FLDI, 5=FSTI, 6=FSQRT, 7=FCMP, 8=IADD
+	input wire [4:0]  opcode,		// 0=ADD, 1=SUB, 2=MUL, 3=DIV, 4=FLDI, 5=FSTI, 6=FSQRT, 7=FCMP, 8=IADD
 	input wire        valid,		// command valid
 	
 	output reg [31:0] out,			// result
@@ -106,11 +106,11 @@ module nanofpu
 
 	wire iaddsub_ready;
 	wire [31:0] iaddsub_out;
-	wire [1:0] iaddsub_op;
+	wire [2:0] iaddsub_op;
 	assign iaddsub_op = opcode - `NANOFPU_OP_IADD;
 	iaddsub iaddsub (
 		.clk(clk), .rst_n(rst_n), .sub_op(iaddsub_op),
-		.in_a(in_a), .in_b(in_b), .valid((valid && opcode >= `NANOFPU_OP_IADD && opcode <= (`NANOFPU_OP_IADD + 3)) ? ENABLE_IADD : 1'b0),
+		.in_a(in_a), .in_b(in_b), .valid((valid && opcode >= `NANOFPU_OP_IADD && opcode < (`NANOFPU_OP_FPMUL)) ? ENABLE_IADD : 1'b0),
 		.out(iaddsub_out), .ready(iaddsub_ready));
 
 	wire fpmul16_ready;

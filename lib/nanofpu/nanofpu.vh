@@ -1,30 +1,36 @@
 `ifndef NANOFPU_OP
 `define NANOFPU_OP
 
-`define NANOFPU_OP_FADD  4'd0
-`define NANOFPU_OP_FSUB  4'd1
-`define NANOFPU_OP_FMUL  4'd2
-`define NANOFPU_OP_FDIV  4'd3
-`define NANOFPU_OP_FLDI  4'd4
-`define NANOFPU_OP_FSTI  4'd5
-`define NANOFPU_OP_FSQRT 4'd6
-`define NANOFPU_OP_FCMP  4'd7
-`define NANOFPU_OP_IADD  4'd8
-`define NANOFPU_OP_FPMUL 4'd12
-`define NANOFPU_OP_NOP   4'd15
+`define NANOFPU_OP_FADD   5'd0
+`define NANOFPU_OP_FSUB   5'd1
+`define NANOFPU_OP_FMUL   5'd2
+`define NANOFPU_OP_FDIV   5'd3
+`define NANOFPU_OP_FLDI   5'd4
+`define NANOFPU_OP_FSTI   5'd5
+`define NANOFPU_OP_FSQRT  5'd6
+`define NANOFPU_OP_FCMP   5'd7
+`define NANOFPU_OP_IADD   5'd8
+`define NANOFPU_OP_ISUB8  5'd9
+`define NANOFPU_OP_IADD16 5'd10
+`define NANOFPU_OP_ISUB16 5'd11
+`define NANOFPU_OP_IADD32 5'd12
+`define NANOFPU_OP_ISUB32 5'd13
+`define NANOFPU_OP_ICMP32 5'd14
+`define NANOFPU_OP_FPMUL  5'd15
+`define NANOFPU_OP_NOP    5'd16
 
-`define NANOFPU_FL_FADD  (16'd1 << `NANOFPU_OP_FADD)
-`define NANOFPU_FL_FSUB  (16'd1 << `NANOFPU_OP_FSUB)
-`define NANOFPU_FL_FMUL  (16'd1 << `NANOFPU_OP_FMUL)
-`define NANOFPU_FL_FDIV  (16'd1 << `NANOFPU_OP_FDIV)
-`define NANOFPU_FL_FLDI  (16'd1 << `NANOFPU_OP_FLDI)
-`define NANOFPU_FL_FSTI  (16'd1 << `NANOFPU_OP_FSTI)
-`define NANOFPU_FL_FSQRT (16'd1 << `NANOFPU_OP_FSQRT)
-`define NANOFPU_FL_FCMP  (16'd1 << `NANOFPU_OP_FCMP)
-`define NANOFPU_FL_IADD  (16'd15 << `NANOFPU_OP_IADD)
-`define NANOFPU_FL_FPMUL  (16'd1 << `NANOFPU_OP_FPMUL)
+`define NANOFPU_FL_FADD  (32'd1 << `NANOFPU_OP_FADD)
+`define NANOFPU_FL_FSUB  (32'd1 << `NANOFPU_OP_FSUB)
+`define NANOFPU_FL_FMUL  (32'd1 << `NANOFPU_OP_FMUL)
+`define NANOFPU_FL_FDIV  (32'd1 << `NANOFPU_OP_FDIV)
+`define NANOFPU_FL_FLDI  (32'd1 << `NANOFPU_OP_FLDI)
+`define NANOFPU_FL_FSTI  (32'd1 << `NANOFPU_OP_FSTI)
+`define NANOFPU_FL_FSQRT (32'd1 << `NANOFPU_OP_FSQRT)
+`define NANOFPU_FL_FCMP  (32'd1 << `NANOFPU_OP_FCMP)
+`define NANOFPU_FL_IADD  (32'd127 << `NANOFPU_OP_IADD)
+`define NANOFPU_FL_FPMUL  (32'd1 << `NANOFPU_OP_FPMUL)
 
-`define NANOFPU_FL_NOP   (16'd1 << `NANOFPU_OP_NOP)
+`define NANOFPU_FL_NOP   (32'd1 << `NANOFPU_OP_NOP)
 
 // bitmask to say which are enabled, since fadd and fsub are the same you just
 // need NANOFPU_FL_FADD to enable both

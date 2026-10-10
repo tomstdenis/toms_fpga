@@ -154,7 +154,7 @@ static inline uint32_t isub16(uint32_t a, uint32_t b) {
 static inline uint32_t fpmul16(uint32_t a, uint32_t b) {
     uint32_t res;
     asm volatile (
-        ".insn r 0x0B, 0, 0x0C, %0, %1, %2\n\t"
+        ".insn r 0x0B, 0, 0x0F, %0, %1, %2\n\t"
         : "=r" (res)
         : "r" (a), "r" (b)
     );

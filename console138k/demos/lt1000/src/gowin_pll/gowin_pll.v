@@ -1,9 +1,9 @@
-`default_nettype wire
 module lt1000clk(
     clkin,
     init_clk,
     clkout0,
-    clkout1
+    clkout1,
+    clkout2
 );
 
 
@@ -11,6 +11,7 @@ input clkin;
 input init_clk;
 output clkout0;
 output clkout1;
+output clkout2;
 wire lock;
 wire [5:0] icpsel;
 wire [2:0] lpfres;
@@ -20,6 +21,7 @@ wire pll_rst;
 
     lt1000clk_MOD u_pll(
         .clkout1(clkout1),
+        .clkout2(clkout2),
         .clkout0(clkout0),
         .lock(pll_lock),
         .clkin(clkin),
@@ -40,7 +42,7 @@ wire pll_rst;
         .LPFRES(lpfres)
     );
     defparam u_pll_init.CLK_PERIOD = 20;
-    defparam u_pll_init.MULTI_FAC = 14;
+    defparam u_pll_init.MULTI_FAC = 20;
 
 
 endmodule
