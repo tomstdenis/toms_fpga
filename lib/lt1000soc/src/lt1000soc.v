@@ -299,7 +299,7 @@ localparam
     wire        psram_idle;
 
     nanocache #(
-        .CACHE_REGISTERED(DOUBLE_REG_MEM),
+        .DOUBLE_REG_MEM(DOUBLE_REG_MEM),
         .CACHE_SIZE(CACHE_SIZE_BITS), 
         .FREQ(CORE_FREQ_KHZ/1000)
     ) psram_mem (

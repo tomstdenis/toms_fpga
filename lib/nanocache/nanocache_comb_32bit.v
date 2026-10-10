@@ -16,7 +16,7 @@ module nanocache #(
     parameter CACHE_SIZE=11,                // log2(cache_bytes)
     parameter CACHE_LINE=5,                 // log2(cache_line_bytes)
     parameter CACHE_DP=1,                   // use dual ported cache memory
-    parameter CACHE_REGISTERED=1,			// use double registered cache memory
+    parameter DOUBLE_REG_MEM=1,		    	// use double registered cache memory
 
     parameter SRAM_ADDR_WIDTH=24,           // Address width
     parameter DUMMY_BYTES=3,                // number of dummy cycles on a fast read
@@ -67,19 +67,33 @@ module nanocache #(
     reg [CACHE_LINES-1:0] data_line_index;
     
     // tag memory (you must supply a nanocache_tag_mem that infers the corret 
-    wire [TAG_BITS-1:0]      tag_mem_out;                          // tag mem output
-    reg  [TAG_BITS-1:0]      tag_mem_in;                           // input
-    reg  [CACHE_LINES-1:0]   tag_mem_addr;                         // address
-    reg  [CACHE_LINES-1:0]   tag_mem_addr_ea;                      // address (effective address)
+    reg [TAG_BITS-1:0]       tag_mem_out;                          // tag mem output
+    reg [TAG_BITS-1:0]       tag_mem_in;                           // input
+    reg [CACHE_LINES-1:0]    tag_mem_addr;                         // address
+    reg [CACHE_LINES-1:0]    tag_mem_addr_ea;                      // address (effective address)
     reg                      tag_mem_wren;                         // write enable
-    nanocache_tag_mem #(
-        .WIDTH(TAG_BITS),
-        .DEPTH(CACHE_LINES),
-        .REG(CACHE_REGISTERED)
-    ) tag_mem(
-        .clk(clk), .rst_n(rst_n),
-        .mem_out(tag_mem_out), .mem_in(tag_mem_in), .addr(tag_mem_addr_ea), .wren(tag_mem_wren)
-    );
+
+    reg [TAG_BITS-1:0]       tag_data[0:(1<<CACHE_LINES)-1];
+    reg [TAG_BITS-1:0]       tag_mem_data;
+    reg [TAG_BITS-1:0]       tag_mem_data_tmp;
+
+    always @(posedge clk) begin
+        if (tag_mem_wren) begin
+            tag_data[tag_mem_addr_ea] <= tag_mem_in;
+            tag_mem_data_tmp          <= tag_mem_in;
+        end else begin
+            tag_mem_data_tmp          <= tag_data[tag_mem_addr_ea];
+        end
+        tag_mem_data <= tag_mem_data_tmp;
+    end
+
+    always @(*) begin
+        if (DOUBLE_REG_MEM == 1) begin
+            tag_mem_out = tag_mem_data;
+        end else begin
+            tag_mem_out = tag_mem_data_tmp;
+        end
+    end
 
 	// cache memories
 	reg [7:0] cache_mem_lane1_out;     // data out
@@ -137,7 +151,7 @@ module nanocache #(
     reg [7:0] cache_mem_lane3_data;
     reg [7:0] cache_mem_lane4_data;
     always @(*) begin
-        if (CACHE_REGISTERED == 1) begin
+        if (DOUBLE_REG_MEM == 1) begin
             cache_mem_lane1_data = cache_mem_lane1_out;
             cache_mem_lane2_data = cache_mem_lane2_out;
             cache_mem_lane3_data = cache_mem_lane3_out;
@@ -242,7 +256,7 @@ module nanocache #(
                         tag_mem_addr    <= data_line_index;
                         cache_mem_addr  <= {data_line_index, data_line_offset};
 						ctrl_fsm        <= FSM_COMPARE_TAG;
-						ctrl_spin       <= (CACHE_REGISTERED == 1) ? 1'b1 : 1'b0;
+						ctrl_spin       <= (DOUBLE_REG_MEM == 1) ? 1'b1 : 1'b0;
                         ctrl_write_mask <= data_wr_en ? write_mask : 4'b0000;
                         data_out        <= data_in;              // latch the input locally so we only need one shift register
                     end
@@ -290,7 +304,7 @@ module nanocache #(
 			{1'b0, FSM_EVICT_DELAY}:
 				begin
 					ctrl_fsm  <= FSM_EVICT;
-					ctrl_spin <= (CACHE_REGISTERED == 1) ? 1'b1 : 1'b0;   // add delay to wait for cache data
+					ctrl_spin <= (DOUBLE_REG_MEM == 1) ? 1'b1 : 1'b0;   // add delay to wait for cache data
 				end
 
             {1'b0, FSM_EVICT}:
