@@ -162,9 +162,6 @@ static inline uint32_t fpmul16(uint32_t a, uint32_t b) {
     return res;
 }
 
-
-
-
 float fsin(float x);
 float fcos(float x);
 float ftan(float x);
