@@ -8,6 +8,7 @@
 `define USE_FMUL_TWO_STAGE_CMP    1   // 1 == pipeline the compares, helps timing
 `define USE_FDIV_BARREL           1   // 0 == serial shifter, 1 == barrel shifter, lower latency, costs area
 `define USE_FDIV_TWO_STAGE_CMP    1   // 1 == pipeline the compares, helps timing
+`define USE_FDIV_2BIT_DIV         1   // Use 2-bit divider (22 cycles instead of 32)
 `define USE_FADDSUB_BARREL        1   // Use barrel shifter for faddsub, lowers latency, costs area
 `define USE_FADDSUB_TWO_STAGE_CMP 1   // Use pipelined comparison for sorting, helps timing
 `define USE_FADDSUB_BIG_STEP      1   // Enable a 4-bit stride in the final norm, costs area
@@ -125,6 +126,7 @@ module nanofpu_tb();
         .USE_FLDI_BIG_STEP(`USE_FLDI_BIG_STEP),
         .USE_FADDSUB_BARREL(`USE_FADDSUB_BARREL),
         .USE_FDIV_BARREL(`USE_FDIV_BARREL),
+        .USE_FDIV_2BIT_DIV(`USE_FDIV_2BIT_DIV),
         .USE_FSTI_BARREL(`USE_FSTI_BARREL),
         .USE_FSQRT_STAGES(`USE_FSQRT_STAGES),
 		.USE_FPMUL16_DSP_MULT(`USE_FPMUL16_DSP_MULT)

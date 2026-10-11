@@ -22,6 +22,7 @@ module ecp5_full(
         .USE_FLDI_BIG_STEP(1),
         .USE_FADDSUB_BARREL(1),
         .USE_FDIV_BARREL(1),
+        .USE_FDIV_2BIT_DIV(1),
         .USE_FSTI_BARREL(1),
         .USE_FSQRT_STAGES(2),
 		.USE_FPMUL16_DSP_MULT(0)

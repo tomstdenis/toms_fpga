@@ -1,11 +1,11 @@
-     1507 submodules
+     1510 submodules
       209   SB_CARRY
        11   SB_DFF
        98   SB_DFFE
       225   SB_DFFESR
         5   SB_DFFESS
         5   SB_DFFSR
-      954   SB_LUT4
+      957   SB_LUT4
 
 === design hierarchy ===
 
@@ -15,10 +15,10 @@
 
         +----------Count including submodules.
         | 
-     1117 wires
-     3981 wire bits
-     1117 public wires
-     3981 public wire bits
+     1116 wires
+     3992 wire bits
+     1116 public wires
+     3992 public wire bits
         8 ports
       104 port bits
         - memories
@@ -26,14 +26,14 @@
         - processes
        11 cells
        11   $scopeinfo
-     1507 submodules
+     1510 submodules
       209   SB_CARRY
        11   SB_DFF
        98   SB_DFFE
       225   SB_DFFESR
         5   SB_DFFESS
         5   SB_DFFSR
-      954   SB_LUT4
+      957   SB_LUT4
 
 2.51. Executing CHECK pass (checking for obvious problems).
 Checking module ice40_fmac...

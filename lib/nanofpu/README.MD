@@ -42,46 +42,53 @@ The execution cycles depend on parameter configurations.  Here are the timings f
 
 ```
 Op     FADD( 0):
-	  6 cycles ==  7574 times
-	  7 cycles ==   101 times
-	  8 cycles ==    12 times
-	  9 cycles ==     7 times
+	  6 cycles ==  6140 times
+	  7 cycles ==    93 times
+	  8 cycles ==    11 times
+	  9 cycles ==     5 times
 Op     FSUB( 1):
-	  6 cycles ==  7564 times
-	  7 cycles ==   111 times
-	  8 cycles ==    13 times
-	  9 cycles ==     4 times
+	  6 cycles ==  6165 times
+	  7 cycles ==    78 times
+	  8 cycles ==     7 times
+	  9 cycles ==     1 times
 Op     FMUL( 2):
-	  6 cycles ==  2962 times
-	  7 cycles ==  4731 times
+	  6 cycles ==  2437 times
+	  7 cycles ==  3813 times
 Op     FDIV( 3):
-	 32 cycles ==  7693 times
+	 20 cycles ==  6250 times
 Op     FLDI( 4):
-	  5 cycles ==  4313 times
-	  6 cycles ==  2165 times
-	  7 cycles ==  1128 times
-	  8 cycles ==    84 times
-	  9 cycles ==     2 times
+	  5 cycles ==  3561 times
+	  6 cycles ==  1752 times
+	  7 cycles ==   869 times
+	  8 cycles ==    64 times
+	  9 cycles ==     4 times
 Op     FSTI( 5):
-	  2 cycles ==  6735 times
-	  3 cycles ==    29 times
-	  4 cycles ==   928 times
+	  2 cycles ==  5472 times
+	  3 cycles ==    20 times
+	  4 cycles ==   758 times
 Op    FSQRT( 6):
-	  2 cycles ==  3878 times
-	 82 cycles ==  1859 times
-	 83 cycles ==  1955 times
+	  2 cycles ==  3107 times
+	 82 cycles ==  1566 times
+	 83 cycles ==  1577 times
 Op     FCMP( 7):
-	  3 cycles ==  7692 times
+	  3 cycles ==  6250 times
 Op    IADD8( 8):
-	  2 cycles ==  7692 times
+	  2 cycles ==  6250 times
 Op    ISUB8( 9):
-	  2 cycles ==  7692 times
+	  2 cycles ==  6250 times
 Op   IADD16(10):
-	  2 cycles ==  7692 times
+	  2 cycles ==  6250 times
 Op   ISUB16(11):
-	  2 cycles ==  7692 times
-Op  FPMUL16(12):
-	  2 cycles ==  7692 times
+	  2 cycles ==  6250 times
+Op   IADD32(12):
+	  2 cycles ==  6250 times
+Op   ISUB32(13):
+	  2 cycles ==  6250 times
+Op   ICMP32(14):
+	  2 cycles ==  6250 times
+Op  FPMUL16(15):
+	  2 cycles ==  6250 times
+
 ```
 
 ## Module Parameters
@@ -102,6 +109,7 @@ Op  FPMUL16(12):
 | `USE_FMUL_TWO_STAGE_CMP` | `1` | `0` / `1` | Enables two stage comparison to shorten critical path |
 | `USE_FDIV_BARREL` | `1` | `0` / `1` | Enables barrel shifter to handle normalizing result in a single cycle |
 | `USE_FDIV_TWO_STAGE_CMP` | `1` | `0` / `1` | Enables two stage comparison to shorten critical path |
+| `USE_FDIV_2BIT_DIV` | `1` | `0` / `1` | Enables a 2-bit per cycle reduction drops cycle count from 32 to 20 |
 | `USE_FADDSUB_BARREL`| `1` | `0` / `1` | Enable normalization barrel shifter (fewer cycles but larger area) |
 | `USE_FADDSUB_TWO_STAGE_CMP`| `1` | `0` / `1` | Enable pipelined comparisons, adds a cycle but shortens the critical path |
 | `USE_FADDSUB_BIG_STEP`| `1` | `0` / `1` | Enable a 4-bit step in the output norm, helps latency, costs area |

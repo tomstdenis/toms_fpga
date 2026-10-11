@@ -8,7 +8,8 @@
 module fdiv
 #(
     parameter USE_TWO_STAGE_CMP = 1,
-	parameter USE_BARREL = 1
+	parameter USE_BARREL = 1,
+    parameter USE_2BIT_DIV = 1
 )
 (
     input wire clk,
@@ -34,7 +35,11 @@ module fdiv
     reg         divider_valid;
     wire        divider_ready;
     
-    fdiv_serial fdiv_serial(
+    fdiv_serial #(
+        .USE_TWO_STAGE_CMP(USE_TWO_STAGE_CMP),
+        .USE_BARREL(USE_BARREL),
+        .USE_2BIT_DIV(USE_2BIT_DIV)
+    ) fdiv_serial (
         .clk(clk), 
         .rst_n(rst_n), 
         .valid(divider_valid), 
@@ -203,7 +208,8 @@ endmodule
 
 module fdiv_serial #(
     parameter USE_TWO_STAGE_CMP = 1,
-	parameter USE_BARREL=1
+	parameter USE_BARREL = 1,
+    parameter USE_2BIT_DIV = 1
 )
 (
     input  wire        clk,
@@ -214,17 +220,16 @@ module fdiv_serial #(
     output wire [24:0] quot,    // Quotient (25 bits)
     output reg         ready
 );
-    reg [24:0] rem;
-    reg [24:0] q_reg;
+    reg [25:0] rem;
+    reg [25:0] q_reg;
     reg [23:0] div_reg;
     reg [4:0]  count;
     reg        fsm_state;
 
-    assign quot = q_reg;
+    reg [24:0] div2_reg;
+    reg [25:0] div3_reg;
 
-    wire [24:0] current_rem = (count == 5'd25) ? rem : {rem[23:0], 1'b0};
-    wire [24:0] sub_res     = current_rem - {1'b0, div_reg};
-    wire        sub_fits    = ~sub_res[24]; // 1 if current_rem >= div_reg
+    assign quot = q_reg[24:0];
 
     localparam
         FSM_IDLE   = 0,
@@ -236,11 +241,15 @@ module fdiv_serial #(
         case (fsm_state)
             FSM_IDLE: begin
                 if (~ready & valid) begin
-                    rem       <= {1'b0, sig_a}; // Pre-load dividend into remainder
-                    q_reg     <= 25'b0;
+                    rem       <= {2'b0, sig_a}; // Pre-load dividend into remainder
+                    q_reg     <= 0;
                     div_reg   <= sig_b;
-                    count     <= 5'd25;
+                    count     <= (USE_2BIT_DIV == 1) ? 5'd26 : 5'd25;
                     fsm_state <= FSM_REDUCE;
+                    if (USE_2BIT_DIV == 1) begin
+                        div2_reg <= sig_b << 1;
+                        div3_reg <= (sig_b << 1) + sig_b;
+                    end
                 end
             end
             FSM_REDUCE: begin
@@ -252,19 +261,40 @@ module fdiv_serial #(
                 // the divisor instead of bringing the divisor to the remainder.
                 //
                 // as a result we don't need a 48-bit compare/subtract
-                if (sub_fits) begin
-                    rem <= sub_res;      // rem = (rem << 1) - div_reg
+                if (USE_2BIT_DIV == 0) begin
+                    if (rem >= div_reg) begin
+                        rem <= (rem - div_reg) << 1;
+                        // store whether divisor fits
+                        q_reg <= {q_reg[23:0], 1'b1};
+                    end else begin
+                        rem <= rem << 1;
+                        q_reg <= {q_reg[23:0], 1'b0};
+                    end
+
+                    count <= count - 1'b1;
+                    if (count == 5'd1) begin
+                        ready     <= 1'b1;
+                        fsm_state <= FSM_IDLE;
+                    end
                 end else begin
-                    rem <= current_rem;  // rem = (rem << 1)
-                end
-
-                // store whether divisor fits
-                q_reg <= {q_reg[23:0], sub_fits};
-
-                count <= count - 1'b1;
-                if (count == 5'd1) begin
-                    ready     <= 1'b1;
-                    fsm_state <= FSM_IDLE;
+                    if (rem >= div3_reg) begin 
+                        rem   <= (rem - div3_reg) << 2;
+                        q_reg <= {q_reg[22:0], 2'b11};
+                    end else if (rem >= div2_reg) begin 
+                        rem   <= (rem - div2_reg) << 2;
+                        q_reg <= {q_reg[22:0], 2'b10};
+                    end else if (rem >= div_reg) begin 
+                        rem   <= (rem - div_reg) << 2;
+                        q_reg <= {q_reg[22:0], 2'b01};
+                    end else begin
+                        rem   <= rem << 2;
+                        q_reg <= {q_reg[22:0], 2'b00};
+                    end
+                    count <= count - 2;
+                    if (count == 5'd2) begin
+                        ready     <= 1'b1;
+                        fsm_state <= FSM_IDLE;
+                    end
                 end
             end
         endcase

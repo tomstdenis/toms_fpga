@@ -1,12 +1,12 @@
        19 cells
        11   $scopeinfo
         8   MULT18X18D
-     4080 submodules
-      432   CCU2C
-       29   L6MUX21
-     2205   LUT4
-      391   PFUMX
-     1023   TRELLIS_FF
+     4288 submodules
+      464   CCU2C
+       58   L6MUX21
+     2275   LUT4
+      419   PFUMX
+     1072   TRELLIS_FF
 
 === design hierarchy ===
 
@@ -16,10 +16,10 @@
 
         +----------Count including submodules.
         | 
-     2890 wires
-     9427 wire bits
-     2890 public wires
-     9427 public wire bits
+     3016 wires
+     9625 wire bits
+     3016 public wires
+     9625 public wire bits
         8 ports
       104 port bits
         - memories
@@ -28,12 +28,12 @@
        19 cells
        11   $scopeinfo
         8   MULT18X18D
-     4080 submodules
-      432   CCU2C
-       29   L6MUX21
-     2205   LUT4
-      391   PFUMX
-     1023   TRELLIS_FF
+     4288 submodules
+      464   CCU2C
+       58   L6MUX21
+     2275   LUT4
+      419   PFUMX
+     1072   TRELLIS_FF
 
 2.52. Executing CHECK pass (checking for obvious problems).
 Checking module ecp5_full...

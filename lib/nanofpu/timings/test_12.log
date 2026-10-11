@@ -4,11 +4,12 @@ Defines:
    USE_FMUL_TWO_STAGE_CMP=1
    USE_FDIV_BARREL=1
    USE_FDIV_TWO_STAGE_CMP=1
+   USE_FDIV_2BIT_DIV=1
    USE_FADDSUB_BARREL=1
    USE_FADDSUB_TWO_STAGE_CMP=1
    USE_FADDSUB_BIG_STEP=1
    USE_FSTI_BARREL=1
-   USE_FLDI_BIG_STEP=1
+   USE_FLDI_BIG_STEP=0
    USE_FSQRT_STAGES=0
    USE_FPMUL16_DSP_MULT=0
    EXTERNAL_PARAM
@@ -28,13 +29,21 @@ Op     FMUL( 2):
 	 17 cycles ==  2437 times
 	 18 cycles ==  3813 times
 Op     FDIV( 3):
-	 32 cycles ==  6250 times
+	 20 cycles ==  6250 times
 Op     FLDI( 4):
-	  5 cycles ==  3561 times
-	  6 cycles ==  1752 times
-	  7 cycles ==   869 times
-	  8 cycles ==    64 times
-	  9 cycles ==     4 times
+	  4 cycles ==  3173 times
+	  5 cycles ==  1535 times
+	  6 cycles ==   779 times
+	  7 cycles ==   388 times
+	  8 cycles ==   196 times
+	  9 cycles ==    77 times
+	 10 cycles ==    54 times
+	 11 cycles ==    21 times
+	 12 cycles ==    11 times
+	 13 cycles ==     9 times
+	 14 cycles ==     4 times
+	 15 cycles ==     2 times
+	 16 cycles ==     1 times
 Op     FSTI( 5):
 	  2 cycles ==  5472 times
 	  3 cycles ==    20 times
@@ -61,4 +70,4 @@ Op   ICMP32(14):
 	  2 cycles ==  6250 times
 Op  FPMUL16(15):
 	  3 cycles ==  6250 times
-nanofpu_tb.v:90: $finish called at 17227310000 (1ps)
+nanofpu_tb.v:91: $finish called at 15651150000 (1ps)

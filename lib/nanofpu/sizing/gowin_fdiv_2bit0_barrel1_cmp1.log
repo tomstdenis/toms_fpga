@@ -1,0 +1,27 @@
+        - memories
+        - memory bits
+        - processes
+      652 cells
+        1   $scopeinfo
+        1   GND
+       67   IBUF
+       41   LUT1
+       71   LUT2
+      100   LUT3
+      191   LUT4
+      125   MUX2_LUT5
+       16   MUX2_LUT6
+        5   MUX2_LUT7
+       33   OBUF
+        1   VCC
+      277 submodules
+       93   ALU
+        5   DFF
+       60   DFFE
+        4   DFFR
+      115   DFFRE
+
+8.51. Executing CHECK pass (checking for obvious problems).
+Checking module fdiv...
+Found and reported 0 problems.
+

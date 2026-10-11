@@ -1,11 +1,11 @@
-     3873 submodules
-      700   SB_CARRY
+     3821 submodules
+      702   SB_CARRY
        25   SB_DFF
       304   SB_DFFE
-      498   SB_DFFESR
+      499   SB_DFFESR
         6   SB_DFFESS
        11   SB_DFFSR
-     2329   SB_LUT4
+     2274   SB_LUT4
 
 === design hierarchy ===
 
@@ -15,10 +15,10 @@
 
         +----------Count including submodules.
         | 
-     2723 wires
-     7902 wire bits
-     2723 public wires
-     7902 public wire bits
+     2720 wires
+     7838 wire bits
+     2720 public wires
+     7838 public wire bits
         8 ports
       104 port bits
         - memories
@@ -26,14 +26,14 @@
         - processes
        11 cells
        11   $scopeinfo
-     3873 submodules
-      700   SB_CARRY
+     3821 submodules
+      702   SB_CARRY
        25   SB_DFF
       304   SB_DFFE
-      498   SB_DFFESR
+      499   SB_DFFESR
         6   SB_DFFESS
        11   SB_DFFSR
-     2329   SB_LUT4
+     2274   SB_LUT4
 
 2.51. Executing CHECK pass (checking for obvious problems).
 Checking module ice40_full...

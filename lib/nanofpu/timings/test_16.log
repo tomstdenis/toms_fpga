@@ -1,3 +1,19 @@
+Defines:
+   HANDLE_INVALID_OP=1
+   USE_FMUL_DSP=3
+   USE_FMUL_TWO_STAGE_CMP=1
+   USE_FDIV_BARREL=1
+   USE_FDIV_TWO_STAGE_CMP=1
+   USE_FDIV_2BIT_DIV=1
+   USE_FADDSUB_BARREL=1
+   USE_FADDSUB_TWO_STAGE_CMP=1
+   USE_FADDSUB_BIG_STEP=1
+   USE_FSTI_BARREL=1
+   USE_FLDI_BIG_STEP=1
+   USE_FSQRT_STAGES=2
+   USE_FPMUL16_DSP_MULT=1
+   EXTERNAL_PARAM
+   NUM_OF_TESTS=100000
 FST info: dumpfile nanofpu.vcd opened for output.
 Op     FADD( 0):
 	  6 cycles ==  6140 times
@@ -10,8 +26,8 @@ Op     FSUB( 1):
 	  8 cycles ==     7 times
 	  9 cycles ==     1 times
 Op     FMUL( 2):
-	  6 cycles ==  2437 times
-	  7 cycles ==  3813 times
+	 17 cycles ==  2437 times
+	 18 cycles ==  3813 times
 Op     FDIV( 3):
 	 20 cycles ==  6250 times
 Op     FLDI( 4):
@@ -46,4 +62,4 @@ Op   ICMP32(14):
 	  2 cycles ==  6250 times
 Op  FPMUL16(15):
 	  2 cycles ==  6250 times
-nanofpu_tb.v:91: $finish called at 17496030000 (1ps)
+nanofpu_tb.v:91: $finish called at 18871030000 (1ps)

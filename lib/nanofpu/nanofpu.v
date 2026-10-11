@@ -21,6 +21,7 @@ module nanofpu
 	parameter USE_FMUL_TWO_STAGE_CMP    = 1,   // 1 == pipeline the compares
 	parameter USE_FDIV_BARREL           = 1,   // 0 == serial shifter, 1 == barrel shifter
 	parameter USE_FDIV_TWO_STAGE_CMP    = 1,   // 1 == pipeline the compares
+	parameter USE_FDIV_2BIT_DIV         = 1,   // 1 == faster divide by using 2-bit reduction steps
 	parameter USE_FADDSUB_BARREL        = 1,   // Use barrel shifter for faddsub
 	parameter USE_FADDSUB_TWO_STAGE_CMP = 1,   // Use pipelined comparison for sorting
 	parameter USE_FADDSUB_BIG_STEP      = 1,   // Enable a 4-bit stride in the final norm, costs area
@@ -70,7 +71,8 @@ module nanofpu
 	wire [31:0] fdiv_out;
 	fdiv #(
 		.USE_BARREL(USE_FDIV_BARREL),
-		.USE_TWO_STAGE_CMP(USE_FDIV_TWO_STAGE_CMP)
+		.USE_TWO_STAGE_CMP(USE_FDIV_TWO_STAGE_CMP),
+		.USE_2BIT_DIV(USE_FDIV_2BIT_DIV)
 	) fdiv (
 		.clk(clk), .rst_n(rst_n),
 		.in_a(in_a), .in_b(in_b), .valid((valid && opcode == `NANOFPU_OP_FDIV) ? ENABLE_FDIV : 1'b0),

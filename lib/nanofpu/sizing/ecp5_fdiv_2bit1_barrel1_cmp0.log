@@ -3,10 +3,10 @@
 
         +----------Count including submodules.
         | 
-      410 wires
-     1174 wire bits
-      410 public wires
-     1174 public wire bits
+      471 wires
+     1484 wire bits
+      471 public wires
+     1484 public wire bits
         7 ports
       100 port bits
         - memories
@@ -14,14 +14,14 @@
         - processes
         1 cells
         1   $scopeinfo
-      619 submodules
-       53   CCU2C
-        6   L6MUX21
-      298   LUT4
-       79   PFUMX
-      183   TRELLIS_FF
+      777 submodules
+       81   CCU2C
+        3   L6MUX21
+      398   LUT4
+       68   PFUMX
+      227   TRELLIS_FF
 
-6.52. Executing CHECK pass (checking for obvious problems).
+8.52. Executing CHECK pass (checking for obvious problems).
 Checking module fdiv...
 Found and reported 0 problems.
 

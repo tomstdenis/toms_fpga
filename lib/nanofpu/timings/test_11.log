@@ -4,10 +4,11 @@ Defines:
    USE_FMUL_TWO_STAGE_CMP=1
    USE_FDIV_BARREL=1
    USE_FDIV_TWO_STAGE_CMP=1
+   USE_FDIV_2BIT_DIV=1
    USE_FADDSUB_BARREL=1
    USE_FADDSUB_TWO_STAGE_CMP=1
    USE_FADDSUB_BIG_STEP=1
-   USE_FSTI_BARREL=1
+   USE_FSTI_BARREL=0
    USE_FLDI_BIG_STEP=0
    USE_FSQRT_STAGES=0
    USE_FPMUL16_DSP_MULT=0
@@ -28,7 +29,7 @@ Op     FMUL( 2):
 	 17 cycles ==  2437 times
 	 18 cycles ==  3813 times
 Op     FDIV( 3):
-	 32 cycles ==  6250 times
+	 20 cycles ==  6250 times
 Op     FLDI( 4):
 	  4 cycles ==  3173 times
 	  5 cycles ==  1535 times
@@ -46,7 +47,29 @@ Op     FLDI( 4):
 Op     FSTI( 5):
 	  2 cycles ==  5472 times
 	  3 cycles ==    20 times
-	  4 cycles ==   758 times
+	  4 cycles ==    47 times
+	  5 cycles ==    42 times
+	  6 cycles ==    39 times
+	  7 cycles ==    54 times
+	  8 cycles ==    47 times
+	  9 cycles ==    57 times
+	 10 cycles ==    51 times
+	 11 cycles ==    30 times
+	 12 cycles ==    26 times
+	 13 cycles ==    27 times
+	 14 cycles ==    17 times
+	 15 cycles ==    31 times
+	 16 cycles ==    20 times
+	 17 cycles ==    31 times
+	 18 cycles ==    32 times
+	 19 cycles ==    23 times
+	 20 cycles ==    24 times
+	 21 cycles ==    29 times
+	 22 cycles ==    29 times
+	 23 cycles ==    21 times
+	 24 cycles ==    26 times
+	 25 cycles ==    21 times
+	 26 cycles ==    34 times
 Op    FSQRT( 6):
 	  2 cycles ==  3107 times
 	 30 cycles ==  1566 times
@@ -69,4 +92,4 @@ Op   ICMP32(14):
 	  2 cycles ==  6250 times
 Op  FPMUL16(15):
 	  3 cycles ==  6250 times
-nanofpu_tb.v:90: $finish called at 17151150000 (1ps)
+nanofpu_tb.v:91: $finish called at 15794670000 (1ps)

@@ -4,6 +4,7 @@ Defines:
    USE_FMUL_TWO_STAGE_CMP=1
    USE_FDIV_BARREL=1
    USE_FDIV_TWO_STAGE_CMP=0
+   USE_FDIV_2BIT_DIV=0
    USE_FADDSUB_BARREL=0
    USE_FADDSUB_TWO_STAGE_CMP=0
    USE_FADDSUB_BIG_STEP=0
@@ -141,4 +142,4 @@ Op   ICMP32(14):
 	  2 cycles ==  6250 times
 Op  FPMUL16(15):
 	  3 cycles ==  6250 times
-nanofpu_tb.v:90: $finish called at 17754150000 (1ps)
+nanofpu_tb.v:91: $finish called at 17754150000 (1ps)

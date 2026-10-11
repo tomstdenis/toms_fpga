@@ -1,11 +1,11 @@
        15 cells
        11   $scopeinfo
         4   MULT18X18D
-     1558 submodules
-      127   CCU2C
-       44   L6MUX21
-      845   LUT4
-      177   PFUMX
+     1797 submodules
+      125   CCU2C
+      113   L6MUX21
+      957   LUT4
+      237   PFUMX
       365   TRELLIS_FF
 
 === design hierarchy ===
@@ -16,10 +16,10 @@
 
         +----------Count including submodules.
         | 
-     1208 wires
-     4614 wire bits
-     1208 public wires
-     4614 public wire bits
+     1452 wires
+     4894 wire bits
+     1452 public wires
+     4894 public wire bits
         8 ports
       104 port bits
         - memories
@@ -28,11 +28,11 @@
        15 cells
        11   $scopeinfo
         4   MULT18X18D
-     1558 submodules
-      127   CCU2C
-       44   L6MUX21
-      845   LUT4
-      177   PFUMX
+     1797 submodules
+      125   CCU2C
+      113   L6MUX21
+      957   LUT4
+      237   PFUMX
       365   TRELLIS_FF
 
 2.52. Executing CHECK pass (checking for obvious problems).

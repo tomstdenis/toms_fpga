@@ -2,10 +2,10 @@
 
         +----------Count including submodules.
         | 
-      456 wires
-     1365 wire bits
-      456 public wires
-     1365 public wire bits
+      407 wires
+     1164 wire bits
+      407 public wires
+     1164 public wire bits
         7 ports
       100 port bits
         - memories
@@ -13,15 +13,15 @@
         - processes
         1 cells
         1   $scopeinfo
-      718 submodules
-       77   SB_CARRY
+      604 submodules
+       87   SB_CARRY
         5   SB_DFF
        60   SB_DFFE
-      114   SB_DFFESR
+      115   SB_DFFESR
         4   SB_DFFSR
-      458   SB_LUT4
+      333   SB_LUT4
 
-6.51. Executing CHECK pass (checking for obvious problems).
+8.51. Executing CHECK pass (checking for obvious problems).
 Checking module fdiv...
 Found and reported 0 problems.
 
