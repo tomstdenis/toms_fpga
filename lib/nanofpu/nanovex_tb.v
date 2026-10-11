@@ -55,7 +55,7 @@ module nanovex_tb();
 	
 	localparam
 		TOTAL_TESTS = `NUM_OF_TESTS,
-        VEC_SIZE    = 7 * (32 + 32 + 32 + 32);  // 32-bit inputs and output, and 5-bit opcodes (packed as 32-bits), all per nanovfpu
+        VEC_SIZE    = 22 * 32; // 32-bit inputs and output, and 5-bit opcodes (packed as 32-bits), all per nanovfpu
 	
 	reg [VEC_SIZE-1:0] test_commands[0:TOTAL_TESTS-1];
 	reg [31:0]     command_num;
@@ -161,24 +161,24 @@ module nanovex_tb();
 				STATE_ISSUE:
 					begin
 						$display("Running command: %d, %x", command_num, cur_command);
-						test_state  <= STATE_WAIT;
-						fp_valid    <= 1;
+						test_state    <= STATE_WAIT;
+						fp_valid      <= 4'b1111;
 						cycle_counter <= 0;
 					end
 				STATE_WAIT:
 					begin
-						if (&fp_ready) begin
+						if (fp_ready[6]) begin
 							if (compare_ok != 1) begin
 								test_done <= 1;
 								test_pass <= 0;
 								$display("Result mismatch...");
-                                $display("f00: %h vs %h", f00_out, fp_out[32*1-1:32*0]);
-                                $display("f01: %h vs %h", f01_out, fp_out[32*2-1:32*1]);
-                                $display("f02: %h vs %h", f02_out, fp_out[32*3-1:32*2]);
-                                $display("f03: %h vs %h", f03_out, fp_out[32*4-1:32*3]);
-                                $display("f10: %h vs %h", f10_out, fp_out[32*5-1:32*4]);
-                                $display("f11: %h vs %h", f11_out, fp_out[32*6-1:32*5]);
-                                $display("f20: %h vs %h", f20_out, fp_out[32*7-1:32*6]);
+                                $display("f00: %h vs %h, xor %h, opcode %h", f00_out, fp_out[32*1-1:32*0], f00_out ^ fp_out[32*1-1:32*0], f00_opcode);
+                                $display("f01: %h vs %h, xor %h, opcode %h", f01_out, fp_out[32*2-1:32*1], f01_out ^ fp_out[32*2-1:32*1], f01_opcode);
+                                $display("f02: %h vs %h, xor %h, opcode %h", f02_out, fp_out[32*3-1:32*2], f02_out ^ fp_out[32*3-1:32*2], f02_opcode);
+                                $display("f03: %h vs %h, xor %h, opcode %h", f03_out, fp_out[32*4-1:32*3], f03_out ^ fp_out[32*4-1:32*3], f03_opcode);
+                                $display("f10: %h vs %h, xor %h, opcode %h", f10_out, fp_out[32*5-1:32*4], f10_out ^ fp_out[32*5-1:32*4], f10_opcode);
+                                $display("f11: %h vs %h, xor %h, opcode %h", f11_out, fp_out[32*6-1:32*5], f11_out ^ fp_out[32*6-1:32*5], f11_opcode);
+                                $display("f20: %h vs %h, xor %h, opcode %h", f20_out, fp_out[32*7-1:32*6], f20_out ^ fp_out[32*7-1:32*6], f20_opcode);
 							end else begin
 								command_num <= command_num + 1;
 								test_state  <= (command_num == TOTAL_TESTS-1) ? STATE_DONE : STATE_ISSUE;
