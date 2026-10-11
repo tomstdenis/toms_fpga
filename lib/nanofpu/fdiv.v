@@ -206,6 +206,8 @@ module fdiv
     end
 endmodule
 
+// this module performs an inplace division of 24-bit values and produces
+// a 25-bit quotient
 module fdiv_serial #(
     parameter USE_TWO_STAGE_CMP = 1,
 	parameter USE_BARREL = 1,
@@ -244,9 +246,14 @@ module fdiv_serial #(
                     rem       <= {2'b0, sig_a}; // Pre-load dividend into remainder
                     q_reg     <= 0;
                     div_reg   <= sig_b;
+                    // how many bits are we producing of quotient
+                    // for the 2BIT_DIV version we technically produce
+                    // 26 bits but we truncate it in the assign above
                     count     <= (USE_2BIT_DIV == 1) ? 5'd26 : 5'd25;
                     fsm_state <= FSM_REDUCE;
                     if (USE_2BIT_DIV == 1) begin
+                        // precompute the 2x and 3x divisors so we can compare/subtract
+                        // them later with lower combinatorial overhead.
                         div2_reg <= sig_b << 1;
                         div3_reg <= (sig_b << 1) + sig_b;
                     end
@@ -256,15 +263,17 @@ module fdiv_serial #(
                 // In a schoolbook approach you'd shift both left by X bits 
                 // and then shift the divisor right one bit each step
                 //
-                // instead, this version shifts the remainder left by one bit
+                // instead, these versions shifts the remainder left by one or two bits
                 // and keeps the divisor in place.  So it brings the remainder to
                 // the divisor instead of bringing the divisor to the remainder.
                 //
                 // as a result we don't need a 48-bit compare/subtract
                 if (USE_2BIT_DIV == 0) begin
+                    // this is the 1-bit per cycle division algorithm
+                    // in each pass we see if the divisor fits in the remainder and if it
+                    // does we subtract it out
                     if (rem >= div_reg) begin
                         rem <= (rem - div_reg) << 1;
-                        // store whether divisor fits
                         q_reg <= {q_reg[23:0], 1'b1};
                     end else begin
                         rem <= rem << 1;
@@ -276,7 +285,12 @@ module fdiv_serial #(
                         ready     <= 1'b1;
                         fsm_state <= FSM_IDLE;
                     end
-                end else begin
+                end else begin // (USE_2BIT_DIV == 1)
+                    // in this pass we're producing 2 bits of quotient per pass
+                    // we do this by checking if 3x, 2x, 1x, 0x times the divisor
+                    // fits in the remainder in that order
+                    // like the 1-bit version we bring the remainder to the divisors
+                    // but in this case we do 2 bits at a time instead of 1.
                     if (rem >= div3_reg) begin 
                         rem   <= (rem - div3_reg) << 2;
                         q_reg <= {q_reg[22:0], 2'b11};
