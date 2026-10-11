@@ -20,7 +20,7 @@ int main(void)
         }
         // choose 7 opcodes
         for (y = 0; y < 7; y++) {
-            fxy_opcode[y] = rand() % 4; // add,sub,mul,div
+            fxy_opcode[y] = 0; // rand() % 4; // add,sub,mul,div
         }
 
         // do ops in first tier F0y

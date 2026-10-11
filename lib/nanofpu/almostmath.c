@@ -10,13 +10,19 @@ uint32_t myfadd(uint32_t a, uint32_t b)
     uint32_t a_sign = a >> 31, a_exp = (a >> 23) & 0xFF;
     uint32_t b_sign = b >> 31, b_exp = (b >> 23) & 0xFF;
 
-    // Handle 0 inputs quickly
-    if ((a & 0x7FFFFFFF) == 0) return b;
-    if ((b & 0x7FFFFFFF) == 0) return a;
-
     // Bit 27 is the hidden '1' bit (23 + 4)
     uint32_t a_mant = ((a & 0x7FFFFF) | (1UL << 23)) << 4;
     uint32_t b_mant = ((b & 0x7FFFFF) | (1UL << 23)) << 4;
+
+    // NaN prop
+    if ((a_exp == 0xFF && (a & ((1UL << 23) - 1))) || (b_exp == 0xFF && (b & ((1UL << 23) - 1)))) {
+        return 0x7fc00000 | ((a ^ b) & 0x80000000);
+    }
+
+    // Handle 0 inputs quickly
+    if ((a & 0x7FFFFFFF) == 0 && (b & 0x7FFFFFFF) == 0) return (a ^ b) & 0x8000000;
+    if ((a & 0x7FFFFFFF) == 0) return b;
+    if ((b & 0x7FFFFFFF) == 0) return a;
 
     uint32_t issub = a_sign ^ b_sign;
 
@@ -71,23 +77,26 @@ uint32_t myfadd(uint32_t a, uint32_t b)
 
 uint32_t myfsub(uint32_t a, uint32_t b)
 {
-	return myfadd(a, b ^ 0x80000000);
+    return myfadd(a, b ^ 0x80000000);
 }
-
 
 uint32_t myfmul(uint32_t a, uint32_t b)
 {
     // 1. Unpack
     uint32_t a_sign = a >> 31, a_exp = (a >> 23) & 0xFF;
     uint32_t b_sign = b >> 31, b_exp = (b >> 23) & 0xFF;
-    
+    uint64_t a_sig = (a & 0x7FFFFF) | (1UL << 23);
+    uint64_t b_sig = (b & 0x7FFFFF) | (1UL << 23);
+  
+    // NaN prop
+    if ((a_exp == 0xFF && (a & ((1UL << 23) - 1))) || (b_exp == 0xFF && (b & ((1UL << 23) - 1)))) {
+        return 0x7fc00000 | ((a ^ b) & 0x80000000);
+    }
+
     // Check for explicit/implicit zero (or subnormal, flush-to-zero)
     if (a_exp == 0 || b_exp == 0) {
         return (a_sign ^ b_sign) << 31; // Flush subnormals/zeroes to signed zero
     }
-
-    uint64_t a_sig = (a & 0x7FFFFF) | (1UL << 23);
-    uint64_t b_sig = (b & 0x7FFFFF) | (1UL << 23);
 
     // 2. Compute Sign & Initial Exponent
     uint32_t res_sign = a_sign ^ b_sign;
@@ -154,6 +163,19 @@ uint32_t myfdiv(uint32_t a, uint32_t b)
 
     uint32_t res_sign = a_sign ^ b_sign;
     int32_t  res_exp  = (int32_t)a_exp - (int32_t)b_exp + 127;
+
+    // NaN prop
+    if ((a_exp == 0xFF && (a & ((1UL << 23) - 1))) || (b_exp == 0xFF && (b & ((1UL << 23) - 1)))) {
+        return 0x7fc00000 | ((a ^ b) & 0x80000000);
+    }
+
+    // divide by zero...
+    if (b == 0) {
+        return 0xffc00000;
+    }
+    if (a == 0) {
+        return b & 0x80000000;
+    }
 
     // 2. Serial Divide (25 bits returned)
     uint32_t res_mant = myfdiv_serial(a_sig, b_sig);
