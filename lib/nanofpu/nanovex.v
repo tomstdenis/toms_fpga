@@ -34,17 +34,17 @@
 */
 
 module nanovex
-#(
-	parameter ENABLE_F00=(`NANOFPU_FL_FADD|`NANOFPU_FL_FMUL|`NANOFPU_FL_FSTI|`NANOFPU_FL_FLDI),
-	parameter ENABLE_F01=(`NANOFPU_FL_FADD|`NANOFPU_FL_FMUL),
-	parameter ENABLE_F02=(`NANOFPU_FL_FADD|`NANOFPU_FL_FMUL|`NANOFPU_FL_FSTI|`NANOFPU_FL_FLDI),
-	parameter ENABLE_F03=(`NANOFPU_FL_FADD|`NANOFPU_FL_FMUL),
-	parameter ENABLE_F10=`NANOFPU_FL_FADD,
-	parameter ENABLE_F11=`NANOFPU_FL_FADD,
-	parameter ENABLE_F20=`NANOFPU_FL_FADD,
+#(	
+	parameter ENABLE_F00=`NANOFPU_FUNCS_MULADD,
+	parameter ENABLE_F01=`NANOFPU_FUNCS_MULADD,
+	parameter ENABLE_F02=`NANOFPU_FUNCS_MULADD,
+	parameter ENABLE_F03=`NANOFPU_FUNCS_MULADD,
+	parameter ENABLE_F10=`NANOFPU_FUNCS_MULADD,
+	parameter ENABLE_F11=`NANOFPU_FUNCS_MULADD,
+	parameter ENABLE_F20=`NANOFPU_FUNCS_MULADD,
 
 	parameter HANDLE_INVALID_OP         = 1,   // 1 == signals when an invalid opcode hits (0 == locks up)
-	parameter USE_FMUL_DSP     		    = 1,   // 0 == serial shifter, 1 == 36x36 DSP, 2 == 18x18 DSP, 3 == 2-bit serial multiplier
+	parameter USE_FMUL_DSP     		    = 2,   // 0 == serial shifter, 1 == 36x36 DSP, 2 == 18x18 DSP, 3 == 2-bit serial multiplier
 	parameter USE_FMUL_TWO_STAGE_CMP    = 1,   // 1 == pipeline the compares
 	parameter USE_FDIV_BARREL           = 1,   // 0 == serial shifter, 1 == barrel shifter
 	parameter USE_FDIV_TWO_STAGE_CMP    = 1,   // 1 == pipeline the compares
@@ -156,13 +156,22 @@ module nanovex
 	reg [1:0] f10_deps;
 	reg [1:0] f11_deps;
 	reg [1:0] f20_deps;
-	
+	reg [1:0] f10_deps_next;
+	reg [1:0] f11_deps_next;
+	reg [1:0] f20_deps_next;
+
+	always @(*) begin
+		f10_deps_next = f10_deps | {fpu_readies[0], fpu_readies[1]};
+		f11_deps_next = f11_deps | {fpu_readies[2], fpu_readies[3]};
+		f20_deps_next = f20_deps | {fpu_readies[4],	fpu_readies[5]};
+	end
+
 	wire f10_valid;
 	wire f11_valid;
 	wire f20_valid;
-	assign f10_valid = &f10_deps & ~busy[4];
-	assign f11_valid = &f11_deps & ~busy[5];
-	assign f20_valid = &f20_deps & ~busy[6];
+	assign f10_valid = &f10_deps_next & ~busy[4];
+	assign f11_valid = &f11_deps_next & ~busy[5];
+	assign f20_valid = &f20_deps_next & ~busy[6];
 
 	// F10 takes in F00 and F01 as inputs
 	nanofpu #( 
@@ -245,9 +254,9 @@ module nanovex
 		// handle inner layers by accumulating the readies into pairs in fxy_deps[1:0]
 		// This allows the FPUs to finish on their own time and the next level only starts
 		// when both are ready
-		f10_deps <= f10_deps | {fpu_readies[0], fpu_readies[1]};
-		f11_deps <= f11_deps | {fpu_readies[2], fpu_readies[3]};
-		f20_deps <= f20_deps | {fpu_readies[4],	fpu_readies[5]};
+		f10_deps <= f10_deps_next;
+		f11_deps <= f11_deps_next;
+		f20_deps <= f20_deps_next;
 
 		if (fpu_readies[0]) begin
 			busy[0]      <= 0;

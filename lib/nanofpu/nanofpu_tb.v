@@ -31,7 +31,6 @@ module nanofpu_tb();
     // --- Test Logic ---
 	reg test_done = 0;
 	reg test_pass = 0;
-    // simple test go to address 16'h1234 and write 16 bytes starting at value 8'h55 increasing by 1 per bytes
     reg [3:0] test_state;
     reg [3:0] test_tag;
 
