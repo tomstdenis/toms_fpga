@@ -370,6 +370,7 @@ localparam
     wire picorv_trap;
 
     wire picorv_mem_valid;
+    reg picorv_mem_instr_l;
     wire picorv_mem_instr;
     reg  picorv_mem_ready;
     wire [31:0] picorv_mem_addr;
@@ -443,6 +444,7 @@ localparam
 
     // free running cycle counter
     reg [31:0] timer;
+    reg [31:0] timer_l;
 
     // combinatorially connect bus to blocks
     always @(*) begin
@@ -515,6 +517,12 @@ localparam
 
         // update cycle counter
         timer                <= timer + 1'b1;
+
+        // the latched timer is sampled at the posedge of instruction fetches
+        picorv_mem_instr_l <= picorv_mem_instr;
+        if (picorv_mem_instr & ~picorv_mem_instr_l) begin
+            timer_l <= timer;
+        end
 
         // respond to pcpi requests
         if (~picorv_pcpi_ready & picorv_pcpi_valid) begin
@@ -694,7 +702,7 @@ localparam
                         end
                     end
                     MMIO_TIMER: begin
-                        mmio_data_out <= timer;
+                        mmio_data_out <= timer_l;
                     end
                     default: mmio_data_out <= 32'hBEBEBEEF;
                 endcase
@@ -708,6 +716,7 @@ localparam
         end
         if (!crst_n) begin
             picorv_pcpi_wait   <= 1'b0;
+            picorv_mem_instr_l <= 1'b0;
             bus_cycle          <= 1'b0;
             uart_tx_start      <= 1'b0;
             uart_rx_read       <= 1'b0;
