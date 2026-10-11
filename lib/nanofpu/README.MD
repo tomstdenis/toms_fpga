@@ -20,7 +20,7 @@ To get sizing data run `bench.sh`.
 
 ## Instruction Set & Opcodes
 
-The core operates on a 3-bit opcode (`opcode[2:0]`):
+The core operates on a 5-bit opcode (`opcode[4:0]`):
 
 | Opcode | Mnemonic | Operation | Description |
 | :---: | :---: | :--- | :--- |
@@ -32,9 +32,9 @@ The core operates on a 3-bit opcode (`opcode[2:0]`):
 | `5` | **FSTI** | $out = \text{int}(in\_a)$ | Store integer: Converts float to signed 32-bit integer |
 | `6` | **FSQRT**| $out = \sqrt{in\_a}$ | Floating-point square root |
 | `7` | **FCMP** | out = 4 if EQ, 2 if GT, 1 if LT | Floating point comparison |
-| `8`..`11` | **IADD** | 8-bit saturated add and sub, 16-bit saturated add and sub |
-| `12` | **FPMUL** | 16.16 Fixed Point Multiplication |
-| `15` | **NOP** | No operation | Idle the FPU, returns `ready` immediately |
+| `8`..`14` | **IADD** | 8-bit saturated add and sub, 16-bit saturated add and sub, 32-bit add/sub/cmp |
+| `15` | **FPMUL** | 16.16 Fixed Point Multiplication |
+| `16` | **NOP** | No operation | Idle the FPU, returns `ready` immediately |
 
 ## Performance & Latency Options
 
@@ -118,7 +118,7 @@ Op  FPMUL16(12):
 | `rst_n` | Input | 1 | Active-low asynchronous/synchronous reset |
 | `in_a` | Input | 32 | Operand A (IEEE-754 Float or Signed 32-bit Int for `FLDI`) |
 | `in_b` | Input | 32 | Operand B (IEEE-754 Float, used for `FADD`, `FSUB`, `FMUL`, `FDIV`) |
-| `opcode` | Input | 4 | Operation selector (0–15) |
+| `opcode` | Input | 5 | Operation selector (0–31) |
 | `valid` | Input | 1 | Asserts operation start (must be held steady for 1 cycle) |
 | `out` | Output | 32 | Result output (valid when `ready` is high) |
 | `ready` | Output | 1 | High for 1 cycle when execution completes and `out` is valid |
@@ -202,7 +202,7 @@ input  wire        rst_n,
 // Data & Control Inputs
 input  wire [127:0] in_a,        // Concatenated A inputs: {F03, F02, F01, F00}
 input  wire [127:0] in_b,        // Concatenated B inputs: {F03, F02, F01, F00}
-input  wire [27:0]  opcode,      // Concatenated 4-bit opcodes for 7 FPUs {F20..F00}
+input  wire [34:0]  opcode,      // Concatenated 5-bit opcodes for 7 FPUs {F20..F00}
 input  wire [3:0]   valid,       // Start triggers for leaf FPUs {F03..F00}
 
 // Outputs
@@ -212,22 +212,25 @@ output reg  [6:0]   busy         // busy status of {F20, F11, F10, F03..F00}
 
 ```
 
-### Opcode Mapping (4 bits per FPU)
+### Opcode Mapping (5 bits per FPU)
 
-* `0000` (`0`): **`FADD`** — Floating-Point Addition
-* `0001` (`1`): **`FSUB`** — Floating-Point Subtraction
-* `0010` (`2`): **`FMUL`** — Floating-Point Multiplication
-* `0011` (`3`): **`FDIV`** — Floating-Point Division
-* `0100` (`4`): **`FLDI`** — Int-to-Float Conversion
-* `0101` (`5`): **`FSTI`** — Float-to-Int Conversion
-* `0110` (`6`): **`FSQRT`** — Floating-Point Square Root
-* `0111` (`7`): **`FCMP`**  — Floating-Point Compare (out => 4-EQ, 2-LT, 1-GT)
-* `1000` (`8`): **`IADD`**  — Parallel 8-bit saturated adds
-* `1001` (`9`): **`IADD`**  — Parallel 8-bit saturated subs
-* `1010` (`10`): **`IADD`**  — Parallel 16-bit saturated adds
-* `1011` (`11`): **`IADD`**  — Parallel 16-bit saturated subs
-* `1100` (`12`): **`FPMUL`**  — 16.16 fixed Point Multiplication
-* `1111` (`15`): **`NOP`**  — No-Op signals `ready` immediately.
+* `00000` (`0`): **`FADD`** — Floating-Point Addition
+* `00001` (`1`): **`FSUB`** — Floating-Point Subtraction
+* `00010` (`2`): **`FMUL`** — Floating-Point Multiplication
+* `00011` (`3`): **`FDIV`** — Floating-Point Division
+* `00100` (`4`): **`FLDI`** — Int-to-Float Conversion
+* `00101` (`5`): **`FSTI`** — Float-to-Int Conversion
+* `00110` (`6`): **`FSQRT`** — Floating-Point Square Root
+* `00111` (`7`): **`FCMP`**  — Floating-Point Compare (out => 4-EQ, 2-LT, 1-GT)
+* `01000` (`8`): **`IADD`**  — Parallel 8-bit saturated adds
+* `01001` (`9`): **`IADD`**  — Parallel 8-bit saturated subs
+* `01010` (`10`): **`IADD`**  — Parallel 16-bit saturated adds
+* `01011` (`11`): **`IADD`**  — Parallel 16-bit saturated subs
+* `01100` (`12`): **`IADD`**  — 32-bit add
+* `01101` (`13`): **`IADD`**  — 32-bit sub
+* `01110` (`14`): **`IADD`**  — 32-bit cmp (like `FCMP`)
+* `01111` (`15`): **`FPMUL`**  — 16.16 fixed Point Multiplication
+* `10000` (`16`): **`NOP`**  — No-Op signals `ready` immediately.
 
 ## Example Usage: 2D Euclidean Distance $\sqrt{x^2 + y^2}$
 
@@ -240,11 +243,11 @@ assign in_b = {64'b0, y_val, x_val};
 
 // Set Opcodes: F00=FMUL (x^2), F01=FMUL (y^2), F10=FADD (x^2+y^2), F20=FSQRT (sqrt)
 assign opcode = {
-    4'd6, // F20: FSQRT
-    4'd15, // F11: Unused / Bypassed
-    4'd0, // F10: FADD
-    4'd15, 4'd15, // F03, F02: Unused
-    4'd2, 4'd2  // F01, F00: FMUL
+    5'd6, // F20: FSQRT
+    5'd16, // F11: Unused / Bypassed
+    5'd0, // F10: FADD
+    5'd16, 4'd16, // F03, F02: Unused
+    5'd2, 4'd2  // F01, F00: FMUL
 };
 
 // Trigger leaf execution

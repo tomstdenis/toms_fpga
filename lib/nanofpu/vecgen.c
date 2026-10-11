@@ -511,7 +511,7 @@ int main(int argc, char **argv)
 		if (command != 16) {
 			op = command;
 		} else {
-			op = x % 13;
+			op = x % 16;
 		}		
 		
 		opa = rand_valid_float_bits();

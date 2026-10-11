@@ -82,8 +82,4 @@ for arch in ice40 ecp5 gowin; do
 		yosys -p " read_verilog fsti.v ; chparam -set USE_BARREL ${barrel} ; synth_${arch} " | tail -n ${TL} | head -n ${KEEP} > sizing/${arch}_fsti_barrel${barrel}.log
 	done
 	
-	# iadd
-	echo "iadd ${arch}"
-	yosys -p " read_verilog intaddsub.v ; synth_${arch} " | tail -n ${TL} | head -n ${KEEP} > sizing/${arch}_iadd.log
-	
 done

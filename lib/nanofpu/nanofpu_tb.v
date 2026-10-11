@@ -4,7 +4,7 @@
 
 `ifndef EXTERNAL_PARAM
 `define HANDLE_INVALID_OP         1   // 1 == signals when an invalid opcode hits (0 == locks up)
-`define USE_FMUL_DSP     		  2   // 0 == serial shifter, 1 == 36x36 DSP, 2 == 18x18 DSP, 3 == 2-bit serial shifter
+`define USE_FMUL_DSP     		  1   // 0 == serial shifter, 1 == 36x36 DSP, 2 == 18x18 DSP, 3 == 2-bit serial shifter
 `define USE_FMUL_TWO_STAGE_CMP    1   // 1 == pipeline the compares, helps timing
 `define USE_FDIV_BARREL           1   // 0 == serial shifter, 1 == barrel shifter, lower latency, costs area
 `define USE_FDIV_TWO_STAGE_CMP    1   // 1 == pipeline the compares, helps timing
@@ -14,7 +14,7 @@
 `define USE_FSTI_BARREL           1   // Use barrel shifter for fsti, lower latency, costs area
 `define USE_FLDI_BIG_STEP         1   // use big step hunt, lowers latency, costs area
 `define USE_FSQRT_STAGES 		  2   // 0 == 24 cycle SQRT, 1 == 48 cycles, 2 == 72 cycles (all + overhead)
-`define USE_FPMUL16_DSP_MULT      0    // 0 == use 16x16 multipliers, 1 == use 32x32 multipliers										   
+`define USE_FPMUL16_DSP_MULT      1   // 0 == use 16x16 multipliers, 1 == use 32x32 multipliers										   
 `endif
 
 `include "nanofpu.vh"
@@ -38,7 +38,7 @@ module nanofpu_tb();
 
 	integer i, j;
     
-	reg [63:0] opnames[0:15];
+	reg [63:0] opnames[0:16];
 
 	initial begin
 		opnames[0] = "FADD";
@@ -53,16 +53,17 @@ module nanofpu_tb();
 		opnames[9] = "ISUB8";
 		opnames[10] = "IADD16";
 		opnames[11] = "ISUB16";
-		opnames[12] = "FPMUL16";
-		opnames[13] = "N/A";
-		opnames[14] = "N/A";
-		opnames[15] = "NOP";
+		opnames[12] = "IADD32";
+		opnames[13] = "ISUB32";
+		opnames[14] = "ICMP32";
+		opnames[15] = "FPMUL16";
+		opnames[16] = "NOP";
 
         // Waveform setup
         $dumpfile("nanofpu.vcd");
         $dumpvars(0, nanofpu_tb);
 
-		for (i = 0; i < 16; i = i + 1) begin
+		for (i = 0; i < 17; i = i + 1) begin
 			for (j = 0; j < 128; j = j + 1) begin
 				total_ops[i][j] = 0;
 			end
@@ -129,7 +130,7 @@ module nanofpu_tb();
 		.USE_FPMUL16_DSP_MULT(`USE_FPMUL16_DSP_MULT)
 	) nanofpu_dut(
 		.clk(clk), .rst_n(rst_n),
-		.in_a(oper_a), .in_b(oper_b), .opcode(opcode[3:0]), .valid(fp_valid),
+		.in_a(oper_a), .in_b(oper_b), .opcode(opcode[4:0]), .valid(fp_valid),
 		.out(fp_res), .ready(fp_ready));
 
     localparam

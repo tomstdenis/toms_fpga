@@ -1,12 +1,11 @@
-      104 port bits
        15 cells
        11   $scopeinfo
         4   MULT18X18D
-     1595 submodules
+     1558 submodules
       127   CCU2C
-       52   L6MUX21
-      876   LUT4
-      175   PFUMX
+       44   L6MUX21
+      845   LUT4
+      177   PFUMX
       365   TRELLIS_FF
 
 === design hierarchy ===
@@ -17,10 +16,10 @@
 
         +----------Count including submodules.
         | 
-     1250 wires
-     4698 wire bits
-     1250 public wires
-     4698 public wire bits
+     1208 wires
+     4614 wire bits
+     1208 public wires
+     4614 public wire bits
         8 ports
       104 port bits
         - memories
@@ -29,12 +28,13 @@
        15 cells
        11   $scopeinfo
         4   MULT18X18D
-     1595 submodules
+     1558 submodules
       127   CCU2C
-       52   L6MUX21
-      876   LUT4
-      175   PFUMX
+       44   L6MUX21
+      845   LUT4
+      177   PFUMX
       365   TRELLIS_FF
 
 2.52. Executing CHECK pass (checking for obvious problems).
 Checking module ecp5_fmac...
+Found and reported 0 problems.

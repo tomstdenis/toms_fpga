@@ -5,21 +5,21 @@
 
         +----------Count including submodules.
         | 
-      307 wires
-      768 wire bits
-      307 public wires
-      768 public wire bits
+      395 wires
+      914 wire bits
+      395 public wires
+      914 public wire bits
         8 ports
-      102 port bits
+      103 port bits
         - memories
         - memory bits
         - processes
         - cells
-      416 submodules
-      128   SB_CARRY
+      550 submodules
+      191   SB_CARRY
         1   SB_DFF
        32   SB_DFFESR
-      255   SB_LUT4
+      326   SB_LUT4
 
 2.51. Executing CHECK pass (checking for obvious problems).
 Checking module iaddsub...
