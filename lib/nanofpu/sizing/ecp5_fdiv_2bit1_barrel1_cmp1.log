@@ -1,12 +1,10 @@
-        | 
-        1 fdiv
 
         +----------Count including submodules.
         | 
-      683 wires
-     1735 wire bits
-      683 public wires
-     1735 public wire bits
+      693 wires
+     1477 wire bits
+      693 public wires
+     1477 public wire bits
         7 ports
       100 port bits
         - memories
@@ -14,14 +12,16 @@
         - processes
         1 cells
         1   $scopeinfo
-      940 submodules
-      105   CCU2C
-       29   L6MUX21
-      473   LUT4
-      101   PFUMX
+      880 submodules
+       81   CCU2C
+       16   L6MUX21
+      437   LUT4
+      114   PFUMX
       232   TRELLIS_FF
 
 8.52. Executing CHECK pass (checking for obvious problems).
 Checking module fdiv...
 Found and reported 0 problems.
 
+Warnings: 1 unique messages, 1 total
+Warnings: 1 experimental features used (not excluded with -x).

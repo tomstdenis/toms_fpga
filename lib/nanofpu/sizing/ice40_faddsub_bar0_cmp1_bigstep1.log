@@ -1,27 +1,27 @@
-        - faddsub
-
         +----------Count including submodules.
         | 
-      513 wires
-     1244 wire bits
-      513 public wires
-     1244 public wire bits
+      508 wires
+     1238 wire bits
+      508 public wires
+     1238 public wire bits
         8 ports
       101 port bits
         - memories
         - memory bits
         - processes
         - cells
-      723 submodules
+      724 submodules
       131   SB_CARRY
         5   SB_DFF
        46   SB_DFFE
        43   SB_DFFESR
         1   SB_DFFESS
         1   SB_DFFSR
-      496   SB_LUT4
+      497   SB_LUT4
 
 5.51. Executing CHECK pass (checking for obvious problems).
 Checking module faddsub...
 Found and reported 0 problems.
 
+Warnings: 1 unique messages, 1 total
+Warnings: 1 experimental features used (not excluded with -x).

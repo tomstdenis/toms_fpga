@@ -1,21 +1,19 @@
         - memory bits
         - processes
-      416 cells
+      310 cells
         1   GND
        67   IBUF
-       27   LUT1
-       61   LUT2
-       47   LUT3
-       96   LUT4
+       21   LUT1
+       29   LUT2
+       45   LUT3
+       84   LUT4
         1   MULT36X36
-       63   MUX2_LUT5
-       13   MUX2_LUT6
-        4   MUX2_LUT7
-        2   MUX2_LUT8
+       24   MUX2_LUT5
+        4   MUX2_LUT6
        33   OBUF
         1   VCC
-      124 submodules
-       30   ALU
+      123 submodules
+       29   ALU
         5   DFF
        55   DFFE
         1   DFFR
@@ -25,3 +23,5 @@
 Checking module fmul...
 Found and reported 0 problems.
 
+Warnings: 1 unique messages, 1 total
+Warnings: 1 experimental features used (not excluded with -x).

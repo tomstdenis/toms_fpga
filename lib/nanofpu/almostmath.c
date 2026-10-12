@@ -56,8 +56,7 @@ uint32_t myfadd(uint32_t a, uint32_t b)
 
     // Renormalization in 28-bit space (Bit 27 is hidden bit)
     if (a_mant & (1UL << 28)) { 
-        // Overflow (e.g. 1.x + 1.y = 10.z) -> Shift right, preserve sticky
-        uint32_t sticky = a_mant & 1;
+        // Overflow (e.g. 1.x + 1.y = 10.z) -> Shift right
         a_mant = (a_mant >> 1);
         a_exp += 1;
     } else {

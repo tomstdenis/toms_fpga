@@ -1,27 +1,27 @@
-        - fsqrt
-
         +----------Count including submodules.
         | 
-      533 wires
-     1275 wire bits
-      533 public wires
-     1275 public wire bits
+      534 wires
+     1285 wire bits
+      534 public wires
+     1285 public wire bits
         6 ports
        68 port bits
         - memories
         - memory bits
         - processes
         - cells
-      793 submodules
+      792 submodules
       157   SB_CARRY
         6   SB_DFF
       130   SB_DFFE
        98   SB_DFFESR
         2   SB_DFFESS
         1   SB_DFFSR
-      399   SB_LUT4
+      398   SB_LUT4
 
 3.51. Executing CHECK pass (checking for obvious problems).
 Checking module fsqrt...
 Found and reported 0 problems.
 
+Warnings: 1 unique messages, 1 total
+Warnings: 1 experimental features used (not excluded with -x).

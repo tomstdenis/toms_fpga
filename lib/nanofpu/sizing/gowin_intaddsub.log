@@ -1,23 +1,21 @@
-        8 ports
-      103 port bits
         - memories
         - memory bits
         - processes
-      895 cells
+      971 cells
         1   GND
        70   IBUF
-      194   LUT1
-       25   LUT2
-       59   LUT3
-      183   LUT4
-      199   MUX2_LUT5
-       82   MUX2_LUT6
-       36   MUX2_LUT7
-       12   MUX2_LUT8
+      212   LUT1
+       24   LUT2
+      101   LUT3
+      158   LUT4
+      218   MUX2_LUT5
+       93   MUX2_LUT6
+       44   MUX2_LUT7
+       16   MUX2_LUT8
        33   OBUF
         1   VCC
-      232 submodules
-      199   ALU
+      231 submodules
+      198   ALU
         1   DFF
        32   DFFRE
 
@@ -25,3 +23,5 @@
 Checking module iaddsub...
 Found and reported 0 problems.
 
+Warnings: 1 unique messages, 1 total
+Warnings: 1 experimental features used (not excluded with -x).

@@ -1,21 +1,19 @@
-        - memory bits
-        - processes
-      827 cells
+      544 cells
         1   $scopeinfo
         1   GND
        67   IBUF
-      152   LUT1
-      132   LUT2
-       58   LUT3
-      119   LUT4
-      175   MUX2_LUT5
-       55   MUX2_LUT6
-       25   MUX2_LUT7
-        8   MUX2_LUT8
+       73   LUT1
+       76   LUT2
+       49   LUT3
+      120   LUT4
+       93   MUX2_LUT5
+       24   MUX2_LUT6
+        5   MUX2_LUT7
+        1   MUX2_LUT8
        33   OBUF
         1   VCC
-      283 submodules
-      104   ALU
+      281 submodules
+      102   ALU
         4   DFF
        56   DFFE
         4   DFFR
@@ -25,3 +23,5 @@
 Checking module fdiv...
 Found and reported 0 problems.
 
+Warnings: 1 unique messages, 1 total
+Warnings: 1 experimental features used (not excluded with -x).

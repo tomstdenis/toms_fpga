@@ -1,27 +1,27 @@
-        | 
-        - fldi
 
         +----------Count including submodules.
         | 
-      209 wires
-      580 wire bits
-      209 public wires
-      580 public wire bits
+      210 wires
+      592 wire bits
+      210 public wires
+      592 public wire bits
         6 ports
        68 port bits
         - memories
         - memory bits
         - processes
         - cells
-      292 submodules
+      291 submodules
        40   SB_CARRY
         3   SB_DFF
         8   SB_DFFE
        33   SB_DFFESR
         1   SB_DFFSR
-      207   SB_LUT4
+      206   SB_LUT4
 
 3.51. Executing CHECK pass (checking for obvious problems).
 Checking module fldi...
 Found and reported 0 problems.
 
+Warnings: 1 unique messages, 1 total
+Warnings: 1 experimental features used (not excluded with -x).

@@ -1,27 +1,27 @@
-        +----------Count including submodules.
-        | 
         - faddsub
 
         +----------Count including submodules.
         | 
-     1009 wires
-     1983 wire bits
-     1009 public wires
-     1983 public wire bits
+     1023 wires
+     1822 wire bits
+     1023 public wires
+     1822 public wire bits
         8 ports
       101 port bits
         - memories
         - memory bits
         - processes
         - cells
-     1215 submodules
+     1160 submodules
        64   CCU2C
-      114   L6MUX21
-      732   LUT4
-      216   PFUMX
+      105   L6MUX21
+      696   LUT4
+      206   PFUMX
        89   TRELLIS_FF
 
 5.52. Executing CHECK pass (checking for obvious problems).
 Checking module faddsub...
 Found and reported 0 problems.
 
+Warnings: 1 unique messages, 1 total
+Warnings: 1 experimental features used (not excluded with -x).

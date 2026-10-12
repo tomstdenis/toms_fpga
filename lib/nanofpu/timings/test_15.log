@@ -62,4 +62,4 @@ Op   ICMP32(14):
 	  2 cycles ==  6250 times
 Op  FPMUL16(15):
 	  3 cycles ==  6250 times
-nanofpu_tb.v:91: $finish called at 18996030000 (1ps)
+nanofpu_tb.v:90: $finish called at 18996030000 (1ps)

@@ -1,27 +1,27 @@
-        +----------Count including submodules.
-        | 
         - fmul
 
         +----------Count including submodules.
         | 
-      558 wires
-     1461 wire bits
-      558 public wires
-     1461 public wire bits
+      681 wires
+     1318 wire bits
+      681 public wires
+     1318 public wire bits
         7 ports
       100 port bits
         - memories
         - memory bits
         - processes
         - cells
-      802 submodules
+      781 submodules
        86   CCU2C
-        3   L6MUX21
-      461   LUT4
-       88   PFUMX
+       12   L6MUX21
+      434   LUT4
+       85   PFUMX
       164   TRELLIS_FF
 
 4.52. Executing CHECK pass (checking for obvious problems).
 Checking module fmul...
 Found and reported 0 problems.
 
+Warnings: 1 unique messages, 1 total
+Warnings: 1 experimental features used (not excluded with -x).

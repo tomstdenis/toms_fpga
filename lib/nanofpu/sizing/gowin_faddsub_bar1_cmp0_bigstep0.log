@@ -1,16 +1,14 @@
-        - memory bits
-        - processes
-     1185 cells
+     1476 cells
         1   GND
        68   IBUF
-      201   LUT1
-       87   LUT2
-      108   LUT3
-      304   LUT4
-      260   MUX2_LUT5
-       87   MUX2_LUT6
-       28   MUX2_LUT7
-        7   MUX2_LUT8
+      203   LUT1
+      200   LUT2
+      146   LUT3
+      297   LUT4
+      343   MUX2_LUT5
+      118   MUX2_LUT6
+       50   MUX2_LUT7
+       16   MUX2_LUT8
        33   OBUF
         1   VCC
       202 submodules
@@ -25,3 +23,5 @@
 Checking module faddsub...
 Found and reported 0 problems.
 
+Warnings: 1 unique messages, 1 total
+Warnings: 1 experimental features used (not excluded with -x).

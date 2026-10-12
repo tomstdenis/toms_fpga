@@ -1,11 +1,9 @@
-        - fmul
-
         +----------Count including submodules.
         | 
-      319 wires
-      771 wire bits
-      319 public wires
-      771 public wire bits
+      315 wires
+      760 wire bits
+      315 public wires
+      760 public wire bits
         7 ports
       100 port bits
         - memories
@@ -25,3 +23,5 @@
 Checking module fmul...
 Found and reported 0 problems.
 
+Warnings: 1 unique messages, 1 total
+Warnings: 1 experimental features used (not excluded with -x).

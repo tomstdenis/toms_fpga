@@ -1,11 +1,9 @@
-        - faddsub
-
         +----------Count including submodules.
         | 
-      511 wires
-     1311 wire bits
-      511 public wires
-     1311 public wire bits
+      513 wires
+     1309 wire bits
+      513 public wires
+     1309 public wire bits
         8 ports
       101 port bits
         - memories
@@ -25,3 +23,5 @@
 Checking module faddsub...
 Found and reported 0 problems.
 
+Warnings: 1 unique messages, 1 total
+Warnings: 1 experimental features used (not excluded with -x).

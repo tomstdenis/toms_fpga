@@ -1,4 +1,3 @@
-     1510 submodules
       209   SB_CARRY
        11   SB_DFF
        98   SB_DFFE
@@ -15,10 +14,10 @@
 
         +----------Count including submodules.
         | 
-     1116 wires
-     3992 wire bits
-     1116 public wires
-     3992 public wire bits
+     1030 wires
+     2620 wire bits
+     1030 public wires
+     2620 public wire bits
         8 ports
       104 port bits
         - memories
@@ -38,3 +37,4 @@
 2.51. Executing CHECK pass (checking for obvious problems).
 Checking module ice40_fmac...
 Found and reported 0 problems.
+

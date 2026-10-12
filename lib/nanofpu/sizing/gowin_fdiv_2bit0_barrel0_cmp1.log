@@ -1,17 +1,15 @@
-        7 ports
-      100 port bits
         - memories
         - memory bits
         - processes
-      397 cells
+      393 cells
         1   $scopeinfo
         1   GND
        67   IBUF
-       13   LUT1
-       43   LUT2
-       58   LUT3
-      128   LUT4
-       52   MUX2_LUT5
+       10   LUT1
+       47   LUT2
+       61   LUT3
+      122   LUT4
+       50   MUX2_LUT5
        33   OBUF
         1   VCC
       286 submodules
@@ -25,3 +23,5 @@
 Checking module fdiv...
 Found and reported 0 problems.
 
+Warnings: 1 unique messages, 1 total
+Warnings: 1 experimental features used (not excluded with -x).

@@ -1,27 +1,27 @@
-
-        +----------Count including submodules.
         | 
         - iaddsub
 
         +----------Count including submodules.
         | 
-      395 wires
-      914 wire bits
-      395 public wires
-      914 public wire bits
+      364 wires
+     1155 wire bits
+      364 public wires
+     1155 public wire bits
         8 ports
       103 port bits
         - memories
         - memory bits
         - processes
         - cells
-      550 submodules
+      553 submodules
       191   SB_CARRY
         1   SB_DFF
        32   SB_DFFESR
-      326   SB_LUT4
+      329   SB_LUT4
 
 2.51. Executing CHECK pass (checking for obvious problems).
 Checking module iaddsub...
 Found and reported 0 problems.
 
+Warnings: 1 unique messages, 1 total
+Warnings: 1 experimental features used (not excluded with -x).

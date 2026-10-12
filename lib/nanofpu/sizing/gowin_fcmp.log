@@ -1,17 +1,15 @@
-      100 port bits
         - memories
         - memory bits
         - processes
-      201 cells
+      197 cells
         1   GND
        67   IBUF
-       17   LUT1
-       10   LUT2
-        6   LUT3
-       47   LUT4
-       13   MUX2_LUT5
-        5   MUX2_LUT6
-        1   MUX2_LUT7
+       16   LUT1
+       12   LUT2
+        4   LUT3
+       46   LUT4
+       14   MUX2_LUT5
+        3   MUX2_LUT6
        33   OBUF
         1   VCC
        43 submodules
@@ -25,3 +23,5 @@
 Checking module fcmp...
 Found and reported 0 problems.
 
+Warnings: 1 unique messages, 1 total
+Warnings: 1 experimental features used (not excluded with -x).

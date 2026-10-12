@@ -1,27 +1,27 @@
-        - fmul
-
         +----------Count including submodules.
         | 
-      322 wires
-      780 wire bits
-      322 public wires
-      780 public wire bits
+      311 wires
+      753 wire bits
+      311 public wires
+      753 public wire bits
         7 ports
       100 port bits
         - memories
         - memory bits
         - processes
         - cells
-      508 submodules
+      500 submodules
        74   SB_CARRY
         3   SB_DFF
        48   SB_DFFE
       110   SB_DFFESR
         3   SB_DFFESS
         1   SB_DFFSR
-      269   SB_LUT4
+      261   SB_LUT4
 
 4.51. Executing CHECK pass (checking for obvious problems).
 Checking module fmul...
 Found and reported 0 problems.
 
+Warnings: 1 unique messages, 1 total
+Warnings: 1 experimental features used (not excluded with -x).

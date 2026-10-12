@@ -1,27 +1,27 @@
-        +----------Count including submodules.
-        | 
         - fsqrt
 
         +----------Count including submodules.
         | 
-      670 wires
-     1651 wire bits
-      670 public wires
-     1651 public wire bits
+      508 wires
+     1142 wire bits
+      508 public wires
+     1142 public wire bits
         6 ports
        68 port bits
         - memories
         - memory bits
         - processes
         - cells
-      831 submodules
+      499 submodules
        83   CCU2C
-       62   L6MUX21
-      416   LUT4
-      134   PFUMX
+        6   L6MUX21
+      234   LUT4
+       40   PFUMX
       136   TRELLIS_FF
 
 3.52. Executing CHECK pass (checking for obvious problems).
 Checking module fsqrt...
 Found and reported 0 problems.
 
+Warnings: 1 unique messages, 1 total
+Warnings: 1 experimental features used (not excluded with -x).

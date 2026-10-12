@@ -1,6 +1,4 @@
-      252 wires
-      753 wire bits
-      252 public wires
+      360 public wires
       753 public wire bits
         7 ports
       100 port bits
@@ -25,3 +23,5 @@
 Checking module fpmul16...
 Found and reported 0 problems.
 
+Warnings: 1 unique messages, 1 total
+Warnings: 1 experimental features used (not excluded with -x).

@@ -1,17 +1,15 @@
-        - memories
         - memory bits
         - processes
-      373 cells
+      400 cells
         1   GND
        35   IBUF
-       60   LUT1
-       32   LUT2
+       62   LUT1
+       11   LUT2
        60   LUT3
-       43   LUT4
-       80   MUX2_LUT5
-       25   MUX2_LUT6
-        2   MUX2_LUT7
-        1   MUX2_LUT8
+       85   LUT4
+       85   MUX2_LUT5
+       18   MUX2_LUT6
+        9   MUX2_LUT7
        33   OBUF
         1   VCC
       111 submodules
@@ -25,3 +23,5 @@
 Checking module fsti...
 Found and reported 0 problems.
 
+Warnings: 1 unique messages, 1 total
+Warnings: 1 experimental features used (not excluded with -x).

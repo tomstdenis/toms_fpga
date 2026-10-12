@@ -1,17 +1,15 @@
-        6 ports
        68 port bits
         - memories
         - memory bits
         - processes
-      208 cells
+      200 cells
         1   GND
        35   IBUF
-        2   LUT1
-        9   LUT2
-        4   LUT3
-       85   LUT4
-       37   MUX2_LUT5
-        1   MUX2_LUT6
+        1   LUT1
+        8   LUT2
+        7   LUT3
+       81   LUT4
+       33   MUX2_LUT5
        33   OBUF
         1   VCC
        84 submodules
@@ -25,3 +23,5 @@
 Checking module fldi...
 Found and reported 0 problems.
 
+Warnings: 1 unique messages, 1 total
+Warnings: 1 experimental features used (not excluded with -x).

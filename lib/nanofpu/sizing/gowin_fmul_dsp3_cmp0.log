@@ -1,16 +1,14 @@
-        7 ports
-      100 port bits
-        - memories
         - memory bits
         - processes
-      544 cells
+      663 cells
         1   GND
        67   IBUF
-       13   LUT1
-       33   LUT2
-      145   LUT3
-      190   LUT4
-       61   MUX2_LUT5
+       65   LUT1
+       39   LUT2
+      146   LUT3
+      196   LUT4
+      114   MUX2_LUT5
+        1   MUX2_LUT6
        33   OBUF
         1   VCC
       340 submodules
@@ -25,3 +23,5 @@
 Checking module fmul...
 Found and reported 0 problems.
 
+Warnings: 1 unique messages, 1 total
+Warnings: 1 experimental features used (not excluded with -x).

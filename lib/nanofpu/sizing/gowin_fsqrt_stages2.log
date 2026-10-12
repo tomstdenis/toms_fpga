@@ -1,16 +1,14 @@
-        6 ports
-       68 port bits
-        - memories
-        - memory bits
-        - processes
-      346 cells
+      453 cells
         1   GND
        35   IBUF
-       20   LUT1
-       14   LUT2
-       98   LUT3
-       95   LUT4
-       49   MUX2_LUT5
+       48   LUT1
+       33   LUT2
+       68   LUT3
+      136   LUT4
+       74   MUX2_LUT5
+       16   MUX2_LUT6
+        6   MUX2_LUT7
+        2   MUX2_LUT8
        33   OBUF
         1   VCC
       401 submodules
@@ -25,3 +23,5 @@
 Checking module fsqrt...
 Found and reported 0 problems.
 
+Warnings: 1 unique messages, 1 total
+Warnings: 1 experimental features used (not excluded with -x).

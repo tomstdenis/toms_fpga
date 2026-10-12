@@ -1,14 +1,12 @@
-
-        +----------Count including submodules.
         | 
         4 fpmul16
 
         +----------Count including submodules.
         | 
-      139 wires
-      670 wire bits
-      139 public wires
-      670 public wire bits
+      254 wires
+      442 wire bits
+      254 public wires
+      442 public wire bits
         7 ports
       100 port bits
         - memories
@@ -25,3 +23,5 @@
 Checking module fpmul16...
 Found and reported 0 problems.
 
+Warnings: 1 unique messages, 1 total
+Warnings: 1 experimental features used (not excluded with -x).

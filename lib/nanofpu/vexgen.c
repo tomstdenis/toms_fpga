@@ -1,5 +1,6 @@
 #define _GNU_SOURCE
 #include <fenv.h>
+#include <inttypes.h>
 #include "almostmath.c"
 
 int main(void)
@@ -79,7 +80,7 @@ int main(void)
         *pv++ = fxy_opcode[1]; *pv++ = fxy_out[1]; *pv++ = f0x_in[1*2 + 1]; *pv++ = f0x_in[1*2 + 0]; // f01_opcode, f01_out, f01_in*2
         *pv++ = fxy_opcode[0]; *pv++ = fxy_out[0]; *pv++ = f0x_in[0*2 + 1]; *pv++ = f0x_in[0*2 + 0]; // f00_opcode, f00_out, f00_in*2
         for (y = 0; y < (7 + 7 + 8); y++) {
-            fprintf(f, "%08lx", vector[y]);
+            fprintf(f, "%08"PRIx32, vector[y]);
         }
         fprintf(f, "\n");
     }
