@@ -8,9 +8,9 @@
   
   
   F00     F01     F02     F03
-    \       /      \      /
-     \     /        \    /
-       F10           F11
+    \       /      \       /
+     \     /        \     /
+       F10            F11
           \         /
            \       /
             \     /
@@ -164,19 +164,18 @@ module nanovex
 	reg [1:0] f10_deps_next;
 	reg [1:0] f11_deps_next;
 	reg [1:0] f20_deps_next;
+	reg 	  f10_valid;
+	reg 	  f11_valid;
+	reg       f20_valid;
 
 	always @(*) begin
 		f10_deps_next = f10_deps | {fpu_readies[0], fpu_readies[1]};
 		f11_deps_next = f11_deps | {fpu_readies[2], fpu_readies[3]};
 		f20_deps_next = f20_deps | {fpu_readies[4],	fpu_readies[5]};
+		f10_valid     = &f10_deps_next & ~busy[4];
+		f11_valid     = &f11_deps_next & ~busy[5];
+		f20_valid     = &f20_deps_next & ~busy[6];
 	end
-
-	wire f10_valid;
-	wire f11_valid;
-	wire f20_valid;
-	assign f10_valid = &f10_deps_next & ~busy[4];
-	assign f11_valid = &f11_deps_next & ~busy[5];
-	assign f20_valid = &f20_deps_next & ~busy[6];
 
 	// F10 takes in F00 and F01 as inputs
 	nanofpu #( 
