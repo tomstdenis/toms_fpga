@@ -36,8 +36,8 @@ uint32_t myfadd(uint32_t a, uint32_t b)
     // Exponent Alignment with Sticky Bit
     uint32_t exp_diff = a_exp - b_exp;
     if (exp_diff >= 31) {
-        b_mant = (b_mant != 0) ? 1 : 0;
-    } else if (exp_diff > 0) {
+        b_mant = ((b_mant & 0x7FFFFF0) != 0) ? 1 : 0;
+    } else {
         uint32_t sticky = 0; // (b_mant & ((1UL << exp_diff) - 1)) != 0;
         b_mant = (b_mant >> exp_diff) | sticky;
     }
@@ -58,7 +58,7 @@ uint32_t myfadd(uint32_t a, uint32_t b)
     if (a_mant & (1UL << 28)) { 
         // Overflow (e.g. 1.x + 1.y = 10.z) -> Shift right, preserve sticky
         uint32_t sticky = a_mant & 1;
-        a_mant = (a_mant >> 1) | sticky;
+        a_mant = (a_mant >> 1);
         a_exp += 1;
     } else {
         // Underflow -> Shift left until hidden bit is back at bit 27

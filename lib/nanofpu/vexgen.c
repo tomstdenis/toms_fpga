@@ -11,6 +11,13 @@ int main(void)
     uint32_t *pv, vector[22];
     uint32_t x, y, r;
 
+    /*
+    x = 0x6e3f1927;
+    y = 0x8037a80a;
+    r = myfadd(x, y);
+    printf("0x%08lx\n", r);
+    return 0;
+*/
     f = fopen("fpu.hex", "w");
 
     for (x = 0; x < NUM_OF_TESTS; x++) {

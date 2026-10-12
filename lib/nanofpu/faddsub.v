@@ -55,8 +55,8 @@ module faddsub
 	// various comparisons to pipeline
 	wire isnan_a_next = (in_a[30:23] == 8'hFF && (|in_a[22:0] == 1'b1)) ? 1'b1 : 1'b0;
 	wire isnan_b_next = (in_b[30:23] == 8'hFF && (|in_b[22:0] == 1'b1)) ? 1'b1 : 1'b0;
-	wire expaz_next   = (in_a[30:23] == 8'h00) ? 1'b1 : 1'b0;
-	wire expbz_next   = (in_b[30:23] == 8'h00) ? 1'b1 : 1'b0;
+	wire expaz_next   = (in_a[30:0] == 0) ? 1'b1 : 1'b0;
+	wire expbz_next   = (in_b[30:0] == 0) ? 1'b1 : 1'b0;
 	wire explt_next   = (in_a[30:23] < in_b[30:23]) ? 1'b1 : 1'b0;
 	wire expeq_next   = (in_a[30:23] == in_b[30:23]) ? 1'b1 : 1'b0;
 	wire mantlt_next  = (in_a[22:0] < in_b[22:0]) ? 1'b1 : 1'b0;
@@ -138,13 +138,14 @@ module faddsub
 						a_exp        <= 8'hFF;
 						a_mant       <= {1'b1, 22'b0, 4'b0000};
 						ready        <= 1;
+						fsm_state    <= FSM_IDLE;
 					end else if (expaz && expbz) begin
 						// both zero
 						a_sign       <= in_a[31] ^ in_b[31] ^ sub_op;
 						a_exp        <= 0;
 						a_mant       <= 0;
 						ready        <= 1;
-						fsm_state <= FSM_IDLE;
+						fsm_state 	 <= FSM_IDLE;
 					end else if (expaz) begin
 						// a is zero
 						a_sign       <= in_b[31] ^ sub_op;
@@ -191,7 +192,7 @@ module faddsub
 						b_mant    <= b_mant >> exp_delta[4:0];
 					end else begin
 						// it's zero just grab a sticky bit
-						b_mant    <= |b_mant;
+						b_mant    <= |b_mant[26:4];
 					end
 				end else begin // USE_BARREL == 0
 					if (exp_delta < 31) begin
@@ -203,7 +204,7 @@ module faddsub
 						end
 					end else begin
 						// shift is excess just sticky it
-						b_mant <= |b_mant;
+						b_mant <= |b_mant[26:4];
 					end
 				end
 			end
@@ -220,7 +221,7 @@ module faddsub
 			FSM_NORM: begin
 				if (a_mant[28]) begin
 					// bit 24 set so shift right and grab sticky bit
-					a_mant <= (a_mant >> 1) | a_mant[0];
+					a_mant <= a_mant >> 1;
 					a_exp  <= a_exp + 1'b1;
 				end else begin
 					if (USE_BIG_STEP == 1 && |a_mant[26:0] && a_mant[27:24] == 4'b0000) begin
