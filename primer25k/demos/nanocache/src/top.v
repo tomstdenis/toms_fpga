@@ -235,7 +235,7 @@ module top(
         .CACHE_SIZE(`CACHE_SIZE),
         .CACHE_LINE(`CACHE_LINE),
         .CACHE_DP(`CACHE_DP),
-        .CACHE_REGISTERED(`CACHE_REGISTERED),
+        //.CACHE_REGISTERED(`CACHE_REGISTERED),
         .SRAM_ADDR_WIDTH(SRAM_ADDR_WIDTH),
         .FREQ(FREQ/1000)) MrLocalMemory
     (
