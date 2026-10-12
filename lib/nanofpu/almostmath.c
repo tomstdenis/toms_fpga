@@ -20,7 +20,7 @@ uint32_t myfadd(uint32_t a, uint32_t b)
     }
 
     // Handle 0 inputs quickly
-    if ((a & 0x7FFFFFFF) == 0 && (b & 0x7FFFFFFF) == 0) return (a ^ b) & 0x8000000;
+    if ((a & 0x7FFFFFFF) == 0 && (b & 0x7FFFFFFF) == 0) return (a ^ b) & 0x80000000;
     if ((a & 0x7FFFFFFF) == 0) return b;
     if ((b & 0x7FFFFFFF) == 0) return a;
 
@@ -50,7 +50,7 @@ uint32_t myfadd(uint32_t a, uint32_t b)
     }
 
     // Exact Zero Check
-    if (a_mant == 0) {
+    if (0 && a_mant == 0) {
         return 0;
     }
 
@@ -62,7 +62,7 @@ uint32_t myfadd(uint32_t a, uint32_t b)
         a_exp += 1;
     } else {
         // Underflow -> Shift left until hidden bit is back at bit 27
-        while (!(a_mant & (1UL << 27))) {
+        while (a_mant && !(a_mant & (1UL << 27))) {
             a_mant <<= 1;
             a_exp -= 1;
         }
@@ -94,7 +94,7 @@ uint32_t myfmul(uint32_t a, uint32_t b)
     }
 
     // Check for explicit/implicit zero (or subnormal, flush-to-zero)
-    if (a_exp == 0 || b_exp == 0) {
+    if ((a & 0x7FFFFFFF) == 0 || (b & 0x7FFFFFFF) == 0) {
         return (a_sign ^ b_sign) << 31; // Flush subnormals/zeroes to signed zero
     }
 
@@ -170,11 +170,13 @@ uint32_t myfdiv(uint32_t a, uint32_t b)
     }
 
     // divide by zero...
-    if (b == 0) {
-        return 0xffc00000;
+    if ((b & 0x7FFFFFFF) == 0) {
+        return 0x7fc00000 | ((a ^ b) & 0x80000000);
     }
-    if (a == 0) {
-        return b & 0x80000000;
+
+    // divide zero by ...
+    if ((a & 0x7FFFFFFF) == 0) {
+        return (a ^ b) & 0x80000000;
     }
 
     // 2. Serial Divide (25 bits returned)
@@ -193,11 +195,6 @@ uint32_t myfdiv(uint32_t a, uint32_t b)
         res_exp = 0;
 
         if (shift < 32) {
-/*            uint32_t mask = (1UL << shift) - 1;
-            uint32_t dropped = res_mant & mask;
-            
-            res_mant >>= shift;
-*/
 			while (shift) {
 				res_mant = res_mant >> 1;
 				shift    = shift - 1;

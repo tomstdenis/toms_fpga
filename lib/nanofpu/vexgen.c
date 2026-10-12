@@ -11,13 +11,14 @@ int main(void)
     uint32_t *pv, vector[22];
     uint32_t x, y, r;
 
-    /*
-    x = 0x6e3f1927;
-    y = 0x8037a80a;
-    r = myfadd(x, y);
+/*
+    x = 0x80000000;
+    y = 0xc0f6216a;
+    r = myfdiv(x, y);
     printf("0x%08lx\n", r);
     return 0;
 */
+
     f = fopen("fpu.hex", "w");
 
     for (x = 0; x < NUM_OF_TESTS; x++) {
@@ -27,7 +28,7 @@ int main(void)
         }
         // choose 7 opcodes
         for (y = 0; y < 7; y++) {
-            fxy_opcode[y] = 0; // rand() % 4; // add,sub,mul,div
+            fxy_opcode[y] = rand() % 4; // add,sub,mul,div
         }
 
         // do ops in first tier F0y
