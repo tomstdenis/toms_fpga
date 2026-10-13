@@ -73,11 +73,11 @@ module top(
 	wire osc2_out, osc2_tap;
 	wire osc3_out, osc3_tap;
 
-	ring_oscillator #(.STAGES(101)) osc101 (.enable(enable[0]), .clk_out(osc1_out));
-	ring_oscillator #(.STAGES(103)) osc103 (.enable(enable[1]), .clk_out(osc2_out));
-	ring_oscillator #(.STAGES(107)) osc107 (.enable(enable[2]), .clk_out(osc3_out));
+	ring_oscillator #(.STAGES(127)) osc1 (.enable(enable[0]), .clk_out(osc1_out));
+	ring_oscillator #(.STAGES(211)) osc2 (.enable(enable[1]), .clk_out(osc2_out));
+	ring_oscillator #(.STAGES(263)) osc3 (.enable(enable[2]), .clk_out(osc3_out));
 	
-	reg [13:0] counter;
+	reg [15:0] counter;
 	reg [1:0] osc_outs [0:2];
 	reg [1:0] buffer;
 	reg [31:0] accumulator;
@@ -85,7 +85,6 @@ module top(
 	always @(posedge pll_clk) begin
 		uart_tx_start <= 0;
 		uart_rx_read  <= 0;
-		enable        <= {enable[1:0], 1'b1};
 		counter       <= counter + 1;
 		
 		if (!rst_n) begin
@@ -104,9 +103,10 @@ module top(
 				2: accumulator <= accumulator ^ (accumulator << 13) ^ buffer[1];
 				3: accumulator <= accumulator ^ (accumulator >> 9);
 			endcase
-			if (counter == 0) begin
+			if (counter == 65535) begin
+				enable <= {enable[1:0], 1'b1};
 				uart_tx_data_in <= uart_tx_data_in ^ accumulator[0];
-				if (accumulator[1] != accumulator[0] && !uart_tx_fifo_full) begin
+				if (!uart_tx_fifo_full) begin
 					uart_tx_start   <= 1;
 				end
 			end
