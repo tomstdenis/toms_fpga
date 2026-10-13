@@ -4,7 +4,6 @@
 module ring_oscillator #(
     parameter integer STAGES = 5 
 )(
-    input wire clk,
     input wire enable,
     output wire clk_out,
 );
@@ -74,9 +73,9 @@ module top(
 	wire osc2_out, osc2_tap;
 	wire osc3_out, osc3_tap;
 
-	ring_oscillator #(.STAGES(101)) osc101 ( .clk(pll_clk), .enable(enable[0]), .clk_out(osc1_out));
-	ring_oscillator #(.STAGES(103)) osc103 ( .clk(pll_clk), .enable(enable[1]), .clk_out(osc2_out));
-	ring_oscillator #(.STAGES(107)) osc107 ( .clk(pll_clk), .enable(enable[2]), .clk_out(osc3_out));
+	ring_oscillator #(.STAGES(101)) osc101 (.enable(enable[0]), .clk_out(osc1_out));
+	ring_oscillator #(.STAGES(103)) osc103 (.enable(enable[1]), .clk_out(osc2_out));
+	ring_oscillator #(.STAGES(107)) osc107 (.enable(enable[2]), .clk_out(osc3_out));
 	
 	reg [13:0] counter;
 	reg [1:0] osc_outs [0:2];
