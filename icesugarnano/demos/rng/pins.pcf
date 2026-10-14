@@ -1,0 +1,4 @@
+set_io clk D1
+set_io rng_bit A1
+set_io rng_strobe E2
+set_io led B6
