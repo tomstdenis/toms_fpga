@@ -26,7 +26,6 @@ module top(
 	end
 
 	always @(posedge clk) begin
-		rng_strobe <= osc_strobe;
 		strrrobe   <= { strrrobe[2:0], 1'b0 };
 		
 		if (osc_strobe) begin

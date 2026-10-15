@@ -12,7 +12,7 @@ $(PROJ).json: $(OBJS)
 
 # 2. Place & Route: Map netlist to FPGA hardware
 $(PROJ).asc: $(PROJ).json pins.pcf
-	nextpnr-ice40 --ignore-loops --timing-allow-fail -r --tmg-ripup --freq 12 --$(DEVICE) --package $(FOOTPRINT) --pcf pins.pcf --json $< --asc $@
+	nextpnr-ice40 --ignore-loops --timing-allow-fail -r --freq 12 --$(DEVICE) --package $(FOOTPRINT) --pcf pins.pcf --json $< --asc $@
 
 # 3. Pack: Create the final bitstream
 $(PROJ).bin: $(PROJ).asc
