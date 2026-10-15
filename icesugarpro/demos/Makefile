@@ -1,4 +1,6 @@
 clean:
+	make -C rng clean
+	make -C nanofpu clean
 	make -C nanosram clean
 	make -C nanocache clean
 	make -C vga_comb clean
@@ -9,4 +11,3 @@ clean:
 	make -C ib16 clean
 	make -C uart_bram_sp clean
 	make -C uart_bram_sp_by_n clean
-

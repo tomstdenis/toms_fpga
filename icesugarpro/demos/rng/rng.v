@@ -1,105 +1,6 @@
 `timescale 1ns/1ps
 `default_nettype none
 
-`define RNG_ICE40
-
-module ring_oscillator #(
-    parameter integer STAGES = 5
-)(
-    input wire enable,
-    output wire clk_out,
-);
-
-    wire [STAGES-1:0] chain;
-
-    // First stage: NAND gate combining chain[STAGES-1] and enable
-    // ECP5 LUT4 with INIT mask for ~(A & B) -> 4'h7 (or similar depending on input mapping)
-    // For simplicity, using a structural primitive or primitive LUT:
-    // Alternatively, mark instances with keep/dont_touch.
-
-    generate
-        // Stage 0: Gated inverter (NAND-equivalent)
-        (* keep = "true" *)
-`ifdef RNG_ECP5        
-        LUT4 #(
-            .INIT(16'h7777) // Function dependent on inputs
-        ) lut_stages [STAGES-1:0] (
-            .Z(chain),
-            .A({chain[STAGES-2:0], chain[STAGES-1]}), // feedback loop wrap-around
-            .B(enable),
-            .C(1'b1),
-            .D(1'b1)
-        );
-`endif
-`ifdef RNG_ICE40
-        SB_LUT4 #(
-            .LUT_INIT(16'h7777) // Function dependent on inputs
-        ) lut_stages [STAGES-1:0] (
-            .O(chain),
-            .I0({chain[STAGES-2:0], chain[STAGES-1]}), // feedback loop wrap-around
-            .I1(enable),
-            .I2(1'b1),
-            .I3(1'b1)
-        );
-`endif        
-    endgenerate
-    assign clk_out = chain[STAGES-1];
-endmodule
-
-module rng(
-	input wire clk,
-	input wire rst_n,
-
-	output reg bit,
-	output reg strobe
-);
-
-	reg [2:0] enable;
-	wire osc1_out, osc1_tap;
-	wire osc2_out, osc2_tap;
-	wire osc3_out, osc3_tap;
-
-	ring_oscillator #(.STAGES(127)) osc1 (.enable(enable[0]), .clk_out(osc1_out));
-	ring_oscillator #(.STAGES(211)) osc2 (.enable(enable[1]), .clk_out(osc2_out));
-	ring_oscillator #(.STAGES(263)) osc3 (.enable(enable[2]), .clk_out(osc3_out));
-
-	reg [15:0] counter;
-	reg [1:0] osc_outs [0:2];
-	reg [1:0] buffer;
-	reg [31:0] accumulator;
-	reg [1:0] filter;
-
-	always @(posedge clk) begin
-		strobe      <= 1'b0;
-		counter     <= counter + 1;
-
-		osc_outs[0] <= {osc_outs[0][0], osc1_out};
-		osc_outs[1] <= {osc_outs[1][0], osc2_out};
-		osc_outs[2] <= {osc_outs[2][0], osc3_out};
-		buffer      <= {buffer[1] ^ buffer[0], osc_outs[0][1] ^ osc_outs[1][1] ^ osc_outs[2][1]};
-		case (counter[1:0])
-			0: accumulator <= accumulator ^ buffer[1];
-			1: accumulator <= accumulator ^ (accumulator >> 7);
-			2: accumulator <= accumulator ^ (accumulator << 13);
-			3: accumulator <= accumulator ^ (accumulator >> 9);
-		endcase
-		filter  <= {filter[0], accumulator[0]};
-
-		if (counter == 65535) begin
-			enable  <= {enable[1:0], 1'b1};
-			strobe  <= &enable & (filter[0] ^ filter[1]);
-			bit     <= filter[1];
-		end
-
-		if (!rst_n) begin
-			enable  <= 3'b000;
-			counter <= 0;
-			bit     <= 1'b0;
-			filter  <= 2'b00;
-		end
-	end
-endmodule
-
 module top(
 	input clk,
 	input rx,
@@ -134,20 +35,21 @@ module top(
 		.uart_tx_start(uart_tx_start), .uart_tx_data_in(uart_tx_data_in), .uart_tx_pin(tx), .uart_tx_fifo_full(uart_tx_fifo_full),
 		.uart_rx_pin(rx), .uart_rx_read(uart_rx_read), .uart_rx_ready(uart_rx_ready), .uart_rx_byte(uart_rx_byte));
 
-	wire bit;
-	wire strobe;
-	rng myrng (.clk(pll_clk), .rst_n(rst_n), .bit(bit), .strobe(strobe));
+	wire osc_bit;
+	wire osc_strobe;
+	
+	osc_rng funnybits (.clk(pll_clk), .rst_n(rst_n), .bit(osc_bit), .strobe(osc_strobe));
 
 	reg bit_l;
 	reg strobe_l;
 
 	always @(posedge pll_clk) begin
-		strobe_l      <= strobe_l | strobe;
+		strobe_l      <= strobe_l | osc_strobe;
 		uart_tx_start <= 1'b0;
 		uart_rx_read  <= 1'b0;
 		
-		if (strobe) begin
-			bit_l <= bit;
+		if (osc_strobe) begin
+			bit_l <= osc_bit;
 		end
 
 		if (strobe_l && !uart_tx_fifo_full) begin

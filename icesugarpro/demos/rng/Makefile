@@ -2,13 +2,13 @@ TARGET=rng
 TOP=top
 FREQ=100
 
-OBJS+=${TARGET}.v pll.v \
+OBJS+=${TARGET}.v ../../../lib/rng/osc_rng.v pll.v \
 ../../../lib/uart/blocks/tx_uart.v ../../../lib/uart/blocks/rx_uart.v ../../../lib/uart/blocks/uart.v
 
 all: ${TARGET}.bit
 
 $(TARGET).json: $(OBJS)
-		yosys -p "synth_ecp5 -json $@" $(OBJS)
+		yosys -D EXTERNAL_CONFIG -D RNG_ECP5 -p "synth_ecp5 -json $@" $(OBJS)
 
 .PHONY: gui
 gui: $(TARGET).json

@@ -78,10 +78,10 @@ module osc_rng(
 		osc_outs[2] <= {osc_outs[2][0], osc3_out};
 		buffer      <= {buffer[1] ^ buffer[0], osc_outs[0][1] ^ osc_outs[1][1] ^ osc_outs[2][1]};
 		case (counter[1:0])
-			0: accumulator <= accumulator ^ buffer[1];
-			1: accumulator <= accumulator ^ (accumulator >> 7);
-			2: accumulator <= accumulator ^ (accumulator << 13);
-			3: accumulator <= accumulator ^ (accumulator >> 9);
+			0: accumulator <= accumulator ^ (accumulator << 1) ^ buffer[1];
+			1: accumulator <= accumulator ^ (accumulator >> 3);
+			2: accumulator <= accumulator ^ (accumulator << 10);
+			3: accumulator <= accumulator ^ (accumulator >> 11);
 		endcase
 		filter  <= {filter[0], accumulator[0]};
 
