@@ -83,7 +83,7 @@ module osc_rng(
 			2: accumulator <= accumulator ^ (accumulator << 10);
 			3: accumulator <= accumulator ^ (accumulator >> 11);
 		endcase
-		filter  <= {filter[0], accumulator[0]};
+		filter  <= {filter[1] ^ filter[0], accumulator[0]};
 
 		if (counter == 65535) begin
 			enable  <= {enable[1:0], 1'b1};
