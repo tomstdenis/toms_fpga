@@ -50,13 +50,13 @@ Modules
    - Tested on my Tang Nano 1K
 
 - **spi**: A simple 8-bit SPI master transfer module that has variable SCK timing (counter divider).
-   - Module in **spi/spi.v**
+   - Module in **comms/spi/spi.v**
 
 - **uart**: A 8N1 serial UART with FIFO support.
   - Individual transmit and receive implemented as
-    - Transmit: **uart/blocks/tx_uart.v** with test bench **uart/blocks/tx_uart_tb.v**
-    - Receive: **uart/blocks/rx_uart.v** with test bench **uart/blocks/rx_uart_tb.v**
-    - Transceiver (with FIFO): **uart/blocks/uart.v** with test bench **uart/blocks/uart_tb.v**
+    - Transmit: **comms/uart/tx_uart.v** with test bench **comms/uart/tx_uart_tb.v**
+    - Receive: **comms/uart/rx_uart.v** with test bench **comms/uart/rx_uart_tb.v**
+    - Transceiver (with FIFO): **comms/uart/uart.v** with test bench **comms/uart/uart_tb.v**
       - Has parameters for FIFO depth, RX and TX enables.
 
 - **spisddma**: SD SPI DMA controller for working with SDSC, SDHC, and SDXC cards
