@@ -2,24 +2,24 @@
 
  Faciliates transfering memory between SPI memories and host synchronous memories.
 
-			┌──────────────────┐                 ┌─────────────────┐          ┌──────────────────┐
-			│                  │                 │                 │  cs/sck  │                  │
-			│                  ├────────────────►│                 ├─────────►│                  │
-			│   Host Memory    │   host_mem_*    │                 │   sio_*  │    SPI Memory    │
-			│                  │◄────────────────┤                 │◄────────►┤                  │
-			│                  │                 │     SPI DMA     │          │                  │
-			└──────────┬───────┘                 │                 │          └──────────────────┘
-					▲  │                         │                 │                              
-					│  │                         │                 │                              
-					│  │                         │                 │                              
-					│  ▼                         └──────────┬──────┘                              
-			┌───────┴──────────┐                       ▲    │                                     
-			│                  │    cmd_*              │    │                                     
-			│                  ├───────────────────────┘    │                                     
-			│  SPI DMA Driver  │                            │                                     
-			│                  │◄───────────────────────────┘                                     
-			│                  │    ready                                                         
-			└──────────────────┘                                                                  
+            ┌──────────────────┐                 ┌─────────────────┐          ┌──────────────────┐
+            │                  │                 │                 │  cs/sck  │                  │
+            │                  ├────────────────►│                 ├─────────►│                  │
+            │   Host Memory    │   host_mem_*    │                 │   sio_*  │    SPI Memory    │
+            │                  │◄────────────────┤                 │◄────────►┤                  │
+            │                  │                 │     SPI DMA     │          │                  │
+            └──────────┬───────┘                 │                 │          └──────────────────┘
+                    ▲  │                         │                 │                              
+                    │  │                         │                 │                              
+                    │  │                         │                 │                              
+                    │  ▼                         └──────────┬──────┘                              
+            ┌───────┴──────────┐                       ▲    │                                     
+            │                  │    cmd_*              │    │                                     
+            │                  ├───────────────────────┘    │                                     
+            │  SPI DMA Driver  │                            │                                     
+            │                  │◄───────────────────────────┘                                     
+            │                  │    ready                                                         
+            └──────────────────┘                                                                  
 
 This module supports NOR flashes too.  When CMD_WRITE_ENABLE is non-zero the code
 assumes we're talking to a NOR flash.  This means the write command (02h) will invoke a write
@@ -48,662 +48,662 @@ To keep to Tcem on SPI you want to limit your burst to 24 bytes when doing SPI w
 `include "spidma.vh"
 
 module spidma #(
-	// Timing
-	parameter CLK_FREQ_MHZ    = 27,							// system clock frequency (required for walltime requirements)
-	
-	// Host Side Memory
-	parameter HOST_MEM_ADDR   = 11,							// default to typical 2048x8 memories common to most 18kBit DPRAM blocks
+    // Timing
+    parameter CLK_FREQ_MHZ    = 27,                            // system clock frequency (required for walltime requirements)
+    
+    // Host Side Memory
+    parameter HOST_MEM_ADDR   = 11,                            // default to typical 2048x8 memories common to most 18kBit DPRAM blocks
 
-	// MEMORY default configuration for a typical 8-pin SPI PSRAM
-	parameter SRAM_ADDR_WIDTH = 24,							// how many bits does the address have (e.g. 16 or 24)
-	parameter DUMMY_CYCLES    = 6,							// how many dummy reads are required before the first byte is valid
+    // MEMORY default configuration for a typical 8-pin SPI PSRAM
+    parameter SRAM_ADDR_WIDTH = 24,                            // how many bits does the address have (e.g. 16 or 24)
+    parameter DUMMY_CYCLES    = 6,                            // how many dummy reads are required before the first byte is valid
 
-	// Commands 
-	parameter CMD_WRITE_ENABLE = 8'h00,						// enable the Write Enable Latch (set to 8'h06 to enable)
-	parameter CMD_READ_STATUS  = 8'h05,						// read the status register for WEL/WIP
-	parameter CMD_SECTOR_ERASE = 8'h20,						// erase a sector
+    // Commands 
+    parameter CMD_WRITE_ENABLE = 8'h00,                        // enable the Write Enable Latch (set to 8'h06 to enable)
+    parameter CMD_READ_STATUS  = 8'h05,                        // read the status register for WEL/WIP
+    parameter CMD_SECTOR_ERASE = 8'h20,                        // erase a sector
 
-	parameter CMD_SPI_READ    = 8'h03,						// command to read in SPI mode
-	parameter CMD_SPI_WRITE   = 8'h02,						// command to write in SPI mode (page program in NOR mode)
-	parameter CMD_QPI_READ    = 8'hEB,						// command to read in QPI mode
-	parameter CMD_QPI_WRITE   = 8'h38,						// command to write in QPI mode
+    parameter CMD_SPI_READ    = 8'h03,                        // command to read in SPI mode
+    parameter CMD_SPI_WRITE   = 8'h02,                        // command to write in SPI mode (page program in NOR mode)
+    parameter CMD_QPI_READ    = 8'hEB,                        // command to read in QPI mode
+    parameter CMD_QPI_WRITE   = 8'h38,                        // command to write in QPI mode
 
-	parameter CMD_EQIO        = 8'h35,						// command to enter quad IO mode
-	parameter CMD_QMEX        = 8'hF5,						// command to exit quad mod IO
-	parameter CMD_RESETEN     = 8'h66,						// command to enable reset
-	parameter CMD_RESET       = 8'h99,						// command to reset
+    parameter CMD_EQIO        = 8'h35,                        // command to enter quad IO mode
+    parameter CMD_QMEX        = 8'hF5,                        // command to exit quad mod IO
+    parameter CMD_RESETEN     = 8'h66,                        // command to enable reset
+    parameter CMD_RESET       = 8'h99,                        // command to reset
 
-	// Timing parameters
-	parameter MIN_CPH_NS      = 50,							// how many ns must CS be high between commands (23LC's have a min time of mostly nothing)
-	parameter MIN_WAKEUP_NS   = 150_000,					// how many ns to wait for it to wakeup after POR
-	parameter SPI_TIMER_BITS  = 3,							// divide clock by X for SPI operations
-	parameter QPI_TIMER_BITS  = 0							// divide clock by X for QPI operations
+    // Timing parameters
+    parameter MIN_CPH_NS      = 50,                            // how many ns must CS be high between commands (23LC's have a min time of mostly nothing)
+    parameter MIN_WAKEUP_NS   = 150_000,                    // how many ns to wait for it to wakeup after POR
+    parameter SPI_TIMER_BITS  = 3,                            // divide clock by X for SPI operations
+    parameter QPI_TIMER_BITS  = 0                            // divide clock by X for QPI operations
 )(
-	input wire clk,											// clock
-	input wire rst_n,										// active low reset
+    input wire clk,                                            // clock
+    input wire rst_n,                                        // active low reset
 
-	// BUS
-	output reg ready,										// active high means the module is done with a request
-	
-	// Host side memory
-	output reg [HOST_MEM_ADDR-1:0] host_mem_addr,			// address to read/write to from host memory
-	output reg host_mem_wr_en,								// write enable
-	output reg [7:0] host_mem_data_in,						// data to write to host mem
-	input  wire [7:0] host_mem_data_out,					// data read from host mem
-	
-	// Command data
-	input wire [3:0] cmd_value,								// what command to run (read, write, ...)
-	input wire cmd_valid,									// active high when all cmd signals are valid
-	input wire [SRAM_ADDR_WIDTH-1:0] cmd_spi_address,		// address to read/write from the SPI device
-	input wire [HOST_MEM_ADDR-1:0] cmd_host_address,		// address to write/read from the host memory
-	input wire [7:0] cmd_burst_len,							// how many bytes to read (1..256)
+    // BUS
+    output reg ready,                                        // active high means the module is done with a request
+    
+    // Host side memory
+    output reg [HOST_MEM_ADDR-1:0] host_mem_addr,            // address to read/write to from host memory
+    output reg host_mem_wr_en,                                // write enable
+    output reg [7:0] host_mem_data_in,                        // data to write to host mem
+    input  wire [7:0] host_mem_data_out,                    // data read from host mem
+    
+    // Command data
+    input wire [3:0] cmd_value,                                // what command to run (read, write, ...)
+    input wire cmd_valid,                                    // active high when all cmd signals are valid
+    input wire [SRAM_ADDR_WIDTH-1:0] cmd_spi_address,        // address to read/write from the SPI device
+    input wire [HOST_MEM_ADDR-1:0] cmd_host_address,        // address to write/read from the host memory
+    input wire [7:0] cmd_burst_len,                            // how many bytes to read (1..256)
 
-	// I/O
-	input wire [3:0] sio_din,
-	output reg [3:0] sio_dout,
-	output reg [3:0] sio_en,
-	output reg cs_pin,										// active low CS pin
-	output reg sck_pin										// SPI clock
+    // I/O
+    input wire [3:0] sio_din,
+    output reg [3:0] sio_dout,
+    output reg [3:0] sio_en,
+    output reg cs_pin,                                        // active low CS pin
+    output reg sck_pin                                        // SPI clock
 );
 `ifdef SIM_MODEL
-	reg [3:0] sim_memory[(1<<(SRAM_ADDR_WIDTH+1))-1:0];		// 4-bit memory to store QPI data only
-	reg [SRAM_ADDR_WIDTH:0] sim_address;					// byte address (we use bit_cnt to select the nibble)
-	reg sim_wr_en;											// are writes enabled at this point? (skip over cmd/address)
+    reg [3:0] sim_memory[(1<<(SRAM_ADDR_WIDTH+1))-1:0];        // 4-bit memory to store QPI data only
+    reg [SRAM_ADDR_WIDTH:0] sim_address;                    // byte address (we use bit_cnt to select the nibble)
+    reg sim_wr_en;                                            // are writes enabled at this point? (skip over cmd/address)
 `endif
 
-	// fsm related
-	reg [4:0] state;										// What state is our FSM in
-	reg [4:0] tag;
-	reg [2:0] send_cmd_addr_cycle;							// counter to tell which step of sending CMD + ADDR we're on
-	reg [1:0] wait_wip_timer;
-	reg [4:0] dummy_cnt;									// how many dummy cycles to waste
-	reg       quad_mode;									// are we in quad mode or spi mode?
+    // fsm related
+    reg [4:0] state;                                        // What state is our FSM in
+    reg [4:0] tag;
+    reg [2:0] send_cmd_addr_cycle;                            // counter to tell which step of sending CMD + ADDR we're on
+    reg [1:0] wait_wip_timer;
+    reg [4:0] dummy_cnt;                                    // how many dummy cycles to waste
+    reg       quad_mode;                                    // are we in quad mode or spi mode?
 
-	// transfer related
-	reg [3:0] bit_cnt;										// bit counter a variety of FSM states
-	wire [3:0] bit_cnt_orig = quad_mode ? 1 : 7;
-	reg [3:0] sck_timer;									// timer used to know when to change phase
-	wire [3:0] sck_timer_orig = quad_mode ? QPI_TIMER_BITS : SPI_TIMER_BITS;
-	wire [3:0] sio_en_orig = quad_mode ? 4'b1111 : 4'b0001;
-	reg [7:0] temp_wire_bits;
-	reg       shift8_cs_exit;								// some commands require CS to go high immediately
-	
-	// hangup/wakeup related
-	/* verilator lint_off WIDTHTRUNC */
-	reg [15:0] hangup_timer;
-	wire [15:0] hangup_bauddiv = ((CLK_FREQ_MHZ * MIN_CPH_NS + 999) / 1000);
-	wire [15:0] wakeup_bauddiv = ((CLK_FREQ_MHZ * MIN_WAKEUP_NS + 999) / 1000);
-	/* verilator lint_on WIDTHTRUNC */
-	
-	// Command data
-	reg [3:0] cmd_value_l;								// what command to run (read, write, ...)
-	reg [SRAM_ADDR_WIDTH-1:0] cmd_spi_address_l;		// address to read/write from the SPI device
-	reg [7:0] cmd_burst_len_l;							// how many bytes to read (1..256)
-	
-	localparam
-		STATE_EQIO					= 0,				// enter quad mode
-		STATE_EQIO_DONE				= 1,				//
-		STATE_QMEX					= 2,				// exit quad mode
-		STATE_QMEX_DONE			    = 3,
-		STATE_SEND_RESETEN			= 4,				// enable RESET
-		STATE_SEND_RESETEN_DONE		= 5,
-		STATE_SEND_RESET			= 6,				// issue RESET command
-		STATE_SEND_RESET_DONE		= 7,
-		STATE_SHIFT_DATA			= 8,				// Transfer a byte in/out
-		STATE_IDLE					= 9,				// Idle state waiting for a command
-		STATE_SEND_CMD_ADDR         = 10,				// Send a 1 byte command + address
-		STATE_START_READ			= 11,				// Start a read from SPI memory burst
-		STATE_START_WRITE			= 12,				// Start a write to SPI memory burst
-		STATE_DONE_WRITE            = 13,				// Cycle to finish off write bursts
-		STATE_DONE					= 14,				// Raise ready, wait for !valid
-		STATE_HANGUP				= 15,				// Hang up SPI bus
-		STATE_HANGUP_WAIT			= 16,				// hold CS high for a count
-		STATE_WRITE_ENABLE			= 17,				// set the write enable latch (NOR)
-		STATE_WAIT_WIP				= 18,				// wait for WIP to be cleared (NOR)
-		STATE_SECTOR_ERASE          = 19,				// Erase a 4KB sector (NOR)
-		STATE_WRITE_ENABLE_RESUME   = 20,				// Resume the SEND_CMD_ADDR call
-		STATE_WRITE_ENABLE_DONE     = 21;				// we're done issuing the WRITE_ENABLE command, advance to RESUME
+    // transfer related
+    reg [3:0] bit_cnt;                                        // bit counter a variety of FSM states
+    wire [3:0] bit_cnt_orig = quad_mode ? 1 : 7;
+    reg [3:0] sck_timer;                                    // timer used to know when to change phase
+    wire [3:0] sck_timer_orig = quad_mode ? QPI_TIMER_BITS : SPI_TIMER_BITS;
+    wire [3:0] sio_en_orig = quad_mode ? 4'b1111 : 4'b0001;
+    reg [7:0] temp_wire_bits;
+    reg       shift8_cs_exit;                                // some commands require CS to go high immediately
+    
+    // hangup/wakeup related
+    /* verilator lint_off WIDTHTRUNC */
+    reg [15:0] hangup_timer;
+    wire [15:0] hangup_bauddiv = ((CLK_FREQ_MHZ * MIN_CPH_NS + 999) / 1000);
+    wire [15:0] wakeup_bauddiv = ((CLK_FREQ_MHZ * MIN_WAKEUP_NS + 999) / 1000);
+    /* verilator lint_on WIDTHTRUNC */
+    
+    // Command data
+    reg [3:0] cmd_value_l;                                // what command to run (read, write, ...)
+    reg [SRAM_ADDR_WIDTH-1:0] cmd_spi_address_l;        // address to read/write from the SPI device
+    reg [7:0] cmd_burst_len_l;                            // how many bytes to read (1..256)
+    
+    localparam
+        STATE_EQIO                    = 0,                // enter quad mode
+        STATE_EQIO_DONE                = 1,                //
+        STATE_QMEX                    = 2,                // exit quad mode
+        STATE_QMEX_DONE                = 3,
+        STATE_SEND_RESETEN            = 4,                // enable RESET
+        STATE_SEND_RESETEN_DONE        = 5,
+        STATE_SEND_RESET            = 6,                // issue RESET command
+        STATE_SEND_RESET_DONE        = 7,
+        STATE_SHIFT_DATA            = 8,                // Transfer a byte in/out
+        STATE_IDLE                    = 9,                // Idle state waiting for a command
+        STATE_SEND_CMD_ADDR         = 10,                // Send a 1 byte command + address
+        STATE_START_READ            = 11,                // Start a read from SPI memory burst
+        STATE_START_WRITE            = 12,                // Start a write to SPI memory burst
+        STATE_DONE_WRITE            = 13,                // Cycle to finish off write bursts
+        STATE_DONE                    = 14,                // Raise ready, wait for !valid
+        STATE_HANGUP                = 15,                // Hang up SPI bus
+        STATE_HANGUP_WAIT            = 16,                // hold CS high for a count
+        STATE_WRITE_ENABLE            = 17,                // set the write enable latch (NOR)
+        STATE_WAIT_WIP                = 18,                // wait for WIP to be cleared (NOR)
+        STATE_SECTOR_ERASE          = 19,                // Erase a 4KB sector (NOR)
+        STATE_WRITE_ENABLE_RESUME   = 20,                // Resume the SEND_CMD_ADDR call
+        STATE_WRITE_ENABLE_DONE     = 21;                // we're done issuing the WRITE_ENABLE command, advance to RESUME
 
-	always @(posedge clk) begin
-		if (!rst_n) begin
-            state			    <= STATE_HANGUP_WAIT;						// Jump to initial FSM state
-            tag				    <= STATE_IDLE;
+    always @(posedge clk) begin
+        if (!rst_n) begin
+            state                <= STATE_HANGUP_WAIT;                        // Jump to initial FSM state
+            tag                    <= STATE_IDLE;
             hangup_timer        <= wakeup_bauddiv;
-            sck_timer			<= 0;
-            sio_en			    <= 4'b0000;									// disable all outputs
-            sio_dout		    <= 4'b1111;									// SPI bus output
-            sck_pin			    <= 1'b0;									// default low
-            cs_pin			    <= 1'b1;									// default high
+            sck_timer            <= 0;
+            sio_en                <= 4'b0000;                                    // disable all outputs
+            sio_dout            <= 4'b1111;                                    // SPI bus output
+            sck_pin                <= 1'b0;                                    // default low
+            cs_pin                <= 1'b1;                                    // default high
             temp_wire_bits      <= 8'h00;
-            bit_cnt			    <= 4'h0;
+            bit_cnt                <= 4'h0;
             cmd_value_l         <= 0;
             cmd_burst_len_l     <= 0;
             cmd_spi_address_l   <= 0;
             send_cmd_addr_cycle <= 0;
             dummy_cnt           <= 0;
-            host_mem_addr		<= 0;
-            host_mem_wr_en		<= 0;
-            host_mem_data_in	<= 0;
-            ready				<= 0;
-            quad_mode			<= 0;
-            shift8_cs_exit		<= 0;
-            wait_wip_timer		<= 0;
-		end else begin
-			case(state)
-				STATE_SEND_RESETEN:										// Send 0x66 RESET ENABLE
-					begin
-						temp_wire_bits	<= CMD_RESETEN;
-						sio_dout[0]     <= CMD_RESETEN[7];
-						bit_cnt			<= bit_cnt_orig;
-						state			<= STATE_SHIFT_DATA;
-						tag				<= STATE_SEND_RESETEN_DONE;
-						sio_en			<= sio_en_orig;						// enable MOSI output pin SIO[0]
-						sck_timer		<= sck_timer_orig;
-					end
-				STATE_SEND_RESETEN_DONE:								// done sending 0x66 RESET ENABLE, hangup and then issue RESET
-					begin
-						state			<= STATE_HANGUP;
-						tag				<= STATE_SEND_RESET;
-					end
+            host_mem_addr        <= 0;
+            host_mem_wr_en        <= 0;
+            host_mem_data_in    <= 0;
+            ready                <= 0;
+            quad_mode            <= 0;
+            shift8_cs_exit        <= 0;
+            wait_wip_timer        <= 0;
+        end else begin
+            case(state)
+                STATE_SEND_RESETEN:                                        // Send 0x66 RESET ENABLE
+                    begin
+                        temp_wire_bits    <= CMD_RESETEN;
+                        sio_dout[0]     <= CMD_RESETEN[7];
+                        bit_cnt            <= bit_cnt_orig;
+                        state            <= STATE_SHIFT_DATA;
+                        tag                <= STATE_SEND_RESETEN_DONE;
+                        sio_en            <= sio_en_orig;                        // enable MOSI output pin SIO[0]
+                        sck_timer        <= sck_timer_orig;
+                    end
+                STATE_SEND_RESETEN_DONE:                                // done sending 0x66 RESET ENABLE, hangup and then issue RESET
+                    begin
+                        state            <= STATE_HANGUP;
+                        tag                <= STATE_SEND_RESET;
+                    end
 
-				STATE_SEND_RESET:										// Send 0x99 RESET 
-					begin
-						temp_wire_bits	<= CMD_RESET;
-						sio_dout[0]     <= CMD_RESET[7];
-						bit_cnt			<= bit_cnt_orig;
-						state			<= STATE_SHIFT_DATA;
-						tag				<= STATE_SEND_RESET_DONE;
-						sio_en			<= sio_en_orig;						// enable MOSI output pin SIO[0]
-					end
-				STATE_SEND_RESET_DONE:								    // done sending 0x66 RESET ENABLE, hangup and then issue RESET
-					begin
-						state			<= STATE_HANGUP;
-						tag				<= STATE_DONE;
-					end
+                STATE_SEND_RESET:                                        // Send 0x99 RESET 
+                    begin
+                        temp_wire_bits    <= CMD_RESET;
+                        sio_dout[0]     <= CMD_RESET[7];
+                        bit_cnt            <= bit_cnt_orig;
+                        state            <= STATE_SHIFT_DATA;
+                        tag                <= STATE_SEND_RESET_DONE;
+                        sio_en            <= sio_en_orig;                        // enable MOSI output pin SIO[0]
+                    end
+                STATE_SEND_RESET_DONE:                                    // done sending 0x66 RESET ENABLE, hangup and then issue RESET
+                    begin
+                        state            <= STATE_HANGUP;
+                        tag                <= STATE_DONE;
+                    end
 
-				STATE_EQIO:												// send enter Quad I/O command
-					begin
+                STATE_EQIO:                                                // send enter Quad I/O command
+                    begin
 if (CMD_EQIO != 0) begin
                         // sticking some STATE_INIT initializations here.
-                        temp_wire_bits	<= CMD_EQIO;					// Send "enter quad mode IO" command
-						sio_dout[0]     <= CMD_EQIO[7];
-						bit_cnt			<= bit_cnt_orig;
-						sck_timer		<= sck_timer_orig;
-						state			<= STATE_SHIFT_DATA;			// Use single bit SEND state
-						tag				<= STATE_EQIO_DONE;
-						sio_en			<= sio_en_orig;						// enable MOSI output pin SIO[0]
+                        temp_wire_bits    <= CMD_EQIO;                    // Send "enter quad mode IO" command
+                        sio_dout[0]     <= CMD_EQIO[7];
+                        bit_cnt            <= bit_cnt_orig;
+                        sck_timer        <= sck_timer_orig;
+                        state            <= STATE_SHIFT_DATA;            // Use single bit SEND state
+                        tag                <= STATE_EQIO_DONE;
+                        sio_en            <= sio_en_orig;                        // enable MOSI output pin SIO[0]
 end
-					end
-				STATE_EQIO_DONE:
-					begin
+                    end
+                STATE_EQIO_DONE:
+                    begin
 if (CMD_EQIO != 0) begin
-						state			<= STATE_HANGUP;
-						tag				<= STATE_DONE;
-						quad_mode		<= 1;
+                        state            <= STATE_HANGUP;
+                        tag                <= STATE_DONE;
+                        quad_mode        <= 1;
 end
-					end
+                    end
 
-				STATE_QMEX:												// send exit quad mode I/O command
-					begin
+                STATE_QMEX:                                                // send exit quad mode I/O command
+                    begin
 if (CMD_QMEX != 0) begin
-						tag            <= STATE_QMEX_DONE;
-						state          <= STATE_SHIFT_DATA;
-						temp_wire_bits <= CMD_QMEX;
-						sio_dout	   <= CMD_QMEX[7:4];
-						bit_cnt        <= bit_cnt_orig;
-						sck_timer      <= sck_timer_orig;
-						sio_en		   <= sio_en_orig;	
+                        tag            <= STATE_QMEX_DONE;
+                        state          <= STATE_SHIFT_DATA;
+                        temp_wire_bits <= CMD_QMEX;
+                        sio_dout       <= CMD_QMEX[7:4];
+                        bit_cnt        <= bit_cnt_orig;
+                        sck_timer      <= sck_timer_orig;
+                        sio_en           <= sio_en_orig;    
 end
-					end
-				STATE_QMEX_DONE:
-					begin
+                    end
+                STATE_QMEX_DONE:
+                    begin
 if (CMD_QMEX != 0) begin
-						state          <= STATE_HANGUP;
-						tag			   <= STATE_DONE;
-						quad_mode	   <= 0;
+                        state          <= STATE_HANGUP;
+                        tag               <= STATE_DONE;
+                        quad_mode       <= 0;
 end
-					end
+                    end
 
-				/* STATE_SHIFT_DATA:
-					in: sio_en = sio_en_orig, bit_cnt = bit_cnt_orig, sck_timer = sck_timer_origin, temp_wire_bits = data to shift out MOSI/SIO
-					out: bit_cnt, sck_timer: unchanged, temp_wire_bits = data shifted in MISO/SIO
-				*/
-				STATE_SHIFT_DATA:										// shift 8 bits in/out temp_spi_bits	
-					begin
-						cs_pin <= 1'b0;									// default CS low 
-						case(sck_pin)
-							1'd0:										// SCK low phase, put data on wire
-								begin
-									// write during low
-									if (quad_mode) begin
+                /* STATE_SHIFT_DATA:
+                    in: sio_en = sio_en_orig, bit_cnt = bit_cnt_orig, sck_timer = sck_timer_origin, temp_wire_bits = data to shift out MOSI/SIO
+                    out: bit_cnt, sck_timer: unchanged, temp_wire_bits = data shifted in MISO/SIO
+                */
+                STATE_SHIFT_DATA:                                        // shift 8 bits in/out temp_spi_bits    
+                    begin
+                        cs_pin <= 1'b0;                                    // default CS low 
+                        case(sck_pin)
+                            1'd0:                                        // SCK low phase, put data on wire
+                                begin
+                                    // write during low
+                                    if (quad_mode) begin
 `ifdef SIM_MODEL
-										if (sim_wr_en && sio_en == 4'b1111) begin
-											sim_memory[sim_address + bit_cnt[0]] <= temp_wire_bits[7:4];
-										end
+                                        if (sim_wr_en && sio_en == 4'b1111) begin
+                                            sim_memory[sim_address + bit_cnt[0]] <= temp_wire_bits[7:4];
+                                        end
 `endif
-										sio_dout    <= temp_wire_bits[7:4];
-									end else begin
-										sio_dout[0] <= temp_wire_bits[7];
-									end
-									if (sck_timer == 0) begin
-										sck_timer   <= sck_timer_orig;					 // time to switch to SCK high
-										sck_pin     <= ~sck_pin;
-									end else begin
-										sck_timer   <= sck_timer - 1'b1;
-									end
-								end
-							1'd1:										// SCK high phase, keep data steady, move to next bit at end of phase
-								begin
-									if (sck_timer == 0) begin
-										if (quad_mode) begin
-											sio_dout	   <= temp_wire_bits[3:0];
+                                        sio_dout    <= temp_wire_bits[7:4];
+                                    end else begin
+                                        sio_dout[0] <= temp_wire_bits[7];
+                                    end
+                                    if (sck_timer == 0) begin
+                                        sck_timer   <= sck_timer_orig;                     // time to switch to SCK high
+                                        sck_pin     <= ~sck_pin;
+                                    end else begin
+                                        sck_timer   <= sck_timer - 1'b1;
+                                    end
+                                end
+                            1'd1:                                        // SCK high phase, keep data steady, move to next bit at end of phase
+                                begin
+                                    if (sck_timer == 0) begin
+                                        if (quad_mode) begin
+                                            sio_dout       <= temp_wire_bits[3:0];
 `ifdef SIM_MODEL
-											temp_wire_bits <= {temp_wire_bits[3:0], sim_memory[sim_address + bit_cnt[0]]}; // shift wire bits, and insert MISO bit
+                                            temp_wire_bits <= {temp_wire_bits[3:0], sim_memory[sim_address + bit_cnt[0]]}; // shift wire bits, and insert MISO bit
 `else
-											temp_wire_bits <= {temp_wire_bits[3:0], sio_din}; // shift wire bits, and insert MISO bit
-`endif											
-										end else begin
-											temp_wire_bits <= {temp_wire_bits[6:0], sio_din[1]}; // shift wire bits, and insert MISO bit
-											sio_dout[0]	   <= temp_wire_bits[6];
-										end										
-										bit_cnt        <= bit_cnt - 1'b1;
-										sck_pin        <= ~sck_pin;							// set SCK to low for either the next bit of this transaction or the start of the next transaction
-										sck_timer      <= sck_timer_orig;					// reset timer in case we chain SEND_8's
-										if (bit_cnt == 0) begin
+                                            temp_wire_bits <= {temp_wire_bits[3:0], sio_din}; // shift wire bits, and insert MISO bit
+`endif                                            
+                                        end else begin
+                                            temp_wire_bits <= {temp_wire_bits[6:0], sio_din[1]}; // shift wire bits, and insert MISO bit
+                                            sio_dout[0]       <= temp_wire_bits[6];
+                                        end                                        
+                                        bit_cnt        <= bit_cnt - 1'b1;
+                                        sck_pin        <= ~sck_pin;                            // set SCK to low for either the next bit of this transaction or the start of the next transaction
+                                        sck_timer      <= sck_timer_orig;                    // reset timer in case we chain SEND_8's
+                                        if (bit_cnt == 0) begin
 `ifdef SIM_MODEL
-											sim_address <= sim_address + 2;
+                                            sim_address <= sim_address + 2;
 `endif
-											bit_cnt    <= bit_cnt_orig;						// reset bit count in case we chain SEND_8's
-											state      <= tag;
-											cs_pin     <= shift8_cs_exit;					// some commands require cs to go high after the last bit
-											shift8_cs_exit <= 0;							// reset cs_exit for next SPI transfer
-										end
-									end else begin
-										sck_timer <= sck_timer - 1'b1;
-									end
-								end
-						endcase
-					end
+                                            bit_cnt    <= bit_cnt_orig;                        // reset bit count in case we chain SEND_8's
+                                            state      <= tag;
+                                            cs_pin     <= shift8_cs_exit;                    // some commands require cs to go high after the last bit
+                                            shift8_cs_exit <= 0;                            // reset cs_exit for next SPI transfer
+                                        end
+                                    end else begin
+                                        sck_timer <= sck_timer - 1'b1;
+                                    end
+                                end
+                        endcase
+                    end
 
-				// IDLE waiting for cmd_valid
-				STATE_IDLE:
-					begin
-						if (cmd_valid) begin
-							// ensure cs_pin drops before SCK goes high
-							cs_pin  <= 1'b0;
-							sck_pin <= 1'b0;
+                // IDLE waiting for cmd_valid
+                STATE_IDLE:
+                    begin
+                        if (cmd_valid) begin
+                            // ensure cs_pin drops before SCK goes high
+                            cs_pin  <= 1'b0;
+                            sck_pin <= 1'b0;
 
-							// configure I/O
-							sio_en    <= sio_en_orig;
-							bit_cnt   <= bit_cnt_orig;
-							sck_timer <= sck_timer_orig;
-							
-							// latch the command
-							cmd_value_l         <= cmd_value;
-							cmd_spi_address_l   <= cmd_spi_address;
-							cmd_burst_len_l     <= cmd_burst_len;
-							
-							// init the host memory address (this also gets the first read primed
-							host_mem_addr       <= cmd_host_address;
-							
-							// init params for other states
-							send_cmd_addr_cycle <= 0;
-							if (DUMMY_CYCLES == 0) begin
-								// with DUMMY_CYCLES==0 we signal cnt==1 to prime the initial read
-								dummy_cnt       <= 1;
-							end else begin
-								dummy_cnt       <= DUMMY_CYCLES + DUMMY_CYCLES;
-							end
+                            // configure I/O
+                            sio_en    <= sio_en_orig;
+                            bit_cnt   <= bit_cnt_orig;
+                            sck_timer <= sck_timer_orig;
+                            
+                            // latch the command
+                            cmd_value_l         <= cmd_value;
+                            cmd_spi_address_l   <= cmd_spi_address;
+                            cmd_burst_len_l     <= cmd_burst_len;
+                            
+                            // init the host memory address (this also gets the first read primed
+                            host_mem_addr       <= cmd_host_address;
+                            
+                            // init params for other states
+                            send_cmd_addr_cycle <= 0;
+                            if (DUMMY_CYCLES == 0) begin
+                                // with DUMMY_CYCLES==0 we signal cnt==1 to prime the initial read
+                                dummy_cnt       <= 1;
+                            end else begin
+                                dummy_cnt       <= DUMMY_CYCLES + DUMMY_CYCLES;
+                            end
 
 `ifdef SIM_MODEL
-							sim_address <= cmd_spi_address << 1;
-							sim_wr_en   <= 1'b0;
+                            sim_address <= cmd_spi_address << 1;
+                            sim_wr_en   <= 1'b0;
 `endif
-					
-							// branch to the next state
-							case(cmd_value)
-								`spidma_reset:
-									begin
-										state <= STATE_SEND_RESETEN;
-									end
-								`spidma_eqio:
-									begin
-										if (CMD_EQIO != 0) begin
-											state <= STATE_EQIO;
-										end else begin
-											tag   <= STATE_DONE;
-											state <= STATE_HANGUP;
-										end
-									end
-								`spidma_qmex:
-									begin
-										if (CMD_QMEX != 0) begin
-											state <= STATE_QMEX;
-										end else begin
-											tag   <= STATE_DONE;
-											state <= STATE_HANGUP;
-										end
-									end
-								`spidma_cmd_read:  
-									begin
-										state 		   <= STATE_SEND_CMD_ADDR;
-										host_mem_addr  <= cmd_host_address - 1'b1;			// subtract one so we can have a simpler loop in READ loop
-									end
-								`spidma_cmd_write:
-									begin
-										if (CMD_WRITE_ENABLE == 0) begin
-											state <= STATE_SEND_CMD_ADDR;
-										end else begin
-											// if CMD_WRITE_ENABLE is set then we assume it's a NOR and we need to turn on WEL
-											state <= STATE_WRITE_ENABLE;
-										end
-									end
-								`spidma_cmd_sector_erase:
-									begin
-										state <= STATE_WRITE_ENABLE;						// enable write latch
-									end
-								default:
-									begin
-										// invalid cmd_value so just hangup
-										tag   <= STATE_DONE;
-										state <= STATE_HANGUP;
-									end
-							endcase
-						end
-					end
+                    
+                            // branch to the next state
+                            case(cmd_value)
+                                `spidma_reset:
+                                    begin
+                                        state <= STATE_SEND_RESETEN;
+                                    end
+                                `spidma_eqio:
+                                    begin
+                                        if (CMD_EQIO != 0) begin
+                                            state <= STATE_EQIO;
+                                        end else begin
+                                            tag   <= STATE_DONE;
+                                            state <= STATE_HANGUP;
+                                        end
+                                    end
+                                `spidma_qmex:
+                                    begin
+                                        if (CMD_QMEX != 0) begin
+                                            state <= STATE_QMEX;
+                                        end else begin
+                                            tag   <= STATE_DONE;
+                                            state <= STATE_HANGUP;
+                                        end
+                                    end
+                                `spidma_cmd_read:  
+                                    begin
+                                        state            <= STATE_SEND_CMD_ADDR;
+                                        host_mem_addr  <= cmd_host_address - 1'b1;            // subtract one so we can have a simpler loop in READ loop
+                                    end
+                                `spidma_cmd_write:
+                                    begin
+                                        if (CMD_WRITE_ENABLE == 0) begin
+                                            state <= STATE_SEND_CMD_ADDR;
+                                        end else begin
+                                            // if CMD_WRITE_ENABLE is set then we assume it's a NOR and we need to turn on WEL
+                                            state <= STATE_WRITE_ENABLE;
+                                        end
+                                    end
+                                `spidma_cmd_sector_erase:
+                                    begin
+                                        state <= STATE_WRITE_ENABLE;                        // enable write latch
+                                    end
+                                default:
+                                    begin
+                                        // invalid cmd_value so just hangup
+                                        tag   <= STATE_DONE;
+                                        state <= STATE_HANGUP;
+                                    end
+                            endcase
+                        end
+                    end
 
-				// send the command and address
-				// in: send_cmd_addr_cycle == 0, cmd_value_l == READ/WRITE/etc, cmd_spi_address_l == address
-				STATE_SEND_CMD_ADDR:
-					begin
-						// setup send
-						send_cmd_addr_cycle <= send_cmd_addr_cycle + 1'b1;
-						state               <= STATE_SHIFT_DATA;
-						tag                 <= state;
-						if (send_cmd_addr_cycle == 0) begin
-							// write the command byte
-							case (cmd_value_l)
-								`spidma_cmd_read:  
-									begin
-										if (quad_mode) begin
-											sio_dout	   <= CMD_QPI_READ[7:4];
-											temp_wire_bits <= CMD_QPI_READ;
-										end else begin
-											sio_dout[0]	   <= CMD_SPI_READ[7];
-											temp_wire_bits <= CMD_SPI_READ;
-										end
-									end
-								`spidma_cmd_write: 
-									begin
-										if (quad_mode) begin
-											sio_dout	   <= CMD_QPI_WRITE[7:4];
-											temp_wire_bits <= CMD_QPI_WRITE;
-										end else begin
-											sio_dout[0]	   <= CMD_SPI_WRITE[7];
-											temp_wire_bits <= CMD_SPI_WRITE;
-										end
-									end
-								`spidma_cmd_sector_erase:
-									begin
-										sio_dout[0]    <= CMD_SECTOR_ERASE[7];
-										temp_wire_bits <= CMD_SECTOR_ERASE;
-									end
-								default:
-									begin
-										// invalid cmd_value so just hangup
-										tag   <= STATE_DONE;
-										state <= STATE_HANGUP;
-									end
-							endcase
-						end else begin
-							// send parts of the address
-							temp_wire_bits <= cmd_spi_address_l[SRAM_ADDR_WIDTH-(8*send_cmd_addr_cycle) +: 8];
-							if (quad_mode) begin
-								sio_dout <= cmd_spi_address_l[SRAM_ADDR_WIDTH-(8*send_cmd_addr_cycle) + 4 +: 4];
-							end else begin
-								sio_dout[0] <= cmd_spi_address_l[SRAM_ADDR_WIDTH-(8*send_cmd_addr_cycle) + 7];
-							end
+                // send the command and address
+                // in: send_cmd_addr_cycle == 0, cmd_value_l == READ/WRITE/etc, cmd_spi_address_l == address
+                STATE_SEND_CMD_ADDR:
+                    begin
+                        // setup send
+                        send_cmd_addr_cycle <= send_cmd_addr_cycle + 1'b1;
+                        state               <= STATE_SHIFT_DATA;
+                        tag                 <= state;
+                        if (send_cmd_addr_cycle == 0) begin
+                            // write the command byte
+                            case (cmd_value_l)
+                                `spidma_cmd_read:  
+                                    begin
+                                        if (quad_mode) begin
+                                            sio_dout       <= CMD_QPI_READ[7:4];
+                                            temp_wire_bits <= CMD_QPI_READ;
+                                        end else begin
+                                            sio_dout[0]       <= CMD_SPI_READ[7];
+                                            temp_wire_bits <= CMD_SPI_READ;
+                                        end
+                                    end
+                                `spidma_cmd_write: 
+                                    begin
+                                        if (quad_mode) begin
+                                            sio_dout       <= CMD_QPI_WRITE[7:4];
+                                            temp_wire_bits <= CMD_QPI_WRITE;
+                                        end else begin
+                                            sio_dout[0]       <= CMD_SPI_WRITE[7];
+                                            temp_wire_bits <= CMD_SPI_WRITE;
+                                        end
+                                    end
+                                `spidma_cmd_sector_erase:
+                                    begin
+                                        sio_dout[0]    <= CMD_SECTOR_ERASE[7];
+                                        temp_wire_bits <= CMD_SECTOR_ERASE;
+                                    end
+                                default:
+                                    begin
+                                        // invalid cmd_value so just hangup
+                                        tag   <= STATE_DONE;
+                                        state <= STATE_HANGUP;
+                                    end
+                            endcase
+                        end else begin
+                            // send parts of the address
+                            temp_wire_bits <= cmd_spi_address_l[SRAM_ADDR_WIDTH-(8*send_cmd_addr_cycle) +: 8];
+                            if (quad_mode) begin
+                                sio_dout <= cmd_spi_address_l[SRAM_ADDR_WIDTH-(8*send_cmd_addr_cycle) + 4 +: 4];
+                            end else begin
+                                sio_dout[0] <= cmd_spi_address_l[SRAM_ADDR_WIDTH-(8*send_cmd_addr_cycle) + 7];
+                            end
 /* verilator lint_off WIDTHEXPAND */
-							if (send_cmd_addr_cycle == SRAM_ADDR_WIDTH/8) begin
+                            if (send_cmd_addr_cycle == SRAM_ADDR_WIDTH/8) begin
 /* verilator lint_on WIDTHEXPAND */
-								// last byte of address we tag out to READ/WRITE/etc operations instead of coming back here
-								case(cmd_value_l)
-									`spidma_cmd_read:
-										begin
-											tag <= STATE_START_READ;
-										end
-									`spidma_cmd_write:
-										begin
-											tag <= STATE_START_WRITE;
-										end
-									`spidma_cmd_sector_erase:
-										begin
-											shift8_cs_exit <= 1'b1;						// we need to set CS high immediately
-											tag 		   <= STATE_SECTOR_ERASE;
-										end
-									default:
-										begin
-											// shouldn't get here but if we do hangup gracefully
-											tag   <= STATE_DONE;
-											state <= STATE_HANGUP;
-										end
-								endcase
-							end
-						end
-					end
+                                // last byte of address we tag out to READ/WRITE/etc operations instead of coming back here
+                                case(cmd_value_l)
+                                    `spidma_cmd_read:
+                                        begin
+                                            tag <= STATE_START_READ;
+                                        end
+                                    `spidma_cmd_write:
+                                        begin
+                                            tag <= STATE_START_WRITE;
+                                        end
+                                    `spidma_cmd_sector_erase:
+                                        begin
+                                            shift8_cs_exit <= 1'b1;                        // we need to set CS high immediately
+                                            tag            <= STATE_SECTOR_ERASE;
+                                        end
+                                    default:
+                                        begin
+                                            // shouldn't get here but if we do hangup gracefully
+                                            tag   <= STATE_DONE;
+                                            state <= STATE_HANGUP;
+                                        end
+                                endcase
+                            end
+                        end
+                    end
 
-				/* STATE_START_READ: Start and process a generic read command after the CMD+ADDRESS was sent
-				   In: dummy_cnt = 2 * # of cycles to wait, host_mem_addr = address to write to - 1, cmd_burst_len_l = bytes to read - 1
-				   out: dummy_cnt = 0, host_mem_addr = last written address, cmd_burst_len_l = 0
-				*/
-				STATE_START_READ:
-					begin
-						sio_en   <= 4'b0000;    // switch to input
-						if (DUMMY_CYCLES == 0 && dummy_cnt == 1) begin
-							// this is the state we get into when there's no dummy wait cycles but we need to prime temp_wire_bits...
-							dummy_cnt <= 0;
-							state     <= STATE_SHIFT_DATA;
-							tag       <= state;
-						end else if (dummy_cnt > 0) begin
-							// waiting for dummy cycles
-							if (sck_timer == 0) begin
-								dummy_cnt  <= dummy_cnt - 1'b1;
-								sck_pin    <= ~sck_pin;
-								sck_timer  <= sck_timer_orig;
-								if (dummy_cnt == 1) begin
-									// issue first QPI read
-									state     <= STATE_SHIFT_DATA;
-									tag       <= state;
-								end
-							end else begin
-								sck_timer  <= sck_timer - 1'b1;
-							end
-						end else begin
-							// we're now in the reading from SPI memory phase
-							// by time we get here we've read at least the first byte from SPI
-							host_mem_data_in <= temp_wire_bits;
-							host_mem_wr_en   <= 1'b1;
-							host_mem_addr    <= host_mem_addr + 1'b1;						// note: we previously subtracted 1 to start the loop
-							if (cmd_burst_len_l == 0) begin
-								// end of burst so hangup and then hit wait state
-								state <= STATE_HANGUP;
-								tag   <= STATE_DONE;
-							end else begin
-								cmd_burst_len_l <= cmd_burst_len_l - 1'b1;
-								state <= STATE_SHIFT_DATA;
-								tag   <= state;
-							end
-						end
-					end
+                /* STATE_START_READ: Start and process a generic read command after the CMD+ADDRESS was sent
+                   In: dummy_cnt = 2 * # of cycles to wait, host_mem_addr = address to write to - 1, cmd_burst_len_l = bytes to read - 1
+                   out: dummy_cnt = 0, host_mem_addr = last written address, cmd_burst_len_l = 0
+                */
+                STATE_START_READ:
+                    begin
+                        sio_en   <= 4'b0000;    // switch to input
+                        if (DUMMY_CYCLES == 0 && dummy_cnt == 1) begin
+                            // this is the state we get into when there's no dummy wait cycles but we need to prime temp_wire_bits...
+                            dummy_cnt <= 0;
+                            state     <= STATE_SHIFT_DATA;
+                            tag       <= state;
+                        end else if (dummy_cnt > 0) begin
+                            // waiting for dummy cycles
+                            if (sck_timer == 0) begin
+                                dummy_cnt  <= dummy_cnt - 1'b1;
+                                sck_pin    <= ~sck_pin;
+                                sck_timer  <= sck_timer_orig;
+                                if (dummy_cnt == 1) begin
+                                    // issue first QPI read
+                                    state     <= STATE_SHIFT_DATA;
+                                    tag       <= state;
+                                end
+                            end else begin
+                                sck_timer  <= sck_timer - 1'b1;
+                            end
+                        end else begin
+                            // we're now in the reading from SPI memory phase
+                            // by time we get here we've read at least the first byte from SPI
+                            host_mem_data_in <= temp_wire_bits;
+                            host_mem_wr_en   <= 1'b1;
+                            host_mem_addr    <= host_mem_addr + 1'b1;                        // note: we previously subtracted 1 to start the loop
+                            if (cmd_burst_len_l == 0) begin
+                                // end of burst so hangup and then hit wait state
+                                state <= STATE_HANGUP;
+                                tag   <= STATE_DONE;
+                            end else begin
+                                cmd_burst_len_l <= cmd_burst_len_l - 1'b1;
+                                state <= STATE_SHIFT_DATA;
+                                tag   <= state;
+                            end
+                        end
+                    end
 
-				/* STATE_START_WRITE: Start process to read from host and write to SPI
-					in: host_mem_addr = address to read from, cmd_burst_len_l = bytes to read - 1
-					out: host_mem_addr = +1 end of read, cmd_burst_len_l = 0;
-				*/
-				STATE_START_WRITE:
-					begin
+                /* STATE_START_WRITE: Start process to read from host and write to SPI
+                    in: host_mem_addr = address to read from, cmd_burst_len_l = bytes to read - 1
+                    out: host_mem_addr = +1 end of read, cmd_burst_len_l = 0;
+                */
+                STATE_START_WRITE:
+                    begin
 `ifdef SIM_MODEL
-						sim_wr_en      <= 1'b1;							// at this point any SEND_2's are going to memory
+                        sim_wr_en      <= 1'b1;                            // at this point any SEND_2's are going to memory
 `endif
-						temp_wire_bits <= host_mem_data_out;
-						if (quad_mode) begin
-							sio_dout	   <= host_mem_data_out[7:4];
-						end else begin
-							sio_dout[0]	   <= host_mem_data_out[7];
-						end
-						state		   <= STATE_SHIFT_DATA;
-						tag			   <= state;
-						host_mem_addr  <= host_mem_addr + 1'b1;
-						if (cmd_burst_len_l == 0) begin
-							shift8_cs_exit <= 1'b1;
-							tag 		   <= STATE_DONE_WRITE;
-						end else begin
-							cmd_burst_len_l <= cmd_burst_len_l - 1'b1;
-						end
-					end
-				// we're done writing so hang up
-				// (this is needed so we can give STATE_HANGUP a valid tag ... if we used tag==STATE_HANGUP above
-				// it would just endlessly jump to itself
-				STATE_DONE_WRITE:
-					begin
+                        temp_wire_bits <= host_mem_data_out;
+                        if (quad_mode) begin
+                            sio_dout       <= host_mem_data_out[7:4];
+                        end else begin
+                            sio_dout[0]       <= host_mem_data_out[7];
+                        end
+                        state           <= STATE_SHIFT_DATA;
+                        tag               <= state;
+                        host_mem_addr  <= host_mem_addr + 1'b1;
+                        if (cmd_burst_len_l == 0) begin
+                            shift8_cs_exit <= 1'b1;
+                            tag            <= STATE_DONE_WRITE;
+                        end else begin
+                            cmd_burst_len_l <= cmd_burst_len_l - 1'b1;
+                        end
+                    end
+                // we're done writing so hang up
+                // (this is needed so we can give STATE_HANGUP a valid tag ... if we used tag==STATE_HANGUP above
+                // it would just endlessly jump to itself
+                STATE_DONE_WRITE:
+                    begin
 `ifdef SIM_MODEL
-						sim_wr_en      <= 1'b0;							// at this point any SEND_2's are going to memory
+                        sim_wr_en      <= 1'b0;                            // at this point any SEND_2's are going to memory
 `endif
-						if (CMD_WRITE_ENABLE == 0) begin
-							state <= STATE_HANGUP;
-							tag   <= STATE_DONE;
-						end else begin
-							state <= STATE_HANGUP;
-							tag   <= STATE_WAIT_WIP;
-						end
-					end
+                        if (CMD_WRITE_ENABLE == 0) begin
+                            state <= STATE_HANGUP;
+                            tag   <= STATE_DONE;
+                        end else begin
+                            state <= STATE_HANGUP;
+                            tag   <= STATE_WAIT_WIP;
+                        end
+                    end
 
-				/* STATE_WRITE_ENABLE: enable the Write Enable Latch */
-				STATE_WRITE_ENABLE:
-					begin
+                /* STATE_WRITE_ENABLE: enable the Write Enable Latch */
+                STATE_WRITE_ENABLE:
+                    begin
 if (CMD_WRITE_ENABLE != 0) begin
-						temp_wire_bits <= CMD_WRITE_ENABLE;
-						sio_dout[0]    <= CMD_WRITE_ENABLE[7];
-						shift8_cs_exit <= 1'b1;
-						state          <= STATE_SHIFT_DATA;
-						tag			   <= STATE_WRITE_ENABLE_DONE;
+                        temp_wire_bits <= CMD_WRITE_ENABLE;
+                        sio_dout[0]    <= CMD_WRITE_ENABLE[7];
+                        shift8_cs_exit <= 1'b1;
+                        state          <= STATE_SHIFT_DATA;
+                        tag               <= STATE_WRITE_ENABLE_DONE;
 end
-					end
-				STATE_WRITE_ENABLE_DONE:
-					begin
+                    end
+                STATE_WRITE_ENABLE_DONE:
+                    begin
 if (CMD_WRITE_ENABLE != 0) begin
-						// need to hang up and then issue command
-						tag	  <= STATE_WRITE_ENABLE_RESUME;
-						state <= STATE_HANGUP;
+                        // need to hang up and then issue command
+                        tag      <= STATE_WRITE_ENABLE_RESUME;
+                        state <= STATE_HANGUP;
 end
-					end
-				STATE_WRITE_ENABLE_RESUME:
-					begin
+                    end
+                STATE_WRITE_ENABLE_RESUME:
+                    begin
 if (CMD_WRITE_ENABLE != 0) begin
-						// resume our command
-						cs_pin         <= 1'b0;							// lower CS pin
-						sck_pin        <= 1'b0;
-						sio_en         <= sio_en_orig;
-						sck_timer      <= sck_timer_orig;
-						bit_cnt        <= bit_cnt_orig;
-						state		   <= STATE_SEND_CMD_ADDR;
+                        // resume our command
+                        cs_pin         <= 1'b0;                            // lower CS pin
+                        sck_pin        <= 1'b0;
+                        sio_en         <= sio_en_orig;
+                        sck_timer      <= sck_timer_orig;
+                        bit_cnt        <= bit_cnt_orig;
+                        state           <= STATE_SEND_CMD_ADDR;
 end
-					end
-						
-					
-				/* STATE_WAIT_WIP: constantly read status reg for WIP==0 */
-				STATE_WAIT_WIP:
-					begin
+                    end
+                        
+                    
+                /* STATE_WAIT_WIP: constantly read status reg for WIP==0 */
+                STATE_WAIT_WIP:
+                    begin
 if (CMD_WRITE_ENABLE != 0) begin
-						case(wait_wip_timer)
-							0:
-								begin
-									cs_pin         <= 1'b0;							// lower CS pin
-									sck_pin        <= 1'b0;
-									sio_en         <= sio_en_orig;
-									sck_timer      <= sck_timer_orig;
-									bit_cnt        <= bit_cnt_orig;
-									temp_wire_bits <= CMD_READ_STATUS;
-									sio_dout[0]    <= CMD_READ_STATUS[7];
-									wait_wip_timer <= 1;
-								end
-							1:	// write READ_STATUS command
-								begin
-									tag 		   <= state;
-									state 		   <= STATE_SHIFT_DATA;
-									wait_wip_timer <= 2;
-								end
-							2:  // throw away first input 
-								begin
-									tag			   <= state;
-									state		   <= STATE_SHIFT_DATA;
-									wait_wip_timer <= 3;
-								end
-							3: // loop until it's 0
-								begin
-									if (temp_wire_bits[0]) begin
-										tag   <= state;
-										state <= STATE_SHIFT_DATA;
-									end else begin
-										// WIP == 0 we're done
-										tag   <= STATE_DONE;
-										state <= STATE_HANGUP;
-										wait_wip_timer <= 0;						// reset wip timer
-									end
-								end
-						endcase
-end	
-					end
-					
-				STATE_SECTOR_ERASE: // command is done here just need to hangup
-					begin
+                        case(wait_wip_timer)
+                            0:
+                                begin
+                                    cs_pin         <= 1'b0;                            // lower CS pin
+                                    sck_pin        <= 1'b0;
+                                    sio_en         <= sio_en_orig;
+                                    sck_timer      <= sck_timer_orig;
+                                    bit_cnt        <= bit_cnt_orig;
+                                    temp_wire_bits <= CMD_READ_STATUS;
+                                    sio_dout[0]    <= CMD_READ_STATUS[7];
+                                    wait_wip_timer <= 1;
+                                end
+                            1:    // write READ_STATUS command
+                                begin
+                                    tag            <= state;
+                                    state            <= STATE_SHIFT_DATA;
+                                    wait_wip_timer <= 2;
+                                end
+                            2:  // throw away first input 
+                                begin
+                                    tag               <= state;
+                                    state           <= STATE_SHIFT_DATA;
+                                    wait_wip_timer <= 3;
+                                end
+                            3: // loop until it's 0
+                                begin
+                                    if (temp_wire_bits[0]) begin
+                                        tag   <= state;
+                                        state <= STATE_SHIFT_DATA;
+                                    end else begin
+                                        // WIP == 0 we're done
+                                        tag   <= STATE_DONE;
+                                        state <= STATE_HANGUP;
+                                        wait_wip_timer <= 0;                        // reset wip timer
+                                    end
+                                end
+                        endcase
+end    
+                    end
+                    
+                STATE_SECTOR_ERASE: // command is done here just need to hangup
+                    begin
 if (CMD_WRITE_ENABLE != 0) begin
-						tag   <= STATE_WAIT_WIP;
-						state <= STATE_HANGUP;
+                        tag   <= STATE_WAIT_WIP;
+                        state <= STATE_HANGUP;
 end
-					end
+                    end
 
-				// done, signal ready, wait for valid to drop (note: you can signal ready in the previous cycle to save time)
-				// for now we signal ready here because if the user deasserts/reasserts valid before we get here we'll never
-				// reset to IDLE
-				STATE_DONE:
-					begin
-						ready <= 1'b1;
-						if (!cmd_valid) begin
-							ready <= 1'b0;
-							state <= STATE_IDLE;
-						end
-					end
+                // done, signal ready, wait for valid to drop (note: you can signal ready in the previous cycle to save time)
+                // for now we signal ready here because if the user deasserts/reasserts valid before we get here we'll never
+                // reset to IDLE
+                STATE_DONE:
+                    begin
+                        ready <= 1'b1;
+                        if (!cmd_valid) begin
+                            ready <= 1'b0;
+                            state <= STATE_IDLE;
+                        end
+                    end
 
-				// initiate hangup process by resetting IO pins, turn off host write, setup hangup timer
-				STATE_HANGUP:																// hang up the SPI connection
-					begin
-						host_mem_wr_en	<= 1'b0;											// ensure host memory write is off
-						hangup_timer	<= hangup_bauddiv;		 							// ensure we hit the required MIN_CPH_NS time (round up for safety)
-						state			<= STATE_HANGUP_WAIT;
-						cs_pin		    <= 1'b1;											// reset CS to default of high
-						sck_pin			<= 1'b0;											// reset SCK to default of low
-						sio_en    		<= 4'b0000;											// disable outputs
-						sio_dout		<= 4'b1111;
-					end
+                // initiate hangup process by resetting IO pins, turn off host write, setup hangup timer
+                STATE_HANGUP:                                                                // hang up the SPI connection
+                    begin
+                        host_mem_wr_en    <= 1'b0;                                            // ensure host memory write is off
+                        hangup_timer    <= hangup_bauddiv;                                     // ensure we hit the required MIN_CPH_NS time (round up for safety)
+                        state            <= STATE_HANGUP_WAIT;
+                        cs_pin            <= 1'b1;                                            // reset CS to default of high
+                        sck_pin            <= 1'b0;                                            // reset SCK to default of low
+                        sio_en            <= 4'b0000;                                            // disable outputs
+                        sio_dout        <= 4'b1111;
+                    end
 
-				// hangup wait loop, used to ensure there's a required delay beween CS lows
-				STATE_HANGUP_WAIT:															// Hangup and hold CS high for a mandatory period
-					begin
-						hangup_timer 	<= hangup_timer - 1'b1;
-						if (hangup_timer == 0) begin
-							state <= tag;													// Resume next state
-						end
-					end
+                // hangup wait loop, used to ensure there's a required delay beween CS lows
+                STATE_HANGUP_WAIT:                                                            // Hangup and hold CS high for a mandatory period
+                    begin
+                        hangup_timer     <= hangup_timer - 1'b1;
+                        if (hangup_timer == 0) begin
+                            state <= tag;                                                    // Resume next state
+                        end
+                    end
 
-				// if we end up here we really need to stop and ask for directions...
-				default:
-					if (cmd_valid) begin
-						// invalid cmd_value so just hangup
-						tag   <= STATE_DONE;
-						state <= STATE_HANGUP;
-					end
-			endcase
-		end
-	end
+                // if we end up here we really need to stop and ask for directions...
+                default:
+                    if (cmd_valid) begin
+                        // invalid cmd_value so just hangup
+                        tag   <= STATE_DONE;
+                        state <= STATE_HANGUP;
+                    end
+            endcase
+        end
+    end
 endmodule
