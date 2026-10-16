@@ -160,7 +160,7 @@ module nanofpu
 			out   <= fpmul16_out;
 			ready <= 1'b1;
 		end
-		if (valid && opcode == `NANOFPU_OP_NOP) begin
+		if (~ready && valid && opcode == `NANOFPU_OP_NOP) begin
 			out   <= in_a;
 			ready <= 1'b1;
 		end
