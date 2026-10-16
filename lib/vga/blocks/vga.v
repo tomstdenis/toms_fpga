@@ -106,29 +106,29 @@ module vga
     end
     
     always @(posedge vga_clk) begin
+		// X and Y Counter Logic
+		vga_x <= vga_x + 1'b1;
+		if (vga_x == (H_TOTAL - 1)) begin
+			vga_x <= 0;
+			vga_y <= vga_y + 1'b1;
+			if (vga_y == (V_TOTAL - 1)) begin
+				vga_y <= 0;
+			end
+		end
+
+		// Horizontal Sync
+		vga_h_pulse <= ~((vga_x >= (H_VISIBLE + H_FRONT)) && (vga_x < (H_VISIBLE + H_FRONT + H_SYNC)));
+
+		// Vertical Sync
+		vga_v_pulse <= ~((vga_y >= (V_VISIBLE + V_FRONT)) && (vga_y < (V_VISIBLE + V_FRONT + V_SYNC)));
+
         if (!rst_n) begin
             vga_x       <= 0;
             vga_y       <= 0;
             vga_h_pulse <= 1;
             vga_v_pulse <= 1;
-        end else begin
-            // X and Y Counter Logic
-            vga_x <= vga_x + 1'b1;
-            if (vga_x == (H_TOTAL - 1)) begin
-                vga_x <= 0;
-                vga_y <= vga_y + 1'b1;
-                if (vga_y == (V_TOTAL - 1)) begin
-                    vga_y <= 0;
-                end
-            end
-
-            // Horizontal Sync
-            vga_h_pulse <= ~((vga_x >= (H_VISIBLE + H_FRONT)) && (vga_x < (H_VISIBLE + H_FRONT + H_SYNC)));
-
-            // Vertical Sync
-            vga_v_pulse <= ~((vga_y >= (V_VISIBLE + V_FRONT)) && (vga_y < (V_VISIBLE + V_FRONT + V_SYNC)));
         end
-    end
+	end
     
     // font memory
     wire [10:0] font_addr;
@@ -141,7 +141,7 @@ module vga
 
 	// font bit generator
     wire [9:0] vga_y_p1 = (vga_y + (vga_x == (H_TOTAL-1) ? 1'b1 : 1'b0));
-    wire   text_out;
+    wire       text_out;
 	reg [15:0] vga_symbol;
     assign font_addr = {vga_symbol[7:0], vga_y_p1[`Y_SCOPE]};     // address into the rom, it's 11 bits of which the top 8 are the symbol and bottom 3 are the row
     assign text_out  = font_dout[7 - vga_x[2:0]];            // bit of output indexed from the ROM output
