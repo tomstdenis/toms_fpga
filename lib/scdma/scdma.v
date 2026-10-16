@@ -26,7 +26,8 @@ module sc_dma #(
 	input wire [DATA_WIDTH-1:0]     bus_rdata,			// bus read data
 	output reg [(DATA_WIDTH/8)-1:0] bus_wstrb,			// bus write strobe (1 == write)
 	output reg                      bus_valid,			// bus command is valid
-	input wire                      bus_ready			// bus ready response
+	input wire                      bus_ready,			// bus ready response
+	output reg                      bus_busy            // bus should follow DMA not CPU
 );
 
 	// latch the input command
@@ -44,6 +45,10 @@ module sc_dma #(
 		FSM_ISSUE_READ  = 1,
 		FSM_WAIT_READ   = 2,
 		FSM_WAIT_WRITE  = 3;
+
+	always @(*) begin
+		bus_busy = (fsm_state == FSM_IDLE) ? cmd_valid : 1'b1;
+	end
 
 	always @(posedge clk) begin
 		bus_valid <= 1'b0;
