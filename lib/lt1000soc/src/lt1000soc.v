@@ -571,50 +571,37 @@ localparam
                         end
                     end
                     MMIO_GPIO_DATA: begin
+                        mmio_data_out <= gpio_din;
                         if (picorv_mem_wstrb[0]) begin
                             gpio_dout[7:0] <= picorv_mem_wdata[7:0];
-                        end else begin
-                            mmio_data_out[7:0] <= gpio_din[7:0];
                         end
                         if (picorv_mem_wstrb[1]) begin
                             gpio_dout[15:8] <= picorv_mem_wdata[15:8];
-                        end else begin
-                            mmio_data_out[15:8] <= gpio_din[15:8];
                         end
                         if (picorv_mem_wstrb[2]) begin
                             gpio_dout[23:16] <= picorv_mem_wdata[23:16];
-                        end else begin
-                            mmio_data_out[23:16] <= gpio_din[23:16];
                         end
                         if (picorv_mem_wstrb[3]) begin
                             gpio_dout[31:24] <= picorv_mem_wdata[31:24];
-                        end else begin
-                            mmio_data_out[31:24] <= gpio_din[31:24];
                         end
                     end
                     MMIO_GPIO_OE: begin
+                        mmio_data_out <= gpio_oe;
                         if (picorv_mem_wstrb[0]) begin
                             gpio_oe[7:0] <= picorv_mem_wdata[7:0];
-                        end else begin
-                            mmio_data_out[7:0] <= gpio_oe[7:0];
                         end
                         if (picorv_mem_wstrb[1]) begin
                             gpio_oe[15:8] <= picorv_mem_wdata[15:8];
-                        end else begin
-                            mmio_data_out[15:8] <= gpio_oe[15:8];
                         end
                         if (picorv_mem_wstrb[2]) begin
                             gpio_oe[23:16] <= picorv_mem_wdata[23:16];
-                        end else begin
-                            mmio_data_out[23:16] <= gpio_oe[23:16];
                         end
                         if (picorv_mem_wstrb[3]) begin
                             gpio_oe[31:24] <= picorv_mem_wdata[31:24];
-                        end else begin
-                            mmio_data_out[31:24] <= gpio_oe[31:24];
                         end
                     end
                     MMIO_GPIO_W1S: begin // Write one to set bit
+                        mmio_data_out <= gpio_din;
                         if (picorv_mem_wstrb[0]) begin
                             gpio_dout[7:0] <= gpio_dout[7:0] | picorv_mem_wdata[7:0];
                         end
@@ -629,6 +616,7 @@ localparam
                         end
                     end
                     MMIO_GPIO_W1C: begin // Write one to clear bit
+                        mmio_data_out <= gpio_din;
                         if (picorv_mem_wstrb[0]) begin
                             gpio_dout[7:0] <= gpio_dout[7:0] & ~picorv_mem_wdata[7:0];
                         end
@@ -643,6 +631,7 @@ localparam
                         end
                     end
                     MMIO_GPIO_W1T: begin // Write one to toggle bit
+                        mmio_data_out <= gpio_din;
                         if (picorv_mem_wstrb[0]) begin
                             gpio_dout[7:0] <= gpio_dout[7:0] ^ picorv_mem_wdata[7:0];
                         end
