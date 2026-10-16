@@ -731,9 +731,9 @@ localparam
 endmodule
 
 `include "picorv32/picorv32.v"
-`include "../../uart/blocks/uart.v"
-`include "../../uart/blocks/tx_uart.v"
-`include "../../uart/blocks/rx_uart.v"
+`include "../../comms/uart/uart.v"
+`include "../../comms/uart/tx_uart.v"
+`include "../../comms/uart/rx_uart.v"
 //`include "../../nanocache/nanocache.v"
 //`include "../../nanocache/nanocache_comb.v"
 `include "../../nanocache/nanocache_comb_32bit.v"
@@ -741,5 +741,5 @@ endmodule
 `include "../../nanosram/nanosram.v"
 `include "../../vga/blocks/vga.v"
 `include "../../timer/blocks/timer.v"
-`include "../../spi/spi.v"
+`include "../../comms/spi/spi.v"
 `include "../../nanofpu/nanofpu.v"
