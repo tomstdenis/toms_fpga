@@ -474,8 +474,8 @@ localparam
     reg  [31:0] mmio_data_out;
 
     // driver of ready signal
-    reg [1:0] bus_cycle;
-    reg       bus_ready;
+    reg [1:0] soc_cycle;
+    reg       soc_ready;
 
     // free running cycle counter
     reg [31:0] timer;
@@ -526,7 +526,7 @@ localparam
         psram_write_mask  = 4'b0000;
         psram_data_wr_en  = 1'b0;
         vga_wren          = 4'b0000;
-        mem_ready         = bus_valid & bus_ready;
+        mem_ready         = bus_valid & soc_ready;
 
         if (bus_addr[MEM_16M_BIOS]) begin
             picorv_mem_rdata = (DOUBLE_REG_MEM == 0) ?
@@ -534,7 +534,7 @@ localparam
                                 { bios_mem_dout3, bios_mem_dout2, bios_mem_dout1, bios_mem_dout0 };
         end else if (bus_addr[MEM_16M_TCM]) begin
             tcm_wren         = bus_valid ? bus_wstrb : 4'b0000;
-            mem_ready        = bus_valid & |{bus_ready, bus_wstrb};
+            mem_ready        = bus_valid & |{soc_ready, bus_wstrb};
             picorv_mem_rdata = (DOUBLE_REG_MEM == 0) ?
                                 { tcm_dout3_tmp, tcm_dout2_tmp, tcm_dout1_tmp, tcm_dout0_tmp } :
                                 { tcm_dout3, tcm_dout2, tcm_dout1, tcm_dout0 };
@@ -549,7 +549,7 @@ localparam
                     vga_wren[3] = bus_wstrb[3] & ((bus_wdata[31:24] == VGA_WRITE_MASK) ? 1'b0 : 1'b1);
                 end
             end                    
-            mem_ready        = bus_valid & |{bus_ready, bus_wstrb};
+            mem_ready        = bus_valid & |{soc_ready, bus_wstrb};
             picorv_mem_rdata = vga_data_out;
         end else if (bus_addr[MEM_16M_PSRAM]) begin
             psram_write_mask = bus_valid ? { bus_wstrb[0], bus_wstrb[1], bus_wstrb[2], bus_wstrb[3] } : 4'b0000;
@@ -574,18 +574,20 @@ localparam
     end
     wire [7:0] CORE_FREQ_MHZ = CORE_FREQ_KHZ / 1000;
 
+// *** SOC ***
+// This is the SOC logic that responds to bus resquests 
     always @(posedge core_clk) begin
         // always reset various signals
         uart_tx_start        <= 1'b0;
         uart_rx_read         <= 1'b0;
         spi_valid            <= 1'b0;
-        bus_ready            <= 1'b0;
+        soc_ready            <= 1'b0;
         picorv_pcpi_ready    <= 1'b0;
         picorv_pcpi_wr       <= 1'b0;
         psram_valid          <= 1'b0;
         fpu_valid            <= 0;
         dma_cmd_valid        <= 1'b0;
-        bus_cycle            <= bus_valid ? bus_cycle : 0;              // ensure bus_cycle gets reset
+        soc_cycle            <= bus_valid ? soc_cycle : 0;              // ensure soc_cycle gets reset
         bus_arb_pico_ready   <= 0;                                      // force pico_ready to 0 during DMA after first DMA cycle
         bus_arb_dma_busy     <= bus_arb_dma_busy & ~dma_cmd_ready;      // clear dma_busy once dma_cmd_ready goes high for 1 cycle
 
@@ -618,19 +620,19 @@ localparam
             if (bus_addr[MEM_16M_BIOS] | bus_addr[MEM_16M_TCM] | bus_addr[MEM_16M_VGA]) begin
 // *** BIOS, TCM, VGA ***
                 if (DOUBLE_REG_MEM == 1) begin
-                    bus_cycle[0]     <= ~bus_cycle[0];
+                    soc_cycle[0]     <= ~soc_cycle[0];
                 end
-                bus_ready        <= (DOUBLE_REG_MEM == 0) ? 1'b1 : bus_cycle[0];
+                soc_ready        <= (DOUBLE_REG_MEM == 0) ? 1'b1 : soc_cycle[0];
             end else if (bus_addr[MEM_16M_PSRAM]) begin
 // *** PSRAM ***
-                if (~bus_cycle[0] & psram_idle) begin
-                    bus_cycle        <= 1'b1;
+                if (~soc_cycle[0] & psram_idle) begin
+                    soc_cycle        <= 1'b1;
                     psram_valid      <= 1'b1;
                 end
             end else if (bus_addr[MEM_16M_MMIO]) begin
 // *** MMIO ***
                 // default to ready
-                bus_ready <= 1'b1;
+                soc_ready <= 1'b1;
                 case (bus_addr[7:0])
                     MMIO_MCFG: begin
                         mmio_data_out <= {CORE_FREQ_MHZ, `LT1000SOC_REV, TCM_SIZE_BITS, mmio_reg_mcfg};
@@ -722,16 +724,16 @@ localparam
                         end else begin
                             // default to all FF if no bytes to read
                             mmio_data_out <= 32'hFFFF_FFFF;
-                            if ((bus_cycle == 2'b00) && uart_rx_ready) begin
+                            if ((soc_cycle == 2'b00) && uart_rx_ready) begin
                                 uart_rx_read       <= 1'b1;
-                                bus_cycle          <= 2'b01;
-                                bus_ready          <= 1'b0;
+                                soc_cycle          <= 2'b01;
+                                soc_ready          <= 1'b0;
                             end
-                            if (bus_cycle == 2'b01) begin
-                                bus_ready          <= 1'b0;
-                                bus_cycle          <= 2'b11;
+                            if (soc_cycle == 2'b01) begin
+                                soc_ready          <= 1'b0;
+                                soc_cycle          <= 2'b11;
                             end
-                            if (bus_cycle == 2'b11) begin
+                            if (soc_cycle == 2'b11) begin
                                 mmio_data_out   <= {24'h0, uart_rx_byte};
                             end
                         end
@@ -795,7 +797,7 @@ localparam
                             if (bus_wdata[0]) begin
                                 // the next cycle we're handing off to the DMA
                                 // so mark the DMA busy and PICO ready for one cycle
-                                bus_ready          <= 1'b0;
+                                soc_ready          <= 1'b0;
                                 bus_arb_dma_busy   <= 1'b1;
                                 bus_arb_pico_ready <= 1'b1;
                             end
@@ -805,14 +807,14 @@ localparam
                 endcase
             end else begin // default 16M region that isn't mapped to anything
                 // unmapped memory just return ready better than hanging I guess 
-                bus_ready     <= 1'b1;
+                soc_ready     <= 1'b1;
                 mmio_data_out <= 32'hBEBEBEEF;
             end
         end
         if (!crst_n) begin
             picorv_pcpi_wait   <= 1'b0;
             picorv_mem_instr_l <= 1'b0;
-            bus_cycle          <= 1'b0;
+            soc_cycle          <= 1'b0;
             uart_tx_start      <= 1'b0;
             uart_rx_read       <= 1'b0;
             cvga_page_sel      <= 1'b0;
