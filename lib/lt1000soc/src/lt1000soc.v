@@ -487,12 +487,13 @@ localparam
     reg [31:0] bus_wdata;
     reg [3:0]  bus_wstrb;
     reg        bus_valid;
-    reg        dma_bus_busy_l;
     reg        mem_ready;
+    reg        bus_arb_dma_busy;
+    reg        bus_arb_pico_ready;
 
     // combinatorially connect bus to blocks
     always @(*) begin
-        if (dma_bus_busy) begin
+        if (bus_arb_dma_busy) begin
             bus_addr  = dma_bus_addr;
             bus_wdata = dma_bus_wdata;
             bus_wstrb = dma_bus_wstrb;
@@ -524,7 +525,7 @@ localparam
         psram_write_mask  = 4'b0000;
         psram_data_wr_en  = 1'b0;
         vga_wren          = 4'b0000;
-        mem_ready         = bus_ready;
+        mem_ready         = bus_valid & bus_ready;
 
         if (bus_addr[MEM_16M_BIOS]) begin
             picorv_mem_rdata = (DOUBLE_REG_MEM == 0) ?
@@ -547,22 +548,22 @@ localparam
                     vga_wren[3] = bus_wstrb[3] & ((bus_wdata[31:24] == VGA_WRITE_MASK) ? 1'b0 : 1'b1);
                 end
             end                    
-            mem_ready = bus_valid & |{bus_ready, bus_wstrb};
+            mem_ready        = bus_valid & |{bus_ready, bus_wstrb};
             picorv_mem_rdata = vga_data_out;
         end else if (bus_addr[MEM_16M_PSRAM]) begin
             psram_write_mask = bus_valid ? { bus_wstrb[0], bus_wstrb[1], bus_wstrb[2], bus_wstrb[3] } : 4'b0000;
             psram_data_wr_en = bus_valid ? |bus_wstrb : 1'b0;
             picorv_mem_rdata = { psram_data_out[7:0], psram_data_out[15:8], psram_data_out[23:16], psram_data_out[31:24] };
-            mem_ready = psram_ready;
+            mem_ready        = bus_valid & psram_ready;
         end else if (bus_addr[MEM_16M_MMIO]) begin
             picorv_mem_rdata = mmio_data_out;
         end
 
         // we don't tie the ready during dma_cmd_valid high cycle since the ready
         // must go to the CPU not the DMA
-        if (dma_bus_busy) begin
+        if (bus_arb_dma_busy) begin
             dma_bus_ready    = mem_ready;
-            picorv_mem_ready = 0;
+            picorv_mem_ready = bus_arb_pico_ready;
         end else begin
             dma_bus_ready    = 0;
             picorv_mem_ready = mem_ready;
@@ -580,8 +581,10 @@ localparam
         picorv_pcpi_wr       <= 1'b0;
         psram_valid          <= 1'b0;
         fpu_valid            <= 0;
-        dma_bus_busy_l       <= dma_bus_busy;
         dma_cmd_valid        <= 1'b0;
+        bus_cycle            <= bus_valid ? bus_cycle : 0;
+        bus_arb_pico_ready   <= 0;
+        bus_arb_dma_busy     <= bus_arb_dma_busy & ~dma_cmd_ready;
 
         // update cycle counter
         timer                <= timer + 1'b1;
@@ -614,7 +617,9 @@ localparam
         end
 
         // respond to valid only if ready is already low
-        if (~picorv_mem_ready & bus_valid) begin
+// TODO: ~picorv_mem_addr works here for most things except writes to PSRAM via DMA
+// TODO: the ~mem_ready should be correct no?  
+        if (~mem_ready & bus_valid) begin
             if (bus_addr[MEM_16M_BIOS] | bus_addr[MEM_16M_TCM] | bus_addr[MEM_16M_VGA]) begin
 // *** BIOS, TCM, VGA ***
                 if (DOUBLE_REG_MEM == 1) begin
@@ -792,6 +797,13 @@ localparam
                             dma_cmd_write_advance  <= bus_wdata[2];
                             dma_cmd_write_constant <= bus_wdata[1];
                             dma_cmd_valid          <= bus_wdata[0];
+                            if (bus_wdata[0]) begin
+                                // the next cycle we're handing off to the DMA
+                                // so mark the DMA busy and PICO ready for one cycle
+                                bus_ready          <= 1'b0;
+                                bus_arb_dma_busy   <= 1'b1;
+                                bus_arb_pico_ready <= 1'b1;
+                            end
                         end
                     end
                     default: mmio_data_out <= 32'hBEBEBEEF;
@@ -801,8 +813,6 @@ localparam
                 bus_ready     <= 1'b1;
                 mmio_data_out <= 32'hBEBEBEEF;
             end
-        end else begin // ready & valid (reset things before the next bus access)
-            bus_cycle <= 0;
         end
         if (!crst_n) begin
             picorv_pcpi_wait   <= 1'b0;
@@ -816,6 +826,7 @@ localparam
             gpio_dout          <= 32'b0;
             gpio_oe            <= 32'b0;
             mmio_reg_mcfg[7:0] <= 8'h00;
+            bus_arb_dma_busy       <= 1'b0;
             dma_cmd_valid          <= 1'b0;
             dma_cmd_read_advance   <= 1'b0;
             dma_cmd_write_advance  <= 1'b0;

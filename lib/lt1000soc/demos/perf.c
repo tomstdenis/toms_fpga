@@ -25,6 +25,15 @@ TCM_FUNC(demo) void demo(void)
 	t1 = TIMER - t1;
 	printf("DMA PSRAM to VGA copy took %lu cycles\n", t1);	
 
+	// time to DMA PSRAM to PSRAM
+	t1 = TIMER;
+	DMA_WADDR = PSRAM_ADDR + 0x100000; // well past the end of this binary
+	DMA_RADDR = PSRAM_ADDR;
+	DMA_LEN   = 65536;
+	DMA_CMD   = DMA_CMD_VALID | DMA_CMD_WRITE_ADVANCE | DMA_CMD_READ_ADVANCE;
+	t1 = TIMER - t1;
+	printf("DMA 64KB PSRAM to PSRAM copy took %lu cycles\n", t1);	
+
 	// time to DMA clear the VGA
 	t1 = TIMER;
 	DMA_WADDR = VGA_ADDR;
@@ -32,7 +41,8 @@ TCM_FUNC(demo) void demo(void)
 	DMA_LEN   = (320 * 200) / 4;
 	DMA_CMD   = DMA_CMD_VALID | DMA_CMD_WRITE_ADVANCE | DMA_CMD_WRITE_CONST;
 	t1 = TIMER - t1;
-	printf("DMA VGA clear took %lu cycles\n", t1);	
+	printf("DMA VGA clear took %lu cycles\n", t1);
+	getch();
 	
 	// time TCM to VGA copy
 	t1 = TIMER;
