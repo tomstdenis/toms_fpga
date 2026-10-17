@@ -57,14 +57,15 @@
 // TIMER (32-bit Cycle Counter)
 #define TIMER               *((volatile uint32_t *)0x10000028)
 
-#define DMA_RADDR           *((volatile uint32_t *)0x1000002C)
-#define DMA_WADDR           *((volatile uint32_t *)0x10000030)
-#define DMA_LEN             *((volatile uint32_t *)0x10000034)
-#define DMA_CONST           *((volatile uint32_t *)0x10000038)
-#define DMA_CMD             *((volatile uint32_t *)0x1000003C)
-#define DMA_CMD_VALID          1
-#define DMA_CMD_WRITE_CONST    2
-#define DMA_CMD_WRITE_ADVANCE  4
-#define DMA_CMD_READ_ADVANCE   8
+// DMA (32-bit transfers only)
+#define DMA_RADDR           *((volatile uint32_t *)0x1000002C)		// READ address
+#define DMA_WADDR           *((volatile uint32_t *)0x10000030)		// WRITE address
+#define DMA_LEN             *((volatile uint32_t *)0x10000034)		// Length (bytes) must be a multiple of 4
+#define DMA_CONST           *((volatile uint32_t *)0x10000038)		// Constant if using WRITE_CONST mode
+#define DMA_CMD             *((volatile uint32_t *)0x1000003C)		// CMD (control register
+#define DMA_CMD_VALID          1									// writing this bit starts a job and halts the CPU
+#define DMA_CMD_WRITE_CONST    2									// Write constant mode (does not read from bus)
+#define DMA_CMD_WRITE_ADVANCE  4									// Advance write pointer with each write
+#define DMA_CMD_READ_ADVANCE   8									// Advance read pointer with each read
 
 #endif

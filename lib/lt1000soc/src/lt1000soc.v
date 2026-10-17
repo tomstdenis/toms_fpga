@@ -414,7 +414,7 @@ localparam
         .pcpi_valid(picorv_pcpi_valid), .pcpi_insn(picorv_pcpi_insn),
         .pcpi_rs1(picorv_pcpi_rs1), .pcpi_rs2(picorv_pcpi_rs2),
         .pcpi_wr(picorv_pcpi_wr), .pcpi_rd(picorv_pcpi_rd),
-        .pcpi_wait(picorv_pcpi_wait), .pcpi_ready(picorv_pcpi_ready)
+        .pcpi_wait(picorv_pcpi_wait), .pcpi_ready(picorv_pcpi_ready), .irq(32'b0)
     );
 
 // *** DMA ***
@@ -506,7 +506,9 @@ localparam
             bus_valid = picorv_mem_valid;
         end
 
-        // addresses 
+        // BUS logic, this section deals with driving the peripherals attached to the bus
+
+        // addressing
         bios_mem_addr   = bus_addr[12:0];
         tcm_addr        = bus_addr[TCM_SIZE_BITS-1:0];
         vga_host_addr   = bus_addr[16:0];
@@ -560,6 +562,7 @@ localparam
             picorv_mem_rdata = mmio_data_out;
         end
 
+        // Controller logic
         // we need to drive the mem_ready signal into the correct bus master
         if (bus_arb_dma_busy) begin
             // DMA is driving, so we route mem_ready to the dma
@@ -577,16 +580,20 @@ localparam
 // *** SOC ***
 // This is the SOC logic that responds to bus resquests 
     always @(posedge core_clk) begin
-        // always reset various signals
-        uart_tx_start        <= 1'b0;
-        uart_rx_read         <= 1'b0;
-        spi_valid            <= 1'b0;
-        soc_ready            <= 1'b0;
+        // reset various PICO signals
         picorv_pcpi_ready    <= 1'b0;
         picorv_pcpi_wr       <= 1'b0;
-        psram_valid          <= 1'b0;
         fpu_valid            <= 0;
+
+        // reset various peripheral signals
+        uart_tx_start        <= 1'b0;
+        uart_rx_read         <= 1'b0;
+        psram_valid          <= 1'b0;
+        spi_valid            <= 1'b0;
         dma_cmd_valid        <= 1'b0;
+
+        // reset bus/soc signals
+        soc_ready            <= 1'b0;
         soc_cycle            <= bus_valid ? soc_cycle : 0;              // ensure soc_cycle gets reset
         bus_arb_pico_ready   <= 0;                                      // force pico_ready to 0 during DMA after first DMA cycle
         bus_arb_dma_busy     <= bus_arb_dma_busy & ~dma_cmd_ready;      // clear dma_busy once dma_cmd_ready goes high for 1 cycle
@@ -725,16 +732,16 @@ localparam
                             // default to all FF if no bytes to read
                             mmio_data_out <= 32'hFFFF_FFFF;
                             if ((soc_cycle == 2'b00) && uart_rx_ready) begin
-                                uart_rx_read       <= 1'b1;
-                                soc_cycle          <= 2'b01;
-                                soc_ready          <= 1'b0;
+                                uart_rx_read   <= 1'b1;
+                                soc_cycle      <= 2'b01;
+                                soc_ready      <= 1'b0;
                             end
                             if (soc_cycle == 2'b01) begin
-                                soc_ready          <= 1'b0;
-                                soc_cycle          <= 2'b11;
+                                soc_ready      <= 1'b0;
+                                soc_cycle      <= 2'b11;
                             end
                             if (soc_cycle == 2'b11) begin
-                                mmio_data_out   <= {24'h0, uart_rx_byte};
+                                mmio_data_out  <= {24'h0, uart_rx_byte};
                             end
                         end
                     end
@@ -814,7 +821,10 @@ localparam
         if (!crst_n) begin
             picorv_pcpi_wait   <= 1'b0;
             picorv_mem_instr_l <= 1'b0;
-            soc_cycle          <= 1'b0;
+
+            soc_cycle          <= 2'b0;
+            soc_ready          <= 1'b0;
+
             uart_tx_start      <= 1'b0;
             uart_rx_read       <= 1'b0;
             cvga_page_sel      <= 1'b0;
@@ -823,6 +833,7 @@ localparam
             gpio_dout          <= 32'b0;
             gpio_oe            <= 32'b0;
             mmio_reg_mcfg[7:0] <= 8'h00;
+
             bus_arb_dma_busy       <= 1'b0;
             dma_cmd_valid          <= 1'b0;
             dma_cmd_read_advance   <= 1'b0;
