@@ -590,10 +590,10 @@ localparam
         timer                <= timer + 1'b1;
 
         // the latched timer is sampled at the posedge of instruction fetches
-        picorv_mem_instr_l <= picorv_mem_instr;
-        if (picorv_mem_instr & ~picorv_mem_instr_l) begin
-            timer_l <= timer;
-        end
+//        picorv_mem_instr_l <= picorv_mem_instr;
+//        if (picorv_mem_instr & ~picorv_mem_instr_l) begin
+//            timer_l <= timer;
+//        end
 
         // respond to pcpi requests
         if (~picorv_pcpi_ready & picorv_pcpi_valid) begin
@@ -764,7 +764,7 @@ localparam
                         end
                     end
                     MMIO_TIMER: begin
-                        mmio_data_out <= timer_l;
+                        mmio_data_out <= timer;
                     end
                     MMIO_DMA_RADDR: begin
                         mmio_data_out <= dma_cmd_read_addr;

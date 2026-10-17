@@ -11,19 +11,37 @@ TCM_FUNC(demo) void demo(void)
 	t1 = TIMER;
 	DMA_WADDR = VGA_ADDR + 0x10000;
 	DMA_RADDR = VGA_ADDR;
-	DMA_LEN   = (320 * 200) / 4;
+	DMA_LEN   = (320 * 200);
 	DMA_CMD   = DMA_CMD_VALID | DMA_CMD_WRITE_ADVANCE | DMA_CMD_READ_ADVANCE;
 	t1 = TIMER - t1;
-	printf("DMA VGA to VGA copy took %lu cycles\n", t1);	
+	printf("DMA VGA to VGA copy took %lu cycles\n", t1);
+	// sanity
+	if (memcmp(VGA_ADDR + 0x10000, VGA_ADDR, 320*200)) {
+		printf("DMA VGA to VGA contents failed\n");
+		uint32_t *m1 = VGA_ADDR + 0x10000;
+		uint32_t *m2 = VGA_ADDR;
+		uint32_t i;
+		for (i = 0; i < ((320 * 200) / 4); i++) {
+			if (*m1 != *m2) {
+				printf("%u: %x vs %x\n", i, *m1, *m2);
+			}
+			++m1;
+			++m2;
+		}
+	}
 
 	// time to DMA PSRAM to VGA
 	t1 = TIMER;
 	DMA_WADDR = VGA_ADDR + 0x10000;
 	DMA_RADDR = PSRAM_ADDR;
-	DMA_LEN   = (320 * 200) / 4;
+	DMA_LEN   = (320 * 200);
 	DMA_CMD   = DMA_CMD_VALID | DMA_CMD_WRITE_ADVANCE | DMA_CMD_READ_ADVANCE;
 	t1 = TIMER - t1;
 	printf("DMA PSRAM to VGA copy took %lu cycles\n", t1);	
+	// sanity
+	if (memcmp(PSRAM_ADDR, VGA_ADDR + 0x10000, 320*200)) {
+		printf("DMA PSRAM to VGA contents failed\n");
+	}
 
 	// time to DMA PSRAM to PSRAM
 	t1 = TIMER;
@@ -33,12 +51,29 @@ TCM_FUNC(demo) void demo(void)
 	DMA_CMD   = DMA_CMD_VALID | DMA_CMD_WRITE_ADVANCE | DMA_CMD_READ_ADVANCE;
 	t1 = TIMER - t1;
 	printf("DMA 64KB PSRAM to PSRAM copy took %lu cycles\n", t1);	
+	// sanity
+	if (memcmp(PSRAM_ADDR+0x100000, PSRAM_ADDR, 65536)) {
+		printf("DMA PSRAM to PSRAM contents failed\n");
+	}
+
+	// time to DMA PSRAM to PSRAM diff cache lines
+	t1 = TIMER;
+	DMA_WADDR = PSRAM_ADDR + 0x100020; // well past the end of this binary
+	DMA_RADDR = PSRAM_ADDR;
+	DMA_LEN   = 65536;
+	DMA_CMD   = DMA_CMD_VALID | DMA_CMD_WRITE_ADVANCE | DMA_CMD_READ_ADVANCE;
+	t1 = TIMER - t1;
+	printf("DMA 64KB PSRAM to PSRAM (offset by cache line) copy took %lu cycles\n", t1);	
+	// sanity
+	if (memcmp(PSRAM_ADDR+0x100020, PSRAM_ADDR, 65536)) {
+		printf("DMA PSRAM to PSRAM (offset) contents failed\n");
+	}
 
 	// time to DMA clear the VGA
 	t1 = TIMER;
 	DMA_WADDR = VGA_ADDR;
 	DMA_CONST = 0x70407041;
-	DMA_LEN   = (320 * 200) / 4;
+	DMA_LEN   = (320 * 200);
 	DMA_CMD   = DMA_CMD_VALID | DMA_CMD_WRITE_ADVANCE | DMA_CMD_WRITE_CONST;
 	t1 = TIMER - t1;
 	printf("DMA VGA clear took %lu cycles\n", t1);
