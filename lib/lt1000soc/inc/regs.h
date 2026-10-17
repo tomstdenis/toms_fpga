@@ -57,4 +57,14 @@
 // TIMER (32-bit Cycle Counter)
 #define TIMER               *((volatile uint32_t *)0x10000028)
 
+#define DMA_RADDR           *((volatile uint32_t *)0x1000002C)
+#define DMA_WADDR           *((volatile uint32_t *)0x10000030)
+#define DMA_LEN             *((volatile uint32_t *)0x10000034)
+#define DMA_CONST           *((volatile uint32_t *)0x10000038)
+#define DMA_CMD             *((volatile uint32_t *)0x1000003C)
+#define DMA_CMD_VALID          1
+#define DMA_CMD_WRITE_CONST    2
+#define DMA_CMD_WRITE_ADVANCE  4
+#define DMA_CMD_READ_ADVANCE   8
+
 #endif

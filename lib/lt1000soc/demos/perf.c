@@ -7,6 +7,33 @@ TCM_FUNC(demo) void demo(void)
 	
 	getch();
 	
+	// time to DMA VGA to VGA
+	t1 = TIMER;
+	DMA_WADDR = VGA_ADDR + 0x10000;
+	DMA_RADDR = VGA_ADDR;
+	DMA_LEN   = (320 * 200) / 4;
+	DMA_CMD   = DMA_CMD_VALID | DMA_CMD_WRITE_ADVANCE | DMA_CMD_READ_ADVANCE;
+	t1 = TIMER - t1;
+	printf("DMA VGA to VGA copy took %lu cycles\n", t1);	
+
+	// time to DMA PSRAM to VGA
+	t1 = TIMER;
+	DMA_WADDR = VGA_ADDR + 0x10000;
+	DMA_RADDR = PSRAM_ADDR;
+	DMA_LEN   = (320 * 200) / 4;
+	DMA_CMD   = DMA_CMD_VALID | DMA_CMD_WRITE_ADVANCE | DMA_CMD_READ_ADVANCE;
+	t1 = TIMER - t1;
+	printf("DMA PSRAM to VGA copy took %lu cycles\n", t1);	
+
+	// time to DMA clear the VGA
+	t1 = TIMER;
+	DMA_WADDR = VGA_ADDR;
+	DMA_CONST = 0x70407041;
+	DMA_LEN   = (320 * 200) / 4;
+	DMA_CMD   = DMA_CMD_VALID | DMA_CMD_WRITE_ADVANCE | DMA_CMD_WRITE_CONST;
+	t1 = TIMER - t1;
+	printf("DMA VGA clear took %lu cycles\n", t1);	
+	
 	// time TCM to VGA copy
 	t1 = TIMER;
 	p1 = VGA_ADDR;
@@ -195,7 +222,6 @@ TCM_FUNC(demo) void demo(void)
 	gfx_draw_tile_map_overlay(VGA_ADDR, PSRAM_ADDR+0xA000, PSRAM_ADDR+0xC000, 0, 20, 40, 5);
 	t1 = TIMER - t1;
 	printf("draw_tile_map_overlay(ALL=PSRAM at offsets, bottom 5x40), took %lu cycles\n", t1);
-
 }
 
 
