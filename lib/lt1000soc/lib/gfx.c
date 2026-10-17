@@ -182,16 +182,12 @@ TCM_FUNC(gfx_flip_page) uint8_t *gfx_flip_page(void) {
 }
 
 // Fast clear using memset
-TCM_FUNC(gfx_clear) void gfx_clear(uint8_t color) {
-	uint32_t *p = (uint32_t *)gfx_get_draw_buffer();
-	uint32_t  c = color | (color << 8) | (color << 16) | (color << 24);
-	uint32_t  x;
-	for (x = 0; x < (320 * 200) / 64; x++) {
-		*p++ = c; *p++ = c; *p++ = c; *p++ = c;
-		*p++ = c; *p++ = c; *p++ = c; *p++ = c;
-		*p++ = c; *p++ = c; *p++ = c; *p++ = c;
-		*p++ = c; *p++ = c; *p++ = c; *p++ = c;
-	}
+TCM_FUNC(gfx_clear) void gfx_clear(uint32_t color) {
+	// use DMA to clear VGA buffer 
+	DMA_WADDR = (uint32_t)gfx_get_draw_buffer();
+	DMA_LEN   = 320 * 200;
+	DMA_CONST = (uint32_t)(color | (color << 8) | (color << 16) | (color << 24));
+	DMA_CMD   = DMA_CMD_VALID | DMA_CMD_WRITE_ADVANCE | DMA_CMD_WRITE_CONST;
 }
 
 // Single pixel plot with bounds checking

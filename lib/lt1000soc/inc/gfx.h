@@ -20,7 +20,7 @@ uint8_t *gfx_flip_page(void);
 uint8_t *gfx_get_draw_buffer(void);
 
 // Primitives
-void gfx_clear(uint8_t color);
+void gfx_clear(uint32_t color);
 void gfx_putpixel(int x, int y, uint8_t color);
 void gfx_line(int x0, int y0, int x1, int y1, uint8_t color);
 void gfx_hline(int x, int y, int w, uint8_t color);

@@ -430,7 +430,6 @@ localparam
 
     wire [31:0] dma_bus_addr;
     wire [31:0] dma_bus_wdata;
-//    reg [31:0]  dma_bus_rdata;
     wire [3:0]  dma_bus_wstrb;
     wire        dma_bus_valid;
     reg         dma_bus_ready;
@@ -480,25 +479,27 @@ localparam
 
     // free running cycle counter
     reg [31:0] timer;
-    reg [31:0] timer_l;
 
-    // comb bus signals
-    reg [31:0] bus_addr;
-    reg [31:0] bus_wdata;
-    reg [3:0]  bus_wstrb;
-    reg        bus_valid;
-    reg        mem_ready;
-    reg        bus_arb_dma_busy;
-    reg        bus_arb_pico_ready;
+    // comb bus signals for our SOC
+    reg [31:0] bus_addr;                    // bus addresses
+    reg [31:0] bus_wdata;                   // bus write data
+    reg [3:0]  bus_wstrb;                   // bus write strobe
+    reg        bus_valid;                   // bus valid
+    reg        mem_ready;                   // SOC is ready
+    reg        bus_arb_dma_busy;            // held high when the DMA takes over
+    reg        bus_arb_pico_ready;          // trailing PICO ready for the write to DMA_CMD.VALID
 
     // combinatorially connect bus to blocks
     always @(*) begin
+        // mux the bus signals INTO the SOC
         if (bus_arb_dma_busy) begin
+            // DMA is active so it drives the bus
             bus_addr  = dma_bus_addr;
             bus_wdata = dma_bus_wdata;
             bus_wstrb = dma_bus_wstrb;
             bus_valid = dma_bus_valid;
         end else begin
+            // default is PICO drives the bus
             bus_addr  = picorv_mem_addr;
             bus_wdata = picorv_mem_wdata;
             bus_wstrb = picorv_mem_wstrb;
@@ -559,12 +560,14 @@ localparam
             picorv_mem_rdata = mmio_data_out;
         end
 
-        // we don't tie the ready during dma_cmd_valid high cycle since the ready
-        // must go to the CPU not the DMA
+        // we need to drive the mem_ready signal into the correct bus master
         if (bus_arb_dma_busy) begin
+            // DMA is driving, so we route mem_ready to the dma
+            // and we route the bus_arb_pico_ready to the PICO (which goes low 1 cycle after the DMA starts)
             dma_bus_ready    = mem_ready;
             picorv_mem_ready = bus_arb_pico_ready;
         end else begin
+            // PICO is driving the bus so route ready to PICO
             dma_bus_ready    = 0;
             picorv_mem_ready = mem_ready;
         end
@@ -582,18 +585,12 @@ localparam
         psram_valid          <= 1'b0;
         fpu_valid            <= 0;
         dma_cmd_valid        <= 1'b0;
-        bus_cycle            <= bus_valid ? bus_cycle : 0;
-        bus_arb_pico_ready   <= 0;
-        bus_arb_dma_busy     <= bus_arb_dma_busy & ~dma_cmd_ready;
+        bus_cycle            <= bus_valid ? bus_cycle : 0;              // ensure bus_cycle gets reset
+        bus_arb_pico_ready   <= 0;                                      // force pico_ready to 0 during DMA after first DMA cycle
+        bus_arb_dma_busy     <= bus_arb_dma_busy & ~dma_cmd_ready;      // clear dma_busy once dma_cmd_ready goes high for 1 cycle
 
         // update cycle counter
         timer                <= timer + 1'b1;
-
-        // the latched timer is sampled at the posedge of instruction fetches
-//        picorv_mem_instr_l <= picorv_mem_instr;
-//        if (picorv_mem_instr & ~picorv_mem_instr_l) begin
-//            timer_l <= timer;
-//        end
 
         // respond to pcpi requests
         if (~picorv_pcpi_ready & picorv_pcpi_valid) begin
@@ -617,8 +614,6 @@ localparam
         end
 
         // respond to valid only if ready is already low
-// TODO: ~picorv_mem_addr works here for most things except writes to PSRAM via DMA
-// TODO: the ~mem_ready should be correct no?  
         if (~mem_ready & bus_valid) begin
             if (bus_addr[MEM_16M_BIOS] | bus_addr[MEM_16M_TCM] | bus_addr[MEM_16M_VGA]) begin
 // *** BIOS, TCM, VGA ***
