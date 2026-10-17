@@ -31,6 +31,8 @@ module blinky_tb();
 
     // --- Verification Logic ---
 	integer i;
+    logic f_match;
+    
     initial begin
         // create a waveform file blinky.vcd
         $dumpfile("blinky.vcd");
@@ -40,6 +42,9 @@ module blinky_tb();
         // Initialize signals so we start in reset
         clk   = 0;
         rst_n = 0;
+        
+        // first match defaults to true
+        f_match = 1;
 
         // wait till the logic below increment sthe target to 32
         wait(target == 32);
@@ -47,15 +52,20 @@ module blinky_tb();
         // tell the simulator we're done
         $finish;
     end
-
+    
     always_ff @(posedge clk) begin
         // default to clearing the valid signal
         valid <= 1'b0;
 
         // the blinky told us the timer matched 
         if (match) begin
-            valid  <= 1'b1;                 // raise valid
-            target <= target + 1'b1;        // increment target
+			// clear first match for future matches
+			f_match <= 0;
+			if (!f_match) begin
+				// only increase the target after we've matched at least twice
+				valid  <= 1'b1;                 // raise valid
+				target <= target + 1'b1;        // increment target
+			end
         end
 
         // our reset condition

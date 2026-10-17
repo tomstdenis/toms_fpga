@@ -34,8 +34,8 @@ module blinky
     // always_ff blocks are evaluated (latched) on a condition,
     // in this case the positive edge of the clk signal.
     always_ff @(posedge clk) begin
-        // default is increment the counter and not a match
-        counter         <= counter + 1'b1;
+        // default is increment the counter when not a match, and reset match
+        counter         <= counter + (counter_matches == 1 ? 0 : 1);
         counter_matches <= 1'b0;
 
         // if the counter matches, now recall we're comparing counter to what it was
