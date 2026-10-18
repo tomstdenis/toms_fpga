@@ -81,23 +81,23 @@ TCM_FUNC(demo) void demo(void)
 	printf("DMA VGA clear took %lu cycles\n", t1);
 
 	// now we're going to clear a windowed section using WPITCH
-	// we want to clear (4,4) to (7,7) using a width=8, stride=160
+	// we want to clear (4,4) to (9,11) using a width=12, stride=160
 	t1 = TIMER;
-	DMA_WPITCH = DMA_PITCH_STRIDE(160) | DMA_PITCH_WIDTH(8);
+	DMA_WPITCH = DMA_PITCH_STRIDE(160) | DMA_PITCH_WIDTH(12);
 	DMA_WADDR  = VGA_ADDR + (4 * 160) + (4 * 2);
-	DMA_LEN    = 32;
+	DMA_LEN    = 8*12;
 	DMA_CONST  = 0xE042E043;
 	DMA_CMD = DMA_CMD_VALID | DMA_CMD_WRITE_ADVANCE | DMA_CMD_WRITE_CONST;
 	t1 = TIMER - t1;
 	printf("DMA VGA small clear took %lu cycles\n", t1);
 
-	// now we're going to copy that to (8,8)
+	// now we're going to copy that to (11,11)
 	t1 = TIMER;
-	DMA_WPITCH = DMA_PITCH_STRIDE(160) | DMA_PITCH_WIDTH(8);
-	DMA_RPITCH = DMA_PITCH_STRIDE(160) | DMA_PITCH_WIDTH(8);
+	DMA_WPITCH = DMA_PITCH_STRIDE(160) | DMA_PITCH_WIDTH(12);
+	DMA_RPITCH = DMA_PITCH_STRIDE(160) | DMA_PITCH_WIDTH(12);
 	DMA_RADDR  = VGA_ADDR + (4 * 160) + (4 * 2);
-	DMA_WADDR  = VGA_ADDR + (8 * 160) + (8 * 2);
-	DMA_LEN    = 32;
+	DMA_WADDR  = VGA_ADDR + (12 * 160) + (12 * 2);
+	DMA_LEN    = 8*12;
 	DMA_CMD = DMA_CMD_VALID | DMA_CMD_WRITE_ADVANCE | DMA_CMD_READ_ADVANCE;
 	t1 = TIMER - t1;
 	printf("DMA VGA small copy took %lu cycles\n", t1);
