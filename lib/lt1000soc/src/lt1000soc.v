@@ -419,7 +419,11 @@ localparam
 
 // *** DMA ***
     reg [31:0] dma_cmd_read_addr;
+    reg [15:0] dma_cmd_read_stride;
+    reg [15:0] dma_cmd_read_width;
     reg [31:0] dma_cmd_write_addr;
+    reg [15:0] dma_cmd_write_stride;
+    reg [15:0] dma_cmd_write_width;
     reg [31:0] dma_cmd_length;
     reg [31:0] dma_cmd_constant;
     reg        dma_cmd_read_advance;
@@ -437,7 +441,8 @@ localparam
 
     sc_dma FastAndFurious(
         .clk(core_clk), .rst_n(crst_n),
-        .cmd_read_addr(dma_cmd_read_addr), .cmd_write_addr(dma_cmd_write_addr),
+        .cmd_read_addr(dma_cmd_read_addr), .cmd_read_stride(dma_cmd_read_stride), .cmd_read_width(dma_cmd_read_width),
+        .cmd_write_addr(dma_cmd_write_addr), .cmd_write_stride(dma_cmd_write_stride), .cmd_write_width(dma_cmd_write_width),
         .cmd_length(dma_cmd_length), .cmd_constant(dma_cmd_constant),
         .cmd_read_advance(dma_cmd_read_advance), .cmd_write_advance(dma_cmd_write_advance), .cmd_write_constant(dma_cmd_write_constant),
         .cmd_valid(dma_cmd_valid), .cmd_ready(dma_cmd_ready),
@@ -462,10 +467,12 @@ localparam
         MMIO_SPI_TRANSFER = 8'h24,
         MMIO_TIMER        = 8'h28,
         MMIO_DMA_RADDR    = 8'h2C,
-        MMIO_DMA_WADDR    = 8'h30,
-        MMIO_DMA_LEN      = 8'h34,
-        MMIO_DMA_CONST    = 8'h38,
-        MMIO_DMA_CMD      = 8'h3C;
+        MMIO_DMA_RPITCH   = 8'h30,
+        MMIO_DMA_WADDR    = 8'h34,
+        MMIO_DMA_WPITCH   = 8'h38,
+        MMIO_DMA_LEN      = 8'h3C,
+        MMIO_DMA_CONST    = 8'h40,
+        MMIO_DMA_CMD      = 8'h44;
 
     // lower 8 bits of machine config reg (used to store the PSRAM size in MiB
     reg  [7:0] mmio_reg_mcfg;
@@ -775,10 +782,24 @@ localparam
                             dma_cmd_read_addr <= bus_wdata;
                         end
                     end
+                    MMIO_DMA_RPITCH: begin
+                        mmio_data_out <= {dma_cmd_read_stride, dma_cmd_read_width};
+                        if (bus_wstrb) begin
+                            dma_cmd_read_stride <= bus_wdata[31:16];
+                            dma_cmd_read_width  <= bus_wdata[15:0];
+                        end
+                    end
                     MMIO_DMA_WADDR: begin
                         mmio_data_out <= dma_cmd_write_addr;
                         if (bus_wstrb) begin
                             dma_cmd_write_addr <= bus_wdata;
+                        end
+                    end
+                    MMIO_DMA_WPITCH: begin
+                        mmio_data_out <= {dma_cmd_write_stride, dma_cmd_write_width};
+                        if (bus_wstrb) begin
+                            dma_cmd_write_stride <= bus_wdata[31:16];
+                            dma_cmd_write_width  <= bus_wdata[15:0];
                         end
                     end
                     MMIO_DMA_LEN: begin
@@ -838,8 +859,12 @@ localparam
             dma_cmd_read_advance   <= 1'b0;
             dma_cmd_write_advance  <= 1'b0;
             dma_cmd_write_constant <= 1'b0;
-            dma_cmd_write_addr     <= 0;
             dma_cmd_read_addr      <= 0;
+            dma_cmd_read_width     <= 0;
+            dma_cmd_read_stride    <= 0;
+            dma_cmd_write_addr     <= 0;
+            dma_cmd_write_width    <= 0;
+            dma_cmd_write_stride   <= 0;
             dma_cmd_constant       <= 0;
             dma_cmd_length         <= 0;
         end

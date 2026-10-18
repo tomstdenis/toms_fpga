@@ -11,7 +11,11 @@ module sc_dma #(
     
     // command
     input wire [ADDR_WIDTH-1:0]     cmd_read_addr,        // read address
+    input wire [15:0]               cmd_read_stride,
+    input wire [15:0]               cmd_read_width,
     input wire [ADDR_WIDTH-1:0]     cmd_write_addr,       // write address
+    input wire [15:0]               cmd_write_stride,
+    input wire [15:0]               cmd_write_width,
     input wire [ADDR_WIDTH-1:0]     cmd_length,           // in 32-bit words
     input wire [DATA_WIDTH-1:0]     cmd_constant,         // if we're writing a constant this is the value
     input wire                      cmd_read_advance,     // do we advance the read pointer?
@@ -32,7 +36,13 @@ module sc_dma #(
 
     // latch the input command
     reg [ADDR_WIDTH-1:0] job_read_addr;
+    reg [15:0]           job_read_width;
+    reg [15:0]           job_read_offset;
+    reg [ADDR_WIDTH-1:0] job_read_pitch;
     reg [ADDR_WIDTH-1:0] job_write_addr;
+    reg [15:0]           job_write_width;
+    reg [15:0]           job_write_offset;
+    reg [ADDR_WIDTH-1:0] job_write_pitch;
     reg [ADDR_WIDTH-1:0] job_length;
     reg [DATA_WIDTH-1:0] job_constant;
     reg                  job_read_advance;
@@ -59,7 +69,13 @@ module sc_dma #(
             FSM_IDLE: begin
                 if (~cmd_ready & cmd_valid) begin
                     job_read_addr      <= cmd_read_addr;
+                    job_read_offset    <= 0;
+                    job_read_width     <= cmd_read_width;
+                    job_read_pitch     <= cmd_read_stride - cmd_read_width;
                     job_write_addr     <= cmd_write_addr;
+                    job_write_offset   <= 0;
+                    job_write_width    <= cmd_write_width;
+                    job_write_pitch    <= cmd_write_stride - cmd_write_width;
                     job_length         <= cmd_length;
                     job_constant       <= cmd_constant;
                     job_read_advance   <= cmd_read_advance;
@@ -77,6 +93,7 @@ module sc_dma #(
                 if (job_read_advance) begin
                     job_read_addr <= job_read_addr + 4;
                 end
+                job_read_offset <= job_read_offset + 4;
                 fsm_state  <= FSM_WAIT_READ;
             end
             
@@ -85,6 +102,10 @@ module sc_dma #(
 				if (bus_ready) begin
 					bus_valid <= 1'b0;
 					fsm_state <= FSM_ISSUE_WRITE;
+                    if (job_read_offset == job_read_width) begin
+                        job_read_offset <= 0;
+                        job_read_addr   <= job_read_addr + job_read_pitch;
+                    end
 				end
 			end
 			
@@ -96,6 +117,7 @@ module sc_dma #(
 				if (job_write_advance) begin
 					job_write_addr <= job_write_addr + 4;
 				end
+                job_write_offset <= job_write_offset + 4;
 				job_length <= job_length - 4;
 				fsm_state  <= FSM_WAIT_WRITE;
             end
@@ -105,6 +127,10 @@ module sc_dma #(
                 if (bus_ready) begin
 					bus_valid <= 1'b0;
                     fsm_state <= job_write_constant ? FSM_ISSUE_WRITE : FSM_ISSUE_READ;
+                    if (job_write_offset == job_write_width) begin
+                        job_write_offset <= 0;
+                        job_write_addr   <= job_write_addr + job_write_pitch;
+                    end
                     if (!job_length) begin
                         cmd_ready  <= 1'b1;
                         fsm_state  <= FSM_IDLE;
