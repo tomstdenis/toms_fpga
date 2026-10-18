@@ -91,9 +91,9 @@ module sc_dma #(
                 bus_wstrb  <= 0;
                 bus_valid  <= 1'b1;
                 if (job_read_advance) begin
-                    job_read_addr <= job_read_addr + 4;
+                    job_read_addr <= job_read_addr + (DATA_WIDTH/8);
                 end
-                job_read_offset <= job_read_offset + 4;
+                job_read_offset <= job_read_offset + (DATA_WIDTH/8);
                 fsm_state  <= FSM_WAIT_READ;
             end
             
@@ -115,10 +115,10 @@ module sc_dma #(
 				bus_wstrb  <= (1<<(DATA_WIDTH/8))-1;
 				bus_valid  <= 1'b1;
 				if (job_write_advance) begin
-					job_write_addr <= job_write_addr + 4;
+					job_write_addr <= job_write_addr + (DATA_WIDTH/8);
 				end
-                job_write_offset <= job_write_offset + 4;
-				job_length <= job_length - 4;
+                job_write_offset <= job_write_offset + (DATA_WIDTH/8);
+				job_length <= job_length - (DATA_WIDTH/8);
 				fsm_state  <= FSM_WAIT_WRITE;
             end
             

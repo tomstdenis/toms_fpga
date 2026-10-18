@@ -108,10 +108,16 @@ All peripheral registers are mapped under the MMIO base address `0x1000_0000`.
 | | (bits) | W | `[16]` Command is valid |
 | `0x28` | `MMIO_TIMER` | R | 32-bit Hardware Cycle Counter |
 | `0x2C` | `MMIO_DMA_RADDR` | R/W | DMA Read Pointer (must be 4-byte aligned) |
-| `0x30` | `MMIO_DMA_WADDR` | R/W | DMA Write Pointer (must be 4-byte aligned) |
-| `0x34` | `MMIO_DMA_LEN` | R/W | DMA Length (must be multiple of 4-bytes) |
-| `0x38` | `MMIO_DMA_CONST` | R/W | DMA Write Constant (used when bit `[1]` of `DMA_CMD` is set. |
-| `0x3C` | `MMIO_DMA_CMD` | R/W | DMA CMD Register |
+| `0x30` | `MMIO_DMA_RPITCH` | R/W | DMA Read Pitch |
+| | (bits) | R/W | `[15:0]` Width of read in bytes (must be multiple of 4) |
+| | (bits) | R/W | `[31:16]` Stride of read in bytes (must be multiple of 4) |
+| `0x34` | `MMIO_DMA_WADDR` | R/W | DMA Write Pointer (must be 4-byte aligned) |
+| `0x38` | `MMIO_DMA_WPITCH` | R/W | DMA Write Pitch |
+| | (bits) | R/W | `[15:0]` Width of write in bytes (must be multiple of 4) |
+| | (bits) | R/W | `[31:16]` Stride of write in bytes (must be multiple of 4) |
+| `0x3C` | `MMIO_DMA_LEN` | R/W | DMA Length (must be multiple of 4-bytes) |
+| `0x40` | `MMIO_DMA_CONST` | R/W | DMA Write Constant (used when bit `[1]` of `DMA_CMD` is set. |
+| `0x44` | `MMIO_DMA_CMD` | R/W | DMA CMD Register |
 | | (bits) | W | `[0]` Valid |
 | | (bits) | R/W | `[1]` Write Constant (no read) |
 | | (bits) | R/W | `[2]` Advance Write Pointer |
