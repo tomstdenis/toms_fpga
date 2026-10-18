@@ -564,14 +564,13 @@ localparam
 
         // Controller logic
         // we need to drive the mem_ready signal into the correct bus master
+        picorv_mem_ready = bus_arb_pico_ready; // route the bus_arb_pico_ready to the PICO (which goes low 1 cycle after the DMA starts)
+        dma_bus_ready    = 0;
         if (bus_arb_dma_busy) begin
             // DMA is driving, so we route mem_ready to the dma
-            // and we route the bus_arb_pico_ready to the PICO (which goes low 1 cycle after the DMA starts)
             dma_bus_ready    = mem_ready;
-            picorv_mem_ready = bus_arb_pico_ready;
         end else begin
             // PICO is driving the bus so route ready to PICO
-            dma_bus_ready    = 0;
             picorv_mem_ready = mem_ready;
         end
     end
