@@ -5,6 +5,14 @@ This directory has various soft IP wrappers for various things.
 Modules
 -------
 
+- **scdma**: A single channel DMA controller
+  - Code in **scdma/scdma.v**
+  - Parameterized data and address sizing (default: 32-bits for both)
+  - Only supports natural units (e.g. multiples of 4 bytes when ADDR_WIDTH is 32-bits)
+  - Supports flexible read and write pointer advancement (hold or advance per direction)
+  - Supports write-only constant mode (for fast clears)
+  - Supports read and/or write windowed modes with individual stride/width ports for efficient bitblits
+
 - **nanofpu**: A mostly IEEE compliant round-to-zero 32-bit float module that supports add, sub, mult, divide, sqrt, load int, store int, and some parallel integer operations.
   - Each function is a stand alone module you can just use as is.
   - Most functions have parameters to allow area/timing tradeoffs
