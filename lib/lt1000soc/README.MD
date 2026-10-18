@@ -13,14 +13,14 @@ The **Little Timmy 1000 (LT1000)** is a lightweight, customizable RISC-V System-
  │ │ 2x PLL │ │ │PicoRV32│   │TCM 64KB ││VGA 128KB││ ├─────►│VGA RGB444 │ 
  │ └────────┘ │ │ IM32   │   └─────────┘└─────────┘│ │      └───────────┘ 
  │ ┌────────┐ │ └────────┘   ┌─────────┐┌─────────┐│ │      ┌───────────┐ 
- │ │ IO Buf │ │              │BIOS 8KB ││Cache 8KB││ ├─────►│PSRAM 16MiB│ 
- │ └────────┘ │              └─────────┘└─────────┘│ │      └───────────┘ 
- │            │    SOC Bus                         │ │      ┌───────────┐ 
- │            │     Fabric   ┌─────────┐┌─────────┐│ ├─────►│SD Card/Etc│ 
+ │ │ IO Buf │ │ ┌────────┐   │BIOS 8KB ││Cache 8KB││ ├─────►│PSRAM 16MiB│ 
+ │ └────────┘ │ | DMA    |   └─────────┘└─────────┘│ │      └───────────┘ 
+ │            │ | Cntr   |                         │ │      ┌───────────┐ 
+ │            │ └────────┘   ┌─────────┐┌─────────┐│ ├─────►│SD Card/Etc│ 
  │            │              │ 4CS SPI │| NanoFPU |│ │      └───────────┘ 
  │            │              └─────────┘└─────────┘│ │                    
- │            │              ┌─────────┐           │ │                    
- │            │              │8N1 UART │           │ │                    
+ │            │    SOC Bus   ┌─────────┐           │ │                    
+ │            │      Fabric  │8N1 UART │           │ │                    
  │            │              └─────────┘           │ │                    
  │            └────────────────────────────────────┘ │                    
  └─────────────┬──────────┬────────────┬──────────┬──┘                    
@@ -36,14 +36,16 @@ The **Little Timmy 1000 (LT1000)** is a lightweight, customizable RISC-V System-
 ## Architecture Overview
 
 * **CPU Core**: 32-bit PicoRV32 RISC-V core supporting configurable RV32I / RV32IM instruction set features, fast hardware multiplication, hardware division, and custom FPU instructions (see inc/fpu.h)
-* **Memory Architecture**:
+
+### **Memory Architecture**:
 * **BIOS ROM**: Up to 8 KiB (configurable) bootloader region loaded from include vector files (`bios_lane0.vh` .. `bios_lane3.vh`).
 * **Tightly Coupled Memory (TCM)**: On-chip SRAM (default 64 KiB) for fast zero-wait-state data and code execution.
 * **External PSRAM Interface**: Up to 16 MiB external QPI PSRAM interfaced via a 32-bit configurable direct-mapped cache controller (`nanocache`). Automatically handles endianness conversion.
 * **VGA Dedicated Memory**: 128 KiB frame buffer with dual page-flipping support.
 
+### **Peripherals & I/O**
 
-* **Peripherals & I/O**:
+* **DMA Controller**: Simple single channel DMA with selectable read/write pointer advancement, and optional constant only write mode.
 * **VGA Controller**: Dual-clock domain (separate system and pixel clock domains), configurable display modes, page select, and vertical/horizontal blanking status reporting.
 * **UART**: Full-duplex 8N1 UART controller with built-in hardware TX/RX FIFOs (default 64 bytes) and runtime baud-rate calculation.
 * **SPI Master Interface**: Quad Chip-Select (4 CS) SPI interface with programmable clock division and transfer controls.
@@ -75,6 +77,10 @@ All peripheral registers are mapped under the MMIO base address `0x1000_0000`.
 | Offset | Register Name | R/W | Description |
 | --- | --- | --- | --- |
 | `0x00` | `MMIO_MCFG` | R/W | Machine Configuration & Revision |
+| | (bits) | R/W | `[7:0]` PSRAM MiB Size |
+| | (bits) | R | `[15:8]` log2 of TCM in KB |
+| | (bits) | R | `[23:16]` SOC Revision |
+| | (bits) | R | `[31:24]` Frequency in MHz |
 | `0x04` | `MMIO_GPIO_DATA` | R/W | GPIO Data Register (Input / Output) |
 | `0x08` | `MMIO_GPIO_OE` | R/W | GPIO Output Enable Mask |
 | `0x0C` | `MMIO_GPIO_W1S` | W | GPIO Write-1-to-Set Output Bits |
@@ -82,9 +88,33 @@ All peripheral registers are mapped under the MMIO base address `0x1000_0000`.
 | `0x14` | `MMIO_GPIO_W1T` | W | GPIO Write-1-to-Toggle Output Bits |
 | `0x18` | `MMIO_UART_DATA` | R/W | UART Transmit / Receive Data FIFO |
 | `0x1C` | `MMIO_UART_STATUS` | R | UART RX/TX FIFO Status Flags |
+| | (bits) | R | `[0]` TX FIFO Full |
+| | (bits) | R | `[1]` TX FIFO Empty |
+| | (bits) | R | `[2]` RX FIFO Not Empty |
 | `0x20` | `MMIO_VGA_CTRL` | R/W | VGA Display Mode, Page Swap & Blanking Status |
+| | (bits) | R | `[0]` GFX Mode (0 - Text, 1 - GFX) |
+| | (bits) | R | `[1]` Page Selection (0 - first 64KB, 1 - second 64KB) |
+| | (bits) | R | `[2]` Use Write Mask (8'hE3 pixels are transparent) |
+| | (bits) | R | `[3]` Horizontal Blank |
+| | (bits) | R | `[4]` Vertical Blank |
 | `0x24` | `MMIO_SPI_TRANSFER` | R/W | SPI Control, Clock Divider & Transfer Data |
+| | (bits) | R/W | `[7-0]` Write MOSI byte, Read MISO Byte  |
+| | (bits) | R | `[8]` SPI idle  |
+| | (bits) | W | `[11-8]` SCK Divider (divides core clock by `2 * (div + 1))`  |
+| | (bits) | W | `[12]` CS value at start of transfer |
+| | (bits) | W | `[13]` CS value at end of transfer |
+| | (bits) | W | `[15:14]` CS Selector (from four CS lanes) |
+| | (bits) | W | `[16]` Command is valid |
 | `0x28` | `MMIO_TIMER` | R | 32-bit Hardware Cycle Counter |
+| `0x2C` | `MMIO_DMA_RADDR` | R/W | DMA Read Pointer (must be 4-byte aligned) |
+| `0x30` | `MMIO_DMA_WADDR` | R/W | DMA Write Pointer (must be 4-byte aligned) |
+| `0x34` | `MMIO_DMA_LEN` | R/W | DMA Length (must be multiple of 4-bytes) |
+| `0x38` | `MMIO_DMA_CONST` | R/W | DMA Write Constant (used when bit `[1]` of `DMA_CMD` is set. |
+| `0x3C` | `MMIO_DMA_CMD` | R/W | DMA CMD Register |
+| | (bits) | W | `[0]` Valid |
+| | (bits) | R/W | `[1]` Write Constant (no read) |
+| | (bits) | R/W | `[2]` Advance Write Pointer |
+| | (bits) | R/W | `[3]` Advance Read Pointer |
 
 ---
 
@@ -157,6 +187,16 @@ All peripheral registers are mapped under the MMIO base address `0x1000_0000`.
 #### 6. System Timer (`MMIO_TIMER` - `0x1000_0028`)
 
 * **Read Format**: 32-bit hardware register that increments on every `core_clk` cycle. Writes are ignored.
+
+#### 7. DMA Registers (`MMIO_DMA_RADDR` ... `MMIO_DMA_CMD` - `0x1000_002C` ... `0x1000_003C`)
+
+* Write length to `MMIO_DMA_LENGTH` in bytes (must be a multiple of 4).
+* Write starting destination to `MMIO_DMA_WADDR` (must be 4-byte aligned).
+* Write starting source (if any) to `MMIO_DMA_RADDR` (must be 4-byte aligned).
+* If you want to write a constant write it to `MMIO_DMA_CONST`
+* Write command to `MMIO_DMA_CMD`
+
+The CPU will halt while the DMA works but since it doesn't involve fetching/decoding opcodes it's considerably faster than doing even relatively small load/stores/clears in software.  If you're copying more than roughly 6+ words or so the DMA will be faster.  
 
 ---
 
@@ -234,14 +274,15 @@ The SoC top-level integrates the following submodule dependencies (via Verilog i
 
 ```verilog
 `include "picorv32/picorv32.v"
-`include "../../uart/blocks/uart.v"
-`include "../../uart/blocks/tx_uart.v"
-`include "../../uart/blocks/rx_uart.v"
+`include "../../comms/uart/uart.v"
+`include "../../comms/uart/tx_uart.v"
+`include "../../comms/uart/rx_uart.v"
 `include "../../nanocache/nanocache_comb_32bit.v"
 `include "../../nanocache/refmem.v"
 `include "../../nanosram/nanosram.v"
 `include "../../vga/blocks/vga.v"
 `include "../../timer/blocks/timer.v"
-`include "../../spi/spi.v"
+`include "../../comms/spi/spi.v"
 `include "../../nanofpu/nanofpu.v"
+`include "../../scdma/scdma.v"
 ```
