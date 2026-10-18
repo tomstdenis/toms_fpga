@@ -51,16 +51,14 @@ module sc_dma #(
     reg                  job_write_advance;
     reg                  job_write_constant;
     reg                  job_scatter_gather;
-    reg [2:0]            fsm_state;
+    reg [1:0]            fsm_state;
     reg [2:0]            job_load_idx;
     
     localparam
         FSM_IDLE        = 0,
         FSM_ISSUE_READ  = 1,
-        FSM_WAIT_READ   = 2,
-        FSM_ISSUE_WRITE = 3,
-        FSM_WAIT_WRITE  = 4,
-        FSM_READ_SG     = 5;
+        FSM_ISSUE_WRITE = 2,
+        FSM_READ_SG     = 3;
 
     always @(*) begin
         bus_busy = (fsm_state == FSM_IDLE) ? cmd_valid : 1'b1;
@@ -127,43 +125,37 @@ module sc_dma #(
             
             // issue a bus read
             FSM_ISSUE_READ: begin
-                bus_addr   <= job_read_addr;
-                bus_wstrb  <= 0;
-                bus_valid  <= 1'b1;
-                if (job_read_advance) begin
-                    job_read_addr <= job_read_addr + (DATA_WIDTH/8);
+                if (~bus_valid) begin
+                    bus_addr  <= job_read_addr;
+                    bus_wstrb <= 0;
+                    bus_valid <= 1'b1;
+                    if (job_read_advance) begin
+                        job_read_addr <= job_read_addr + (DATA_WIDTH/8);
+                    end
+                    job_read_offset <= job_read_offset + (DATA_WIDTH/8);
                 end
-                job_read_offset <= job_read_offset + (DATA_WIDTH/8);
-                fsm_state  <= FSM_WAIT_READ;
-            end
-            
-            // wait for the read to finish (if reading), and then start the write bus transaction
-            FSM_WAIT_READ: begin
-				if (bus_ready) begin
+                if (bus_ready) begin
 					bus_valid <= 1'b0;
 					fsm_state <= FSM_ISSUE_WRITE;
                     if (job_read_offset == job_read_width) begin
                         job_read_offset <= 0;
                         job_read_addr   <= job_read_addr + job_read_pitch;
                     end
-				end
-			end
-			
-			FSM_ISSUE_WRITE: begin
-				bus_addr   <= job_write_addr;
-				bus_wdata  <= job_write_constant ? job_constant : bus_rdata;
-				bus_wstrb  <= (1<<(DATA_WIDTH/8))-1;
-				bus_valid  <= 1'b1;
-				if (job_write_advance) begin
-					job_write_addr <= job_write_addr + (DATA_WIDTH/8);
-				end
-                job_write_offset <= job_write_offset + (DATA_WIDTH/8);
-				job_length <= job_length - (DATA_WIDTH/8);
-				fsm_state  <= FSM_WAIT_WRITE;
+                end
             end
             
-            // wait for the write to complete
-            FSM_WAIT_WRITE: begin
+			FSM_ISSUE_WRITE: begin
+                if (~bus_valid) begin
+                    bus_addr   <= job_write_addr;
+                    bus_wdata  <= job_write_constant ? job_constant : bus_rdata;
+                    bus_wstrb  <= (1<<(DATA_WIDTH/8))-1;
+                    bus_valid  <= 1'b1;
+                    if (job_write_advance) begin
+                        job_write_addr <= job_write_addr + (DATA_WIDTH/8);
+                    end
+                    job_write_offset <= job_write_offset + (DATA_WIDTH/8);
+                    job_length       <= job_length - (DATA_WIDTH/8);
+                end
                 if (bus_ready) begin
 					bus_valid <= 1'b0;
                     fsm_state <= job_write_constant ? FSM_ISSUE_WRITE : FSM_ISSUE_READ;
@@ -175,8 +167,8 @@ module sc_dma #(
                         if (job_scatter_gather && job_next_ptr != 32'b0) begin
                             fsm_state <= FSM_READ_SG;
                         end else begin
-                            cmd_ready  <= 1'b1;
-                            fsm_state  <= FSM_IDLE;
+                            cmd_ready <= 1'b1;
+                            fsm_state <= FSM_IDLE;
                         end
                     end
                 end

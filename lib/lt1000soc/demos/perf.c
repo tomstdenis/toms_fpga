@@ -117,7 +117,46 @@ TCM_FUNC(demo) void demo(void)
 	t1 = TIMER - t1;
 	printf("DMA full clear via scatter gather took %lu cycles\n", t1);
 	getch();
+
+	// ok let's take this "too far"
+	struct dma_sg bsg[1000];
+	memset(&bsg, 0, sizeof bsg);
+	uint32_t cylons;
+	for (cylons = 0; cylons < 1000; cylons++) {
+		bsg[cylons].write_addr  = VGA_ADDR + (cylons / 40) * 320 * 8 + (cylons % 40) * 8;
+		bsg[cylons].write_pitch = DMA_PITCH_WIDTH(8) | DMA_PITCH_STRIDE(320);
+		bsg[cylons].length      = 64;
+		bsg[cylons].read_addr   = TCM_ADDR + (cylons / 40) * 320 * 8 + (cylons % 40) * 8;
+		bsg[cylons].write_pitch = DMA_PITCH_WIDTH(8) | DMA_PITCH_STRIDE(320);
+		bsg[cylons].cmd         = DMA_CMD_WRITE_ADVANCE | DMA_CMD_READ_ADVANCE;
+		if (cylons < 999) {
+			bsg[cylons].next_ptr = &bsg[cylons+1];
+		}
+	}
+	t1 = TIMER;
+	DMA_RADDR = bsg;
+	DMA_CMD   = DMA_CMD_VALID | DMA_CMD_SCATTER_GATHER;
+	t1 = TIMER - t1;
+	printf("DMA 1000 8x8 tile draw TCM => VGA via scatter gather took %lu cycles\n", t1);
 	
+	for (cylons = 0; cylons < 1000; cylons++) {
+		bsg[cylons].write_addr  = VGA_ADDR + (cylons / 40) * 8 + (cylons % 40) * 8;
+		bsg[cylons].write_pitch = DMA_PITCH_WIDTH(8) | DMA_PITCH_STRIDE(320);
+		bsg[cylons].length      = 64;
+		bsg[cylons].read_addr   = PSRAM_ADDR + (cylons / 40) * 8 + (cylons % 40) * 8;
+		bsg[cylons].write_pitch = DMA_PITCH_WIDTH(8) | DMA_PITCH_STRIDE(320);
+		bsg[cylons].cmd         = DMA_CMD_WRITE_ADVANCE | DMA_CMD_READ_ADVANCE;
+		if (cylons < 999) {
+			bsg[cylons].next_ptr = &bsg[cylons+1];
+		}
+	}
+	t1 = TIMER;
+	DMA_RADDR = bsg;
+	DMA_CMD   = DMA_CMD_VALID | DMA_CMD_SCATTER_GATHER;
+	t1 = TIMER - t1;
+	printf("DMA 1000 8x8 tile draw PSRAM => VGA via scatter gather took %lu cycles\n", t1);
+
+
 	// time TCM to VGA copy
 	t1 = TIMER;
 	p1 = VGA_ADDR;
