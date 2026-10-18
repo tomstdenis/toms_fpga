@@ -10,14 +10,14 @@ The **Little Timmy 1000 (LT1000)** is a lightweight, customizable RISC-V System-
  ┌───────────────────────────────────────────────────┐                          
  │            ┌────────────────────────────────────┐ │                          
  │ ┌────────┐ │ ┌────────┐   ┌─────────┐┌─────────┐│ │      ┌───────────┐ 
- │ │ 2x PLL │ │ │PicoRV32│   │TCM 64KB ││VGA 128KB││ ├─────►│VGA RGB444 │ 
+ │ │ 3x PLL │ │ │PicoRV32│   │TCM 64KB ││VGA 128KB││ ├─────►│  VGA/DVI  │ 
  │ └────────┘ │ │ IM32   │   └─────────┘└─────────┘│ │      └───────────┘ 
  │ ┌────────┐ │ └────────┘   ┌─────────┐┌─────────┐│ │      ┌───────────┐ 
  │ │ IO Buf │ │ ┌────────┐   │BIOS 8KB ││Cache 8KB││ ├─────►│PSRAM 16MiB│ 
  │ └────────┘ │ | DMA    |   └─────────┘└─────────┘│ │      └───────────┘ 
- │            │ | Cntr   |                         │ │      ┌───────────┐ 
- │            │ └────────┘   ┌─────────┐┌─────────┐│ ├─────►│SD Card/Etc│ 
- │            │              │ 4CS SPI │| NanoFPU |│ │      └───────────┘ 
+ │ ┌────────┐ │ | Cntr   |                         │ │      ┌───────────┐ 
+ │ | DVI TX | │ └────────┘   ┌─────────┐┌─────────┐│ ├─────►│SD Card/Etc│ 
+ │ └────────┘ │              │ 4CS SPI │| NanoFPU |│ │      └───────────┘ 
  │            │              └─────────┘└─────────┘│ │                    
  │            │    SOC Bus   ┌─────────┐           │ │                    
  │            │      Fabric  │8N1 UART │           │ │                    
@@ -28,8 +28,9 @@ The **Little Timmy 1000 (LT1000)** is a lightweight, customizable RISC-V System-
           ┌────▼───┐  ┌───▼────┐  ┌────▼───┐  ┌───▼────┐                  
           │ 8 GPIO │  │ 8 GPIO │  │ 8 GPIO │  │ 8 GPIO │                  
           └────────┘  └────────┘  └────────┘  └────────┘                  
-
 ```
+
+* Note: `DVI TX` is optional and a standard analogue VGA (RGB444) output is supported.  In VGA mode only 2 PLL outputs are needed.
 
 ---
 
