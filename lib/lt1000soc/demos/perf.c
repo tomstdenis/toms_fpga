@@ -101,7 +101,21 @@ TCM_FUNC(demo) void demo(void)
 	DMA_CMD = DMA_CMD_VALID | DMA_CMD_WRITE_ADVANCE | DMA_CMD_READ_ADVANCE;
 	t1 = TIMER - t1;
 	printf("DMA VGA small copy took %lu cycles\n", t1);
+	getch();
 
+	// now let's use a SG for funsies
+	struct dma_sg sg;
+	sg.write_addr  = VGA_ADDR;
+	sg.write_pitch = 0;
+	sg.length      = 320 * 200;
+	sg.constant    = 0x70457044;
+	sg.cmd         = DMA_CMD_WRITE_ADVANCE | DMA_CMD_WRITE_CONST;
+	sg.next_ptr    = 0;
+	t1 = TIMER;
+	DMA_RADDR      = &sg;
+	DMA_CMD        = DMA_CMD_VALID | DMA_CMD_SCATTER_GATHER;
+	t1 = TIMER - t1;
+	printf("DMA full clear via scatter gather took %lu cycles\n", t1);
 	getch();
 	
 	// time TCM to VGA copy

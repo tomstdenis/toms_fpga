@@ -21,6 +21,7 @@ module sc_dma #(
     input wire                      cmd_read_advance,     // do we advance the read pointer?
     input wire                      cmd_write_advance,    // do we advance the write pointer?
     input wire                      cmd_write_constant,   // are we writing a constant (so no bus reads)
+    input wire                      cmd_scatter_gather,
     input wire                      cmd_valid,            // is the command valid?
     output reg                      cmd_ready,            // is the command ready(done)?
     
@@ -35,6 +36,7 @@ module sc_dma #(
 );
 
     // latch the input command
+    reg [ADDR_WIDTH-1:0] job_next_ptr;
     reg [ADDR_WIDTH-1:0] job_read_addr;
     reg [15:0]           job_read_width;
     reg [15:0]           job_read_offset;
@@ -48,14 +50,17 @@ module sc_dma #(
     reg                  job_read_advance;
     reg                  job_write_advance;
     reg                  job_write_constant;
+    reg                  job_scatter_gather;
     reg [2:0]            fsm_state;
+    reg [2:0]            job_load_idx;
     
     localparam
         FSM_IDLE        = 0,
         FSM_ISSUE_READ  = 1,
         FSM_WAIT_READ   = 2,
         FSM_ISSUE_WRITE = 3,
-        FSM_WAIT_WRITE  = 4;
+        FSM_WAIT_WRITE  = 4,
+        FSM_READ_SG     = 5;
 
     always @(*) begin
         bus_busy = (fsm_state == FSM_IDLE) ? cmd_valid : 1'b1;
@@ -68,20 +73,55 @@ module sc_dma #(
             // wait for a fresh command
             FSM_IDLE: begin
                 if (~cmd_ready & cmd_valid) begin
+                    job_next_ptr       <= cmd_read_addr;
                     job_read_addr      <= cmd_read_addr;
-                    job_read_offset    <= 0;
                     job_read_width     <= cmd_read_width;
-                    job_read_pitch     <= cmd_read_stride - cmd_read_width;
                     job_write_addr     <= cmd_write_addr;
-                    job_write_offset   <= 0;
                     job_write_width    <= cmd_write_width;
-                    job_write_pitch    <= cmd_write_stride - cmd_write_width;
                     job_length         <= cmd_length;
                     job_constant       <= cmd_constant;
                     job_read_advance   <= cmd_read_advance;
                     job_write_advance  <= cmd_write_advance;
                     job_write_constant <= cmd_write_constant;
-                    fsm_state          <= cmd_write_constant ? FSM_ISSUE_WRITE : FSM_ISSUE_READ;
+                    job_scatter_gather <= cmd_scatter_gather;
+
+                    job_load_idx       <= 0;
+                    job_read_pitch     <= cmd_read_stride - cmd_read_width;
+                    job_read_offset    <= 0;
+                    job_write_pitch    <= cmd_write_stride - cmd_write_width;
+                    job_write_offset   <= 0;
+                    if (cmd_scatter_gather) begin
+                        fsm_state      <= FSM_READ_SG;
+                    end else begin
+                        fsm_state      <= cmd_write_constant ? FSM_ISSUE_WRITE : FSM_ISSUE_READ;
+                    end
+                end
+            end
+
+            FSM_READ_SG: begin
+                if (~bus_valid) begin
+                    // issue next read
+                    bus_addr     <= job_next_ptr;
+                    bus_valid    <= 1'b1;
+                    bus_wstrb    <= 0;
+                    job_next_ptr <= job_next_ptr + (ADDR_WIDTH/8);
+                end
+                if (bus_ready) begin
+                    bus_valid    <= 0;
+                    job_load_idx <= job_load_idx + 1'b1;
+                    case (job_load_idx)
+                        0: job_read_addr                      <= bus_rdata;
+                        1: {job_read_pitch, job_read_width}   <= { bus_rdata[31:16] - bus_rdata[15:0], bus_rdata[15:0] };
+                        2: job_write_addr                     <= bus_rdata;
+                        3: {job_write_pitch, job_write_width} <= { bus_rdata[31:16] - bus_rdata[15:0], bus_rdata[15:0] };
+                        4: job_length                         <= bus_rdata;
+                        5: job_constant                       <= bus_rdata;
+                        6: {job_read_advance, job_write_advance, job_write_constant} <= bus_rdata[3:1];
+                        7: begin
+                            job_next_ptr                      <= bus_rdata;
+                            fsm_state                         <= job_write_constant ? FSM_ISSUE_WRITE : FSM_ISSUE_READ;
+                        end
+                    endcase
                 end
             end
             
@@ -132,8 +172,12 @@ module sc_dma #(
                         job_write_addr   <= job_write_addr + job_write_pitch;
                     end
                     if (!job_length) begin
-                        cmd_ready  <= 1'b1;
-                        fsm_state  <= FSM_IDLE;
+                        if (job_scatter_gather && job_next_ptr != 32'b0) begin
+                            fsm_state <= FSM_READ_SG;
+                        end else begin
+                            cmd_ready  <= 1'b1;
+                            fsm_state  <= FSM_IDLE;
+                        end
                     end
                 end
             end

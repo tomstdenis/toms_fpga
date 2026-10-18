@@ -429,6 +429,7 @@ localparam
     reg        dma_cmd_read_advance;
     reg        dma_cmd_write_advance;
     reg        dma_cmd_write_constant;
+    reg        dma_cmd_scatter_gather;
     reg        dma_cmd_valid;
     wire       dma_cmd_ready;
 
@@ -445,7 +446,7 @@ localparam
         .cmd_write_addr(dma_cmd_write_addr), .cmd_write_stride(dma_cmd_write_stride), .cmd_write_width(dma_cmd_write_width),
         .cmd_length(dma_cmd_length), .cmd_constant(dma_cmd_constant),
         .cmd_read_advance(dma_cmd_read_advance), .cmd_write_advance(dma_cmd_write_advance), .cmd_write_constant(dma_cmd_write_constant),
-        .cmd_valid(dma_cmd_valid), .cmd_ready(dma_cmd_ready),
+        .cmd_scatter_gather(dma_cmd_scatter_gather), .cmd_valid(dma_cmd_valid), .cmd_ready(dma_cmd_ready),
 
         .bus_addr(dma_bus_addr), .bus_wdata(dma_bus_wdata), .bus_rdata(picorv_mem_rdata),
         .bus_wstrb(dma_bus_wstrb), .bus_valid(dma_bus_valid), .bus_ready(dma_bus_ready),
@@ -815,8 +816,9 @@ localparam
                         end
                     end
                     MMIO_DMA_CMD: begin
-                        mmio_data_out <= {28'b0, dma_cmd_read_advance, dma_cmd_write_advance, dma_cmd_write_constant, 1'b0 };
+                        mmio_data_out <= {27'b0, dma_cmd_scatter_gather, dma_cmd_read_advance, dma_cmd_write_advance, dma_cmd_write_constant, 1'b0 };
                         if (bus_wstrb) begin
+                            dma_cmd_scatter_gather <= bus_wdata[4];
                             dma_cmd_read_advance   <= bus_wdata[3];
                             dma_cmd_write_advance  <= bus_wdata[2];
                             dma_cmd_write_constant <= bus_wdata[1];
@@ -859,6 +861,7 @@ localparam
             dma_cmd_read_advance   <= 1'b0;
             dma_cmd_write_advance  <= 1'b0;
             dma_cmd_write_constant <= 1'b0;
+            dma_cmd_scatter_gather <= 1'b0;
             dma_cmd_read_addr      <= 0;
             dma_cmd_read_width     <= 0;
             dma_cmd_read_stride    <= 0;

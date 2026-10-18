@@ -65,11 +65,23 @@
 #define DMA_LEN             *((volatile uint32_t *)0x1000003C)		// Length (bytes) must be a multiple of 4
 #define DMA_CONST           *((volatile uint32_t *)0x10000040)		// Constant if using WRITE_CONST mode
 #define DMA_CMD             *((volatile uint32_t *)0x10000044)		// CMD (control register
-#define DMA_CMD_VALID          1									// writing this bit starts a job and halts the CPU
-#define DMA_CMD_WRITE_CONST    2									// Write constant mode (does not read from bus)
-#define DMA_CMD_WRITE_ADVANCE  4									// Advance write pointer with each write
-#define DMA_CMD_READ_ADVANCE   8									// Advance read pointer with each read
+#define DMA_CMD_VALID           1									// writing this bit starts a job and halts the CPU
+#define DMA_CMD_WRITE_CONST     2									// Write constant mode (does not read from bus)
+#define DMA_CMD_WRITE_ADVANCE   4									// Advance write pointer with each write
+#define DMA_CMD_READ_ADVANCE    8									// Advance read pointer with each read
+#define DMA_CMD_SCATTER_GATHER 16									// Use scatter gather (pointed to by RADDR)
 #define DMA_PITCH_WIDTH(x)   ((x) & 0xFFFF)
 #define DMA_PITCH_STRIDE(x)  (((x) & 0xFFFF) << 16)
+
+struct dma_sg {
+    uint32_t read_addr;
+    uint32_t read_pitch;
+    uint32_t write_addr;
+    uint32_t write_pitch;
+    uint32_t length;
+    uint32_t constant;
+    uint32_t cmd;
+    uint32_t next_ptr;
+} __attribute__((packed));
 
 #endif
