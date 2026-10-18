@@ -92,9 +92,9 @@ All peripheral registers are mapped under the MMIO base address `0x1000_0000`.
 | | (bits) | R | `[1]` TX FIFO Empty |
 | | (bits) | R | `[2]` RX FIFO Not Empty |
 | `0x20` | `MMIO_VGA_CTRL` | R/W | VGA Display Mode, Page Swap & Blanking Status |
-| | (bits) | R | `[0]` GFX Mode (0 - Text, 1 - GFX) |
-| | (bits) | R | `[1]` Page Selection (0 - first 64KB, 1 - second 64KB) |
-| | (bits) | R | `[2]` Use Write Mask (8'hE3 pixels are transparent) |
+| | (bits) | R/W | `[0]` GFX Mode (0 - Text, 1 - GFX) |
+| | (bits) | R/W | `[1]` Page Selection (0 - first 64KB, 1 - second 64KB) |
+| | (bits) | R/W | `[2]` Use Write Mask (8'hE3 pixels are transparent) |
 | | (bits) | R | `[3]` Horizontal Blank |
 | | (bits) | R | `[4]` Vertical Blank |
 | `0x24` | `MMIO_SPI_TRANSFER` | R/W | SPI Control, Clock Divider & Transfer Data |
