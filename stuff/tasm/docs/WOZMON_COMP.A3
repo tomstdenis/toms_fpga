@@ -1,0 +1,258 @@
+Wozmon ported to the Turbine CPU (formerly known as the Amber III)
+
+KBD_DAT = $0000
+KBD_STAT = $0001
+KBD_STAT should return $0001 when char is ready
+
+SCR_DAT = $0002
+SCR_STAT = $0003
+SCR_STAT should return $0001 when display is ready
+$0A and $0D both count as carriage return on this display
+
+RAM: $0100-02FF
+
+XAMHL = D     ; Last "opened" location
+STHL  = E     ; Store address
+HL    = F     ; Hex value parsing
+BSAV  = $0100 ; Used to see if hex value is given
+MODE  = $0101 ; $00=XAM, $7F=STOR, $B8=BLOCK XAM
+
+IN    = $0200 ; Input buffer
+
+ROM: $8000-$80FF
+
+.org $8000
+RESET:              RESET:
+8000|E077 01FF     |MOV $01FF > SP                ; Initialize stack pointer.
+8002|E176 8014     |iMOV FIRSTESC > PC            ; Begin with escape.
+
+NOTCR:              NOTCR:
+8004|EA77 0008     |CMP $0008,A                   ; Backspace key?
+8006|0176 801E     |(Z) iMOV BACKSPACE > PC       ; Yes.
+8008|EA77 001B     |CMP $001B,A                   ; ESC?
+800A|0176 8010     |(Z) iMOV ESCAPE > PC          ; Yes.
+800C|E811          |INC B > B                     ; Advance text index.
+800D|F717          |BCHK B,7                      ; Auto ESC if line longer than 127.
+800E|6176 8021     |(!C) iMOV NEXTCHAR > PC
+
+ESCAPE:             ESCAPE:
+8010|E070 000D     |MOV $000D > A                 ; CR.
+8012|E877 80CD     |JSR ECHO                      ; Output it.
+
+FIRSTESC:
+8014|E070 00DC     |MOV $00DC > A                 ; "\".
+8016|E877 80CD     |JSR ECHO                      ; Output it.
+
+GETLINE:            GETLINE:
+8018|E070 000D     |MOV $000D > A                 ; Send CR.
+801A|E877 80CD     |JSR ECHO
+801C|E071 0401     |MOV 0401 > B                 ; Initialize text index.
+
+BACKSPACE:          BACKSPACE:
+801E|EA11          |DEC B > B                     ; Back up text index.
+801F|F917          |BCHK B,9                      ; Correct text index if it goes beyond start of line.
+8020|4811          |(C) INC B > B
+
+NEXTCHAR:           NEXTCHAR:
+8021|F0F7 0001     |BCHK (KBD_STAT),0             ; Check keyboard status.
+8023|6176 8021     |(!C) iMOV NEXTCHAR > PC       ; Loop until ready.
+8025|E070 00FF     |MOV $00FF,A                   ; Add character to text buffer.
+8027|F811          |SHR B > B                     ; If B is impair, place char in the upper 16 bits.
+8028|4F90          |(C) AND (B),A > A
+8029|FF00          |SWA A > A
+802A|F1F0 0000     |OR (KBD_DAT),A > A
+802C|5F00          |(C) SWA A > A
+802D|E009          |MOV A > (B)
+802E|F711          |SLC B > B
+802F|E877 803E     |JSR GETCHAR                   ; Load character, Z is set if char = CR (000A)
+8031|2877 80CD     |(!Z) JSR ECHO                 ; Display character.
+8033|2176 8004     |(!Z) iMOV NOTCR > PC          ; Return if not CR.
+8035|E071 03FF     |MOV $03FF > B                 ; Reset text index.
+8037|F300          |XOR A,A > A                   ; For XAM mode.
+8038|E002          |MOV A > C                     ; C=0.
+
+SETMODE:            SETMODE:
+8039|E00F 0101     |MOV A > (MODE)                ; $00 = XAM, $3A = STOR, $2E = BLOK XAM.
+
+BLSKIP:             BLSKIP:
+803B|E811          |INC B > B                     ; Advance text index.
+
+NEXTITEM:           NEXTITEM:
+803C|E07E 8049     |MOV NEXTITEM2 > S1            ; Push return value.
+
+GETCHAR:            GETCHAR:
+803E|F811          |SHR B
+803F|E070 00FF     |MOV $00FF > A                 ; Load mask.
+8041|4E00          |(C) NOT A > A                 ; If text index is impair, invert mask.
+8042|EF90 0200     |AND (B),A > A                 ; Mask off character.
+8044|5F00          |(C) SWA A > A                 ; Place character into lower 8 bits if needed.
+8045|F711          |SLC B                         ; Restore text index.
+8046|EA77 000A     |CMP $000A,A                   ; Enter (CR)?
+8048|E1E6          |iMOV S1 > PC                  ; Return.	
+
+NEXTITEM2:          NEXTITEM2:
+8049|0877 80CD     |(Z) JSR ECHO                  ; Yes, output it.
+804B|0176 8018     |(Z) iMOV GETLINE > PC         ; Yes, done this line.
+804D|EA77 002E     |CMP $002E,A                   ; "."?
+804F|0176 8039     |(Z) iMOV SETMODE > PC         ; Set BLOCK XAM mode.
+8051|6176 803B     |(!C) iMOV BLSKIP > PC         ; Skip delimiter.
+8053|EA77 003A     |CMP $003A,A                   ; ":"?
+8055|0176 8039     |(Z) iMOV SETMODE > PC         ; Yes, set STOR mode.
+8057|EA77 0052     |CMP $0052,A                   ; "R"?
+8059|0136          |(Z) iMOV D > PC               ; Yes, run user program.
+805A|EA77 0072     |CMP $0072,A                   ; "r"?
+805C|0136          |(Z) iMOV D > PC               ; Yes, run user program.
+805D|E025          |MOV C > F                     ; $00 -> HL
+805E|E01F 0100     |MOV B > (BSAV)                ; Save Y for comparison.
+
+NEXTHEX:            NEXTHEX:
+8060|E877 803E     |JSR GETCHAR                   ; Get character for hex test.
+8062|F370 0030     |XOR $0030,A > A               ; Map digits to $0-9.
+8064|EA77 0009     |CMP $0009,A                   ; Digit?
+8066|6176 8074     |(!C) iMOV DIG > PC            ; Yes.
+8068|E270 FF89     |ADD $FF89,A > A               ; Map letter "A"-"F" to $FFFA-FFFF.
+806A|EA77 FFF9     |CMP $FFF9,A                   ; Hex letter?
+806C|4176 8074     |(C) iMOV DIG > PC             ; Yes.
+806E|E270 0020     |ADD $0020,A > A               ; Map letter "a"-"f" to $FFFA-FFFF.
+8070|EA77 FFF9     |CMP $FFF9,A                   ; Hex letter?
+8072|6176 807F     |(!C) iMOV NOTHEX > PC         ; No, character not hex.
+
+DIG:                DIG:
+8074|E072 0004     |MOV $0004 > C                 ; Shift count.
+
+HEXSHIFT:           HEXSHIFT:
+8076|F500          |SHL A > A                     ; Hex digit left.
+8077|F407          |BCHK A,4                      ; B4 to carry.
+8078|F755          |SLC F > F                     ; Rotate into HL.
+8079|EA22          |DEC C > C                     ; Done 4 shifts?
+807A|2176 8076     |(!Z) iMOV HEXSHIFT > PC       ; No, loop.
+807C|E811          |INC B > B                     ; Advance text index.
+807D|E176 8060     |iMOV NEXTHEX > PC             ; Check next character for hex.
+
+NOTHEX:             NOTHEX:
+807F|E010          |MOV B > A                     ; Check if HL empty (no hex digits).
+8080|EAF7 0100     |CMP (BSAV),A
+8082|0176 8010     |(Z) iMOV ESCAPE > PC          ; Yes, generate ESC sequence.
+8084|F4F7 0101     |BCHK (MODE),4                 ; Test MODE byte.
+8086|6176 808D     |(!C) iMOV NOTSTOR > PC        ; B4=1 is STOR, 0 is XAM and BLOCK XAM.
+8088|EE27          |NDXD C                        ; Store at current 'store index'.
+8089|E054          |MOV F > (E+NDX)               ; Hex data.
+808A|E844          |INC E > E                     ; Increment store index.
+808B|E176 803C     |iMOV NEXTITEM > PC            ; Get next command item.
+
+NOTSTOR:            NOTSTOR:
+808D|F2F7 0101     |BCHK (MODE),2                 ; Test MODE byte.
+808F|4176 80A9     |(C) iMOV XAMNEXT > PC         ; B2 = 0 for XAM, 1 for BLOCK XAM.
+8091|E054          |MOV F > E                     ; Copy hex data to 'store index'.
+8092|E053          |MOV F > D                     ; And to 'XAM index'.
+8093|E177          |SETZ                          ; Set zero flag to print address.
+
+NXTPRNT:            NXTPRNT:
+8094|2176 80A1     |(!Z) iMOV PRDATA > PC         ; Not zero means no address to print.
+8096|E070 000D     |MOV $000D > A                 ; CR.
+8098|E877 80CD     |JSR ECHO                      ; Output it.
+809A|E030          |MOV D > A                     ; 'Examine index'
+809B|E877 80B5     |JSR PRWORD                    ; Output it in hex format.
+809D|E070 003A     |MOV $003A > A                 ; ":".
+809F|E877 80CD     |JSR ECHO                      ; Output it.
+
+PRDATA:             PRDATA:
+80A1|E070 0020     |MOV $0020 > A                 ; Blank.
+80A3|E877 80CD     |JSR ECHO                      ; Output it.
+80A5|EC27          |NDXS C                        ; Get data byte at 'examine index'.
+80A6|E030          |MOV (D+NDX) > A
+80A7|E877 80B5     |JSR PRWORD                    ; Output it in hex format.
+
+XAMNEXT:            XAMNEXT:
+80A9|E02F 0101     |MOV C > (MODE)                ; 0 -> MODE (XAM mode).
+80AB|E030          |MOV D > A
+80AC|EA57          |CMP F,A                       ; Compare 'examine index' to hex data.
+80AD|A176 803C     |(Z OR C) iMOV NEXTITEM > PC   ; Not less, so no more data to output.
+80AF|E833          |INC D > D                     ; Increment 'examine index'.
+80B0|E030          |MOV D > A
+80B1|EF70 0003     |AND $0003,A > A               ; Check low-order 'examine index' byte, for MOD 4 = 0
+80B3|6176 8094     |(!C) iMOV NXTPRNT > PC
+
+PRWORD:             PRWORD:
+80B5|E02E          |MOV C > S1                    ; Save C.
+80B6|E072 0004     |MOV $0004 > C                 ; Loop count.
+
+PRLOOP:             PRLOOP:
+80B8|FC00          |ROL A > A                     ; MSD to LSD position.
+80B9|FC00          |ROL A > A
+80BA|FC00          |ROL A > A
+80BB|FC00          |ROL A > A
+80BC|E00E          |MOV A > S1                    ; Save A.
+80BD|EF70 000F     |AND $000F,A > A               ; Mask LSD for hex print.
+80BF|F170 0030     |OR $0030,A > A                ; Add "0".
+80C1|EA77 0039     |CMP $0039,A                   ; Digit?
+80C3|4270 0007     |(C) ADD $0007 > A             ; No, Add offset for letter.
+80C5|E877 80CD     |JSR ECHO                      ; Output it.
+80C7|E0E0          |MOV S1 > A                    ; Restore A.
+80C8|EA22          |DEC C > C                     ; Done 4 loops?
+80C9|2176 80B8     |(!Z) iMOV PRLOOP > PC         ; No, loop.
+80CB|E0E2          |MOV S1 > C                    ; Restore C.
+80CC|E1E6          |iMOV S1 > PC                  ; Return.
+
+ECHO:               ECHO:
+80CD|F0F7 0003     |BCHK (SCR_STAT),0             ; Is the display ready?
+80CF|6176 80CD     |(!C) iMOV ECHO > PC           ; No, wait until it is
+80D1|E10F 0002     |iMOV A > (SCR_DAT)            ;output character to display
+80D3|E1E6          |iMOV S1 > PC                  ; Return.
+
+.org $80FC                                        ;effectively the same as FFFC with 256 byte ROM
+80FC|E907          |RETI                          ;if an interrupt somehow happens, return from it
+80FD|80FC          |.word $80FC                   ; IRQ vector
+80FE|80FC          |.word $80FC                   ; NMI vector
+80FF|8000          |.word RESET                   ; RESET vector
+
+the following are test programs I wrote. This one prints a char infinitely, the next one is a port
+of the super mario 64 rng algorithm
+
+!!!ROUTINE ADDRESSES HAVE CHANGED
+
+E070 0040 EA77 80B7 E070 FFFB E266
+
+MOV $0040,A
+JSR ECHO
+MOV $OFFSET,A
+ADD PC,A > PC
+
+
+
+
+
+
+E070 000D EA77 80B7 E0F0 0103 EC77 560A
+1300 E001 EF70 00FF FF00 F310 FF01 EF70
+00FF F500 F311 F810 F370 FF80 F017 7370
+1FF4 5370 8180 E00F 0103 EA77 809F F300
+ECF7 0000 0176 0130 E176 0110
+
+input: $0103
+.org $0110
+MOV $000D > A
+JSR ECHO
+MOV (input) > A
+CMP $560A,A
+(Z) XOR A,A > A
+MOV A > B
+AND $00FF,A > A
+SWA A > A
+XOR B,A > A
+SWA A > B
+AND $00FF,A > A
+SHL A > A
+XOR B,A > B
+SHR B > A
+XOR $FF80,A > A
+BCHK B,0
+(!C) XOR $1FF4,A > A
+(C) XOR $8180,A > A
+MOV A > (input)
+JSR PRWORD
+XOR A,A > A
+wait:
+CMP (KBDSTAT),A
+(Z) iMOV wait > PC
+iMOV $0110 > PC
