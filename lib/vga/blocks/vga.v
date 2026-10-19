@@ -46,7 +46,10 @@ module vga
 	input wire         video_mode,              // 0 == 80x25 text mode, 1 == 320x200 322 colour mode
 	input wire         page_sel,				// changes which half of the 128KB that is accessed
                                                 // if you constantly drive this to 0 it will drop the VRAM to 64KB
-	
+	// scrolling support
+	input wire [9:0]   vga_scr_width,
+	input wire [7:0]   vga_scr_offset,
+
 	// host access to VGA 128KB memory (little endian)
 	input wire [16:0]  host_addr,				// address must be dword aligned
 	input wire [31:0]  host_data_in,			// data to write if any from LSB up
@@ -302,7 +305,7 @@ module vga
 			end
 		end else begin
 			// 320x200 video mode, note we're doubled in both directions
-			if (vga_x < 640 && vga_y < 400) begin
+			if (vga_x < {vga_scr_width, 1'b0} && vga_y < 400) begin
 				// in region
 				vga_symbol   <= vga_data_out;
 				if (~vga_x[0]) begin
@@ -317,14 +320,14 @@ module vga
 						// only execute once per HBLANK
 						if (vga_y[0]) begin
 							// last line in the pair so we just advance
-							vga_mem_addr <= vga_mem_addr;
+							vga_mem_addr <= vga_mem_addr + (320 - vga_scr_width); // move to the next 320 row
 						end else begin
-							vga_mem_addr <= vga_mem_addr - 16'd320;		// go back 320 pixels
+							vga_mem_addr <= vga_mem_addr - vga_scr_width; // rewind to start of row
 						end
 					end
 				end else begin
 					// V blank region
-					vga_mem_addr <= 0;
+					vga_mem_addr <= vga_scr_offset;
 				end
 			end
 		end

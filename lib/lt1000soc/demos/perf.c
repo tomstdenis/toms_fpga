@@ -127,7 +127,7 @@ TCM_FUNC(demo) void demo(void)
 		bsg[cylons].write_pitch = DMA_PITCH_WIDTH(8) | DMA_PITCH_STRIDE(320);
 		bsg[cylons].length      = 64;
 		bsg[cylons].read_addr   = TCM_ADDR + (cylons / 40) * 320 * 8 + (cylons % 40) * 8;
-		bsg[cylons].write_pitch = DMA_PITCH_WIDTH(8) | DMA_PITCH_STRIDE(320);
+		bsg[cylons].read_pitch  = DMA_PITCH_WIDTH(8) | DMA_PITCH_STRIDE(320);
 		bsg[cylons].cmd         = DMA_CMD_WRITE_ADVANCE | DMA_CMD_READ_ADVANCE;
 		if (cylons < 999) {
 			bsg[cylons].next_ptr = &bsg[cylons+1];
@@ -137,14 +137,14 @@ TCM_FUNC(demo) void demo(void)
 	DMA_RADDR = bsg;
 	DMA_CMD   = DMA_CMD_VALID | DMA_CMD_SCATTER_GATHER;
 	t1 = TIMER - t1;
-	printf("DMA 1000 8x8 tile draw TCM => VGA via scatter gather took %lu cycles\n", t1);
+	printf("DMA 1000 8x8 tile draw via scatter gather TCM => VGA took %lu cycles\n", t1);
 	
 	for (cylons = 0; cylons < 1000; cylons++) {
 		bsg[cylons].write_addr  = VGA_ADDR + (cylons / 40) * 8 + (cylons % 40) * 8;
 		bsg[cylons].write_pitch = DMA_PITCH_WIDTH(8) | DMA_PITCH_STRIDE(320);
 		bsg[cylons].length      = 64;
 		bsg[cylons].read_addr   = PSRAM_ADDR + (cylons / 40) * 8 + (cylons % 40) * 8;
-		bsg[cylons].write_pitch = DMA_PITCH_WIDTH(8) | DMA_PITCH_STRIDE(320);
+		bsg[cylons].read_pitch = DMA_PITCH_WIDTH(8) | DMA_PITCH_STRIDE(320);
 		bsg[cylons].cmd         = DMA_CMD_WRITE_ADVANCE | DMA_CMD_READ_ADVANCE;
 		if (cylons < 999) {
 			bsg[cylons].next_ptr = &bsg[cylons+1];
@@ -154,8 +154,27 @@ TCM_FUNC(demo) void demo(void)
 	DMA_RADDR = bsg;
 	DMA_CMD   = DMA_CMD_VALID | DMA_CMD_SCATTER_GATHER;
 	t1 = TIMER - t1;
-	printf("DMA 1000 8x8 tile draw PSRAM => VGA via scatter gather took %lu cycles\n", t1);
+	printf("DMA 1000 8x8 tile draw via scatter gather PSRAM => VGA took %lu cycles\n", t1);
 
+	uint32_t z;
+	t1 = TIMER;
+	DMA_RPITCH = DMA_PITCH_WIDTH(8) | DMA_PITCH_STRIDE(320);
+	DMA_WPITCH = DMA_PITCH_WIDTH(8) | DMA_PITCH_STRIDE(320);
+	DMA_LEN    = 64;
+	DMA_RADDR  = PSRAM_ADDR;
+	DMA_WADDR  = VGA_ADDR;
+	z = 0;
+	for (cylons = 0; cylons < 1000; cylons++) {
+		DMA_CMD   = DMA_CMD_VALID | DMA_CMD_WRITE_ADVANCE | DMA_CMD_READ_ADVANCE;
+		DMA_RADDR = DMA_RADDR + 8;
+		DMA_WADDR = DMA_WADDR + 8;
+		if (++z == 40) {
+			DMA_RADDR += (7*320);
+			DMA_WADDR += (7*320);
+		}
+	}
+	t1 = TIMER - t1;
+	printf("DMA 1000 8x8 tile draw via MMIO, PSRAM => VGA took %lu cycles\n", t1);
 
 	// time TCM to VGA copy
 	t1 = TIMER;

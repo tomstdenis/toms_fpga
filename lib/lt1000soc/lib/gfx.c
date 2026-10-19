@@ -1,6 +1,13 @@
 #include "lt1000.h"
 
-#include "gfx.h"
+static uint32_t scr_width = 320, scr_offset = 0;
+
+TCM_FUNC(gfx_scr_move) void gfx_scr_move(uint32_t width, uint32_t offset)
+{
+    scr_width = width;
+    scr_offset = offset;
+    VGA_CTRL = (VGA_CTRL & 0x3FUL) | VGA_CTRL_OFFSET(offset) | VGA_CTRL_WIDTH(width);
+}
 
 // --- Hardware Control ---
 TCM_FUNC(gfx_set_mode) void gfx_set_mode(int mode) {

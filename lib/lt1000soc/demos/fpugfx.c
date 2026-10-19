@@ -127,6 +127,7 @@ void demo(void) {
     yield_add_irq(YIELD_IRQ_TIMER, 1000000UL * yield_usec_to_cycles(), 0, timer);
 
     gfx_set_mode(VGA_CTRL_GFX_MODE);
+    gfx_scr_move(312, 0);
 
     // Initial Julia constant C = -0.7 + 0.27015i
     float c_re = -0.70f;
@@ -138,8 +139,14 @@ void demo(void) {
     
     volatile uint32_t render_cycles;
 	uint32_t fno = 0;
+    uint32_t scr_off = 0;
+    int dx = 1;
 	
     while (1) {
+        scr_off = (scr_off + dx) & 7;
+        if (scr_off == 0 || scr_off == 7) dx = -dx;
+        gfx_scr_move(312, scr_off);
+
         // Morph the Julia Constant over time using NanoFPU math
         time = (fno & 0x20) ? fsub(time, time_step) : fadd(time, time_step);
         ++fno;
