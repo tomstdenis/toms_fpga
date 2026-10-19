@@ -371,9 +371,12 @@ static void handle_opcode(void)
     if (program[state.PC].active) {
         error("This PC is already occupied.", state.curp);
     }
-
-    program[state.PC].num_words = 1;
-    program[state.PC].cond_code = to_cond(&state.curp);
+    program[state.PC].source.file_name   = strdup(state.file_name);
+    program[state.PC].source.source_line = strdup(state.curline);
+    program[state.PC].source.lineno      = state.line_num;
+    program[state.PC].num_words          = 1;
+    program[state.PC].cond_code          = to_cond(&state.curp);
+    skip_whitespace(&state.curp);
     for (x = 0; opcodes[x].name; x++) {
         if (matchcase(&state.curp, opcodes[x].name)) {
             // match opcode name
@@ -446,7 +449,12 @@ int main(int argc, char **argv)
     for (x = 0; x < 65536;) {
         if (program[x].active) {
             for (y = 0; y < program[x].num_words; y++) {
-                printf("PC[%04x] == %"PRIx16"\n", x+y, program[x+y].word);
+                printf("PC[%04x] == %"PRIx16"", x+y, program[x+y].word);
+                if (y == 0) {
+                    printf(", %s:%d, %s", program[x+y].source.file_name, program[x+y].source.lineno, program[x+y].source.source_line);
+                } else {
+                    printf("\n");
+                }
             }
             x += y;
         } else {
