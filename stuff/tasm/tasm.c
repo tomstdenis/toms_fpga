@@ -35,7 +35,11 @@ static struct {
         uint32_t lineno;
     } source;
     uint32_t
+        active,
         cond_code,
+        oper5,
+        s4,
+        d4,
         num_words;
     uint16_t
         word;    
@@ -86,7 +90,102 @@ static void error(char *msg, const char *p)
     fprintf(stderr, "ERROR: Rest of line '%s'\n", p);
 }
 
-uint32_t to_cond(char **p)
+static char *read_symbol(char **p)
+{
+    char buf[512];
+    int x;
+
+    memset(buf, 0, sizeof buf);
+    x = 0;
+    skip_whitespace(p);
+    for (;;) {
+        if ((x && isdigit(**p)) || isalpha(**p) || **p == '_') {
+            buf[x++] = **p;
+        } else {
+            break;
+        }
+    }
+    skip_whitespace(p);
+    return strdup(buf);
+}
+
+static uint32_t match_symbol(char **p)
+{
+    char *tmp, *sym;
+    uint32_t x;
+
+    // parse in symbol to read
+    tmp = *p;
+    sym = read_symbol(&tmp);
+
+    for (x = 0; x < MAX_SYMBOLS; x++) {
+        if (symbols[x].symbol && !strcasecmp(symbols[x].symbol, sym)) {
+            free(sym);
+            *p = tmp;
+            return x;
+        }
+    }
+    free(sym);
+    return 0xFFFFFFFF;
+}
+
+static uint32_t read_num(char **p)
+{
+    uint32_t ret;
+    skip_whitespace(p);
+    ret = 0;
+    if (expect(p, '$')) {
+        // hex num
+        for(;;) {
+            char c = toupper(**p); ++(*p);
+            ret <<= 4;
+            if (c >= '0' && c <= '9') {
+                ret |= (c - '0');
+            } else if (c >= 'A' && c <= 'F') {
+                ret |= (10 + (c - 'A'));
+            } else {
+                --(*p);
+                break;
+            }
+        }
+    } else if (expect(p, '%')) {
+        // bin num
+        for (;;) {
+            char c = toupper(**p); ++(*p);
+            ret <<= 1;
+            if (c >= '0' && c <= '1') {
+                ret |= (c - '0');
+            } else {
+                --(*p);
+                break;
+            }
+        }
+    } else if (isdigit(**p)) {
+        // decimal
+        for(;;) {
+            char c = toupper(**p); ++(*p);
+            ret *= 10;
+            if (c >= '0' && c <= '9') {
+                ret |= (c - '0');
+            } else {
+                --(*p);
+                break;
+            }
+        }
+    } else {
+        // symbol
+        ret = match_symbol(p);
+        if (ret != 0xFFFFFFFF) {
+            ret = symbols[ret].value;
+        } else {
+            error("Syntax error.", *p);
+            return 0;
+        }
+    }
+    return ret;
+}
+
+static uint32_t to_cond(char **p)
 {
     uint32_t ret;
     skip_whitespace(p);
@@ -121,72 +220,59 @@ uint32_t to_cond(char **p)
     return 0b111;
 }
 
-static uint32_t read_num(char **p)
+static uint32_t to_oper(char **p)
 {
-    uint32_t ret;
+    uint32_t ret = 0;
     skip_whitespace(p);
-    ret = 0;
-    if (expect(p, '$')) {
-        // hex num
-        for(;;) {
-            char c = toupper(**p); ++(*p);
-            ret <<= 4;
-            if (c >= '0' && c <= '9') {
-                ret |= (c - '0');
-            } else if (c >= 'A' && c <= 'F') {
-                ret |= (10 + (c - 'A'));
-            } else {
-                --(*p);
-                break;
-            }
+    if (expect(p, '(')) {
+        // memory at ...
+        skip_whitespace(p);
+        if (expect(p, 'A')) {
+            ret = 0b1000;
+        } else if (expect(p, 'B')) {
+            ret = 0b1001;
+        } else if (expect(p, 'C')) {
+            ret = 0b1010;
+        } else if (expect(p, 'D')) {
+            ret = 0b1011;
+        } else if (expect(p, 'E')) {
+            ret = 0b1100;
+        } else if (expect(p, 'F')) {
+            ret = 0b1101;
+        } else if ((ret = match_symbol(p)) != 0xFFFFFFFF) {
+            ret = (symbols[ret].value << 4) | 0b1111;
+        } else {
+            ret = (read_num(p) << 4) | 0b1111;
         }
-    } else if (expect(p, '%')) {
-        // bin num
-        for (;;) {
-            char c = toupper(**p); ++(*p);
-            ret <<= 1;
-            if (c >= '0' && c <= '1') {
-                ret |= (c - '0');
-            } else {
-                --(*p);
-                break;
-            }
+        skip_whitespace(p);
+        if (!expect(p, ')')) {
+            error("Syntax error was exppecting ')'", *p);
+            return 0xFFFFFFFF;
         }
+        return ret;
+    }
+    if (expect(p, 'A')) {
+        ret = 0b0000;
+    } else if (expect(p, 'B')) {
+        ret = 0b0001;
+    } else if (expect(p, 'C')) {
+        ret = 0b0010;
+    } else if (expect(p, 'D')) {
+        ret = 0b0011;
+    } else if (expect(p, 'E')) {
+        ret = 0b0100;
+    } else if (expect(p, 'F')) {
+        ret = 0b0101;
+    } else if (matchcase(p, "PC")) {
+        ret = 0b0110;
+    } else if (matchcase(p, "S1")) {
+        ret = 0b1110;
+    } else if ((ret = match_symbol(p)) != 0xFFFFFFFF) {
+        ret = (symbols[ret].value << 4) | 0b0111;
     } else {
-        // decimal
-        for(;;) {
-            char c = toupper(**p); ++(*p);
-            ret *= 10;
-            if (c >= '0' && c <= '9') {
-                ret |= (c - '0');
-            } else {
-                --(*p);
-                break;
-            }
-        }
+        ret = (read_num(p) << 4) | 0b0111;
     }
     return ret;
-}
-
-char *read_symbol(char **p)
-{
-    char buf[512];
-    int x;
-
-    memset(buf, 0, sizeof buf);
-    x = 0;
-    for (;;) {
-        if ((x && isdigit(**p)) || isalpha(**p) || **p == '_') {
-            buf[x++] = **p;
-        } else {
-            break;
-        }
-    }
-    skip_whitespace(p);
-    if (!expect(p, ':')) {
-        error("Missing : from label definition", *p);
-    }
-    return strdup(buf);
 }
 
 static void compile(const char *filename);
@@ -199,22 +285,94 @@ static void handle_label_def(void)
     for (x = 0; x < MAX_SYMBOLS; x++) {
         if (symbols[x].symbol) {
             symbols[x].symbol = read_symbol(&state.curp);
+            if (!expect(&state.curp, ':')) {
+                error("Missing : from label definition", state.curp);
+            }
             symbols[x].value  = state.PC;
             return;
         }
     }
-    error("Symbol table is full.", "");
+    error("Symbol table is full.", state.curp);
+}
+
+static void handle_equate(void)
+{
+    uint32_t x;
+
+    // find empty slot
+    for (x = 0; x < MAX_SYMBOLS; x++) {
+        if (symbols[x].symbol) {
+            symbols[x].symbol = read_symbol(&state.curp);
+            if (expect(&state.curp, '=')) {
+                symbols[x].value  = read_num(&state.curp);
+            } else {
+                error("Expecting an '='.", state.curp);
+            }
+            return;
+        }
+    }
+    error("Symbol table is full.", state.curp);
 }
 
 // opcodes of the form OP SSSS[,A] > DDDD
+// by time we get here we're past OP
 static void handle_alu_opcode(uint32_t op_index)
 {
+    // parse in the opcode
+    skip_whitespace(&state.curp);
+    program[state.PC].oper5 = opcodes[op_index].oper5;
+    program[state.PC].s4    = to_oper(&state.curp);
+    if (expect(&state.curp, ',')) {
+        skip_whitespace(&state.curp);
+        if (!expect(&state.curp, 'A')) {
+            error("Syntax error.", state.curp);
+        }
+    }
+    skip_whitespace(&state.curp);
+    if (!expect(&state.curp, '>')) {
+        error("Syntax error.", state.curp);
+    }
+    skip_whitespace(&state.curp);
+    program[state.PC].d4 = to_oper(&state.curp);
+
+    // now render it out to 1-3 words
+    // CCC OOOOO SSSS DDDD
+    program[state.PC].word = 
+        (program[state.PC].cond_code << (4+4+5)) |
+        (program[state.PC].oper5 << (4+4)) |
+        ((program[state.PC].s4 & 15) << 4) |
+        ((program[state.PC].d4 & 15));
+
+    uint32_t i = state.PC;
+    if ((program[i].s4 & 0b0111) == 0b0111) {
+        // immediate type
+        state.PC             += 1;
+        program[i].num_words += 1;
+        if (program[state.PC].active) {
+            error("This PC is already occupied.", state.curp);
+        }
+        program[state.PC].word = program[i].s4 >> 4;
+    }
+    if ((program[i].d4 & 0b0111) == 0b0111) {
+        // immediate type
+        state.PC             += 1;
+        program[i].num_words += 1;
+        if (program[state.PC].active) {
+            error("This PC is already occupied.", state.curp);
+        }
+        program[state.PC].word = program[i].d4 >> 4;
+    }
 }
 
 static void handle_opcode(void)
 {
     uint32_t x;
 
+    if (program[state.PC].active) {
+        error("This PC is already occupied.", state.curp);
+    }
+
+    program[state.PC].num_words = 1;
     program[state.PC].cond_code = to_cond(&state.curp);
     for (x = 0; opcodes[x].name; x++) {
         if (matchcase(&state.curp, opcodes[x].name)) {
@@ -235,6 +393,8 @@ static void process_line(void)
         state.PC = read_num(&state.curp);
     } else if (!strchr(state.curp, ':')) {
         handle_label_def();
+    } else if (!strchr(state.curp, '=')) {
+        handle_equate();
     } else {
         handle_opcode();
     }
