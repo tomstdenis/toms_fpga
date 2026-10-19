@@ -24,6 +24,10 @@ module vga (
     input wire        video_mode,       // 0: 80x25 Text Mode, 1: 320x200 Graphics Mode
     input wire        page_sel,         // select which 64KB bank to use in graphics mode
     
+	// scrolling support
+	input wire [9:0]   vga_scr_width,   // columns to draw (default: should be 320)
+	input wire [7:0]   vga_scr_offset,  // horizontal offset (default: 0)
+
     // Host Access Interface (32-bit Pipelined)
     input wire [16:0] host_addr,        // Memory address (DWORD aligned)
     input wire [31:0] host_data_in,     // Data to write LSB-first

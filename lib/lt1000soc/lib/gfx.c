@@ -6,7 +6,7 @@ TCM_FUNC(gfx_scr_move) void gfx_scr_move(uint32_t width, uint32_t offset)
 {
     scr_width = width;
     scr_offset = offset;
-    VGA_CTRL = (VGA_CTRL & 0x3FUL) | VGA_CTRL_OFFSET(offset) | VGA_CTRL_WIDTH(width);
+    VGA_CTRL = (VGA_CTRL & 0x1FUL) | VGA_CTRL_OFFSET(offset) | VGA_CTRL_WIDTH(width);
 }
 
 // --- Hardware Control ---

@@ -34,15 +34,15 @@
 // VGA
 #define VGA_CTRL            *((volatile uint32_t *)0x10000020)
 // 1 == Video (320x200x8bpp), 0 = 80x25 Text
-#define VGA_CTRL_GFX_MODE    1
+#define VGA_CTRL_GFX_MODE    0x01
 // Which 64KB half of VRAM should be displayed (0=0x00000, 1=0x10000)
-#define VGA_CTRL_PAGE_SEL    2
+#define VGA_CTRL_PAGE_SEL    0x02
 // When this is set any hot pink (0xE3) byte written over the bus is masked off allowing for transparent writes
-#define VGA_CTRL_WRITE_MASK  4
+#define VGA_CTRL_WRITE_MASK  0x04
 // High when in H blank region
-#define VGA_CTRL_HBLANK      8
+#define VGA_CTRL_HBLANK      0x08
 // High when in V blank region
-#define VGA_CTRL_VBLANK      16
+#define VGA_CTRL_VBLANK      0x10
 #define VGA_CTRL_OFFSET(x)   ((x&0xFF)<<5)
 #define VGA_CTRL_WIDTH(x)    ((x&0x3FF)<<13)
 

@@ -769,7 +769,7 @@ localparam
                             cvga_page_sel    <= bus_wdata[1];
                             cvga_write_mask  <= bus_wdata[2];
                             cvga_scr_offset  <= bus_wdata[12:5];
-                            cvga_scr_width   <= bus_wdata[23:13] == 0 ? 320 : bus_wdata[23:13];
+                            cvga_scr_width   <= bus_wdata[22:13];
                         end
                     end
                     MMIO_SPI_TRANSFER: begin

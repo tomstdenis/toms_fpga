@@ -98,6 +98,8 @@ All peripheral registers are mapped under the MMIO base address `0x1000_0000`.
 | | (bits) | R/W | `[2]` Use Write Mask (8'hE3 pixels are transparent) |
 | | (bits) | R | `[3]` Horizontal Blank |
 | | (bits) | R | `[4]` Vertical Blank |
+| | (bits) | R/W | `[12:5]` Horizontal Offset (default: 0) |
+| | (bits) | R/W | `[22:13]` Horizontal Render Size (defualt: 320) |
 | `0x24` | `MMIO_SPI_TRANSFER` | R/W | SPI Control, Clock Divider & Transfer Data |
 | | (bits) | R/W | `[7-0]` Write MOSI byte, Read MISO Byte  |
 | | (bits) | R | `[8]` SPI idle  |

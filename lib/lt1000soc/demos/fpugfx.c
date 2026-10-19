@@ -113,7 +113,7 @@ static void uart_irq(uint32_t data) {
 uint32_t frames;
 
 static void timer(uint32_t data) {
-    printf("Fractal FPS: %d\n", frames);
+//    printf("Fractal FPS: %d\n", frames);
     frames = 0;
 }
 
@@ -164,7 +164,7 @@ void demo(void) {
 
         ++frames;
 //        if (!(frames & 31)) {
-            printf("Julia Render Cycles: %lu\n", render_cycles);
+            printf("Julia Render Cycles: %lu, scroff=%lu\n", render_cycles, scr_off);
 //        }
 
         gfx_vsync();
