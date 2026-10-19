@@ -101,6 +101,7 @@ static char *read_symbol(char **p)
     for (;;) {
         if ((x && isdigit(**p)) || isalpha(**p) || **p == '_') {
             buf[x++] = **p;
+            ++(*p);
         } else {
             break;
         }
@@ -228,7 +229,9 @@ static uint32_t to_oper(char **p)
     if (expect(p, '(')) {
         // memory at ...
         skip_whitespace(p);
-        if (expect(p, 'A')) {
+        if ((ret = match_symbol(p)) != 0xFFFFFFFF) {
+            ret = (symbols[ret].value << 4) | 0b1111;
+        } else if (expect(p, 'A')) {
             ret = 0b1000;
         } else if (expect(p, 'B')) {
             ret = 0b1001;
@@ -240,8 +243,6 @@ static uint32_t to_oper(char **p)
             ret = 0b1100;
         } else if (expect(p, 'F')) {
             ret = 0b1101;
-        } else if ((ret = match_symbol(p)) != 0xFFFFFFFF) {
-            ret = (symbols[ret].value << 4) | 0b1111;
         } else {
             ret = (read_num(p) << 4) | 0b1111;
         }
@@ -252,7 +253,9 @@ static uint32_t to_oper(char **p)
         }
         return ret;
     }
-    if (expect(p, 'A')) {
+    if ((ret = match_symbol(p)) != 0xFFFFFFFF) {
+        ret = (symbols[ret].value << 4) | 0b0111;
+    } else if (expect(p, 'A')) {
         ret = 0b0000;
     } else if (expect(p, 'B')) {
         ret = 0b0001;
@@ -268,8 +271,6 @@ static uint32_t to_oper(char **p)
         ret = 0b0110;
     } else if (matchcase(p, "S1")) {
         ret = 0b1110;
-    } else if ((ret = match_symbol(p)) != 0xFFFFFFFF) {
-        ret = (symbols[ret].value << 4) | 0b0111;
     } else {
         ret = (read_num(p) << 4) | 0b0111;
     }
@@ -284,7 +285,7 @@ static void handle_label_def(void)
 
     // find empty slot
     for (x = 0; x < MAX_SYMBOLS; x++) {
-        if (symbols[x].symbol) {
+        if (!symbols[x].symbol) {
             symbols[x].symbol = read_symbol(&state.curp);
             if (!expect(&state.curp, ':')) {
                 error("Missing : from label definition", state.curp);
@@ -302,7 +303,7 @@ static void handle_equate(void)
 
     // find empty slot
     for (x = 0; x < MAX_SYMBOLS; x++) {
-        if (symbols[x].symbol) {
+        if (!symbols[x].symbol) {
             symbols[x].symbol = read_symbol(&state.curp);
             if (expect(&state.curp, '=')) {
                 symbols[x].value  = read_num(&state.curp);
@@ -449,7 +450,7 @@ int main(int argc, char **argv)
     for (x = 0; x < 65536;) {
         if (program[x].active) {
             for (y = 0; y < program[x].num_words; y++) {
-                printf("PC[%04x] == %"PRIx16"", x+y, program[x+y].word);
+                printf("PC[%04x] == %04"PRIx16"", x+y, program[x+y].word);
                 if (y == 0) {
                     printf(", %s:%d, %s", program[x+y].source.file_name, program[x+y].source.lineno, program[x+y].source.source_line);
                 } else {

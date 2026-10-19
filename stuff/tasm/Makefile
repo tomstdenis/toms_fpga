@@ -1,5 +1,5 @@
 tasm: tasm.c
-	gcc -Wall -O2 -g3 tasm.c -o tasm
+	gcc -Wall -O0 -g3 tasm.c -o tasm
 
 .PHONY: clean
 clean:
