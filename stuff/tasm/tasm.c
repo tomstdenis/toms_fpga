@@ -76,7 +76,7 @@ static int expect(char **p, char c)
 
 static int matchcase(char **p, char *s)
 {
-    if (!strcasecmp(*p, s)) {
+    if (!strncasecmp(*p, s, strlen(s))) {
         *(p) += strlen(s);
         return 1;
     }
@@ -138,10 +138,11 @@ static uint32_t read_num(char **p)
         // hex num
         for(;;) {
             char c = toupper(**p); ++(*p);
-            ret <<= 4;
             if (c >= '0' && c <= '9') {
+                ret <<= 4;
                 ret |= (c - '0');
             } else if (c >= 'A' && c <= 'F') {
+                ret <<= 4;
                 ret |= (10 + (c - 'A'));
             } else {
                 --(*p);
@@ -152,8 +153,8 @@ static uint32_t read_num(char **p)
         // bin num
         for (;;) {
             char c = toupper(**p); ++(*p);
-            ret <<= 1;
             if (c >= '0' && c <= '1') {
+                ret <<= 1;
                 ret |= (c - '0');
             } else {
                 --(*p);
@@ -163,10 +164,10 @@ static uint32_t read_num(char **p)
     } else if (isdigit(**p)) {
         // decimal
         for(;;) {
-            char c = toupper(**p); ++(*p);
-            ret *= 10;
+            char c = **p; ++(*p);
             if (c >= '0' && c <= '9') {
-                ret |= (c - '0');
+                ret *= 10;
+                ret += (c - '0');
             } else {
                 --(*p);
                 break;
@@ -275,7 +276,7 @@ static uint32_t to_oper(char **p)
     return ret;
 }
 
-static void compile(const char *filename);
+static void compile(char *filename);
 
 static void handle_label_def(void)
 {
@@ -320,6 +321,7 @@ static void handle_alu_opcode(uint32_t op_index)
 {
     // parse in the opcode
     skip_whitespace(&state.curp);
+    program[state.PC].active = 1;
     program[state.PC].oper5 = opcodes[op_index].oper5;
     program[state.PC].s4    = to_oper(&state.curp);
     if (expect(&state.curp, ',')) {
@@ -343,24 +345,22 @@ static void handle_alu_opcode(uint32_t op_index)
         ((program[state.PC].s4 & 15) << 4) |
         ((program[state.PC].d4 & 15));
 
-    uint32_t i = state.PC;
+    uint32_t i = state.PC++;
     if ((program[i].s4 & 0b0111) == 0b0111) {
         // immediate type
-        state.PC             += 1;
         program[i].num_words += 1;
         if (program[state.PC].active) {
             error("This PC is already occupied.", state.curp);
         }
-        program[state.PC].word = program[i].s4 >> 4;
+        program[state.PC++].word = program[i].s4 >> 4;
     }
     if ((program[i].d4 & 0b0111) == 0b0111) {
         // immediate type
-        state.PC             += 1;
         program[i].num_words += 1;
         if (program[state.PC].active) {
             error("This PC is already occupied.", state.curp);
         }
-        program[state.PC].word = program[i].d4 >> 4;
+        program[state.PC++].word = program[i].d4 >> 4;
     }
 }
 
@@ -379,10 +379,11 @@ static void handle_opcode(void)
             // match opcode name
             if (opcodes[x].opcode_class == OP_CLASS_ALU) {
                 handle_alu_opcode(x);
+                return;
             }
         }
     }
-    error("Syntax error.", state.curp);
+    error("Syntax error did not match any opcodes.", state.curp);
 }
 
 static void process_line(void)
@@ -391,25 +392,28 @@ static void process_line(void)
     if (matchcase(&state.curp, ".org")) {
         // handle .org
         state.PC = read_num(&state.curp);
-    } else if (!strchr(state.curp, ':')) {
+    } else if (strchr(state.curp, ':')) {
         handle_label_def();
-    } else if (!strchr(state.curp, '=')) {
+    } else if (strchr(state.curp, '=')) {
         handle_equate();
     } else {
         handle_opcode();
     }
 }
 
-static void compile(const char *filename)
+static void compile(char *filename)
 {
     struct {
         FILE *prevfile;
+        char *prevfname;
         uint32_t prevlinenum;
     } prev;
 
     prev.prevfile    = state.curfile;
+    prev.prevfname   = state.file_name;
     prev.prevlinenum = state.line_num;
 
+    state.file_name  = filename;
     state.curfile = fopen(filename, "r");
     if (!state.curfile) {
         error("Could not open file.\n", filename);
@@ -422,8 +426,9 @@ static void compile(const char *filename)
         process_line();
     }
     fclose(state.curfile);
-    state.curfile  = prev.prevfile;
-    state.line_num = prev.prevlinenum;
+    state.curfile   = prev.prevfile;
+    state.file_name = prev.prevfname;
+    state.line_num  = prev.prevlinenum;
 }
 
 
@@ -437,4 +442,15 @@ int main(int argc, char **argv)
         return 0;
     }
     compile(argv[1]);
+    uint32_t x, y;
+    for (x = 0; x < 65536;) {
+        if (program[x].active) {
+            for (y = 0; y < program[x].num_words; y++) {
+                printf("PC[%04x] == %"PRIx16"\n", x+y, program[x+y].word);
+            }
+            x += y;
+        } else {
+            ++x;
+        }
+    }
 }
