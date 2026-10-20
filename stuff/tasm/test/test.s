@@ -1,16 +1,18 @@
 TOM = $1000
 .org TOM
-MOV B,A > A
+    MOV B,A > A
 .org 256
-MOV ($1234) > (65535)
-(C) XOR %10001 , A > S1
-MOV $2000 > PC
+    MOV ($1234) > (65535)
+    (C) XOR %10001 , A > S1
+    MOV $2000 > PC
 .org %10000000
-(!Z) MOV C > D
+    (!Z) MOV C > D
 BAR:
-(Z AND C) MOV A > (BAR)
-CLRC
-JSR TOM
-BCHK ($9000),15
-PUSH A
-POP (12)
+    (Z AND C) MOV A > (BAR)
+    CLRC
+    JSR TOM
+    BCHK ($9000),15
+    LDSP A
+    STSP (12)
+.word $1122
+.word TOM

@@ -75,14 +75,14 @@ static const struct opcode {
     { "JSR",  OP_CLASS_1OP,  0, 0b01000, 0b0000, 0b0111 }, // JSR
     { "BCHK", OP_CLASS_BCHK, 0, 0b10000, 0b0000, 0b0111 }, // BCHK
     // 1 operand opcodes that are cleaner versions of the originals
-    { "PUSH2",OP_CLASS_1OP,  0, 0b00100, 0b0000, 0b0111 }, // PUSH2 (MOV SRC > SP2)
-    { "POP2", OP_CLASS_1OP,  0, 0b00101, 0b0000, 0b0111 }, // POP2 (MOV SP2 > DST)
-    { "PUSH", OP_CLASS_1OP,  0, 0b00000, 0b0000, 0b0111 }, // PUSH (MOV SRC,SP)
-    { "POP",  OP_CLASS_1OP,  0, 0b00001, 0b0000, 0b0111 }, // POP (MOV SP,SRC)
-    { "OUT",  OP_CLASS_1OP,  0, 0b00010, 0b0000, 0b0111 }, // OUT (MOV SRC >IO)
-    { "IN",   OP_CLASS_1OP,  0, 0b00011, 0b0000, 0b0111 }, // IN (MOV IO >DST)
-    { "WRSTAT", OP_CLASS_1OP,  0, 0b00110, 0b0000, 0b0111 }, // WRSTAT (MOV SRC > STAT)
-    { "RDSTAT", OP_CLASS_1OP,  0, 0b00111, 0b0000, 0b0111 }, // RDSTAT (MOV STAT > DST)
+    { "PUSH2",OP_CLASS_1OP,   0, 0b00100, 0b0000, 0b0111 }, // PUSH2 (MOV SRC > SP2)
+    { "POP2", OP_CLASS_1OP,   0, 0b00101, 0b0000, 0b0111 }, // POP2 (MOV SP2 > DST)
+    { "STSP", OP_CLASS_1OP,   0, 0b00000, 0b0000, 0b0111 }, // STSP (MOV SRC,SP)
+    { "LDSP", OP_CLASS_1OP,   0, 0b00001, 0b0000, 0b0111 }, // LDSP (MOV SP,SRC)
+    { "OUT",  OP_CLASS_1OP,   0, 0b00010, 0b0000, 0b0111 }, // OUT (MOV SRC >IO)
+    { "IN",   OP_CLASS_1OP,   0, 0b00011, 0b0000, 0b0111 }, // IN (MOV IO >DST)
+    { "WRSTAT", OP_CLASS_1OP, 0, 0b00110, 0b0000, 0b0111 }, // WRSTAT (MOV SRC > STAT)
+    { "RDSTAT", OP_CLASS_1OP, 0, 0b00111, 0b0000, 0b0111 }, // RDSTAT (MOV STAT > DST)
     { NULL,             0, 0,       0, 0, 0 }  // end of list
 };
 
@@ -561,6 +561,19 @@ static void process_line(void)
     if (matchcase(&state.curp, ".org")) {
         // handle .org
         state.PC = read_num(&state.curp);
+    } else if (matchcase(&state.curp, ".word")) {
+        // handle .word
+        if (program[state.PC].active == 0) {
+            program[state.PC].active             = 1;
+            program[state.PC].word               = read_num(&state.curp);
+            program[state.PC].source.file_name   = strdup(state.file_name);
+            program[state.PC].source.source_line = strdup(state.curline);
+            program[state.PC].source.lineno      = state.line_num;
+            program[state.PC].num_words          = 1;
+            ++(state.PC);
+        } else {
+            error("Syntax error: This address is already populated", state.curp);
+        }
     } else if (strchr(state.curp, ':')) {
         handle_label_def();
     } else if (strchr(state.curp, '=')) {
