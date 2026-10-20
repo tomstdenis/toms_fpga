@@ -631,6 +631,20 @@ static void handle_opcode(void)
     error("Syntax error did not match any opcodes.", state.curp);
 }
 
+void handle_include(void)
+{
+    char buf[512];
+    uint32_t x;
+
+    memset(&buf, 0, sizeof buf);
+    x = 0;
+    skip_whitespace(&state.curp);
+    while (isalnum(state.curp[0]) || state.curp[0] == '.' || state.curp[0] == '/') {
+        buf[x++] = *(state.curp++);
+    }
+    compile(buf);
+}
+
 static void process_line(void)
 {
     skip_whitespace(&state.curp);
@@ -650,6 +664,8 @@ static void process_line(void)
         } else {
             error("Syntax error: This address is already populated", state.curp);
         }
+    } else if (matchcase(&state.curp, ".include")) {
+        handle_include();
     } else if (strchr(state.curp, ':')) {
         handle_label_def();
     } else if (strchr(state.curp, '=')) {
