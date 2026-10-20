@@ -22,7 +22,38 @@ static const struct opcode {
         s4,                 // SSSS bits
         d4;                 // DDDD bits
 } opcodes[] = {
-    { "MOV", OP_CLASS_ALU, 0, 0b00000, 0, 0 }, // MOV
+    { "MOV",  OP_CLASS_ALU, 0, 0b00000, 0, 0 }, // MOV
+    { "iMOV", OP_CLASS_ALU, 0, 0b00001, 0, 0 }, // iMOV
+    { "ADD",  OP_CLASS_ALU, 0, 0b00010, 0, 0 }, // ADD
+    { "iADD", OP_CLASS_ALU, 0, 0b00011, 0, 0 }, // iADD
+    { "ADC",  OP_CLASS_ALU, 0, 0b00100, 0, 0 }, // ADC
+    { "SUB",  OP_CLASS_ALU, 0, 0b00101, 0, 0 }, // SUB
+    { "iSUB", OP_CLASS_ALU, 0, 0b00110, 0, 0 }, // iSUB
+    { "SBC",  OP_CLASS_ALU, 0, 0b00111, 0, 0 }, // SBC
+    { "INC",  OP_CLASS_ALU, 0, 0b01000, 0, 0 }, // INC
+    { "iINC", OP_CLASS_ALU, 0, 0b01001, 0, 0 }, // iINC
+    { "DEC",  OP_CLASS_ALU, 0, 0b01010, 0, 0 }, // DEC
+    { "iDEC", OP_CLASS_ALU, 0, 0b01011, 0, 0 }, // iDEC
+    { "NEG",  OP_CLASS_ALU, 0, 0b01100, 0, 0 }, // NEG
+    { "iNEG", OP_CLASS_ALU, 0, 0b01101, 0, 0 }, // iNEG
+    { "NOT",  OP_CLASS_ALU, 0, 0b01110, 0, 0 }, // NOT
+    { "AND",  OP_CLASS_ALU, 0, 0b01111, 0, 0 }, // AND
+    { "NAND", OP_CLASS_ALU, 0, 0b10000, 0, 0 }, // NAND
+    { "OR",   OP_CLASS_ALU, 0, 0b10001, 0, 0 }, // OR
+    { "NOR",  OP_CLASS_ALU, 0, 0b10010, 0, 0 }, // NOR
+    { "XOR",  OP_CLASS_ALU, 0, 0b10011, 0, 0 }, // XOR
+    { "XNOR", OP_CLASS_ALU, 0, 0b10100, 0, 0 }, // XNOR
+    { "SHL",  OP_CLASS_ALU, 0, 0b10101, 0, 0 }, // SHL
+    { "iSHL", OP_CLASS_ALU, 0, 0b10110, 0, 0 }, // iSHL
+    { "SLC",  OP_CLASS_ALU, 0, 0b10111, 0, 0 }, // SLC
+    { "SHR",  OP_CLASS_ALU, 0, 0b11000, 0, 0 }, // SHR
+    { "SRC",  OP_CLASS_ALU, 0, 0b11001, 0, 0 }, // SRC
+    { "ASR",  OP_CLASS_ALU, 0, 0b11010, 0, 0 }, // ASR
+    { "iASR", OP_CLASS_ALU, 0, 0b11011, 0, 0 }, // iASR
+    { "ROL",  OP_CLASS_ALU, 0, 0b11100, 0, 0 }, // ROL
+    { "ROR",  OP_CLASS_ALU, 0, 0b11101, 0, 0 }, // ROR
+    { "MIR",  OP_CLASS_ALU, 0, 0b11110, 0, 0 }, // MIR
+    { "SWA",  OP_CLASS_ALU, 0, 0b11111, 0, 0 }, // SWA
     { NULL,             0, 0,       0, 0, 0 }  // end of list
 };
 

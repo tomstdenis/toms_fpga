@@ -6,4 +6,4 @@ MOV ($1234) > 65535
 .org %10000000
 (!Z) MOV C > D
 BAR:
-MOV A > (BAR)
+(Z AND C) MOV A > (BAR)
