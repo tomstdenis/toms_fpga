@@ -10,9 +10,12 @@ TOM = $1000
 BAR:
     (Z AND C) MOV A > (BAR)
     CLRC
-    JSR TOM
+    JSR TOM ; jump to TOM
     BCHK ($9000),15
     LDSP A
     STSP (12)
-.word $1122
-.word TOM
+.org $2000
+    .word $1122
+    .word TOM
+    INC B > B
+    SHR C > D
