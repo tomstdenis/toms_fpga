@@ -74,6 +74,15 @@ static const struct opcode {
     { "CMP",  OP_CLASS_1OP,  0, 0b01010, 0b0000, 0b0111 }, // CMP
     { "JSR",  OP_CLASS_1OP,  0, 0b01000, 0b0000, 0b0111 }, // JSR
     { "BCHK", OP_CLASS_BCHK, 0, 0b10000, 0b0000, 0b0111 }, // BCHK
+    // 1 operand opcodes that are cleaner versions of the originals
+    { "PUSH2",OP_CLASS_1OP,  0, 0b00100, 0b0000, 0b0111 }, // PUSH2 (MOV SRC > SP2)
+    { "POP2", OP_CLASS_1OP,  0, 0b00101, 0b0000, 0b0111 }, // POP2 (MOV SP2 > DST)
+    { "PUSH", OP_CLASS_1OP,  0, 0b00000, 0b0000, 0b0111 }, // PUSH (MOV SRC,SP)
+    { "POP",  OP_CLASS_1OP,  0, 0b00001, 0b0000, 0b0111 }, // POP (MOV SP,SRC)
+    { "OUT",  OP_CLASS_1OP,  0, 0b00010, 0b0000, 0b0111 }, // OUT (MOV SRC >IO)
+    { "IN",   OP_CLASS_1OP,  0, 0b00011, 0b0000, 0b0111 }, // IN (MOV IO >DST)
+    { "WRSTAT", OP_CLASS_1OP,  0, 0b00110, 0b0000, 0b0111 }, // WRSTAT (MOV SRC > STAT)
+    { "RDSTAT", OP_CLASS_1OP,  0, 0b00111, 0b0000, 0b0111 }, // RDSTAT (MOV STAT > DST)
     { NULL,             0, 0,       0, 0, 0 }  // end of list
 };
 
