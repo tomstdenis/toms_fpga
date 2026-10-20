@@ -148,6 +148,7 @@ static void error(char *msg, const char *p)
     fprintf(stderr, "ERROR: %s:%u\n", state.file_name, state.line_num);
     fprintf(stderr, "ERROR: %s\n", msg);
     fprintf(stderr, "ERROR: Rest of line '%s'\n", p);
+    exit(-1);
 }
 
 static char *read_symbol(char **p)
