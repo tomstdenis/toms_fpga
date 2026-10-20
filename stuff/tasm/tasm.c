@@ -359,15 +359,19 @@ static void handle_alu_opcode(uint32_t op_index)
     if (expect(&state.curp, ',')) {
         skip_whitespace(&state.curp);
         if (!expect(&state.curp, 'A')) {
-            error("Syntax error.", state.curp);
+            error("Syntax error: 'A' must follow ',' as ALU 2nd source (or omit ,A).", state.curp);
         }
     }
     skip_whitespace(&state.curp);
     if (!expect(&state.curp, '>')) {
-        error("Syntax error.", state.curp);
+        error("Syntax error: expecting destination token '>'.", state.curp);
     }
     skip_whitespace(&state.curp);
     program[state.PC].d4 = to_oper(&state.curp);
+
+    if ((program[state.PC].d4 & 15) == 0b0111) {
+        error("Syntax error: Destination cannot be a literal.", state.curp);
+    }
 
     // now render it out to 1-3 words
     // CCC OOOOO SSSS DDDD
