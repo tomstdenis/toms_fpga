@@ -719,6 +719,8 @@ static void fixups(void)
 
 int main(int argc, char **argv)
 {
+    uint32_t x, y, passes, fail;
+
     memset(&state, 0, sizeof state);
     memset(&program, 0, sizeof program);
     memset(&symbols, 0, sizeof symbols);
@@ -726,10 +728,23 @@ int main(int argc, char **argv)
         fprintf(stderr, "TurbineAsm filename\n");
         return 0;
     }
-    compile(argv[1]);
-    fixups();
-    compile(argv[1]);
-    uint32_t x, y;
+    for (passes = 0; passes < 8; passes++) {
+        fixups();
+        compile(argv[1]);
+    }
+    for (fail = x = 0; x < MAX_SYMBOLS; x++) {
+        if (symbols[x].symbol) {
+            if (symbols[x].value & 0x10000) {
+                fprintf(stderr, "error: missing symbol [%s]\n", symbols[x].symbol);
+                fail = 1;
+            }
+        }
+    }
+    if (fail) {
+        fprintf(stderr, "error: There were unresolved symbols.\n");
+        exit(1);
+    }
+
     for (x = 0; x < 65536;) {
         if (program[x].active) {
             for (y = 0; y < program[x].num_words; y++) {
