@@ -5,7 +5,7 @@
 #include <stdio.h>
 #include <ctype.h>
 
-// 
+// if you have 2K symbols you've made life mistakes
 #define MAX_SYMBOLS 2048
 
 // opcode classes
@@ -118,6 +118,7 @@ static struct {
     uint32_t PC;
 } state;
 
+// skip spaces and tabs
 static void skip_whitespace(char **p)
 {
     while (**p == ' ' || **p == '\t') {
@@ -125,6 +126,7 @@ static void skip_whitespace(char **p)
     }
 }
 
+// if we match the next symbol advance the string (return 1), otherwise stay put and return 0
 static int expect(char **p, char c)
 {
     if (**p == c) {
@@ -134,6 +136,7 @@ static int expect(char **p, char c)
     return 0;
 }
 
+// like expect but for strings and not case sensitive
 static int matchcase(char **p, char *s)
 {
     if (!strncasecmp(*p, s, strlen(s))) {
@@ -143,6 +146,7 @@ static int matchcase(char **p, char *s)
     return 0;
 }
 
+// error out
 static void error(char *msg, const char *p)
 {
     fprintf(stderr, "ERROR: %s:%u\n", state.file_name, state.line_num);
@@ -151,6 +155,7 @@ static void error(char *msg, const char *p)
     exit(-1);
 }
 
+// read a symbol from the stream or return NULL if (aside from whitespace) we're not at a symbol
 static char *read_symbol(char **p)
 {
     char buf[512];
@@ -159,6 +164,13 @@ static char *read_symbol(char **p)
     memset(buf, 0, sizeof buf);
     x = 0;
     skip_whitespace(p);
+
+    // valid symbols start with a letter or _
+    if (!(isalpha(**p) || **p == '_')) {
+        return NULL;
+    }
+
+    // parse it in
     for (;;) {
         if ((x && isdigit(**p)) || isalpha(**p) || **p == '_') {
             buf[x++] = **p;
@@ -171,6 +183,7 @@ static char *read_symbol(char **p)
     return strdup(buf);
 }
 
+// match a symbol, if not found add it, if not symbol return 0xFFFFFFFF
 static uint32_t match_symbol(char **p)
 {
     char *tmp, *sym;
@@ -179,7 +192,9 @@ static uint32_t match_symbol(char **p)
     // parse in symbol to read
     tmp = *p;
     sym = read_symbol(&tmp);
-
+    if (!sym) {
+        return 0xFFFFFFFF;
+    }
     for (x = 0; x < MAX_SYMBOLS; x++) {
         if (symbols[x].symbol && !strcasecmp(symbols[x].symbol, sym)) {
             free(sym);
@@ -187,10 +202,21 @@ static uint32_t match_symbol(char **p)
             return x;
         }
     }
-    free(sym);
-    return 0xFFFFFFFF;
+    // symbol not found so let's add it 
+    for (x = 0; x < MAX_SYMBOLS; x++) {
+        if (!symbols[x].symbol) {
+            symbols[x].symbol = strdup(sym);
+            symbols[x].value  = 0x00010000;
+            free(sym);
+            *p = tmp;
+            return x;
+        }
+    }
+    error("Out of symbol space for a new symbol", state.curp);
+    return 0;
 }
 
+// read $hex, %bin, or dec number
 static uint32_t read_num(char **p)
 {
     uint32_t ret;
@@ -248,6 +274,7 @@ static uint32_t read_num(char **p)
     return ret;
 }
 
+// parse a conditional code
 static uint32_t to_cond(char **p)
 {
     uint32_t ret;
@@ -283,27 +310,40 @@ static uint32_t to_cond(char **p)
     return 0b111;
 }
 
+// parse a operand.  Bits [3:0] are the oper code and [19:4] are the value if immediate
 static uint32_t to_oper(char **p)
 {
+    char *tmp, *sym;
     uint32_t ret = 0;
     skip_whitespace(p);
     if (expect(p, '(')) {
         // memory at ...
         skip_whitespace(p);
-        if ((ret = match_symbol(p)) != 0xFFFFFFFF) {
-            ret = (symbols[ret].value << 4) | 0b1111;
-        } else if (expect(p, 'A')) {
-            ret = 0b1000;
-        } else if (expect(p, 'B')) {
-            ret = 0b1001;
-        } else if (expect(p, 'C')) {
-            ret = 0b1010;
-        } else if (expect(p, 'D')) {
-            ret = 0b1011;
-        } else if (expect(p, 'E')) {
-            ret = 0b1100;
-        } else if (expect(p, 'F')) {
-            ret = 0b1101;
+        tmp = *p;
+        sym = read_symbol(&tmp);
+        if (sym) {
+            if (!strcmp(sym, "A")) {
+                ret = 0b1000;
+                *p = tmp;
+            } else if (!strcmp(sym, "B")) {
+                ret = 0b1001;
+                *p = tmp;
+            } else if (!strcmp(sym, "C")) {
+                ret = 0b1010;
+                *p = tmp;
+            } else if (!strcmp(sym, "D")) {
+                ret = 0b1011;
+                *p = tmp;
+            } else if (!strcmp(sym, "E")) {
+                ret = 0b1100;
+                *p = tmp;
+            } else if (!strcmp(sym, "F")) {
+                ret = 0b1101;
+                *p = tmp;
+            } else if ((ret = match_symbol(p)) != 0xFFFFFFFF) {
+                ret = (symbols[ret].value << 4) | 0b1111;
+            }
+            free(sym);
         } else {
             ret = (read_num(p) << 4) | 0b1111;
         }
@@ -314,24 +354,37 @@ static uint32_t to_oper(char **p)
         }
         return ret;
     }
-    if ((ret = match_symbol(p)) != 0xFFFFFFFF) {
-        ret = (symbols[ret].value << 4) | 0b0111;
-    } else if (expect(p, 'A')) {
-        ret = 0b0000;
-    } else if (expect(p, 'B')) {
-        ret = 0b0001;
-    } else if (expect(p, 'C')) {
-        ret = 0b0010;
-    } else if (expect(p, 'D')) {
-        ret = 0b0011;
-    } else if (expect(p, 'E')) {
-        ret = 0b0100;
-    } else if (expect(p, 'F')) {
-        ret = 0b0101;
-    } else if (matchcase(p, "PC")) {
-        ret = 0b0110;
-    } else if (matchcase(p, "S1")) {
-        ret = 0b1110;
+    tmp = *p;
+    sym = read_symbol(&tmp);
+    if (sym) {
+        if (!strcmp(sym, "A")) {
+            ret = 0b0000;
+            *p = tmp;
+        } else if (!strcmp(sym, "B")) {
+            ret = 0b0001;
+            *p = tmp;
+        } else if (!strcmp(sym, "C")) {
+            ret = 0b0010;
+            *p = tmp;
+        } else if (!strcmp(sym, "D")) {
+            ret = 0b0011;
+            *p = tmp;
+        } else if (!strcmp(sym, "E")) {
+            ret = 0b0100;
+            *p = tmp;
+        } else if (!strcmp(sym, "F")) {
+            ret = 0b0101;
+            *p = tmp;
+        } else if (!strcmp(sym, "PC")) {
+            ret = 0b0110;
+            *p = tmp;
+        } else if (!strcmp(sym, "S1")) {
+            ret = 0b1110;
+            *p = tmp;
+        } else if ((ret = match_symbol(p)) != 0xFFFFFFFF) {
+            ret = (symbols[ret].value << 4) | 0b0111;
+        }
+        free(sym);
     } else {
         ret = (read_num(p) << 4) | 0b0111;
     }
@@ -340,14 +393,25 @@ static uint32_t to_oper(char **p)
 
 static void compile(char *filename);
 
+// handle a label definition which is a symbol and a ':'
 static void handle_label_def(void)
 {
     uint32_t x;
+    char *sym;
+
+    sym = read_symbol(&state.curp);
+    if (!sym) {
+        error("Syntax error: expected a symbol", state.curp);
+    }
 
     // find empty slot
     for (x = 0; x < MAX_SYMBOLS; x++) {
-        if (!symbols[x].symbol) {
-            symbols[x].symbol = read_symbol(&state.curp);
+        if (!symbols[x].symbol || !strcmp(symbols[x].symbol, sym)) {
+            if (!symbols[x].symbol) {
+                symbols[x].symbol = sym;
+            } else {
+                free(sym);
+            }
             if (!expect(&state.curp, ':')) {
                 error("Missing : from label definition", state.curp);
             }
@@ -358,14 +422,25 @@ static void handle_label_def(void)
     error("Symbol table is full.", state.curp);
 }
 
+// handle an equate, which is a symbol, '=', and a symbol or literal
 static void handle_equate(void)
 {
     uint32_t x;
+    char *sym;
+
+    sym = read_symbol(&state.curp);
+    if (!sym) {
+        error("Syntax error: expecting a symbol", state.curp);
+    }
 
     // find empty slot
     for (x = 0; x < MAX_SYMBOLS; x++) {
-        if (!symbols[x].symbol) {
-            symbols[x].symbol = read_symbol(&state.curp);
+        if (!symbols[x].symbol || !strcmp(symbols[x].symbol, sym)) {
+            if (!symbols[x].symbol) {
+                symbols[x].symbol = sym;
+            } else {
+                free(sym);
+            }
             if (expect(&state.curp, '=')) {
                 symbols[x].value  = read_num(&state.curp);
             } else {
@@ -606,7 +681,11 @@ static void compile(char *filename)
     while (fgets(state.curline, sizeof(state.curline)-1, state.curfile)) {
         state.curp = &state.curline[0];
         ++(state.line_num);
-        process_line();
+
+        skip_whitespace(&state.curp);
+        if (!(state.curp[0] == '\r' || state.curp[0] == '\n' || state.curp[0] == 0)) {
+            process_line();
+        }
     }
     fclose(state.curfile);
     state.curfile   = prev.prevfile;
@@ -614,6 +693,13 @@ static void compile(char *filename)
     state.line_num  = prev.prevlinenum;
 }
 
+static void fixups(void)
+{
+    uint32_t x;
+    for (x = 0; x < 65536; x++) {
+        program[x].active = 0;
+    }
+}
 
 int main(int argc, char **argv)
 {
@@ -624,6 +710,8 @@ int main(int argc, char **argv)
         fprintf(stderr, "TurbineAsm filename\n");
         return 0;
     }
+    compile(argv[1]);
+    fixups();
     compile(argv[1]);
     uint32_t x, y;
     for (x = 0; x < 65536;) {

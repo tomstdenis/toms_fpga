@@ -1,3 +1,10 @@
+.org 0
+MOV FWDSYM > A
+JSR FWDLABEL
+FWDSYM = $14
+FWDLABEL:
+
+
 TOM = $1000
 .org TOM
     MOV B,A > A
