@@ -9,3 +9,6 @@ MOV $2000 > PC
 (!Z) MOV C > D
 BAR:
 (Z AND C) MOV A > (BAR)
+CLRC
+JSR TOM
+BCHK ($9000),15

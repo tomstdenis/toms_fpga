@@ -9,7 +9,10 @@
 #define MAX_SYMBOLS 2048
 
 // opcode classes
-#define OP_CLASS_ALU 0      // opcodes that take 1+ sources, and 1 dest (upto SWA)
+#define OP_CLASS_ALU  0      // opcodes that take 1+ sources, and 1 dest (upto SWA)
+#define OP_CLASS_FLAG 1      // opcodes that take 0 operands (flags)
+#define OP_CLASS_1OP  2      // opcodes that take 1 sources, and 0 dest
+#define OP_CLASS_BCHK 3      // bit check
 
 // this table represents all of the valid instructions (not in all permutations)
 static const struct opcode {
@@ -54,6 +57,23 @@ static const struct opcode {
     { "ROR",  OP_CLASS_ALU, 0, 0b11101, 0, 0 }, // ROR
     { "MIR",  OP_CLASS_ALU, 0, 0b11110, 0, 0 }, // MIR
     { "SWA",  OP_CLASS_ALU, 0, 0b11111, 0, 0 }, // SWA
+    // flag operations and 0 operand opcodes
+    { "SETZ", OP_CLASS_FLAG, 0, 0b00001, 0b0111, 0b0111 }, // SETZ
+    { "CLRZ", OP_CLASS_FLAG, 0, 0b00011, 0b0111, 0b0111 }, // SCLRZ
+    { "SETC", OP_CLASS_FLAG, 0, 0b00101, 0b0111, 0b0111 }, // SETC
+    { "CLRC", OP_CLASS_FLAG, 0, 0b00111, 0b0111, 0b0111 }, // CLRC
+    { "INVZ", OP_CLASS_FLAG, 0, 0b01001, 0b0111, 0b0111 }, // INVZ
+    { "INVC", OP_CLASS_FLAG, 0, 0b01011, 0b0111, 0b0111 }, // INVC
+    { "SETI", OP_CLASS_FLAG, 0, 0b01101, 0b0111, 0b0111 }, // SETI
+    { "CLRI", OP_CLASS_FLAG, 0, 0b01111, 0b0111, 0b0111 }, // CLRI
+    { "RETI", OP_CLASS_FLAG, 0, 0b01001, 0b0000, 0b0111 }, // RETI
+    { "SVST", OP_CLASS_FLAG, 0, 0b01011, 0b0000, 0b0111 }, // SVST
+    { "LDST", OP_CLASS_FLAG, 0, 0b01101, 0b0000, 0b0111 }, // LDST
+    { "SWST", OP_CLASS_FLAG, 0, 0b01111, 0b0000, 0b0111 }, // SWST
+    // 1 operand opcodes
+    { "CMP",  OP_CLASS_1OP,  0, 0b01010, 0b0000, 0b0111 }, // CMP
+    { "JSR",  OP_CLASS_1OP,  0, 0b01000, 0b0000, 0b0111 }, // JSR
+    { "BCHK", OP_CLASS_BCHK, 0, 0b10000, 0b0000, 0b0111 }, // BCHK
     { NULL,             0, 0,       0, 0, 0 }  // end of list
 };
 
@@ -347,6 +367,97 @@ static void handle_equate(void)
     error("Symbol table is full.", state.curp);
 }
 
+// opcodes of the form OP SSSS,BIT
+// by time we get here we're past OP
+static void handle_bchk_opcode(uint32_t op_index)
+{
+    // parse in the opcode
+    skip_whitespace(&state.curp);
+    program[state.PC].active = 1;
+    program[state.PC].oper5 = opcodes[op_index].oper5;
+    program[state.PC].s4    = to_oper(&state.curp);
+    program[state.PC].d4    = opcodes[op_index].d4;
+    skip_whitespace(&state.curp);
+    if (expect(&state.curp, ',')) {
+        skip_whitespace(&state.curp);
+        program[state.PC].oper5 |= read_num(&state.curp) & 15;
+    }
+
+    // now render it out to 1-2 words
+    // CCC OOOOO SSSS DDDD
+    program[state.PC].word = 
+        (program[state.PC].cond_code << (4+4+5)) |
+        (program[state.PC].oper5 << (4+4)) |
+        ((program[state.PC].s4 & 15) << 4) |
+        ((program[state.PC].d4 & 15));
+
+    uint32_t i = state.PC++;
+    if ((program[i].s4 & 0b0111) == 0b0111) {
+        // immediate type
+        program[i].num_words += 1;
+        if (program[state.PC].active) {
+            error("This PC is already occupied.", state.curp);
+        }
+        program[state.PC++].word = program[i].s4 >> 4;
+    }
+}
+
+// opcodes of the form OP SSSS[,A] > DDDD
+// by time we get here we're past OP
+static void handle_1op_opcode(uint32_t op_index)
+{
+    // parse in the opcode
+    skip_whitespace(&state.curp);
+    program[state.PC].active = 1;
+    program[state.PC].oper5 = opcodes[op_index].oper5;
+    program[state.PC].s4    = to_oper(&state.curp);
+    skip_whitespace(&state.curp);
+    if (expect(&state.curp, ',')) {
+        skip_whitespace(&state.curp);
+        if (!expect(&state.curp, 'A')) {
+            error("Syntax error: 'A' must follow ',' as ALU 2nd source (or omit ,A).", state.curp);
+        }
+    }
+    program[state.PC].d4 = opcodes[op_index].d4;
+
+    // now render it out to 1-2 words
+    // CCC OOOOO SSSS DDDD
+    program[state.PC].word = 
+        (program[state.PC].cond_code << (4+4+5)) |
+        (program[state.PC].oper5 << (4+4)) |
+        ((program[state.PC].s4 & 15) << 4) |
+        ((program[state.PC].d4 & 15));
+
+    uint32_t i = state.PC++;
+    if ((program[i].s4 & 0b0111) == 0b0111) {
+        // immediate type
+        program[i].num_words += 1;
+        if (program[state.PC].active) {
+            error("This PC is already occupied.", state.curp);
+        }
+        program[state.PC++].word = program[i].s4 >> 4;
+    }
+}
+
+// opcodes of the form OP
+static void handle_flag_opcode(uint32_t op_index)
+{
+    // parse in the opcode
+    program[state.PC].active = 1;
+    program[state.PC].oper5 = opcodes[op_index].oper5;
+    program[state.PC].s4 = opcodes[op_index].d4;
+    program[state.PC].d4 = opcodes[op_index].s4;
+
+    // now render it out to 1-3 words
+    // CCC OOOOO SSSS DDDD
+    program[state.PC].word = 
+        (program[state.PC].cond_code << (4+4+5)) |
+        (program[state.PC].oper5 << (4+4)) |
+        ((program[state.PC].s4 & 15) << 4) |
+        ((program[state.PC].d4 & 15));
+    ++(state.PC);
+}
+
 // opcodes of the form OP SSSS[,A] > DDDD
 // by time we get here we're past OP
 static void handle_alu_opcode(uint32_t op_index)
@@ -419,6 +530,15 @@ static void handle_opcode(void)
             // match opcode name
             if (opcodes[x].opcode_class == OP_CLASS_ALU) {
                 handle_alu_opcode(x);
+                return;
+            } else if (opcodes[x].opcode_class == OP_CLASS_BCHK) {
+                handle_bchk_opcode(x);
+                return;
+            } else if (opcodes[x].opcode_class == OP_CLASS_1OP) {
+                handle_1op_opcode(x);
+                return;
+            } else if (opcodes[x].opcode_class == OP_CLASS_FLAG) {
+                handle_flag_opcode(x);
                 return;
             }
         }
