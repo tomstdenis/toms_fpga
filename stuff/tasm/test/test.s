@@ -3,6 +3,8 @@ TOM = $1000
 MOV B,A > A
 .org 256
 MOV ($1234) > (65535)
+(C) XOR %10001 , A > S1
+MOV $2000 > PC
 .org %10000000
 (!Z) MOV C > D
 BAR:

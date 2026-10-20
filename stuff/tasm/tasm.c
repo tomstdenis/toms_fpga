@@ -356,6 +356,7 @@ static void handle_alu_opcode(uint32_t op_index)
     program[state.PC].active = 1;
     program[state.PC].oper5 = opcodes[op_index].oper5;
     program[state.PC].s4    = to_oper(&state.curp);
+    skip_whitespace(&state.curp);
     if (expect(&state.curp, ',')) {
         skip_whitespace(&state.curp);
         if (!expect(&state.curp, 'A')) {
