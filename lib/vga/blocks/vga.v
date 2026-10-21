@@ -47,8 +47,8 @@ module vga
 	input wire         page_sel,				// changes which half of the 128KB that is accessed
                                                 // if you constantly drive this to 0 it will drop the VRAM to 64KB
 	// scrolling support
-	input wire [9:0]   vga_scr_width,
-	input wire [7:0]   vga_scr_offset,
+	input wire [3:0]   vga_scr_x,				// [3] == enable 312 width mode, [2:0] positive X offset
+	input wire [3:0]   vga_scr_y,				// [3] == enable 192 height mode, [2:0] positive Y offset
 
 	// host access to VGA 128KB memory (little endian)
 	input wire [16:0]  host_addr,				// address must be dword aligned
@@ -93,7 +93,10 @@ module vga
 
 	// VGA timing
     reg [9:0]   vga_x;
+	reg [9:0]   vga_width;
     reg [9:0]   vga_y;
+	reg [9:0]   vga_height;
+	reg [15:0]  vga_y_start;
     wire        active_video;
     reg         prev_mode;
 
@@ -107,6 +110,28 @@ module vga
     always @(posedge vga_clk) begin
         video_mode_l <= {video_mode_l[0], video_mode};
     end
+
+	always @(*) begin
+		vga_width   = 640;
+		vga_height  = 400;
+		vga_y_start = 0;
+		if (vga_scr_x[3]) begin
+			vga_width = 624; // (312 width mode * 2)
+		end
+		if (vga_scr_y[3]) begin
+			vga_height = 384; // (192 height mode * 2)
+			case (vga_scr_y[2:0])
+				0: vga_y_start = 0 * 320;
+				1: vga_y_start = 1 * 320;
+				2: vga_y_start = 2 * 320;
+				3: vga_y_start = 3 * 320;
+				4: vga_y_start = 4 * 320;
+				5: vga_y_start = 5 * 320;
+				6: vga_y_start = 6 * 320;
+				7: vga_y_start = 7 * 320;
+			endcase
+		end
+	end
     
     always @(posedge vga_clk) begin
 		// X and Y Counter Logic
@@ -305,7 +330,7 @@ module vga
 			end
 		end else begin
 			// 320x200 video mode, note we're doubled in both directions
-			if (vga_x < {vga_scr_width, 1'b0} && vga_y < 400) begin
+			if (vga_x < vga_width && vga_y < vga_height) begin
 				// in region
 				vga_symbol   <= vga_data_out;
 				if (~vga_x[0]) begin
@@ -320,14 +345,14 @@ module vga
 						// only execute once per HBLANK
 						if (vga_y[0]) begin
 							// last line in the pair so we just advance
-							vga_mem_addr <= vga_mem_addr + (320 - vga_scr_width); // move to the next 320 row
+							vga_mem_addr <= vga_mem_addr + (vga_scr_x[3] ? 8 : 0); // move to the next 320 row
 						end else begin
-							vga_mem_addr <= vga_mem_addr - vga_scr_width; // rewind to start of row
+							vga_mem_addr <= vga_mem_addr - (vga_scr_x[3] ? 312 : 320); // rewind to start of row
 						end
 					end
 				end else begin
 					// V blank region
-					vga_mem_addr <= vga_scr_offset;
+					vga_mem_addr <= vga_y_start + (vga_scr_x[3] ? vga_scr_x[2:0] : 0);
 				end
 			end
 		end

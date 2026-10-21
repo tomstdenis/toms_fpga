@@ -145,7 +145,7 @@ void demo(void) {
     while (1) {
         scr_off = (scr_off + dx) & 7;
         if (scr_off == 0 || scr_off == 7) dx = -dx;
-        gfx_scr_move(312, scr_off);
+        gfx_scr_move(8 | scr_off, 8 | (7 - scr_off));
 
         // Morph the Julia Constant over time using NanoFPU math
         time = (fno & 0x20) ? fsub(time, time_step) : fadd(time, time_step);

@@ -43,8 +43,8 @@
 #define VGA_CTRL_HBLANK      0x08
 // High when in V blank region
 #define VGA_CTRL_VBLANK      0x10
-#define VGA_CTRL_OFFSET(x)   ((x&0xFF)<<5)
-#define VGA_CTRL_WIDTH(x)    ((x&0x3FF)<<13)
+#define VGA_CTRL_SCRX(x)    ((x&0xF)<<5)
+#define VGA_CTRL_SCRY(x)    ((x&0xF)<<9)
 
 // SPI
 //                  write   |   read         |

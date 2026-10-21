@@ -1,12 +1,12 @@
 #include "lt1000.h"
 
-static uint32_t scr_width = 320, scr_offset = 0;
+static uint32_t scr_x = 0, scr_y = 0;
 
-TCM_FUNC(gfx_scr_move) void gfx_scr_move(uint32_t width, uint32_t offset)
+TCM_FUNC(gfx_scr_move) void gfx_scr_move(uint32_t x, uint32_t y)
 {
-    scr_width = width;
-    scr_offset = offset;
-    VGA_CTRL = (VGA_CTRL & 0x1FUL) | VGA_CTRL_OFFSET(offset) | VGA_CTRL_WIDTH(width);
+    scr_x = x;
+    scr_y = y;
+    VGA_CTRL = (VGA_CTRL & 0x1FUL) | VGA_CTRL_SCRX(x) | VGA_CTRL_SCRY(y);
 }
 
 // --- Hardware Control ---
