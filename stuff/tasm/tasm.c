@@ -70,8 +70,6 @@ static const struct opcode {
     { "SVST", OP_CLASS_FLAG, 0, 0b01011, 0b0000, 0b0111 }, // SVST
     { "LDST", OP_CLASS_FLAG, 0, 0b01101, 0b0000, 0b0111 }, // LDST
     { "SWST", OP_CLASS_FLAG, 0, 0b01111, 0b0000, 0b0111 }, // SWST
-    { "NDXS", OP_CLASS_FLAG, 0, 0b01100, 0b0000, 0b0111 }, // NDXS
-    { "NDXD", OP_CLASS_FLAG, 0, 0b01110, 0b0000, 0b0111 }, // NDXD
 
     // 1 operand opcodes
     { "CMP",  OP_CLASS_1OP,  0, 0b01010, 0b0000, 0b0111 }, // CMP
@@ -84,6 +82,8 @@ static const struct opcode {
     { "LDSP", OP_CLASS_1OP,   0, 0b00001, 0b0000, 0b0111 }, // LDSP (MOV SP,SRC)
     { "OUT",  OP_CLASS_1OP,   0, 0b00010, 0b0000, 0b0111 }, // OUT (MOV SRC >IO)
     { "IN",   OP_CLASS_1OP,   0, 0b00011, 0b0000, 0b0111 }, // IN (MOV IO >DST)
+    { "NDXS", OP_CLASS_1OP,   0, 0b01100, 0b0000, 0b0111 }, // NDXS
+    { "NDXD", OP_CLASS_1OP,   0, 0b01110, 0b0000, 0b0111 }, // NDXD
     { "WRSTAT", OP_CLASS_1OP, 0, 0b00110, 0b0000, 0b0111 }, // WRSTAT (MOV SRC > STAT)
     { "RDSTAT", OP_CLASS_1OP, 0, 0b00111, 0b0000, 0b0111 }, // RDSTAT (MOV STAT > DST)
     { NULL,             0, 0,       0, 0, 0 }  // end of list
