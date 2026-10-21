@@ -25,8 +25,8 @@ module vga (
     input wire        page_sel,         // select which 64KB bank to use in graphics mode
     
 	// scrolling support
-	input wire [9:0]   vga_scr_width,   // columns to draw (default: should be 320)
-	input wire [7:0]   vga_scr_offset,  // horizontal offset (default: 0)
+	input wire [3:0]   vga_scr_x,				// [3] == enable 312 width mode, [2:0] positive X offset
+	input wire [3:0]   vga_scr_y,				// [3] == enable 192 height mode, [2:0] positive Y offset
 
     // Host Access Interface (32-bit Pipelined)
     input wire [16:0] host_addr,        // Memory address (DWORD aligned)
@@ -66,6 +66,8 @@ module vga (
 * Hardware pixel-doubling (horizontally and vertically) to fill the 640x400 active display area with crisp, square pixels.
 * **8-bit Color (3-3-2 RGB):** Maps bits `[7:5]` to Red (3-bit), `[4:2]` to Green (3-bit), and `[1:0]` to Blue (2-bit), expanded dynamically across the 12-bit output pins.
 * Toggling the `page_sel` pin during VBLANK allows for tear free double buffering.
+* The `vga_scr_x` register controls X smooth scrolling.  By setting `vga_scr_x[3]` to `1` the display is reduced to 312 pixels wide displayed (still uses 320px per line) and the remaining columns are drawn as black.  The `vga_scr_x[2:0]` bits then control how many pixels into the row the display starts at.  This let's you to scroll from 0..311 to 7..319 pixels for smooth scrolling while drawing multiples of 4px wide tiles.
+* The `vga_scr_y` does the same idea as the `vga_scr_x` register except for the Y direction.  When `vga_scr_y[3]` is `1` the display is reduced to 192 lines but the full 200 lines are accessible.
 
 ---
 

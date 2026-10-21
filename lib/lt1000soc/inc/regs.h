@@ -43,8 +43,8 @@
 #define VGA_CTRL_HBLANK      0x08
 // High when in V blank region
 #define VGA_CTRL_VBLANK      0x10
-#define VGA_CTRL_SCRX(x)    ((x&0xF)<<5)
-#define VGA_CTRL_SCRY(x)    ((x&0xF)<<9)
+#define VGA_CTRL_SCRX(x)    ((x&0xF)<<5)     // set the SCR-X register [3] == enable (312px width), [2:0] X positive offset
+#define VGA_CTRL_SCRY(x)    ((x&0xF)<<9)     // set the SCR-Y register [3] == enable (192px height), [2:0] Y positive offset
 
 // SPI
 //                  write   |   read         |
