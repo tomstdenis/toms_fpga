@@ -83,20 +83,20 @@ module vga
     localparam V_TOTAL      = 525;
     
 	// text mode parameter
-	localparam TEXTCOLS   = 16'd80;					// number of text columns
-	localparam TEXTROWS   = `TXT_ROWS;					// number of text rows
+	localparam TEXTCOLS   = 16'd80;				// number of text columns
+	localparam TEXTROWS   = `TXT_ROWS;			// number of text rows
 	localparam FONTWIDTH  = 8;					// font width in pixels
-	localparam FONTHEIGHT = `FONT_HEIGHT;					// font height in pixels (doubled, we're using an 8x8 font)
+	localparam FONTHEIGHT = `FONT_HEIGHT;		// font height in pixels (doubled, we're using an 8x8 font)
 	
 	// memory config
 	localparam X_FETCH_DELAY = 2;
 
 	// VGA timing
-    reg [9:0]   vga_x;
-	reg [9:0]   vga_width;
-    reg [9:0]   vga_y;
-	reg [9:0]   vga_height;
-	reg [15:0]  vga_y_start;
+    reg [9:0]   vga_x;							// current VGA X scanout position
+    reg [9:0]   vga_y;							// current VGA Y scanout position
+	reg [9:0]   vga_width;						// visible width
+	reg [9:0]   vga_height;						// visible height
+	reg [15:0]  vga_y_start;					// start of top left in pixels
     wire        active_video;
     reg         prev_mode;
 
@@ -111,15 +111,19 @@ module vga
         video_mode_l <= {video_mode_l[0], video_mode};
     end
 
+	// determine the viewport configuration
 	always @(*) begin
-		vga_width   = 640;
-		vga_height  = 400;
-		vga_y_start = 0;
+		vga_width   = 640;								// default width * 2, 320 * 2 = 640
+		vga_height  = 400;								// default height * 2, 200 * 2 = 400
+		vga_y_start = 0;								// default start the first line
 		if (vga_scr_x[3]) begin
+			// when X scrolling is enabled we narrow the display to 312 visible columns
 			vga_width = 624; // (312 width mode * 2)
 		end
 		if (vga_scr_y[3]) begin
+			// when Y scrolling is enabled we narrow the display to 192 visible rows
 			vga_height = 384; // (192 height mode * 2)
+			// determine the y start offset in memory
 			case (vga_scr_y[2:0])
 				0: vga_y_start = 0 * 320;
 				1: vga_y_start = 1 * 320;
@@ -133,6 +137,7 @@ module vga
 		end
 	end
     
+	// *** VGA Timing ***
     always @(posedge vga_clk) begin
 		// X and Y Counter Logic
 		vga_x <= vga_x + 1'b1;
@@ -380,11 +385,12 @@ module vga
                 end
 			end else begin
 				// 332 colour mode
-				{vga_r, vga_g, vga_b} = {
-											vga_symbol[7:5], &vga_symbol[7:5],                  // red is 3-bits
-											vga_symbol[4:2], &vga_symbol[4:2],                  // green is 3-bits
-											vga_symbol[1:0], |vga_symbol[1:0], &vga_symbol[1:0] // blue is 2-bits
-										};
+				{vga_r, vga_g, vga_b} = 
+					{
+						vga_symbol[7:5], &vga_symbol[7:5],                  // red is 3-bits
+						vga_symbol[4:2], &vga_symbol[4:2],                  // green is 3-bits
+						vga_symbol[1:0], |vga_symbol[1:0], &vga_symbol[1:0] // blue is 2-bits
+					};
 			end
 		end
 	end
