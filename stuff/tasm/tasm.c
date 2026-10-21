@@ -70,6 +70,9 @@ static const struct opcode {
     { "SVST", OP_CLASS_FLAG, 0, 0b01011, 0b0000, 0b0111 }, // SVST
     { "LDST", OP_CLASS_FLAG, 0, 0b01101, 0b0000, 0b0111 }, // LDST
     { "SWST", OP_CLASS_FLAG, 0, 0b01111, 0b0000, 0b0111 }, // SWST
+    { "NDXS", OP_CLASS_FLAG, 0, 0b01100, 0b0000, 0b0111 }, // NDXS
+    { "NDXD", OP_CLASS_FLAG, 0, 0b01110, 0b0000, 0b0111 }, // NDXD
+
     // 1 operand opcodes
     { "CMP",  OP_CLASS_1OP,  0, 0b01010, 0b0000, 0b0111 }, // CMP
     { "JSR",  OP_CLASS_1OP,  0, 0b01000, 0b0000, 0b0111 }, // JSR
@@ -321,6 +324,17 @@ static uint32_t to_oper(char **p)
         skip_whitespace(p);
         tmp = *p;
         sym = read_symbol(&tmp);
+        if (sym && !strcmp(sym, "NDX")) {
+            *p = tmp;
+            skip_whitespace(p);
+            free(sym);
+            if (expect(p, '+') == 0) {
+                error("Syntax error: expected a '+' after NDX", state.curp);
+            }
+            skip_whitespace(p);
+            tmp = *p;
+            sym = read_symbol(&tmp);
+        }
         if (sym) {
             if (!strcmp(sym, "A")) {
                 ret = 0b1000;
@@ -698,6 +712,15 @@ static void compile(char *filename)
         state.curp = &state.curline[0];
         ++(state.line_num);
 
+        // cut off comments
+        uint32_t x;
+        for (x = 0; state.curline[x]; x++) {
+            if (state.curline[x] == ';' || state.curline[x] == '\r' || state.curline[x] == '\n') {
+                state.curline[x] = 0;
+                break;
+            }
+        }
+
         skip_whitespace(&state.curp);
         if (!(state.curp[0] == '\r' || state.curp[0] == '\n' || state.curp[0] == 0)) {
             process_line();
@@ -750,7 +773,7 @@ int main(int argc, char **argv)
             for (y = 0; y < program[x].num_words; y++) {
                 printf("PC[%04x] == %04"PRIx16"", x+y, program[x+y].word);
                 if (y == 0) {
-                    printf(", %s:%d, %s", program[x+y].source.file_name, program[x+y].source.lineno, program[x+y].source.source_line);
+                    printf(", %s:%d, %s\n", program[x+y].source.file_name, program[x+y].source.lineno, program[x+y].source.source_line);
                 } else {
                     printf("\n");
                 }
