@@ -3,4 +3,4 @@ tasm: tasm.c
 
 .PHONY: clean
 clean:
-	rm -f tasm *.lst *.bin *.hex
+	rm -f tasm *.lst *.bin *.hex test/*.bin test/*.lst test/*.hex

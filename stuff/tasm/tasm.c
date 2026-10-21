@@ -362,6 +362,13 @@ static uint32_t to_oper(char **p)
             ret = (read_num(p) << 4) | 0b1111;
         }
         skip_whitespace(p);
+        if (expect(p, '+')) {
+            // + NDX is allowed AFTER the register as well...
+            skip_whitespace(p);
+            if (!matchcase(p,"NDX")) {
+                error("Syntax error: Expecting NDX after + inside operand specifier.", state.curp);
+            }
+        }
         if (!expect(p, ')')) {
             error("Syntax error was exppecting ')'", *p);
             return 0xFFFFFFFF;
@@ -743,6 +750,8 @@ static void fixups(void)
 int main(int argc, char **argv)
 {
     uint32_t x, y, passes, fail;
+    char outname[512];
+    FILE *f;
 
     memset(&state, 0, sizeof state);
     memset(&program, 0, sizeof program);
@@ -768,14 +777,17 @@ int main(int argc, char **argv)
         exit(1);
     }
 
+    snprintf(outname, sizeof(outname)-1, "%s.lst", argv[1]);
+    printf("Writing listing to %s...\n", outname);
+    f = fopen(outname, "wb");
     for (x = 0; x < 65536;) {
         if (program[x].active) {
             for (y = 0; y < program[x].num_words; y++) {
-                printf("PC[%04x] == %04"PRIx16"", x+y, program[x+y].word);
+                fprintf(f, "%04X: %04"PRIx16"", x+y, program[x+y].word);
                 if (y == 0) {
-                    printf(", %s:%d, %s\n", program[x+y].source.file_name, program[x+y].source.lineno, program[x+y].source.source_line);
+                    fprintf(f, " %-50s[%s:%d]\n", program[x+y].source.source_line, program[x+y].source.file_name, program[x+y].source.lineno);
                 } else {
-                    printf("\n");
+                    fprintf(f, "\n");
                 }
             }
             x += y;
@@ -783,4 +795,33 @@ int main(int argc, char **argv)
             ++x;
         }
     }
+    fclose(f);
+
+    // output 16-bit binary
+    snprintf(outname, sizeof(outname)-1, "%s.bin", argv[1]);
+    printf("Writing raw binary to %s...\n", outname);
+    f = fopen(outname, "wb");
+    for (x = 0; x < 65536; x++) {
+        fputc(program[x].word & 0xFF, f);
+        fputc((program[x].word >> 8) & 0xFF, f);
+    }
+    fclose(f);
+ 
+    // top 8-bits
+    snprintf(outname, sizeof(outname)-1, "%s-hi8.bin", argv[1]);
+    printf("Writing hi8 binary to %s...\n", outname);
+    f = fopen(outname, "wb");
+    for (x = 0; x < 65536; x++) {
+        fputc((program[x].word >> 8) & 0xFF, f);
+    }
+    fclose(f);
+
+    // bot 8-bits
+    snprintf(outname, sizeof(outname)-1, "%s-lo8.bin", argv[1]);
+    printf("Writing lo8 binary to %s...\n", outname);
+    f = fopen(outname, "wb");
+    for (x = 0; x < 65536; x++) {
+        fputc(program[x].word & 0xFF, f);
+    }
+    fclose(f);
 }
