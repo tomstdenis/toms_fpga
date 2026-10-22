@@ -1,5 +1,6 @@
 #include <stdint.h>
 
+
 #define UART_DATA           ((volatile uint32_t *)0x10000018)
 #define UART_STATUS         ((volatile uint32_t *)0x1000001C)
 #define UART_STATUS_TX_FULL  1
@@ -24,7 +25,7 @@
 #define BRICK_COLS          10
 #define BRICK_W             28
 #define BRICK_H             8
-#define BRICK_TOP           20
+#define BRICK_TOP           24
 #define BRICK_LEFT          20
 
 #define TRAIL_LEN           6
@@ -141,9 +142,12 @@ void main(void) {
     int16_t old_paddle_x = 140;
     const int16_t paddle_y = 185;
 
+    uint32_t frame = 0;
     while (1) {
         uint32_t back_page_offset = (active_page == 0) ? PAGE_SIZE : 0x00000;
         volatile uint32_t *vga_back_buffer32 = VGA_FB32 + (back_page_offset / 4);
+
+        frame++;
 
         // 1. Erase oldest ball trail segment
         uint8_t tail_idx = (trail_head + 1) % TRAIL_LEN;
@@ -270,6 +274,21 @@ void main(void) {
         }
 
         // 10. Page Swap on VBLANK
+        {
+            uint32_t x;
+            unsigned char *scroff = vga_back_buffer32;
+            for (x = 0; x < 150; x++) {
+                scroff[64000 + x]         = 0x8 | ((x + 1 + (frame>>6)) & 7);
+                scroff[65536 + 64000 + x] = 0x8 | ((x + 1 + (frame>>6)) & 7);
+            }
+            for (x = 150; x < 200; x++) {
+                scroff[64000 + x]         = 0x0 | ((x + 1 + (frame>>6)) & 7);
+                scroff[65536 + 64000 + x] = 0x0 | ((x + 1 + (frame>>6)) & 7);
+            }
+            scroff[64200] = ((frame>>6) & 7) | 8;
+            scroff[65536+64200] = ((frame>>6) & 7) | 8;
+        }
+
         wait_vblank();
         active_page = !active_page;
         *VGA_CTRL = CTRL_MODE_GFX | (active_page ? CTRL_PAGE_1 : 0);

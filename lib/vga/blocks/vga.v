@@ -46,9 +46,6 @@ module vga
 	input wire         video_mode,              // 0 == 80x25 text mode, 1 == 320x200 322 colour mode
 	input wire         page_sel,				// changes which half of the 128KB that is accessed
                                                 // if you constantly drive this to 0 it will drop the VRAM to 64KB
-	// scrolling support
-	input wire [3:0]   vga_scr_x,				// [3] == enable 312 width mode, [2:0] positive X offset
-	input wire [3:0]   vga_scr_y,				// [3] == enable 192 height mode, [2:0] positive Y offset
 
 	// host access to VGA 128KB memory (little endian)
 	input wire [16:0]  host_addr,				// address must be dword aligned
@@ -110,6 +107,10 @@ module vga
     always @(posedge vga_clk) begin
         video_mode_l <= {video_mode_l[0], video_mode};
     end
+
+	// scrolling support
+	reg [3:0]   vga_scr_x;				// [3] == enable 312 width mode, [2:0] positive X offset
+	reg [3:0]   vga_scr_y;				// [3] == enable 192 height mode, [2:0] positive Y offset
 
 	// determine the viewport configuration
 	always @(*) begin
@@ -346,18 +347,39 @@ module vga
 				vga_symbol <= 0;
 				if (vga_y < 400) begin
 					// H blank either duplicate line or next
-					if ((vga_x == H_TOTAL - X_FETCH_DELAY - 1)) begin
+					// fetch next lines scr_x
+					if (vga_x == 640) begin
+						// look up the next scr_x value
+						vga_mem_addr     <= 64001 + vga_y[8:1];
+					end else if (vga_x == 642) begin
+						vga_mem_addr     <= (vga_y[8:1] << 8) + (vga_y[8:1] << 6) + vga_y_start;
+						if (vga_y[0]) begin
+							// update for next line
+							vga_scr_x        <= vga_data_out[3:0];
+						end
+					end else if ((vga_x == H_TOTAL - X_FETCH_DELAY - 1)) begin
 						// only execute once per HBLANK
 						if (vga_y[0]) begin
 							// last line in the pair so we just advance
-							vga_mem_addr <= vga_mem_addr + (vga_scr_x[3] ? 8 : 0); // move to the next 320 row
+							vga_mem_addr <= vga_mem_addr + 320 + (vga_scr_x[3] ? vga_scr_x[2:0] : 0);
 						end else begin
-							vga_mem_addr <= vga_mem_addr - (vga_scr_x[3] ? 312 : 320); // rewind to start of row
+							// replay the line
+							vga_mem_addr <= vga_mem_addr + (vga_scr_x[3] ? vga_scr_x[2:0] : 0);
 						end
 					end
 				end else begin
 					// V blank region
-					vga_mem_addr <= vga_y_start + (vga_scr_x[3] ? vga_scr_x[2:0] : 0);
+					if (vga_x == 640) begin
+						vga_mem_addr <= 64200;
+					end else if (vga_x == 641) begin
+						vga_mem_addr <= 64000;
+					end else if (vga_x == 642) begin
+						vga_scr_y    <= vga_data_out[3:0];
+					end else if (vga_x == 643) begin
+						vga_scr_x    <= vga_data_out[3:0];
+					end else begin
+						vga_mem_addr <= vga_y_start + (vga_scr_x[3] ? vga_scr_x[2:0] : 0);
+					end
 				end
 			end
 		end

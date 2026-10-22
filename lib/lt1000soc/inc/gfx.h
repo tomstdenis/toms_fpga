@@ -13,7 +13,6 @@ typedef struct {
 #define GFX_PAGE_SIZE 0x10000
 
 // Hardware & Synchronization
-void gfx_scr_move(uint32_t width, uint32_t offset);
 void gfx_set_mode(int mode);
 void gfx_vsync(void);
 void gfx_hsync(void);

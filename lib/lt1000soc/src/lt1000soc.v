@@ -231,18 +231,12 @@ localparam
     reg [31:0]  vga_data_in;
     reg [3:0]   vga_wren;
     wire [31:0] vga_data_out;
-    reg [3:0]   vga_scr_x;
-    reg [3:0]   vga_scr_y;
-    reg [3:0]   cvga_scr_x;
-    reg [3:0]   cvga_scr_y;
     
     always @(posedge vga_clk) begin
 		if (!vrst_n) begin
 			vga_video_mode <= 2'b00;
 			vga_page_sel   <= 2'b00;
 		end else begin
-            vga_scr_x      <= cvga_scr_x;
-            vga_scr_y      <= cvga_scr_y;
 			vga_video_mode <= {vga_video_mode[0], cvga_video_mode};
 			vga_page_sel   <= {vga_page_sel[0], cvga_page_sel};
             vga_h_blank_l  <= vga_h_blank;
@@ -262,7 +256,6 @@ localparam
 
     vga #(.DOUBLE_REG_MEM(DOUBLE_REG_MEM)) vga(
         .vga_clk(vga_clk), .host_clk(core_clk), .rst_n(vrst_n),
-        .vga_scr_x(vga_scr_x), .vga_scr_y(vga_scr_y),
         .video_mode(vga_video_mode[1]), .page_sel(vga_page_sel[1]),
         .host_addr(vga_host_addr), .host_data_in(vga_data_in),
         .host_write_mask(vga_wren), .host_data_out(vga_data_out),
@@ -763,13 +756,11 @@ localparam
                         mmio_data_out <= { 29'b0, uart_rx_ready, uart_tx_fifo_empty, uart_tx_fifo_full };
                     end
                     MMIO_VGA_CTRL: begin
-                        mmio_data_out  <= { 19'b0, cvga_scr_y, cvga_scr_x, cvga_v_blank[1], cvga_h_blank[1], cvga_write_mask, cvga_page_sel, cvga_video_mode };
+                        mmio_data_out  <= { 27'b0, cvga_v_blank[1], cvga_h_blank[1], cvga_write_mask, cvga_page_sel, cvga_video_mode };
                         if (bus_wstrb[0]) begin
                             cvga_video_mode  <= bus_wdata[0];
                             cvga_page_sel    <= bus_wdata[1];
                             cvga_write_mask  <= bus_wdata[2];
-                            cvga_scr_x       <= bus_wdata[8:5];
-                            cvga_scr_y       <= bus_wdata[12:9];
                         end
                     end
                     MMIO_SPI_TRANSFER: begin
@@ -858,8 +849,6 @@ localparam
 
             uart_tx_start      <= 1'b0;
             uart_rx_read       <= 1'b0;
-            cvga_scr_x         <= 0;
-            cvga_scr_y         <= 0;
             cvga_page_sel      <= 1'b0;
             cvga_video_mode    <= 1'b0;
             cvga_write_mask    <= 1'b0;

@@ -127,7 +127,6 @@ void demo(void) {
     yield_add_irq(YIELD_IRQ_TIMER, 1000000UL * yield_usec_to_cycles(), 0, timer);
 
     gfx_set_mode(VGA_CTRL_GFX_MODE);
-    gfx_scr_move(312, 0);
 
     // Initial Julia constant C = -0.7 + 0.27015i
     float c_re = -0.70f;
@@ -141,12 +140,8 @@ void demo(void) {
 	uint32_t fno = 0;
     uint32_t scr_off = 0;
     int dx = 1;
-	
-    while (1) {
-        scr_off = (scr_off + dx) & 7;
-        if (scr_off == 0 || scr_off == 7) dx = -dx;
-        gfx_scr_move(8 | scr_off, 8 | (7 - scr_off));
 
+    while (1) {
         // Morph the Julia Constant over time using NanoFPU math
         time = (fno & 0x20) ? fsub(time, time_step) : fadd(time, time_step);
         ++fno;
@@ -157,18 +152,19 @@ void demo(void) {
         float wave_re = fmul(0.08f, fsub(time, fldi(fsti(time)))); // Fractional morph
         float current_c_re = fadd(c_re, wave_re);
 
-        render_cycles = TIMER;
         // Render fractal with a fixed view zoom factor (1.2f)
         render_julia(current_c_re, fadd(time, c_im), 1.2f, time);
-        render_cycles = TIMER - render_cycles;
 
-        ++frames;
-//        if (!(frames & 31)) {
-            printf("Julia Render Cycles: %lu, scroff=%lu\n", render_cycles, scr_off);
-//        }
+        uint32_t x;
+        unsigned char *scroff = VGA_ADDR;
+        for (x = 0; x < 200; x++) {
+            scroff[64000 + x]         = 0x8 | (x & 7);
+            scroff[65536 + 64000 + x] = 0x8 | (x & 7);
+        }
 
         gfx_vsync();
         gfx_flip_page();
+        ++frames;
 
         yield();
     }

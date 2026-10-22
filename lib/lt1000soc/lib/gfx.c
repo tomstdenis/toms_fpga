@@ -1,14 +1,5 @@
 #include "lt1000.h"
 
-static uint32_t scr_x = 0, scr_y = 0;
-
-TCM_FUNC(gfx_scr_move) void gfx_scr_move(uint32_t x, uint32_t y)
-{
-    scr_x = x;
-    scr_y = y;
-    VGA_CTRL = (VGA_CTRL & 0x1FUL) | VGA_CTRL_SCRX(x) | VGA_CTRL_SCRY(y);
-}
-
 // --- Hardware Control ---
 TCM_FUNC(gfx_set_mode) void gfx_set_mode(int mode) {
     if (mode) {
