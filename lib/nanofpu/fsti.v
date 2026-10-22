@@ -85,6 +85,7 @@ module fsti
 			end
 		endcase	
 		if (~rst_n) begin
+			ready     <= 1'b0;
 			fsm_state <= FSM_IDLE;
 			a_mant    <= 32'b0;    // ensure output is reset
 		end

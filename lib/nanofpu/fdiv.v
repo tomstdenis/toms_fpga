@@ -314,6 +314,7 @@ module fdiv_serial #(
         endcase
 
         if (~rst_n) begin
+            ready     <= 1'b0;
             fsm_state <= FSM_IDLE;
             count     <= 5'd0;
             rem       <= 25'b0;

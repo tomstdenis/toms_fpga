@@ -70,6 +70,7 @@ module fldi
 			end
 		endcase	
 		if (~rst_n) begin
+			ready 						    <= 1'b0;
 			fsm_state                       <= FSM_IDLE;
 			{ a_sign, a_exp, a_mant[30:8] } <= 32'b0;  // reset modules output
 		end

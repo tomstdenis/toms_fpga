@@ -201,6 +201,7 @@ module fmul
 			end
 		endcase	
 		if (~rst_n) begin
+			ready							   <= 1'b0;
 			fsm_state                          <= FSM_IDLE;
 			{a_sign, a_exp[7:0], a_mant[22:0]} <= 32'b0; // reset output
 		end

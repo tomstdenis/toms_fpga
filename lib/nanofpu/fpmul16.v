@@ -58,6 +58,7 @@ module fpmul16
 		endcase
 
 		if (~rst_n) begin
+			ready     <= 1'b0;
 			fsm_state <= FSM_IDLE;
 		end
 	end

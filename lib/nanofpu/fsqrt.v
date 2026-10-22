@@ -158,6 +158,7 @@ module fsqrt
 			end
 		endcase	
 		if (~rst_n) begin
+			ready     <= 1'b0;
 			fsm_state <= FSM_IDLE;
 			res[31:0] <= 32'b0;
 		end
