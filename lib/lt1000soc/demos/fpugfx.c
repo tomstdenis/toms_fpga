@@ -158,8 +158,8 @@ void demo(void) {
         uint32_t x;
         unsigned char *scroff = VGA_ADDR;
         for (x = 0; x < 200; x++) {
-            scroff[64000 + x]         = 0x8 | (x & 7);
-            scroff[65536 + 64000 + x] = 0x8 | (x & 7);
+            scroff[64000 + x]         = 0x8 | (frames & 7);
+            scroff[65536 + 64000 + x] = 0x8 | (frames & 7);
         }
 
         gfx_vsync();
