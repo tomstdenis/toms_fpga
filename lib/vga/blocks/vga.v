@@ -350,12 +350,12 @@ module vga
 					// fetch next lines scr_x
 					if (vga_x == 640) begin
 						// look up the next scr_x value
-						vga_mem_addr     <= 64001 + vga_y[8:1];
+						vga_mem_addr  <= 64001 + vga_y[8:1];
 					end else if (vga_x == 642) begin
-						vga_mem_addr     <= (vga_y[8:1] << 8) + (vga_y[8:1] << 6) + vga_y_start;
+						vga_mem_addr  <= (vga_y[8:1] << 8) + (vga_y[8:1] << 6) + vga_y_start;
 						if (vga_y[0]) begin
 							// update for next line
-							vga_scr_x        <= vga_data_out[3:0];
+							vga_scr_x <= vga_data_out[3:0];
 						end
 					end else if ((vga_x == H_TOTAL - X_FETCH_DELAY - 1)) begin
 						// only execute once per HBLANK
