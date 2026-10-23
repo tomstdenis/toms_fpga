@@ -46,7 +46,7 @@ module nanocache_tb();
         .CACHE_SIZE(`CACHE_SIZE),
         .CACHE_LINE(`CACHE_LINE),
         .CACHE_DP(`CACHE_DP),
-        .CACHE_REGISTERED(`CACHE_REGISTERED),
+        .DOUBLE_REG_MEM(`CACHE_REGISTERED),
 		
 		.WAKEUP_DELAY_US(0),	// we make sim go faster by turning off PSRAM delays
 		.HANGUP_DELAY_NS(0)
