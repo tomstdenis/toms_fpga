@@ -485,7 +485,6 @@ int fat32_unlink(struct fat32_disk *dsk, char *fpath)
 	// hulk smash the clusters
 	cluster = de->start_cluster;
 	while (cluster < 0x0FFFFFF8) {
-		printf("Cluster == 0x%08lx\n", cluster);
 		cluster = update_cluster(dsk, cluster, 0);
 	}
 
@@ -530,6 +529,10 @@ struct fat32_file *fat32_open(struct fat32_disk *dsk, char *fpath)
 	}
 	file->dsk = dsk;
 	file->de  = fat32_find_path(dsk, fpath, NULL);
+	if (!file->de) {
+		free(file);
+		return NULL;
+	}
     if (file->de->flags & FAT32_F_DIR) {
         /* Opening a directory as a file is not supported */
         fat32_errno = FAT32_ERR_INV_PATH;

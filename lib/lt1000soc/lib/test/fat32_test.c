@@ -77,6 +77,10 @@ int main(void)
 		}
         printf("unlink /README.TXT == %d, ", fat32_unlink(dsk, "/README.TXT"));
         printf("fat32_errno=%d\n", fat32_errno);
+        printf("unlink /INC/REGS.H == %d, ", fat32_unlink(dsk, "/INC/REGS.H"));
+        printf("fat32_errno=%d\n", fat32_errno);
+        printf("double unlink /INC/REGS.H == %d, ", fat32_unlink(dsk, "/INC/REGS.H"));
+        printf("fat32_errno=%d\n", fat32_errno);
 		walk_dir(dsk, "", 0);
 	}
 }
