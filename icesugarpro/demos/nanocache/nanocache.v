@@ -3,7 +3,7 @@
 `define CACHE_SIZE      12
 `define CACHE_LINE       5
 `define CACHE_LINES      (`CACHE_SIZE - `CACHE_LINE)
-`define CACHE_REGISTERED 1
+`define CACHE_REGISTERED 0
 `define CACHE_DP         1
 `define SRAM_ADDR_WIDTH 24
 
@@ -150,7 +150,7 @@ module top(
         .CACHE_SIZE(`CACHE_SIZE),
         .CACHE_LINE(`CACHE_LINE),
         .CACHE_DP(`CACHE_DP),
-        .CACHE_REGISTERED(`CACHE_REGISTERED),
+        .DOUBLE_REG_MEM(`CACHE_REGISTERED),
         
         .SRAM_ADDR_WIDTH(SRAM_ADDR_WIDTH),
         .FREQ(FREQ/1000)) MrLocalMemory

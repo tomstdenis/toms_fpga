@@ -1,11 +1,11 @@
 TARGET=nanocache
 TOP=top
-FREQ=125
+FREQ=75
 SRAM_ADDR_WIDTH=24
 
 OBJS+=${TARGET}.v pll1.v \
 ../../../lib/nanocache/nanocache_comb_32bit.v ../../../lib/nanosram/nanosram.v \
-../../../lib/uart/blocks/rx_uart.v ../../../lib/uart/blocks/tx_uart.v ../../../lib/uart/blocks/uart.v
+../../../lib/comms/uart/rx_uart.v ../../../lib/comms/uart/tx_uart.v ../../../lib/comms/uart/uart.v
 all: ${TARGET}.bit
 
 # Synthesize the source

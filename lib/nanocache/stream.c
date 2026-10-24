@@ -20,8 +20,11 @@
 // standard test (64KB)
 //#define MEM_BITS 16
 
+// smaller to test (16KB)
+#define MEM_BITS 14
+
 // smaller to test (8KB)
-#define MEM_BITS 13
+//#define MEM_BITS 13
 
 // *********
 // WARNING: A standard config has at least 4KB cache so smaller MEM_BITS will not properly test evict/fill!!!!
