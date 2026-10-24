@@ -75,5 +75,8 @@ int main(void)
 			printf("Read %u bytes from the file [%s]\n", x, buf);
 			fat32_close(file);
 		}
+        printf("unlink /README.TXT == %d, ", fat32_unlink(dsk, "/README.TXT"));
+        printf("fat32_errno=%d\n", fat32_errno);
+		walk_dir(dsk, "", 0);
 	}
 }

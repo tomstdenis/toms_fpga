@@ -1,7 +1,7 @@
 all: disk.img fat32_test
 
 fat32_test: fat32_test.c ../fat32.c
-	gcc -I../../inc -DHOSTPC fat32_test.c ../fat32.c -o fat32_test
+	gcc -O0 -g3 -I../../inc -DHOSTPC fat32_test.c ../fat32.c -o fat32_test
 
 disk.img:
 	mkdir disk

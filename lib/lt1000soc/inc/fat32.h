@@ -10,6 +10,7 @@
 #define FAT32_ERR_PATH_NOT_FOUND	-7
 #define FAT32_ERR_INV_SEC_SIZE      -8
 #define FAT32_ERR_INV_PART_TYPE     -9
+#define FAT32_ERR_INV_CLUSTER_ADDR  -10
 
 #define FAT32_F_RDONLY 0x01
 #define FAT32_F_HIDDEN 0x02
@@ -39,15 +40,25 @@ struct fat32_disk {
 		data_region_sector;					// sector of start of data region
 };
 
-// one directory entry
+// a single directory entry 
+struct fat32_dirent;
+
 struct fat32_dirent_raw {
 	uint8_t filename[9];
 	uint8_t fileext[4];
 	uint8_t flags;
 	uint32_t start_cluster;
-	uint32_t file_size; 
+	uint32_t file_size;
+	struct {
+		uint32_t
+			dir_pos,
+			sec_no,
+			cur_cluster;
+	} dirent_source;						// where on disk did this directory entry come from?
+	struct fat32_dirent *self;				// point to the dirent this came from
 };
 
+// a current state of the walk through a given directory
 struct fat32_dirent {
 	struct fat32_disk *dsk;
 	uint32_t
@@ -60,6 +71,7 @@ struct fat32_dirent {
 
 struct fat32_file {
 	struct fat32_disk       *dsk;			// the disk
+	// TODO: swap this out for a fat32_dirent to support writing
 	struct fat32_dirent_raw *de;			// directory entry for this file
 	uint32_t
 		fpos,								// byte offset into file
@@ -80,7 +92,10 @@ struct fat32_dirent *fat32_opendir(struct fat32_disk *dsk, uint32_t cluster);
 struct fat32_dirent_raw *fat32_readdir(struct fat32_dirent *de);
 
 // return the directory entry of a path or file
-struct fat32_dirent_raw *fat32_find_path(struct fat32_disk *dsk, const char *path);
+struct fat32_dirent_raw *fat32_find_path(struct fat32_disk *dsk, const char *path, struct fat32_dirent *odi);
+
+// unlink a file
+int fat32_unlink(struct fat32_disk *dsk, char *fpath);
 
 // open a file
 struct fat32_file *fat32_open(struct fat32_disk *dsk, char *fpath);

@@ -165,7 +165,7 @@ struct fat32_disk *fat32_init_disk(uint32_t cs_sel, uint32_t oper_div)
 	return dsk;
 }
 
-// read a sector from the data region
+// read/write a sector from the data region
 static int data_region_sector_op(struct fat32_disk *dsk, uint32_t cluster, uint32_t sec_no, uint8_t *dst, int op)
 {
 	uint32_t sec;
@@ -178,6 +178,7 @@ static int data_region_sector_op(struct fat32_disk *dsk, uint32_t cluster, uint3
 	return 0;	
 }
 
+// return what a given cluster points to
 static uint32_t next_cluster(struct fat32_disk *dsk, uint32_t cluster)
 {
 	uint32_t fat_sector;
@@ -192,9 +193,14 @@ static uint32_t next_cluster(struct fat32_disk *dsk, uint32_t cluster)
 
 	fat32_errno = 0;
 	
-	// 128 entries per 512-byte sector (512 / 4 = 128)
-	// Shift right by 7 (>> 7) is equivalent to dividing by 128
-	fat_sector = dsk->fat_sector + (cluster >> 7);
+	// compute fat sector and byte offset
+	fat_sector = cluster >> 7;
+	if (fat_sector > dsk->vbr.sectors_per_fat) {
+		fat32_errno = FAT32_ERR_INV_CLUSTER_ADDR;
+		return 0;
+	}
+	fat_sector += dsk->fat_sector;
+	byte_offset = (cluster & 0x7F) * 4;
 	
 	if (sd_sector_op(dsk->cs_sel, dsk->oper_div, fat_sector, secbuf, 0)) {
 		fat32_errno = FAT32_ERR_SEC_READ;
@@ -213,6 +219,65 @@ static uint32_t next_cluster(struct fat32_disk *dsk, uint32_t cluster)
 	// FAT32 only uses the lower 28 bits
 	return raw_entry & 0x0FFFFFFF;
 }
+
+// update a cluster value in each FAT
+// returns the old value (handy for unlinking a chain)
+// returns 0 on error
+static uint32_t update_cluster(struct fat32_disk *dsk, uint32_t cluster, uint32_t newvalue)
+{
+	uint32_t n_fat, old_cluster, fat_sector, byte_offset;
+	uint8_t secbuf[512];
+	
+	// return ok for invalid clusters
+	if (cluster >= 0x0FFFFFF8) {
+		return cluster;
+	}
+
+	fat32_errno = 0;
+
+	// compute fat sector and byte offset
+	fat_sector = cluster >> 7;
+	if (fat_sector > dsk->vbr.sectors_per_fat) {
+		fat32_errno = FAT32_ERR_INV_CLUSTER_ADDR;
+		return 0;
+	}
+	fat_sector += dsk->fat_sector;
+	byte_offset = (cluster & 0x7F) * 4;
+
+	for (n_fat = 0; n_fat < dsk->vbr.number_of_fats; n_fat++) {
+		// read sector in
+		if (sd_sector_op(dsk->cs_sel, dsk->oper_div, fat_sector, secbuf, 0)) {
+			fat32_errno = FAT32_ERR_SEC_READ;
+			return 0;
+		}
+
+		// if this is the first FAT then save the previous cluster value
+		if (n_fat == 0) {
+			old_cluster =
+				((uint32_t)secbuf[byte_offset]) | 
+				((uint32_t)secbuf[byte_offset+1] << 8) | 
+				((uint32_t)secbuf[byte_offset+2] << 16) | 
+				((uint32_t)secbuf[byte_offset+3] << 24);
+		}
+
+		// update cluster
+		secbuf[byte_offset]   = (newvalue) & 0xFF;
+		secbuf[byte_offset+1] = (newvalue>>8) & 0xFF;
+		secbuf[byte_offset+2] = (newvalue>>16) & 0xFF;
+		secbuf[byte_offset+3] = (newvalue>>24) & 0xFF;
+
+		// write sector out
+		if (sd_sector_op(dsk->cs_sel, dsk->oper_div, fat_sector, secbuf, 1)) {
+			fat32_errno = FAT32_ERR_SEC_WRITE;
+			return 0;
+		}
+
+		// advance to next FAT
+		fat_sector += dsk->vbr.sectors_per_fat;
+	}
+	return old_cluster;
+}
+
 // open a directory starting at a given cluster
 struct fat32_dirent *fat32_opendir(struct fat32_disk *dsk, uint32_t cluster)
 {
@@ -230,7 +295,8 @@ struct fat32_dirent *fat32_opendir(struct fat32_disk *dsk, uint32_t cluster)
 		return NULL;
 	}
 	
-	de->dsk         = dsk;
+	de->dsk         = dsk;		// disk pointer
+	de->de.self     = de;		// dirent_raw points to it's parent dirent
 	de->cur_cluster = (cluster == 0) ? dsk->vbr.root_directory_cluster : cluster;
 	if (data_region_sector_op(dsk, de->cur_cluster, de->sec_no, de->secbuf, 0)) {
 		free(de);
@@ -283,6 +349,11 @@ top:
 			goto top;
 		}
 
+		// it's the next valid file/directory entry
+		de->de.dirent_source.dir_pos     = de->dir_pos - 1;			// dir_pos was incremented before here
+		de->de.dirent_source.sec_no      = de->sec_no;
+		de->de.dirent_source.cur_cluster = de->cur_cluster;
+
 		// return entry
 		return &(de->de);
 	}
@@ -306,7 +377,7 @@ top:
 }
 
 // find the directory entry for a given path
-struct fat32_dirent_raw *fat32_find_path(struct fat32_disk *dsk, const char *path)
+struct fat32_dirent_raw *fat32_find_path(struct fat32_disk *dsk, const char *path, struct fat32_dirent *odi)
 {
 	uint32_t cluster = 0;
 	struct fat32_dirent *di = NULL;
@@ -377,6 +448,10 @@ top:
 					return NULL;
 				}
 				*resde = *de;
+				// if the user requests the directory itself
+				if (odi) {
+					*odi = *di;
+				}
 				free(di);
 				return resde;
 			}
@@ -392,6 +467,47 @@ top:
 	free(di);
 	fat32_errno = FAT32_ERR_PATH_NOT_FOUND;
 	return NULL;
+}
+
+int fat32_unlink(struct fat32_disk *dsk, char *fpath)
+{
+	struct fat32_dirent_raw *de;
+	struct fat32_dirent      di;
+	uint32_t cluster;
+	int r;
+	
+	// find the file
+	de = fat32_find_path(dsk, fpath, &di);
+	if (de == NULL) {
+		return -1;
+	}
+
+	// hulk smash the clusters
+	cluster = de->start_cluster;
+	while (cluster < 0x0FFFFFF8) {
+		printf("Cluster == 0x%08lx\n", cluster);
+		cluster = update_cluster(dsk, cluster, 0);
+	}
+
+	// now debleatenated it from the directory itself
+		// read directory sector
+		if (data_region_sector_op(di.dsk, de->dirent_source.cur_cluster, de->dirent_source.sec_no, di.secbuf, 0)) {
+			free(de);
+			return -1;
+		}
+
+		// mark filename with 0xE5, we're at the 32 * dir_pos'th entry in the sector
+		// filename is the first 8 bytes of the entry
+		di.secbuf[32 * de->dirent_source.dir_pos] = 0xE5;
+
+		// write sector back
+		if (data_region_sector_op(di.dsk, de->dirent_source.cur_cluster, de->dirent_source.sec_no, di.secbuf, 1)) {
+			free(de);
+			return -1;
+		}
+
+	free(de);
+	return 0;
 }
 
 // open up a file
@@ -413,7 +529,7 @@ struct fat32_file *fat32_open(struct fat32_disk *dsk, char *fpath)
 		return NULL;
 	}
 	file->dsk = dsk;
-	file->de  = fat32_find_path(dsk, fpath);
+	file->de  = fat32_find_path(dsk, fpath, NULL);
     if (file->de->flags & FAT32_F_DIR) {
         /* Opening a directory as a file is not supported */
         fat32_errno = FAT32_ERR_INV_PATH;
