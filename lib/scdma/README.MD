@@ -45,6 +45,7 @@ The `sc_dma` module is a configurable, single-channel Direct Memory Access (DMA)
 | `cmd_read_advance` | Input | 1 | Set `1` to advance read pointer during read operations; `0` to hold read address static (e.g., FIFO read). |
 | `cmd_write_advance`| Input | 1 | Set `1` to advance write pointer during write operations; `0` to hold write address static (e.g., FIFO write). |
 | `cmd_write_constant`| Input | 1 | Set `1` to enable constant fill mode (skips bus read cycles). |
+| `cmd_scatter_gather`| Input | 1 | Set `1` to use scatter gather mode |
 | `cmd_valid` | Input | 1 | Asserted high to initiate a command transfer. |
 | `cmd_ready` | Output | 1 | Asserted high for 1 clock cycle upon transfer completion. |
 
@@ -103,6 +104,24 @@ For example, if you set `cmd_read_width = 8` and `cmd_read_stride = 320` then ev
 
 The read and write directions have their own pitch settings allowing you to copy from a linear surface to a windowed one, vice versa, or from same to same.
 
+### Scatter Gather
+The core supports a scatter gather mode where `cmd_scatter_gather` is `1` and the `cmd_read_addr` points to the 8 word (32 byte) structure:
+
+```c
+struct dma_sg {
+    uint32_t read_addr;
+    uint32_t read_pitch;
+    uint32_t write_addr;
+    uint32_t write_pitch;
+    uint32_t length;
+    uint32_t constant;
+    uint32_t cmd;
+    uint32_t next_ptr;
+} __attribute__((packed));
+```
+
+The list of DMA scatter gather commands ends when `next_ptr` is set to `32'h0000_0000`.  The `cmd` field is the same as `cmd_valid` except the `valid` bit does not need to be sent the command is assumed to be valid.
+
 ---
 
 ## Usage Examples
@@ -122,6 +141,7 @@ cmd_constant       <= 32'h0;
 cmd_read_advance   <= 1'b1;          // Increment read address
 cmd_write_advance  <= 1'b1;          // Increment write address
 cmd_write_constant <= 1'b0;          // Perform actual bus reads
+cmd_scatter_gather <= 1'b0;
 cmd_valid          <= 1'b1;
 ```
 
@@ -137,6 +157,7 @@ cmd_constant       <= 32'h0000_0000; // Constant value
 cmd_read_advance   <= 1'b0;
 cmd_write_advance  <= 1'b1;          // Increment write pointer
 cmd_write_constant <= 1'b1;          // Skip bus reads
+cmd_scatter_gather <= 1'b0;
 cmd_valid          <= 1'b1;
 ```
 
@@ -152,5 +173,6 @@ cmd_length         <= 32'd400;       // 100 words == 400 bytes
 cmd_read_advance   <= 1'b0;          // DO NOT advance read pointer
 cmd_write_advance  <= 1'b1;          // Advance write destination address
 cmd_write_constant <= 1'b0;
+cmd_scatter_gather <= 1'b0;
 cmd_valid          <= 1'b1;
 ```
