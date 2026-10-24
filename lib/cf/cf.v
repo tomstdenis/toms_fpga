@@ -71,7 +71,7 @@ module cf_cpu #(
         FSM_EXECUTE_OPERAND_E0_FF         = 10,        // directly prepare or execute E0..EC
 
         FSM_SWITCH_LOAD_ADDR              = 11,        // load current 
-        FSM_SWITCH_LOAD_VALUE              = 12;
+        FSM_SWITCH_LOAD_VALUE             = 12;
 
     // used to detect when we're starting a new opcode
     reg cf_start_fetch;

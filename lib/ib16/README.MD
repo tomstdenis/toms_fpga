@@ -79,35 +79,35 @@ The ECP5 and Nano1K demos are similar but have a few differences
 
 ```
 0 - LDI (8IMM) R[d] = imm										[ZC]
-1 - ADD (3OP)  R[d] = R[a] + R[b]								[ZC]
-2 - ADC (3OP)  R[d] = R[a] + R[b] + carry						[ZC]
-3 - XOR (3OP)  R[d] = R[a] ^ R[b]								[ZC]
-4 - AND (3OP)  R[d] = R[a] & R[b]								[ZC]
-5 - OR (3OP)   R[d] = R[a] | R[b]								[ZC]
-6 - CMP (2OPALU) Carry = R[a] comparison R[b]					[C]    ; set's carry flag if comparison is true
+1 - ADD (3OP)  R[d] = R[a] + R[b]							[ZC]
+2 - ADC (3OP)  R[d] = R[a] + R[b] + carry					[ZC]
+3 - XOR (3OP)  R[d] = R[a] ^ R[b]							[ZC]
+4 - AND (3OP)  R[d] = R[a] & R[b]							[ZC]
+5 - OR (3OP)   R[d] = R[a] | R[b]							[ZC]
+6 - CMP (2OPALU) Carry = R[a] comparison R[b]			[C]    ; set's carry flag if comparison is true
 	- R[d] values
 		- 00: CMPLT R[a] < R[b]
 		- 01: CMPEQ R[a] == R[b]
 		- 10: CMPGT R[a] > R[b]
 		- 11: Unused (C=0)
-7 - Shifts (2OP)												[ZC]
+7 - Shifts (2OP)												   [ZC]
 	- 4 bit modifier
 		- SHR  0: R[d] = R[a] >> 1								[ZC]
-		- SAR  1: R[d] = signed(R[a]) >> 1						[ZC]
+		- SAR  1: R[d] = signed(R[a]) >> 1					[ZC]
 		- ROR  2: R[d] = {carry_flag, R[a] >> 1}, carry_flag = R[a][0]	[ZC]
 		- ROL  3: R[d] = {R[a] << 1, carry_flag}, carry_flag = R[a][7] 	[ZC]
-		- SWAP 4: R[d] = {R[a][3:0], R[a][7:4]}					[ZC]
+		- SWAP 4: R[d] = {R[a][3:0], R[a][7:4]}			[ZC]
 		- INC  5: R[d] = R[a] + 1								[ZC]
 		- DEC  6: R[d] = R[a] - 1								[ZC]
 		- NOT  7: R[d] = ~R[a]									[ZC]
 		- NEG  8: R[d] = -R[a]									[ZC]
-		- SCC  9: R[d] = carry_flag								[Z]
+		- SCC  9: R[d] = carry_flag							[Z]
 		- SNZ 10: R[d] = zero_flag								[Z]
 		- ROLB 11: R[d] = R[a] <<< 1							[ZC]
 		- RORB 12: R[d] = R[a] >>> 1							[ZC]
 8 - AJMP (2OPALU) PC = {R[a], R[b]}
   - AJMPR (2OPALU) has d==1 in the opcode, jumps to PC = {R[a], R[b]} but also zeroes SREG and SP to start the app clean
-9 - LDM (3OP)  R[d] = memory[{R[a], R[b]}]						[ZC]  (if a == b == 15 then it's a pop or push off the stack)
+9 - LDM (3OP)  R[d] = memory[{R[a], R[b]}]				[ZC]  (if a == b == 15 then it's a pop or push off the stack)
 10 - STM (3OP)  memory[{R[a], R[b]}] = R[d]
 11 - LCAL (12IMM) PC = (12IMM) << 4 (push PC)
 12 - RET pop PC off stack
