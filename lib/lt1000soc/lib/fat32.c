@@ -1,4 +1,42 @@
+#ifndef HOSTPC
 #include "lt1000.h"
+#else
+#include <stdint.h>
+#include <stdlib.h>
+#include <stdio.h>
+#include <stddef.h>
+#include <stdarg.h>
+#include <string.h>
+#include <errno.h>
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include <unistd.h>
+#include "fat32.h"
+
+static FILE *host_file = NULL;
+
+static int sd_sector_op(int sel, int div, uint32_t sector, uint8_t *buf, int op)
+{
+	printf("Sector op: sector==%u, op==%u\n", sector, op);
+	if (host_file == NULL) {
+		host_file = fopen("disk.img", "r+");
+		if (!host_file) {
+			printf("Dude there's no disk.img!!!\n");
+			exit(-1);
+		}
+	}
+
+	fseek(host_file, sector * 512, SEEK_SET);
+	if (op) {
+		fwrite(buf, 1, 512, host_file);
+	} else {
+		fread(buf, 1, 512, host_file);
+	}
+	return 0;
+}
+
+#endif
 
 #ifdef LT1000_BIOS
 // local copies since we don't heap in BIOS
@@ -51,6 +89,7 @@ struct fat32_disk *fat32_init_disk(uint32_t cs_sel, uint32_t oper_div)
 	struct fat32_disk *dsk;
 	uint8_t secbuf[512];
 	
+#ifndef HOSTPC
 	// read MBR
 	if (sd_sector_op(cs_sel, oper_div, 0, secbuf, 0)) {
 		fat32_errno = FAT32_ERR_SEC_READ;
@@ -63,6 +102,7 @@ struct fat32_disk *fat32_init_disk(uint32_t cs_sel, uint32_t oper_div)
         fat32_errno = FAT32_ERR_INV_PART_TYPE;
         return NULL;
     }
+#endif
 
 #ifdef LT1000_BIOS
 	dsk = &bios_dsk;
@@ -81,6 +121,11 @@ struct fat32_disk *fat32_init_disk(uint32_t cs_sel, uint32_t oper_div)
 					 ((uint32_t)secbuf[0x1C7] << 8) | 						// bytes 0x1C6..0x1C9
 					 ((uint32_t)secbuf[0x1C8] << 16) |
 					 ((uint32_t)secbuf[0x1C9] << 24);
+
+#ifdef HOSTPC
+	// it's a raw FAT32 in hostpc mode there's no MBR...
+	dsk->lba_start = 0;
+#endif	
 
 	// now read VBR of partition 1
 	if (sd_sector_op(cs_sel, oper_div, dsk->lba_start, secbuf, 0)) {
