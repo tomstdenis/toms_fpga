@@ -18,7 +18,10 @@ static FILE *host_file = NULL;
 
 static int sd_sector_op(int sel, int div, uint32_t sector, uint8_t *buf, int op)
 {
-	printf("Sector op: sector==%u, op==%u\n", sector, op);
+	static uint8_t cache[512];
+	static uint32_t cache_sec = 0xFFFFFFFF;
+	static int cache_dirty = 0;
+
 	if (host_file == NULL) {
 		host_file = fopen("disk.img", "r+");
 		if (!host_file) {
@@ -27,6 +30,28 @@ static int sd_sector_op(int sel, int div, uint32_t sector, uint8_t *buf, int op)
 		}
 	}
 
+	if (cache_sec == sector) {
+//		printf("cached sector op: sector==%u, op==%u\n", sector, op);
+		if (op) {
+			memcpy(cache, buf, 512);
+			cache_dirty = 1;
+		} else {
+			memcpy(buf, cache, 512);
+		}
+		return 0;
+	}
+
+	if (cache_sec != 0xFFFFFFFF && cache_dirty) {
+		// flush cache first
+		fseek(host_file, cache_sec * 512, SEEK_SET);	
+		fwrite(cache, 1, 512, host_file);
+	}
+	cache_dirty = 0;
+	cache_sec   = sector;
+	fseek(host_file, sector * 512, SEEK_SET);
+	fread(cache, 1, 512, host_file);
+
+//	printf("Sector op: sector==%u, op==%u\n", sector, op);
 	fseek(host_file, sector * 512, SEEK_SET);
 	if (op) {
 		fwrite(buf, 1, 512, host_file);
@@ -83,88 +108,6 @@ static int bios_strcmp(char *str1, char *str2)
 
 int fat32_errno;
 
-// initialize a disk by reading the MBR and configuring local params
-struct fat32_disk *fat32_init_disk(uint32_t cs_sel, uint32_t oper_div)
-{
-	struct fat32_disk *dsk;
-	uint8_t secbuf[512];
-	
-#ifndef HOSTPC
-	// read MBR
-	if (sd_sector_op(cs_sel, oper_div, 0, secbuf, 0)) {
-		fat32_errno = FAT32_ERR_SEC_READ;
-		return NULL;
-	}
-	
-    // Verify that partition 1 is a FAT32 volume (type 0x0B or 0x0C)
-    uint8_t part_type = secbuf[0x1C2];
-    if (part_type != 0x0B && part_type != 0x0C) {
-        fat32_errno = FAT32_ERR_INV_PART_TYPE;
-        return NULL;
-    }
-#endif
-
-#ifdef LT1000_BIOS
-	dsk = &bios_dsk;
-#else
-	dsk = calloc(1, sizeof *dsk);
-#endif
-	if (!dsk) {
-		fat32_errno = FAT32_ERR_OOM;
-		return NULL;
-	}
-	dsk->cs_sel   = cs_sel;
-	dsk->oper_div = oper_div;
-
-	// get start of partition 1
-	dsk->lba_start = secbuf[0x1C6] |
-					 ((uint32_t)secbuf[0x1C7] << 8) | 						// bytes 0x1C6..0x1C9
-					 ((uint32_t)secbuf[0x1C8] << 16) |
-					 ((uint32_t)secbuf[0x1C9] << 24);
-
-#ifdef HOSTPC
-	// it's a raw FAT32 in hostpc mode there's no MBR...
-	dsk->lba_start = 0;
-#endif	
-
-	// now read VBR of partition 1
-	if (sd_sector_op(cs_sel, oper_div, dsk->lba_start, secbuf, 0)) {
-		fat32_errno = FAT32_ERR_SEC_READ;
-		free(dsk);
-		return NULL;
-	}
-	
-	// is it valid?
-	if (secbuf[510] != 0x55 || secbuf[511] != 0xAA) {
-		fat32_errno = FAT32_ERR_INV_VBR;
-		free(dsk);
-		return NULL;
-	}
-
-	// parse fields
-    dsk->vbr.bytes_per_sector       = secbuf[0xB] | ((uint32_t)secbuf[0xC] << 8);                   // bytes 0xB..0xC
-    if (dsk->vbr.bytes_per_sector != 512) {
-        fat32_errno = FAT32_ERR_INV_SEC_SIZE;
-        free(dsk);
-        return NULL;
-    }
-
-	dsk->vbr.sectors_per_cluster    = secbuf[0xD];											// bytes 0xD
-	dsk->vbr.reserved_sectors       = secbuf[0xE] | ((uint32_t)secbuf[0xF] << 8);			// bytes 0xE..0xF
-	dsk->vbr.number_of_fats         = secbuf[0x10];											// bytes 0x10
-	dsk->vbr.sectors_per_fat        = secbuf[0x24] | ((uint32_t)secbuf[0x25] << 8) | 		// bytes 0x24..0x27
-								   ((uint32_t)secbuf[0x26] << 16) | ((uint32_t)secbuf[0x27] << 24);
-	dsk->vbr.root_directory_cluster = secbuf[0x2C] | ((uint32_t)secbuf[0x2D] << 8) | 		// bytes 0x2C..0x2F
-								   ((uint32_t)secbuf[0x2E] << 16) | ((uint32_t)secbuf[0x2F] << 24);
-
-	// configure some computed fields
-	dsk->fat_sector                 = dsk->lba_start + dsk->vbr.reserved_sectors;
-	dsk->data_region_sector         = dsk->lba_start + dsk->vbr.reserved_sectors + (dsk->vbr.number_of_fats * dsk->vbr.sectors_per_fat);
-	
-	// done return to user
-	return dsk;
-}
-
 // read/write a sector from the data region
 static int data_region_sector_op(struct fat32_disk *dsk, uint32_t cluster, uint32_t sec_no, uint8_t *dst, int op)
 {
@@ -176,6 +119,43 @@ static int data_region_sector_op(struct fat32_disk *dsk, uint32_t cluster, uint3
 		return -1;
 	}
 	return 0;	
+}
+
+// return the first free cluster 
+static uint32_t next_free_cluster(struct fat32_disk *dsk)
+{
+	uint32_t cluster = 64;
+	uint32_t fat_sector;
+	uint32_t byte_offset;
+	uint32_t raw_entry;
+	uint8_t secbuf[512];
+
+	fat32_errno = 0;
+	for(;;) {
+		fat_sector = cluster >> 7;
+		if (fat_sector >= dsk->vbr.sectors_per_fat) {
+			return 0;
+		}
+		fat_sector += dsk->fat_sector;
+		byte_offset = (cluster & 0x7F) * 4;
+
+		if (sd_sector_op(dsk->cs_sel, dsk->oper_div, fat_sector, secbuf, 0)) {
+			fat32_errno = FAT32_ERR_SEC_READ;
+			return 0; // Return EOC/Error
+		}
+		
+		// Read 32-bit little-endian entry
+		raw_entry = secbuf[byte_offset] | 
+				((uint32_t)secbuf[byte_offset + 1] << 8)  |
+				((uint32_t)secbuf[byte_offset + 2] << 16) | 
+				((uint32_t)secbuf[byte_offset + 3] << 24);
+
+		if (raw_entry == 0) {
+			return cluster;
+		}
+		++cluster;
+	};
+	return 0;
 }
 
 // return what a given cluster points to
@@ -276,6 +256,118 @@ static uint32_t update_cluster(struct fat32_disk *dsk, uint32_t cluster, uint32_
 		fat_sector += dsk->vbr.sectors_per_fat;
 	}
 	return old_cluster;
+}
+
+// allocate a new cluster, zero it out, append it to another cluster if any
+static uint32_t prep_new_cluster(struct fat32_disk *dsk, uint32_t parent_cluster)
+{
+	uint32_t free_cluster, secno;
+	uint8_t secbuf[512];
+
+	free_cluster = next_free_cluster(dsk);
+	if (free_cluster) {
+		fat32_errno = 0;
+
+		// update the free cluster to be allocated
+		update_cluster(dsk, free_cluster, 0x0FFFFFF8);
+		// update the parent to form a chain if any
+		if (parent_cluster != 0) {
+			update_cluster(dsk, parent_cluster, free_cluster);
+		}
+
+		// now clear the sector
+		memset(secbuf, 0, 512);
+		for (secno = 0; secno < dsk->vbr.sectors_per_cluster; secno++) {
+			data_region_sector_op(dsk, free_cluster, secno, secbuf, 1);
+		}
+		return free_cluster;
+	} else {
+		return 0;
+	}
+}
+
+// --- exported library functions ---
+
+// initialize a disk by reading the MBR and configuring local params
+struct fat32_disk *fat32_init_disk(uint32_t cs_sel, uint32_t oper_div)
+{
+	struct fat32_disk *dsk;
+	uint8_t secbuf[512];
+	
+#ifndef HOSTPC
+	// read MBR
+	if (sd_sector_op(cs_sel, oper_div, 0, secbuf, 0)) {
+		fat32_errno = FAT32_ERR_SEC_READ;
+		return NULL;
+	}
+	
+    // Verify that partition 1 is a FAT32 volume (type 0x0B or 0x0C)
+    uint8_t part_type = secbuf[0x1C2];
+    if (part_type != 0x0B && part_type != 0x0C) {
+        fat32_errno = FAT32_ERR_INV_PART_TYPE;
+        return NULL;
+    }
+#endif
+
+#ifdef LT1000_BIOS
+	dsk = &bios_dsk;
+#else
+	dsk = calloc(1, sizeof *dsk);
+#endif
+	if (!dsk) {
+		fat32_errno = FAT32_ERR_OOM;
+		return NULL;
+	}
+	dsk->cs_sel   = cs_sel;
+	dsk->oper_div = oper_div;
+
+	// get start of partition 1
+	dsk->lba_start = secbuf[0x1C6] |
+					 ((uint32_t)secbuf[0x1C7] << 8) | 						// bytes 0x1C6..0x1C9
+					 ((uint32_t)secbuf[0x1C8] << 16) |
+					 ((uint32_t)secbuf[0x1C9] << 24);
+
+#ifdef HOSTPC
+	// it's a raw FAT32 in hostpc mode there's no MBR...
+	dsk->lba_start = 0;
+#endif	
+
+	// now read VBR of partition 1
+	if (sd_sector_op(cs_sel, oper_div, dsk->lba_start, secbuf, 0)) {
+		fat32_errno = FAT32_ERR_SEC_READ;
+		free(dsk);
+		return NULL;
+	}
+	
+	// is it valid?
+	if (secbuf[510] != 0x55 || secbuf[511] != 0xAA) {
+		fat32_errno = FAT32_ERR_INV_VBR;
+		free(dsk);
+		return NULL;
+	}
+
+	// parse fields
+    dsk->vbr.bytes_per_sector       = secbuf[0xB] | ((uint32_t)secbuf[0xC] << 8);                   // bytes 0xB..0xC
+    if (dsk->vbr.bytes_per_sector != 512) {
+        fat32_errno = FAT32_ERR_INV_SEC_SIZE;
+        free(dsk);
+        return NULL;
+    }
+
+	dsk->vbr.sectors_per_cluster    = secbuf[0xD];											// bytes 0xD
+	dsk->vbr.reserved_sectors       = secbuf[0xE] | ((uint32_t)secbuf[0xF] << 8);			// bytes 0xE..0xF
+	dsk->vbr.number_of_fats         = secbuf[0x10];											// bytes 0x10
+	dsk->vbr.sectors_per_fat        = secbuf[0x24] | ((uint32_t)secbuf[0x25] << 8) | 		// bytes 0x24..0x27
+								   ((uint32_t)secbuf[0x26] << 16) | ((uint32_t)secbuf[0x27] << 24);
+	dsk->vbr.root_directory_cluster = secbuf[0x2C] | ((uint32_t)secbuf[0x2D] << 8) | 		// bytes 0x2C..0x2F
+								   ((uint32_t)secbuf[0x2E] << 16) | ((uint32_t)secbuf[0x2F] << 24);
+
+	// configure some computed fields
+	dsk->fat_sector                 = dsk->lba_start + dsk->vbr.reserved_sectors;
+	dsk->data_region_sector         = dsk->lba_start + dsk->vbr.reserved_sectors + (dsk->vbr.number_of_fats * dsk->vbr.sectors_per_fat);
+	
+	// done return to user
+	return dsk;
 }
 
 // open a directory starting at a given cluster
@@ -540,7 +632,6 @@ struct fat32_file *fat32_open(struct fat32_disk *dsk, char *fpath)
         free(file);
         return NULL;
     }
-
 	
 	// prime first sector
 	file->cur_cluster = file->de->start_cluster;
@@ -557,6 +648,7 @@ struct fat32_file *fat32_open(struct fat32_disk *dsk, char *fpath)
 void fat32_close(struct fat32_file *file)
 {
 	if (file) {
+		// TODO: update dir entry for file if dirty	
 		free(file->de);
 	}
 	free(file);
