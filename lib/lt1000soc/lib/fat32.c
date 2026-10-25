@@ -275,7 +275,7 @@ static uint32_t prep_new_cluster(struct fat32_disk *dsk, uint32_t parent_cluster
 			update_cluster(dsk, parent_cluster, free_cluster);
 		}
 
-		// now clear the sector
+		// now clear the cluster
 		memset(secbuf, 0, 512);
 		for (secno = 0; secno < dsk->vbr.sectors_per_cluster; secno++) {
 			data_region_sector_op(dsk, free_cluster, secno, secbuf, 1);
