@@ -124,6 +124,7 @@ static int data_region_sector_op(struct fat32_disk *dsk, uint32_t cluster, uint3
 // return the first free cluster 
 static uint32_t next_free_cluster(struct fat32_disk *dsk)
 {
+#ifndef LT1000_BIOS
 	uint32_t cluster = 64;
 	uint32_t fat_sector;
 	uint32_t byte_offset;
@@ -156,6 +157,7 @@ static uint32_t next_free_cluster(struct fat32_disk *dsk)
 		++cluster;
 	};
 	return 0;
+#endif
 }
 
 // return what a given cluster points to
@@ -205,6 +207,7 @@ static uint32_t next_cluster(struct fat32_disk *dsk, uint32_t cluster)
 // returns 0 on error
 static uint32_t update_cluster(struct fat32_disk *dsk, uint32_t cluster, uint32_t newvalue)
 {
+#ifndef LT1000_BIOS
 	uint32_t n_fat, old_cluster, fat_sector, byte_offset;
 	uint8_t secbuf[512];
 	
@@ -256,11 +259,13 @@ static uint32_t update_cluster(struct fat32_disk *dsk, uint32_t cluster, uint32_
 		fat_sector += dsk->vbr.sectors_per_fat;
 	}
 	return old_cluster;
+#endif	
 }
 
 // allocate a new cluster, zero it out, append it to another cluster if any
 static uint32_t prep_new_cluster(struct fat32_disk *dsk, uint32_t parent_cluster)
 {
+#ifndef LT1000_BIOS
 	uint32_t free_cluster, secno;
 	uint8_t secbuf[512];
 
@@ -284,6 +289,7 @@ static uint32_t prep_new_cluster(struct fat32_disk *dsk, uint32_t parent_cluster
 	} else {
 		return 0;
 	}
+#endif
 }
 
 // --- exported library functions ---
@@ -563,6 +569,7 @@ top:
 
 int fat32_unlink(struct fat32_disk *dsk, char *fpath)
 {
+#ifndef LT1000_BIOS
 	struct fat32_dirent_raw *de;
 	struct fat32_dirent      di;
 	uint32_t cluster;
@@ -599,6 +606,7 @@ int fat32_unlink(struct fat32_disk *dsk, char *fpath)
 
 	free(de);
 	return 0;
+#endif
 }
 
 // open up a file
@@ -655,14 +663,18 @@ void fat32_close(struct fat32_file *file)
 }
 
 // read from a file
+// TODO: port this to fat32_op with a wr_en parameter then make fat32_read a wrapper
 uint32_t fat32_read(struct fat32_file *file, uint8_t *dst, uint32_t len)
 {
+// TODO: rename 'bread'
 	uint32_t bread = 0;
 
 	if (!file || !file->de) {
 		return 0;
 	}
 	
+// TODO: put jump to top here for when writing and we had to expand the file
+
 	// if we're at the end of the file do nothing
 	if (file->cur_cluster >= 0x0FFFFFF8) {
 		return 0;
@@ -671,6 +683,7 @@ uint32_t fat32_read(struct fat32_file *file, uint8_t *dst, uint32_t len)
 		uint32_t cnt, secoff;
 		secoff = file->fpos & 511;
 		
+		// TODO: update this comment
 		// does the read cross a sector boundary?
 		if ((secoff + len) > 512) {
 			cnt = 512 - secoff;
@@ -682,6 +695,7 @@ uint32_t fat32_read(struct fat32_file *file, uint8_t *dst, uint32_t len)
 			}
 		}
 		
+		// TODO: switch on wr_en we either cpy to dst or from dst
 		memcpy(dst, &file->secbuf[secoff], cnt);
 		dst        += cnt;
 		file->fpos += cnt;
@@ -691,6 +705,9 @@ uint32_t fat32_read(struct fat32_file *file, uint8_t *dst, uint32_t len)
 		
 		if (!secoff) {
 			// end of sector
+			// TODO: if wr_en then write this sector back to disk
+
+			// move to next sector in cluster
 			++(file->sec_no);
 			if (file->sec_no == file->dsk->vbr.sectors_per_cluster) {
 				// next sector
@@ -708,6 +725,9 @@ uint32_t fat32_read(struct fat32_file *file, uint8_t *dst, uint32_t len)
 			}
 		}
 	}
+	// TODO: check if wr_en and len > 0 the we need to add a sector
+	//     : then jump to top
+
 	return bread;
 }
 
