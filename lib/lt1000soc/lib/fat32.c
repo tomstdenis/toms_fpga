@@ -338,6 +338,7 @@ struct fat32_disk *fat32_init_disk(uint32_t cs_sel, uint32_t oper_div)
 
 #ifdef LT1000_BIOS
 	dsk = &bios_dsk;
+	bios_memset(dsk, 0, sizeof *dsk);
 #else
 	dsk = calloc(1, sizeof *dsk);
 #endif
@@ -406,6 +407,7 @@ struct fat32_dirent *fat32_opendir(struct fat32_disk *dsk, uint32_t cluster)
 	}
 #ifdef LT1000_BIOS
 	de = &bios_de;
+	bios_memset(de, 0, sizeof *de);
 #else
 	de = calloc(1, sizeof *de);
 #endif	
@@ -641,6 +643,7 @@ struct fat32_file *fat32_open(struct fat32_disk *dsk, char *fpath)
 	
 #ifdef LT1000_BIOS
 	file = &bios_file;
+	bios_memset(file, 0, sizeof *file);
 #else	
 	file = calloc(1, sizeof *file);
 #endif	
