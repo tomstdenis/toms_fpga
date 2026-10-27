@@ -74,6 +74,7 @@ struct fat32_file {
 	// TODO: swap this out for a fat32_dirent to support writing
 	struct fat32_dirent_raw *de;			// directory entry for this file
 	uint32_t
+		dirty,								// de is dirty (we changed the file size)
 		fpos,								// byte offset into file
 		sec_no,								// which sector of the cluster are we in
 		cur_cluster;						// which cluster are we on
@@ -105,6 +106,9 @@ void fat32_close(struct fat32_file *file);
 
 // read upto len bytes from file, returns # of bytes transferred
 uint32_t fat32_read(struct fat32_file *file, uint8_t *dst, uint32_t len);
+
+// write upto len bytes to a file at the current file position, extend the file as needed
+uint32_t fat32_write(struct fat32_file *file, uint8_t *dst, uint32_t len);
 
 // move the file pointer within the file
 int fat32_seek(struct fat32_file *file, uint32_t offset);

@@ -664,7 +664,7 @@ void fat32_close(struct fat32_file *file)
 
 // read from a file
 // TODO: port this to fat32_op with a wr_en parameter then make fat32_read a wrapper
-uint32_t fat32_read(struct fat32_file *file, uint8_t *dst, uint32_t len)
+static uint32_t fat32_fileop(struct fat32_file *file, uint8_t *dst, uint32_t len, int op)
 {
 // TODO: rename 'bread'
 	uint32_t bread = 0;
@@ -725,10 +725,23 @@ uint32_t fat32_read(struct fat32_file *file, uint8_t *dst, uint32_t len)
 			}
 		}
 	}
-	// TODO: check if wr_en and len > 0 the we need to add a sector
-	//     : then jump to top
+	// TODO: check if wr_en and len > 0 
+	//     : 1) can we just enlarge the file size to fill the current sector?  if so do that goto top
+	//     : 2) If not can we move to the next sector in this cluster?  If so read it in, then goto top
+	//     : 3) if not add a cluster to the file and load the first sector and jump to the top
+	//     : 4) if not return out of disk space error
 
 	return bread;
+}
+
+uint32_t fat32_read(struct fat32_file *file, uint8_t *dst, uint32_t len)
+{
+	return fat32_fileop(file, dst, len, 0);
+}
+
+uint32_t fat32_write(struct fat32_file *file, uint8_t *dst, uint32_t len)
+{
+	return fat32_fileop(file, dst, len, 1);
 }
 
 int fat32_seek(struct fat32_file *file, uint32_t offset)
