@@ -292,6 +292,27 @@ static uint32_t prep_new_cluster(struct fat32_disk *dsk, uint32_t parent_cluster
 #endif
 }
 
+// allocate a new cluster, zero it out, append it to the end of a cluster chain
+static uint32_t append_new_cluster(struct fat32_disk *dsk, uint32_t start_cluster)
+{
+#ifndef LT1000_BIOS
+	uint32_t n_cluster;
+
+	for (;;) {
+		n_cluster = next_cluster(dsk, start_cluster);
+		if (n_cluster >= 0x0FFFFFF8) {
+			// we hit the last cluster
+			break;
+		}
+		start_cluster = n_cluster;
+	}
+
+	// start_cluster is now the last cluster so append a new one
+	return prep_new_cluster(dsk, start_cluster);
+#endif
+}
+
+
 // --- exported library functions ---
 
 // initialize a disk by reading the MBR and configuring local params
@@ -672,7 +693,7 @@ static uint32_t fat32_fileop(struct fat32_file *file, uint8_t *dst, uint32_t len
 	if (!file || !file->de) {
 		return 0;
 	}
-	
+
 // TODO: put jump to top here for when writing and we had to expand the file
 
 	// if we're at the end of the file do nothing
@@ -714,8 +735,8 @@ static uint32_t fat32_fileop(struct fat32_file *file, uint8_t *dst, uint32_t len
 				file->sec_no = 0;
 				file->cur_cluster = next_cluster(file->dsk, file->cur_cluster);
 				if (file->cur_cluster >= 0x0FFFFFF8) {
-					// end of file
-					return bread;
+					// end of file (break out to handle writes)
+					break;
 				}
 			}
 			// read next sector in
