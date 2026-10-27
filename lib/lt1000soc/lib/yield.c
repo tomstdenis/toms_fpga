@@ -50,6 +50,7 @@ uint64_t yield_usec_to_cycles(void)
 
 TCM_FUNC(yield) void yield(void)
 {
+#ifndef LT1000_BIOS
 	uint32_t t;
 	
 	if (!yield_cycles) {
@@ -153,6 +154,7 @@ TCM_FUNC(yield) void yield(void)
 		yield_cycles += (t - yd.last_cycle_count);
 		yd.last_cycle_count = t;
 	}
+#endif
 }
 
 void delay_ms(uint32_t ms)

@@ -321,6 +321,7 @@ struct fat32_disk *fat32_init_disk(uint32_t cs_sel, uint32_t oper_div)
 	struct fat32_disk *dsk;
 	uint8_t secbuf[512];
 	
+	// there's no MBR when in HOSTPC mode so we skip over that
 #ifndef HOSTPC
 	// read MBR
 	if (sd_sector_op(cs_sel, oper_div, 0, secbuf, 0)) {
@@ -560,6 +561,7 @@ top:
 			if (*path == 0) {
 #ifdef LT1000_BIOS
 				resde = &bios_de_raw;
+				bios_memset(resde, 0, sizeof *resde);
 #else				
 				resde = calloc(1, sizeof *resde);
 #endif				
