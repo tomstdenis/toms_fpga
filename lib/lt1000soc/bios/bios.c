@@ -64,6 +64,14 @@ static void init_sys(void)
 	// reset GPIO
 	GPIO_OE   = 0;
 	GPIO_DATA = 0;
+
+	// reset DMA
+	DMA_RADDR  = 0;
+	DMA_WADDR  = 0;
+	DMA_RPITCH = 0;
+	DMA_WPITCH = 0;
+	DMA_LEN    = 0;
+	DMA_CONST  = 0;
 	
 	// try and detect PSRAM size (write MiB counter at start of every 
 	y = MCFG_PSRAM_MIB(MCFG_DATA);

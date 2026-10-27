@@ -90,7 +90,7 @@ static void do_dir(struct fat32_disk *dsk, char *path, char *cmd)
 	apply_path(newpath, cmd);
 	
 	if (newpath[1] != 0) {
-		de = fat32_find_path(dsk, newpath);
+		de = fat32_find_path(dsk, newpath, NULL);
 		if (!de) {
 			txt_printf("! Path [%s] not found on disk to display\r\n", newpath);
 			return;
@@ -149,7 +149,7 @@ static void do_cd(struct fat32_disk *dsk, char *path, char *cmd)
 	apply_path(newpath, cmd);
 	
 	if (strcmp(newpath, "/")) {
-		de = fat32_find_path(dsk, newpath);
+		de = fat32_find_path(dsk, newpath, NULL);
 		if (!de) {
 			txt_printf("! Path [%s] not found on disk\r\n", newpath);
 			return;
