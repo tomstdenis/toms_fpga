@@ -104,6 +104,9 @@ int fat32_unlink(struct fat32_disk *dsk, char *fpath);
 // open a file
 struct fat32_file *fat32_open(struct fat32_disk *dsk, char *fpath);
 
+// create a file
+struct fat32_file *fat32_create(struct fat32_disk *dsk, char *path);
+
 // close the file
 void fat32_close(struct fat32_file *file);
 

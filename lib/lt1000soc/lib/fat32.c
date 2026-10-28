@@ -678,6 +678,103 @@ struct fat32_file *fat32_open(struct fat32_disk *dsk, char *fpath)
 	return file;
 }
 
+int fat32_create(struct fat32_disk *dsk, char *path)
+{
+	char *dir_sep;
+	uint8_t secbuf[512], filename[8], filext[3];
+	uint32_t x, dir_cluster, dir_secno, dir_idx;
+	struct fat32_file *file;
+	struct fat32_dirent_raw *de;
+	int found;
+
+	// walk back to last / so we can separate the directory from filename
+		dir_sep = path + strlen(path) - 1;
+		while (dir_sep != path && *dir_sep != '/') --dir_sep;
+		*dir_sep = 0; // null it out making two strings
+	// fat32_find_path() the directory
+		de = fat32_find_path(dsk, path, NULL);
+		*dir_sep = '/'; // put that back
+		if (!de) {
+			return -1;
+		}
+	// parse filename into parts 
+		memset(filename, ' ', 8);
+		memset(filext, ' ', 3);
+		x = 0;
+		++dir_sep;
+		while (x < 8 && dir_sep[x] && dir_sep[x] != '.') {
+			filename[x++] = *(dir_sep++);
+		}
+		if (dir_sep[x] == '.') {
+			x = 0;
+			while (x < 3 && dir_sep[x]) {
+				filext[x++] = *(dir_sep++);
+			}
+		}
+	// read in first sector, init parameters
+		dir_cluster = de->start_cluster;
+		dir_secno   = 0;
+		dir_idx     = 0;
+		if (data_region_sector_op(dsk, dir_cluster, dir_secno, secbuf, 0)) {
+			free(de);
+			return -1;
+		}
+	// find slot for it
+		found = 0;
+		while (!found) {
+			// iterate over all dirents in this sector looking for 0xE5 or 0x00, break when found
+			for (dir_idx = 0; dir_idx <  512 / 32; dir_idx++) {
+				if (secbuf[dir_idx * 32] == 0xE5 || !secbuf[dir_idx * 32]) {
+					found = 1;
+					break;
+			}
+			if (!found) {
+				// if another sector move to it and read it in, reset parameters
+				dir_secno += 1;
+				if (dir_secno < dsk->vbr.sectors_per_cluster) {
+					// read next sector
+					if (data_region_sector_op(dsk, dir_cluster, dir_secno, secbuf, 0)) {
+						free(de);
+						return -1;
+					}
+				} else {
+					// if not append cluster, the reset parameters
+					dir_secno = 0;
+					dir_cluster = append_new_cluster(dsk, de->start_cluster);
+					memset(secbuf, 0, 512);
+				}
+			}
+		}
+	// at point dir_cluster, dir_secno, dir_idx point to where we can store the new entry		
+	// allocate cluster for starting_cluster
+		uint32_t starting_cluster = prep_new_cluster(dsk, 0);
+		if (starting_cluster >= FAT32_MAX_CLUSTER) {
+			free(de);
+			return -1;
+		}
+	// fill in dirent (name, size, starting_cluster, etc)
+		x = dir_idx * 32;
+		// zero out dirent, put spaces in filename spots
+		memset(&secbuf[x], 0, 32);
+		memcpy(&secbuf[x], filename, 8);
+		memcpy(&secbuf[x+8], filext, 3);
+		secbuf[x + 11] = 0x20; // TODO maybe not hardcode for file?
+		secbuf[x + 0x1A] = (starting_cluster)&0xFF;
+		secbuf[x + 0x1B] = (starting_cluster>>8)&0xFF;
+		secbuf[x + 0x1C] = (starting_cluster>>16)&0xFF;
+		secbuf[x + 0x1D] = (starting_cluster>>24)&0xFF;
+
+	// write dirent back
+		if (data_region_sector_op(dsk, dir_cluster, dir_secno, secbuf, 1)) {
+			free(de);
+			return -1;
+		}
+
+	// done
+		return 0;
+}
+
+
 void fat32_close(struct fat32_file *file)
 {
 	fat32_errno = 0;
@@ -725,7 +822,6 @@ static uint32_t fat32_fileop(struct fat32_file *file, uint8_t *buf, uint32_t len
 	}
 
 write_top:
-//printf("write_top: fpos, file_size, len == %u, %u, %u\n", file->fpos, file->de->file_size, len);
 	// if we're at the end of the file do nothing
 	if (file->cur_cluster >= FAT32_MAX_CLUSTER) {
 		return 0;
@@ -751,7 +847,6 @@ write_top:
 		if ((file->fpos + cnt) >= file->de->file_size) {
 			cnt = file->de->file_size - file->fpos;
 		}
-//printf("Bytes to process this iteration cnt=%u\n", cnt);
 		
 		if (op == 0) {
 			// read
@@ -759,7 +854,6 @@ write_top:
 		} else {
 			// write (mark sector as dirty)
 			file->secdirty = 1;
-//printf("secoff = %u, cnt = %u, len = %u\n", secoff, cnt, len);
 			memcpy(&file->secbuf[secoff], buf, cnt);
 		}
 		buf        += cnt;
@@ -807,14 +901,12 @@ write_top:
 			uint32_t rem = (512 - (file->fpos & 511));
 			file->de->file_size += (len >= rem) ? rem : len;
 			file->lendirty       = 1;
-//printf("Filling up a sector rem=%u, len=%u\n", rem, len);
 			goto write_top;
 		}
 		// 2) If not can we move to the next sector in this cluster?  If so read it in, then goto top
 		file->sec_no += 1;
 		if (file->sec_no < file->dsk->vbr.sectors_per_cluster) {
 			// move to next sector in the cluster and enlarge filesize by sector or remaining
-//printf("Filling into another sector in the same cluster\n");
 			file->de->file_size += (len > 512) ? 512 : len;
 			file->lendirty       = 1;
 			// read in sector
@@ -828,15 +920,14 @@ write_top:
 		file->sec_no = 0;
 		// move to next cluster
 		file->cur_cluster = next_cluster(file->dsk, file->cur_cluster);
-//printf("Next cluster: 0x%x\n", file->cur_cluster);
 		if (file->cur_cluster >= FAT32_MAX_CLUSTER) {
 			// append a new cluster if we are at the end of the file
-//printf("Appending a new cluster to the file\n");
 			file->cur_cluster = append_new_cluster(file->dsk, file->de->start_cluster);
 		}
 		if (file->cur_cluster < FAT32_MAX_CLUSTER) {
+			// this is sector based so we can only advance the file size by at most the current
+			// buffered sector
 			file->de->file_size += (len > 512) ? 512 : len;
-//printf("len, bytes_per_cluster = %u %u\n", len, 512);
 			file->lendirty       = 1;
 			// new clusters are zeroed by default
 			memset(file->secbuf, 0, 512);
@@ -873,7 +964,6 @@ int fat32_seek(struct fat32_file *file, uint32_t offset)
 		}
 		file->secdirty = 0;
 	}
-//printf("offset, filesize = %lu, %lu\n", offset, file->de->file_size);
 	/* Clamp offset to file size – seeking past EOF just positions at EOF */
     if (offset > file->de->file_size) {
         offset = file->de->file_size;
@@ -892,7 +982,6 @@ int fat32_seek(struct fat32_file *file, uint32_t offset)
     uint32_t clusters_to_advance = sector_index / file->dsk->vbr.sectors_per_cluster;
     file->sec_no = sector_index % file->dsk->vbr.sectors_per_cluster;
     file->cur_cluster = file->de->start_cluster;
-//printf("sector = %u, secno = %u, clusters_to = %u, cur_cluster = %u\n", sector_index, file->sec_no, clusters_to_advance, file->cur_cluster);
     /* Walk the FAT chain to the target cluster */
     for (uint32_t i = 0; i < clusters_to_advance; ++i) {
         file->cur_cluster = next_cluster(file->dsk, file->cur_cluster);
