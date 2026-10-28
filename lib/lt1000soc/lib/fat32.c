@@ -791,35 +791,45 @@ write_top:
 			}
 		}
 	}
-	// TODO: check if wr_en and len > 0 
+	// if we're writing and there's data left we need to figure out how to
+	// increase the file size
+#ifndef LT1000_BIOS
 	if (op == 1 && len) {
-		//     : 1) can we just enlarge the file size to fill the current sector?  if so do that goto top
+		// 1) can we just enlarge the file size to fill the current sector?  if so do that goto top
 		if (file->fpos & 511) {
 			// we can write upto 512 - secoff to the current sector
 			file->de->file_size += (512 - (file->fpos & 511));
 			file->lendirty       = 1;
 			goto write_top;
 		}
-	//     : 2) If not can we move to the next sector in this cluster?  If so read it in, then goto top
+		// 2) If not can we move to the next sector in this cluster?  If so read it in, then goto top
 		if (file->sec_no < file->dsk->vbr.sectors_per_cluster) {
 			// move to next sector in the cluster and enlarge filesize by sector or remaining
 			file->de->file_size += (len > 512) ? 512 : len;
 			file->sec_no        += 1;
 			file->lendirty       = 1;
+			// read in sector
+			if (data_region_sector_op(file->dsk, file->cur_cluster, file->sec_no, file->secbuf, 0)) {
+				fat32_errno = FAT32_ERR_SEC_READ;
+				return blen;
+			}
 			goto write_top;
 		}
-	//     : 3) if not add a cluster to the file and load the first sector and jump to the top
+		// 3) if not add a cluster to the file and load the first sector and jump to the top
 		file->sec_no = 0;
 		file->cur_cluster = append_new_cluster(file->dsk, file->cur_cluster);
 		if (file->cur_cluster < 0x0FFFFFF8) {
 			uint32_t bytes_per_cluster = file->dsk->vbr.bytes_per_sector * file->dsk->vbr.sectors_per_cluster;
 			file->de->file_size += (len > bytes_per_cluster) ? bytes_per_cluster : len;
 			file->lendirty       = 1;
+			// new clusters are zeroed by default
+			memset(file->secbuf, 0, 512);
 			goto write_top;
 		}
-	//     : 4) if not return out of disk space error
+		// 4) if not return out of disk space error
 		fat32_errno = FAT32_ERR_INV_OUT_OF_SPACE;
 	}
+#endif	
 	return blen;
 }
 
