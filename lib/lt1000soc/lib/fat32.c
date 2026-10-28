@@ -693,17 +693,15 @@ void fat32_close(struct fat32_file *file)
 
 		if (file->lendirty) {
 			// we need to update the length in the directory entry
-			uint8_t secbuf[512];
-
 			// read directory entry
-			if (data_region_sector_op(file->dsk, file->de->dirent_source.cur_cluster, file->de->dirent_source.sec_no, secbuf, 0) == 0) {
+			if (data_region_sector_op(file->dsk, file->de->dirent_source.cur_cluster, file->de->dirent_source.sec_no, file->secbuf, 0) == 0) {
 				// update length
 				uint32_t off = file->de->dirent_source.dir_pos * 32; // 32 bytes per entry
-				secbuf[off + 0x1C] = file->de->file_size & 0xFF;
-				secbuf[off + 0x1D] = (file->de->file_size >> 8) & 0xFF;
-				secbuf[off + 0x1E] = (file->de->file_size >> 16) & 0xFF;
-				secbuf[off + 0x1F] = (file->de->file_size >> 24) & 0xFF;
-				if (data_region_sector_op(file->dsk, file->de->dirent_source.cur_cluster, file->de->dirent_source.sec_no, secbuf, 1)) {
+				file->secbuf[off + 0x1C] = file->de->file_size & 0xFF;
+				file->secbuf[off + 0x1D] = (file->de->file_size >> 8) & 0xFF;
+				file->secbuf[off + 0x1E] = (file->de->file_size >> 16) & 0xFF;
+				file->secbuf[off + 0x1F] = (file->de->file_size >> 24) & 0xFF;
+				if (data_region_sector_op(file->dsk, file->de->dirent_source.cur_cluster, file->de->dirent_source.sec_no, file->secbuf, 1)) {
 					fat32_errno = FAT32_ERR_SEC_WRITE;
 				}
 			} else {
@@ -747,7 +745,6 @@ write_top:
 			}
 		}
 		
-		// TODO: switch on wr_en we either cpy to dst or from dst
 		if (op == 0) {
 			// read
 			memcpy(dst, &file->secbuf[secoff], cnt);
