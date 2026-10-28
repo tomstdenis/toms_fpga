@@ -168,7 +168,7 @@ static uint32_t next_cluster(struct fat32_disk *dsk, uint32_t cluster)
 	uint8_t secbuf[512];
 	
 	// identity map for error clusters
-	if (cluster >= 0x0FFFFFF8) {
+	if (cluster >= FAT32_MAX_CLUSTER) {
 		return cluster;
 	}
 
@@ -211,7 +211,7 @@ static uint32_t update_cluster(struct fat32_disk *dsk, uint32_t cluster, uint32_
 	uint8_t secbuf[512];
 	
 	// return ok for invalid clusters
-	if (cluster >= 0x0FFFFFF8) {
+	if (cluster >= FAT32_MAX_CLUSTER) {
 		return cluster;
 	}
 
@@ -299,7 +299,7 @@ static uint32_t append_new_cluster(struct fat32_disk *dsk, uint32_t start_cluste
 
 	for (;;) {
 		n_cluster = next_cluster(dsk, start_cluster);
-		if (n_cluster >= 0x0FFFFFF8) {
+		if (n_cluster >= FAT32_MAX_CLUSTER) {
 			// we hit the last cluster
 			break;
 		}
@@ -484,7 +484,7 @@ top:
 	de->dir_pos = 0;
 	if (de->sec_no == de->dsk->vbr.sectors_per_cluster) {
 		de->cur_cluster = next_cluster(de->dsk, de->cur_cluster);
-		if (de->cur_cluster >= 0x0FFFFFF8) {
+		if (de->cur_cluster >= FAT32_MAX_CLUSTER) {
 			return NULL;
 		}
 		de->sec_no  = 0;
@@ -607,7 +607,7 @@ int fat32_unlink(struct fat32_disk *dsk, char *fpath)
 
 	// hulk smash the clusters
 	cluster = de->start_cluster;
-	while (cluster < 0x0FFFFFF8) {
+	while (cluster < FAT32_MAX_CLUSTER) {
 		cluster = update_cluster(dsk, cluster, 0);
 	}
 
@@ -726,7 +726,7 @@ static uint32_t fat32_fileop(struct fat32_file *file, uint8_t *buf, uint32_t len
 
 write_top:
 	// if we're at the end of the file do nothing
-	if (file->cur_cluster >= 0x0FFFFFF8) {
+	if (file->cur_cluster >= FAT32_MAX_CLUSTER) {
 		return 0;
 	}
 	while (file->fpos != file->de->file_size && len) {
@@ -794,7 +794,8 @@ write_top:
 		// 1) can we just enlarge the file size to fill the current sector?  if so do that goto top
 		if (file->fpos & 511) {
 			// we can write upto 512 - secoff to the current sector
-			file->de->file_size += (512 - (file->fpos & 511));
+			uint32_t rem = (512 - (file->fpos & 511));
+			file->de->file_size += (len > rem) ? rem : len;
 			file->lendirty       = 1;
 			goto write_top;
 		}
@@ -815,11 +816,11 @@ write_top:
 		file->sec_no = 0;
 		// move to next cluster
 		file->cur_cluster = next_cluster(file->dsk, file->cur_cluster);
-		if (file->cur_cluster >= 0x0FFFFFF8) {
+		if (file->cur_cluster >= FAT32_MAX_CLUSTER) {
 			// append a new cluster if we are at the end of the file
 			file->cur_cluster = append_new_cluster(file->dsk, file->de->start_cluster);
 		}
-		if (file->cur_cluster < 0x0FFFFFF8) {
+		if (file->cur_cluster < FAT32_MAX_CLUSTER) {
 			uint32_t bytes_per_cluster = file->dsk->vbr.bytes_per_sector * file->dsk->vbr.sectors_per_cluster;
 			file->de->file_size += (len > bytes_per_cluster) ? bytes_per_cluster : len;
 			file->lendirty       = 1;
@@ -881,7 +882,7 @@ int fat32_seek(struct fat32_file *file, uint32_t offset)
     file->cur_cluster = file->de->start_cluster;
     for (uint32_t i = 0; i < clusters_to_advance; ++i) {
         file->cur_cluster = next_cluster(file->dsk, file->cur_cluster);
-        if (file->cur_cluster >= 0x0FFFFFF8) {
+        if (file->cur_cluster >= FAT32_MAX_CLUSTER) {
             /* Unexpected end of chain */
             return -1;
         }

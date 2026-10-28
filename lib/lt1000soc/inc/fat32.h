@@ -1,6 +1,7 @@
 #ifndef LT1000_FAT32_H
 #define LT1000_FAT32_H
 
+#define FAT32_MAX_CLUSTER           0x0FFFFFF8
 #define FAT32_ERR_SEC_READ 			-1
 #define FAT32_ERR_SEC_WRITE			-2
 #define FAT32_ERR_INV_MBR 			-3
@@ -11,6 +12,7 @@
 #define FAT32_ERR_INV_SEC_SIZE      -8
 #define FAT32_ERR_INV_PART_TYPE     -9
 #define FAT32_ERR_INV_CLUSTER_ADDR  -10
+#define FAT32_ERR_INV_OUT_OF_SPACE  -11
 
 #define FAT32_F_RDONLY 0x01
 #define FAT32_F_HIDDEN 0x02
@@ -74,7 +76,8 @@ struct fat32_file {
 	// TODO: swap this out for a fat32_dirent to support writing
 	struct fat32_dirent_raw *de;			// directory entry for this file
 	uint32_t
-		dirty,								// de is dirty (we changed the file size)
+		secdirty,							// is the current sector buffer dirty
+		lendirty,							// de is dirty (we changed the file size)
 		fpos,								// byte offset into file
 		sec_no,								// which sector of the cluster are we in
 		cur_cluster;						// which cluster are we on
@@ -105,10 +108,10 @@ struct fat32_file *fat32_open(struct fat32_disk *dsk, char *fpath);
 void fat32_close(struct fat32_file *file);
 
 // read upto len bytes from file, returns # of bytes transferred
-uint32_t fat32_read(struct fat32_file *file, uint8_t *dst, uint32_t len);
+uint32_t fat32_read(struct fat32_file *file, uint8_t *buf, uint32_t len);
 
 // write upto len bytes to a file at the current file position, extend the file as needed
-uint32_t fat32_write(struct fat32_file *file, uint8_t *dst, uint32_t len);
+uint32_t fat32_write(struct fat32_file *file, uint8_t *buf, uint32_t len);
 
 // move the file pointer within the file
 int fat32_seek(struct fat32_file *file, uint32_t offset);

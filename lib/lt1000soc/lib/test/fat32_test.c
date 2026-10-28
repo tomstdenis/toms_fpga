@@ -73,11 +73,21 @@ int main(void)
 			memset(buf, 0, 128);
 			x = fat32_read(file, buf, 128);
 			printf("Read %u bytes from the file [%s]\n", x, buf);
+			x = fat32_write(file, buf, x);
+			printf("Wrote %u bytes from the file\n", x);
 			fat32_close(file);
 		}
-        printf("unlink /README.TXT == %d, ", fat32_unlink(dsk, "/README.TXT"));
-        printf("fat32_errno=%d\n", fat32_errno);
-        printf("unlink /INC/REGS.H == %d, ", fat32_unlink(dsk, "/INC/REGS.H"));
+		file = fat32_open(dsk, "/README.TXT");
+		printf("file == %p\n", file);
+		if (file) {
+			char buf[128];
+			uint32_t x; 
+			memset(buf, 0, 128);
+			x = fat32_read(file, buf, 128);
+			printf("Re-Read %u bytes from the file [%s]\n", x, buf);
+			fat32_close(file);
+		}
+		printf("unlink /INC/REGS.H == %d, ", fat32_unlink(dsk, "/INC/REGS.H"));
         printf("fat32_errno=%d\n", fat32_errno);
         printf("double unlink /INC/REGS.H == %d, ", fat32_unlink(dsk, "/INC/REGS.H"));
         printf("fat32_errno=%d\n", fat32_errno);
