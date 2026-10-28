@@ -669,7 +669,7 @@ struct fat32_file *fat32_open(struct fat32_disk *dsk, char *fpath)
 	// prime first sector
 	file->cur_cluster = file->de->start_cluster;
 	if (file->de->file_size) {
-		if (data_region_sector_op(dsk, file->cur_cluster, 0, file->secbuf, 0)) {
+		if (data_region_sector_op(dsk, file->cur_cluster, file->sec_no, file->secbuf, 0)) {
 			free(file->de);
 			free(file);
 			return NULL;
@@ -681,7 +681,7 @@ struct fat32_file *fat32_open(struct fat32_disk *dsk, char *fpath)
 void fat32_close(struct fat32_file *file)
 {
 	fat32_errno = 0;
-	if (file) {
+	if (file && file->de) {
 #ifndef LT1000_BIOS
 		if (file->secdirty) {
 			// data is dirty write to disk
@@ -717,7 +717,7 @@ void fat32_close(struct fat32_file *file)
 
 // read from a file
 // TODO: port this to fat32_op with a wr_en parameter then make fat32_read a wrapper
-static uint32_t fat32_fileop(struct fat32_file *file, uint8_t *dst, uint32_t len, int op)
+static uint32_t fat32_fileop(struct fat32_file *file, uint8_t *buf, uint32_t len, int op)
 {
 	uint32_t blen = 0;
 
@@ -747,13 +747,13 @@ write_top:
 		
 		if (op == 0) {
 			// read
-			memcpy(dst, &file->secbuf[secoff], cnt);
+			memcpy(buf, &file->secbuf[secoff], cnt);
 		} else {
 			// write (mark sector as dirty)
 			file->secdirty = 1;
-			memcpy(&file->secbuf[secoff], dst, cnt);
+			memcpy(&file->secbuf[secoff], buf, cnt);
 		}
-		dst        += cnt;
+		buf        += cnt;
 		file->fpos += cnt;
 		blen       += cnt;
 		secoff      = file->fpos & 511;
@@ -800,10 +800,10 @@ write_top:
 			goto write_top;
 		}
 		// 2) If not can we move to the next sector in this cluster?  If so read it in, then goto top
+		file->sec_no += 1;
 		if (file->sec_no < file->dsk->vbr.sectors_per_cluster) {
 			// move to next sector in the cluster and enlarge filesize by sector or remaining
 			file->de->file_size += (len > 512) ? 512 : len;
-			file->sec_no        += 1;
 			file->lendirty       = 1;
 			// read in sector
 			if (data_region_sector_op(file->dsk, file->cur_cluster, file->sec_no, file->secbuf, 0)) {
@@ -830,14 +830,14 @@ write_top:
 	return blen;
 }
 
-uint32_t fat32_read(struct fat32_file *file, uint8_t *dst, uint32_t len)
+uint32_t fat32_read(struct fat32_file *file, uint8_t *buf, uint32_t len)
 {
-	return fat32_fileop(file, dst, len, 0);
+	return fat32_fileop(file, buf, len, 0);
 }
 
-uint32_t fat32_write(struct fat32_file *file, uint8_t *dst, uint32_t len)
+uint32_t fat32_write(struct fat32_file *file, uint8_t *buf, uint32_t len)
 {
-	return fat32_fileop(file, dst, len, 1);
+	return fat32_fileop(file, buf, len, 1);
 }
 
 int fat32_seek(struct fat32_file *file, uint32_t offset)
