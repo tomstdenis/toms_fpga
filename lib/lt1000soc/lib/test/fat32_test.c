@@ -68,22 +68,28 @@ int main(void)
 		file = fat32_open(dsk, "/README.TXT");
 		printf("file == %p\n", file);
 		if (file) {
-			char buf[128];
+			char buf[1024];
 			uint32_t x; 
 			memset(buf, 0, 128);
 			x = fat32_read(file, buf, 128);
 			printf("Read %u bytes from the file [%s]\n", x, buf);
-			x = fat32_write(file, buf, x);
+			memset(buf, 'A', 512);
+			memset(buf+512, 'B', 512);
+			x = fat32_seek(file, 5);
+			printf("Seek to offset 5 returned %d\n", x);
+			x = fat32_write(file, buf, 1024);
 			printf("Wrote %u bytes from the file\n", x);
 			fat32_close(file);
 		}
 		file = fat32_open(dsk, "/README.TXT");
 		printf("file == %p\n", file);
 		if (file) {
-			char buf[128];
+			char buf[2048];
 			uint32_t x; 
-			memset(buf, 0, 128);
-			x = fat32_read(file, buf, 128);
+			memset(buf, 0, sizeof buf);
+			x = fat32_seek(file, 3);
+			printf("Seek to offset 3 returned %d\n", x);
+			x = fat32_read(file, buf, sizeof buf);
 			printf("Re-Read %u bytes from the file [%s]\n", x, buf);
 			fat32_close(file);
 		}

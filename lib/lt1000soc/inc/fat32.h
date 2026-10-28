@@ -116,5 +116,4 @@ uint32_t fat32_write(struct fat32_file *file, uint8_t *buf, uint32_t len);
 // move the file pointer within the file
 int fat32_seek(struct fat32_file *file, uint32_t offset);
 
-
 #endif
