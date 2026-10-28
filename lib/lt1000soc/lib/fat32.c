@@ -275,7 +275,7 @@ static uint32_t prep_new_cluster(struct fat32_disk *dsk, uint32_t parent_cluster
 		// update the free cluster to be allocated
 		update_cluster(dsk, free_cluster, 0x0FFFFFF8);
 		// update the parent to form a chain if any
-		if (parent_cluster != 0) {
+		if (parent_cluster != 0 && parent_cluster < 0x0FFFFFF8) {
 			update_cluster(dsk, parent_cluster, free_cluster);
 		}
 
@@ -716,7 +716,6 @@ void fat32_close(struct fat32_file *file)
 }
 
 // read from a file
-// TODO: port this to fat32_op with a wr_en parameter then make fat32_read a wrapper
 static uint32_t fat32_fileop(struct fat32_file *file, uint8_t *buf, uint32_t len, int op)
 {
 	uint32_t blen = 0;
@@ -814,7 +813,7 @@ write_top:
 		}
 		// 3) if not add a cluster to the file and load the first sector and jump to the top
 		file->sec_no = 0;
-		file->cur_cluster = append_new_cluster(file->dsk, file->cur_cluster);
+		file->cur_cluster = append_new_cluster(file->dsk, file->de->start_cluster);
 		if (file->cur_cluster < 0x0FFFFFF8) {
 			uint32_t bytes_per_cluster = file->dsk->vbr.bytes_per_sector * file->dsk->vbr.sectors_per_cluster;
 			file->de->file_size += (len > bytes_per_cluster) ? bytes_per_cluster : len;
@@ -842,8 +841,9 @@ uint32_t fat32_write(struct fat32_file *file, uint8_t *buf, uint32_t len)
 
 int fat32_seek(struct fat32_file *file, uint32_t offset)
 {
-    if (!file || !file->de)
+    if (!file || !file->de) {
         return -1;
+	}
 
 	// write sector back if dirty
 	if (file->secdirty) {
@@ -855,11 +855,11 @@ int fat32_seek(struct fat32_file *file, uint32_t offset)
 	}
 
 	/* Clamp offset to file size – seeking past EOF just positions at EOF */
-    if (offset > file->de->file_size)
+    if (offset > file->de->file_size) {
         offset = file->de->file_size;
+	}
 
     file->fpos = offset;
-
     if (offset == file->de->file_size) {
         /* EOF: set marker so subsequent reads return 0 */
         file->cur_cluster = 0x0FFFFFFF;
