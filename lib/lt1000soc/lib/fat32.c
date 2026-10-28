@@ -14,20 +14,17 @@
 #include <unistd.h>
 #include "fat32.h"
 
-static FILE *host_file = NULL;
-
 static int sd_sector_op(int sel, int div, uint32_t sector, uint8_t *buf, int op)
 {
 	static uint8_t cache[512];
 	static uint32_t cache_sec = 0xFFFFFFFF;
 	static int cache_dirty = 0;
+	static FILE *host_file;
 
-	if (host_file == NULL) {
-		host_file = fopen("disk.img", "r+");
-		if (!host_file) {
-			printf("Dude there's no disk.img!!!\n");
-			exit(-1);
-		}
+	host_file = fopen("disk.img", "r+");
+	if (!host_file) {
+		printf("Dude there's no disk.img!!!\n");
+		exit(-1);
 	}
 
 	if (cache_sec == sector) {
@@ -38,6 +35,7 @@ static int sd_sector_op(int sel, int div, uint32_t sector, uint8_t *buf, int op)
 		} else {
 			memcpy(buf, cache, 512);
 		}
+		fclose(host_file);
 		return 0;
 	}
 
@@ -58,6 +56,7 @@ static int sd_sector_op(int sel, int div, uint32_t sector, uint8_t *buf, int op)
 	} else {
 		fread(buf, 1, 512, host_file);
 	}
+	fclose(host_file);
 	return 0;
 }
 
@@ -681,8 +680,38 @@ struct fat32_file *fat32_open(struct fat32_disk *dsk, char *fpath)
 
 void fat32_close(struct fat32_file *file)
 {
+	fat32_errno = 0;
 	if (file) {
-		// TODO: update dir entry for file if dirty	
+#ifndef LT1000_BIOS
+		if (file->secdirty) {
+			// data is dirty write to disk
+			if (data_region_sector_op(file->dsk, file->cur_cluster, file->sec_no, file->secbuf, 1)) {
+				fat32_errno = FAT32_ERR_SEC_WRITE;
+			}
+			file->secdirty = 0;
+		}
+
+		if (file->lendirty) {
+			// we need to update the length in the directory entry
+			uint8_t secbuf[512];
+
+			// read directory entry
+			if (data_region_sector_op(file->dsk, file->de->dirent_source.cur_cluster, file->de->dirent_source.sec_no, secbuf, 0) == 0) {
+				// update length
+				uint32_t off = file->de->dirent_source.dir_pos * 32; // 32 bytes per entry
+				secbuf[off + 0x1C] = file->de->file_size & 0xFF;
+				secbuf[off + 0x1D] = (file->de->file_size >> 8) & 0xFF;
+				secbuf[off + 0x1E] = (file->de->file_size >> 16) & 0xFF;
+				secbuf[off + 0x1F] = (file->de->file_size >> 24) & 0xFF;
+				if (data_region_sector_op(file->dsk, file->de->dirent_source.cur_cluster, file->de->dirent_source.sec_no, secbuf, 1)) {
+					fat32_errno = FAT32_ERR_SEC_WRITE;
+				}
+			} else {
+				fat32_errno = FAT32_ERR_SEC_READ;
+			}
+			file->lendirty = 0;
+		}
+#endif
 		free(file->de);
 	}
 	free(file);
@@ -692,15 +721,13 @@ void fat32_close(struct fat32_file *file)
 // TODO: port this to fat32_op with a wr_en parameter then make fat32_read a wrapper
 static uint32_t fat32_fileop(struct fat32_file *file, uint8_t *dst, uint32_t len, int op)
 {
-// TODO: rename 'bread'
-	uint32_t bread = 0;
+	uint32_t blen = 0;
 
 	if (!file || !file->de) {
 		return 0;
 	}
 
-// TODO: put jump to top here for when writing and we had to expand the file
-
+write_top:
 	// if we're at the end of the file do nothing
 	if (file->cur_cluster >= 0x0FFFFFF8) {
 		return 0;
@@ -709,8 +736,7 @@ static uint32_t fat32_fileop(struct fat32_file *file, uint8_t *dst, uint32_t len
 		uint32_t cnt, secoff;
 		secoff = file->fpos & 511;
 		
-		// TODO: update this comment
-		// does the read cross a sector boundary?
+		// does the operation cross a sector boundary?
 		if ((secoff + len) > 512) {
 			cnt = 512 - secoff;
 		} else {
@@ -722,16 +748,30 @@ static uint32_t fat32_fileop(struct fat32_file *file, uint8_t *dst, uint32_t len
 		}
 		
 		// TODO: switch on wr_en we either cpy to dst or from dst
-		memcpy(dst, &file->secbuf[secoff], cnt);
+		if (op == 0) {
+			// read
+			memcpy(dst, &file->secbuf[secoff], cnt);
+		} else {
+			// write (mark sector as dirty)
+			file->secdirty = 1;
+			memcpy(&file->secbuf[secoff], dst, cnt);
+		}
 		dst        += cnt;
 		file->fpos += cnt;
-		bread      += cnt;
+		blen       += cnt;
 		secoff      = file->fpos & 511;
 		len        -= cnt;
 		
 		if (!secoff) {
 			// end of sector
-			// TODO: if wr_en then write this sector back to disk
+			if (file->secdirty) {
+				// write sector to disk
+				if (data_region_sector_op(file->dsk, file->cur_cluster, file->sec_no, file->secbuf, 1)) {
+					fat32_errno = FAT32_ERR_SEC_WRITE;
+					return blen;
+				}
+				file->secdirty = 0;
+			}
 
 			// move to next sector in cluster
 			++(file->sec_no);
@@ -747,17 +787,40 @@ static uint32_t fat32_fileop(struct fat32_file *file, uint8_t *dst, uint32_t len
 			// read next sector in
 			if (data_region_sector_op(file->dsk, file->cur_cluster, file->sec_no, file->secbuf, 0)) {
 				fat32_errno = FAT32_ERR_SEC_READ;
-				return bread;
+				return blen;
 			}
 		}
 	}
 	// TODO: check if wr_en and len > 0 
-	//     : 1) can we just enlarge the file size to fill the current sector?  if so do that goto top
+	if (op == 1 && len) {
+		//     : 1) can we just enlarge the file size to fill the current sector?  if so do that goto top
+		if (file->fpos & 511) {
+			// we can write upto 512 - secoff to the current sector
+			file->de->file_size += (512 - (file->fpos & 511));
+			file->lendirty       = 1;
+			goto write_top;
+		}
 	//     : 2) If not can we move to the next sector in this cluster?  If so read it in, then goto top
+		if (file->sec_no < file->dsk->vbr.sectors_per_cluster) {
+			// move to next sector in the cluster and enlarge filesize by sector or remaining
+			file->de->file_size += (len > 512) ? 512 : len;
+			file->sec_no        += 1;
+			file->lendirty       = 1;
+			goto write_top;
+		}
 	//     : 3) if not add a cluster to the file and load the first sector and jump to the top
+		file->sec_no = 0;
+		file->cur_cluster = append_new_cluster(file->dsk, file->cur_cluster);
+		if (file->cur_cluster < 0x0FFFFFF8) {
+			uint32_t bytes_per_cluster = file->dsk->vbr.bytes_per_sector * file->dsk->vbr.sectors_per_cluster;
+			file->de->file_size += (len > bytes_per_cluster) ? bytes_per_cluster : len;
+			file->lendirty       = 1;
+			goto write_top;
+		}
 	//     : 4) if not return out of disk space error
-
-	return bread;
+		fat32_errno = FAT32_ERR_INV_OUT_OF_SPACE;
+	}
+	return blen;
 }
 
 uint32_t fat32_read(struct fat32_file *file, uint8_t *dst, uint32_t len)
@@ -775,7 +838,16 @@ int fat32_seek(struct fat32_file *file, uint32_t offset)
     if (!file || !file->de)
         return -1;
 
-    /* Clamp offset to file size – seeking past EOF just positions at EOF */
+	// write sector back if dirty
+	if (file->secdirty) {
+		if (data_region_sector_op(file->dsk, file->cur_cluster, file->sec_no, file->secbuf, 1)) {
+			fat32_errno = FAT32_ERR_SEC_WRITE;
+			return -1;
+		}
+		file->secdirty = 0;
+	}
+
+	/* Clamp offset to file size – seeking past EOF just positions at EOF */
     if (offset > file->de->file_size)
         offset = file->de->file_size;
 

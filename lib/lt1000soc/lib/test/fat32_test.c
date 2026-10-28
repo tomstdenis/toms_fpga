@@ -83,4 +83,5 @@ int main(void)
         printf("fat32_errno=%d\n", fat32_errno);
 		walk_dir(dsk, "", 0);
 	}
+	free(dsk);
 }
