@@ -811,9 +811,14 @@ write_top:
 			}
 			goto write_top;
 		}
-		// 3) if not add a cluster to the file and load the first sector and jump to the top
+		// 3) if not move to the next cluster (appending as required)
 		file->sec_no = 0;
-		file->cur_cluster = append_new_cluster(file->dsk, file->de->start_cluster);
+		// move to next cluster
+		file->cur_cluster = next_cluster(file->dsk, file->cur_cluster);
+		if (file->cur_cluster >= 0x0FFFFFF8) {
+			// append a new cluster if we are at the end of the file
+			file->cur_cluster = append_new_cluster(file->dsk, file->de->start_cluster);
+		}
 		if (file->cur_cluster < 0x0FFFFFF8) {
 			uint32_t bytes_per_cluster = file->dsk->vbr.bytes_per_sector * file->dsk->vbr.sectors_per_cluster;
 			file->de->file_size += (len > bytes_per_cluster) ? bytes_per_cluster : len;
