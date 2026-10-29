@@ -680,6 +680,7 @@ struct fat32_file *fat32_open(struct fat32_disk *dsk, char *fpath)
 
 int fat32_create(struct fat32_disk *dsk, char *fpath, uint8_t attribute)
 {
+#ifndef LT1000_BIOS
 	char *dir_sep;
 	uint8_t secbuf[512], filename[8], filext[3];
 	uint32_t x, dir_cluster, dir_secno, dir_idx;
@@ -797,6 +798,7 @@ int fat32_create(struct fat32_disk *dsk, char *fpath, uint8_t attribute)
 
 	// done
 		return 0;
+#endif
 }
 
 void fat32_close(struct fat32_file *file)
@@ -859,13 +861,7 @@ write_top:
 			cnt = 512 - secoff;
 			cnt = cnt > len ? len : cnt;
 		} else {
-			if ((file->fpos + len) >= file->de->file_size) {
-				// remaining of allocated file
-				cnt = file->de->file_size - file->fpos;
-			} else {
-				// upto the remainder of the sector
-				cnt = len;
-			}
+			cnt = len;
 		}
 
 		if ((file->fpos + cnt) >= file->de->file_size) {
@@ -949,6 +945,12 @@ write_top:
 		if (file->cur_cluster >= FAT32_MAX_CLUSTER) {
 			// append a new cluster if we are at the end of the file
 			file->cur_cluster = append_new_cluster(file->dsk, file->de->start_cluster);
+		} else {
+			// we moved to the next cluster so read in the first sector
+			if (data_region_sector_op(file->dsk, file->cur_cluster, file->sec_no, file->secbuf, 0)) {
+				fat32_errno = FAT32_ERR_SEC_READ;
+				return blen;
+			}
 		}
 		if (file->cur_cluster < FAT32_MAX_CLUSTER) {
 			// this is sector based so we can only advance the file size by at most the current
