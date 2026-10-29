@@ -88,6 +88,12 @@ int fat32_errno;
 static int data_region_sector_op(struct fat32_disk *dsk, uint32_t cluster, uint32_t sec_no, uint8_t *dst, int op)
 {
 	uint32_t sec;
+
+	// filter for invalid clusters
+	if ((cluster < 2) || (cluster >= FAT32_MAX_CLUSTER)) {
+		fat32_errno = FAT32_ERR_INV_CLUSTER_ADDR;
+		return -1;
+	}
 	
 	sec = dsk->data_region_sector + (cluster - 2) * dsk->vbr.sectors_per_cluster + sec_no;
 	if (sd_sector_op(dsk->cs_sel, dsk->oper_div, sec, dst, op)) {
@@ -264,9 +270,9 @@ static uint32_t prep_new_cluster(struct fat32_disk *dsk, uint32_t parent_cluster
 		fat32_errno = 0;
 
 		// update the free cluster to be allocated
-		update_cluster(dsk, free_cluster, 0x0FFFFFF8);
+		update_cluster(dsk, free_cluster, FAT32_MAX_CLUSTER);
 		// update the parent to form a chain if any
-		if (parent_cluster != 0 && parent_cluster < 0x0FFFFFF8) {
+		if (parent_cluster != 0 && parent_cluster < FAT32_MAX_CLUSTER) {
 			update_cluster(dsk, parent_cluster, free_cluster);
 		}
 
@@ -365,7 +371,7 @@ struct fat32_disk *fat32_init_disk(uint32_t cs_sel, uint32_t oper_div)
 	}
 
 	// parse fields
-    dsk->vbr.bytes_per_sector       = secbuf[0xB] | ((uint32_t)secbuf[0xC] << 8);                   // bytes 0xB..0xC
+    dsk->vbr.bytes_per_sector = secbuf[0xB] | ((uint32_t)secbuf[0xC] << 8);                 // bytes 0xB..0xC
     if (dsk->vbr.bytes_per_sector != 512) {
         fat32_errno = FAT32_ERR_INV_SEC_SIZE;
         free(dsk);
@@ -375,10 +381,14 @@ struct fat32_disk *fat32_init_disk(uint32_t cs_sel, uint32_t oper_div)
 	dsk->vbr.sectors_per_cluster    = secbuf[0xD];											// bytes 0xD
 	dsk->vbr.reserved_sectors       = secbuf[0xE] | ((uint32_t)secbuf[0xF] << 8);			// bytes 0xE..0xF
 	dsk->vbr.number_of_fats         = secbuf[0x10];											// bytes 0x10
-	dsk->vbr.sectors_per_fat        = secbuf[0x24] | ((uint32_t)secbuf[0x25] << 8) | 		// bytes 0x24..0x27
-								   ((uint32_t)secbuf[0x26] << 16) | ((uint32_t)secbuf[0x27] << 24);
-	dsk->vbr.root_directory_cluster = secbuf[0x2C] | ((uint32_t)secbuf[0x2D] << 8) | 		// bytes 0x2C..0x2F
-								   ((uint32_t)secbuf[0x2E] << 16) | ((uint32_t)secbuf[0x2F] << 24);
+	dsk->vbr.sectors_per_fat        = secbuf[0x24] |
+										((uint32_t)secbuf[0x25] << 8) | 		// bytes 0x24..0x27
+								   		((uint32_t)secbuf[0x26] << 16) |
+										((uint32_t)secbuf[0x27] << 24);
+	dsk->vbr.root_directory_cluster = secbuf[0x2C] |
+										((uint32_t)secbuf[0x2D] << 8) | 		// bytes 0x2C..0x2F
+								   		((uint32_t)secbuf[0x2E] << 16) |
+										((uint32_t)secbuf[0x2F] << 24);
 
 	// configure some computed fields
 	dsk->fat_sector                 = dsk->lba_start + dsk->vbr.reserved_sectors;
@@ -423,7 +433,7 @@ struct fat32_dirent_raw *fat32_readdir(struct fat32_dirent *de)
 		return NULL;
 	}
 top:
-	if (de->dir_pos < 16) {
+	if (de->dir_pos < (512/32)) {
 		// load the de->dir_pos'th directory entry from this secbuf
 		uint32_t x, off = de->dir_pos * 32;
 		memcpy(de->de.filename, &de->secbuf[off + 0], 8);
@@ -431,7 +441,7 @@ top:
 		for (x = 0; x < 8; x++) { if (de->de.filename[x] == ' ') de->de.filename[x] = 0; }
 		for (x = 0; x < 3; x++) { if (de->de.fileext[x] == ' ') de->de.fileext[x] = 0; }
 		de->de.filename[8] = 0;
-		de->de.fileext[4] = 0;
+		de->de.fileext[4]  = 0;
 		
 		de->de.flags         = de->secbuf[off + 11];
 		de->de.start_cluster = de->secbuf[off + 0x1A] |
@@ -448,6 +458,7 @@ top:
 			return NULL;
 		}
 
+		// increment dir_pos for either going to the next entry locally or the next clal to this function
 		(de->dir_pos)++;
 		
 		// skip if empty entry
@@ -473,11 +484,11 @@ top:
 	++(de->sec_no);
 	de->dir_pos = 0;
 	if (de->sec_no == de->dsk->vbr.sectors_per_cluster) {
+		de->sec_no      = 0;
 		de->cur_cluster = next_cluster(de->dsk, de->cur_cluster);
 		if (de->cur_cluster >= FAT32_MAX_CLUSTER) {
 			return NULL;
 		}
-		de->sec_no  = 0;
 	}
 
 	// read sector
@@ -542,11 +553,7 @@ top:
 		strcpy(tgtfilename, "..");
 		path += 2;
 	}
-	
-//	txt_printf("tgtfilename == [%s]\n\r", tgtfilename);
-//	txt_printf("tgtfileext  == [%s]\n\r", tgtfileext);
-//	txt_printf("path        == [%s]\n\r", path);
-	
+
 	// now let's read this directory until we find this pattern
 	di = fat32_opendir(dsk, cluster);
 	if (!di) {
@@ -554,7 +561,6 @@ top:
 	}
 	
 	while ((de = fat32_readdir(di))) {
-//		printf("de: [%s] [%s]\n\r", de->filename, de->fileext);
 		if (!strcmp(de->filename, tgtfilename) && (!tgtfileext[0] || !strcmp(de->fileext, tgtfileext))) {
 			// entry is a directory and the path isn't completed yet
 			if ((de->flags & FAT32_F_DIR) && (*path == '/')) {
@@ -858,7 +864,6 @@ int fat32_createdir(struct fat32_disk *dsk, char *fpath)
 	return 0;
 }
 
-
 void fat32_close(struct fat32_file *file)
 {
 	fat32_errno = 0;
@@ -922,6 +927,7 @@ write_top:
 			cnt = len;
 		}
 
+		// does the operation length (now 'cnt') cross the file size?
 		if ((file->fpos + cnt) >= file->de->file_size) {
 			cnt = file->de->file_size - file->fpos;
 		}
@@ -998,8 +1004,8 @@ write_top:
 			goto write_top;
 		}
 		// 3) if not move to the next cluster (appending as required)
-		file->sec_no = 0;
 		// move to next cluster
+		file->sec_no      = 0;
 		file->cur_cluster = next_cluster(file->dsk, file->cur_cluster);
 		if (file->cur_cluster >= FAT32_MAX_CLUSTER) {
 			// append a new cluster if we are at the end of the file
