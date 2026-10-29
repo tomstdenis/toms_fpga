@@ -512,13 +512,13 @@ struct fat32_dirent_raw *fat32_find_path(struct fat32_disk *dsk, const char *pat
 
 	// handle trying to find root
 	if (path[0] == 0 || !strcmp(path, "/")) {
-		// this is kinda a special case for fat32_create()
+		// this is kinda a special case for fat32_create(), not all fields are initialized
 		di = calloc(1, sizeof *di);
 		di->dsk              = dsk;		// disk pointer
-		di->de.self          = di;		// dirent_raw points to it's parent dirent
 		di->de.start_cluster = dsk->vbr.root_directory_cluster;
 		if (odi) {
-			*odi = *di;
+			*odi         = *di;
+			odi->de.self = odi;
 		}
 		de = calloc(1, sizeof *de);
 		*de = di->de;
@@ -694,11 +694,11 @@ struct fat32_file *fat32_open(struct fat32_disk *dsk, char *fpath)
 	return file;
 }
 
-int fat32_create(struct fat32_disk *dsk, char *fpath, uint8_t attribute)
+int fat32_create(struct fat32_disk *dsk, char *fpath, uint8_t attribute, uint32_t start_cluster)
 {
 #ifndef LT1000_BIOS
 	char *dir_sep;
-	uint8_t secbuf[512], filename[8], filext[3];
+	uint8_t secbuf[512], filename[9], filext[4];
 	uint32_t x, dir_cluster, dir_secno, dir_idx;
 	struct fat32_file *file;
 	struct fat32_dirent_raw *de;
@@ -732,29 +732,37 @@ int fat32_create(struct fat32_disk *dsk, char *fpath, uint8_t attribute)
 	// fat32_find_path() the directory
 		de = fat32_find_path(dsk, path, NULL);
 		if (!de) {
-printf("err: %d\n", __LINE__);
 			return -1;
 		}
 	// parse filename into parts 
-		memset(filename, ' ', 8);
-		memset(filext, ' ', 3);
+		memset(filename, ' ', 8); filename[8] = 0;
+		memset(filext, ' ', 3); filext[3] = 0;
 		x = 0;
 		++dir_sep;
-		while (x < 8 && *dir_sep && *dir_sep != '.') {
-			filename[x++] = *(dir_sep++);
-		}
-		if (*dir_sep == '.') {
-			x = 0;
-			++dir_sep;
-			while (x < 3 && *dir_sep) {
-				filext[x++] = *(dir_sep++);
+
+	// handle special
+		if (!strcmp(dir_sep, "..")) {
+			filename[0] = '.';
+			filename[1] = '.';
+		} else if (!strcmp(dir_sep, ".")) {
+			filename[0] = '.';
+		} else {
+			while (x < 8 && *dir_sep && *dir_sep != '.') {
+				filename[x++] = *(dir_sep++);
 			}
-		}
-		// should be end of string now
-		if (dir_sep[x]) {
-			fat32_errno = FAT32_ERR_INV_PATH;
-			free(de);
-			return -1;
+			if (*dir_sep == '.') {
+				x = 0;
+				++dir_sep;
+				while (x < 3 && *dir_sep) {
+					filext[x++] = *(dir_sep++);
+				}
+			}
+			// should be end of string now
+			if (dir_sep[x]) {
+				fat32_errno = FAT32_ERR_INV_PATH;
+				free(de);
+				return -1;
+			}
 		}
 	// init parameters
 		dir_cluster = de->start_cluster;
@@ -789,7 +797,9 @@ printf("err: %d\n", __LINE__);
 		}
 	// at point dir_cluster, dir_secno, dir_idx point to where we can store the new entry		
 	// allocate cluster for starting_cluster
-		uint32_t starting_cluster = prep_new_cluster(dsk, 0);
+		uint32_t starting_cluster = (start_cluster == 0) ? 
+			prep_new_cluster(dsk, 0) : 
+			((start_cluster == 0xFFFFFFFF) ? 0 : start_cluster); // all F maps to start_cluster of 0
 		if (starting_cluster >= FAT32_MAX_CLUSTER) {
 			free(de);
 			return -1;
@@ -816,6 +826,48 @@ printf("err: %d\n", __LINE__);
 		return 0;
 #endif
 }
+
+// create a directory
+int fat32_createdir(struct fat32_disk *dsk, char *fpath)
+{
+	uint32_t x, newcluster, parentcluster;
+	struct fat32_dirent_raw *de;
+	char npath[512];
+	
+	memset(npath, 0, sizeof npath);
+	strncpy(npath, fpath, sizeof(npath) - 4);
+
+	// create new directory entry
+		if (fat32_create(dsk, npath, FAT32_F_DIR, 0)) {
+			return -1;
+		}
+
+	// we need to create two files now a "." and then a ".." in that order
+		// first fine the start_cluster of this 
+		de = fat32_find_path(dsk, npath, NULL);
+		strcat(npath, "/.");
+		fat32_create(dsk, npath, FAT32_F_DIR, de->start_cluster);
+		free(de);
+		npath[strlen(npath) - 2] = 0; // remove added /.
+
+		// now rewind off the to the parent dir
+		x = strlen(npath) - 1;
+		while (x && npath[x] != '/') {
+			--x;
+		}
+		npath[x] = 0;
+
+		de = fat32_find_path(dsk, npath, NULL);
+		memset(npath, 0, sizeof npath);
+		strncpy(npath, fpath, sizeof(npath) - 4);
+		strcat(npath, "/..");
+		// parent for root dir subdirs isn't de->start_cluster it's 0
+		fat32_create(dsk, npath, FAT32_F_DIR, (de->start_cluster != 2) ? de->start_cluster : 0xFFFFFFFF);
+		free(de);
+
+	return 0;
+}
+
 
 void fat32_close(struct fat32_file *file)
 {

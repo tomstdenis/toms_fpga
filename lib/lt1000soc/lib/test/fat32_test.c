@@ -64,7 +64,7 @@ int main(void)
 		printf("Data start: %u\n", dsk->data_region_sector);
 		
 		uint32_t x;
-		x = fat32_create(dsk, "/INC/tom.H", FAT32_F_ARC); // test case conversion
+		x = fat32_create(dsk, "/INC/tom.H", FAT32_F_ARC, 0); // test case conversion
 		printf("fat32_create: == %d\n", x);
 		file = fat32_open(dsk, "/INC/TOM.H");
 		if (file) {
@@ -86,15 +86,24 @@ int main(void)
 		}
 
 		{
-			char fname[32];
-			for (x = 0; x < 64; x++) {
+			char fname[64];
+			for (x = 0; x < 32; x++) {
 				sprintf(fname, "/test%02d.txt", x);
-				printf("create '%s': %d\n", fname, fat32_create(dsk, fname, FAT32_F_ARC));
+				printf("create '%s': %d\n", fname, fat32_create(dsk, fname, FAT32_F_ARC, 0));
 				file = fat32_open(dsk, fname);
 				if (file) {
 					fat32_write(file, "contents", strlen("contents") + 1);
 					fat32_close(file);
 				}
+			}
+			// let's make a directory why not
+			printf("createdir '/INC/FOO': %d\n", fat32_createdir(dsk, "/INC/FOO"));
+			printf("createdir 'FOO': %d\n", fat32_createdir(dsk, "/FOO"));
+			printf("create in FOO: %d\n", fat32_create(dsk, "/FOO/FOOFILE.TXT", FAT32_F_ARC, 0));
+			file = fat32_open(dsk, "/FOO/FOOFILE.TXT");
+			if (file) {
+				printf("Write to createdir file: %d\n", fat32_write(file, "contents", strlen("contents") + 1));
+				fat32_close(file);
 			}
 		}
 
