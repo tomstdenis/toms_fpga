@@ -117,7 +117,7 @@ void fat32_close(struct fat32_file *file);
 uint32_t fat32_read(struct fat32_file *file, uint8_t *buf, uint32_t len);
 
 // write upto len bytes to a file at the current file position, extend the file as needed
-uint32_t fat32_write(struct fat32_file *file, uint8_t *buf, uint32_t len);
+uint32_t fat32_write(struct fat32_file *file, const uint8_t *buf, uint32_t len);
 
 // move the file pointer within the file
 int fat32_seek(struct fat32_file *file, uint32_t offset);

@@ -274,8 +274,16 @@ int _lseek(int fd, int ptr, int dir) {
 	}
 	if (f32_dsk && fd >= FD_RESV && fd < (FD_RESV + MAX_FILES)) {
 		if (f32_files[fd-FD_RESV]) {
-			// only support SEEK_SET
-			return fat32_seek(f32_files[fd-FD_RESV], ptr); 
+			int r = -1;
+			switch (dir) {
+				case SEEK_CUR: r = fat32_seek(f32_files[fd-FD_RESV], ptr + f32_files[fd-FD_RESV]->fpos); break;
+				case SEEK_SET: r = fat32_seek(f32_files[fd-FD_RESV], ptr); break;
+				case SEEK_END: r = fat32_seek(f32_files[fd-FD_RESV], ptr + f32_files[fd-FD_RESV]->de->file_size); break;
+			}
+			if (!r) {
+				r = f32_files[fd-FD_RESV]->fpos;
+			}
+			return r;
 		}
 	}
     return 0; // Seeking isn't supported on UART streams
@@ -308,13 +316,27 @@ int _open(const char *path, int flags)
 		// find empty slot 
 		for (x = 0; x < MAX_FILES; x++) {
 			if (f32_files[x] == NULL) {
-				if (flags & O_CREAT) {
+				f32_files[x] = fat32_open(f32_dsk, path);
+				if (!f32_files[x] && (flags & O_CREAT)) {
+					// if file doesn't exist create it
 					if (fat32_create(f32_dsk, path, FAT32_F_ARC, 0)) {
 						return -1;
 					}
+					f32_files[x] = fat32_open(f32_dsk, path);
+				} else if (f32_files[x] && (flags & O_TRUNC)) {
+					// truncate the file
+					fat32_close(f32_files[x]);
+					f32_files[x] = NULL;
+					if (fat32_create(f32_dsk, path, FAT32_F_ARC, 0)) {
+						return -1;
+					}
+					f32_files[x] = fat32_open(f32_dsk, path);
 				}
-				f32_files[x] = fat32_open(f32_dsk, path);
+
 				if (f32_files[x]) {
+					if (flags & O_APPEND) {
+						_lseek(x + FD_RESV, 0, SEEK_END);
+					}
 					return x + FD_RESV;
 				}
 				return -1;

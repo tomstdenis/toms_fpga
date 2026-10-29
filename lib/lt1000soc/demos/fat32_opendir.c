@@ -64,7 +64,8 @@ int main(void)
 			char buf[128];
 			uint32_t x;
 
-			lseek(fd, 3, SEEK_SET);
+			printf("lseekd(fd, 5, SEEK_SET) == %d\n", lseek(fd, 5, SEEK_SET));
+			printf("lseek(fd, -2, SEEK_CUR) == %d\n", lseek(fd, -2, SEEK_CUR));
 			memset(buf, 0, sizeof buf);
 			x = read(fd, buf, 128);
 			printf("Read %d bytes seeked by 3, [%s]\n", x, buf);

@@ -1103,10 +1103,10 @@ uint32_t fat32_read(struct fat32_file *file, uint8_t *buf, uint32_t len)
 	return fat32_fileop(file, buf, len, 0);
 }
 
-uint32_t fat32_write(struct fat32_file *file, uint8_t *buf, uint32_t len)
+uint32_t fat32_write(struct fat32_file *file, const uint8_t *buf, uint32_t len)
 {
 #ifndef LT1000_BIOS
-	return fat32_fileop(file, buf, len, 1);
+	return fat32_fileop(file, (uint8_t *)buf, len, 1);
 #endif
 }
 
