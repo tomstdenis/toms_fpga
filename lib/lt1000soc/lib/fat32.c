@@ -510,6 +510,22 @@ struct fat32_dirent_raw *fat32_find_path(struct fat32_disk *dsk, const char *pat
 		return NULL;
 	}
 
+	// handle trying to find root
+	if (path[0] == 0 || !strcmp(path, "/")) {
+		// this is kinda a special case for fat32_create()
+		di = calloc(1, sizeof *di);
+		di->dsk              = dsk;		// disk pointer
+		di->de.self          = di;		// dirent_raw points to it's parent dirent
+		di->de.start_cluster = dsk->vbr.root_directory_cluster;
+		if (odi) {
+			*odi = *di;
+		}
+		de = calloc(1, sizeof *de);
+		*de = di->de;
+		free(di);
+		return de;
+	}
+
 top:
 	// skip any leading slashes
 	while (*path == '/') ++path;
@@ -548,7 +564,7 @@ top:
 	}
 	
 	while ((de = fat32_readdir(di))) {
-//		txt_printf("de: [%s] [%s]\n\r", de->filename, de->fileext);
+//		printf("de: [%s] [%s]\n\r", de->filename, de->fileext);
 		if (!strcmp(de->filename, tgtfilename) && (!tgtfileext[0] || !strcmp(de->fileext, tgtfileext))) {
 			// entry is a directory and the path isn't completed yet
 			if ((de->flags & FAT32_F_DIR) && (*path == '/')) {
