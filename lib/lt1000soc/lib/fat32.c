@@ -12,6 +12,7 @@
 #include <sys/stat.h>
 #include <fcntl.h>
 #include <unistd.h>
+#include <ctype.h>
 #include "fat32.h"
 
 static int sd_sector_op(int sel, int div, uint32_t sector, uint8_t *buf, int op)
@@ -522,14 +523,14 @@ top:
 	// parse path into filename/ext upto NUL or / or .
 	x = 0;
 	while (x < 8 && *path != '/' && *path != '.' && *path) {
-		tgtfilename[x++] = *path++;
+		tgtfilename[x++] = toupper(*path++);
 	}
 	
 	if (x && *path == '.' && path[1] != '.') {
 		++path;
 		x = 0;
 		while (x < 3 && *path != '/' && *path) {
-			tgtfileext[x++] = *path++;
+			tgtfileext[x++] = toupper(*path++);
 		}
 	} else if (x == 0 && path[0] == '.' && path[1] == '.') {
 		// special case filename is ".."
@@ -689,8 +690,12 @@ int fat32_create(struct fat32_disk *dsk, char *fpath, uint8_t attribute)
 	int found;
 	char path[512];
 
+	// store path convert to upper for convenience
 	memset(path, 0, sizeof path);
-	strncpy(path, fpath, sizeof(path) - 1);
+	for (x = 0; fpath[x] && x < (sizeof(path) - 1); x++) {
+		path[x] = toupper(fpath[x]);
+	}
+
 	// sanity check path .. should be [A-Z/_\.0-9]
 	for (x = 0; path[x]; x++) {
 		uint8_t c = path[x];
@@ -711,7 +716,6 @@ int fat32_create(struct fat32_disk *dsk, char *fpath, uint8_t attribute)
 		
 	// fat32_find_path() the directory
 		de = fat32_find_path(dsk, path, NULL);
-		*dir_sep = '/'; // put that back
 		if (!de) {
 			return -1;
 		}
@@ -884,6 +888,7 @@ write_top:
 		
 		if (!secoff) {
 			// end of sector
+#ifndef LT1000_BIOS
 			if (file->secdirty) {
 				// write sector to disk
 				if (data_region_sector_op(file->dsk, file->cur_cluster, file->sec_no, file->secbuf, 1)) {
@@ -892,7 +897,7 @@ write_top:
 				}
 				file->secdirty = 0;
 			}
-
+#endif
 			// move to next sector in cluster
 			++(file->sec_no);
 			if (file->sec_no == file->dsk->vbr.sectors_per_cluster) {
@@ -975,7 +980,9 @@ uint32_t fat32_read(struct fat32_file *file, uint8_t *buf, uint32_t len)
 
 uint32_t fat32_write(struct fat32_file *file, uint8_t *buf, uint32_t len)
 {
+#ifndef LT1000_BIOS
 	return fat32_fileop(file, buf, len, 1);
+#endif
 }
 
 int fat32_seek(struct fat32_file *file, uint32_t offset)
@@ -985,6 +992,7 @@ int fat32_seek(struct fat32_file *file, uint32_t offset)
 	}
 
 	// write sector back if dirty
+#ifndef LT1000_BIOS
 	if (file->secdirty) {
 		if (data_region_sector_op(file->dsk, file->cur_cluster, file->sec_no, file->secbuf, 1)) {
 			fat32_errno = FAT32_ERR_SEC_WRITE;
@@ -992,6 +1000,8 @@ int fat32_seek(struct fat32_file *file, uint32_t offset)
 		}
 		file->secdirty = 0;
 	}
+#endif
+
 	/* Clamp offset to file size – seeking past EOF just positions at EOF */
     if (offset > file->de->file_size) {
         offset = file->de->file_size;

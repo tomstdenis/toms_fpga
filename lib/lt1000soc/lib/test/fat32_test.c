@@ -64,7 +64,7 @@ int main(void)
 		printf("Data start: %u\n", dsk->data_region_sector);
 		
 		uint32_t x;
-		x = fat32_create(dsk, "/INC/TOM.H", FAT32_F_ARC);
+		x = fat32_create(dsk, "/INC/tom.H", FAT32_F_ARC); // test case conversion
 		printf("fat32_create: == %d\n", x);
 		file = fat32_open(dsk, "/INC/TOM.H");
 		if (file) {
@@ -103,7 +103,7 @@ int main(void)
 			printf("Wrote %u bytes from the file\n", x);
 			fat32_close(file);
 		}
-		file = fat32_open(dsk, "/README.TXT");
+		file = fat32_open(dsk, "/readme.TXT"); // test conversion
 		printf("file == %p\n", file);
 		if (file) {
 			char buf[2048];
