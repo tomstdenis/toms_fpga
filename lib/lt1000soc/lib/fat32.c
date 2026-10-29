@@ -17,33 +17,12 @@
 
 static int sd_sector_op(int sel, int div, uint32_t sector, uint8_t *buf, int op)
 {
-	static uint8_t cache[512];
-	static uint32_t cache_sec = 0xFFFFFFFF;
-	static int cache_dirty = 0;
 	static FILE *host_file;
 
 	host_file = fopen("disk.img", "r+");
 	if (!host_file) {
 		printf("Dude there's no disk.img!!!\n");
 		exit(-1);
-	}
-
-	if (cache_sec == sector) {
-//		printf("cached sector op: sector==%u, op==%u\n", sector, op);
-		if (op) {
-			memcpy(cache, buf, 512);
-			cache_dirty = 1;
-		} else {
-			memcpy(buf, cache, 512);
-		}
-		fclose(host_file);
-		return 0;
-	}
-
-	if (cache_sec != 0xFFFFFFFF && cache_dirty) {
-		// flush cache first
-		fseek(host_file, cache_sec * 512, SEEK_SET);	
-		fwrite(cache, 1, 512, host_file);
 	}
 
 //	printf("Sector op: sector==%u, op==%u\n", sector, op);
@@ -53,9 +32,6 @@ static int sd_sector_op(int sel, int div, uint32_t sector, uint8_t *buf, int op)
 	} else {
 		fread(buf, 1, 512, host_file);
 	}
-	memcpy(cache, buf, 512);
-	cache_dirty = 0;
-	cache_sec   = sector;
 
 	fclose(host_file);
 	return 0;
