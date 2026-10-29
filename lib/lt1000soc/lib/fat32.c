@@ -44,10 +44,6 @@ static int sd_sector_op(int sel, int div, uint32_t sector, uint8_t *buf, int op)
 		fseek(host_file, cache_sec * 512, SEEK_SET);	
 		fwrite(cache, 1, 512, host_file);
 	}
-	cache_dirty = 0;
-	cache_sec   = sector;
-	fseek(host_file, sector * 512, SEEK_SET);
-	fread(cache, 1, 512, host_file);
 
 //	printf("Sector op: sector==%u, op==%u\n", sector, op);
 	fseek(host_file, sector * 512, SEEK_SET);
@@ -56,6 +52,10 @@ static int sd_sector_op(int sel, int div, uint32_t sector, uint8_t *buf, int op)
 	} else {
 		fread(buf, 1, 512, host_file);
 	}
+	memcpy(cache, buf, 512);
+	cache_dirty = 0;
+	cache_sec   = sector;
+
 	fclose(host_file);
 	return 0;
 }
@@ -678,7 +678,7 @@ struct fat32_file *fat32_open(struct fat32_disk *dsk, char *fpath)
 	return file;
 }
 
-int fat32_create(struct fat32_disk *dsk, char *path)
+int fat32_create(struct fat32_disk *dsk, char *fpath, uint8_t attribute)
 {
 	char *dir_sep;
 	uint8_t secbuf[512], filename[8], filext[3];
@@ -686,11 +686,28 @@ int fat32_create(struct fat32_disk *dsk, char *path)
 	struct fat32_file *file;
 	struct fat32_dirent_raw *de;
 	int found;
+	char path[512];
+
+	memset(path, 0, sizeof path);
+	strncpy(path, fpath, sizeof(path) - 1);
+	// sanity check path .. should be [A-Z/_\.0-9]
+	for (x = 0; path[x]; x++) {
+		uint8_t c = path[x];
+		if (!((c >= 'A' && c <= 'Z') || (c >= '0' && c <= '9') || (c == '/') || (c == '.') || (c == '_'))) {
+			fat32_errno = FAT32_ERR_INV_PATH;
+			return -1;
+		}
+	}
 
 	// walk back to last / so we can separate the directory from filename
 		dir_sep = path + strlen(path) - 1;
 		while (dir_sep != path && *dir_sep != '/') --dir_sep;
+		if (*dir_sep != '/') {
+			fat32_errno = FAT32_ERR_INV_PATH;
+			return -1;
+		}
 		*dir_sep = 0; // null it out making two strings
+		
 	// fat32_find_path() the directory
 		de = fat32_find_path(dsk, path, NULL);
 		*dir_sep = '/'; // put that back
@@ -705,11 +722,18 @@ int fat32_create(struct fat32_disk *dsk, char *path)
 		while (x < 8 && dir_sep[x] && dir_sep[x] != '.') {
 			filename[x++] = *(dir_sep++);
 		}
-		if (dir_sep[x] == '.') {
+		if (*dir_sep == '.') {
 			x = 0;
+			++dir_sep;
 			while (x < 3 && dir_sep[x]) {
 				filext[x++] = *(dir_sep++);
 			}
+		}
+		// should be end of string now
+		if (dir_sep[x]) {
+			fat32_errno = FAT32_ERR_INV_PATH;
+			free(de);
+			return -1;
 		}
 	// read in first sector, init parameters
 		dir_cluster = de->start_cluster;
@@ -727,6 +751,7 @@ int fat32_create(struct fat32_disk *dsk, char *path)
 				if (secbuf[dir_idx * 32] == 0xE5 || !secbuf[dir_idx * 32]) {
 					found = 1;
 					break;
+				}
 			}
 			if (!found) {
 				// if another sector move to it and read it in, reset parameters
@@ -758,7 +783,7 @@ int fat32_create(struct fat32_disk *dsk, char *path)
 		memset(&secbuf[x], 0, 32);
 		memcpy(&secbuf[x], filename, 8);
 		memcpy(&secbuf[x+8], filext, 3);
-		secbuf[x + 11] = 0x20; // TODO maybe not hardcode for file?
+		secbuf[x + 11]   = attribute;
 		secbuf[x + 0x1A] = (starting_cluster)&0xFF;
 		secbuf[x + 0x1B] = (starting_cluster>>8)&0xFF;
 		secbuf[x + 0x1C] = (starting_cluster>>16)&0xFF;
@@ -773,7 +798,6 @@ int fat32_create(struct fat32_disk *dsk, char *path)
 	// done
 		return 0;
 }
-
 
 void fat32_close(struct fat32_file *file)
 {
@@ -896,13 +920,15 @@ write_top:
 #ifndef LT1000_BIOS
 	if (op == 1 && len) {
 		// 1) can we just enlarge the file size to fill the current sector?  if so do that goto top
-		if (file->fpos & 511) {
+		if ((file->cur_cluster == file->de->start_cluster && file->sec_no == 0 && file->fpos == 0) || (file->fpos & 511)) {
+			// start of file
 			// we can write upto 512 - secoff to the current sector
 			uint32_t rem = (512 - (file->fpos & 511));
 			file->de->file_size += (len >= rem) ? rem : len;
 			file->lendirty       = 1;
 			goto write_top;
 		}
+		// at this point we're at a sector boundary and not the start of the file
 		// 2) If not can we move to the next sector in this cluster?  If so read it in, then goto top
 		file->sec_no += 1;
 		if (file->sec_no < file->dsk->vbr.sectors_per_cluster) {
@@ -936,7 +962,7 @@ write_top:
 		// 4) if not return out of disk space error
 		fat32_errno = FAT32_ERR_INV_OUT_OF_SPACE;
 	}
-#endif	
+#endif
 	return blen;
 }
 

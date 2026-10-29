@@ -63,6 +63,28 @@ int main(void)
 		printf("FAT start: %u\n", dsk->fat_sector);
 		printf("Data start: %u\n", dsk->data_region_sector);
 		
+		uint32_t x;
+		x = fat32_create(dsk, "/INC/TOM.H", FAT32_F_ARC);
+		printf("fat32_create: == %d\n", x);
+		file = fat32_open(dsk, "/INC/TOM.H");
+		if (file) {
+			x = fat32_write(file, "create file!", strlen("create file!"));
+			printf("fat32_write to created file: %d\n", x);
+			x = fat32_write(file, " cool beans", strlen(" cool beans")+1);
+			printf("fat32_write to created file: %d\n", x);
+			fat32_close(file);
+		}
+
+		file = fat32_open(dsk, "/INC/TOM.H");
+		printf("file == %p\n", file);
+		if (file) {
+			char buf[1024];
+			uint32_t x; 
+			memset(buf, 0, 128);
+			x = fat32_read(file, buf, 128);
+			printf("Read %u bytes from the file /INC/TOM.H [%s]\n", x, buf);
+		}
+
 		walk_dir(dsk, "", 0);
 	
 		file = fat32_open(dsk, "/README.TXT");
