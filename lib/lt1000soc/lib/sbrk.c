@@ -30,6 +30,14 @@ static int _sd_sec_valid = 0, _sd_sec_dirty = 0;
 static uint8_t _sd_sec[512];
 static uint32_t _sd_sec_no = 0, _sd_sec_offset = 0;
 
+// max # of open files at once
+#define MAX_FILES 32
+
+// reserve the first X many file handles for special purposes
+#define FD_RESV 16
+struct fat32_disk *f32_dsk = NULL;
+static struct fat32_file *f32_files[MAX_FILES];
+
 // we should evict the current sector and load the chosen sector and set offset
 static int _sd_lseek(int fd, off_t ptr, int dir)
 {
@@ -206,6 +214,11 @@ int _write(int fd, const char *buf, int count) {
     if (fd == 3) {
 		return _sd_write(fd, buf, count);
 	}
+	if (f32_dsk && fd >= FD_RESV && fd < (FD_RESV + MAX_FILES)) {
+		if (f32_files[fd-FD_RESV]) {
+			return fat32_write(f32_files[fd-FD_RESV], buf, count);
+		}
+	}
 
     errno = EBADF;
     return -1;
@@ -233,6 +246,11 @@ int _read(int fd, char *buf, int count) {
     if (fd == 3) {
 		return _sd_read(fd, buf, count);
 	}
+	if (f32_dsk && fd >= FD_RESV && fd < (FD_RESV + MAX_FILES)) {
+		if (f32_files[fd-FD_RESV]) {
+			return fat32_read(f32_files[fd-FD_RESV], buf, count);
+		}
+	}
 
     errno = EBADF;
     return -1;
@@ -254,14 +272,55 @@ int _lseek(int fd, int ptr, int dir) {
 	if (fd == 3) {
 		return _sd_lseek(fd, ptr, dir);
 	}
+	if (f32_dsk && fd >= FD_RESV && fd < (FD_RESV + MAX_FILES)) {
+		if (f32_files[fd-FD_RESV]) {
+			// only support SEEK_SET
+			return fat32_seek(f32_files[fd-FD_RESV], ptr); 
+		}
+	}
     return 0; // Seeking isn't supported on UART streams
 }
 
 int _open(const char *path, int flags)
 {
-	if (!strcmp(path, "/dev/sda")) {
-		// fd == 3 is the SD card
-		return _sd_open(path, flags);
+	if (!memcmp(path, "/dev", 4)) {
+		// /dev is a special path 
+		if (!strcmp(path, "/dev/sda")) {
+			// fd == 3 is the SD card
+			return _sd_open(path, flags);
+		}
+	} else {
+		// normal file system
+		uint32_t x;
+		if (f32_dsk == NULL) {
+			// init disk system
+			f32_dsk = fat32_init_disk(0, 15);
+			if (!f32_dsk) {
+				return -1;
+			}
+
+			// init file map
+			for (x = 0; x < MAX_FILES; x++) {
+				f32_files[x] = NULL;
+			}
+		}
+
+		// find empty slot 
+		for (x = 0; x < MAX_FILES; x++) {
+			if (f32_files[x] == NULL) {
+				if (flags & O_CREAT) {
+					if (fat32_create(f32_dsk, path, FAT32_F_ARC, 0)) {
+						return -1;
+					}
+				}
+				f32_files[x] = fat32_open(f32_dsk, path);
+				if (f32_files[x]) {
+					return x + FD_RESV;
+				}
+				return -1;
+			}
+		}
+		return -1;
 	}
 	return -1;
 }
@@ -270,11 +329,24 @@ int _close(int fd) {
 	if (fd == 3) {
 		return _sd_close(fd);
 	}
+	if (f32_dsk && (fd >= FD_RESV) && fd < (FD_RESV + MAX_FILES)) {
+		if (f32_files[fd - FD_RESV]) {
+			fat32_close(f32_files[fd - FD_RESV]);
+			f32_files[fd - FD_RESV] = NULL;
+		}
+	}
     return -1;
 }
 
 void _exit(int status) {
 	(void)status;
+
+	// close all files if any
+	int x;
+	for (x = FD_RESV; x < (FD_RESV + MAX_FILES); x++) {
+		_close(x);
+	}
+
 	void (*bios_entry)(void) = (void (*)(void))0x01000000;
 	bios_entry();
 }	

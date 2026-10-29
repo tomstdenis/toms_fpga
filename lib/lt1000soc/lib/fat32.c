@@ -753,6 +753,17 @@ int fat32_create(struct fat32_disk *dsk, char *fpath, uint8_t attribute, uint32_
 		path[x] = toupper(fpath[x]);
 	}
 
+	// ensure it doesn't already exist
+	de = fat32_find_path(dsk, path, NULL);
+	if (de) {
+		// we need to unlink it
+		if (fat32_unlink(dsk, path)) {
+			fat32_errno = FAT32_ERR_FILE_EXISTS;
+			return -1;
+		}
+		free(de);
+	}
+
 	// sanity check path .. should be [A-Z/_\.0-9]
 	for (x = 0; path[x]; x++) {
 		uint8_t c = path[x];

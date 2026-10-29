@@ -38,7 +38,8 @@ int main(void)
 		printf("err == %d\n", fat32_errno);
 	} else {
 		struct fat32_file *file;
-		
+		int fd;
+
 		printf("Disk info:\n");
 		printf("Bytes per sector: %u\n", dsk->vbr.bytes_per_sector);
 		printf("Sector per cluster: %u\n", dsk->vbr.sectors_per_cluster);
@@ -50,8 +51,16 @@ int main(void)
 		printf("LBA start: %u\n", dsk->lba_start);
 		printf("FAT start: %u\n", dsk->fat_sector);
 		printf("Data start: %u\n", dsk->data_region_sector);
-		
+
+		fd = open("/TOM.TXT", O_RDWR|O_CREAT);
+		printf("open /TOM.TXT returned: %d\n", fd);
+		if (fd > 0) {
+			write(fd, "hello tom\n\r", strlen("hello tom\n\r") + 1);
+			close(fd);
+		}
 		walk_dir(dsk, "", 0);
+		printf("fat32_unlink: %d, ", fat32_unlink(dsk, "/TOM.TXT"));
+		printf("%d\n", fat32_errno);
 	
 		file = fat32_open(dsk, "/README.TXT");
 		printf("file == %p\n", file);

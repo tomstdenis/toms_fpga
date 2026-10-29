@@ -26,4 +26,6 @@
 #include "fat32.h"
 #include "env.h"
 
+extern struct fat32_disk *f32_dsk;
+
 #endif
