@@ -312,7 +312,6 @@ static uint32_t append_new_cluster(struct fat32_disk *dsk, uint32_t start_cluste
 #endif
 }
 
-
 // --- exported library functions ---
 
 // initialize a disk by reading the MBR and configuring local params
@@ -510,7 +509,7 @@ struct fat32_dirent_raw *fat32_find_path(struct fat32_disk *dsk, const char *pat
 	if (!dsk || !path) {
 		return NULL;
 	}
-	
+
 top:
 	// skip any leading slashes
 	while (*path == '/') ++path;
@@ -717,6 +716,7 @@ int fat32_create(struct fat32_disk *dsk, char *fpath, uint8_t attribute)
 	// fat32_find_path() the directory
 		de = fat32_find_path(dsk, path, NULL);
 		if (!de) {
+printf("err: %d\n", __LINE__);
 			return -1;
 		}
 	// parse filename into parts 
@@ -724,13 +724,13 @@ int fat32_create(struct fat32_disk *dsk, char *fpath, uint8_t attribute)
 		memset(filext, ' ', 3);
 		x = 0;
 		++dir_sep;
-		while (x < 8 && dir_sep[x] && dir_sep[x] != '.') {
+		while (x < 8 && *dir_sep && *dir_sep != '.') {
 			filename[x++] = *(dir_sep++);
 		}
 		if (*dir_sep == '.') {
 			x = 0;
 			++dir_sep;
-			while (x < 3 && dir_sep[x]) {
+			while (x < 3 && *dir_sep) {
 				filext[x++] = *(dir_sep++);
 			}
 		}
@@ -740,17 +740,17 @@ int fat32_create(struct fat32_disk *dsk, char *fpath, uint8_t attribute)
 			free(de);
 			return -1;
 		}
-	// read in first sector, init parameters
+	// init parameters
 		dir_cluster = de->start_cluster;
 		dir_secno   = 0;
-		dir_idx     = 0;
-		if (data_region_sector_op(dsk, dir_cluster, dir_secno, secbuf, 0)) {
-			free(de);
-			return -1;
-		}
 	// find slot for it
 		found = 0;
 		while (!found) {
+			// read directory sector
+			if (data_region_sector_op(dsk, dir_cluster, dir_secno, secbuf, 0)) {
+				free(de);
+				return -1;
+			}
 			// iterate over all dirents in this sector looking for 0xE5 or 0x00, break when found
 			for (dir_idx = 0; dir_idx <  512 / 32; dir_idx++) {
 				if (secbuf[dir_idx * 32] == 0xE5 || !secbuf[dir_idx * 32]) {
@@ -761,17 +761,13 @@ int fat32_create(struct fat32_disk *dsk, char *fpath, uint8_t attribute)
 			if (!found) {
 				// if another sector move to it and read it in, reset parameters
 				dir_secno += 1;
-				if (dir_secno < dsk->vbr.sectors_per_cluster) {
-					// read next sector
-					if (data_region_sector_op(dsk, dir_cluster, dir_secno, secbuf, 0)) {
-						free(de);
-						return -1;
-					}
-				} else {
-					// if not append cluster, the reset parameters
+				if (dir_secno >= dsk->vbr.sectors_per_cluster) {
+					// advance cluster, append as necessary
 					dir_secno = 0;
-					dir_cluster = append_new_cluster(dsk, de->start_cluster);
-					memset(secbuf, 0, 512);
+					dir_cluster = next_cluster(dsk, dir_cluster);
+					if (dir_cluster >= FAT32_MAX_CLUSTER) {
+						dir_cluster = append_new_cluster(dsk, de->start_cluster);
+					}
 				}
 			}
 		}

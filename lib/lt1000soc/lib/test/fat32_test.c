@@ -85,6 +85,19 @@ int main(void)
 			printf("Read %u bytes from the file /INC/TOM.H [%s]\n", x, buf);
 		}
 
+		{
+			char fname[32];
+			for (x = 0; x < 64; x++) {
+				sprintf(fname, "/test%02d.txt", x);
+				printf("create '%s': %d\n", fname, fat32_create(dsk, fname, FAT32_F_ARC));
+				file = fat32_open(dsk, fname);
+				if (file) {
+					fat32_write(file, "contents", strlen("contents") + 1);
+					fat32_close(file);
+				}
+			}
+		}
+
 		walk_dir(dsk, "", 0);
 	
 		file = fat32_open(dsk, "/README.TXT");
