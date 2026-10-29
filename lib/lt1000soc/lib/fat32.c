@@ -945,6 +945,8 @@ write_top:
 		if (file->cur_cluster >= FAT32_MAX_CLUSTER) {
 			// append a new cluster if we are at the end of the file
 			file->cur_cluster = append_new_cluster(file->dsk, file->de->start_cluster);
+			// new clusters are zeroed by default
+			memset(file->secbuf, 0, 512);
 		} else {
 			// we moved to the next cluster so read in the first sector
 			if (data_region_sector_op(file->dsk, file->cur_cluster, file->sec_no, file->secbuf, 0)) {
@@ -957,8 +959,6 @@ write_top:
 			// buffered sector
 			file->de->file_size += (len > 512) ? 512 : len;
 			file->lendirty       = 1;
-			// new clusters are zeroed by default
-			memset(file->secbuf, 0, 512);
 			goto write_top;
 		}
 		// 4) if not return out of disk space error
