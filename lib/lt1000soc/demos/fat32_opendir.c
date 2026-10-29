@@ -53,9 +53,21 @@ int main(void)
 		printf("Data start: %u\n", dsk->data_region_sector);
 
 		fd = open("/TOM.TXT", O_RDWR|O_CREAT);
-		printf("open /TOM.TXT returned: %d\n", fd);
+		printf("open+create /TOM.TXT returned: %d\n", fd);
 		if (fd > 0) {
 			write(fd, "hello tom\n\r", strlen("hello tom\n\r") + 1);
+			close(fd);
+		}
+		fd = open("/TOM.TXT", O_RDWR);
+		printf("open /TOM.TXT returned: %d\n", fd);
+		if (fd > 0) {
+			char buf[128];
+			uint32_t x;
+
+			lseek(fd, 3, SEEK_SET);
+			memset(buf, 0, sizeof buf);
+			x = read(fd, buf, 128);
+			printf("Read %d bytes seeked by 3, [%s]\n", x, buf);
 			close(fd);
 		}
 		walk_dir(dsk, "", 0);
