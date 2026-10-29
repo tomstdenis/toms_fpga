@@ -338,6 +338,16 @@ int _close(int fd) {
     return -1;
 }
 
+int _unlink(const char *path) {
+	if (f32_dsk == NULL) {
+		f32_dsk = fat32_init_disk(0, 15);
+	}
+	if (f32_dsk) {
+		return fat32_unlink(f32_dsk, path);
+	}
+	return -1;
+}
+
 void _exit(int status) {
 	(void)status;
 

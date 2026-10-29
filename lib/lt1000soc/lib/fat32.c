@@ -695,9 +695,17 @@ int fat32_unlink(struct fat32_disk *dsk, char *fpath)
 struct fat32_file *fat32_open(struct fat32_disk *dsk, char *fpath)
 {
 	struct fat32_file *file;
+	char path[512];
+	uint32_t x;
 	
 	if (!dsk || !fpath) {
 		return NULL;
+	}
+
+	// store path convert to upper for convenience
+	memset(path, 0, sizeof path);
+	for (x = 0; fpath[x] && x < (sizeof(path) - 1); x++) {
+		path[x] = toupper(fpath[x]);
 	}
 	
 #ifdef LT1000_BIOS
@@ -711,7 +719,7 @@ struct fat32_file *fat32_open(struct fat32_disk *dsk, char *fpath)
 		return NULL;
 	}
 	file->dsk = dsk;
-	file->de  = fat32_find_path(dsk, fpath, NULL);
+	file->de  = fat32_find_path(dsk, path, NULL);
 	if (!file->de) {
 		free(file);
 		return NULL;

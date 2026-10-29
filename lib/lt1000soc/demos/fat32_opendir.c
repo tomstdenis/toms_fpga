@@ -59,9 +59,10 @@ int main(void)
 			close(fd);
 		}
 		walk_dir(dsk, "", 0);
-		printf("fat32_unlink: %d, ", fat32_unlink(dsk, "/TOM.TXT"));
+		printf("unlink: %d, ", unlink("/TOM.TXT"));
 		printf("%d\n", fat32_errno);
-	
+		walk_dir(dsk, "", 0);
+
 		file = fat32_open(dsk, "/README.TXT");
 		printf("file == %p\n", file);
 		if (file) {
