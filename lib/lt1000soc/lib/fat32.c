@@ -101,7 +101,8 @@ static int data_region_sector_op(struct fat32_disk *dsk, uint32_t cluster, uint3
 static uint32_t next_free_cluster(struct fat32_disk *dsk)
 {
 #ifndef LT1000_BIOS
-	uint32_t cluster = 64;
+	static uint32_t starting_cluster = 0;
+	uint32_t cluster = starting_cluster ? starting_cluster : 2;
 	uint32_t fat_sector;
 	uint32_t byte_offset;
 	uint32_t raw_entry;
@@ -109,28 +110,41 @@ static uint32_t next_free_cluster(struct fat32_disk *dsk)
 
 	fat32_errno = 0;
 	for(;;) {
+		++cluster;
 		fat_sector = cluster >> 7;
 		if (fat_sector >= dsk->vbr.sectors_per_fat) {
-			return 0;
+			// didn't find one but did we start at a known free offset?
+			if (starting_cluster) {
+				starting_cluster = 0;
+				return next_free_cluster(dsk);
+			} else {
+				return 0;
+			}
 		}
 		fat_sector += dsk->fat_sector;
-		byte_offset = (cluster & 0x7F) * 4;
 
 		if (sd_sector_op(dsk->cs_sel, dsk->oper_div, fat_sector, secbuf, 0)) {
 			fat32_errno = FAT32_ERR_SEC_READ;
 			return 0; // Return EOC/Error
 		}
 		
-		// Read 32-bit little-endian entry
-		raw_entry = secbuf[byte_offset] | 
-				((uint32_t)secbuf[byte_offset + 1] << 8)  |
-				((uint32_t)secbuf[byte_offset + 2] << 16) | 
-				((uint32_t)secbuf[byte_offset + 3] << 24);
+		// scan over all of the entries in this sector
+		while (cluster & 0x7F) {
+			byte_offset = (cluster & 0x7F) * 4;
 
-		if (raw_entry == 0) {
-			return cluster;
+			// Read 32-bit little-endian entry
+			raw_entry = secbuf[byte_offset] | 
+					((uint32_t)secbuf[byte_offset + 1] << 8)  |
+					((uint32_t)secbuf[byte_offset + 2] << 16) | 
+					((uint32_t)secbuf[byte_offset + 3] << 24);
+
+			if (raw_entry == 0) {
+				// try starting at the next cluster next time around
+				starting_cluster = cluster;
+				return cluster;
+			}
+			++cluster;
 		}
-		++cluster;
 	};
 	return 0;
 #endif
