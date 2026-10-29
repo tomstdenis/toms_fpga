@@ -137,6 +137,10 @@ int main(void)
 			printf("Re-Read %u bytes from the file [%s]\n", x, buf);
 			fat32_close(file);
 		}
+		printf("unlink /INC == %d, ", fat32_unlink(dsk, "/INC"));
+        printf("fat32_errno=%d\n", fat32_errno);
+		printf("unlink /INC/FOO == %d, ", fat32_unlink(dsk, "/INC/FOO"));
+        printf("fat32_errno=%d\n", fat32_errno);
 		printf("unlink /INC/REGS.H == %d, ", fat32_unlink(dsk, "/INC/REGS.H"));
         printf("fat32_errno=%d\n", fat32_errno);
         printf("double unlink /INC/REGS.H == %d, ", fat32_unlink(dsk, "/INC/REGS.H"));

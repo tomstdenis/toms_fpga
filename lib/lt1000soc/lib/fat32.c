@@ -308,6 +308,45 @@ static uint32_t append_new_cluster(struct fat32_disk *dsk, uint32_t start_cluste
 #endif
 }
 
+static int is_emptydir(struct fat32_disk *dsk, uint32_t start_cluster)
+{
+	uint8_t secbuf[512];
+	uint32_t x, secno, first;
+
+	secno = 0;
+	first = 1; // first sector of first cluster skip the first two entries . and ..
+	for (;;) {
+		// read directory cluster in
+		if (data_region_sector_op(dsk, start_cluster, secno, secbuf, 0)) {
+			return -1;
+		}
+
+		// check all of the entries
+		for (x = 0; x < (512/32); x++) {
+			uint32_t y = 32 * x;
+			if ((first && x >= 2) || !first) {
+				if (!secbuf[y]) {
+					return 1;
+				}
+				if (secbuf[y] != 0xE5) {
+					return 0;
+				}
+			}
+		}
+		first = 0;
+		
+		// next sector
+		++secno;
+		if (secno == dsk->vbr.sectors_per_cluster) {
+			secno = 0;
+			start_cluster = next_cluster(dsk, start_cluster);
+			if (start_cluster >= FAT32_MAX_CLUSTER) {
+				return 1;
+			}
+		}
+	}
+}
+
 // --- exported library functions ---
 
 // initialize a disk by reading the MBR and configuring local params
@@ -612,16 +651,23 @@ int fat32_unlink(struct fat32_disk *dsk, char *fpath)
 	int r;
 	
 	// find the file
-	de = fat32_find_path(dsk, fpath, &di);
-	if (de == NULL) {
-		return -1;
-	}
+		de = fat32_find_path(dsk, fpath, &di);
+		if (de == NULL) {
+			return -1;
+		}
+
+	// if it's a directory is it empty?
+		if ((de->flags & FAT32_F_DIR) && !is_emptydir(dsk, de->start_cluster)) {
+			free(de);
+			fat32_errno = FAT32_ERR_INV_DIR_NOT_EMPTY;
+			return -1;
+		}
 
 	// hulk smash the clusters
-	cluster = de->start_cluster;
-	while (cluster < FAT32_MAX_CLUSTER) {
-		cluster = update_cluster(dsk, cluster, 0);
-	}
+		cluster = de->start_cluster;
+		while (cluster < FAT32_MAX_CLUSTER) {
+			cluster = update_cluster(dsk, cluster, 0);
+		}
 
 	// now debleatenated it from the directory itself
 		// read directory sector
