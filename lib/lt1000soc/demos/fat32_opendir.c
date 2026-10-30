@@ -39,6 +39,7 @@ int main(void)
 	} else {
 		struct fat32_file *file;
 		int fd;
+		uint32_t t1;
 
 		printf("Disk info:\n");
 		printf("Bytes per sector: %u\n", dsk->vbr.bytes_per_sector);
@@ -52,23 +53,37 @@ int main(void)
 		printf("FAT start: %u\n", dsk->fat_sector);
 		printf("Data start: %u\n", dsk->data_region_sector);
 
+		t1 = TIMER;
 		fd = open("/TOM.TXT", O_RDWR|O_CREAT);
-		printf("open+create /TOM.TXT returned: %d\n", fd);
+		t1 = TIMER - t1;
+		printf("open+create /TOM.TXT returned: %d (%lu cycles)\n", fd, t1);
 		if (fd > 0) {
-			write(fd, "hello tom\n\r", strlen("hello tom\n\r") + 1);
+			char buf[2048+1];
+			uint32_t x;
+
+			memset(buf, 'A', 2048);
+			buf[2048] = 0;
+			t1 = TIMER;
+			x = write(fd, buf, sizeof buf);
+			t1 = TIMER - t1;
+			printf("Wrote 2049 bytes to /TOM.TXT: %d (%lu cycles)\n", x, t1);
 			close(fd);
 		}
+		t1 = TIMER;
 		fd = open("/TOM.TXT", O_RDWR);
-		printf("open /TOM.TXT returned: %d\n", fd);
+		t1 = TIMER - t1;
+		printf("open /TOM.TXT returned: %d (%lu cycles)\n", fd, t1);
 		if (fd > 0) {
-			char buf[128];
+			char buf[2050];
 			uint32_t x;
 
 			printf("lseekd(fd, 5, SEEK_SET) == %d\n", lseek(fd, 5, SEEK_SET));
 			printf("lseek(fd, -2, SEEK_CUR) == %d\n", lseek(fd, -2, SEEK_CUR));
 			memset(buf, 0, sizeof buf);
-			x = read(fd, buf, 128);
-			printf("Read %d bytes seeked by 3, [%s]\n", x, buf);
+			t1 = TIMER;
+			x = read(fd, buf, sizeof(buf) - 1);
+			t1 = TIMER - t1;
+			printf("Read %d bytes seeked by 3, [%s], cycles=%lu\n", x, buf, t1);
 			close(fd);
 		}
 		walk_dir(dsk, "", 0);
