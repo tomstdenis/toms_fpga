@@ -7,15 +7,35 @@
 enum {
     KEY_UP = 0,
     KEY_DOWN,
-    KEY_LEFT,
     KEY_RIGHT,
+    KEY_LEFT,
     KEY_HOME,
     KEY_END,
     KEY_PGUP,
     KEY_PGDN,
     KEY_BS,
     KEY_TAB,
+    KEY_STAB,
+    KEY_INS,
+    KEY_DEL,
     KEY_ENTER,
+    KEY_CTRLC,
+    KEY_CTRLX,
+    KEY_CTRLK,
+    KEY_CTRLU,
+    KEY_CTRLW,
+    KEY_F1,
+    KEY_F2,
+    KEY_F3,
+    KEY_F4,
+    KEY_F5,
+    KEY_F6,
+    KEY_F7,
+    KEY_F8,
+    KEY_F9,
+    KEY_F10,
+    KEY_F11,
+    KEY_F12,
     KEY_LTR,
 } key_commands;
 
@@ -208,29 +228,104 @@ int create_editor(void)
 // do editor command
 static void cmd_editor(int key, int ch)
 {
+    int y;
+    struct line *el;
     printf("key == %d, ch == %x\n", key, ch);
+
+    y = editor.cursor.y;
+    el = editor.work;
+    while (y-- && el) {
+        el = el->next;
+    }
+
+    switch(key) {
+        case KEY_UP: // cursor up
+            if (editor.cursor.y) {
+                editor.cursor.y--;
+                if (el) {
+                    el = el->prev;
+                }
+            }
+            break;
+        case KEY_DOWN: // cursor down
+            if (el && el->next) {
+                editor.cursor.y++;
+                el = el->next;
+            }
+            break;
+        case KEY_LEFT: // cursor left
+            if (editor.cursor.x) {
+                editor.cursor.x--;
+            }
+            break;
+        case KEY_RIGHT: // cursor right
+            editor.cursor.x++;
+            break;
+        case KEY_LTR: // a letter
+            {
+                int at_end = 0;
+                if (el && el->len == editor.cursor.x) {
+                    at_end = 1;
+                }
+                line_insert_char_at(editor.cursor.x, editor.cursor.y, ch);
+                if (at_end) {
+                    editor.cursor.x++;
+                }
+            }
+            break;            
+    }
+
+    // TODO: snap cursor to text
+    if (el) {
+        if (editor.cursor.x > el->len) {
+            editor.cursor.x = el->len;
+        }
+    }
+
+    // sanity check
+    if (editor.cursor.x < 0) {
+        editor.cursor.x = 0;
+    }
+    if (editor.cursor.y < 0) {
+        editor.cursor.y = 0;
+    }
+
+    // TODO: snap viewport to cursor (e.g. if it's to the right or beneath the viewport)
 }
 
 // handle keyboardi input via serial
 const static struct {
     int pppch, ppch, pch, ch, key;
 } key_lut[] = {
+    { 0x1b, 0x5b, 0x32, 0x7e, KEY_INS   },
+    { 0x1b, 0x5b, 0x33, 0x7e, KEY_DEL   },
+    { 0x1b, 0x5b, 0x35, 0x7e, KEY_PGUP   },
+    { 0x1b, 0x5b, 0x36, 0x7e, KEY_PGDN   },
     { 0x00, 0x1b, 0x5b, 0x41, KEY_UP,    },
     { 0x00, 0x1b, 0x5b, 0x42, KEY_DOWN,  },
     { 0x00, 0x1b, 0x5b, 0x43, KEY_RIGHT, },
     { 0x00, 0x1b, 0x5b, 0x44, KEY_LEFT,  },
+    { 0x00, 0x1b, 0x5b, 0x46, KEY_END,   },
+    { 0x00, 0x1b, 0x5b, 0x48, KEY_HOME,  },
+    { 0x00, 0x1b, 0x5b, 0x5a, KEY_STAB,  },
+    { 0x00, 0x1b, 0x4f, 0x50, KEY_F1,  },
+    { 0x00, 0x1b, 0x4f, 0x51, KEY_F2,  },
+    { 0x00, 0x1b, 0x4f, 0x52, KEY_F3,  },
+    { 0x00, 0x1b, 0x4f, 0x53, KEY_F4,  },
 };
 
 static void kbd_handler(uint32_t data)
 {
-    static int pppch = 0, ppch = 0, pch = 0, ch = 0;
+    static int pppch = 0, ppch = 0, pch = 0, ch = 0, esc = 0;
     int x;
 
     pppch = ppch;
     ppch = pch;
     pch  = ch;
     ch = getch();
-    printf("%x\n", ch);
+    if (ch == 0x1b) {
+        esc = !esc;
+    }
     if (ch == 'q') {
         exit(0);
     }
@@ -242,9 +337,26 @@ static void kbd_handler(uint32_t data)
              pch == key_lut[x].pch &&
              ch == key_lut[x].ch) {
             cmd_editor(key_lut[x].key, ch);
+            render_editor();
+            esc = 0;
             return;
         }
     }
+
+    // nothing match so just dealing with ch
+    switch (ch) {
+        case '\t': cmd_editor(KEY_TAB, ch); break;
+        case 0xb: cmd_editor(KEY_CTRLK, ch); break;
+        case 0xd: cmd_editor(KEY_ENTER, ch); break;
+        case 0x7f: cmd_editor(KEY_BS, ch); break;
+        case 3: cmd_editor(KEY_CTRLC, ch); break;
+        case 0x18: cmd_editor(KEY_CTRLX, ch); break;
+        case 0x15: cmd_editor(KEY_CTRLU, ch); break;
+        case 0x17: cmd_editor(KEY_CTRLW, ch); break;
+        default: if (!esc) { cmd_editor(KEY_LTR, ch); } break;
+    }
+
+    render_editor();
 }
 
 int main(void) {
@@ -259,9 +371,9 @@ int main(void) {
     line_insert_char_at(0, 1, 'T');
     printf("first line == [%s]\n", editor.work->txt);
     printf("second time == [%s]\n", editor.work->next->txt);
+    render_editor();
     for (;;) {
-        render_editor();
-        gfx_vsync();
+        yield();
     }
     return 0;
 }

@@ -11,7 +11,7 @@ void txt_init(void)
 	txt_clrscr();
 }
 
-void txt_cursor(uint32_t x, uint32_t y, uint32_t col)
+TCM_FUNC(txt_cursor) void txt_cursor(uint32_t x, uint32_t y, uint32_t col)
 {
 	txt_x   = (x == 0xFFFFFFFF) ? txt_x : x;
 	txt_y   = (y == 0xFFFFFFFF) ? txt_y : y;
@@ -19,7 +19,7 @@ void txt_cursor(uint32_t x, uint32_t y, uint32_t col)
 }
 
 // clear back buffer
-void txt_clrscr(void)
+TCM_FUNC(txt_clrscr) void txt_clrscr(void)
 {
 	uint8_t *txt = (uint8_t*)VGA_ADDR;
 	uint32_t x;
@@ -31,7 +31,7 @@ void txt_clrscr(void)
 }
 
 // scroll screen
-void txt_scroll(void)
+TCM_FUNC(txt_scroll) void txt_scroll(void)
 {
 	uint8_t *txt = (uint8_t*)VGA_ADDR;
 	uint32_t x;
@@ -45,7 +45,7 @@ void txt_scroll(void)
 }
 
 // output char
-void txt_putc(char c)
+TCM_FUNC(txt_putc) void txt_putc(char c)
 {
 	// handle tab
 	if (c == '\t') {
@@ -94,7 +94,7 @@ void txt_putc(char c)
 	}
 }
 
-void txt_puts(char *s)
+TCM_FUNC(txt_puts) void txt_puts(char *s)
 {
 	while (*s) {
 		txt_putc(*s++);
