@@ -4,6 +4,21 @@
 #define VIEW_WIDTH  80
 #define VIEW_HEIGHT 47
 
+enum {
+    KEY_UP = 0,
+    KEY_DOWN,
+    KEY_LEFT,
+    KEY_RIGHT,
+    KEY_HOME,
+    KEY_END,
+    KEY_PGUP,
+    KEY_PGDN,
+    KEY_BS,
+    KEY_TAB,
+    KEY_ENTER,
+    KEY_LTR,
+} key_commands;
+
 struct line {
     char *txt;
     int size, len;
@@ -190,15 +205,63 @@ int create_editor(void)
     editor.work->size = 128;
 }
 
+// do editor command
+static void cmd_editor(int key, int ch)
+{
+    printf("key == %d, ch == %x\n", key, ch);
+}
+
+// handle keyboardi input via serial
+const static struct {
+    int pppch, ppch, pch, ch, key;
+} key_lut[] = {
+    { 0x00, 0x1b, 0x5b, 0x41, KEY_UP,    },
+    { 0x00, 0x1b, 0x5b, 0x42, KEY_DOWN,  },
+    { 0x00, 0x1b, 0x5b, 0x43, KEY_RIGHT, },
+    { 0x00, 0x1b, 0x5b, 0x44, KEY_LEFT,  },
+};
+
+static void kbd_handler(uint32_t data)
+{
+    static int pppch = 0, ppch = 0, pch = 0, ch = 0;
+    int x;
+
+    pppch = ppch;
+    ppch = pch;
+    pch  = ch;
+    ch = getch();
+    printf("%x\n", ch);
+    if (ch == 'q') {
+        exit(0);
+    }
+
+    // handle escape keys
+    for (x = 0; x < (sizeof(key_lut) / sizeof(key_lut[0])); x++) {
+        if ((key_lut[x].pppch == 0 || key_lut[x].pppch == pppch) && 
+             ppch == key_lut[x].ppch &&
+             pch == key_lut[x].pch &&
+             ch == key_lut[x].ch) {
+            cmd_editor(key_lut[x].key, ch);
+            return;
+        }
+    }
+}
+
 int main(void) {
+    char c;
     getch();
+    yield_init();
+    yield_sei();
+    yield_add_irq(YIELD_IRQ_UART_RX_READY, 0, 0, kbd_handler);
     create_editor();
     insert_line(0);
     line_insert_char_at(0, 0, 'H');
     line_insert_char_at(0, 1, 'T');
     printf("first line == [%s]\n", editor.work->txt);
     printf("second time == [%s]\n", editor.work->next->txt);
-    render_editor();
-    getch();
+    for (;;) {
+        render_editor();
+        gfx_vsync();
+    }
     return 0;
 }
