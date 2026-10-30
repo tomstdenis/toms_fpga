@@ -38,7 +38,7 @@ tcm_copy_loop:
 tcm_copy_done:
 
     /* 6. Jump to application main */
-    jal ra, main
+    jal ra, c_main
 
 	/* 7. Jump to BIOS ROM */
     lui     t0, 0x01000

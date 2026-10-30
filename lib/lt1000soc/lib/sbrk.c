@@ -184,6 +184,9 @@ static int _sd_close(int fd)
 	return 0;
 }
 
+// libc bindings for file operations
+static void atexit_helper(void);
+
 /*
  * Low-level write syscall for Newlib.
  * Handles stdout (1) and stderr (2) by forwarding characters to UART putch.
@@ -373,12 +376,25 @@ int _unlink(const char *path) {
 void _exit(int status) {
 	(void)status;
 
+	void (*bios_entry)(void) = (void (*)(void))0x01000000;
+	bios_entry();
+}	
+
+static void atexit_helper(void)
+{
 	// close all files if any
 	int x;
 	for (x = FD_RESV; x < (FD_RESV + MAX_FILES); x++) {
 		_close(x);
 	}
+}
 
-	void (*bios_entry)(void) = (void (*)(void))0x01000000;
-	bios_entry();
-}	
+// setup C env and then ensure we close files on exit
+void c_main(void)
+{
+	int r;
+	atexit(atexit_helper);
+	r = main();
+	atexit_helper();
+	_exit(r);
+}
