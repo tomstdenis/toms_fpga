@@ -28,9 +28,18 @@ int walk_dir(struct fat32_disk *dsk, char *name, uint32_t cluster)
 	free(di);
 }		
 
+void blink_gpio(uint32_t data)
+{
+	GPIO_W1T = 1;
+}
+
 int main(void)
 {
 	struct fat32_disk *dsk;
+	GPIO_OE = 1;
+	yield_init();
+	yield_sei();
+	yield_add_irq(YIELD_IRQ_TIMER, 500000 * yield_usec_to_cycles(), 0, blink_gpio);
 	getch();
 	
 	dsk = fat32_init_disk(0, 4);
