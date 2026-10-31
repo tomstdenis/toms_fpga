@@ -59,7 +59,8 @@ static struct {
 } editor;
 
 
-int walk_dir(struct fat32_disk *dsk, char *name, uint32_t cluster)
+// TODO: make this a bit more useful for an editor...
+static int walk_dir(struct fat32_disk *dsk, char *name, uint32_t cluster)
 {
 	char pathname[512];
 	struct fat32_dirent *di;
@@ -314,8 +315,6 @@ static int load_file(char *fname)
     fd = open(fname, O_RDWR);
     if (fd > 0) {
         struct line *el = editor.work;
-        printf("load fd==%d\n", fd);
-
         strcpy(editor.filename, fname);
         do {
             r = read(fd, &ch, 1);
@@ -354,7 +353,6 @@ static int load_file(char *fname)
             }
         } while (r == 1);
         close(fd);
-        printf("Read %d lines...\n", lines);
     } else {
         printf("Could not open file [%s], errno=%d\n", fname, fat32_errno);
     }
@@ -368,13 +366,9 @@ static int save_file(char *fname)
     if (fd > 0) {
         struct line *el = editor.work;
         strcpy(editor.filename, fname);
-        printf("save fd==%d\n", fd);
         while (el) {
             uint8_t ch = 13;
             x = write(fd, el->txt, el->len);
-            if (x != el->len) {
-                printf("Tried to write %d bytes but wrote %d instead...errno=%d\n", el->len, x, fat32_errno);
-            }
             if (el->next) {
                 write(fd, &ch, 1);
             }
@@ -382,9 +376,7 @@ static int save_file(char *fname)
             lines++;
         }
         close(fd);
-        printf("Wrote %d lines...\n", lines);
     }
-    walk_dir(f32_dsk, "", 0);
 }
 
 // do editor command
