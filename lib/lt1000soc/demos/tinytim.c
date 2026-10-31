@@ -1,8 +1,8 @@
 #include "lt1000.h"
 
 // viewport dimensions
-#define VIEW_WIDTH  80
-#define VIEW_HEIGHT 47
+#define VIEW_WIDTH  70
+#define VIEW_HEIGHT 45
 
 enum {
     KEY_UP = 0,
@@ -197,12 +197,21 @@ static void render_editor(void)
 
     // draw editor
     for (y = 0; y < VIEW_HEIGHT; y++) {
+        if (el) {
+            txt_cursor(0, y, 0x80 | 0x40 | 0x20);
+            txt_printf("%5d", y + editor.viewport.y);
+            txt_cursor(5, y, 0x70);
+            txt_putc(':');
+        } else {
+            txt_cursor(0, y, 0x70);
+            txt_printf("      ");
+        }
         for (x = 0; x < VIEW_WIDTH; x++) {
             // move txt cursor and set color based on editor cursor
             if ((blink < 8) && (editor.viewport.y + y == editor.cursor.y) && (editor.viewport.x + x == editor.cursor.x)) {
-                txt_cursor(x, y, 0x0F);
+                txt_cursor(x + 10, y, 0x0F);
             } else {
-                txt_cursor(x, y, 0x70);
+                txt_cursor(x + 10, y, 0x70);
             }
             // draw char
             if (el && (editor.viewport.x + x) < el->len) {
@@ -219,7 +228,7 @@ static void render_editor(void)
     }
 
     // write out status line
-    txt_cursor(0, VIEW_HEIGHT, 0x80 | 0x40 | 0x20); // bright yellow
+    txt_cursor(0, VIEW_HEIGHT+1, 0x80 | 0x40 | 0x20); // bright yellow
     txt_printf("%5d:%5d, %s", editor.cursor.x, editor.cursor.y, editor.filename);
 }
 
@@ -514,7 +523,8 @@ int main(void) {
     yield_add_irq(YIELD_IRQ_UART_RX_READY, 0, 0, kbd_handler);
     yield_add_irq(YIELD_IRQ_VBLANK, 0, 0, render_loop);
     create_editor();
-    render_editor();
+    txt_init();
+    txt_clrscr();
     for (;;) {
         yield();
     }
