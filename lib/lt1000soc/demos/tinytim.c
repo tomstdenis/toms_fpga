@@ -318,6 +318,7 @@ static void cmd_editor(int key, int ch)
             break;
         case KEY_ENTER: // enter
             insert_line(editor.cursor.x, editor.cursor.y);
+            el = el->next;
             editor.cursor.y++;
             editor.cursor.x = 0;
             break;
@@ -384,7 +385,7 @@ static void cmd_editor(int key, int ch)
             break;            
     }
 
-    // TODO: snap cursor to text
+    // snap cursor to text
     if (el) {
         if (editor.cursor.x > el->len) {
             editor.cursor.x = el->len;
@@ -399,7 +400,32 @@ static void cmd_editor(int key, int ch)
         editor.cursor.y = 0;
     }
 
-    // TODO: snap viewport to cursor (e.g. if it's to the right or beneath the viewport)
+    // snap viewport to cursor (e.g. if it's to the right or beneath the viewport)
+    if (editor.cursor.x < editor.viewport.x) {
+        // if the cursor is to the left the viewport jump back 5 chars
+        editor.viewport.x = editor.cursor.x - 5;
+        if (editor.viewport.x < 0) {
+            editor.viewport.x = 0;
+        }
+    }
+
+    if (editor.cursor.x >= (editor.viewport.x + VIEW_WIDTH)) {
+        // cursor is to the right of the viewpot
+        editor.viewport.x = editor.cursor.x - VIEW_WIDTH + 1;
+    }
+
+    if (editor.cursor.y < editor.viewport.y) {
+        // if the cursor is above the viewport jump ahead 5 lines
+        editor.viewport.y = editor.cursor.y - 5;
+        if (editor.viewport.y < 0) {
+            editor.viewport.y = 0;
+        }
+    }
+
+    if (editor.cursor.y >= (editor.viewport.y + VIEW_HEIGHT)) {
+        // cursor is below the viewport
+        editor.viewport.y = editor.cursor.y - VIEW_HEIGHT + 1;
+    }
 }
 
 // handle keyboardi input via serial
@@ -475,18 +501,11 @@ static void render_loop(uint32_t data)
 }
 
 int main(void) {
-    char c;
-    getch();
     yield_init();
     yield_sei();
     yield_add_irq(YIELD_IRQ_UART_RX_READY, 0, 0, kbd_handler);
     yield_add_irq(YIELD_IRQ_VBLANK, 0, 0, render_loop);
     create_editor();
-    insert_line(0, 0);
-    line_insert_char_at(0, 0, 'H');
-    line_insert_char_at(0, 1, 'T');
-    printf("first line == [%s]\n", editor.work->txt);
-    printf("second time == [%s]\n", editor.work->next->txt);
     render_editor();
     for (;;) {
         yield();
