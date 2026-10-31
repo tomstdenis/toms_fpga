@@ -378,11 +378,12 @@ static void cmd_editor(int key, int ch)
                     at_end = 1;
                 }
                 line_insert_char_at(editor.cursor.x, editor.cursor.y, ch);
-                if (at_end) {
-                    editor.cursor.x++;
-                }
+                editor.cursor.x++;
             }
-            break;            
+            break;
+        case KEY_CTRLX: // ^X
+            exit(0);
+            break;     
     }
 
     // snap cursor to text
@@ -460,9 +461,6 @@ static void kbd_handler(uint32_t data)
     ch = getch();
     if (ch == 0x1b) {
         esc = !esc;
-    }
-    if (ch == 'q') {
-        exit(0);
     }
 
     // handle escape keys
