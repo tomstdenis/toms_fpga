@@ -223,7 +223,7 @@ static void render_editor(void)
             if (el && (editor.viewport.x + x) < el->len) {
                 txt_putc(el->txt[editor.viewport.x + x]);
             } else if (el && (editor.viewport.x + x) == el->len && (editor.viewport.y + y == editor.cursor.y)) {
-                txt_putc('`');
+                txt_putc(0x14);
             } else {
                 txt_putc(' ');
             }
@@ -274,51 +274,86 @@ void reset_editor(void)
     render_el = NULL;
 }
 
-int load_file(char *fname)
+static int load_file(char *fname)
 {
-    int fd, x, y, r;
+    int fd, r;
     uint8_t ch;
+
+    int lines = 0;
 
     reset_editor();
     fd = open(fname, O_RDWR);
     if (fd > 0) {
+        struct line *el = editor.work;
+        printf("load fd==%d\n", fd);
+
         strcpy(editor.filename, fname);
-        y = 0;
-        x = 0;
         do {
             r = read(fd, &ch, 1);
             if (r == 1) {
                 if (ch == 13) {
-                    insert_line(x, y);
-                    y += 1;
-                    x = 0;
+                    // move to next line
+                    el->next = calloc(1, sizeof *(el->next));
+                    if (el->next) {
+                        el->next->prev = el;
+                        el->next->txt  = calloc(128, sizeof *(el->next->txt));
+                        if (!el->next->txt) {
+                            // out of memory
+                            free(el->next);
+                            el->next = NULL;
+                            break;
+                        }
+                        el->next->size = 128;
+                        el = el->next;
+                    }
+                    lines++;
                 } else {
-                    line_insert_char_at(x++, y, ch);
+                    // add char to current line
+                    if (el->len == el->size) {
+                        // grow line
+                        void *tmp;
+                        tmp = realloc(el->txt, el->size + 128);
+                        if (tmp) {
+                            el->txt = tmp;
+                            el->size += 128;
+                        } else {
+                            break;
+                        }
+                    }
+                    el->txt[(el->len)++] = ch;
                 }
             }
         } while (r == 1);
         close(fd);
+        printf("Read %d lines...\n", lines);
     } else {
         printf("Could not open file [%s], errno=%d\n", fname, fat32_errno);
     }
 }
 
-int save_file(char *fname)
+static int save_file(char *fname)
 {
     int fd, x;
+    int lines = 0;
     fd = open(fname, O_CREAT|O_TRUNC);
     if (fd > 0) {
         struct line *el = editor.work;
         strcpy(editor.filename, fname);
+        printf("save fd==%d\n", fd);
         while (el) {
             uint8_t ch = 13;
-            write(fd, el->txt, el->len);
+            x = write(fd, el->txt, el->len);
+            if (x != el->len) {
+                printf("Tried to write %d bytes but wrote %d instead...errno=%d\n", el->len, x, fat32_errno);
+            }
             if (el->next) {
                 write(fd, &ch, 1);
             }
             el = el->next;
+            lines++;
         }
         close(fd);
+        printf("Wrote %d lines...\n", lines);
     }
 }
 
@@ -606,7 +641,6 @@ int main(void) {
     create_editor();
     txt_init();
     txt_clrscr();
-    load_file("/README.TXT");
     render_editor();
     for (;;) {
         yield();
