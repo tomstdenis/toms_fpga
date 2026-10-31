@@ -144,3 +144,29 @@ void txt_printf(const char *fmt, ...)
 	txt_vprintf(fmt, args);
 	va_end(args);
 }
+
+TCM_FUNC(txt_puts_dec) void txt_puts_dec(uint32_t v, int len)
+{
+	const char *dec = "0123456789";
+	char buf[16];
+	int x, y;
+	
+	x = 0;
+	while (v) {
+		buf[x++] = dec[v%10];
+		v /= 10;
+	}
+	if (!x) {
+		while (len-- != 1) {
+			txt_putc(' ');
+		}
+		txt_putc('0');
+	} else {
+		while (len-- != (x)) {
+			txt_putc(' ');
+		}
+		while (x) {
+			txt_putc(buf[--x]);
+		}
+	}	
+}

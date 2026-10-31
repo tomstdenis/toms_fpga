@@ -199,12 +199,16 @@ static void render_editor(void)
     for (y = 0; y < VIEW_HEIGHT; y++) {
         if (el) {
             txt_cursor(0, y, 0x80 | 0x40 | 0x20);
-            txt_printf("%5d", y + editor.viewport.y);
+            txt_puts_dec(y + editor.viewport.y, 5);
             txt_cursor(5, y, 0x70);
             txt_putc(':');
         } else {
+            int z;
             txt_cursor(0, y, 0x70);
-            txt_printf("      ");
+            z = 6;
+            while (z--) {
+                txt_putc(' ');
+            }
         }
         for (x = 0; x < VIEW_WIDTH; x++) {
             // move txt cursor and set color based on editor cursor
@@ -229,7 +233,11 @@ static void render_editor(void)
 
     // write out status line
     txt_cursor(0, VIEW_HEIGHT+1, 0x80 | 0x40 | 0x20); // bright yellow
-    txt_printf("%5d:%5d, %s", editor.cursor.x, editor.cursor.y, editor.filename);
+    txt_puts_dec(editor.cursor.x, 5);
+    txt_putc(':');
+    txt_puts_dec(editor.cursor.y, 5);
+    txt_puts(", ");
+    txt_puts(editor.filename);
 }
 
 int create_editor(void)
