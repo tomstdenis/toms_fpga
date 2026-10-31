@@ -262,6 +262,43 @@ static void cmd_editor(int key, int ch)
                 editor.cursor.x--;
             }
             break;
+        case KEY_RIGHT: // cursor right
+            editor.cursor.x++;
+            break;
+        case KEY_HOME: // home key
+            editor.cursor.x = 0;
+            break;
+        case KEY_END: // end key
+            if (el) {
+                editor.cursor.x = el->len;
+            }
+            break;
+        case KEY_PGUP: // page up
+            if (el) {
+                int z = 25;
+                // move up, upto 25 lines up
+                while (z-- && el->prev) {
+                    el = el->prev;
+                    editor.cursor.y -= 1;
+                }
+                if (editor.cursor.x > el->len) {
+                    editor.cursor.x = el->len;
+                }
+            }
+            break;
+        case KEY_PGDN: // page down
+            if (el) {
+                int z = 25;
+                // move up, upto 25 lines down
+                while (z-- && el->next) {
+                    el = el->next;
+                    editor.cursor.y += 1;
+                }
+                if (editor.cursor.x > el->len) {
+                    editor.cursor.x = el->len;
+                }
+            }
+            break;
         case KEY_ENTER: // enter
             insert_line(editor.cursor.x, editor.cursor.y);
             editor.cursor.y++;
@@ -315,9 +352,6 @@ static void cmd_editor(int key, int ch)
                     editor.cursor.x = oldplen;
                 }
             }
-            break;
-        case KEY_RIGHT: // cursor right
-            editor.cursor.x++;
             break;
         case KEY_LTR: // a letter
             {
