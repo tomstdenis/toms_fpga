@@ -24,6 +24,8 @@ enum {
     KEY_CTRLK,
     KEY_CTRLU,
     KEY_CTRLW,
+    KEY_CTRLO,
+    KEY_CTRLR,
     KEY_F1,
     KEY_F2,
     KEY_F3,
@@ -181,7 +183,7 @@ static void render_editor(void)
     struct line *el;
 
     blink += 1;
-    if (blink == 30) {
+    if (blink == 15) {
         blink = 0;
     }
     txt_cursor(0, 0, 0x70);
@@ -197,7 +199,7 @@ static void render_editor(void)
     for (y = 0; y < VIEW_HEIGHT; y++) {
         for (x = 0; x < VIEW_WIDTH; x++) {
             // move txt cursor and set color based on editor cursor
-            if ((blink < 15) && (editor.viewport.y + y == editor.cursor.y) && (editor.viewport.x + x == editor.cursor.x)) {
+            if ((blink < 8) && (editor.viewport.y + y == editor.cursor.y) && (editor.viewport.x + x == editor.cursor.x)) {
                 txt_cursor(x, y, 0x0F);
             } else {
                 txt_cursor(x, y, 0x70);
@@ -238,30 +240,31 @@ int create_editor(void)
 }
 
 // do editor command
+static struct line *render_el = NULL;
 static void cmd_editor(int key, int ch)
 {
-    int y;
-    struct line *el;
-
-    y = editor.cursor.y;
-    el = editor.work;
-    while (y-- && el) {
-        el = el->next;
+    if (!render_el) {
+        int y;
+        y = editor.cursor.y;
+        render_el = editor.work;
+        while (y-- && render_el) {
+            render_el = render_el->next;
+        }
     }
 
     switch(key) {
         case KEY_UP: // cursor up
             if (editor.cursor.y) {
                 editor.cursor.y--;
-                if (el) {
-                    el = el->prev;
+                if (render_el) {
+                    render_el = render_el->prev;
                 }
             }
             break;
         case KEY_DOWN: // cursor down
-            if (el && el->next) {
+            if (render_el && render_el->next) {
                 editor.cursor.y++;
-                el = el->next;
+                render_el = render_el->next;
             }
             break;
         case KEY_LEFT: // cursor left
@@ -276,39 +279,39 @@ static void cmd_editor(int key, int ch)
             editor.cursor.x = 0;
             break;
         case KEY_END: // end key
-            if (el) {
-                editor.cursor.x = el->len;
+            if (render_el) {
+                editor.cursor.x = render_el->len;
             }
             break;
         case KEY_PGUP: // page up
-            if (el) {
+            if (render_el) {
                 int z = 25;
                 // move up, upto 25 lines up
-                while (z-- && el->prev) {
-                    el = el->prev;
+                while (z-- && render_el->prev) {
+                    render_el = render_el->prev;
                     editor.cursor.y -= 1;
                 }
-                if (editor.cursor.x > el->len) {
-                    editor.cursor.x = el->len;
+                if (editor.cursor.x > render_el->len) {
+                    editor.cursor.x = render_el->len;
                 }
             }
             break;
         case KEY_PGDN: // page down
-            if (el) {
+            if (render_el) {
                 int z = 25;
                 // move up, upto 25 lines down
-                while (z-- && el->next) {
-                    el = el->next;
+                while (z-- && render_el->next) {
+                    render_el = render_el->next;
                     editor.cursor.y += 1;
                 }
-                if (editor.cursor.x > el->len) {
-                    editor.cursor.x = el->len;
+                if (editor.cursor.x > render_el->len) {
+                    editor.cursor.x = render_el->len;
                 }
             }
             break;
         case KEY_TAB: // tab == 4 spaces
         {
-            int atend = el ? (editor.cursor.x == el->len) : 0;
+            int atend = render_el ? (editor.cursor.x == render_el->len) : 0;
             line_insert_char_at(editor.cursor.x, editor.cursor.y, ' ');
             line_insert_char_at(editor.cursor.x, editor.cursor.y, ' ');
             line_insert_char_at(editor.cursor.x, editor.cursor.y, ' ');
@@ -318,54 +321,58 @@ static void cmd_editor(int key, int ch)
             break;
         case KEY_ENTER: // enter
             insert_line(editor.cursor.x, editor.cursor.y);
-            el = el->next;
+            render_el = render_el->next;
             editor.cursor.y++;
             editor.cursor.x = 0;
             break;
         case KEY_DEL: // delete
-            if (el) {
-                if (editor.cursor.x == el->len) {
+            if (render_el) {
+                if (editor.cursor.x == render_el->len) {
                     // bring the previous line up to the cursor
-                    if (el->next) {
-                        void *tmp = realloc(el->txt, el->size + el->next->len + 128);
+                    if (render_el->next) {
+                        void *tmp = realloc(render_el->txt, render_el->size + render_el->next->len + 128);
                         if (tmp) {
-                            el->txt  = tmp;
-                            el->size = el->size + el->next->len + 128;
+                            render_el->txt  = tmp;
+                            render_el->size = render_el->size + render_el->next->len + 128;
                         }
-                        memcpy(el->txt + el->len, el->next->txt, el->next->len);
-                        el->len += el->next->len;
+                        memcpy(render_el->txt + render_el->len, render_el->next->txt, render_el->next->len);
+                        render_el->len += render_el->next->len;
                         delete_line(editor.cursor.y + 1);
                     }
                 } else {
                     // delete the char at the cursor
-                    memmove(el->txt + editor.cursor.x, el->txt + editor.cursor.x + 1, el->len - editor.cursor.x);
-                    el->len -= 1;
+                    memmove(render_el->txt + editor.cursor.x,
+                            render_el->txt + editor.cursor.x + 1,
+                            render_el->len - editor.cursor.x);
+                    render_el->len -= 1;
                 }
             }
             break;
         case KEY_BS: // backspace
             if (editor.cursor.x) {
                 // delete char to the left of the cursor
-                memmove(el->txt + editor.cursor.x - 1, el->txt + editor.cursor.x, el->len - editor.cursor.x);
-                el->len -= 1;
+                memmove(render_el->txt + editor.cursor.x - 1,
+                        render_el->txt + editor.cursor.x,
+                        render_el->len - editor.cursor.x);
+                render_el->len -= 1;
                 editor.cursor.x -= 1;
             } else {
                 // at start of line delete line
-                if (el && el->prev) {
-                    int oldplen = el->prev->len;
+                if (render_el && render_el->prev) {
+                    int oldplen = render_el->prev->len;
                     // append the current line to the end of the previous line
-                    if (el->prev->size < (el->prev->len + el->len)) {
+                    if (render_el->prev->size < (render_el->prev->len + render_el->len)) {
                         void *tmp;
-                        tmp = realloc(el->prev->txt, el->prev->size + el->len + 128);
+                        tmp = realloc(render_el->prev->txt, render_el->prev->size + render_el->len + 128);
                         if (!tmp) return;
-                        el->prev->txt = tmp;
+                        render_el->prev->txt = tmp;
                     }
-                        el->prev->size = el->prev->size + el->len + 128;
-                        memcpy(el->prev->txt + el->prev->len, el->txt, el->len);
-                        el->prev->len += el->len;
+                        render_el->prev->size = render_el->prev->size + render_el->len + 128;
+                        memcpy(render_el->prev->txt + render_el->prev->len, render_el->txt, render_el->len);
+                        render_el->prev->len += render_el->len;
 
                     // delete the line
-                    el = el->prev;
+                    render_el = render_el->prev;
                     delete_line(editor.cursor.y--);
                     editor.cursor.x = oldplen;
                 }
@@ -374,7 +381,7 @@ static void cmd_editor(int key, int ch)
         case KEY_LTR: // a letter
             {
                 int at_end = 0;
-                if (el && el->len == editor.cursor.x) {
+                if (render_el && render_el->len == editor.cursor.x) {
                     at_end = 1;
                 }
                 line_insert_char_at(editor.cursor.x, editor.cursor.y, ch);
@@ -387,9 +394,9 @@ static void cmd_editor(int key, int ch)
     }
 
     // snap cursor to text
-    if (el) {
-        if (editor.cursor.x > el->len) {
-            editor.cursor.x = el->len;
+    if (render_el) {
+        if (editor.cursor.x > render_el->len) {
+            editor.cursor.x = render_el->len;
         }
     }
 
@@ -462,6 +469,7 @@ static void kbd_handler(uint32_t data)
     if (ch == 0x1b) {
         esc = !esc;
     }
+//    printf("ch == %x\n", ch);
 
     // handle escape keys
     for (x = 0; x < (sizeof(key_lut) / sizeof(key_lut[0])); x++) {
@@ -480,11 +488,13 @@ static void kbd_handler(uint32_t data)
         case '\t': cmd_editor(KEY_TAB, ch); break;
         case 0xb: cmd_editor(KEY_CTRLK, ch); break;
         case 0xd: cmd_editor(KEY_ENTER, ch); break;
+        case 0xf: cmd_editor(KEY_CTRLO, ch); break;
         case 0x7f: cmd_editor(KEY_BS, ch); break;
         case 3: cmd_editor(KEY_CTRLC, ch); break;
-        case 0x18: cmd_editor(KEY_CTRLX, ch); break;
+        case 0x12: cmd_editor(KEY_CTRLR, ch); break;
         case 0x15: cmd_editor(KEY_CTRLU, ch); break;
         case 0x17: cmd_editor(KEY_CTRLW, ch); break;
+        case 0x18: cmd_editor(KEY_CTRLX, ch); break;
         default: if (!esc) { cmd_editor(KEY_LTR, ch); } break;
     }
 }
