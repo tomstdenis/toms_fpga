@@ -47,6 +47,11 @@ static struct fat32_dirent_raw bios_de_raw;
 static struct fat32_file       bios_file;
 
 // local copies of functions to avoid importing too much from newlib
+void fat32_flush_cache(void)
+{
+}
+
+#define cached_sd_sector_op(sel, div, sector, buf, op) sd_sector_op(sel, div, sector, buf, op)
 
 #define free bios_free
 static void bios_free(void *) {}
@@ -80,6 +85,108 @@ static int bios_strcmp(char *str1, char *str2)
 	}
 	return 0;
 }
+
+#else
+
+#define CACHE_SECTORS 32
+
+struct cached_sector {
+	int valid, dirty;
+	uint32_t secno;
+	uint8_t buf[512];
+};
+
+static struct cached_sector **cache = NULL;
+
+void fat32_flush_cache(void)
+{
+	uint32_t x;
+	if (cache) {
+		for (x = 0; x < CACHE_SECTORS; x++) {
+			if (cache[x]->valid && cache[x]->dirty) {
+				sd_sector_op(0, 1, cache[x]->secno, cache[x]->buf, 1);
+			}
+			free(cache[x]);
+		}
+		free(cache);
+	}
+	cache = NULL;
+}
+
+static int cached_sd_sector_op(int sel, int div, uint32_t sector, uint8_t *buf, int op)
+{
+	uint32_t x, y;
+	void *tmp;
+	if (cache == NULL) {
+		cache = calloc(CACHE_SECTORS, sizeof *cache);
+		if (cache) {
+			for (x = 0; x < CACHE_SECTORS; x++) {
+				cache[x] = calloc(1, sizeof **cache);
+				if (!cache[x]) {
+					for (y = 0; y < x; y++) {
+						free(cache[x]);
+					}
+					free(cache);
+					cache = NULL;
+				}
+			}
+		} else {
+			return sd_sector_op(sel, div, sector, buf, op);
+		}
+	}
+
+	// try to find sector in cache
+	for (x = 0; x < CACHE_SECTORS; x++) {
+		if (cache[x]->valid && cache[x]->secno == sector) {
+			// move to front
+			if (x) {
+				tmp = cache[x];
+				// move from 0..x-1 into 1..x
+				memmove(&cache[1], &cache[0], x * sizeof(*cache));
+				cache[0] = tmp;
+				x = 0;
+			}
+			goto do_op;
+		}
+	}
+
+	// try to find an empty sector
+	for (x = 0; x < CACHE_SECTORS; x++) {
+		if (cache[x]->valid == 0) {
+			goto load_sector;
+		}
+	}
+
+	// no empty slots so let's evict the last entry
+	x = CACHE_SECTORS - 1;
+	if (cache[CACHE_SECTORS-1]->dirty) {
+		y = sd_sector_op(sel, div, cache[x]->secno, cache[x]->buf, 1);
+		if (y) {
+			return y;
+		}
+	}
+
+load_sector:
+	if (!op) {
+		// prep sector if we're reading
+		y = sd_sector_op(sel, div, sector, cache[x]->buf, 0);
+		if (y) {
+			return y;
+		}
+	}
+	cache[x]->dirty = 0;
+	cache[x]->valid = 1;
+	cache[x]->secno = sector;
+do_op:
+	// do sector op in cache
+	if (op) {
+		memcpy(cache[x]->buf, buf, 512);
+		cache[x]->dirty = 1;
+	} else {
+		memcpy(buf, cache[x]->buf, 512);
+	}
+	return 0;
+}
 #endif
 
 int fat32_errno;
@@ -96,7 +203,7 @@ static int data_region_sector_op(struct fat32_disk *dsk, uint32_t cluster, uint3
 	}
 	
 	sec = dsk->data_region_sector + (cluster - 2) * dsk->vbr.sectors_per_cluster + sec_no;
-	if (sd_sector_op(dsk->cs_sel, dsk->oper_div, sec, dst, op)) {
+	if (cached_sd_sector_op(dsk->cs_sel, dsk->oper_div, sec, dst, op)) {
 		fat32_errno = op ? FAT32_ERR_SEC_WRITE : FAT32_ERR_SEC_READ;
 		return -1;
 	}
@@ -129,7 +236,7 @@ static uint32_t next_free_cluster(struct fat32_disk *dsk)
 		}
 		fat_sector += dsk->fat_sector;
 
-		if (sd_sector_op(dsk->cs_sel, dsk->oper_div, fat_sector, secbuf, 0)) {
+		if (cached_sd_sector_op(dsk->cs_sel, dsk->oper_div, fat_sector, secbuf, 0)) {
 			fat32_errno = FAT32_ERR_SEC_READ;
 			return 0; // Return EOC/Error
 		}
@@ -180,7 +287,7 @@ static uint32_t next_cluster(struct fat32_disk *dsk, uint32_t cluster)
 	fat_sector += dsk->fat_sector;
 	byte_offset = (cluster & 0x7F) * 4;
 	
-	if (sd_sector_op(dsk->cs_sel, dsk->oper_div, fat_sector, secbuf, 0)) {
+	if (cached_sd_sector_op(dsk->cs_sel, dsk->oper_div, fat_sector, secbuf, 0)) {
 		fat32_errno = FAT32_ERR_SEC_READ;
 		return 0x0FFFFFFF; // Return EOC/Error
 	}
@@ -225,7 +332,7 @@ static uint32_t update_cluster(struct fat32_disk *dsk, uint32_t cluster, uint32_
 
 	for (n_fat = 0; n_fat < dsk->vbr.number_of_fats; n_fat++) {
 		// read sector in
-		if (sd_sector_op(dsk->cs_sel, dsk->oper_div, fat_sector, secbuf, 0)) {
+		if (cached_sd_sector_op(dsk->cs_sel, dsk->oper_div, fat_sector, secbuf, 0)) {
 			fat32_errno = FAT32_ERR_SEC_READ;
 			return 0;
 		}
@@ -246,7 +353,7 @@ static uint32_t update_cluster(struct fat32_disk *dsk, uint32_t cluster, uint32_
 		secbuf[byte_offset+3] = (newvalue>>24) & 0xFF;
 
 		// write sector out
-		if (sd_sector_op(dsk->cs_sel, dsk->oper_div, fat_sector, secbuf, 1)) {
+		if (cached_sd_sector_op(dsk->cs_sel, dsk->oper_div, fat_sector, secbuf, 1)) {
 			fat32_errno = FAT32_ERR_SEC_WRITE;
 			return 0;
 		}
@@ -358,7 +465,7 @@ struct fat32_disk *fat32_init_disk(uint32_t cs_sel, uint32_t oper_div)
 	// there's no MBR when in HOSTPC mode so we skip over that
 #ifndef HOSTPC
 	// read MBR
-	if (sd_sector_op(cs_sel, oper_div, 0, secbuf, 0)) {
+	if (cached_sd_sector_op(cs_sel, oper_div, 0, secbuf, 0)) {
 		fat32_errno = FAT32_ERR_SEC_READ;
 		return NULL;
 	}
@@ -396,7 +503,7 @@ struct fat32_disk *fat32_init_disk(uint32_t cs_sel, uint32_t oper_div)
 #endif	
 
 	// now read VBR of partition 1
-	if (sd_sector_op(cs_sel, oper_div, dsk->lba_start, secbuf, 0)) {
+	if (cached_sd_sector_op(cs_sel, oper_div, dsk->lba_start, secbuf, 0)) {
 		fat32_errno = FAT32_ERR_SEC_READ;
 		free(dsk);
 		return NULL;
@@ -551,6 +658,7 @@ struct fat32_dirent_raw *fat32_find_path(struct fat32_disk *dsk, const char *pat
 	}
 
 	// handle trying to find root
+#ifndef LT1000_BIOS
 	if (path[0] == 0 || !strcmp(path, "/")) {
 		// this is kinda a special case for fat32_create(), not all fields are initialized
 		di = calloc(1, sizeof *di);
@@ -565,6 +673,7 @@ struct fat32_dirent_raw *fat32_find_path(struct fat32_disk *dsk, const char *pat
 		free(di);
 		return de;
 	}
+#endif
 
 top:
 	// skip any leading slashes

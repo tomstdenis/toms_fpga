@@ -309,8 +309,6 @@ static int load_file(char *fname)
     int fd, r;
     uint8_t ch;
 
-    int lines = 0;
-
     reset_editor();
     fd = open(fname, O_RDWR);
     if (fd > 0) {
@@ -319,7 +317,7 @@ static int load_file(char *fname)
         do {
             r = read(fd, &ch, 1);
             if (r == 1) {
-                if (ch == 13) {
+                if (ch == '\n') {
                     // move to next line
                     el->next = calloc(1, sizeof *(el->next));
                     if (el->next) {
@@ -334,7 +332,6 @@ static int load_file(char *fname)
                         el->next->size = 128;
                         el = el->next;
                     }
-                    lines++;
                 } else {
                     // add char to current line
                     if (el->len == el->size) {
@@ -362,12 +359,13 @@ static int save_file(char *fname)
 {
     int fd, x;
     int lines = 0;
+
     fd = open(fname, O_CREAT|O_TRUNC);
     if (fd > 0) {
         struct line *el = editor.work;
         strcpy(editor.filename, fname);
         while (el) {
-            uint8_t ch = 13;
+            uint8_t ch = '\n';
             x = write(fd, el->txt, el->len);
             if (el->next) {
                 write(fd, &ch, 1);

@@ -15,8 +15,6 @@ void main(void)
 	txt_gets(buf);
 	txt_cursor(0xFFFFFFFF, 0xFFFFFFFF, 0x70); // white
 	fprintf(stderr, "\nHello %s\n", buf);
-	delay_ms(2000);
-	return;
 	txt_clrscr();	
 	for (x = 0; x < 100; x++) {
 		fprintf(stderr, "line %d\n", x); fflush(stderr);

@@ -180,4 +180,5 @@ int main(void)
 		walk_dir(dsk, "", 0);
 	}
 	free(dsk);
+	fat32_flush_cache();
 }

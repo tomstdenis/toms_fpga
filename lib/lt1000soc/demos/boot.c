@@ -167,22 +167,24 @@ static void do_cd(struct fat32_disk *dsk, char *path, char *cmd)
 
 static void do_cat(struct fat32_disk *dsk, char *path, char *cmd)
 {
-	struct fat32_file *file;
+	int fd;
 	char newpath[1024];
 	
 	strcpy(newpath, path);
 	apply_path(newpath, cmd);
 
-	file = fat32_open(dsk, newpath);
-	if (file) {
-		char buf[80];
-		uint32_t x, y;
-		while ((x = fat32_read(file, buf, sizeof buf)) != 0) {
+	fd = open(newpath, O_RDWR);
+	if (fd > 0) {
+		int x, y;
+		while ((x = read(fd, newpath, sizeof newpath)) != 0) {
 			for (y = 0; y < x; y++) {
-				txt_putc(buf[y]);
+				txt_putc(newpath[y]);
+				if (newpath[y] == '\n') {
+					txt_putc('\r');
+				}
 			}
 		}
-		free(file);
+		close(fd);
 		txt_puts("\r\n");
 	} else {
 		txt_printf("File [%s] not found\r\n", newpath);

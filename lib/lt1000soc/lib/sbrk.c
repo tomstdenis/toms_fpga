@@ -387,6 +387,7 @@ static void atexit_helper(void)
 	for (x = FD_RESV; x < (FD_RESV + MAX_FILES); x++) {
 		_close(x);
 	}
+	fat32_flush_cache();
 }
 
 // setup C env and then ensure we close files on exit
