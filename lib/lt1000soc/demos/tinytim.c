@@ -181,7 +181,6 @@ static void render_editor(void)
 
     // clear scr
     txt_cursor(0, 0, 0x70);
-    txt_clrscr();
 
     // fine the line corresponding to editor.viewport.y
     el = editor.work;
@@ -212,7 +211,7 @@ static void render_editor(void)
     }
 
     // write out status line
-    txt_cursor(0, VIEW_HEIGHT, 0xF1);
+    txt_cursor(0, VIEW_HEIGHT+1, 0xF1);
     txt_printf("%d:%d, %s", editor.cursor.x, editor.cursor.y, editor.filename);
 }
 
@@ -236,7 +235,6 @@ static void cmd_editor(int key, int ch)
 {
     int y;
     struct line *el;
-    printf("key == %d, ch == %x\n", key, ch);
 
     y = editor.cursor.y;
     el = editor.work;
@@ -269,6 +267,27 @@ static void cmd_editor(int key, int ch)
             editor.cursor.y++;
             editor.cursor.x = 0;
             break;
+        case KEY_DEL: // delete
+            if (el) {
+                if (editor.cursor.x == el->len) {
+                    // bring the previous line up to the cursor
+                    if (el->next) {
+                        void *tmp = realloc(el->txt, el->size + el->next->len + 128);
+                        if (tmp) {
+                            el->txt  = tmp;
+                            el->size = el->size + el->next->len + 128;
+                        }
+                        memcpy(el->txt + el->len, el->next->txt, el->next->len);
+                        el->len += el->next->len;
+                        delete_line(editor.cursor.y + 1);
+                    }
+                } else {
+                    // delete the char at the cursor
+                    memmove(el->txt + editor.cursor.x, el->txt + editor.cursor.x + 1, el->len - editor.cursor.x);
+                    el->len -= 1;
+                }
+            }
+            break;
         case KEY_BS: // backspace
             if (editor.cursor.x) {
                 // delete char to the left of the cursor
@@ -278,6 +297,7 @@ static void cmd_editor(int key, int ch)
             } else {
                 // at start of line delete line
                 if (el && el->prev) {
+                    int oldplen = el->prev->len;
                     // append the current line to the end of the previous line
                     if (el->prev->size < (el->prev->len + el->len)) {
                         void *tmp;
@@ -292,7 +312,7 @@ static void cmd_editor(int key, int ch)
                     // delete the line
                     el = el->prev;
                     delete_line(editor.cursor.y--);
-                    editor.cursor.x = el->len;
+                    editor.cursor.x = oldplen;
                 }
             }
             break;
@@ -375,7 +395,6 @@ static void kbd_handler(uint32_t data)
              pch == key_lut[x].pch &&
              ch == key_lut[x].ch) {
             cmd_editor(key_lut[x].key, ch);
-            render_editor();
             esc = 0;
             return;
         }
@@ -393,8 +412,15 @@ static void kbd_handler(uint32_t data)
         case 0x17: cmd_editor(KEY_CTRLW, ch); break;
         default: if (!esc) { cmd_editor(KEY_LTR, ch); } break;
     }
+}
 
-    render_editor();
+static void render_loop(uint32_t data)
+{
+    static int half = 0;
+    half ^= 1;
+    if (half) {
+        render_editor();
+    }
 }
 
 int main(void) {
@@ -403,6 +429,7 @@ int main(void) {
     yield_init();
     yield_sei();
     yield_add_irq(YIELD_IRQ_UART_RX_READY, 0, 0, kbd_handler);
+    yield_add_irq(YIELD_IRQ_VBLANK, 0, 0, render_loop);
     create_editor();
     insert_line(0, 0);
     line_insert_char_at(0, 0, 'H');
