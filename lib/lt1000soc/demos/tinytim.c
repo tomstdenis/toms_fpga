@@ -58,6 +58,35 @@ static struct {
     } cursor;
 } editor;
 
+
+int walk_dir(struct fat32_disk *dsk, char *name, uint32_t cluster)
+{
+	char pathname[512];
+	struct fat32_dirent *di;
+	struct fat32_dirent_raw *de;
+	
+	di = fat32_opendir(dsk, cluster);
+	if (!di) {
+		printf("Could not open directory at cluster %u\n", cluster);
+		return -1;
+	}
+	
+	while ((de = fat32_readdir(di))) {
+		if (strcmp(de->filename, ".") && strcmp(de->filename, "..")) {
+			if (de->fileext[0]) {
+				sprintf(pathname, "%s/%s.%s", name, de->filename, de->fileext);
+			} else {
+				sprintf(pathname, "%s/%s", name, de->filename);
+			}
+			printf("%s, start=%u, size=%u, flags=%u\n", pathname, de->start_cluster, de->file_size, de->flags);
+			if (de->flags & FAT32_F_DIR) {
+				walk_dir(dsk, pathname, de->start_cluster);
+			}
+		}
+	}
+	free(di);
+}		
+
 static struct line *render_el = NULL;
 
 // insert a new line 
@@ -355,6 +384,7 @@ static int save_file(char *fname)
         close(fd);
         printf("Wrote %d lines...\n", lines);
     }
+    walk_dir(f32_dsk, "", 0);
 }
 
 // do editor command

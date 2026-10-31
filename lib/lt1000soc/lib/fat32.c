@@ -976,10 +976,6 @@ static uint32_t fat32_fileop(struct fat32_file *file, uint8_t *buf, uint32_t len
 	}
 
 write_top:
-	// if we're at the end of the file do nothing
-	if (file->cur_cluster >= FAT32_MAX_CLUSTER) {
-		return 0;
-	}
 	while (file->fpos != file->de->file_size && len) {
 		uint32_t cnt, secoff;
 		secoff = file->fpos & 511;
@@ -1046,7 +1042,7 @@ write_top:
 #ifndef LT1000_BIOS
 	if (op == 1 && len) {
 		// 1) can we just enlarge the file size to fill the current sector?  if so do that goto top
-		if ((file->cur_cluster == file->de->start_cluster && file->sec_no == 0 && file->fpos == 0) || (file->fpos & 511)) {
+		if (file->cur_cluster < FAT32_MAX_CLUSTER) {
 			// start of file
 			// we can write upto 512 - secoff to the current sector
 			uint32_t rem = (512 - (file->fpos & 511));
@@ -1054,44 +1050,19 @@ write_top:
 			file->lendirty       = 1;
 			goto write_top;
 		}
-		// at this point we're at a sector boundary and not the start of the file
-		// 2) If not can we move to the next sector in this cluster?  If so read it in, then goto top
-		file->sec_no += 1;
-		if (file->sec_no < file->dsk->vbr.sectors_per_cluster) {
-			// move to next sector in the cluster and enlarge filesize by sector or remaining
-			file->de->file_size += (len > 512) ? 512 : len;
-			file->lendirty       = 1;
-			// read in sector
-			if (data_region_sector_op(file->dsk, file->cur_cluster, file->sec_no, file->secbuf, 0)) {
-				fat32_errno = FAT32_ERR_SEC_READ;
-				return blen;
-			}
-			goto write_top;
-		}
-		// 3) if not move to the next cluster (appending as required)
-		// move to next cluster
-		file->sec_no      = 0;
-		file->cur_cluster = next_cluster(file->dsk, file->cur_cluster);
+		// 2) need to extend the file
 		if (file->cur_cluster >= FAT32_MAX_CLUSTER) {
 			// append a new cluster if we are at the end of the file
 			file->cur_cluster = append_new_cluster(file->dsk, file->de->start_cluster);
 			// new clusters are zeroed by default
 			memset(file->secbuf, 0, 512);
-		} else {
-			// we moved to the next cluster so read in the first sector
-			if (data_region_sector_op(file->dsk, file->cur_cluster, file->sec_no, file->secbuf, 0)) {
-				fat32_errno = FAT32_ERR_SEC_READ;
-				return blen;
-			}
-		}
-		if (file->cur_cluster < FAT32_MAX_CLUSTER) {
 			// this is sector based so we can only advance the file size by at most the current
 			// buffered sector
 			file->de->file_size += (len > 512) ? 512 : len;
 			file->lendirty       = 1;
 			goto write_top;
 		}
-		// 4) if not return out of disk space error
+		// 3) if not return out of disk space error
 		fat32_errno = FAT32_ERR_INV_OUT_OF_SPACE;
 	}
 #endif

@@ -63,6 +63,38 @@ int main(void)
 		printf("FAT start: %u\n", dsk->fat_sector);
 		printf("Data start: %u\n", dsk->data_region_sector);
 		
+		// test writing on sector boundaries
+		{
+			uint32_t x;
+			uint8_t sec[513];
+			x = fat32_create(dsk, "/SEC", FAT32_F_ARC, 0);
+			printf("create /SEC: %d\n", x);
+			file = fat32_open(dsk, "/SEC");
+			printf("open /SEC: %p\n", file);
+			if (file) {
+				memset(sec, 'A', 512); sec[512] = 0;
+				x = fat32_write(file, sec, 512);
+				printf("write sec: %d\n", x);
+				x = fat32_write(file, sec, 512);
+				printf("write sec2: %d\n", x);
+				x = fat32_write(file, sec, 512);
+				printf("write sec3: %d\n", x);
+				fat32_close(file);
+			}
+			file = fat32_open(dsk, "/SEC");
+			printf("open /SEC: %p\n", file);
+			if (file) {
+				uint8_t tmp[512];
+				x = fat32_read(file, tmp, 512);
+				printf("read tmp: %d, compare: %d\n", x, memcmp(tmp, sec, 512)); memset(tmp, 0, 512);
+				x = fat32_read(file, tmp, 512);
+				printf("read tmp: %d, compare: %d\n", x, memcmp(tmp, sec, 512)); memset(tmp, 0, 512);
+				x = fat32_read(file, tmp, 512);
+				printf("read tmp: %d, compare: %d\n", x, memcmp(tmp, sec, 512)); memset(tmp, 0, 512);
+				fat32_close(file);
+			}
+		}
+
 		uint32_t x;
 		x = fat32_create(dsk, "/INC/tom.H", FAT32_F_ARC, 0); // test case conversion
 		printf("fat32_create: == %d\n", x);

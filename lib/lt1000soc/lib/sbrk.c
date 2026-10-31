@@ -305,7 +305,7 @@ int _open(const char *path, int flags)
 		uint32_t x;
 		if (f32_dsk == NULL) {
 			// init disk system
-			f32_dsk = fat32_init_disk(0, 1);
+			f32_dsk = fat32_init_disk(0, 3);
 			if (!f32_dsk) {
 				return -1;
 			}
@@ -365,7 +365,7 @@ int _close(int fd) {
 
 int _unlink(const char *path) {
 	if (f32_dsk == NULL) {
-		f32_dsk = fat32_init_disk(0, 1);
+		f32_dsk = fat32_init_disk(0, 3);
 	}
 	if (f32_dsk) {
 		return fat32_unlink(f32_dsk, path);
