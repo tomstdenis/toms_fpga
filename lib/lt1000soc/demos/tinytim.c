@@ -58,6 +58,8 @@ static struct {
     } cursor;
 } editor;
 
+static struct line *render_el = NULL;
+
 // insert a new line 
 static int insert_blank_line_after(int x, struct line *el)
 {
@@ -256,8 +258,71 @@ int create_editor(void)
     editor.work->size = 128;
 }
 
+void reset_editor(void)
+{
+    struct line *el = editor.work->next, *tel;
+    // free all but the first line
+    while (el) {
+        tel = el->next;
+        free(el->txt);
+        free(el);
+        el = tel;
+    }
+    free(editor.work->txt);
+    free(editor.work);
+    create_editor();
+    render_el = NULL;
+}
+
+int load_file(char *fname)
+{
+    int fd, x, y, r;
+    uint8_t ch;
+
+    reset_editor();
+    fd = open(fname, O_RDWR);
+    if (fd > 0) {
+        strcpy(editor.filename, fname);
+        y = 0;
+        x = 0;
+        do {
+            r = read(fd, &ch, 1);
+            if (r == 1) {
+                if (ch == 13) {
+                    insert_line(x, y);
+                    y += 1;
+                    x = 0;
+                } else {
+                    line_insert_char_at(x++, y, ch);
+                }
+            }
+        } while (r == 1);
+        close(fd);
+    } else {
+        printf("Could not open file [%s], errno=%d\n", fname, fat32_errno);
+    }
+}
+
+int save_file(char *fname)
+{
+    int fd, x;
+    fd = open(fname, O_CREAT|O_TRUNC);
+    if (fd > 0) {
+        struct line *el = editor.work;
+        strcpy(editor.filename, fname);
+        while (el) {
+            uint8_t ch = 13;
+            write(fd, el->txt, el->len);
+            if (el->next) {
+                write(fd, &ch, 1);
+            }
+            el = el->next;
+        }
+        close(fd);
+    }
+}
+
 // do editor command
-static struct line *render_el = NULL;
 static void cmd_editor(int key, int ch)
 {
     if (!render_el) {
@@ -270,6 +335,14 @@ static void cmd_editor(int key, int ch)
     }
 
     switch(key) {
+        case KEY_CTRLO: // ^O (save)
+            save_file("/README.TXT");
+            break;
+
+        case KEY_CTRLR: // ^R (save)
+            load_file("/README.TXT");
+            break;
+
         case KEY_UP: // cursor up
             if (editor.cursor.y) {
                 editor.cursor.y--;
@@ -533,6 +606,8 @@ int main(void) {
     create_editor();
     txt_init();
     txt_clrscr();
+    load_file("/README.TXT");
+    render_editor();
     for (;;) {
         yield();
     }
