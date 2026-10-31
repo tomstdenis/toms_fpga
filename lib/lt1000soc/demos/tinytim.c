@@ -57,7 +57,7 @@ static struct {
 } editor;
 
 // insert a new line 
-static int insert_blank_line_after(struct line *el)
+static int insert_blank_line_after(int x, struct line *el)
 {
     struct line *tmp;
 
@@ -66,13 +66,18 @@ static int insert_blank_line_after(struct line *el)
     if (!tmp) {
         return -1;
     }
-    tmp->txt = calloc(128, sizeof *(tmp->txt));
+    tmp->txt = calloc(el->len - x + 128, sizeof *(tmp->txt));
     if (!tmp->txt) {
         free(tmp);
         return -1;
     }
-    tmp->size = 128;
+    tmp->size = el->len - x + 128;
+    tmp->len  = el->len - x;
     tmp->prev = el;
+
+    // copy from el from position x on
+    memcpy(tmp->txt, el->txt + x, el->len - x);
+    el->len = x ? x : 0;
 
     // move next time down
     if (el->next) {
@@ -84,8 +89,8 @@ static int insert_blank_line_after(struct line *el)
     return 0;
 }
 
-// insert a line at a given y
-static int insert_line(int y)
+// insert a line at a given x, y
+static int insert_line(int x, int y)
 {
     struct line *el, *tmp;
 
@@ -93,8 +98,7 @@ static int insert_line(int y)
     while (y-- && el->next) {
         el = el->next;
     }
-
-    return insert_blank_line_after(el);
+    return insert_blank_line_after(x, el);
 }
 
 // delete a line
@@ -191,13 +195,15 @@ static void render_editor(void)
         for (x = 0; x < VIEW_WIDTH; x++) {
             // move txt cursor and set color based on editor cursor
             if ((editor.viewport.y + y == editor.cursor.y) && (editor.viewport.x + x == editor.cursor.x)) {
-                txt_cursor(x, y+1, 0xF0);
+                txt_cursor(x, y+1, 0x0F);
             } else {
                 txt_cursor(x, y+1, 0x70);
             }
             // draw char
             if (el && (editor.viewport.x + x) < el->len) {
                 txt_putc(el->txt[editor.viewport.x + x]);
+            } else {
+                txt_putc(' ');
             }
         }
         if (el) {
@@ -256,6 +262,38 @@ static void cmd_editor(int key, int ch)
         case KEY_LEFT: // cursor left
             if (editor.cursor.x) {
                 editor.cursor.x--;
+            }
+            break;
+        case KEY_ENTER: // enter
+            insert_line(editor.cursor.x, editor.cursor.y);
+            editor.cursor.y++;
+            editor.cursor.x = 0;
+            break;
+        case KEY_BS: // backspace
+            if (editor.cursor.x) {
+                // delete char to the left of the cursor
+                memmove(el->txt + editor.cursor.x - 1, el->txt + editor.cursor.x, el->len - editor.cursor.x);
+                el->len -= 1;
+                editor.cursor.x -= 1;
+            } else {
+                // at start of line delete line
+                if (el && el->prev) {
+                    // append the current line to the end of the previous line
+                    if (el->prev->size < (el->prev->len + el->len)) {
+                        void *tmp;
+                        tmp = realloc(el->prev->txt, el->prev->size + el->len + 128);
+                        if (!tmp) return;
+                        el->prev->txt = tmp;
+                    }
+                        el->prev->size = el->prev->size + el->len + 128;
+                        memcpy(el->prev->txt + el->prev->len, el->txt, el->len);
+                        el->prev->len += el->len;
+
+                    // delete the line
+                    el = el->prev;
+                    delete_line(editor.cursor.y--);
+                    editor.cursor.x = el->len;
+                }
             }
             break;
         case KEY_RIGHT: // cursor right
@@ -366,7 +404,7 @@ int main(void) {
     yield_sei();
     yield_add_irq(YIELD_IRQ_UART_RX_READY, 0, 0, kbd_handler);
     create_editor();
-    insert_line(0);
+    insert_line(0, 0);
     line_insert_char_at(0, 0, 'H');
     line_insert_char_at(0, 1, 'T');
     printf("first line == [%s]\n", editor.work->txt);
