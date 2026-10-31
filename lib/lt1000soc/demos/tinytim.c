@@ -176,10 +176,14 @@ static int line_insert_char_at(int x, int y, char c)
 
 static void render_editor(void)
 {
+    static int blink = 0;
     int x, y;
     struct line *el;
 
-    // clear scr
+    blink += 1;
+    if (blink == 30) {
+        blink = 0;
+    }
     txt_cursor(0, 0, 0x70);
 
     // fine the line corresponding to editor.viewport.y
@@ -193,14 +197,16 @@ static void render_editor(void)
     for (y = 0; y < VIEW_HEIGHT; y++) {
         for (x = 0; x < VIEW_WIDTH; x++) {
             // move txt cursor and set color based on editor cursor
-            if ((editor.viewport.y + y == editor.cursor.y) && (editor.viewport.x + x == editor.cursor.x)) {
-                txt_cursor(x, y+1, 0x0F);
+            if ((blink < 15) && (editor.viewport.y + y == editor.cursor.y) && (editor.viewport.x + x == editor.cursor.x)) {
+                txt_cursor(x, y, 0x0F);
             } else {
-                txt_cursor(x, y+1, 0x70);
+                txt_cursor(x, y, 0x70);
             }
             // draw char
             if (el && (editor.viewport.x + x) < el->len) {
                 txt_putc(el->txt[editor.viewport.x + x]);
+            } else if (el && (editor.viewport.x + x) == el->len && (editor.viewport.y + y == editor.cursor.y)) {
+                txt_putc('`');
             } else {
                 txt_putc(' ');
             }
@@ -211,13 +217,14 @@ static void render_editor(void)
     }
 
     // write out status line
-    txt_cursor(0, VIEW_HEIGHT+1, 0xF1);
-    txt_printf("%d:%d, %s", editor.cursor.x, editor.cursor.y, editor.filename);
+    txt_cursor(0, VIEW_HEIGHT, 0x80 | 0x40 | 0x20); // bright yellow
+    txt_printf("%5d:%5d, %s", editor.cursor.x, editor.cursor.y, editor.filename);
 }
 
 int create_editor(void)
 {
     memset(&editor, 0, sizeof editor);
+    strcpy(editor.filename, "untitled");
     editor.work = calloc(1, sizeof *editor.work);
     if (!editor.work) {
         return -1;
@@ -298,6 +305,16 @@ static void cmd_editor(int key, int ch)
                     editor.cursor.x = el->len;
                 }
             }
+            break;
+        case KEY_TAB: // tab == 4 spaces
+        {
+            int atend = el ? (editor.cursor.x == el->len) : 0;
+            line_insert_char_at(editor.cursor.x, editor.cursor.y, ' ');
+            line_insert_char_at(editor.cursor.x, editor.cursor.y, ' ');
+            line_insert_char_at(editor.cursor.x, editor.cursor.y, ' ');
+            line_insert_char_at(editor.cursor.x, editor.cursor.y, ' ');
+            editor.cursor.x += atend ? 4 : 0;
+        }
             break;
         case KEY_ENTER: // enter
             insert_line(editor.cursor.x, editor.cursor.y);
