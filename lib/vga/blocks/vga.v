@@ -285,7 +285,13 @@ module vga
 	reg [3:0] x_cnt;
 	reg [3:0] y_cnt;
 
+	reg [7:0] vga_txt_colour;
+
 	always @(posedge vga_clk) begin
+		// latch text colour because we need to schedule colour changes with
+		// the 2 cycles it takes to look up font address then font bitmap
+		vga_txt_colour <= vga_symbol[15:8];
+
 		if (!rst_n || prev_mode != video_mode_l[1]) begin
 			vga_mem_addr <= 0;
 			x_cnt        <= 0;
@@ -393,16 +399,16 @@ module vga
 				// text mode uses upper 8 bits of vga_symbol as colour in the form of IRGBirgb foreground then background
 				if (text_out) begin
 					{vga_r, vga_g, vga_b} = { 
-                        vga_symbol[14], vga_symbol[15] & vga_symbol[14], vga_symbol[15] & vga_symbol[14], vga_symbol[15] & vga_symbol[14],
-                        vga_symbol[13], vga_symbol[15] & vga_symbol[13], vga_symbol[15] & vga_symbol[13], vga_symbol[15] & vga_symbol[13], 
-                        vga_symbol[12], vga_symbol[15] & vga_symbol[12], vga_symbol[15] & vga_symbol[12], vga_symbol[15] & vga_symbol[12]
+                        vga_txt_colour[6], vga_txt_colour[7] & vga_txt_colour[6], vga_txt_colour[7] & vga_txt_colour[6], vga_txt_colour[7] & vga_txt_colour[6],
+                        vga_txt_colour[5], vga_txt_colour[7] & vga_txt_colour[5], vga_txt_colour[7] & vga_txt_colour[5], vga_txt_colour[7] & vga_txt_colour[5],
+                        vga_txt_colour[4], vga_txt_colour[7] & vga_txt_colour[4], vga_txt_colour[7] & vga_txt_colour[4], vga_txt_colour[7] & vga_txt_colour[4]
                     };
 				end else begin
                     // background
 					{vga_r, vga_g, vga_b} = { 
-                        vga_symbol[10], vga_symbol[11] & vga_symbol[10], vga_symbol[11] & vga_symbol[10], vga_symbol[11] & vga_symbol[10], 
-                        vga_symbol[9],  vga_symbol[11] & vga_symbol[9],  vga_symbol[11] & vga_symbol[9],  vga_symbol[11] & vga_symbol[9], 
-                        vga_symbol[8],  vga_symbol[11] & vga_symbol[8],  vga_symbol[11] & vga_symbol[8],  vga_symbol[11] & vga_symbol[8]
+                        vga_txt_colour[2], vga_txt_colour[3] & vga_txt_colour[2], vga_txt_colour[3] & vga_txt_colour[2], vga_txt_colour[3] & vga_txt_colour[2],
+                        vga_txt_colour[1], vga_txt_colour[3] & vga_txt_colour[1], vga_txt_colour[3] & vga_txt_colour[1], vga_txt_colour[3] & vga_txt_colour[1],
+                        vga_txt_colour[0], vga_txt_colour[3] & vga_txt_colour[0], vga_txt_colour[3] & vga_txt_colour[0], vga_txt_colour[3] & vga_txt_colour[0]
                     };
                 end
 			end else begin
