@@ -28,21 +28,11 @@ TCM_FUNC(fsin) float fsin(float x)
     float t4 = fdiv(x9,  362880.0f);
     float t5 = fdiv(x11, 39916800.0f);
 
-//	printf("x,x2,3,5,7,9,11 == %e, %e, %e, %e, %e, %e, %e\n", x, x2, x3, x5, x7, x9, x11);
-//	printf("t1,2,3,4,5 == %e, %e, %e, %e, %e\n", t1, t2, t3, t4, t5);
-
- 
-    //printf("res = ");
     float res = fsub(x, t1);
-    //printf("%e, ", res);
     res = fadd(res, t2);
-    //printf("%e, ", res);
     res = fsub(res, t3);
-    //printf("%e, ", res);
     res = fadd(res, t4);
-    //printf("%e, ", res);
     res = fsub(res, t5);
-    //printf("%e\n", res);
     return res;
 }
 
@@ -118,7 +108,7 @@ void fpu_init_sin_lut(float *lut, int entries)
 {
     float step = fdiv(6.28318530f, (float)entries);
     for (int i = 0; i < entries; i++) {
-        float angle = fmul((float)i, step);
+        float angle = fmul(fldi(i), step);
         lut[i] = fsin(angle);
     }
 }
@@ -156,9 +146,9 @@ TCM_FUNC(flog2) float flog2(float x)
     // log2(m) = (2 / ln(2)) * s * (1 + s^2/3 + s^4/5 + s^6/7)
     // 2 / ln(2) ≈ 2.885390081777927
     // Horner's method for (1 + s2 * (1/3 + s2 * (1/5 + s2 * 1/7)))
-    float poly = fadd(0.14285714f, fmul(s2, 0.20f));         // 1/7 + s2 * 1/5
+    float poly = fadd(0.14285714f, fmul(s2, 0.20f));        // 1/7 + s2 * 1/5
     poly       = fadd(0.33333333f, fmul(s2, poly));         // 1/3 + s2 * poly
-    poly       = fadd(1.0f,         fmul(s2, poly));         // 1.0 + s2 * poly
+    poly       = fadd(1.0f,        fmul(s2, poly));         // 1.0 + s2 * poly
 
     float log2_m = fmul(fmul(s, 2.88539008f), poly);
 

@@ -128,6 +128,7 @@ static int cached_sd_sector_op(int sel, int div, uint32_t sector, uint8_t *buf, 
 					}
 					free(cache);
 					cache = NULL;
+					return sd_sector_op(sel, div, sector, buf, op);
 				}
 			}
 		} else {
