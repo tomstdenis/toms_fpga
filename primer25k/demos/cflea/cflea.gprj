@@ -7,10 +7,10 @@
     <FileList>
         <File path="/home/tom/nas/toms_fpga/lib/cf/cf.v" type="file.verilog" enable="1"/>
         <File path="/home/tom/nas/toms_fpga/lib/cf/cf_mca.v" type="file.verilog" enable="0"/>
+        <File path="/home/tom/nas/toms_fpga/lib/comms/uart/rx_uart.v" type="file.verilog" enable="1"/>
+        <File path="/home/tom/nas/toms_fpga/lib/comms/uart/tx_uart.v" type="file.verilog" enable="1"/>
+        <File path="/home/tom/nas/toms_fpga/lib/comms/uart/uart.v" type="file.verilog" enable="1"/>
         <File path="/home/tom/nas/toms_fpga/lib/math/serial_divide.v" type="file.verilog" enable="1"/>
-        <File path="/home/tom/nas/toms_fpga/lib/uart/blocks/rx_uart.sv" type="file.verilog" enable="1"/>
-        <File path="/home/tom/nas/toms_fpga/lib/uart/blocks/tx_uart.sv" type="file.verilog" enable="1"/>
-        <File path="/home/tom/nas/toms_fpga/lib/uart/blocks/uart.sv" type="file.verilog" enable="1"/>
         <File path="/home/tom/nas/toms_fpga/lib/vga/blocks/vga_text_driver.v" type="file.verilog" enable="1"/>
         <File path="/home/tom/nas/toms_fpga/lib/vga/blocks/vga_timing.v" type="file.verilog" enable="1"/>
         <File path="src/boot_rom/boot_rom.v" type="file.verilog" enable="1"/>
