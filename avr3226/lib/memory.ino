@@ -32,6 +32,7 @@ void spi_mem_end_cmd(int cs_pin)
 
 // also works as eeprom_read()
 // 23A1024 SRAM
+// read a block of memory into CPU memory
 void sram_read(int cs_pin, uint32_t address, uint8_t *dst, uint16_t len)
 {
   spi_mem_start_cmd(cs_pin, address, 0x03);
@@ -42,6 +43,7 @@ void sram_read(int cs_pin, uint32_t address, uint8_t *dst, uint16_t len)
 }
 #define eeprom_read sram_read
 
+// write CPU memory out to SPI SRAM memory 
 void sram_write(int cs_pin, uint32_t address, const uint8_t *src, uint16_t len)
 {
   spi_mem_start_cmd(cs_pin, address, 0x02);
@@ -52,6 +54,7 @@ void sram_write(int cs_pin, uint32_t address, const uint8_t *src, uint16_t len)
 }
 
 // 23CSM01 EEPROM
+// Wait for Write-in-progress
 void eeprom_wait_wip(int cs_pin)
 {
   // wait while writing
@@ -61,6 +64,9 @@ void eeprom_wait_wip(int cs_pin)
   } while (status & 1);
 }
 
+// Write from CPU memory to EEPROM memory
+// Note: You cannot cross page boundaries on my 23CSM01 it's 256 byte pages but on
+// other EEPROMs it could be smaller (64, 128 bytes, etc...)
 void eeprom_write(int cs_pin, uint32_t address, const uint8_t *src, uint16_t len)
 {
   // make sure there isn't a write in progress
@@ -69,13 +75,13 @@ void eeprom_write(int cs_pin, uint32_t address, const uint8_t *src, uint16_t len
   // enable write latch
   spi_mem_single_cmd(cs_pin, 0x06); // WREN write enable
 
-  // write buffer
+  // write buffer to EEPROM buffer
   spi_mem_start_cmd(cs_pin, address, 0x02);
   while (len--) {
     SPI.transfer(*src++);
   }
   spi_mem_end_cmd(cs_pin);
 
-  // wait for WIP
+  // wait for EEPROM to commit buffer to NV memory
   eeprom_wait_wip(cs_pin);
 }
