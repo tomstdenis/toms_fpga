@@ -75,12 +75,8 @@ void eeprom_write(int cs_pin, uint32_t address, const uint8_t *src, uint16_t len
   // enable write latch
   spi_mem_single_cmd(cs_pin, 0x06); // WREN write enable
 
-  // write buffer to EEPROM buffer
-  spi_mem_start_cmd(cs_pin, address, 0x02);
-  while (len--) {
-    SPI.transfer(*src++);
-  }
-  spi_mem_end_cmd(cs_pin);
+  // write buffer to EEPROM buffer (SRAM write and EEPROM write are the same command one you enable the write latch)
+  sram_write(cs_pin, address, src, len);
 
   // wait for EEPROM to commit buffer to NV memory
   eeprom_wait_wip(cs_pin);
