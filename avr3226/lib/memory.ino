@@ -24,6 +24,16 @@ uint8_t spi_mem_single_cmd(int cs_pin, uint8_t cmd)
   return res;
 }
 
+void spi_mem_single_pulse(int cs_pin, uint8_t cmd)
+{
+  uint8_t res;
+  digitalWrite(cs_pin, LOW);
+  SPI.beginTransaction(SPISettings(10000000, MSBFIRST, SPI_MODE0)); // adjust clock speed per your SRAM specs
+  SPI.transfer(cmd); // WREN write enable
+  SPI.endTransaction();
+  digitalWrite(cs_pin, HIGH);
+}
+
 void spi_mem_end_cmd(int cs_pin)
 {
   SPI.endTransaction();
@@ -73,7 +83,7 @@ void eeprom_write(int cs_pin, uint32_t address, const uint8_t *src, uint16_t len
   eeprom_wait_wip(cs_pin);
 
   // enable write latch
-  spi_mem_single_cmd(cs_pin, 0x06); // WREN write enable
+  spi_mem_single_pulse(cs_pin, 0x06); // WREN write enable
 
   // write buffer to EEPROM buffer (SRAM write and EEPROM write are the same command one you enable the write latch)
   sram_write(cs_pin, address, src, len);
