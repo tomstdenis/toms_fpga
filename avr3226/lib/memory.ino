@@ -1,38 +1,54 @@
 #include "SPI.h"
 
+// start a memory transaction
+void spi_mem_start_cmd(int cs_pin, uint32_t address, uint8_t cmd)
+{
+  digitalWrite(cs_pin, LOW);
+  SPI.beginTransaction(SPISettings(10000000, MSBFIRST, SPI_MODE0)); // adjust clock speed per your SRAM specs
+  SPI.transfer(cmd);
+  SPI.transfer((address>>16)&0xFF);
+  SPI.transfer((address>>8)&0xFF);
+  SPI.transfer(address&0xFF);
+}
+
+// send a single byte command and return the next byte read
+uint8_t spi_mem_single_cmd(int cs_pin, uint8_t cmd)
+{
+  uint8_t res;
+  digitalWrite(cs_pin, LOW);
+  SPI.beginTransaction(SPISettings(10000000, MSBFIRST, SPI_MODE0)); // adjust clock speed per your SRAM specs
+  SPI.transfer(cmd); // WREN write enable
+  res = SPI.transfer(0xFF);
+  SPI.endTransaction();
+  digitalWrite(cs_pin, HIGH);
+  return res;
+}
+
+void spi_mem_end_cmd(int cs_pin)
+{
+  SPI.endTransaction();
+  digitalWrite(cs_pin, HIGH);
+}
+
 // also works as eeprom_read()
 // 23A1024 SRAM
 void sram_read(int cs_pin, uint32_t address, uint8_t *dst, uint16_t len)
 {
-  // bring CS low
-  digitalWrite(cs_pin, LOW);
-  SPI.beginTransaction(SPISettings(10000000, MSBFIRST, SPI_MODE0)); // adjust clock speed per your SRAM specs
-  SPI.transfer(0x03);
-  SPI.transfer((address>>16)&0xFF);
-  SPI.transfer((address>>8)&0xFF);
-  SPI.transfer(address&0xFF);
+  spi_mem_start_cmd(cs_pin, address, 0x03);
   while (len--) {
     *dst++ = SPI.transfer(0xFF);
   }
-  SPI.endTransaction();
-  digitalWrite(cs_pin, HIGH);
+  spi_mem_end_cmd(cs_pin);
 }
 #define eeprom_read sram_read
 
 void sram_write(int cs_pin, uint32_t address, const uint8_t *src, uint16_t len)
 {
-  // bring CS low
-  digitalWrite(cs_pin, LOW);
-  SPI.beginTransaction(SPISettings(10000000, MSBFIRST, SPI_MODE0)); // adjust clock speed per your SRAM specs
-  SPI.transfer(0x02);
-  SPI.transfer((address>>16)&0xFF);
-  SPI.transfer((address>>8)&0xFF);
-  SPI.transfer(address&0xFF);
+  spi_mem_start_cmd(cs_pin, address, 0x02);
   while (len--) {
     SPI.transfer(*src++);
   }
-  SPI.endTransaction();
-  digitalWrite(cs_pin, HIGH);
+  spi_mem_end_cmd(cs_pin);
 }
 
 // 23CSM01 EEPROM
@@ -41,12 +57,7 @@ void eeprom_wait_wip(int cs_pin)
   // wait while writing
   uint8_t status;
   do {
-    digitalWrite(cs_pin, LOW);
-    SPI.beginTransaction(SPISettings(10000000, MSBFIRST, SPI_MODE0)); // adjust clock speed per your SRAM specs
-    SPI.transfer(0x05); // RDSR read status register
-    status = SPI.transfer(0xFF);
-    SPI.endTransaction();
-    digitalWrite(cs_pin, HIGH);
+    status = spi_mem_single_cmd(cs_pin, 0x05); // RDSR read status reg
   } while (status & 1);
 }
 
@@ -56,24 +67,14 @@ void eeprom_write(int cs_pin, uint32_t address, const uint8_t *src, uint16_t len
   eeprom_wait_wip(cs_pin);
 
   // enable write latch
-  digitalWrite(cs_pin, LOW);
-  SPI.beginTransaction(SPISettings(10000000, MSBFIRST, SPI_MODE0)); // adjust clock speed per your SRAM specs
-  SPI.transfer(0x06); // WREN write enable
-  SPI.endTransaction();
-  digitalWrite(cs_pin, HIGH);
+  spi_mem_single_cmd(cs_pin, 0x06); // WREN write enable
 
   // write buffer
-  digitalWrite(cs_pin, LOW);
-  SPI.beginTransaction(SPISettings(10000000, MSBFIRST, SPI_MODE0)); // adjust clock speed per your SRAM specs
-  SPI.transfer(0x02);
-  SPI.transfer((address>>16)&0xFF);
-  SPI.transfer((address>>8)&0xFF);
-  SPI.transfer(address&0xFF);
+  spi_mem_start_cmd(cs_pin, address, 0x02);
   while (len--) {
     SPI.transfer(*src++);
   }
-  SPI.endTransaction();
-  digitalWrite(cs_pin, HIGH);
+  spi_mem_end_cmd(cs_pin);
 
   // wait for WIP
   eeprom_wait_wip(cs_pin);
