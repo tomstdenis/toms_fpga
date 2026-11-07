@@ -22,7 +22,7 @@ module vt100
     parameter VT100_WIDTH='d80,
     parameter VT100_HEIGHT='d25,
     parameter VT100_FREQ=27_000_000,    // default clock for a Tang Nano 1K
-    parameter VT100_BAUD=230_400,
+    parameter VT100_BAUD=230400,
     parameter VT100_ECHO=0,
     parameter INDEX_BITS=$clog2(VT100_WIDTH*VT100_HEIGHT)
 )
@@ -102,18 +102,23 @@ module vt100
         vt100_state_erase_cells    = 8,         // erase cells between vt100_i and vt100_j
         vt100_state_attributes     = 9,         // process the terms array for the 'm' attributes command
         vt100_state_delay          = 10,        // initiate delay waiting on uart or mem
-        vt100_state_delay2         = 11;        // 2nd half of delay (also store uart rx if any
+        vt100_state_delay2         = 11,        // 2nd half of delay (also store uart rx if any
+        vt100_state_fill           = 12;
 
 	always @(posedge clk) begin
+        mem_wr_en_a     <= 0;
 		if (!rst_n) begin
-			mem_wr_en_a      <= 0;
+            mem_wr_en_a      <= 0;
+            mem_addr_a       <= 0;
+            mem_din_a        <= 16'h012A;
             vt100_x          <= 0;
             vt100_y          <= 0;
             vt100_sx         <= 0;
             vt100_sy         <= 0;
             vt100_colour     <= {1'b0, 1'b0, 3'b0, 3'b111};
             vt100_linewrap   <= 1'b0;
-            vt100_fsm_state  <= vt100_state_idle;
+            vt100_fsm_state  <= vt100_state_idle; 
+//            vt100_fsm_state  <= vt100_state_fill;
             vt100_i          <= 0;
             vt100_j          <= 0;
             vt100_prev_char  <= 0;
@@ -121,6 +126,16 @@ module vt100
             uart_tx_start    <= 0;
 		end else begin
             case (vt100_fsm_state)
+                vt100_state_fill: begin
+                    if (0) begin
+                        mem_din_a   <= 16'h032A;
+                        mem_wr_en_a <= 1'b1;
+                        mem_addr_a  <= mem_addr_a + 1;
+                        if (mem_addr_a == (80 * 25)) begin
+                            vt100_fsm_state <= vt100_state_idle;
+                        end
+                    end
+                end
                 vt100_state_idle:
                     begin
                         vt100_terms <= 0;
