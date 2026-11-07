@@ -28,85 +28,27 @@ module top(
 		end
     end
 
-	// bit widths are for 640x480 VGA
-	wire [10:0] vga_x;
-	wire [10:0] vga_y;
-	wire vga_h_sync;
-	wire vga_v_sync;
-	wire vga_active;
-	
-	// this module produces the VGA timing signals other modules depend on
-	vga_timing vga(
-		.clk(pll_clk),
-		.rst_n(rst_n),
-		.x(vga_x),
-		.y(vga_y),
-		.h_sync(vga_h_sync),
-		.v_sync(vga_v_sync),
-		.active_video(vga_active));
-
-    // we need to figure out the font info for the /next/ cycle since this isn't combinatorial
-	wire [15:0] symbol;
-	wire text_out;
-
-    reg [7:0] font_dout;                                   // output of rom
-    wire [10:0] font_ad = {symbol[7:0], vga_y_p1[3:1]};     // address into the rom, it's 11 bits of which the top 8 are the symbol and bottom 3 are the row
-    reg [7:0] font_rom[0:2047];
-    // font from lib/vga/blocks/
-    `include "vga/blocks/fontrom.vh"
-
-    always @(posedge pll_clk) begin
-        font_dout <= font_rom[font_ad];
-    end
-
-    wire [10:0] vga_y_p1 = (vga_y + (vga_x == 799 ? 1'b1 : 1'b0));
-    assign text_out = font_dout[7 - vga_x[2:0]];            // bit of output indexed from the ROM output
-
-    // video memory (16 bit wide, 2048 deep for a 80x25 with attribute bytes)
-    wire mem_wr_en_a;
-    wire [VT100_INDEX_BITS-1:0] mem_addr_a;
-    wire [15:0] mem_din_a;
-
-    reg [15:0] mem_dout_b;
-    wire [VT100_INDEX_BITS-1:0] mem_addr_b;
-	
-    reg [15:0] vidmem[0:2047];
-    always @(posedge pll_clk) begin
-        if (mem_wr_en_a) begin
-            vidmem[mem_addr_a] <= mem_din_a;
-        end
-        mem_dout_b <= vidmem[mem_addr_b];
-    end
-
-	// VGA text mode driver, defaults to 80x25 using an 8x8 font
-	// notice we're scaling the font by 2 so we change the height to 16 here
-	vga_text_driver #(.FONTHEIGHT(16), .X_FETCH_DELAY(2), .SYMBOL_BITS(16), .TEXTROWS(VT100_HEIGHT), .TEXTCOLS(VT100_WIDTH)) textdrv(
-		.clk(pll_clk), .rst_n(rst_n),
-		.x(vga_x), .y(vga_y), .active_video(vga_active),
-		.rd_addr(mem_addr_b), .rd_data(mem_dout_b),
-		.symbol(symbol), .lrg_mode(1'b0));
-
     // we're using a RGB222 so we need to reduce RGB444
     wire [3:0] vga_r_f;
     wire [3:0] vga_g_f;
     wire [3:0] vga_b_f;
+    wire       vga_h_pulse_f;
+    wire       vga_v_pulse_f;
 
     // only use top two bits to make 64-colour palette
     always @(posedge pll_clk) begin
-        vga_r <= vga_r_f[3:2];
-        vga_g <= vga_g_f[3:2];
-        vga_b <= vga_b_f[3:2];
-        vga_h_pulse <= vga_h_sync;
-        vga_v_pulse <= vga_v_sync;
+        vga_r       <= vga_r_f[3:2];
+        vga_g       <= vga_g_f[3:2];
+        vga_b       <= vga_b_f[3:2];
+        vga_h_pulse <= vga_h_pulse_f;
+        vga_v_pulse <= vga_v_pulse_f;
     end
+
     // vt100 emulator
     // This uses the uart pins (uart_rx/uart_tx) and then drives port A of the DP video memory
     vt100 #(.VT100_FREQ(27_000_000), .VT100_ECHO(0), .VT100_HEIGHT(VT100_HEIGHT), .VT100_WIDTH(VT100_WIDTH)) thefuture (
         .clk(pll_clk), .rst_n(rst_n),
-        .uart_tx(uart_tx), .uart_rx(uart_rx),                                                                // uart
-        .mem_addr_a(mem_addr_a), .mem_din_a(mem_din_a), .mem_wr_en_a(mem_wr_en_a),  // framebuffer write
-        .mem_addr_b(mem_addr_b), .mem_dout_b(mem_dout_b),                           // framebuffer read
-        .text_out(text_out), .symbol(symbol),                                                                                     // text driver output symbol
-        .vga_active(vga_active), .vga_r(vga_r_f), .vga_g(vga_g_f), .vga_b(vga_b_f));                               // vga RGB output
+        .uart_tx(uart_tx), .uart_rx(uart_rx),                                                                          // UART
+        .vga_r(vga_r_f), .vga_g(vga_g_f), .vga_b(vga_b_f), .vga_h_pulse(vga_h_pulse_f), .vga_v_pulse(vga_v_pulse_f));  // VGA RGB output
 
 endmodule
