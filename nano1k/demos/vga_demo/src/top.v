@@ -22,11 +22,6 @@ module top(
     wire pll_clk = clk;
 	wire pll_locked = 1'b1;
 
-//    Gowin_OSC your_instance_name(
-//        .oscout(pll_clk), //output oscout
-//        .oscen(1'b1) //input oscen
-//    );
-
     always @(posedge pll_clk) begin
 		if (pll_locked) begin
 			rstcnt <= {rstcnt[2:0], 1'b1};
@@ -54,45 +49,34 @@ module top(
 	wire [15:0] symbol;
 	wire text_out;
 
-    wire [10:0] vga_y_p1 = (vga_y + (vga_x == 799 ? 1'b1 : 1'b0));
-    wire [7:0] font_dout;                                   // output of rom
+    reg [7:0] font_dout;                                   // output of rom
     wire [10:0] font_ad = {symbol[7:0], vga_y_p1[3:1]};     // address into the rom, it's 11 bits of which the top 8 are the symbol and bottom 3 are the row
+    reg [7:0] font_rom[0:2047];
+    // font from lib/vga/blocks/
+    `include "vga/blocks/fontrom.vh"
+
+    always @(posedge pll_clk) begin
+        font_dout <= font_rom[font_ad];
+    end
+
+    wire [10:0] vga_y_p1 = (vga_y + (vga_x == 799 ? 1'b1 : 1'b0));
     assign text_out = font_dout[7 - vga_x[2:0]];            // bit of output indexed from the ROM output
 
-    // our 256 symbol 8x8 CP437 font
-    Gowin_pROM madamme_font(
-        .dout(font_dout), //output [7:0] dout
-        .ad(font_ad), //input [10:0] ad
-        .clk(pll_clk), //input clk
-        .oce(1'b1), //input oce
-        .ce(1'b1), //input ce
-        .reset(~rst_n)
-    );
-
     // video memory (16 bit wide, 2048 deep for a 80x25 with attribute bytes)
-    wire [15:0] mem_dout_a;
     wire mem_wr_en_a;
     wire [VT100_INDEX_BITS-1:0] mem_addr_a;
     wire [15:0] mem_din_a;
 
-    wire [15:0] mem_dout_b;
+    reg [15:0] mem_dout_b;
     wire [VT100_INDEX_BITS-1:0] mem_addr_b;
 	
-    Gowin_SDPB vidmem(
-        .ada(mem_addr_a), //input [10:0] ada
-        .din(mem_din_a), //input [15:0] din
-        .clka(pll_clk), //input clka
-        .cea(mem_wr_en_a), //input cea
-        .reseta(~rst_n), //input reseta
-
-        .adb(mem_addr_b), //input [10:0] adb
-        .dout(mem_dout_b), //output [15:0] dout
-        .clkb(pll_clk), //input clkb
-        .ceb(1'b1), //input ceb
-        .resetb(~rst_n), //input resetb
-        .oce(1'b1) //input oce
-    );
-
+    reg [15:0] vidmem[0:2047];
+    always @(posedge pll_clk) begin
+        if (mem_wr_en_a) begin
+            vidmem[mem_addr_a] <= mem_din_a;
+        end
+        mem_dout_b <= vidmem[mem_addr_b];
+    end
 
 	// VGA text mode driver, defaults to 80x25 using an 8x8 font
 	// notice we're scaling the font by 2 so we change the height to 16 here
