@@ -163,7 +163,7 @@ void uart_config()
   }
 
   // handle configuration commands
-  if (Serial0.available()) {
+  if (Serial.available()) {
     switch (Serial.read()) {
       case CFG_COMMAND_SET_PSK:
         read_string(password);
