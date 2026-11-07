@@ -5,12 +5,6 @@
     <Version>5</Version>
     <Device name="GW1NZ-1" pn="GW1NZ-LV1QN48C6/I5">gw1nz1-015</Device>
     <FileList>
-        <File path="/home/tom/nas/toms_fpga/lib/comms/uart/rx_uart.v" type="file.verilog" enable="1"/>
-        <File path="/home/tom/nas/toms_fpga/lib/comms/uart/tx_uart.v" type="file.verilog" enable="1"/>
-        <File path="/home/tom/nas/toms_fpga/lib/comms/uart/uart.v" type="file.verilog" enable="1"/>
-        <File path="/home/tom/nas/toms_fpga/lib/vga/blocks/vga_text_driver.v" type="file.verilog" enable="1"/>
-        <File path="/home/tom/nas/toms_fpga/lib/vga/blocks/vga_timing.v" type="file.verilog" enable="1"/>
-        <File path="/home/tom/nas/toms_fpga/lib/vt100/vt100.v" type="file.verilog" enable="1"/>
         <File path="src/top.v" type="file.verilog" enable="1"/>
         <File path="src/top.cst" type="file.cst" enable="1"/>
         <File path="src/top.sdc" type="file.sdc" enable="1"/>

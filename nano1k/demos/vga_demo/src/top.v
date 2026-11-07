@@ -34,6 +34,7 @@ module top(
     wire [3:0] vga_b_f;
     wire       vga_h_pulse_f;
     wire       vga_v_pulse_f;
+    wire       vga_active_f;
 
     // only use top two bits to make 64-colour palette
     always @(posedge pll_clk) begin
@@ -48,7 +49,10 @@ module top(
     // This uses the uart pins (uart_rx/uart_tx) and then drives port A of the DP video memory
     vt100 #(.VT100_FREQ(27_000_000), .VT100_ECHO(0), .VT100_HEIGHT(VT100_HEIGHT), .VT100_WIDTH(VT100_WIDTH)) thefuture (
         .clk(pll_clk), .rst_n(rst_n),
-        .uart_tx(uart_tx), .uart_rx(uart_rx),                                                                          // UART
-        .vga_r(vga_r_f), .vga_g(vga_g_f), .vga_b(vga_b_f), .vga_h_pulse(vga_h_pulse_f), .vga_v_pulse(vga_v_pulse_f));  // VGA RGB output
+        .uart_tx(uart_tx), .uart_rx(uart_rx),                                                   // UART
+        .vga_r(vga_r_f), .vga_g(vga_g_f), .vga_b(vga_b_f),                                      // VGA RGB output
+        .vga_h_pulse(vga_h_pulse_f), .vga_v_pulse(vga_v_pulse_f), .vga_active(vga_active_f));  
 
 endmodule
+
+`include "vt100/vt100.v"
