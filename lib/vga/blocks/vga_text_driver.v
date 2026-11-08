@@ -47,12 +47,7 @@ module vga_text_driver #(
 	reg [3:0] y_cnt;
 
 	always @(posedge clk) begin
-		if (!rst_n) begin
-			rd_addr <= 0;
-            symbol  <= 0;
-			x_cnt   <= 0;
-			y_cnt   <= 0;
-		end else if (lrg_mode == 0) begin
+        if (lrg_mode == 0) begin
 			// text mode
 			if (y < (TEXTROWS*FONTHEIGHT) && x < (TEXTCOLS*FONTWIDTH - X_FETCH_DELAY)) begin
 				if (x[$clog2(FONTWIDTH)-1:0] == (FONTWIDTH-2-X_FETCH_DELAY)) begin
@@ -134,6 +129,12 @@ module vga_text_driver #(
 					end
 				end
 			end
-		end
+            if (~rst_n) begin
+                rd_addr <= 0;
+                symbol  <= 0;
+                x_cnt   <= 0;
+                y_cnt   <= 0;
+            end
+        end
 	end
 endmodule

@@ -10,7 +10,7 @@ module top(
     output reg vga_v_pulse
 );
     localparam
-        VT100_APPLE2_MODE = 1,                                      // set to 1 to enable 40x50 text mode which we can use for apple2 40col and LRG modes
+        VT100_APPLE2_MODE = 0,                                      // set to 1 to enable 40x50 text mode which we can use for apple2 40col and LRG modes
         VT100_WIDTH       = VT100_APPLE2_MODE ? 40 : 80,
         VT100_HEIGHT      = VT100_APPLE2_MODE ? 50 : 25;
 

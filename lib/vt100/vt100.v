@@ -521,20 +521,12 @@ module vt100
     wire [1:0] text_at;
     wire [2:0] text_fg;
     wire [2:0] text_bg;
-    reg [1:0] text_at_out;
-    reg [2:0] text_fg_out;
-    reg [2:0] text_bg_out;
     wire [3:0] rgbon;
 
     assign text_at = symbol[15:14];
     assign text_bg = symbol[13:11];
     assign text_fg = symbol[10:8];
-    always @(posedge clk) begin
-        text_at_out <= text_at;
-        text_bg_out <= text_bg;
-        text_fg_out <= text_fg;
-    end
-    assign rgbon = {text_at_out[text_out], 3'b111};
+    assign rgbon   = {text_at[text_out], 3'b111};
 
     // drive the VGA R/G/B pins
     reg [3:0] vga_r_comb;
@@ -548,35 +540,35 @@ module vt100
         // render the foreground/background colour using the VT100 palette, with support
         // bold/dim attributes
 		if (vga_active) begin
-            case (text_out ? text_fg_out : text_bg_out)
+            case (text_out ? text_fg : text_bg)
                 0: // black
-                    {vga_r_comb, vga_g_comb, vga_b_comb} <= 12'b0000_0000_0000;
+                    {vga_r_comb, vga_g_comb, vga_b_comb} = 12'b0000_0000_0000;
                 1: // red
-                    {vga_r_comb, vga_g_comb, vga_b_comb} <= {rgbon, 4'b0000, 4'b0000};
+                    {vga_r_comb, vga_g_comb, vga_b_comb} = {rgbon, 4'b0000, 4'b0000};
                 2: // green
-                    {vga_r_comb, vga_g_comb, vga_b_comb} <= {4'b0000, rgbon, 4'b0000};
+                    {vga_r_comb, vga_g_comb, vga_b_comb} = {4'b0000, rgbon, 4'b0000};
                 3: // yellow
-                    {vga_r_comb, vga_g_comb, vga_b_comb} <= {rgbon, rgbon, 4'b0000};
+                    {vga_r_comb, vga_g_comb, vga_b_comb} = {rgbon, rgbon, 4'b0000};
                 4: // blue
-                    {vga_r_comb, vga_g_comb, vga_b_comb} <= {4'b0000, 4'b0000, rgbon};
+                    {vga_r_comb, vga_g_comb, vga_b_comb} = {4'b0000, 4'b0000, rgbon};
                 5: // magenta
-                    {vga_r_comb, vga_g_comb, vga_b_comb} <= {rgbon, 4'b0000, rgbon};
+                    {vga_r_comb, vga_g_comb, vga_b_comb} = {rgbon, 4'b0000, rgbon};
                 6: // cyan
-                    {vga_r_comb, vga_g_comb, vga_b_comb} <= {4'b0000, rgbon, rgbon};
+                    {vga_r_comb, vga_g_comb, vga_b_comb} = {4'b0000, rgbon, rgbon};
                 7: // white
-                    {vga_r_comb, vga_g_comb, vga_b_comb} <= {rgbon, rgbon, rgbon};
+                    {vga_r_comb, vga_g_comb, vga_b_comb} = {rgbon, rgbon, rgbon};
             endcase
 		end
 	end
 
     // register VGA outputs
-    always @(posedge clk) begin
-        vga_r       <= vga_r_comb;
-        vga_g       <= vga_g_comb;
-        vga_b       <= vga_b_comb;
-        vga_h_pulse <= vga_h_sync;
-        vga_v_pulse <= vga_v_sync;
-        vga_active  <= vga_active_f;
+    always @(*) begin
+        vga_r       = vga_r_comb;
+        vga_g       = vga_g_comb;
+        vga_b       = vga_b_comb;
+        vga_h_pulse = vga_h_sync;
+        vga_v_pulse = vga_v_sync;
+        vga_active  = vga_active_f;
     end
 endmodule
 
