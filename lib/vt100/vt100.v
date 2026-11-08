@@ -96,21 +96,24 @@ module vt100
             .symbol(symbol), .lrg_mode(1'b0));
 
     // *** FONT *** 
-        wire text_out;
 
         // Font ROM
         reg [7:0]   font_dout;                                   // output of rom
         wire [10:0] vga_y_p1 = (vga_y + (vga_x == 799 ? 1'b1 : 1'b0));
         wire [10:0] font_ad  = {symbol[7:0], (VT100_HEIGHT == 50) ? vga_y_p1[2:0] : vga_y_p1[3:1]};     // address into the rom, it's 11 bits of which the top 8 are the symbol and bottom 3 are the row
         reg [7:0]   font_rom[0:2047];
-        assign text_out = font_dout[7 - vga_x[2:0]];            // bit of output indexed from the ROM output
-
-        // font from lib/vga/blocks/
-        `include "vga/blocks/fontrom.vh"
+        reg         text_out;                                    // the current pixel being drawn lensed through the current symbol through the font through vga_active                                        
 
         always @(posedge clk) begin
             font_dout <= font_rom[font_ad];
         end
+
+        always @(*) begin
+            text_out   = font_dout[7 - vga_x[2:0]];                // font is row major order so the left most pixel is the MSB
+        end
+
+        // font from lib/vga/blocks/
+        `include "vga/blocks/fontrom.vh"
 
     // *** UART ***
         // uart driven by uart_tx/uart_rx pins
@@ -123,7 +126,7 @@ module vt100
         wire [7:0] uart_rx_byte;
 
         localparam 
-            bauddiv = VT100_FREQ / VT100_BAUD,
+            bauddiv   = VT100_FREQ / VT100_BAUD,
             baudwidth = $clog2(bauddiv);
         wire [baudwidth-1:0] baud_div = bauddiv;
 
@@ -179,7 +182,7 @@ module vt100
             // next uart input
             vt100_state_idle:
                 begin
-                    vt100_terms <= 0;
+                    vt100_terms         <= 0;
                     if (vt100_y[10]) begin                          // Y went negative
                         vt100_y         <= 0;
                     end
@@ -344,7 +347,7 @@ module vt100
                         vt100_terms        <= vt100_terms + 1'b1;
                         vt100_fsm_state    <= vt100_state_zero_term;
                     end else begin                                                      // command character, now we consume all the terms we saved
-                        vt100_fsm_state <= vt100_state_idle;
+                        vt100_fsm_state    <= vt100_state_idle;
                         case (vt100_curr_char)
                             102, 72:                                                    // f or H, move the cursor
                                 begin
@@ -455,7 +458,7 @@ module vt100
             // erase cells between vt100_i and vt100_j - 1 inclusive
             vt100_state_erase_cells:
                 begin
-                    vt100_fsm_state <= vt100_state_idle;
+                    vt100_fsm_state     <= vt100_state_idle;
                     if (vt100_i != vt100_j) begin
                         vt100_i         <= vt100_i + 1'b1;
                         mem_wr_en_a     <= 1'b1;
