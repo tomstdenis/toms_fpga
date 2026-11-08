@@ -27,8 +27,6 @@ uint16_t display_apple2_save(uint16_t offset)
 #endif
 
 #ifdef HOSTPC
-#include "host.h"
-
 #include <ncurses.h>
 #include <stdio.h>
 #include <unistd.h>
