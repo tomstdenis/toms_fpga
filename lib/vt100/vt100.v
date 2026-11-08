@@ -166,131 +166,73 @@ module vt100
         vt100_state_erase_cells    = 8,         // erase cells between vt100_i and vt100_j
         vt100_state_attributes     = 9,         // process the terms array for the 'm' attributes command
         vt100_state_delay          = 10,        // initiate delay waiting on uart or mem
-        vt100_state_delay2         = 11,        // 2nd half of delay (also store uart rx if any
-        vt100_state_fill           = 12;
+        vt100_state_delay2         = 11;        // 2nd half of delay (also store uart rx if any
 
 	always @(posedge clk) begin
         mem_wr_en_a     <= 0;
-		if (!rst_n) begin
-            mem_wr_en_a      <= 0;
-            mem_addr_a       <= 0;
-            mem_din_a        <= 16'h012A;
-            vt100_x          <= 0;
-            vt100_y          <= 0;
-            vt100_sx         <= 0;
-            vt100_sy         <= 0;
-            vt100_colour     <= {1'b0, 1'b0, 3'b0, 3'b111};
-            vt100_linewrap   <= 1'b0;
-            vt100_fsm_state  <= vt100_state_idle; 
-//            vt100_fsm_state  <= vt100_state_fill;
-            vt100_i          <= 0;
-            vt100_j          <= 0;
-            vt100_prev_char  <= 0;
-            uart_rx_read     <= 0;
-            uart_tx_start    <= 0;
-		end else begin
-            case (vt100_fsm_state)
-                vt100_state_fill: begin
-                    if (0) begin
-                        mem_din_a   <= 16'h032A;
-                        mem_wr_en_a <= 1'b1;
-                        mem_addr_a  <= mem_addr_a + 1;
-                        if (mem_addr_a == (80 * 25)) begin
-                            vt100_fsm_state <= vt100_state_idle;
-                        end
+        uart_rx_read    <= 1'b0;
+        uart_tx_start   <= 1'b0;
+        case (vt100_fsm_state)
+            vt100_state_idle:
+                begin
+                    vt100_terms <= 0;
+                    if (vt100_y[10]) begin // went negative
+                        vt100_y         <= 0;
+                    end
+                    if (vt100_x[10]) begin // x went negative
+                        vt100_x         <= 0;
+                    end 
+                    if (vt100_x >= VT100_WIDTH) begin
+                        vt100_x         <= VT100_WIDTH - 1;
+                    end
+                    if (vt100_y >= VT100_HEIGHT) begin
+                        // initiate screen scroll fsm state
+                        vt100_y         <= vt100_y - 1'b1;
+                        vt100_i         <= 0;  // read from scroll+80 and write to scroll 
+                        vt100_fsm_state <= vt100_state_scroll;
+                    end else if (uart_rx_ready) begin
+                        uart_rx_read    <= 1;
+                        vt100_fsm_tag   <= vt100_state_rx_char;
+                        vt100_fsm_state <= vt100_state_delay;
                     end
                 end
-                vt100_state_idle:
-                    begin
-                        vt100_terms <= 0;
-                        if (vt100_y[10]) begin          // went negative
-                            vt100_y         <= 0;
-                        end else if (vt100_x[10]) begin // x went negative
-                            vt100_x         <= 0;
-                        end else if (vt100_x >= VT100_WIDTH) begin
-                            vt100_x         <= VT100_WIDTH - 1;
-                        end else if (vt100_y >= VT100_HEIGHT) begin
-                            // initiate screen scroll fsm state
-                            vt100_y         <= vt100_y - 1'b1;
-                            vt100_i         <= 0;  // read from scroll+80 and write to scroll 
-                            vt100_fsm_state <= vt100_state_scroll;
-                        end else if (uart_rx_ready) begin
-                            uart_rx_read    <= 1;
-                            vt100_fsm_tag   <= vt100_state_rx_char;
-                            vt100_fsm_state <= vt100_state_delay;
-                        end
-                    end
-                vt100_state_rx_char:
-                    begin
-                        vt100_prev_char <= vt100_curr_char;
-                        uart_tx_start   <= VT100_ECHO;
-                        uart_tx_data_in <= vt100_curr_char;
-                        mem_addr_a      <= vt100_cursor_addr;          // address for colour/symbol pair
-                        mem_din_a       <= {vt100_colour, vt100_curr_char};
-                        mem_wr_en_a     <= 1;
-                        vt100_fsm_tag   <= vt100_state_idle;
-                        vt100_fsm_state <= vt100_state_delay;
-                        case (vt100_curr_char)
-                            27: // ESC
-                                begin
-                                    mem_wr_en_a <= 0;
-                                end
-                            55, 56, 91: // 7, 8, [
-                                begin
-                                    if (vt100_prev_char == 27) begin // ESC
-                                        if (uart_rx_byte == 91) begin // [, CSI
-                                            // starting a CSI
-                                            vt100_term[vt100_terms] <= 0;
-                                            vt100_term_default <= 1;
-                                            vt100_i            <= 0;
-                                            vt100_j            <= 0;
-                                            vt100_fsm_state    <= vt100_state_csi_terms;
-                                            mem_wr_en_a        <= 0;
-                                        end else if (uart_rx_byte == 55) begin // 7, save cursor
-                                            vt100_sx           <= vt100_x;
-                                            vt100_sy           <= vt100_y;
-                                            mem_wr_en_a        <= 0;
-                                        end else if (uart_rx_byte == 56) begin // 8, restore cursor
-                                            vt100_x            <= vt100_sx;
-                                            vt100_y            <= vt100_sy;
-                                            mem_wr_en_a        <= 0;
-                                        end                                    
-                                    end else begin
-                                        // advance x/y because we drew a [
-                                        if (vt100_x == VT100_WIDTH - 1) begin
-                                            if (vt100_linewrap) begin
-                                                vt100_x <= 0;
-                                                vt100_y <= vt100_y + 1'b1;
-                                            end
-                                        end else begin
-                                            vt100_x <= vt100_x + 1'b1;
-                                        end
-                                    end
-                                end
-                            10: // line feed
-                                begin
-                                    vt100_y     <= vt100_y + 1'b1;
-                                    vt100_x     <= 0;               // linux default
-                                    mem_wr_en_a <= 0;
-                                end
-                            13: // carriage return
-                                begin
-                                    vt100_x     <= 0;
-                                    mem_wr_en_a <= 0;
-                                end
-                            8: // bs
-                                begin
-                                    if (vt100_x > 0) begin
-                                        vt100_x     <= vt100_x - 1'b1;
-                                        mem_addr_a  <= vt100_cursor_addr - 1'b1;
-                                        mem_din_a   <= {vt100_colour, 8'h20};
-                                    end else begin
-                                        mem_wr_en_a <= 0;
-                                    end
-                                end
-                            default:
-                                begin
-                                    // advance x/y
+            vt100_state_rx_char:
+                begin
+                    vt100_prev_char <= vt100_curr_char;
+                    uart_tx_start   <= VT100_ECHO;
+                    uart_tx_data_in <= vt100_curr_char;
+                    mem_addr_a      <= vt100_cursor_addr;          // address for colour/symbol pair
+                    mem_din_a       <= {vt100_colour, vt100_curr_char};
+                    mem_wr_en_a     <= 1;
+                    vt100_fsm_tag   <= vt100_state_idle;
+                    vt100_fsm_state <= vt100_state_delay;
+                    case (vt100_curr_char)
+                        27: // ESC
+                            begin
+                                mem_wr_en_a <= 0;
+                            end
+                        55, 56, 91: // 7, 8, [
+                            begin
+                                if (vt100_prev_char == 27) begin // ESC
+                                    if (uart_rx_byte == 91) begin // [, CSI
+                                        // starting a CSI
+                                        vt100_term[vt100_terms] <= 0;
+                                        vt100_term_default <= 1;
+                                        vt100_i            <= 0;
+                                        vt100_j            <= 0;
+                                        vt100_fsm_state    <= vt100_state_csi_terms;
+                                        mem_wr_en_a        <= 0;
+                                    end else if (uart_rx_byte == 55) begin // 7, save cursor
+                                        vt100_sx           <= vt100_x;
+                                        vt100_sy           <= vt100_y;
+                                        mem_wr_en_a        <= 0;
+                                    end else if (uart_rx_byte == 56) begin // 8, restore cursor
+                                        vt100_x            <= vt100_sx;
+                                        vt100_y            <= vt100_sy;
+                                        mem_wr_en_a        <= 0;
+                                    end                                    
+                                end else begin
+                                    // advance x/y because we drew a [
                                     if (vt100_x == VT100_WIDTH - 1) begin
                                         if (vt100_linewrap) begin
                                             vt100_x <= 0;
@@ -300,232 +242,278 @@ module vt100
                                         vt100_x <= vt100_x + 1'b1;
                                     end
                                 end
-                        endcase
-                    end
-                vt100_state_scroll: // start read unless done
-                    begin
-                        if (vt100_i == (VT100_HEIGHT * VT100_WIDTH - VT100_WIDTH)) begin
-                            vt100_fsm_state <= vt100_state_scroll3;
-                        end else begin
-                            // wait till the VGA driver gets here
-                            if (mem_addr_b == vt100_i + VT100_WIDTH) begin
-                                // if addr matches on this cycle then the data is valid
-                                // on the next cycle
-                                vt100_fsm_state <= vt100_state_scroll2;
                             end
+                        10: // line feed
+                            begin
+                                vt100_y     <= vt100_y + 1'b1;
+                                vt100_x     <= 0;               // linux default
+                                mem_wr_en_a <= 0;
+                            end
+                        13: // carriage return
+                            begin
+                                vt100_x     <= 0;
+                                mem_wr_en_a <= 0;
+                            end
+                        8: // bs
+                            begin
+                                if (vt100_x > 0) begin
+                                    vt100_x     <= vt100_x - 1'b1;
+                                    mem_addr_a  <= vt100_cursor_addr - 1'b1;
+                                    mem_din_a   <= {vt100_colour, 8'h20};
+                                end else begin
+                                    mem_wr_en_a <= 0;
+                                end
+                            end
+                        default:
+                            begin
+                                // advance x/y
+                                if (vt100_x == VT100_WIDTH - 1) begin
+                                    if (vt100_linewrap) begin
+                                        vt100_x <= 0;
+                                        vt100_y <= vt100_y + 1'b1;
+                                    end
+                                end else begin
+                                    vt100_x <= vt100_x + 1'b1;
+                                end
+                            end
+                    endcase
+                end
+            vt100_state_scroll: // start read unless done
+                begin
+                    if (vt100_i == (VT100_HEIGHT * VT100_WIDTH - VT100_WIDTH)) begin
+                        vt100_fsm_state <= vt100_state_scroll3;
+                    end else begin
+                        // wait till the VGA driver gets here
+                        if (mem_addr_b == vt100_i + VT100_WIDTH) begin
+                            // if addr matches on this cycle then the data is valid
+                            // on the next cycle
+                            vt100_fsm_state <= vt100_state_scroll2;
                         end
                     end
-                vt100_state_scroll2: // start write
-                    begin
+                end
+            vt100_state_scroll2: // start write
+                begin
+                    mem_addr_a      <= vt100_i;
+                    mem_din_a       <= mem_dout_b;
+                    mem_wr_en_a     <= 1;
+                    vt100_i         <= vt100_i + 1'b1;
+                    vt100_fsm_state <= vt100_state_delay;
+                    vt100_fsm_tag   <= vt100_state_scroll;
+                end
+            vt100_state_scroll3: // clear last row
+                begin
+                    if (vt100_i == (VT100_HEIGHT * VT100_WIDTH)) begin
+                        vt100_fsm_state <= vt100_state_idle;
+                    end else begin
                         mem_addr_a      <= vt100_i;
-                        mem_din_a       <= mem_dout_b;
-                        mem_wr_en_a     <= 1;
+                        mem_din_a       <= {vt100_colour, 8'h20};
+                        mem_wr_en_a     <= 1'b1;
                         vt100_i         <= vt100_i + 1'b1;
                         vt100_fsm_state <= vt100_state_delay;
-                        vt100_fsm_tag   <= vt100_state_scroll;
+                        vt100_fsm_tag   <= vt100_fsm_state;
                     end
-                vt100_state_scroll3: // clear last row
-                    begin
-                        if (vt100_i == (VT100_HEIGHT * VT100_WIDTH)) begin
-                            vt100_fsm_state <= vt100_state_idle;
-                        end else begin
-                            mem_addr_a      <= vt100_i;
-                            mem_din_a       <= {vt100_colour, 8'h20};
-                            mem_wr_en_a     <= 1'b1;
-                            vt100_i         <= vt100_i + 1'b1;
-                            vt100_fsm_state <= vt100_state_delay;
-                            vt100_fsm_tag   <= vt100_fsm_state;
-                        end
+                end
+            vt100_state_zero_term:
+                begin
+                    vt100_term[vt100_terms] <= 0;
+                    vt100_fsm_state         <= vt100_state_csi_terms;
+                end
+            vt100_state_csi_terms:
+                begin
+                    if (uart_rx_ready) begin
+                        uart_rx_read    <= 1'b1;
+                        vt100_fsm_state <= vt100_state_delay;
+                        vt100_fsm_tag   <= vt100_state_csi_term_parse;
                     end
-                vt100_state_zero_term:
-                    begin
-                        vt100_term[vt100_terms] <= 0;
-                        vt100_fsm_state         <= vt100_state_csi_terms;
+                end
+            vt100_state_csi_term_parse:
+                begin
+                    vt100_fsm_state <= vt100_state_csi_terms;
+                    if (vt100_curr_char >= 48 && vt100_curr_char <= 57) begin // 0 - 9
+                        vt100_term[vt100_terms] <= vt100_term[vt100_terms] * 8'd10 + vt100_curr_char - 8'd48;
+                        vt100_term_default <= 1'b0;
+                    end else if (vt100_curr_char == 61 || vt100_curr_char == 63) begin // =, ?
+                        // for now just skip over this byte
+                    end else if (vt100_curr_char == 59) begin              // ;
+                        vt100_terms        <= vt100_terms + 1'b1;
+                        vt100_fsm_state    <= vt100_state_zero_term;
+                    end else begin                                      // command character
+                        vt100_fsm_state <= vt100_state_idle;
+                        case (vt100_curr_char)
+                            102, 72: // f or H
+                                begin
+                                    if (vt100_term_default) begin
+                                        vt100_x <= 1'b0;
+                                        vt100_y <= 1'b0;
+                                    end else begin
+                                        vt100_y <= vt100_term[0] - 1'b1;
+                                        vt100_x <= vt100_term[1] - 1'b1;
+                                    end
+                                end
+                            65: // A (move up X lines)
+                                begin
+                                    vt100_y <= vt100_y - vt100_term[0];
+                                end
+                            66: // B (move down X lines)
+                                begin
+                                    vt100_y <= vt100_y + vt100_term[0];
+                                end
+                            67: // C (move left X columns)
+                                begin
+                                    vt100_x <= vt100_x - vt100_term[0];
+                                end
+                            68: // D (move right X columns)
+                                begin
+                                    vt100_x <= vt100_x + vt100_term[0];
+                                end
+                            69: // E (reset x, move down X lines)
+                                begin
+                                    vt100_x <= 0;
+                                    vt100_y <= vt100_y + vt100_term[0];
+                                end
+                            70: // F (reset x, move up X lines)
+                                begin
+                                    vt100_x <= 0;
+                                    vt100_y <= vt100_y - vt100_term[0];
+                                end
+                            71: // G (move to column X)
+                                begin
+                                    vt100_x <= vt100_term[0] - 1'b1;
+                                end
+                            74: // J (erase)
+                                begin
+                                    if (vt100_term[0] == 0 || vt100_term_default) begin // cursor to end of screen
+                                        vt100_fsm_state <= vt100_state_erase_cells;
+                                        vt100_i         <= vt100_cursor_addr;
+                                        vt100_j         <= VT100_HEIGHT * VT100_WIDTH;
+                                    end else if (vt100_term[0] == 1) begin // from cursor to start of screen
+                                        vt100_fsm_state <= vt100_state_erase_cells;
+                                        vt100_j         <= vt100_cursor_addr;
+                                        vt100_i         <= 0;
+                                    end else if (vt100_term[0] == 2) begin // entire screen
+                                        vt100_fsm_state <= vt100_state_erase_cells;
+                                        vt100_i         <= 0;
+                                        vt100_j         <= VT100_HEIGHT * VT100_WIDTH;
+                                    end
+                                end
+                            75: // K (erase row)
+                                begin
+                                    if (vt100_term[0] == 0 || vt100_term_default) begin // cursor to end of line
+                                        vt100_fsm_state <= vt100_state_erase_cells;
+                                        vt100_i         <= vt100_cursor_addr;
+                                        vt100_j         <= vt100_row_addr + VT100_WIDTH - vt100_x;
+                                    end else if (vt100_term[0] == 1) begin // from start of line to cursor
+                                        vt100_fsm_state <= vt100_state_erase_cells;
+                                        vt100_i         <= vt100_row_addr;
+                                        vt100_j         <= vt100_cursor_addr;
+                                    end else if (vt100_term[0] == 2) begin // erase current line
+                                        vt100_fsm_state <= vt100_state_erase_cells;
+                                        vt100_i         <= vt100_row_addr;
+                                        vt100_j         <= vt100_row_addr + VT100_WIDTH;
+                                    end
+                                end
+                            104: // h (set mode bit)
+                                begin
+                                    case (vt100_term[0])
+                                        7: // linewrap
+                                            vt100_linewrap <= 1'b1;
+                                    endcase
+                                end
+                            108: // l (clear mode bit)
+                                begin
+                                    case (vt100_term[0])
+                                        7: // linewrap
+                                            vt100_linewrap <= 1'b0;
+                                    endcase
+                                end
+                            109: // m (attributes)
+                                begin
+                                    vt100_fsm_state     <= vt100_state_attributes;
+                                    vt100_j             <= vt100_terms;
+                                    vt100_terms         <= 0;
+                                end
+                            115: // s (save cursor position)
+                                begin
+                                    vt100_sx            <= vt100_x;
+                                    vt100_sy            <= vt100_y;
+                                end
+                            117: // u (restore cursor)
+                                begin
+                                    vt100_x             <= vt100_sx;
+                                    vt100_y             <= vt100_sy;
+                                end
+                        endcase
                     end
-                vt100_state_csi_terms:
-                    begin
-                        if (uart_rx_ready) begin
-                            uart_rx_read    <= 1'b1;
-                            vt100_fsm_state <= vt100_state_delay;
-                            vt100_fsm_tag   <= vt100_state_csi_term_parse;
-                        end
+                end
+            vt100_state_erase_cells:
+                begin
+                    if (vt100_i != vt100_j) begin
+                        vt100_i         <= vt100_i + 1'b1;
+                        mem_wr_en_a     <= 1'b1;
+                        mem_din_a       <= {vt100_colour, 8'h20};
+                        mem_addr_a      <= vt100_i;
+                        vt100_fsm_state <= vt100_state_delay;
+                        vt100_fsm_tag   <= vt100_fsm_state;
+                    end else begin
+                        vt100_fsm_state <= vt100_state_idle;
                     end
-                vt100_state_csi_term_parse:
-                    begin
-                        vt100_fsm_state <= vt100_state_csi_terms;
-                        if (vt100_curr_char >= 48 && vt100_curr_char <= 57) begin // 0 - 9
-                            vt100_term[vt100_terms] <= vt100_term[vt100_terms] * 8'd10 + vt100_curr_char - 8'd48;
-                            vt100_term_default <= 1'b0;
-                        end else if (vt100_curr_char == 61 || vt100_curr_char == 63) begin // =, ?
-                            // for now just skip over this byte
-                        end else if (vt100_curr_char == 59) begin              // ;
-                            vt100_terms        <= vt100_terms + 1'b1;
-                            vt100_fsm_state    <= vt100_state_zero_term;
-                        end else begin                                      // command character
-                            vt100_fsm_state <= vt100_state_idle;
-                            case (vt100_curr_char)
-                                102, 72: // f or H
-                                    begin
-                                        if (vt100_term_default) begin
-                                            vt100_x <= 1'b0;
-                                            vt100_y <= 1'b0;
-                                        end else begin
-                                            vt100_y <= vt100_term[0] - 1'b1;
-                                            vt100_x <= vt100_term[1] - 1'b1;
-                                        end
-                                    end
-                                65: // A (move up X lines)
-                                    begin
-                                        vt100_y <= vt100_y - vt100_term[0];
-                                    end
-                                66: // B (move down X lines)
-                                    begin
-                                        vt100_y <= vt100_y + vt100_term[0];
-                                    end
-                                67: // C (move left X columns)
-                                    begin
-                                        vt100_x <= vt100_x - vt100_term[0];
-                                    end
-                                68: // D (move right X columns)
-                                    begin
-                                        vt100_x <= vt100_x + vt100_term[0];
-                                    end
-                                69: // E (reset x, move down X lines)
-                                    begin
-                                        vt100_x <= 0;
-                                        vt100_y <= vt100_y + vt100_term[0];
-                                    end
-                                70: // F (reset x, move up X lines)
-                                    begin
-                                        vt100_x <= 0;
-                                        vt100_y <= vt100_y - vt100_term[0];
-                                    end
-                                71: // G (move to column X)
-                                    begin
-                                        vt100_x <= vt100_term[0] - 1'b1;
-                                    end
-                                74: // J (erase)
-                                    begin
-                                        if (vt100_term[0] == 0 || vt100_term_default) begin // cursor to end of screen
-                                            vt100_fsm_state <= vt100_state_erase_cells;
-                                            vt100_i         <= vt100_cursor_addr;
-                                            vt100_j         <= VT100_HEIGHT * VT100_WIDTH;
-                                        end else if (vt100_term[0] == 1) begin // from cursor to start of screen
-                                            vt100_fsm_state <= vt100_state_erase_cells;
-                                            vt100_j         <= vt100_cursor_addr;
-                                            vt100_i         <= 0;
-                                        end else if (vt100_term[0] == 2) begin // entire screen
-                                            vt100_fsm_state <= vt100_state_erase_cells;
-                                            vt100_i         <= 0;
-                                            vt100_j         <= VT100_HEIGHT * VT100_WIDTH;
-                                        end
-                                    end
-                                75: // K (erase row)
-                                    begin
-                                        if (vt100_term[0] == 0 || vt100_term_default) begin // cursor to end of line
-                                            vt100_fsm_state <= vt100_state_erase_cells;
-                                            vt100_i         <= vt100_cursor_addr;
-                                            vt100_j         <= vt100_row_addr + VT100_WIDTH - vt100_x;
-                                        end else if (vt100_term[0] == 1) begin // from start of line to cursor
-                                            vt100_fsm_state <= vt100_state_erase_cells;
-                                            vt100_i         <= vt100_row_addr;
-                                            vt100_j         <= vt100_cursor_addr;
-                                        end else if (vt100_term[0] == 2) begin // erase current line
-                                            vt100_fsm_state <= vt100_state_erase_cells;
-                                            vt100_i         <= vt100_row_addr;
-                                            vt100_j         <= vt100_row_addr + VT100_WIDTH;
-                                        end
-                                    end
-                                104: // h (set mode bit)
-                                    begin
-                                        case (vt100_term[0])
-                                            7: // linewrap
-                                                vt100_linewrap <= 1'b1;
-                                        endcase
-                                    end
-                                108: // l (clear mode bit)
-                                    begin
-                                        case (vt100_term[0])
-                                            7: // linewrap
-                                                vt100_linewrap <= 1'b0;
-                                        endcase
-                                    end
-                                109: // m (attributes)
-                                    begin
-                                        vt100_fsm_state     <= vt100_state_attributes;
-                                        vt100_j             <= vt100_terms;
-                                        vt100_terms         <= 0;
-                                    end
-                                115: // s (save cursor position)
-                                    begin
-                                        vt100_sx            <= vt100_x;
-                                        vt100_sy            <= vt100_y;
-                                    end
-                                117: // u (restore cursor)
-                                    begin
-                                        vt100_x             <= vt100_sx;
-                                        vt100_y             <= vt100_sy;
-                                    end
-                            endcase
-                        end
+                end
+            vt100_state_attributes:
+                begin
+                    // handle attribute vt100_term[vt100_i]
+                    vt100_terms <= vt100_terms + 1'b1;
+                    if (vt100_term[vt100_terms] == 0) begin
+                        vt100_colour <= {1'b0, 1'b0, 3'b0, 3'b111};
+                    end else if (vt100_term[vt100_terms] == 1) begin // set bold
+                        vt100_colour[7:6] <= 2'b11;
+                    end else if (vt100_term[vt100_terms] == 2) begin // set dim
+                        vt100_colour[7:6] <= 2'b00;
+                    end else if (vt100_term[vt100_terms] >= 30 && vt100_term[vt100_terms] <= 37) begin  // foreground
+                        vt100_colour[2:0] <= vt100_term[vt100_terms][2:0] - 3'd30;
+                    end else if (vt100_term[vt100_terms] >= 40 && vt100_term[vt100_terms] <= 47) begin //background
+                        vt100_colour[5:3] <= vt100_term[vt100_terms][2:0] - 3'd40;
+                    end else if (vt100_term[vt100_terms] == 39) begin //default foreground
+                        vt100_colour[2:0] <= 3'd7;
+                        vt100_colour[7]   <= 1'b0;
+                    end else if (vt100_term[vt100_terms] == 49) begin //default background
+                        vt100_colour[5:3] <= 3'd0;
+                        vt100_colour[6]   <= 1'b0;
+                    end else if (vt100_term[vt100_terms] >= 90 && vt100_term[vt100_terms] <= 97) begin // bright foreground
+                        vt100_colour[7]   <= 1;
+                        vt100_colour[2:0] <= vt100_term[vt100_terms][2:0] - 3'd90;
+                    end else if (vt100_term[vt100_terms] >= 100 && vt100_term[vt100_terms] <= 107) begin // bright background
+                        vt100_colour[6]   <= 1;
+                        vt100_colour[5:3] <= vt100_term[vt100_terms][2:0] - 3'd100;
                     end
-                vt100_state_erase_cells:
-                    begin
-                        if (vt100_i != vt100_j) begin
-                            vt100_i         <= vt100_i + 1'b1;
-                            mem_wr_en_a     <= 1'b1;
-                            mem_din_a       <= {vt100_colour, 8'h20};
-                            mem_addr_a      <= vt100_i;
-                            vt100_fsm_state <= vt100_state_delay;
-                            vt100_fsm_tag   <= vt100_fsm_state;
-                        end else begin
-                            vt100_fsm_state <= vt100_state_idle;
-                        end
+                    if (vt100_j == vt100_terms) begin
+                        vt100_fsm_state <= vt100_state_idle;
                     end
-                vt100_state_attributes:
-                    begin
-                        // handle attribute vt100_term[vt100_i]
-                        vt100_terms <= vt100_terms + 1'b1;
-                        if (vt100_term[vt100_terms] == 0) begin
-                            vt100_colour <= {1'b0, 1'b0, 3'b0, 3'b111};
-                        end else if (vt100_term[vt100_terms] == 1) begin // set bold
-                            vt100_colour[7:6] <= 2'b11;
-                        end else if (vt100_term[vt100_terms] == 2) begin // set dim
-                            vt100_colour[7:6] <= 2'b00;
-                        end else if (vt100_term[vt100_terms] >= 30 && vt100_term[vt100_terms] <= 37) begin  // foreground
-                            vt100_colour[2:0] <= vt100_term[vt100_terms][2:0] - 3'd30;
-                        end else if (vt100_term[vt100_terms] >= 40 && vt100_term[vt100_terms] <= 47) begin //background
-                            vt100_colour[5:3] <= vt100_term[vt100_terms][2:0] - 3'd40;
-                        end else if (vt100_term[vt100_terms] == 39) begin //default foreground
-                            vt100_colour[2:0] <= 3'd7;
-                            vt100_colour[7]   <= 1'b0;
-                        end else if (vt100_term[vt100_terms] == 49) begin //default background
-                            vt100_colour[5:3] <= 3'd0;
-                            vt100_colour[6]   <= 1'b0;
-                        end else if (vt100_term[vt100_terms] >= 90 && vt100_term[vt100_terms] <= 97) begin // bright foreground
-                            vt100_colour[7]   <= 1;
-                            vt100_colour[2:0] <= vt100_term[vt100_terms][2:0] - 3'd90;
-                        end else if (vt100_term[vt100_terms] >= 100 && vt100_term[vt100_terms] <= 107) begin // bright background
-                            vt100_colour[6]   <= 1;
-                            vt100_colour[5:3] <= vt100_term[vt100_terms][2:0] - 3'd100;
-                        end
-                        if (vt100_j == vt100_terms) begin
-                            vt100_fsm_state <= vt100_state_idle;
-                        end
-                    end
-                vt100_state_delay:
-                    begin
-                        mem_wr_en_a     <= 1'b0;
-                        uart_rx_read    <= 1'b0;
-                        uart_tx_start   <= 1'b0;
-                        vt100_fsm_state <= vt100_state_delay2;
-                    end
-                vt100_state_delay2:
-                    begin
-                        vt100_curr_char <= uart_rx_byte;
-                        vt100_fsm_state <= vt100_fsm_tag;
-                    end
-            endcase
+                end
+            vt100_state_delay:
+                begin
+                    vt100_fsm_state <= vt100_state_delay2;
+                end
+            vt100_state_delay2:
+                begin
+                    vt100_curr_char <= uart_rx_byte;
+                    vt100_fsm_state <= vt100_fsm_tag;
+                end
+        endcase
+
+		if (~rst_n) begin
+            mem_wr_en_a      <= 0;
+            vt100_x          <= 0;
+            vt100_y          <= 0;
+            vt100_sx         <= 0;
+            vt100_sy         <= 0;
+            vt100_colour     <= {1'b0, 1'b0, 3'b0, 3'b111};
+            vt100_linewrap   <= 1'b0;
+            vt100_fsm_state  <= vt100_state_idle; 
+            vt100_i          <= 0;
+            vt100_j          <= 0;
+            vt100_prev_char  <= 0;
+            uart_rx_read     <= 0;
+            uart_tx_start    <= 0;
 		end
 	end
 
