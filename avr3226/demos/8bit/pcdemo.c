@@ -17,7 +17,9 @@
 #endif
 
 #ifdef BOARD_APPLE2
-#if 0
+// hello demo
+#include "roms/apple2_hello.h"
+#if 1
 #include "roms/apple2_bare.h"
 #define ROM_START 0xE000
 #define ROM_SIZE  0x2000
@@ -77,6 +79,10 @@ int main(void)
 #ifdef ROM_START
 	// load firmware
 	mem_write_block(ROM_START, ROM_SIZE, (uint8_t*)rom);
+	#ifdef BOARD_APPLE2
+		// copy cl65 demo to 0800 for size bytes
+		mem_write_block(0x0800, sizeof apple2_hello_bin, (uint8_t*)apple2_hello_bin);
+	#endif	
 #endif
 
 	// we loaded firmware so the CPU is likely running garbage so reset it
