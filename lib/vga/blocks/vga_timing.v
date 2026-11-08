@@ -13,7 +13,7 @@ module vga_timing #(
 
     // Vertical constants
     parameter V_VISIBLE    = 480,
-    parameter V_FRONT      = 10,
+    parameter V_FRONT      = 7,
     parameter V_SYNC       = 2,
     parameter V_BACK       = 33,
     parameter V_TOTAL      = 525
@@ -26,11 +26,18 @@ module vga_timing #(
     output reg  [$clog2(V_TOTAL):0]  y,
     output reg         h_sync,
     output reg         v_sync,
-    output wire        active_video
+    output reg         active_video
 );
+    always @(*) begin
+        // Active video flag (high when inside the 640x480 area)
+        active_video = (x < H_VISIBLE) && (y < V_VISIBLE);
 
-    // Active video flag (high when inside the 640x480 area)
-    assign active_video = (x < H_VISIBLE) && (y < V_VISIBLE);
+        // Horizontal Sync (Active Low for 640x480)
+        h_sync       = ~((x >= (H_VISIBLE + H_FRONT)) && (x < (H_VISIBLE + H_FRONT + H_SYNC)));
+
+        // Vertical Sync (Active Low for 640x480)
+        v_sync       = ~((y >= (V_VISIBLE + V_FRONT)) && (y < (V_VISIBLE + V_FRONT + V_SYNC)));
+    end
 
     always @(posedge clk) begin
         // X and Y Counter Logic
@@ -43,17 +50,9 @@ module vga_timing #(
             end
         end
 
-        // Horizontal Sync (Active Low for 640x480)
-        h_sync <= ~((x >= (H_VISIBLE + H_FRONT)) && (x < (H_VISIBLE + H_FRONT + H_SYNC)));
-
-        // Vertical Sync (Active Low for 640x480)
-        v_sync <= ~((y >= (V_VISIBLE + V_FRONT)) && (y < (V_VISIBLE + V_FRONT + V_SYNC)));
-
         if (~rst_n) begin
             x      <= 0;
             y      <= 0;
-            h_sync <= 1;
-            v_sync <= 1;
         end
     end
 endmodule

@@ -86,6 +86,7 @@ module vt100
         // notice we're scaling the font by 2 so we change the height to 16 here
         vga_text_driver #(
             .FONTHEIGHT(400/VT100_HEIGHT),
+            .FONTWIDTH(640/VT100_WIDTH),
             .X_FETCH_DELAY(2),
             .SYMBOL_BITS(16),
             .TEXTROWS(VT100_HEIGHT),
@@ -109,7 +110,7 @@ module vt100
         end
 
         always @(*) begin
-            text_out   = font_dout[7 - vga_x[2:0]];                // font is row major order so the left most pixel is the MSB
+            text_out   = font_dout[7 - ((VT100_WIDTH == 80) ? vga_x[2:0] : vga_x[3:1])];                // font is row major order so the left most pixel is the MSB
         end
 
         // font from lib/vga/blocks/
