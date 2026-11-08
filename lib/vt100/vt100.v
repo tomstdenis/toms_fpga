@@ -421,15 +421,13 @@ module vt100
                             104:                                                        // h (set mode bit)
                                 begin
                                     case (vt100_term[0])
-                                        7:                                              // linewrap
-                                            vt100_linewrap <= 1'b1;
+                                        7:  vt100_linewrap <= 1'b1;                    // linewrap
                                     endcase
                                 end
                             108:                                                        // l (clear mode bit)
                                 begin
                                     case (vt100_term[0])
-                                        7:                                              // linewrap
-                                            vt100_linewrap <= 1'b0;
+                                        7:  vt100_linewrap <= 1'b0;                     // linewrap
                                     endcase
                                 end
                             109:                                                        // m (attributes)

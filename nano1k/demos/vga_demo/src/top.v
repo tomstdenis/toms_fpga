@@ -7,7 +7,8 @@ module top(
     output reg [1:0] vga_g,
     output reg [1:0] vga_b,
     output reg vga_h_pulse,
-    output reg vga_v_pulse
+    output reg vga_v_pulse,
+    output reg led_r
 );
     localparam
         VT100_APPLE2_MODE = 0,                                      // set to 1 to enable 40x50 text mode which we can use for apple2 40col and LRG modes
@@ -26,6 +27,7 @@ module top(
 		if (pll_locked) begin
 			rstcnt <= {rstcnt[2:0], 1'b1};
 		end
+        led_r <= uart_rx;
     end
 
     // we're using a RGB222 so we need to reduce RGB444

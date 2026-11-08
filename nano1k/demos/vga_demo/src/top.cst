@@ -24,6 +24,10 @@ IO_PORT "vga_b[1]" IO_TYPE=LVCMOS33 PULL_MODE=DOWN  BANK_VCCIO=3.3;
 IO_LOC "vga_b[0]" 29;
 IO_PORT "vga_b[0]" IO_TYPE=LVCMOS33 PULL_MODE=DOWN  BANK_VCCIO=3.3;
 
+// red LED
+IO_LOC "led_r" 9; // red
+IO_PORT "led_r" IO_TYPE=LVCMOS33 PULL_MODE=UP  BANK_VCCIO=3.3;
+
 
 // 27MHz XTAL input
 IO_LOC "clk" 47; // if you can find this on the PCB you've wasted your life.
