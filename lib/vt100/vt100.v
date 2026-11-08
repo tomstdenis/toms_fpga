@@ -175,48 +175,51 @@ module vt100
         uart_rx_read    <= 1'b0;
         uart_tx_start   <= 1'b0;
         case (vt100_fsm_state)
+            // IDLE state, handle out of bounds cursor, scroll as necessary, start processing
+            // next uart input
             vt100_state_idle:
                 begin
                     vt100_terms <= 0;
-                    if (vt100_y[10]) begin // went negative
+                    if (vt100_y[10]) begin                          // Y went negative
                         vt100_y         <= 0;
                     end
-                    if (vt100_x[10]) begin // x went negative
+                    if (vt100_x[10]) begin                          // X went negative
                         vt100_x         <= 0;
                     end 
                     if (vt100_x >= VT100_WIDTH) begin
-                        vt100_x         <= VT100_WIDTH - 1;
+                        vt100_x         <= VT100_WIDTH - 1;         // X went to the right of the viewport
                     end
-                    if (vt100_y >= VT100_HEIGHT) begin
+                    if (vt100_y >= VT100_HEIGHT) begin              // Y went to beneath the viewport, so scroll until it's in view
                         // initiate screen scroll fsm state
                         vt100_y         <= vt100_y - 1'b1;
-                        vt100_i         <= 0;  // read from scroll+80 and write to scroll 
+                        vt100_i         <= 0;                       // read from scroll+80 and write to scroll 
                         vt100_fsm_state <= vt100_state_scroll;
-                    end else if (uart_rx_ready) begin
+                    end else if (uart_rx_ready) begin               // otherwise wait for a uart byte
                         uart_rx_read    <= 1;
                         vt100_fsm_tag   <= vt100_state_rx_char;
                         vt100_fsm_state <= vt100_state_delay;
                     end
                 end
+            // RX CHAR, handle the next uart byte
             vt100_state_rx_char:
                 begin
-                    vt100_prev_char <= vt100_curr_char;
-                    uart_tx_start   <= VT100_ECHO;
+                    vt100_prev_char <= vt100_curr_char;                  // sliding window of uart stream
+                    uart_tx_start   <= VT100_ECHO;                       // echo back if enabled
                     uart_tx_data_in <= vt100_curr_char;
-                    mem_addr_a      <= vt100_cursor_addr;          // address for colour/symbol pair
-                    mem_din_a       <= {vt100_colour, vt100_curr_char};
+                    mem_addr_a      <= vt100_cursor_addr;                // address for colour/symbol pair
+                    mem_din_a       <= {vt100_colour, vt100_curr_char};  // character to write to the display (this may be inhibited)
                     mem_wr_en_a     <= 1;
-                    vt100_fsm_tag   <= vt100_state_idle;
+                    vt100_fsm_tag   <= vt100_state_idle;                 // default back to IDLE
                     vt100_fsm_state <= vt100_state_delay;
                     case (vt100_curr_char)
-                        27: // ESC
+                        27: // ESC, turn off memory write (don't display ESC) we shifted it in to prev_char above for the next uart byte
                             begin
                                 mem_wr_en_a <= 0;
                             end
                         55, 56, 91: // 7, 8, [
                             begin
-                                if (vt100_prev_char == 27) begin // ESC
-                                    if (uart_rx_byte == 91) begin // [, CSI
+                                if (vt100_prev_char == 27) begin                            // was the previous char ESC?
+                                    if (uart_rx_byte == 91) begin                           // [, CSI
                                         // starting a CSI
                                         vt100_term[vt100_terms] <= 0;
                                         vt100_term_default <= 1;
@@ -224,62 +227,62 @@ module vt100
                                         vt100_j            <= 0;
                                         vt100_fsm_state    <= vt100_state_csi_terms;
                                         mem_wr_en_a        <= 0;
-                                    end else if (uart_rx_byte == 55) begin // 7, save cursor
+                                    end else if (uart_rx_byte == 55) begin                  // 7, save cursor
                                         vt100_sx           <= vt100_x;
                                         vt100_sy           <= vt100_y;
                                         mem_wr_en_a        <= 0;
-                                    end else if (uart_rx_byte == 56) begin // 8, restore cursor
+                                    end else if (uart_rx_byte == 56) begin                  // 8, restore cursor
                                         vt100_x            <= vt100_sx;
                                         vt100_y            <= vt100_sy;
                                         mem_wr_en_a        <= 0;
                                     end                                    
                                 end else begin
                                     // advance x/y because we drew a [
+                                    vt100_x <= vt100_x + 1'b1;
                                     if (vt100_x == VT100_WIDTH - 1) begin
                                         if (vt100_linewrap) begin
                                             vt100_x <= 0;
                                             vt100_y <= vt100_y + 1'b1;
                                         end
-                                    end else begin
-                                        vt100_x <= vt100_x + 1'b1;
                                     end
                                 end
                             end
                         10: // line feed
                             begin
                                 vt100_y     <= vt100_y + 1'b1;
-                                vt100_x     <= 0;               // linux default
-                                mem_wr_en_a <= 0;
+                                vt100_x     <= 0;                                           // linux default
+                                mem_wr_en_a <= 0;                                           // don't draw a line feed
                             end
                         13: // carriage return
                             begin
                                 vt100_x     <= 0;
-                                mem_wr_en_a <= 0;
+                                mem_wr_en_a <= 0;                                           // don't draw a carriage return
                             end
                         8: // bs
                             begin
                                 if (vt100_x > 0) begin
-                                    vt100_x     <= vt100_x - 1'b1;
+                                    vt100_x     <= vt100_x - 1'b1;                          // rewind the X position and write a blank space over it
                                     mem_addr_a  <= vt100_cursor_addr - 1'b1;
                                     mem_din_a   <= {vt100_colour, 8'h20};
                                 end else begin
                                     mem_wr_en_a <= 0;
                                 end
                             end
-                        default:
+                        default:                                                            // default is just draw the character in question
                             begin
                                 // advance x/y
+                                vt100_x <= vt100_x + 1'b1;
                                 if (vt100_x == VT100_WIDTH - 1) begin
                                     if (vt100_linewrap) begin
                                         vt100_x <= 0;
                                         vt100_y <= vt100_y + 1'b1;
                                     end
-                                end else begin
-                                    vt100_x <= vt100_x + 1'b1;
                                 end
                             end
                     endcase
                 end
+            // SCROLL, Since we use SDP memories we can't arbitrarily read the memory
+            // so instead we wait for the VGA text driver to hit the address we want 
             vt100_state_scroll: // start read unless done
                 begin
                     if (vt100_i == (VT100_HEIGHT * VT100_WIDTH - VT100_WIDTH)) begin
@@ -293,18 +296,18 @@ module vt100
                         end
                     end
                 end
-            vt100_state_scroll2: // start write
+            vt100_state_scroll2: // we hit the read address so let's write it out a line higher
                 begin
-                    mem_addr_a      <= vt100_i;
-                    mem_din_a       <= mem_dout_b;
+                    mem_addr_a      <= vt100_i;                                         // write at current cell
+                    mem_din_a       <= mem_dout_b;                                      // write what the vga text driver is reading out
                     mem_wr_en_a     <= 1;
-                    vt100_i         <= vt100_i + 1'b1;
-                    vt100_fsm_state <= vt100_state_delay;
-                    vt100_fsm_tag   <= vt100_state_scroll;
+                    vt100_i         <= vt100_i + 1'b1;                                  // advance address to next cell
+                    vt100_fsm_state <= vt100_state_delay;                               // delay for the write
+                    vt100_fsm_tag   <= vt100_state_scroll;                              // jump back to the scroll top
                 end
-            vt100_state_scroll3: // clear last row
+            vt100_state_scroll3: // we finished scrolling the text, now we erase the last line
                 begin
-                    if (vt100_i == (VT100_HEIGHT * VT100_WIDTH)) begin
+                    if (vt100_i == (VT100_HEIGHT * VT100_WIDTH)) begin                  // we're at the end of the screen jump back to idle
                         vt100_fsm_state <= vt100_state_idle;
                     end else begin
                         mem_addr_a      <= vt100_i;
@@ -315,12 +318,13 @@ module vt100
                         vt100_fsm_tag   <= vt100_fsm_state;
                     end
                 end
+            // TERM handling.  Many vt100 codes involve gathering several terms, this state zeroes the current term
             vt100_state_zero_term:
                 begin
                     vt100_term[vt100_terms] <= 0;
                     vt100_fsm_state         <= vt100_state_csi_terms;
                 end
-            vt100_state_csi_terms:
+            vt100_state_csi_terms:                                                      // wait for the next UART byte
                 begin
                     if (uart_rx_ready) begin
                         uart_rx_read    <= 1'b1;
@@ -328,21 +332,21 @@ module vt100
                         vt100_fsm_tag   <= vt100_state_csi_term_parse;
                     end
                 end
-            vt100_state_csi_term_parse:
+            vt100_state_csi_term_parse:                                                 // process the next UART byte
                 begin
                     vt100_fsm_state <= vt100_state_csi_terms;
-                    if (vt100_curr_char >= 48 && vt100_curr_char <= 57) begin // 0 - 9
+                    if (vt100_curr_char >= 48 && vt100_curr_char <= 57) begin           // 0 - 9, add it to the current term
                         vt100_term[vt100_terms] <= vt100_term[vt100_terms] * 8'd10 + vt100_curr_char - 8'd48;
-                        vt100_term_default <= 1'b0;
-                    end else if (vt100_curr_char == 61 || vt100_curr_char == 63) begin // =, ?
+                        vt100_term_default      <= 1'b0;
+                    end else if (vt100_curr_char == 61 || vt100_curr_char == 63) begin  // =, ?
                         // for now just skip over this byte
-                    end else if (vt100_curr_char == 59) begin              // ;
+                    end else if (vt100_curr_char == 59) begin                           // ;, advance to the next term, zero it, and start over
                         vt100_terms        <= vt100_terms + 1'b1;
                         vt100_fsm_state    <= vt100_state_zero_term;
-                    end else begin                                      // command character
+                    end else begin                                                      // command character, now we consume all the terms we saved
                         vt100_fsm_state <= vt100_state_idle;
                         case (vt100_curr_char)
-                            102, 72: // f or H
+                            102, 72:                                                    // f or H, move the cursor
                                 begin
                                     if (vt100_term_default) begin
                                         vt100_x <= 1'b0;
@@ -352,94 +356,97 @@ module vt100
                                         vt100_x <= vt100_term[1] - 1'b1;
                                     end
                                 end
-                            65: // A (move up X lines)
+                            65:                                                         // A (move up X lines)
                                 begin
                                     vt100_y <= vt100_y - vt100_term[0];
                                 end
-                            66: // B (move down X lines)
+                            66:                                                         // B (move down X lines)
                                 begin
                                     vt100_y <= vt100_y + vt100_term[0];
                                 end
-                            67: // C (move left X columns)
+                            67:                                                         // C (move left X columns)
                                 begin
                                     vt100_x <= vt100_x - vt100_term[0];
                                 end
-                            68: // D (move right X columns)
+                            68:                                                         // D (move right X columns)
                                 begin
                                     vt100_x <= vt100_x + vt100_term[0];
                                 end
-                            69: // E (reset x, move down X lines)
+                            69:                                                         // E (reset x, move down X lines)
                                 begin
                                     vt100_x <= 0;
                                     vt100_y <= vt100_y + vt100_term[0];
                                 end
-                            70: // F (reset x, move up X lines)
+                            70:                                                         // F (reset x, move up X lines)
                                 begin
                                     vt100_x <= 0;
                                     vt100_y <= vt100_y - vt100_term[0];
                                 end
-                            71: // G (move to column X)
+                            71:                                                         // G (move to column X)
                                 begin
                                     vt100_x <= vt100_term[0] - 1'b1;
                                 end
-                            74: // J (erase)
+                            74:                                                         // J (erase)
                                 begin
                                     if (vt100_term[0] == 0 || vt100_term_default) begin // cursor to end of screen
                                         vt100_fsm_state <= vt100_state_erase_cells;
                                         vt100_i         <= vt100_cursor_addr;
                                         vt100_j         <= VT100_HEIGHT * VT100_WIDTH;
-                                    end else if (vt100_term[0] == 1) begin // from cursor to start of screen
+                                    end else if (vt100_term[0] == 1) begin              // from cursor to start of screen
                                         vt100_fsm_state <= vt100_state_erase_cells;
                                         vt100_j         <= vt100_cursor_addr;
                                         vt100_i         <= 0;
-                                    end else if (vt100_term[0] == 2) begin // entire screen
+                                    end else if (vt100_term[0] == 2) begin              // entire screen
                                         vt100_fsm_state <= vt100_state_erase_cells;
                                         vt100_i         <= 0;
                                         vt100_j         <= VT100_HEIGHT * VT100_WIDTH;
                                     end
                                 end
-                            75: // K (erase row)
+                            75:                                                         // K (erase row)
                                 begin
                                     if (vt100_term[0] == 0 || vt100_term_default) begin // cursor to end of line
                                         vt100_fsm_state <= vt100_state_erase_cells;
                                         vt100_i         <= vt100_cursor_addr;
                                         vt100_j         <= vt100_row_addr + VT100_WIDTH - vt100_x;
-                                    end else if (vt100_term[0] == 1) begin // from start of line to cursor
+                                    end else if (vt100_term[0] == 1) begin              // from start of line to cursor
                                         vt100_fsm_state <= vt100_state_erase_cells;
                                         vt100_i         <= vt100_row_addr;
                                         vt100_j         <= vt100_cursor_addr;
-                                    end else if (vt100_term[0] == 2) begin // erase current line
+                                    end else if (vt100_term[0] == 2) begin              // erase current line
                                         vt100_fsm_state <= vt100_state_erase_cells;
                                         vt100_i         <= vt100_row_addr;
                                         vt100_j         <= vt100_row_addr + VT100_WIDTH;
                                     end
                                 end
-                            104: // h (set mode bit)
+                            104:                                                        // h (set mode bit)
                                 begin
                                     case (vt100_term[0])
-                                        7: // linewrap
+                                        7:                                              // linewrap
                                             vt100_linewrap <= 1'b1;
                                     endcase
                                 end
-                            108: // l (clear mode bit)
+                            108:                                                        // l (clear mode bit)
                                 begin
                                     case (vt100_term[0])
-                                        7: // linewrap
+                                        7:                                              // linewrap
                                             vt100_linewrap <= 1'b0;
                                     endcase
                                 end
-                            109: // m (attributes)
+                            109:                                                        // m (attributes)
                                 begin
                                     vt100_fsm_state     <= vt100_state_attributes;
-                                    vt100_j             <= vt100_terms;
-                                    vt100_terms         <= 0;
+                                    // why swap?  we use vt100_terms as an index into the DFF array 
+                                    // so here we save the # of terms in j and then reset terms to zero
+                                    // this saves LUT4s and timing
+                                    vt100_j             <= vt100_terms;                 // save the # of terms
+                                    vt100_terms         <= 0;                           // step through them starting at 0
                                 end
-                            115: // s (save cursor position)
+                            115:                                                        // s (save cursor position)
                                 begin
                                     vt100_sx            <= vt100_x;
                                     vt100_sy            <= vt100_y;
                                 end
-                            117: // u (restore cursor)
+                            117:                                                        // u (restore cursor)
                                 begin
                                     vt100_x             <= vt100_sx;
                                     vt100_y             <= vt100_sy;
@@ -447,8 +454,10 @@ module vt100
                         endcase
                     end
                 end
+            // erase cells between vt100_i and vt100_j - 1 inclusive
             vt100_state_erase_cells:
                 begin
+                    vt100_fsm_state <= vt100_state_idle;
                     if (vt100_i != vt100_j) begin
                         vt100_i         <= vt100_i + 1'b1;
                         mem_wr_en_a     <= 1'b1;
@@ -456,31 +465,29 @@ module vt100
                         mem_addr_a      <= vt100_i;
                         vt100_fsm_state <= vt100_state_delay;
                         vt100_fsm_tag   <= vt100_fsm_state;
-                    end else begin
-                        vt100_fsm_state <= vt100_state_idle;
                     end
                 end
             vt100_state_attributes:
                 begin
                     // handle attribute vt100_term[vt100_i]
                     vt100_terms <= vt100_terms + 1'b1;
-                    if (vt100_term[vt100_terms] == 0) begin
-                        vt100_colour <= {1'b0, 1'b0, 3'b0, 3'b111};
-                    end else if (vt100_term[vt100_terms] == 1) begin // set bold
+                    if (vt100_term[vt100_terms] == 0) begin                                             // reset attributes
+                        vt100_colour      <= {1'b0, 1'b0, 3'b0, 3'b111};
+                    end else if (vt100_term[vt100_terms] == 1) begin                                    // set bold
                         vt100_colour[7:6] <= 2'b11;
-                    end else if (vt100_term[vt100_terms] == 2) begin // set dim
+                    end else if (vt100_term[vt100_terms] == 2) begin                                    // set dim
                         vt100_colour[7:6] <= 2'b00;
                     end else if (vt100_term[vt100_terms] >= 30 && vt100_term[vt100_terms] <= 37) begin  // foreground
                         vt100_colour[2:0] <= vt100_term[vt100_terms][2:0] - 3'd30;
-                    end else if (vt100_term[vt100_terms] >= 40 && vt100_term[vt100_terms] <= 47) begin //background
+                    end else if (vt100_term[vt100_terms] >= 40 && vt100_term[vt100_terms] <= 47) begin  // background
                         vt100_colour[5:3] <= vt100_term[vt100_terms][2:0] - 3'd40;
-                    end else if (vt100_term[vt100_terms] == 39) begin //default foreground
+                    end else if (vt100_term[vt100_terms] == 39) begin                                   // default foreground
                         vt100_colour[2:0] <= 3'd7;
                         vt100_colour[7]   <= 1'b0;
-                    end else if (vt100_term[vt100_terms] == 49) begin //default background
+                    end else if (vt100_term[vt100_terms] == 49) begin                                   // default background
                         vt100_colour[5:3] <= 3'd0;
                         vt100_colour[6]   <= 1'b0;
-                    end else if (vt100_term[vt100_terms] >= 90 && vt100_term[vt100_terms] <= 97) begin // bright foreground
+                    end else if (vt100_term[vt100_terms] >= 90 && vt100_term[vt100_terms] <= 97) begin  // bright foreground
                         vt100_colour[7]   <= 1;
                         vt100_colour[2:0] <= vt100_term[vt100_terms][2:0] - 3'd90;
                     end else if (vt100_term[vt100_terms] >= 100 && vt100_term[vt100_terms] <= 107) begin // bright background
