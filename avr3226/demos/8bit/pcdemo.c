@@ -19,7 +19,7 @@
 #ifdef BOARD_APPLE2
 // hello demo
 #include "roms/apple2_hello.h"
-#if 1
+#if 0
 #include "roms/apple2_bare.h"
 #define ROM_START 0xE000
 #define ROM_SIZE  0x2000

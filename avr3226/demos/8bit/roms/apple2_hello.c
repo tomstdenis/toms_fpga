@@ -10,9 +10,10 @@
 
 void main (void)
 {
-	volatile char *p = 0x400;
-	*p++ = 'A';
-	*p++ = 'B';
-	*p++ = 'C';
+	volatile unsigned char *p = (unsigned char*)0x400;
+	unsigned x;
+	for (x = 0; x < 0x100; x++) {
+		*p++ = x;
+	}
 	for (;;);
 }
