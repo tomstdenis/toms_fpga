@@ -82,10 +82,9 @@ module vga_text_driver #(
 				end
 			end
 		end else begin
+            x_cnt   <= x_cnt + 1'b1;
 			if (x_cnt >= (LRG_PWIDTH-1)) begin
 				x_cnt   <= 1'b0;
-			end else begin
-				x_cnt   <= x_cnt + 1'b1;
 			end
 			// lowres graphics mode
 			if (x < (LRG_COLS * LRG_PWIDTH) && y < (LRG_ROWS * LRG_PHEIGHT)) begin

@@ -525,58 +525,51 @@ module vt100
 	end
 
     // grab the current symbol attribute and latch it so it's valid for the entire width of the font
-    wire [1:0] text_at;
-    wire [2:0] text_fg;
-    wire [2:0] text_bg;
-    wire [3:0] rgbon;
+    reg [1:0] text_at;
+    reg [2:0] text_fg;
+    reg [2:0] text_bg;
+    reg [3:0] rgbon;
 
-    assign text_at = symbol[15:14];
-    assign text_bg = symbol[13:11];
-    assign text_fg = symbol[10:8];
-    assign rgbon   = {text_at[text_out], 3'b111};
-
-    // drive the VGA R/G/B pins
-    reg [3:0] vga_r_comb;
-    reg [3:0] vga_g_comb;
-    reg [3:0] vga_b_comb;
 	always @(*) begin
-		vga_r_comb = 0;
-		vga_g_comb = 0;
-		vga_b_comb = 0;
+        // default to blank (needed when in blanking regions)
+		vga_r   = 0;
+		vga_g   = 0;
+		vga_b   = 0;
 		
+        // extract attribute information
+        text_at = symbol[15:14];
+        text_bg = symbol[13:11];
+        text_fg = symbol[10:8];
+        rgbon   = {text_at[text_out], 3'b111};
+
         // render the foreground/background colour using the VT100 palette, with support
         // bold/dim attributes
 		if (vga_active) begin
             case (text_out ? text_fg : text_bg)
                 0: // black
-                    {vga_r_comb, vga_g_comb, vga_b_comb} = 12'b0000_0000_0000;
+                    {vga_r, vga_g, vga_b} = 12'b0000_0000_0000;
                 1: // red
-                    {vga_r_comb, vga_g_comb, vga_b_comb} = {rgbon, 4'b0000, 4'b0000};
+                    {vga_r, vga_g, vga_b} = {rgbon, 4'b0000, 4'b0000};
                 2: // green
-                    {vga_r_comb, vga_g_comb, vga_b_comb} = {4'b0000, rgbon, 4'b0000};
+                    {vga_r, vga_g, vga_b} = {4'b0000, rgbon, 4'b0000};
                 3: // yellow
-                    {vga_r_comb, vga_g_comb, vga_b_comb} = {rgbon, rgbon, 4'b0000};
+                    {vga_r, vga_g, vga_b} = {rgbon, rgbon, 4'b0000};
                 4: // blue
-                    {vga_r_comb, vga_g_comb, vga_b_comb} = {4'b0000, 4'b0000, rgbon};
+                    {vga_r, vga_g, vga_b} = {4'b0000, 4'b0000, rgbon};
                 5: // magenta
-                    {vga_r_comb, vga_g_comb, vga_b_comb} = {rgbon, 4'b0000, rgbon};
+                    {vga_r, vga_g, vga_b} = {rgbon, 4'b0000, rgbon};
                 6: // cyan
-                    {vga_r_comb, vga_g_comb, vga_b_comb} = {4'b0000, rgbon, rgbon};
+                    {vga_r, vga_g, vga_b} = {4'b0000, rgbon, rgbon};
                 7: // white
-                    {vga_r_comb, vga_g_comb, vga_b_comb} = {rgbon, rgbon, rgbon};
+                    {vga_r, vga_g, vga_b} = {rgbon, rgbon, rgbon};
             endcase
 		end
-	end
 
-    // generate VGA outputs
-    always @(*) begin
-        vga_r       = vga_r_comb;
-        vga_g       = vga_g_comb;
-        vga_b       = vga_b_comb;
+        // drive the VGA signals out
         vga_h_pulse = vga_h_sync;
         vga_v_pulse = vga_v_sync;
         vga_active  = vga_active_f;
-    end
+	end
 endmodule
 
 `include "comms/uart/rx_uart.v"

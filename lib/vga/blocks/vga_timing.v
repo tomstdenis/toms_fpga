@@ -33,30 +33,27 @@ module vga_timing #(
     assign active_video = (x < H_VISIBLE) && (y < V_VISIBLE);
 
     always @(posedge clk) begin
-        if (!rst_n) begin
+        // X and Y Counter Logic
+        x <= x + 1'b1;
+        if (x == (H_TOTAL - 1)) begin
+            x <= 0;
+            y <= y + 1'b1;
+            if (y == (V_TOTAL - 1)) begin
+                y <= 0;
+            end
+        end
+
+        // Horizontal Sync (Active Low for 640x480)
+        h_sync <= ~((x >= (H_VISIBLE + H_FRONT)) && (x < (H_VISIBLE + H_FRONT + H_SYNC)));
+
+        // Vertical Sync (Active Low for 640x480)
+        v_sync <= ~((y >= (V_VISIBLE + V_FRONT)) && (y < (V_VISIBLE + V_FRONT + V_SYNC)));
+
+        if (~rst_n) begin
             x      <= 0;
             y      <= 0;
             h_sync <= 1;
             v_sync <= 1;
-        end else begin
-            // X and Y Counter Logic
-            x <= x + 1'b1;
-            if (x == (H_TOTAL - 1)) begin
-                x <= 0;
-                y <= y + 1'b1;
-                if (y == (V_TOTAL - 1)) begin
-                    y <= 0;
-                end
-            end
-
-            // Horizontal Sync (Active Low for 640x480)
-            h_sync <= ~((x >= (H_VISIBLE + H_FRONT)) && 
-                        (x < (H_VISIBLE + H_FRONT + H_SYNC)));
-
-            // Vertical Sync (Active Low for 640x480)
-            v_sync <= ~((y >= (V_VISIBLE + V_FRONT)) && 
-                        (y < (V_VISIBLE + V_FRONT + V_SYNC)));
         end
     end
-
 endmodule
