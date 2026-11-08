@@ -50,13 +50,13 @@ module vt100
 
     // *** VID MEM ***
         // video memory (16 bit wide, 2048 deep for a 80x25 with attribute bytes)
-        reg mem_wr_en_a;
-        reg [INDEX_BITS-1:0] mem_addr_a;
-        reg[15:0] mem_din_a;
+        reg                   mem_wr_en_a;
+        reg [INDEX_BITS-1:0]  mem_addr_a;
+        reg[15:0]             mem_din_a;
 
-        reg [15:0] mem_dout_b;
+        reg [15:0]            mem_dout_b;
         wire [INDEX_BITS-1:0] mem_addr_b;
-        reg [15:0] vidmem[0:(1<<INDEX_BITS)-1];
+        reg [15:0]            vidmem[0:(1<<INDEX_BITS)-1];
 
         always @(posedge clk) begin
             if (mem_wr_en_a) begin
@@ -68,26 +68,28 @@ module vt100
     // *** VGA ***
         wire [10:0] vga_x;
         wire [10:0] vga_y;
-        wire vga_h_sync;
-        wire vga_v_sync;
-        wire vga_active_f;
+        wire        vga_h_sync;
+        wire        vga_v_sync;
+        wire        vga_active_f;
         
         // VGA Timing block
         vga_timing vga(
             .clk(clk),
             .rst_n(rst_n),
-            .x(vga_x),
-            .y(vga_y),
-            .h_sync(vga_h_sync),
-            .v_sync(vga_v_sync),
-            .active_video(vga_active_f));
+            .x(vga_x), .y(vga_y),
+            .h_sync(vga_h_sync), .v_sync(vga_v_sync), .active_video(vga_active_f));
 
         // we need to figure out the font info for the /next/ cycle since this isn't combinatorial
         wire [15:0] symbol;
 
         // VGA text mode driver, defaults to 80x25 using an 8x8 font
         // notice we're scaling the font by 2 so we change the height to 16 here
-        vga_text_driver #(.FONTHEIGHT(400/VT100_HEIGHT), .X_FETCH_DELAY(2), .SYMBOL_BITS(16), .TEXTROWS(VT100_HEIGHT), .TEXTCOLS(VT100_WIDTH)) textdrv(
+        vga_text_driver #(
+            .FONTHEIGHT(400/VT100_HEIGHT),
+            .X_FETCH_DELAY(2),
+            .SYMBOL_BITS(16),
+            .TEXTROWS(VT100_HEIGHT),
+            .TEXTCOLS(VT100_WIDTH)) textdrv(
             .clk(clk), .rst_n(rst_n),
             .x(vga_x), .y(vga_y), .active_video(vga_active),
             .rd_addr(mem_addr_b), .rd_data(mem_dout_b),
@@ -112,12 +114,12 @@ module vt100
 
     // *** UART ***
         // uart driven by uart_tx/uart_rx pins
-        reg uart_tx_start;
-        reg [7:0] uart_tx_data_in;
-        wire uart_tx_fifo_empty;
-        wire uart_tx_fifo_full;
-        reg uart_rx_read;
-        wire uart_rx_ready;
+        reg        uart_tx_start;
+        reg [7:0]  uart_tx_data_in;
+        wire       uart_tx_fifo_empty;
+        wire       uart_tx_fifo_full;
+        reg        uart_rx_read;
+        wire       uart_rx_ready;
         wire [7:0] uart_rx_byte;
 
         localparam 
@@ -132,22 +134,22 @@ module vt100
             .uart_rx_pin(uart_rx), .uart_rx_read(uart_rx_read), .uart_rx_ready(uart_rx_ready), .uart_rx_byte(uart_rx_byte));
 
     // *** VT100 ***
-    reg [INDEX_BITS-1:0] vt100_x;
-    reg [INDEX_BITS-1:0] vt100_y;
-    reg [INDEX_BITS-1:0] vt100_sx;
-    reg [INDEX_BITS-1:0] vt100_sy;
-    reg [7:0]  vt100_colour;
-    reg        vt100_linewrap;
-    reg [3:0]  vt100_fsm_state;
-    reg [3:0]  vt100_fsm_tag;
+    reg [INDEX_BITS-1:0]  vt100_x;
+    reg [INDEX_BITS-1:0]  vt100_y;
+    reg [INDEX_BITS-1:0]  vt100_sx;
+    reg [INDEX_BITS-1:0]  vt100_sy;
+    reg [7:0]             vt100_colour;
+    reg                   vt100_linewrap;
+    reg [3:0]             vt100_fsm_state;
+    reg [3:0]             vt100_fsm_tag;
 
-    reg [7:0]  vt100_term[3:0];
-    reg [2:0]  vt100_terms;
-    reg        vt100_term_default;
-    reg [INDEX_BITS-1:0] vt100_i;
-    reg [INDEX_BITS-1:0] vt100_j;
-    reg [7:0]  vt100_prev_char;
-    reg [7:0]  vt100_curr_char;
+    reg [7:0]             vt100_term[0:3];
+    reg [2:0]             vt100_terms;
+    reg                   vt100_term_default;
+    reg [INDEX_BITS-1:0]  vt100_i;
+    reg [INDEX_BITS-1:0]  vt100_j;
+    reg [7:0]             vt100_prev_char;
+    reg [7:0]             vt100_curr_char;
 
     wire [INDEX_BITS-1:0] vt100_row_addr;
     wire [INDEX_BITS-1:0] vt100_cursor_addr;
@@ -169,7 +171,7 @@ module vt100
         vt100_state_delay2         = 11;        // 2nd half of delay (also store uart rx if any
 
 	always @(posedge clk) begin
-        mem_wr_en_a     <= 0;
+        mem_wr_en_a     <= 1'b0;
         uart_rx_read    <= 1'b0;
         uart_tx_start   <= 1'b0;
         case (vt100_fsm_state)
@@ -561,7 +563,7 @@ module vt100
 		end
 	end
 
-    // register VGA outputs
+    // generate VGA outputs
     always @(*) begin
         vga_r       = vga_r_comb;
         vga_g       = vga_g_comb;
