@@ -54,7 +54,7 @@ module vga_text_driver #(
 			y_cnt   <= 0;
 		end else if (lrg_mode == 0) begin
 			// text mode
-			if (y < (TEXTROWS*FONTHEIGHT) && x < (TEXTCOLS*FONTWIDTH)) begin
+			if (y < (TEXTROWS*FONTHEIGHT) && x < (TEXTCOLS*FONTWIDTH - X_FETCH_DELAY)) begin
 				if (x[$clog2(FONTWIDTH)-1:0] == (FONTWIDTH-2-X_FETCH_DELAY)) begin
 					rd_addr <= rd_addr + 1'b1;
 				end
@@ -64,7 +64,9 @@ module vga_text_driver #(
 				end
 			end else begin
                 // we're either just entering HBLANK or VBLANK
-				if (x == (H_TOTAL-2-X_FETCH_DELAY)) begin
+                if (x < (H_TOTAL-2-X_FETCH_DELAY)) begin
+                    symbol <= 16'h0020;
+                end else if (x == (H_TOTAL-2-X_FETCH_DELAY)) begin
 					// set the next address for the next scanline which is either
                     // another line of the same text char row or the first row of the next row of text...
 					if (y >= ((TEXTROWS*FONTHEIGHT)-1)) begin

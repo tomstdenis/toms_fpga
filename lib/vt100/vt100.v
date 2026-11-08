@@ -56,7 +56,7 @@ module vt100
 
         reg [15:0] mem_dout_b;
         wire [INDEX_BITS-1:0] mem_addr_b;
-        reg [15:0] vidmem[0:2047];
+        reg [15:0] vidmem[0:(1<<INDEX_BITS)-1];
 
         always @(posedge clk) begin
             if (mem_wr_en_a) begin
@@ -87,7 +87,7 @@ module vt100
 
         // VGA text mode driver, defaults to 80x25 using an 8x8 font
         // notice we're scaling the font by 2 so we change the height to 16 here
-        vga_text_driver #(.FONTHEIGHT(16), .X_FETCH_DELAY(2), .SYMBOL_BITS(16), .TEXTROWS(VT100_HEIGHT), .TEXTCOLS(VT100_WIDTH)) textdrv(
+        vga_text_driver #(.FONTHEIGHT(400/VT100_HEIGHT), .X_FETCH_DELAY(2), .SYMBOL_BITS(16), .TEXTROWS(VT100_HEIGHT), .TEXTCOLS(VT100_WIDTH)) textdrv(
             .clk(clk), .rst_n(rst_n),
             .x(vga_x), .y(vga_y), .active_video(vga_active),
             .rd_addr(mem_addr_b), .rd_data(mem_dout_b),
@@ -97,18 +97,18 @@ module vt100
         wire text_out;
 
         // Font ROM
-        reg [7:0] font_dout;                                   // output of rom
-        wire [10:0] font_ad = {symbol[7:0], vga_y_p1[3:1]};     // address into the rom, it's 11 bits of which the top 8 are the symbol and bottom 3 are the row
-        reg [7:0] font_rom[0:2047];
+        reg [7:0]   font_dout;                                   // output of rom
+        wire [10:0] vga_y_p1 = (vga_y + (vga_x == 799 ? 1'b1 : 1'b0));
+        wire [10:0] font_ad  = {symbol[7:0], (VT100_HEIGHT == 50) ? vga_y_p1[2:0] : vga_y_p1[3:1]};     // address into the rom, it's 11 bits of which the top 8 are the symbol and bottom 3 are the row
+        reg [7:0]   font_rom[0:2047];
+        assign text_out = font_dout[7 - vga_x[2:0]];            // bit of output indexed from the ROM output
+
         // font from lib/vga/blocks/
         `include "vga/blocks/fontrom.vh"
 
         always @(posedge clk) begin
             font_dout <= font_rom[font_ad];
         end
-
-        wire [10:0] vga_y_p1 = (vga_y + (vga_x == 799 ? 1'b1 : 1'b0));
-        assign text_out = font_dout[7 - vga_x[2:0]];            // bit of output indexed from the ROM output
 
     // *** UART ***
         // uart driven by uart_tx/uart_rx pins

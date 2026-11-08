@@ -21,8 +21,8 @@ avrupload:
 	(cd .. ; git clone https://github.com/cc65/cc65.git )
 	make -C ../cc65 -j8
 
-/tmp/pcdemo.src.c: pcdemo.c *.src
-	cat *.src pcdemo.c > /tmp/pcdemo.src.c
+/tmp/pcdemo.src.c: pcdemo.pc *.src
+	cat *.src pcdemo.pc > /tmp/pcdemo.src.c
 
 .PHONY: 8bit.ino
 8bit.ino: *.src
