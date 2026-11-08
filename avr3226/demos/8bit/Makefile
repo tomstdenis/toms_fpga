@@ -6,4 +6,4 @@ pcdemo: /tmp/pcdemo.src.c
 
 .PHONY: clean
 clean:
-	rm -f pcdemo emuflash.bin
+	rm -f pcdemo emuflash.bin riscv/test riscv/test_c
