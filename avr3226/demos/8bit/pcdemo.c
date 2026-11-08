@@ -1,4 +1,4 @@
-#define HOSTPC
+#ifdef HOSTPC
 
 #include <stdio.h>
 #include <termios.h>
@@ -8,7 +8,7 @@
 #include <stdlib.h>
 #include <stdint.h>
 #include <sys/time.h>
-#include "00_top.ino"
+//#include "00_top.ino"
 
 #ifdef BOARD_APPLE1
 #include "roms/apple1_wozmon.h"
@@ -93,3 +93,4 @@ int main(void)
 		platform_step();
 	}
 }
+#endif
