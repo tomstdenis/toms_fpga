@@ -128,39 +128,117 @@ void mem_write_word(uint32_t addr, uint16_t val)
 
 #else
 
-// driver for 23AA04M-I/SN SPI SRAM
+// driver for 1MBit SPI SRAM
 
 #include <SPI.h>
 
-#define CS_PORT VPORTC
-#define CS_PIN_BM PIN3_bm
+// spi memory code
+// start a SPI transaction
+void spi_mem_start_trans(int cs_pin)
+{
+  digitalWrite(cs_pin, LOW);
+  SPI.beginTransaction(SPISettings(10000000, MSBFIRST, SPI_MODE0)); // adjust clock speed per your SRAM specs
+}
+
+void spi_mem_end_trans(int cs_pin)
+{
+  SPI.endTransaction();
+  digitalWrite(cs_pin, HIGH);
+}
+
+// start a memory command
+void spi_mem_start_cmd(int cs_pin, uint32_t address, uint8_t cmd)
+{
+  spi_mem_start_trans(cs_pin);
+  SPI.transfer(cmd);
+  SPI.transfer((address>>16)&0xFF);
+  SPI.transfer((address>>8)&0xFF);
+  SPI.transfer(address&0xFF);
+}
+
+// send single byte command
+void spi_mem_single_pulse(int cs_pin, uint8_t cmd)
+{
+  spi_mem_start_trans(cs_pin);
+  SPI.transfer(cmd); // WREN write enable
+  spi_mem_end_trans(cs_pin);
+}
+
+// send a single byte command and return the next byte read
+uint8_t spi_mem_single_cmd(int cs_pin, uint8_t cmd)
+{
+  uint8_t res;
+  spi_mem_start_trans(cs_pin);
+  SPI.transfer(cmd); // WREN write enable
+  res = SPI.transfer(0xFF);
+  spi_mem_end_trans(cs_pin);
+  return res;
+}
+
+// also works as eeprom_read()
+// 23A1024 SRAM
+// read a block of memory into CPU memory
+void sram_read(int cs_pin, uint32_t address, uint8_t *dst, uint16_t len)
+{
+  spi_mem_start_cmd(cs_pin, address, 0x03);
+  while (len--) {
+    *dst++ = SPI.transfer(0xFF);
+  }
+  spi_mem_end_trans(cs_pin);
+}
+#define eeprom_read sram_read
+
+// write CPU memory out to SPI SRAM memory 
+void sram_write(int cs_pin, uint32_t address, const uint8_t *src, uint16_t len)
+{
+  spi_mem_start_cmd(cs_pin, address, 0x02);
+  while (len--) {
+    SPI.transfer(*src++);
+  }
+  spi_mem_end_trans(cs_pin);
+}
+
+// 23CSM01 EEPROM
+// Wait for Write-in-progress
+void eeprom_wait_wip(int cs_pin)
+{
+  // wait while writing
+  uint8_t status;
+  do {
+    status = spi_mem_single_cmd(cs_pin, 0x05); // RDSR read status reg
+  } while (status & 1);
+}
+
+// Write from CPU memory to EEPROM memory
+// Note: You cannot cross page boundaries on my 23CSM01 it's 256 byte pages but on
+// other EEPROMs it could be smaller (64, 128 bytes, etc...)
+void eeprom_write(int cs_pin, uint32_t address, const uint8_t *src, uint16_t len)
+{
+  // make sure there isn't a write in progress
+  eeprom_wait_wip(cs_pin);
+
+  // enable write latch
+  spi_mem_single_pulse(cs_pin, 0x06); // WREN write enable
+
+  // write buffer to EEPROM buffer (SRAM write and EEPROM write are the same command one you enable the write latch)
+  sram_write(cs_pin, address, src, len);
+
+  // wait for EEPROM to commit buffer to NV memory
+  eeprom_wait_wip(cs_pin);
+}
+
+// pins on an attiny3226
+#define SRAM_CS_PIN   13 // PC3
+#define EEPROM_CS_PIN  0 // PA4
 
 int mem_init(void)
 {
 	// clear the remapping table
 	memset(mem_remaps, 0, sizeof mem_remaps);
 
-	// set CS pin high as it's active low
-	CS_PORT.DIR |= CS_PIN_BM;
-	CS_PORT.OUT |= CS_PIN_BM;
-	
-	// TODO: configure sequential mode ...
-	// 2. Start Transaction FIRST (configures pins & interrupts)
-	SPI.beginTransaction(SPISettings(10000000, MSBFIRST, SPI_MODE0));
-
-	// 3. Set CS active
-	CS_PORT.IN = CS_PIN_BM;    // (writing to the VPORT.IN will toggle the pin) toggle PA7 (make it low)
-
-	// compose command
-	SPI.transfer(0x01);					// 01 - WRSR
-	SPI.transfer(1U << 6);              // sequential mode (this is the default but we want to make sure it's in this mode)
-	SPI.transfer((2 << 3) | (4));       // defaults (slew rate = 4.33V/ns, drive strength=50%)
-
-	// 6. Set CS idle
-	CS_PORT.IN = CS_PIN_BM;    // (writing to the VPORT.IN will toggle the pin) toggle PA7 (make it high)
-
-	// 7. End Transaction LAST
-	SPI.endTransaction();
+	// set CS pins high
+	pinMode(SRAM_CS_PIN, OUTPUT);
+	digitalWrite(SRAM_CS_PIN, HIGH);
 	
 	return 0;
 }
@@ -169,52 +247,16 @@ void mem_read_block(uint32_t addr, uint16_t len, uint8_t *dst)
 {
 	// translate address to linear address
     addr = mem_translate(addr);
-
-	// 2. Start Transaction FIRST (configures pins & interrupts)
-	SPI.beginTransaction(SPISettings(10000000, MSBFIRST, SPI_MODE0));
-
-	// 3. Set CS active
-	CS_PORT.IN = CS_PIN_BM;    // (writing to the VPORT.IN will toggle the pin) toggle PA7 (make it low)
-
-	// compose command
-	SPI.transfer(0x03);					// 03 - read
-	SPI.transfer(addr >> 16);			// addr[23:16]
-	SPI.transfer((addr >> 8) & 0xFF);	// addr[15:8]
-	SPI.transfer(addr & 0xFF);			// addr[7:0]
-	SPI.transfer(dst, len);
-
-	// 6. Set CS idle
-	CS_PORT.IN = CS_PIN_BM;    // (writing to the VPORT.IN will toggle the pin) toggle PA7 (make it high)
-
-	// 7. End Transaction LAST
-	SPI.endTransaction();
+    
+    sram_read(SRAM_CS_PIN, addr, dst, len);
 }
 
 void mem_write_block(uint32_t addr, uint16_t len, uint8_t *src)
 {
 	// translate address to linear address
     addr = mem_translate(addr);
-
-	// 2. Start Transaction FIRST (configures pins & interrupts)
-	SPI.beginTransaction(SPISettings(10000000, MSBFIRST, SPI_MODE0));
-
-	// 3. Set CS active
-	CS_PORT.IN = CS_PIN_BM;    // (writing to the VPORT.IN will toggle the pin) toggle PA7 (make it low)
-
-	// compose command
-	SPI.transfer(0x02);					// 02 - write
-	SPI.transfer(addr >> 16);			// addr[23:16]
-	SPI.transfer((addr >> 8) & 0xFF);	// addr[15:8]
-	SPI.transfer(addr & 0xFF);			// addr[7:0]
-	while (len--) {
-		SPI.transfer(*src++);
-	}
-
-	// 6. Set CS idle
-	CS_PORT.IN = CS_PIN_BM;    // (writing to the VPORT.IN will toggle the pin) toggle PA7 (make it high)
-
-	// 7. End Transaction LAST
-	SPI.endTransaction();
+    
+    sram_write(SRAM_CS_PIN, addr, src, len);
 }
 
 uint8_t mem_read_byte(uint32_t addr)
@@ -241,7 +283,35 @@ void mem_write_word(uint32_t addr, uint16_t val)
 	mem_write_block(addr, 2, (uint8_t*)&val);
 }
 
-#undef CS_PORT
-#undef CS_PIN_BM
+void flash_init(void)
+{
+	// set CS pin high as it's active low
+	pinMode(EEPROM_CS_PIN, OUTPUT);
+	digitalWrite(EEPROM_CS_PIN, HIGH);
+}
+
+// address of sector to erase addr[11:0] should be zero
+void flash_erase_sector(uint32_t addr)
+{
+	// eeprom doesn't need erase 
+}
+
+// program 256 bytes, addr[7:0] should be zero
+void flash_program_page(uint32_t addr, uint8_t *src)
+{
+	uint16_t x;
+	
+	// sanity check address must be page aligned
+	if (addr & 0xFF) {
+		return;
+	}
+	
+	eeprom_write(EEPROM_CS_PIN, addr, src, 256);
+}
+
+void flash_read_block(uint32_t addr, uint8_t *dst, uint16_t len)
+{	
+	eeprom_read(EEPROM_CS_PIN, addr, dst, len);
+}
 
 #endif
