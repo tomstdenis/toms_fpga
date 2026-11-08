@@ -1,0 +1,62 @@
+#ifdef TRACE
+#ifdef HOSTPC
+#include <ncurses.h>
+#endif
+#endif
+
+static uint16_t cycles = 0;
+
+#ifdef HOSTPC
+uint32_t platform_cycles = 0;
+#endif
+
+void platform_init()
+{
+	mem_init();
+	flash_init();
+	cache_init();
+	display_init();
+	cpu_init();
+
+	// TODO: platform specific init here
+}
+
+void platform_step()
+{
+#ifdef HOSTPC
+	++platform_cycles;
+#endif
+
+#ifdef TRACE
+#ifdef HOSTPC
+	fprintf(stderr, "TRACE: ");
+#endif
+	cache_trace();
+#endif
+
+	// TODO: platform specific step here
+	// Here we handle state machines of peripherals that have a need
+	// for a sense of timing or to operate in parallel
+	// if we hand of SPI SRAM to a hat we need to set 'mem_free' to 0 first
+	// then we can signal to the hat(s) that they can use the SPI SRAM
+	if (cycles++ == TICKS_PER_FPS) {
+		display_draw();
+		cycles = 0;
+	}
+
+	// Step the CPU
+	// Note that if mem_free == 0 the CPU can still "run" provided it's
+	// operating out of cache.  The first time it hits a non-caching region
+	// or needs to fill/evict a line the CPU will stall until the SPI
+	// RAM is freed.  This means you NEED to have an ISR responding to
+	// the HATs release commands
+	cpu_step(32); // run 32 opcodes at a go
+
+#ifdef TRACE
+#ifdef HOSTPC
+	fprintf(stderr, "\n");
+	refresh();
+#endif
+#endif
+}
+

@@ -1,0 +1,307 @@
+#ifdef BOARD_APPLE2
+
+uint16_t apple2_textmode_addr = 0x400;
+uint8_t apple2_textmode = 1, apple2_mixedmode = 0;
+
+uint16_t display_apple2_load(uint16_t offset)
+{
+    mem_read_block(MEM_PAGE_TO_OFFSET(MEM_PAGE_SAVE_SLOT) + offset, sizeof(apple2_textmode_addr), (uint8_t *)&apple2_textmode_addr); offset += sizeof(apple2_textmode_addr);
+    mem_read_block(MEM_PAGE_TO_OFFSET(MEM_PAGE_SAVE_SLOT) + offset, sizeof(apple2_textmode), (uint8_t *)&apple2_textmode); offset += sizeof(apple2_textmode);
+    mem_read_block(MEM_PAGE_TO_OFFSET(MEM_PAGE_SAVE_SLOT) + offset, sizeof(apple2_mixedmode), (uint8_t *)&apple2_mixedmode); offset += sizeof(apple2_mixedmode);
+    return offset;
+}
+
+uint16_t display_apple2_save(uint16_t offset)
+{
+    mem_write_block(MEM_PAGE_TO_OFFSET(MEM_PAGE_SAVE_SLOT) + offset, sizeof(apple2_textmode_addr), (uint8_t *)&apple2_textmode_addr); offset += sizeof(apple2_textmode_addr);
+    mem_write_block(MEM_PAGE_TO_OFFSET(MEM_PAGE_SAVE_SLOT) + offset, sizeof(apple2_textmode), (uint8_t *)&apple2_textmode); offset += sizeof(apple2_textmode);
+    mem_write_block(MEM_PAGE_TO_OFFSET(MEM_PAGE_SAVE_SLOT) + offset, sizeof(apple2_mixedmode), (uint8_t *)&apple2_mixedmode); offset += sizeof(apple2_mixedmode);
+    return offset;
+}
+
+#if defined(TRACE) && defined(HOSTPC)
+#include <stdio.h>
+#define LOG printf
+#else
+#define LOG(...)
+#endif
+
+#ifdef HOSTPC
+#include "host.h"
+
+#include <ncurses.h>
+#include <stdio.h>
+#include <unistd.h>
+
+void display_apple2_init(void) {
+    apple2_textmode_addr = 0x400;
+    apple2_textmode = 1;
+    apple2_mixedmode = 0;
+    start_color();
+    // Apple II Color Mapping (approximate for 8-color terminals)
+    init_pair(0, COLOR_BLACK, COLOR_BLACK);   // 0: Black
+    init_pair(1, COLOR_MAGENTA, COLOR_BLACK); // 1: Magenta
+    init_pair(2, COLOR_BLUE, COLOR_BLACK);    // 2: Dark Blue
+    init_pair(3, COLOR_MAGENTA, COLOR_BLACK); // 3: Purple
+    init_pair(4, COLOR_GREEN, COLOR_BLACK);   // 4: Dark Green
+    init_pair(5, COLOR_WHITE, COLOR_BLACK);   // 5: Grey 1
+    init_pair(6, COLOR_BLUE, COLOR_BLACK);    // 6: Med Blue
+    init_pair(7, COLOR_CYAN, COLOR_BLACK);    // 7: Light Blue
+    init_pair(8, COLOR_YELLOW, COLOR_BLACK);  // 8: Brown
+    init_pair(9, COLOR_RED, COLOR_BLACK);     // 9: Orange
+    init_pair(10, COLOR_WHITE, COLOR_BLACK);  // 10: Grey 2
+    init_pair(11, COLOR_RED, COLOR_BLACK);    // 11: Pink
+    init_pair(12, COLOR_GREEN, COLOR_BLACK);  // 12: Green
+    init_pair(13, COLOR_YELLOW, COLOR_BLACK); // 13: Yellow
+    init_pair(14, COLOR_CYAN, COLOR_BLACK);   // 14: Aqua
+    init_pair(15, COLOR_WHITE, COLOR_BLACK);  // 15: White
+}
+
+void display_apple2_draw(void)
+{
+    uint16_t x, y;
+    y = 0;
+    if (apple2_textmode == 1) {
+textonly:
+        for (; y < 24; y++) {
+            uint16_t row_addr = apple2_textmode_addr + ((y & 7) << 7) + (y >> 3) * 40;
+            uint8_t shadow[40];
+            mem_read_block(SHADOW_TEXT_BUF + (apple2_textmode_addr - row_addr), 40, shadow); // read the shadow buffer here
+
+            for (x = 0; x < 40; x++) {
+                uint8_t raw = cache_read_byte(row_addr + x);
+                uint8_t visual;
+
+                if (raw == shadow[x]) {
+                    continue;
+                } else {
+                    shadow[x] = raw;
+                    // 1. Determine the character to show
+                    if (raw >= 0x80) {
+                        // NORMAL TEXT (0x80 - 0xFF)
+                        visual = raw & 0x7F;
+                    } else {
+                        // INVERSE OR FLASHING (0x00 - 0x7F)
+                        visual = raw;
+                        attron(A_REVERSE);
+                    }
+
+                    // 2. THE FIX: Apple II internal mapping to ASCII
+                    // Apple II stores 'A'-'Z' at 0x01-0x1A (for inverse)
+                    // and 0xC1-0xDA (for normal). ASCII wants them at 0x41.
+                    if (visual < 0x20) {
+                        visual += 0x40; // Convert 0x00 (@) to 0x40 (@), 0x01 (A) to 0x41 (A), etc.
+                    }
+
+                    if (apple2_textmode == 0) {
+                        mvaddch(y+20, x, visual);
+                    } else {
+                        mvaddch(y, x, visual);
+                    }
+                    if (raw < 0x80) attroff(A_REVERSE);
+                }
+            }
+            mem_write_block(SHADOW_TEXT_BUF + (apple2_textmode_addr - row_addr), 40, shadow);
+        }
+    } else {
+        uint8_t max = apple2_mixedmode ? 20 : 24;
+        // we're in graphics mode
+        // Inside display_apple2_draw, graphics branch:
+        for (y = 0; y < max; y++) {
+            uint16_t row_addr = apple2_textmode_addr + ((y & 7) << 7) + (y >> 3) * 40;
+            uint8_t shadow[40];
+            mem_read_block(SHADOW_TEXT_BUF + (apple2_textmode_addr - row_addr), 40, shadow); // read the shadow buffer here
+            for (x = 0; x < 40; x++) {
+                uint8_t raw = cache_read_byte(row_addr + x);
+                
+                if (raw == shadow[x]) {
+                    continue;
+                } else {
+                    shadow[x] = raw;
+                    // Low nibble = Top Pixel, High nibble = Bottom Pixel
+                    uint8_t color_top = raw & 0x0F;
+                    uint8_t color_bottom = (raw >> 4) & 0x0F;
+
+                    // Draw top pixel
+                    attron(COLOR_PAIR(color_top));
+                    mvaddch(2*y, x*2, ' ' | A_REVERSE | ((color_top >> 3)  ? A_BOLD: 0));
+                    mvaddch(2*y, x*2+1, ' ' | A_REVERSE | ((color_top >> 3)  ? A_BOLD: 0));
+                    attroff(COLOR_PAIR(color_top));
+
+                    // Draw bottom pixel
+                    attron(COLOR_PAIR(color_bottom));
+                    mvaddch(2*y + 1, x*2, ' ' | A_REVERSE  | ((color_bottom >> 3)  ? A_BOLD: 0));
+                    mvaddch(2*y + 1, x*2+1, ' ' | A_REVERSE  | ((color_bottom >> 3)  ? A_BOLD: 0));
+                    attroff(COLOR_PAIR(color_bottom));
+                }
+            }
+            mem_write_block(SHADOW_TEXT_BUF + (apple2_textmode_addr - row_addr), 40, shadow);
+        }
+        if (apple2_mixedmode) {
+            y = 20;
+        } else {
+            y = 24;
+        }
+        goto textonly;
+    }
+    uint8_t cursor_x = cache_read_byte(0x24);
+    uint8_t cursor_y = cache_read_byte(0x25);
+
+    // Ensure coordinates are within bounds to prevent ncurses crashes
+    if (apple2_textmode == 0) {
+        if (cursor_x < 40 && cursor_y < 48) {
+            move(cursor_y+20, cursor_x);
+        }
+    } else {
+        if (cursor_x < 40 && cursor_y < 24) {
+            move(cursor_y, cursor_x);
+        }
+    }
+    refresh();
+}
+
+#else
+
+void display_apple2_init(void)
+{
+    apple2_textmode_addr = 0x400;
+    apple2_textmode = 1;
+    apple2_mixedmode = 0;
+}
+
+// Track current state to avoid redundant commands
+static uint8_t current_ansi_bg; // 255 = Force initial update
+static bool current_inverse;
+
+static void setCursor(uint8_t x, uint8_t y) {
+  // ANSI uses 1-based indexing: \e[y;xH
+  Serial.print("\e[");
+  Serial.print(y + 1);
+  Serial.print(";");
+  Serial.print(x + 1);
+  Serial.print("H");
+}
+
+static void reset_state() {
+    Serial.print("\e[0m");
+    current_ansi_bg = 255;
+    current_inverse = false;
+}
+
+static void setAppleColorOptimized(uint8_t color) {
+    static const uint8_t ansi_map[] = {0, 1, 4, 5, 2, 8, 12, 15, 8, 9, 8, 13, 10, 14, 11, 15};
+    uint8_t target_ansi = ansi_map[color & 0x0F];
+
+    if (target_ansi != current_ansi_bg) {
+        if (target_ansi < 8) {
+            Serial.print("\e[4");
+            Serial.print(target_ansi);
+        } else {
+            Serial.print("\e[10");
+            Serial.print(target_ansi - 8);
+        }
+        Serial.print("m");
+        current_ansi_bg = target_ansi;
+    }
+}
+
+static void setInverseOptimized(bool enable) {
+    if (enable != current_inverse) {
+        Serial.print(enable ? "\e[7m" : "\e[0m");
+        current_inverse = enable;
+        // Resetting to normal text often clears color, force color update if needed
+        if (!enable) current_ansi_bg = 255; 
+    }
+}
+
+void display_apple2_draw(void) {
+    uint16_t x, y;
+    uint8_t s;
+    reset_state();
+
+    if (apple2_textmode == 1) {
+        y = 0;
+        text_only_loop:
+        for (; y < 24; y++) {
+            uint16_t row_addr = apple2_textmode_addr + ((y & 7) << 7) + (y >> 3) * 40;
+            uint8_t shadow[40];
+            mem_read_block(SHADOW_TEXT_BUF + (apple2_textmode_addr - row_addr), 40, shadow); // read the shadow buffer here
+            setCursor(0, (apple2_textmode == 0) ? y + 20 : y);
+            for (s = x = 0; x < 40; x++) {
+                uint8_t raw = cache_read_byte(row_addr + x);
+                if (raw == shadow[x]) {
+                    s = 1;
+                    continue;
+                } else {
+                    if (s) {
+                        // if we skipped bytes re-emit a GOTO ANSI code
+                        setCursor(x, (apple2_textmode == 0) ? y + 20 : y);
+                        s = 0;
+                    }
+                    shadow[x] = raw;
+                    setInverseOptimized(raw < 0x80);
+
+                    uint8_t visual = (raw < 0x80) ? raw : (raw & 0x7F);
+                    if (visual < 0x20) visual += 0x40;
+
+                    Serial.write(visual);
+                }
+            }
+            mem_write_block(SHADOW_TEXT_BUF + (apple2_textmode_addr - row_addr), 40, shadow);
+        }
+    } else {
+        uint8_t max_y = apple2_mixedmode ? 20 : 24;
+        for (y = 0; y < max_y; y++) {
+            uint16_t row_addr = apple2_textmode_addr + ((y & 7) << 7) + (y >> 3) * 40;
+            uint8_t shadow[40], raw;
+            mem_read_block(SHADOW_TEXT_BUF + (apple2_textmode_addr - row_addr), 40, shadow); // read the shadow buffer here
+
+            // Render top nibble row
+            setCursor(0, y * 2);
+            for (s = x = 0; x < 40; x++) {
+                raw = cache_read_byte(row_addr + x);
+                if ((raw ^ shadow[x]) & 0x0F) {
+                    if (s) {
+                        // we skipped an entry so we have to relocate the cursor
+                        s = 0;
+                        setCursor(x + x, y + y + 0); // in LRG each pixel is 2 wide and alternating lines
+                    }
+                    setAppleColorOptimized(raw & 0x0F);
+                    Serial.print("  ");
+                } else {
+                    s = 1;
+                    continue;
+                }
+            }
+
+            // Render bottom nibble row
+            setCursor(0, y * 2 + 1);
+            for (s = x = 0; x < 40; x++) {
+                raw = cache_read_byte(row_addr + x);
+                if ((raw ^ shadow[x]) >> 4) {
+                    if (s) {
+                        s = 0;
+                        setCursor(x + x, y + y + 1);
+                    }
+                    setAppleColorOptimized(raw >> 4);
+                    Serial.print("  ");
+                } else {
+                    s = 1;
+                    continue;
+                }
+                shadow[x] = raw;
+            }
+            mem_write_block(SHADOW_TEXT_BUF + (apple2_textmode_addr - row_addr), 40, shadow);
+        }
+        if (apple2_mixedmode) goto text_only_loop;
+    }
+    // Handle Hardware Cursor
+    uint8_t cursor_x = cache_read_byte(0x24);
+    uint8_t cursor_y = cache_read_byte(0x25);
+    uint8_t final_y = (apple2_textmode == 0) ? cursor_y + 20 : cursor_y;
+
+    setCursor(cursor_x, final_y);
+}
+#endif
+
+#endif

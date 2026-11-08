@@ -1,0 +1,263 @@
+#ifndef HOST_H
+#define HOST_H
+
+#ifndef HOSTPC
+// defines, etc for the Arduino build
+#define PIN_SRAM_CS  3 // PA7
+#define PIN_FLASH_CS 2 // PA6
+#define PIN_SPI2_CS  1 // PA5
+
+#endif
+
+#include <stdint.h>
+#include <string.h>
+
+// enable tracing
+//#define TRACE
+
+// disable cache (makes entire region non-cacheable)
+//#define DISABLE_CACHE
+
+//Board we're doing
+//#define BOARD_APPLE1
+//#define BOARD_APPLE2
+//#define BOARD_RISCV
+// ... other boards here
+
+#if defined(BOARD_APPLE1) || defined(BOARD_APPLE2) || defined(BOARD_RISCV)  // .. add others here
+#define USING_BOARD
+#endif
+
+// CPU core to use
+//#define CPU_6502
+
+// ADD peripherals here
+// if you comment out a _BASE that periph won't be used
+//#define ACIA6551_BASE 0x7F00
+//#define APPLE1_PIA_BASE 0xD000
+//#define APPLE2_KBD_BASE 0xC000
+//#define PLATFORM_BASE 0xC0FF
+
+#ifdef BOARD_APPLE1
+	#define CPU_6502
+	#define APPLE1_PIA_BASE 0xD000
+	#define APPLE_PLATFORM_BASE 0xD020		// the platform responds to this for commands to the emulator from inside the emulated environment
+#endif
+
+#ifdef BOARD_APPLE2
+	#define CPU_6502
+	#define APPLE2_KBD_BASE 0xC000
+	#define APPLE_PLATFORM_BASE 0xC0FF		// on apple2 we stick this in SLOT#8 space at the end should be unused.
+#endif
+
+#ifdef BOARD_RISCV
+	#define MEMORY_TOP ((128UL << 10) + (128UL << 10))
+	#define CPU_RISCV32IM
+	#define USE32BIT
+	#define RISCV_PLATFORM_BASE (MEMORY_TOP)
+#endif
+
+#ifdef USE32BIT
+typedef uint32_t cache_addr_t;
+#define INVALID_TAG 0xFFFFFFFFUL
+#else
+#define INVALID_TAG 0xFFFFU
+typedef uint16_t cache_addr_t;
+#endif
+
+// MEMORY subsystem (1MBit SRAM)
+#define SPI_SRAM_TOP (128U << 10) // 128 KB
+
+int mem_init(void);
+// read a block of SRAM into RAM
+void mem_read_block(uint32_t addr, uint16_t len, uint8_t *dst);
+// write a block of RAM into SRAM
+void mem_write_block(uint32_t addr, uint16_t len, uint8_t *src);
+// remap addresses in the region [start,end] to an offset of target-start (use target==0 to delete the mapping)
+void mem_remap(uint32_t start, uint32_t end, uint32_t target);
+// translate an address into an SRAM address
+uint32_t mem_translate(uint32_t addr);
+
+// mem helpers
+// copy from one non-overlapping region of SRAM to another
+void mem_memcpy(uint32_t src, uint32_t dst, uint16_t len);
+
+// these are for non caching regions
+uint8_t mem_read_byte(uint32_t addr);
+void mem_write_byte(uint32_t addr, uint8_t val);
+uint16_t mem_read_word(uint32_t addr);
+void mem_write_word(uint32_t addr, uint16_t val);
+
+// memory layouts
+// each enum slot represents a 1KB page of SPI SRAM
+
+#if defined(BOARD_APPLE2) || defined(BOARD_APPLE1)
+enum mem_pages_t {
+	// CPU must be first 64KB of SPI SRAM for now...
+	MEM_PAGE_CPU0=0,						// first KB of CPU bound memory
+	MEM_PAGE_CPUn=MEM_PAGE_CPU0+63,			// last KB of CPU bound memory (64KB)
+
+	// save slot, 4K
+	MEM_PAGE_4KFREE_1,						// This 4K block can be used as a scratch pad when not processing a save state
+	MEM_PAGE_SAVE_SLOT=MEM_PAGE_4KFREE_1,   // The save slot is only needed during saving so mark this as a free scratch buffer (e.g. no long term use)
+	MEM_PAGE_SAVE_SLOT_END=MEM_PAGE_SAVE_SLOT+4,
+
+// peripherals
+#ifdef BOARD_APPLE2
+	MEM_PAGE_SHADOW_TEXT,
+#endif
+};
+
+// convert a MEM_PAGE enum to a 32-bit address into the SPI SRAM
+#define MEM_PAGE_TO_OFFSET(x) ((uint32_t)(x) << 10)
+
+#ifdef BOARD_APPLE2
+#define SHADOW_TEXT_BUF MEM_PAGE_TO_OFFSET(MEM_PAGE_SHADOW_TEXT)
+#endif
+
+// FLASH subsystem (1MBit)
+#define FLASH_SAVE_SPOT 0x10000 // last 68K of the flash
+#endif
+
+void flash_init(void);
+void flash_erase_sector(uint32_t addr);
+void flash_program_page(uint32_t addr, uint8_t *src);
+void flash_read_block(uint32_t addr, uint8_t *dst, uint16_t len);
+void flash_stream_to_sram(uint32_t flash_addr, uint32_t mem_addr, uint32_t len);
+
+// CACHE subsystem
+
+// access to memory occurs at the CACHE layer.  All writes/reads
+// are from the 0'th line of the cache meaning sequential accesses
+// to the same cache line will be fastest, followed by access
+// to a byte in the cache anywhere
+
+// The two parameters we control are the size of the cache not
+// including tags, and the number of bits in the line offset (e.g.
+// 2**BITS is the line size).  A larger cache line lowers
+// the chance of line swapping but also increases the penalty of
+// an eviction.  A larger overall cache reduces MEMORY layer
+// accesses (which could be much slower).
+
+// While in general 512..1024 bytes cache seems to work well in applesoft
+// and wozmon/etc, if there's a 1KB display refreshing 30 times a second
+// it might be a good idea to have it mostly cached.  So we can use 1.5KB
+// as a good starting point
+
+#ifndef USE32BIT
+// 48 lines of 32 bytes
+#define CACHE_SIZE 1536
+#else
+// 32 lines of 32 bytes
+#define CACHE_SIZE 1024
+#endif
+#define CACHE_LINE_BITS 5 // 32 byte lines
+
+#define CACHE_LINE_BYTES (1<<CACHE_LINE_BITS)
+#define CACHE_LINES (CACHE_SIZE/(CACHE_LINE_BYTES))
+
+// profiling
+#ifdef TRACE
+void cache_trace(void);
+#endif
+void cache_init(void);
+void cache_flush(void);
+uint8_t *cache_reuse(void);
+void cache_invalidate(void);
+uint8_t cache_read_byte(cache_addr_t addr);
+uint16_t cache_read_word(cache_addr_t addr);
+
+void cache_write_byte(cache_addr_t addr, uint8_t val);
+void cache_write_word(cache_addr_t addr, uint16_t val);
+
+// CPU subsystem
+void cpu_init();
+void cpu_step(uint16_t steps);
+void cpu_int(uint8_t sig);
+void cpu_reset(void);
+void cpu_jump(cache_addr_t addr);
+uint16_t cpu_save(uint16_t offset);
+uint16_t cpu_load(uint16_t offset);
+// cpu clock cycle counter
+// this counter is a "rough" count of clock cycles executed thus far
+// this is for when peripherals need to be loosely timing accurate though on 8-bit hosts we should probably make this a uint16_t
+// the idea being is you'd reset cpu_cycles to zero and then your peripheral would wait until enough cycles had passed before
+// doing whatever it does.  This way for things that are timing based (like tape/disk access) you can feed data at the right rate
+#ifdef HOSTPC
+extern uint32_t cpu_cycles;
+#else
+extern uint16_t cpu_cycles;
+#endif
+
+// various interrupt pins...
+#define CPU_SIG_RESET 0x01
+#define CPU_SIG_IRQ   0x02
+#define CPU_SIG_NMI   0x04
+
+// DISPLAY subsystem
+void display_init(void);
+void display_draw(void);
+uint16_t display_load(uint16_t offset);
+uint16_t display_save(uint16_t offset);
+
+#ifdef BOARD_APPLE2
+void display_apple2_init(void);
+void display_apple2_draw(void);
+uint16_t display_apple2_load(uint16_t offset);
+uint16_t display_apple2_save(uint16_t offset);
+#endif
+
+// PLATFORM subsystem
+#define TICKS_PER_FPS 256 // how many platform ticks per display call (a platform tick has multiple cpu ticks...)
+void platform_init();
+void platform_step();
+void platform_load(void);
+void platform_save(void);
+uint8_t read_platform(uint16_t addr);
+void write_platform(uint16_t addr, uint8_t val);
+#ifdef HOSTPC
+extern uint32_t platform_cycles;
+#endif
+
+// cpus
+#ifdef CPU_6502
+#ifdef TRACE
+void trace_6502();
+#endif
+void init_6502();
+void int_6502(uint8_t sig);
+void step_6502(uint16_t steps);
+void reset_6502(void);
+void jump_6502(cache_addr_t addr);
+uint16_t save_6502(uint16_t offset);
+uint16_t load_6502(uint16_t offset);
+#endif
+
+#ifdef CPU_RISCV32IM
+#ifdef TRACE
+void trace_riscv();
+#endif
+void init_riscv();
+void int_riscv(uint8_t sig);
+void step_riscv(uint16_t steps);
+void reset_riscv(void);
+void jump_riscv(cache_addr_t addr);
+uint16_t save_riscv(uint16_t offset);
+uint16_t load_riscv(uint16_t offset);
+#endif
+
+// peripherals
+#ifdef ACIA6551_BASE
+uint8_t read_6551(uint16_t addr);
+void write_6551(uint16_t addr, uint8_t data);
+#endif
+#ifdef APPLE1_PIA_BASE
+uint8_t read_apple1_pia(uint16_t addr);
+void write_apple1_pia(uint16_t addr, uint8_t data);
+#endif
+#ifdef APPLE2_KBD_BASE
+uint8_t read_apple2_kbd(uint16_t addr);
+void write_apple2_kbd(uint16_t addr, uint8_t data);
+#endif
+
+#endif
