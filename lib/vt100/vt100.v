@@ -168,10 +168,35 @@ module vt100
     reg [7:0]             vt100_prev_char;
     reg [7:0]             vt100_curr_char;
 
-    wire [INDEX_BITS-1:0] vt100_row_addr;
-    wire [INDEX_BITS-1:0] vt100_cursor_addr;
-    assign vt100_row_addr    = vt100_y * VT100_WIDTH;
-    assign vt100_cursor_addr = vt100_row_addr + vt100_x;
+    reg [INDEX_BITS-1:0] vt100_row_addr;
+    reg [INDEX_BITS-1:0] vt100_cursor_addr;
+
+    // these are dynamic width/height restrictions
+    reg [INDEX_BITS-1:0]  vt100_width;
+    reg [INDEX_BITS-1:0]  vt100_height;
+
+    // generate current row address 
+    always @(*) begin
+        vt100_row_addr = 0;
+        vt100_width    = 0;
+        case (VT100_WIDTH)
+            40: begin
+                vt100_row_addr = vt100_y * 40;
+                vt100_width    = 40;
+            end
+            80: begin
+                vt100_row_addr = vt100_y * 80;
+                vt100_width    = 80;
+            end
+        endcase
+        vt100_height   = 0;
+        case (VT100_HEIGHT)
+            25: vt100_height = 25;
+            50: vt100_height = 50;
+        endcase
+            
+        vt100_cursor_addr = vt100_row_addr + vt100_x;
+    end
 
     localparam
         vt100_state_idle           = 0,         // totally idle
@@ -203,10 +228,10 @@ module vt100
                     if (vt100_x[10]) begin                          // X went negative
                         vt100_x         <= 0;
                     end 
-                    if (vt100_x >= VT100_WIDTH) begin
-                        vt100_x         <= VT100_WIDTH - 1;         // X went to the right of the viewport
+                    if (vt100_x >= vt100_width) begin
+                        vt100_x         <= vt100_width - 1;         // X went to the right of the viewport
                     end
-                    if (vt100_y >= VT100_HEIGHT) begin              // Y went to beneath the viewport, so scroll until it's in view
+                    if (vt100_y >= vt100_height) begin              // Y went to beneath the viewport, so scroll until it's in view
                         // initiate screen scroll fsm state
                         vt100_y         <= vt100_y - 1'b1;
                         vt100_i         <= 0;                       // read from scroll+80 and write to scroll 
@@ -256,7 +281,7 @@ module vt100
                                 end else begin
                                     // advance x/y because we drew a [
                                     vt100_x <= vt100_x + 1'b1;
-                                    if (vt100_x == VT100_WIDTH - 1) begin
+                                    if (vt100_x == vt100_width - 1) begin
                                         if (vt100_linewrap) begin
                                             vt100_x <= 0;
                                             vt100_y <= vt100_y + 1'b1;
@@ -289,7 +314,7 @@ module vt100
                             begin
                                 // advance x/y
                                 vt100_x <= vt100_x + 1'b1;
-                                if (vt100_x == VT100_WIDTH - 1) begin
+                                if (vt100_x == vt100_width - 1) begin
                                     if (vt100_linewrap) begin
                                         vt100_x <= 0;
                                         vt100_y <= vt100_y + 1'b1;
@@ -302,11 +327,11 @@ module vt100
             // so instead we wait for the VGA text driver to hit the address we want 
             vt100_state_scroll: // start read unless done
                 begin
-                    if (vt100_i == (VT100_HEIGHT * VT100_WIDTH - VT100_WIDTH)) begin
+                    if (vt100_i == (vt100_height * vt100_width - vt100_width)) begin
                         vt100_fsm_state <= vt100_state_scroll3;
                     end else begin
                         // wait till the VGA driver gets here
-                        if (mem_addr_b == vt100_i + VT100_WIDTH) begin
+                        if (mem_addr_b == vt100_i + vt100_width) begin
                             // if addr matches on this cycle then the data is valid
                             // on the next cycle
                             vt100_fsm_state <= vt100_state_scroll2;
@@ -324,7 +349,7 @@ module vt100
                 end
             vt100_state_scroll3: // we finished scrolling the text, now we erase the last line
                 begin
-                    if (vt100_i == (VT100_HEIGHT * VT100_WIDTH)) begin                  // we're at the end of the screen jump back to idle
+                    if (vt100_i == (vt100_height * vt100_width)) begin                  // we're at the end of the screen jump back to idle
                         vt100_fsm_state <= vt100_state_idle;
                     end else begin
                         mem_addr_a      <= vt100_i;
@@ -408,7 +433,7 @@ module vt100
                                     if (vt100_term[0] == 0 || vt100_term_default) begin // cursor to end of screen
                                         vt100_fsm_state <= vt100_state_erase_cells;
                                         vt100_i         <= vt100_cursor_addr;
-                                        vt100_j         <= VT100_HEIGHT * VT100_WIDTH;
+                                        vt100_j         <= vt100_height * vt100_width;
                                     end else if (vt100_term[0] == 1) begin              // from cursor to start of screen
                                         vt100_fsm_state <= vt100_state_erase_cells;
                                         vt100_j         <= vt100_cursor_addr;
@@ -416,7 +441,7 @@ module vt100
                                     end else if (vt100_term[0] == 2) begin              // entire screen
                                         vt100_fsm_state <= vt100_state_erase_cells;
                                         vt100_i         <= 0;
-                                        vt100_j         <= VT100_HEIGHT * VT100_WIDTH;
+                                        vt100_j         <= vt100_height * vt100_width;
                                     end
                                 end
                             75:                                                         // K (erase row)
@@ -424,7 +449,7 @@ module vt100
                                     if (vt100_term[0] == 0 || vt100_term_default) begin // cursor to end of line
                                         vt100_fsm_state <= vt100_state_erase_cells;
                                         vt100_i         <= vt100_cursor_addr;
-                                        vt100_j         <= vt100_row_addr + VT100_WIDTH - vt100_x;
+                                        vt100_j         <= vt100_row_addr + vt100_width - vt100_x;
                                     end else if (vt100_term[0] == 1) begin              // from start of line to cursor
                                         vt100_fsm_state <= vt100_state_erase_cells;
                                         vt100_i         <= vt100_row_addr;
@@ -432,7 +457,7 @@ module vt100
                                     end else if (vt100_term[0] == 2) begin              // erase current line
                                         vt100_fsm_state <= vt100_state_erase_cells;
                                         vt100_i         <= vt100_row_addr;
-                                        vt100_j         <= vt100_row_addr + VT100_WIDTH;
+                                        vt100_j         <= vt100_row_addr + vt100_width;
                                     end
                                 end
                             104:                                                        // h (set mode bit)
