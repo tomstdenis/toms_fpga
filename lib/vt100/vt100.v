@@ -99,18 +99,31 @@ module vt100
     // *** FONT *** 
 
         // Font ROM
-        reg [7:0]   font_dout;                                   // output of rom
-        wire [10:0] vga_y_p1 = (vga_y + (vga_x == 799 ? 1'b1 : 1'b0));
-        wire [10:0] font_ad  = {symbol[7:0], (VT100_HEIGHT == 50) ? vga_y_p1[2:0] : vga_y_p1[3:1]};     // address into the rom, it's 11 bits of which the top 8 are the symbol and bottom 3 are the row
-        reg [7:0]   font_rom[0:2047];
-        reg         text_out;                                    // the current pixel being drawn lensed through the current symbol through the font through vga_active                                        
+        reg [7:0]  font_dout;                           // font lookup
+        reg [10:0] vga_y_p1;                            // y value we use for NEXT lookup (we factor in x being at the end of the line)
+        reg [10:0] font_ad;                             // computed address based on which symbol and which y row 
+        reg [7:0]  font_rom[0:2047];                    // font rom data
+        reg        text_out;                            // the current pixel being drawn lensed through the current symbol through the font through vga_active                                        
 
         always @(posedge clk) begin
             font_dout <= font_rom[font_ad];
         end
 
         always @(*) begin
-            text_out   = font_dout[7 - ((VT100_WIDTH == 80) ? vga_x[2:0] : vga_x[3:1])];                // font is row major order so the left most pixel is the MSB
+            // generate the address for the font lookup
+            font_ad  = 0;
+            vga_y_p1 = (vga_y + (vga_x == 799 ? 1'b1 : 1'b0));
+            case (VT100_HEIGHT)
+                50: font_ad  = {symbol[7:0], vga_y_p1[2:0]};
+                25: font_ad  = {symbol[7:0], vga_y_p1[3:1]};
+            endcase
+
+            // generate the pixel data
+            text_out = 0;
+            case (VT100_WIDTH)
+                80: text_out = font_dout[7 - vga_x[2:0]];
+                40: text_out = font_dout[7 - vga_x[3:1]];
+            endcase
         end
 
         // font from lib/vga/blocks/
