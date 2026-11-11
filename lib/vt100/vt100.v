@@ -31,7 +31,9 @@ module vt100
     parameter VT100_FREQ=27_000_000,    // default clock for a Tang Nano 1K
     parameter VT100_BAUD=230_400,
     parameter VT100_ECHO=0,
-    parameter INDEX_BITS=$clog2(VT100_WIDTH*VT100_HEIGHT)
+    parameter INDEX_BITS=$clog2(VT100_WIDTH*VT100_HEIGHT),
+    parameter DEF_X_DBL=0,
+    parameter DEF_Y_DBL=1
 )
 (
     input wire clk,                               // VGA clock (should be >= 25MHz)
@@ -82,22 +84,19 @@ module vt100
         // we need to figure out the font info for the /next/ cycle since this isn't combinatorial
         wire [15:0] symbol;
 
-        // VGA text mode driver, defaults to 80x25 using an 8x8 font
-        // notice we're scaling the font by 2 so we change the height to 16 here
-        vga_text_driver #(
-            .FONTHEIGHT(400/VT100_HEIGHT),
-            .FONTWIDTH(640/VT100_WIDTH),
+        // VGA text mode driver, defaults to 80x50 using an 8x8 font
+        reg txt_x_dbl;
+        reg txt_y_dbl;
+
+        texy_flexy #(
             .X_FETCH_DELAY(2),
-            .SYMBOL_BITS(16),
-            .TEXTROWS(VT100_HEIGHT),
-            .TEXTCOLS(VT100_WIDTH)) textdrv(
+            .SYMBOL_BITS(16)) textdrv (
             .clk(clk), .rst_n(rst_n),
-            .x(vga_x), .y(vga_y), .active_video(vga_active),
-            .rd_addr(mem_addr_b), .rd_data(mem_dout_b),
-            .symbol(symbol), .lrg_mode(1'b0));
+            .x(vga_x), .y(vga_y),
+            .x_dbl(txt_x_dbl), .y_dbl(txt_y_dbl),
+            .rd_addr(mem_addr_b), .rd_data(mem_dout_b),  .symbol(symbol));
 
     // *** FONT *** 
-
         // Font ROM
         reg [7:0]  font_dout;                           // font lookup
         reg [10:0] vga_y_p1;                            // y value we use for NEXT lookup (we factor in x being at the end of the line)
@@ -563,6 +562,8 @@ module vt100
             vt100_prev_char  <= 0;
             uart_rx_read     <= 0;
             uart_tx_start    <= 0;
+            txt_x_dbl        <= DEF_X_DBL;
+            txt_y_dbl        <= DEF_Y_DBL;
 		end
 	end
 
@@ -617,5 +618,5 @@ endmodule
 `include "comms/uart/rx_uart.v"
 `include "comms/uart/tx_uart.v"
 `include "comms/uart/uart.v"
-`include "vga/blocks/vga_text_driver.v"
+`include "vga/blocks/texy_flexy.v"
 `include "vga/blocks/vga_timing.v"

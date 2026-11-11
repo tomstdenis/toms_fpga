@@ -13,7 +13,7 @@ module texy_flexy #(
 	parameter H_VISIBLE     = 640,  								// visible width		
 	parameter V_VISIBLE     = 400,									// visible height
     parameter H_TOTAL       = 800,
-    parameter V_TOTAL       = 525;
+    parameter V_TOTAL       = 525,
     parameter SYMBOL_BITS   = 8                                     // how many bits per text char
 )
 (
@@ -33,7 +33,7 @@ module texy_flexy #(
 // symbol for font driver
 	output reg [SYMBOL_BITS-1:0]     symbol							// symbol to feed font rom
 );	
-    reg [11:0] rowstart;
+    reg [11:0] row_start;
 
 	always @(posedge clk) begin
         // text mode
