@@ -31,7 +31,8 @@ module vt100
     parameter VT100_ECHO=0,
     parameter INDEX_BITS=11,
     parameter DEF_X_DBL=0,
-    parameter DEF_Y_DBL=1
+    parameter DEF_Y_DBL=1,
+    parameter USE_COLOR=1
 )
 (
     input wire clk,                               // VGA clock (should be >= 25MHz)
@@ -50,13 +51,15 @@ module vt100
 
     // *** VID MEM ***
         // video memory (16 bit wide, 2048 deep for a 80x25 with attribute bytes)
+        localparam MEM_BITS = USE_COLOR == 1 ? 16 : 8;
+
         reg                   mem_wr_en_a;
         reg [INDEX_BITS-1:0]  mem_addr_a;
-        reg[15:0]             mem_din_a;
+        reg[MEM_BITS-1:0]             mem_din_a;
 
-        reg [15:0]            mem_dout_b;
+        reg [MEM_BITS-1:0]            mem_dout_b;
         wire [INDEX_BITS-1:0] mem_addr_b;
-        reg [15:0]            vidmem[0:(1<<INDEX_BITS)-1];
+        reg [MEM_BITS-1:0]            vidmem[0:(1<<INDEX_BITS)-1];
 
         always @(posedge clk) begin
             if (mem_wr_en_a) begin
@@ -80,7 +83,7 @@ module vt100
             .h_sync(vga_h_sync), .v_sync(vga_v_sync), .active_video(vga_active_f));
 
         // we need to figure out the font info for the /next/ cycle since this isn't combinatorial
-        wire [15:0] symbol;
+        wire [MEM_BITS-1:0] symbol;
 
         // VGA text mode driver, defaults to 80x50 using an 8x8 font
         reg txt_x_dbl;
@@ -88,7 +91,7 @@ module vt100
 
         texy_flexy #(
             .X_FETCH_DELAY(2),
-            .SYMBOL_BITS(16)) textdrv (
+            .SYMBOL_BITS(MEM_BITS)) textdrv (
             .clk(clk), .rst_n(rst_n),
             .x(vga_x), .y(vga_y),
             .x_dbl(txt_x_dbl), .y_dbl(txt_y_dbl),
@@ -330,7 +333,7 @@ module vt100
             // so instead we wait for the VGA text driver to hit the address we want 
             vt100_state_scroll: // start read unless done
                 begin
-                    if (vt100_i == (vt100_height * vt100_width - vt100_width)) begin
+                    if (vt100_i == (vt100_max_dim - vt100_width)) begin
                         vt100_fsm_state <= vt100_state_scroll3;
                     end else begin
                         // wait till the VGA driver gets here
@@ -436,7 +439,7 @@ module vt100
                                     if (vt100_term[0] == 0 || vt100_term_default) begin // cursor to end of screen
                                         vt100_fsm_state <= vt100_state_erase_cells;
                                         vt100_i         <= vt100_cursor_addr;
-                                        vt100_j         <= vt100_height * vt100_width;
+                                        vt100_j         <= vt100_max_dim;
                                     end else if (vt100_term[0] == 1) begin              // from cursor to start of screen
                                         vt100_fsm_state <= vt100_state_erase_cells;
                                         vt100_j         <= vt100_cursor_addr;
@@ -444,7 +447,7 @@ module vt100
                                     end else if (vt100_term[0] == 2) begin              // entire screen
                                         vt100_fsm_state <= vt100_state_erase_cells;
                                         vt100_i         <= 0;
-                                        vt100_j         <= vt100_height * vt100_width;
+                                        vt100_j         <= vt100_max_dim;
                                     end
                                 end
                             75:                                                         // K (erase row)
@@ -467,16 +470,16 @@ module vt100
                                 begin
                                     case (vt100_term[0])
                                         7:  vt100_linewrap <= 1'b1;                    // linewrap
-                                        8:  txt_x_dbl      <= 1'b1;                    // enable X double
-                                        9:  txt_y_dbl      <= 1'b1;                    // enable Y double
+                                        250:  txt_x_dbl    <= 1'b1;                    // enable X double
+                                        251:  txt_y_dbl    <= 1'b1;                    // enable Y double
                                     endcase
                                 end
                             108:                                                        // l (clear mode bit)
                                 begin
                                     case (vt100_term[0])
-                                        7:  vt100_linewrap <= 1'b0;                     // linewrap
-                                        8:  txt_x_dbl      <= 1'b0;                    // disable X double
-                                        9:  txt_y_dbl      <= 1'b0;                    // disable Y double
+                                        7:  vt100_linewrap <= 1'b0;                    // linewrap
+                                        250:  txt_x_dbl    <= 1'b0;                    // disable X double
+                                        251:  txt_y_dbl    <= 1'b0;                    // disable Y double
                                     endcase
                                 end
                             109:                                                        // m (attributes)
@@ -587,33 +590,39 @@ module vt100
 		vga_g   = 0;
 		vga_b   = 0;
 		
-        // extract attribute information
-        text_at = symbol[15:14];
-        text_bg = symbol[13:11];
-        text_fg = symbol[10:8];
-        rgbon   = {text_at[text_out], 3'b111};
-
         // render the foreground/background colour using the VT100 palette, with support
         // bold/dim attributes
 		if (vga_active) begin
-            case (text_out ? text_fg : text_bg)
-                0: // black
-                    {vga_r, vga_g, vga_b} = 12'b0000_0000_0000;
-                1: // red
-                    {vga_r, vga_g, vga_b} = {rgbon, 4'b0000, 4'b0000};
-                2: // green
-                    {vga_r, vga_g, vga_b} = {4'b0000, rgbon, 4'b0000};
-                3: // yellow
-                    {vga_r, vga_g, vga_b} = {rgbon, rgbon, 4'b0000};
-                4: // blue
-                    {vga_r, vga_g, vga_b} = {4'b0000, 4'b0000, rgbon};
-                5: // magenta
-                    {vga_r, vga_g, vga_b} = {rgbon, 4'b0000, rgbon};
-                6: // cyan
-                    {vga_r, vga_g, vga_b} = {4'b0000, rgbon, rgbon};
-                7: // white
-                    {vga_r, vga_g, vga_b} = {rgbon, rgbon, rgbon};
-            endcase
+            if (USE_COLOR == 1) begin
+                // extract attribute information
+                text_at = symbol[15:14];
+                text_bg = symbol[13:11];
+                text_fg = symbol[10:8];
+                rgbon   = {text_at[text_out], 3'b111};
+
+                case (text_out ? text_fg : text_bg)
+                    0: // black
+                        {vga_r, vga_g, vga_b} = 12'b0000_0000_0000;
+                    1: // red
+                        {vga_r, vga_g, vga_b} = {rgbon, 4'b0000, 4'b0000};
+                    2: // green
+                        {vga_r, vga_g, vga_b} = {4'b0000, rgbon, 4'b0000};
+                    3: // yellow
+                        {vga_r, vga_g, vga_b} = {rgbon, rgbon, 4'b0000};
+                    4: // blue
+                        {vga_r, vga_g, vga_b} = {4'b0000, 4'b0000, rgbon};
+                    5: // magenta
+                        {vga_r, vga_g, vga_b} = {rgbon, 4'b0000, rgbon};
+                    6: // cyan
+                        {vga_r, vga_g, vga_b} = {4'b0000, rgbon, rgbon};
+                    7: // white
+                        {vga_r, vga_g, vga_b} = {rgbon, rgbon, rgbon};
+                endcase
+            end else begin
+                    vga_r = text_out ? 4'b1111: 4'b0000;
+                    vga_g = vga_r;
+                    vga_b = vga_r;
+            end
 		end
 
         // drive the VGA signals out

@@ -11,6 +11,7 @@ module top(
     output reg led_r
 );
     localparam
+        USE_COLOR = 1,
         VT100_APPLE2_MODE = 0,  // set to 1 to enable 40x50 text mode which we can use for apple2 40col and LRG modes
         VT100_DEF_XDBL    = VT100_APPLE2_MODE ? 1 : 0,
         VT100_DEF_YDBL    = VT100_APPLE2_MODE ? 1 : 1;
@@ -52,6 +53,8 @@ module top(
     vt100 #(
         .VT100_FREQ(27_000_000),
         .VT100_ECHO(0),
+        .USE_COLOR(USE_COLOR),
+        .INDEX_BITS(12 - USE_COLOR),
         .DEF_X_DBL(VT100_DEF_XDBL),
         .DEF_Y_DBL(VT100_DEF_YDBL))
     thefuture
