@@ -41,18 +41,14 @@ module texy_flexy #(
             // need to set next address
             // 8px:   every 8 - 2 * X_FETCH_DELAY
             // 16px:  every 16 - 2 * X_FETCH_DELAY
-            if (~x_dbl && x[2:0] == (8-X_FETCH_DELAY-X_FETCH_DELAY)) begin // set address before next 8px 
-                rd_addr <= rd_addr + 1'b1;
-            end
-            if (x_dbl && x[3:0] == (16-X_FETCH_DELAY-X_FETCH_DELAY)) begin // set address before next 16px 
+            if ((~x_dbl && x[2:0] == (8-X_FETCH_DELAY-X_FETCH_DELAY)) ||
+                (x_dbl && x[3:0] == (16-X_FETCH_DELAY-X_FETCH_DELAY))) begin // set address before next 8px 
                 rd_addr <= rd_addr + 1'b1;
             end
             // Latch symbol at the last column of font
             // we do this X_FETCH_DELAY ahead of the next symbol
-            if (~x_dbl && x[2:0] == (8-X_FETCH_DELAY)) begin
-                symbol <= rd_data;
-            end
-            if (x_dbl && x[3:0] == (16-X_FETCH_DELAY)) begin
+            if ((~x_dbl && x[2:0] == (8-X_FETCH_DELAY)) ||
+                (x_dbl && x[3:0] == (16-X_FETCH_DELAY))) begin
                 symbol <= rd_data;
             end
         end else begin

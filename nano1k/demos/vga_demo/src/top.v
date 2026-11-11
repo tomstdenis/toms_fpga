@@ -11,9 +11,9 @@ module top(
     output reg led_r
 );
     localparam
-        VT100_APPLE2_MODE = 0,                                      // set to 1 to enable 40x50 text mode which we can use for apple2 40col and LRG modes
-        VT100_WIDTH       = VT100_APPLE2_MODE ? 40 : 80,
-        VT100_HEIGHT      = VT100_APPLE2_MODE ? 50 : 25;
+        VT100_APPLE2_MODE = 0,  // set to 1 to enable 40x50 text mode which we can use for apple2 40col and LRG modes
+        VT100_DEF_XDBL    = VT100_APPLE2_MODE ? 1 : 0,
+        VT100_DEF_YDBL    = VT100_APPLE2_MODE ? 1 : 1;
 
     reg [3:0] rstcnt = 4'b0000;
     wire rst_n;
@@ -49,11 +49,18 @@ module top(
 
     // vt100 emulator
     // This uses the uart pins (uart_rx/uart_tx) and then drives port A of the DP video memory
-    vt100 #(.VT100_FREQ(27_000_000), .VT100_ECHO(0), .VT100_HEIGHT(VT100_HEIGHT), .VT100_WIDTH(VT100_WIDTH)) thefuture (
+    vt100 #(
+        .VT100_FREQ(27_000_000),
+        .VT100_ECHO(0),
+        .DEF_X_DBL(VT100_DEF_XDBL),
+        .DEF_Y_DBL(VT100_DEF_YDBL))
+    thefuture
+    (
         .clk(pll_clk), .rst_n(rst_n),
         .uart_tx(uart_tx), .uart_rx(uart_rx),                                                   // UART
         .vga_r(vga_r_f), .vga_g(vga_g_f), .vga_b(vga_b_f),                                      // VGA RGB output
-        .vga_h_pulse(vga_h_pulse_f), .vga_v_pulse(vga_v_pulse_f), .vga_active(vga_active_f));  
+        .vga_h_pulse(vga_h_pulse_f), .vga_v_pulse(vga_v_pulse_f), .vga_active(vga_active_f)
+    );  
 
 endmodule
 

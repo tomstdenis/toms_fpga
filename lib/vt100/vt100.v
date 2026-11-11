@@ -26,12 +26,10 @@ pass so it can be slow.  If you intend to do animations just don't scroll the sc
 
 module vt100
 #(
-    parameter VT100_WIDTH='d80,
-    parameter VT100_HEIGHT='d25,
     parameter VT100_FREQ=27_000_000,    // default clock for a Tang Nano 1K
     parameter VT100_BAUD=230_400,
     parameter VT100_ECHO=0,
-    parameter INDEX_BITS=$clog2(VT100_WIDTH*VT100_HEIGHT),
+    parameter INDEX_BITS=11,
     parameter DEF_X_DBL=0,
     parameter DEF_Y_DBL=1
 )
@@ -112,16 +110,16 @@ module vt100
             // generate the address for the font lookup
             font_ad  = 0;
             vga_y_p1 = (vga_y + (vga_x == 799 ? 1'b1 : 1'b0));
-            case (VT100_HEIGHT)
-                50: font_ad  = {symbol[7:0], vga_y_p1[2:0]};
-                25: font_ad  = {symbol[7:0], vga_y_p1[3:1]};
+            case (txt_y_dbl)
+                0: font_ad  = {symbol[7:0], vga_y_p1[2:0]};
+                1: font_ad  = {symbol[7:0], vga_y_p1[3:1]};
             endcase
 
             // generate the pixel data
             text_out = 0;
-            case (VT100_WIDTH)
-                80: text_out = font_dout[7 - vga_x[2:0]];
-                40: text_out = font_dout[7 - vga_x[3:1]];
+            case (txt_x_dbl)
+                0: text_out = font_dout[7 - vga_x[2:0]];
+                1: text_out = font_dout[7 - vga_x[3:1]];
             endcase
         end
 
@@ -178,20 +176,20 @@ module vt100
     always @(*) begin
         vt100_row_addr = 0;
         vt100_width    = 0;
-        case (VT100_WIDTH)
-            40: begin
-                vt100_row_addr = vt100_y * 40;
-                vt100_width    = 40;
-            end
-            80: begin
+        case (txt_x_dbl)
+            0: begin
                 vt100_row_addr = vt100_y * 80;
                 vt100_width    = 80;
             end
+            1: begin
+                vt100_row_addr = vt100_y * 40;
+                vt100_width    = 40;
+            end
         endcase
         vt100_height   = 0;
-        case (VT100_HEIGHT)
-            25: vt100_height = 25;
-            50: vt100_height = 50;
+        case (txt_y_dbl)
+            0: vt100_height = 50;
+            1: vt100_height = 25;
         endcase
             
         vt100_cursor_addr = vt100_row_addr + vt100_x;
@@ -463,12 +461,16 @@ module vt100
                                 begin
                                     case (vt100_term[0])
                                         7:  vt100_linewrap <= 1'b1;                    // linewrap
+                                        8:  txt_x_dbl      <= 1'b1;                    // enable X double
+                                        9:  txt_y_dbl      <= 1'b1;                    // enable Y double
                                     endcase
                                 end
                             108:                                                        // l (clear mode bit)
                                 begin
                                     case (vt100_term[0])
                                         7:  vt100_linewrap <= 1'b0;                     // linewrap
+                                        8:  txt_x_dbl      <= 1'b0;                    // disable X double
+                                        9:  txt_y_dbl      <= 1'b0;                    // disable Y double
                                     endcase
                                 end
                             109:                                                        // m (attributes)
