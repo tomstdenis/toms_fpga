@@ -171,6 +171,7 @@ module vt100
     // these are dynamic width/height restrictions
     reg [INDEX_BITS-1:0]  vt100_width;
     reg [INDEX_BITS-1:0]  vt100_height;
+    reg [INDEX_BITS-1:0]  vt100_max_dim;
 
     // generate current row address 
     always @(*) begin
@@ -191,7 +192,12 @@ module vt100
             0: vt100_height = 50;
             1: vt100_height = 25;
         endcase
-            
+        case ({txt_x_dbl, txt_y_dbl})
+            2'b00: vt100_max_dim = 80 * 50;
+            2'b01: vt100_max_dim = 80 * 25;
+            2'b10: vt100_max_dim = 40 * 50;
+            2'b11: vt100_max_dim = 40 * 25;
+        endcase            
         vt100_cursor_addr = vt100_row_addr + vt100_x;
     end
 
@@ -346,7 +352,7 @@ module vt100
                 end
             vt100_state_scroll3: // we finished scrolling the text, now we erase the last line
                 begin
-                    if (vt100_i == (vt100_height * vt100_width)) begin                  // we're at the end of the screen jump back to idle
+                    if (vt100_i == (vt100_max_dim)) begin                  // we're at the end of the screen jump back to idle
                         vt100_fsm_state <= vt100_state_idle;
                     end else begin
                         mem_addr_a      <= vt100_i;
