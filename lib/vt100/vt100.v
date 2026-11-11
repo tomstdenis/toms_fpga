@@ -55,11 +55,11 @@ module vt100
 
         reg                   mem_wr_en_a;
         reg [INDEX_BITS-1:0]  mem_addr_a;
-        reg[MEM_BITS-1:0]             mem_din_a;
+        reg[MEM_BITS-1:0]     mem_din_a;
 
-        reg [MEM_BITS-1:0]            mem_dout_b;
+        reg [MEM_BITS-1:0]    mem_dout_b;
         wire [INDEX_BITS-1:0] mem_addr_b;
-        reg [MEM_BITS-1:0]            vidmem[0:(1<<INDEX_BITS)-1];
+        reg [MEM_BITS-1:0]    vidmem[0:(1<<INDEX_BITS)-1];
 
         always @(posedge clk) begin
             if (mem_wr_en_a) begin
