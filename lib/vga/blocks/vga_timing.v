@@ -16,18 +16,23 @@ module vga_timing #(
     parameter V_FRONT      = 7,
     parameter V_SYNC       = 2,
     parameter V_BACK       = 33,
-    parameter V_TOTAL      = 525
+    parameter V_TOTAL      = 525,
+
+    parameter CLK_DIV      = 0
 )
 
 (
-    input  wire        clk,   // e.g., 640x480@60 == 25.175 MHz
-    input  wire        rst_n,
-    output reg  [$clog2(H_TOTAL):0]  x,
-    output reg  [$clog2(V_TOTAL):0]  y,
-    output reg         h_sync,
-    output reg         v_sync,
-    output reg         active_video
+    input  wire                     clk,   // e.g., 640x480@60 == 25.175 MHz
+    input  wire                     rst_n,
+    output reg [$clog2(H_TOTAL):0]  x,
+    output reg [$clog2(V_TOTAL):0]  y,
+    output reg                      h_sync,
+    output reg                      v_sync,
+    output reg                      active_video
 );
+
+    reg [$clog2(CLK_DIV+1):0] timer;
+
     always @(*) begin
         // Active video flag (high when inside the 640x480 area)
         active_video = (x < H_VISIBLE) && (y < V_VISIBLE);
@@ -40,19 +45,24 @@ module vga_timing #(
     end
 
     always @(posedge clk) begin
-        // X and Y Counter Logic
-        x <= x + 1'b1;
-        if (x == (H_TOTAL - 1)) begin
-            x <= 0;
-            y <= y + 1'b1;
-            if (y == (V_TOTAL - 1)) begin
-                y <= 0;
+        timer <= timer - 1'b1;
+        if (timer == 0) begin 
+            timer <= CLK_DIV;
+            // X and Y Counter Logic
+            x <= x + 1'b1;
+            if (x == (H_TOTAL - 1)) begin
+                x <= 0;
+                y <= y + 1'b1;
+                if (y == (V_TOTAL - 1)) begin
+                    y <= 0;
+                end
             end
         end
 
         if (~rst_n) begin
             x      <= 0;
             y      <= 0;
+            timer  <= 0;
         end
     end
 endmodule

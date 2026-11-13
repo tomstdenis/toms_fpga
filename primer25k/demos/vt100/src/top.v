@@ -21,13 +21,13 @@ module top(
     assign rst_n = rstcnt[3];
 
     // dropped the PLL for this demo since it native runs at 27MHz and the PLL can't target 25MHz anyways...
-    wire pll_clk;
+    wire pll_clk = clk;
 	wire pll_locked = 1'b1;
 
-    Gowin_PLL vgatimmer(
-        .clkin(clk), //input  clkin
-        .clkout0(pll_clk) //output  clkout0
-    );
+//    Gowin_PLL vgatimmer(
+//        .clkin(clk), //input  clkin
+//        .clkout0(pll_clk) //output  clkout0
+//    );
 
     always @(posedge pll_clk) begin
 		if (pll_locked) begin
@@ -56,10 +56,12 @@ module top(
     // vt100 emulator
     // This uses the uart pins (uart_rx/uart_tx) and then drives port A of the DP video memory
     vt100 #(
-        .VT100_FREQ(25_000_000),
+        .VT100_FREQ(50_000_000),
         .VT100_ECHO(0),
         .USE_COLOR(USE_COLOR),
         .INDEX_BITS(12),
+        .CLK_DIV(1),                    // at 50MHz we need to divide the VGA timing by 2
+        .X_FETCH_DELAY(1),              // also memory fetches happen in half the time from the perspective of the VGA text driver
         .DEF_X_DBL(VT100_DEF_XDBL),
         .DEF_Y_DBL(VT100_DEF_YDBL))
     thefuture

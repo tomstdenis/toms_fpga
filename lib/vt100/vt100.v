@@ -26,13 +26,15 @@ pass so it can be slow.  If you intend to do animations just don't scroll the sc
 
 module vt100
 #(
-    parameter VT100_FREQ=27_000_000,    // default clock for a Tang Nano 1K
-    parameter VT100_BAUD=230_400,
-    parameter VT100_ECHO=0,
-    parameter INDEX_BITS=11,
-    parameter DEF_X_DBL=0,
-    parameter DEF_Y_DBL=1,
-    parameter USE_COLOR=1
+    parameter VT100_FREQ    = 27_000_000,    // default clock for a Tang Nano 1K
+    parameter VT100_BAUD    = 230_400,       // default baud 230.4K
+    parameter VT100_ECHO    = 0,             // disable echo by default
+    parameter INDEX_BITS    = 11,            // How much BRAM to use 2^INDEX_BITS entries (entry is 16 or 8 bits depending on USE_COLOR)
+    parameter USE_COLOR     = 1,             // enable color attributes (doubles the memory required)
+    parameter DEF_X_DBL     = 0,             // default X doubling setting (non-doubled == 8 pixels wide)
+    parameter DEF_Y_DBL     = 1,             // default Y doubling setting (non-doubled == 8 pixels tall)
+    parameter CLK_DIV       = 0,             // clock divider (divide VGA timing by CLK_DIV+1)
+    parameter X_FETCH_DELAY = 2              // how many cycles does a take
 )
 (
     input wire clk,                               // VGA clock (should be >= 25MHz)
@@ -76,7 +78,9 @@ module vt100
         wire        vga_active_f;
         
         // VGA Timing block
-        vga_timing vga(
+        vga_timing #(
+            .CLK_DIV(CLK_DIV)
+        ) vga (
             .clk(clk),
             .rst_n(rst_n),
             .x(vga_x), .y(vga_y),
@@ -90,8 +94,10 @@ module vt100
         reg txt_y_dbl;
 
         texy_flexy #(
-            .X_FETCH_DELAY(2),
-            .SYMBOL_BITS(MEM_BITS)) textdrv (
+            .X_FETCH_DELAY(X_FETCH_DELAY),
+            .SYMBOL_BITS(MEM_BITS),
+            .CLK_DIV(CLK_DIV)
+        ) textdrv (
             .clk(clk), .rst_n(rst_n),
             .x(vga_x), .y(vga_y),
             .x_dbl(txt_x_dbl), .y_dbl(txt_y_dbl),
