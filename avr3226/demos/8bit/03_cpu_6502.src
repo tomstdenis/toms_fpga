@@ -167,6 +167,357 @@ static void do_sbc(uint8_t val1, uint8_t val2)
 	}
 }
 
+// types of 6502 operands
+#define CPU_6502_IMM    0  // #oper, operand is     mem8[PC+1]
+#define CPU_6502_ZP     1  // $zp, operand is       mem8[mem8[PC+1]]
+#define CPU_6502_ZP_X   2  // zp,X, operand is      mem8[(mem8[PC+1] + X) & 0xFF]
+#define CPU_6502_ZP_Y   3  // zp,Y, operand is      mem8[(mem8[PC+1] + Y) & 0xFF]
+#define CPU_6502_ABS    4  // $oper, operand is     mem8[mem16[PC+1..PC+2]]
+#define CPU_6502_ABS_X  5  // $oper,X, operand is   mem8[X + mem16[PC+1..PC+2]]
+#define CPU_6502_ABS_Y  6  // $oper,Y, opreand is   mem8[Y + mem16[PC+1..PC+2]]
+#define CPU_6502_IND_X  7  // ($oper,X), operand is mem8[mem16[(mem8[PC+1] + X) & 0xFF]]
+#define CPU_6502_IND_Y  8  // ($oper,Y), operand is mem8[mem16[mem8[PC+1]] + Y]
+#define CPU_6502_IMP    9  // implied (no explicit operand)
+#define CPU_6502_IMM16  10 // #oper16
+#define CPU_6502_IND16  11 // mem16[oper16]
+
+
+// opcodes
+#define CPU_6502_OP_BRK 0
+#define CPU_6502_OP_ORA 1
+#define CPU_6502_OP_ASL 2
+#define CPU_6502_OP_PHP 3 
+#define CPU_6502_OP_BPL 4
+#define CPU_6502_OP_CLC 5
+#define CPU_6502_OP_JSR 6
+#define CPU_6502_OP_AND 7
+#define CPU_6502_OP_BIT 8
+#define CPU_6502_OP_ROL 9
+#define CPU_6502_OP_PLP 10
+#define CPU_6502_OP_BMI 11
+#define CPU_6502_OP_SEC 12
+#define CPU_6502_OP_RTI 13
+#define CPU_6502_OP_EOR 14
+#define CPU_6502_OP_PHA 15
+#define CPU_6502_OP_LSR 16
+#define CPU_6502_OP_JMP 17
+#define CPU_6502_OP_BVC 18
+#define CPU_6502_OP_CLI 19
+#define CPU_6502_OP_RTS 20
+#define CPU_6502_OP_ADC 21
+#define CPU_6502_OP_ROR 22
+#define CPU_6502_OP_BVS 23
+#define CPU_6502_OP_SEI 24
+#define CPU_6502_OP_STA 25
+#define CPU_6502_OP_DEY 26
+#define CPU_6502_OP_TXA 27
+#define CPU_6502_OP_STY 28
+#define CPU_6502_OP_STX 29
+#define CPU_6502_OP_BCC 30
+#define CPU_6502_OP_TYA 31
+#define CPU_6502_OP_TXS 32
+#define CPU_6502_OP_LDY 33
+#define CPU_6502_OP_LDA 34
+#define CPU_6502_OP_LDX 35
+#define CPU_6502_OP_TAY 36
+#define CPU_6502_OP_TAX 37
+#define CPU_6502_OP_BCS 38
+#define CPU_6502_OP_CLV 39
+#define CPU_6502_OP_CPY 40
+#define CPU_6502_OP_CMP 41
+#define CPU_6502_OP_DEC 42
+#define CPU_6502_OP_INY 43
+#define CPU_6502_OP_DEX 44
+#define CPU_6502_OP_BNE 45
+#define CPU_6502_OP_CLD 46
+#define CPU_6502_OP_CPX 47
+#define CPU_6502_OP_SBC 48
+#define CPU_6502_OP_INC 49
+#define CPU_6502_OP_INX 50
+#define CPU_6502_OP_NOP 51
+#define CPU_6502_OP_BEQ 52
+#define CPU_6502_OP_SED 53
+#define CPU_6502_OP_PLA 54
+#define CPU_6502_OP_TSX 55 
+
+#define CPU_6502_OP_NOT_IMP 255 // not supported opcode
+
+const struct {
+	uint8_t oper_type, opcode, cycles;
+} cpu_6502_opcodes[] = {
+	/* 0x00 */ { CPU_6502_OP_BRK, CPU_6502_IMP,   7 },
+	/* 0x01 */ { CPU_6502_OP_ORA, CPU_6502_IND_X, 6 },
+	/* 0x02 */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0x03 */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0x04 */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0x05 */ { CPU_6502_OP_ORA, CPU_6502_ZP, 3 },
+	/* 0x06 */ { CPU_6502_OP_ASL, CPU_6502_ZP, 5 },
+	/* 0x07 */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0x08 */ { CPU_6502_OP_PHP, CPU_6502_IMP, 3 },
+	/* 0x09 */ { CPU_6502_OP_ORA, CPU_6502_IMM, 2 },
+	/* 0x0A */ { CPU_6502_OP_ASL, CPU_6502_IMP, 2 },
+	/* 0x0B */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0x0C */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0x0D */ { CPU_6502_OP_ORA, CPU_6502_ABS, 4 },
+	/* 0x0E */ { CPU_6502_OP_ASL, CPU_6502_ABS, 6 },
+	/* 0x0F */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+
+	/* 0x10 */ { CPU_6502_OP_BPL, CPU_6502_IMM, 2 },
+	/* 0x11 */ { CPU_6502_OP_ORA, CPU_6502_IND_Y, 5 },
+	/* 0x12 */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0x13 */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0x14 */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0x15 */ { CPU_6502_OP_ORA, CPU_6502_ZP_X, 4 },
+	/* 0x16 */ { CPU_6502_OP_ASL, CPU_6502_ZP_X, 6 },
+	/* 0x17 */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0x18 */ { CPU_6502_OP_CLC, CPU_6502_IMP, 2 },
+	/* 0x19 */ { CPU_6502_OP_ORA, CPU_6502_ABS_Y, 4 },
+	/* 0x1A */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0x1B */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0x1C */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0x1D */ { CPU_6502_OP_ORA, CPU_6502_ABS_X, 4 },
+	/* 0x1E */ { CPU_6502_OP_ASL, CPU_6502_ABS_X, 7 },
+	/* 0x1F */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+
+	/* 0x20 */ { CPU_6502_OP_JSR, CPU_6502_IND16, 6 },
+	/* 0x21 */ { CPU_6502_OP_AND, CPU_6502_IND_X, 6 },
+	/* 0x22 */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0x23 */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0x24 */ { CPU_6502_OP_BIT, CPU_6502_ZP, 3 },
+	/* 0x25 */ { CPU_6502_OP_AND, CPU_6502_ZP, 3 },
+	/* 0x26 */ { CPU_6502_OP_ROL, CPU_6502_ZP, 5 },
+	/* 0x27 */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0x28 */ { CPU_6502_OP_PLP, CPU_6502_IMP, 4 },
+	/* 0x29 */ { CPU_6502_OP_AND, CPU_6502_IMM, 2 },
+	/* 0x2A */ { CPU_6502_OP_ROL, CPU_6502_IMP, 2 },
+	/* 0x2B */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0x2C */ { CPU_6502_OP_BIT, CPU_6502_ABS, 4 },
+	/* 0x2D */ { CPU_6502_OP_AND, CPU_6502_ABS, 4 },
+	/* 0x2E */ { CPU_6502_OP_ROL, CPU_6502_ABS, 6 },
+	/* 0x2F */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+
+	/* 0x30 */ { CPU_6502_OP_BMI, CPU_6502_IMM, 2 },
+	/* 0x31 */ { CPU_6502_OP_AND, CPU_6502_IND_Y, 5 },
+	/* 0x32 */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0x33 */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0x34 */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0x35 */ { CPU_6502_OP_AND, CPU_6502_ZP_X, 4 },
+	/* 0x36 */ { CPU_6502_OP_ROL, CPU_6502_ZP_X, 6 },
+	/* 0x37 */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0x38 */ { CPU_6502_OP_SEC, CPU_6502_IMP, 2 },
+	/* 0x39 */ { CPU_6502_OP_AND, CPU_6502_ABS_Y, 4 },
+	/* 0x3A */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0x3B */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0x3C */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0x3D */ { CPU_6502_OP_AND, CPU_6502_ABS_X, 4 },
+	/* 0x3E */ { CPU_6502_OP_ROL, CPU_6502_ABS_X, 7 },
+	/* 0x3F */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+
+	/* 0x40 */ { CPU_6502_OP_RTI, CPU_6502_IMP, 6 },
+	/* 0x41 */ { CPU_6502_OP_EOR, CPU_6502_IND_X, 6 },
+	/* 0x42 */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0x43 */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0x44 */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0x45 */ { CPU_6502_OP_EOR, CPU_6502_ZP, 3 },
+	/* 0x46 */ { CPU_6502_OP_LSR, CPU_6502_ZP, 5 },
+	/* 0x47 */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0x48 */ { CPU_6502_OP_PHA, CPU_6502_IMP, 3 },
+	/* 0x49 */ { CPU_6502_OP_EOR, CPU_6502_IMM, 2 },
+	/* 0x4A */ { CPU_6502_OP_LSR, CPU_6502_IMP, 2 },
+	/* 0x4B */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0x4C */ { CPU_6502_OP_JMP, CPU_6502_IMM16, 3 },
+	/* 0x4D */ { CPU_6502_OP_EOR, CPU_6502_ABS, 4 },
+	/* 0x4E */ { CPU_6502_OP_LSR, CPU_6502_ABS, 6 },
+	/* 0x4F */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+
+	/* 0x50 */ { CPU_6502_OP_BVC, CPU_6502_IMM, 2 },
+	/* 0x51 */ { CPU_6502_OP_EOR, CPU_6502_IND_Y, 5 },
+	/* 0x52 */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0x53 */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0x54 */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0x55 */ { CPU_6502_OP_EOR, CPU_6502_ZP_X, 4 },
+	/* 0x56 */ { CPU_6502_OP_LSR, CPU_6502_ZP_X, 5 },
+	/* 0x57 */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0x58 */ { CPU_6502_OP_CLI, CPU_6502_IMP, 2 },
+	/* 0x59 */ { CPU_6502_OP_EOR, CPU_6502_ABS_Y, 4 },
+	/* 0x5A */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0x5B */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0x5C */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0x5D */ { CPU_6502_OP_EOR, CPU_6502_ABS_X, 4 },
+	/* 0x5E */ { CPU_6502_OP_LSR, CPU_6502_ABS_X, 7 },
+	/* 0x5F */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+
+	/* 0x60 */ { CPU_6502_OP_RTS, CPU_6502_IMP, 6 },
+	/* 0x61 */ { CPU_6502_OP_ADC, CPU_6502_IND_X, 6 },
+	/* 0x62 */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0x63 */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0x64 */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0x65 */ { CPU_6502_OP_ADC, CPU_6502_ZP, 3 },
+	/* 0x66 */ { CPU_6502_OP_ROR, CPU_6502_ZP, 5 },
+	/* 0x67 */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0x68 */ { CPU_6502_OP_PLA, CPU_6502_IMP, 4 },
+	/* 0x69 */ { CPU_6502_OP_ADC, CPU_6502_IMM, 2 },
+	/* 0x6A */ { CPU_6502_OP_ROR, CPU_6502_IMP, 2 },
+	/* 0x6B */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0x6C */ { CPU_6502_OP_JMP, CPU_6502_IND16, 5 },
+	/* 0x6D */ { CPU_6502_OP_ADC, CPU_6502_ABS, 4 },
+	/* 0x6E */ { CPU_6502_OP_ROR, CPU_6502_ABS, 6 },
+	/* 0x6F */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+
+	/* 0x70 */ { CPU_6502_OP_BVS, CPU_6502_IMM, 2 },
+	/* 0x71 */ { CPU_6502_OP_ADC, CPU_6502_IND_Y, 5 },
+	/* 0x72 */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0x73 */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0x74 */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0x75 */ { CPU_6502_OP_ADC, CPU_6502_ZP_X, 4 },
+	/* 0x76 */ { CPU_6502_OP_ROR, CPU_6502_ZP_X, 6 },
+	/* 0x77 */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0x78 */ { CPU_6502_OP_SEI, CPU_6502_IMP, 2 },
+	/* 0x79 */ { CPU_6502_OP_ADC, CPU_6502_ABS_Y, 4 },
+	/* 0x7A */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0x7B */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0x7C */ { CPU_6502_OP_ADC, CPU_6502_ABS_X, 4 },
+	/* 0x7D */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0x7E */ { CPU_6502_OP_ROR, CPU_6502_ABS_X, 7 },
+	/* 0x7F */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+
+	/* 0x80 */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0x81 */ { CPU_6502_OP_STA, CPU_6502_IND_X, 6 },
+	/* 0x82 */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0x83 */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0x84 */ { CPU_6502_OP_STY, CPU_6502_ZP, 3 },
+	/* 0x85 */ { CPU_6502_OP_STA, CPU_6502_ZP, 3 },
+	/* 0x86 */ { CPU_6502_OP_STX, CPU_6502_ZP, 3 },
+	/* 0x87 */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0x88 */ { CPU_6502_OP_DEY, CPU_6502_IMP, 2 },
+	/* 0x89 */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0x8A */ { CPU_6502_OP_TXA, CPU_6502_IMP, 2 },
+	/* 0x8B */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0x8C */ { CPU_6502_OP_STY, CPU_6502_ABS, 4 },
+	/* 0x8D */ { CPU_6502_OP_STA, CPU_6502_ABS, 4 },
+	/* 0x8E */ { CPU_6502_OP_STX, CPU_6502_ABS, 4 },
+	/* 0x8F */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+
+	/* 0x90 */ { CPU_6502_OP_BCC, CPU_6502_IMM, 2 },
+	/* 0x91 */ { CPU_6502_OP_STA, CPU_6502_IND_Y, 6 },
+	/* 0x92 */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0x93 */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0x94 */ { CPU_6502_OP_STY, CPU_6502_ZP_X, 4 },
+	/* 0x95 */ { CPU_6502_OP_STA, CPU_6502_ZP_X, 4 },
+	/* 0x96 */ { CPU_6502_OP_STX, CPU_6502_ZP_Y, 4 },
+	/* 0x97 */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0x98 */ { CPU_6502_OP_TYA, CPU_6502_IMP, 2 },
+	/* 0x99 */ { CPU_6502_OP_STA, CPU_6502_ABS_Y, 5 },
+	/* 0x9A */ { CPU_6502_OP_TXS, CPU_6502_IMP, 2 },
+	/* 0x9B */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0x9C */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0x9D */ { CPU_6502_OP_STA, CPU_6502_ABS_X, 5 },
+	/* 0x9E */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0x9F */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+
+	/* 0xA0 */ { CPU_6502_OP_LDY, CPU_6502_IMM, 2 },
+	/* 0xA1 */ { CPU_6502_OP_LDA, CPU_6502_IND_X, 6 },
+	/* 0xA2 */ { CPU_6502_OP_LDX, CPU_6502_IMM, 2 },
+	/* 0xA3 */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0xA4 */ { CPU_6502_OP_LDY, CPU_6502_ZP, 3 },
+	/* 0xA5 */ { CPU_6502_OP_LDA, CPU_6502_ZP, 3 },
+	/* 0xA6 */ { CPU_6502_OP_LDX, CPU_6502_ZP, 3 },
+	/* 0xA7 */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0xA8 */ { CPU_6502_OP_TAY, CPU_6502_IMP, 2 },
+	/* 0xA9 */ { CPU_6502_OP_LDA, CPU_6502_IMM, 2 },
+	/* 0xAA */ { CPU_6502_OP_TAX, CPU_6502_IMP, 2 },
+	/* 0xAB */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0xAC */ { CPU_6502_OP_LDY, CPU_6502_ABS, 4 },
+	/* 0xAD */ { CPU_6502_OP_LDA, CPU_6502_ABS, 4 },
+	/* 0xAE */ { CPU_6502_OP_LDX, CPU_6502_ABS, 4 },
+	/* 0xAF */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+
+	/* 0xB0 */ { CPU_6502_OP_BCS, CPU_6502_IMM, 2 },
+	/* 0xB1 */ { CPU_6502_OP_LDA, CPU_6502_IND_Y, 5 },
+	/* 0xB2 */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0xB3 */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0xB4 */ { CPU_6502_OP_LDY, CPU_6502_ZP_X, 4 },
+	/* 0xB5 */ { CPU_6502_OP_LDA, CPU_6502_ZP_X, 4 },
+	/* 0xB6 */ { CPU_6502_OP_LDX, CPU_6502_ZP_Y, 4 },
+	/* 0xB7 */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0xB8 */ { CPU_6502_OP_CLV, CPU_6502_IMP, 2 },
+	/* 0xB9 */ { CPU_6502_OP_LDA, CPU_6502_ABS_Y, 4 },
+	/* 0xBA */ { CPU_6502_OP_TSX, CPU_6502_IMP, 2 },
+	/* 0xBB */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0xBC */ { CPU_6502_OP_LDY, CPU_6502_ABS_X, 4 },
+	/* 0xBD */ { CPU_6502_OP_LDA, CPU_6502_ABS_X, 4 },
+	/* 0xBE */ { CPU_6502_OP_LDX, CPU_6502_ABS_Y, 4 },
+	/* 0xBF */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+
+	/* 0xC0 */ { CPU_6502_OP_CPY, CPU_6502_IMM, 2 },
+	/* 0xC1 */ { CPU_6502_OP_CMP, CPU_6502_IND_X, 6 },
+	/* 0xC2 */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0xC3 */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0xC4 */ { CPU_6502_OP_CPY, CPU_6502_ZP, 3 },
+	/* 0xC5 */ { CPU_6502_OP_CMP, CPU_6502_ZP, 3 },
+	/* 0xC6 */ { CPU_6502_OP_DEC, CPU_6502_ZP, 5 },
+	/* 0xC7 */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0xC8 */ { CPU_6502_OP_INY, CPU_6502_IMP, 2 },
+	/* 0xC9 */ { CPU_6502_OP_CMP, CPU_6502_IMM, 2 },
+	/* 0xCA */ { CPU_6502_OP_DEX, CPU_6502_IMP, 2 },
+	/* 0xCB */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0xCC */ { CPU_6502_OP_CPY, CPU_6502_ABS, 4 },
+	/* 0xCD */ { CPU_6502_OP_CMP, CPU_6502_ABS, 4 },
+	/* 0xCE */ { CPU_6502_OP_DEC, CPU_6502_ABS, 6 },
+	/* 0xCF */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+
+	/* 0xD0 */ { CPU_6502_OP_BNE, CPU_6502_IMM, 2 },
+	/* 0xD1 */ { CPU_6502_OP_CMP, CPU_6502_IND_Y, 5 },
+	/* 0xD2 */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0xD3 */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0xD4 */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0xD5 */ { CPU_6502_OP_CMP, CPU_6502_ZP_X, 4 },
+	/* 0xD6 */ { CPU_6502_OP_DEC, CPU_6502_ZP_X, 6 },
+	/* 0xD7 */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0xD8 */ { CPU_6502_OP_CLD, CPU_6502_IMP, 2 },
+	/* 0xD9 */ { CPU_6502_OP_CMP, CPU_6502_ABS_Y, 4 },
+	/* 0xDA */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0xDB */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0xDC */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0xDD */ { CPU_6502_OP_CMP, CPU_6502_ABS_X, 4 },
+	/* 0xDE */ { CPU_6502_OP_DEC, CPU_6502_ABS_X, 7 },
+	/* 0xDF */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+
+	/* 0xE0 */ { CPU_6502_OP_CPX, CPU_6502_IMM, 2 },
+	/* 0xE1 */ { CPU_6502_OP_SBC, CPU_6502_IND_X, 6 },
+	/* 0xE2 */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0xE3 */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0xE4 */ { CPU_6502_OP_CPX, CPU_6502_ZP, 3 },
+	/* 0xE5 */ { CPU_6502_OP_SBC, CPU_6502_ZP, 3 },
+	/* 0xE6 */ { CPU_6502_OP_INC, CPU_6502_ZP, 5 },
+	/* 0xE7 */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0xE8 */ { CPU_6502_OP_INX, CPU_6502_IMP, 2 },
+	/* 0xE9 */ { CPU_6502_OP_SBC, CPU_6502_IMM, 2 },
+	/* 0xEA */ { CPU_6502_OP_NOP, CPU_6502_IMP, 2 },
+	/* 0xEB */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0xEC */ { CPU_6502_OP_CPX, CPU_6502_ABS, 4 },
+	/* 0xED */ { CPU_6502_OP_SBC, CPU_6502_ABS, 4 },
+	/* 0xEE */ { CPU_6502_OP_INC, CPU_6502_ABS, 6 },
+	/* 0xEF */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+
+	/* 0xF0 */ { CPU_6502_OP_BEQ, CPU_6502_IMM, 2 },
+	/* 0xF1 */ { CPU_6502_OP_SBC, CPU_6502_IND_Y, 5 },
+	/* 0xF2 */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0xF3 */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0xF4 */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0xF5 */ { CPU_6502_OP_SBC, CPU_6502_ZP_X, 4 },
+	/* 0xF6 */ { CPU_6502_OP_INC, CPU_6502_ZP_X, 6 },
+	/* 0xF7 */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0xF8 */ { CPU_6502_OP_SED, CPU_6502_IMP, 2 },
+	/* 0xF9 */ { CPU_6502_OP_SBC, CPU_6502_ABS_Y, 4 },
+	/* 0xFA */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0xFB */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0xFC */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+	/* 0xFD */ { CPU_6502_OP_SBC, CPU_6502_ABS_X, 4 },
+	/* 0xFE */ { CPU_6502_OP_INC, CPU_6502_ABS_X, 7 },
+	/* 0xFF */ { CPU_6502_OP_NOT_IMP, CPU_6502_IMP, 2 },
+};
+
 void step_6502(uint16_t steps)
 {
 	uint16_t
@@ -206,7 +557,14 @@ void step_6502(uint16_t steps)
 	#endif
 		LOG("step_6502: (%04x) => %02x\n", cpu6502.regPC-1, opcode);
 
+		// TODO:
+			// Using opcode map figure out which operand type this opcode is
+				// you need to fill in val1, and possibly val2, and possibly addr
+				// You must detect store (STA/STX/STY) instructions and not FETCH anything just produce addr
+			// Switch based on the OP this is
 
+
+		// TODO: drop this code
 		// val1 is usually A...
 		val1 = cpu6502.regA;
 

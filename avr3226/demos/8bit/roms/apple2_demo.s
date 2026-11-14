@@ -27,11 +27,12 @@ _start:
 
     lda #0               ; Initialize accumulator / base color
     tax                  ; X will serve as our X-coordinate / index
+    sta x_coord
     sta y_coord
 
 main_loop:
     clc                  ; Always clear carry before addition if not chaining multi-byte
-    adc #1               ; Add 3 to accumulator (tests ADC with carry propagation)
+    adc y_coord          ; Add accumulator (tests ADC with carry propagation)
     
     ; Pack the lower 4 bits of accumulator into both nibbles for a valid Lo-Res color (0-15)
     pha                  ; Save accumulator value
@@ -52,6 +53,7 @@ main_loop:
 
     ldx x_coord
     inx                  ; Next column
+    stx x_coord
     cpx #40              ; Reached end of 40 columns?
     bne main_loop
 
@@ -77,14 +79,14 @@ set_pixel_fast:
     ; look up row offset
     lda _row_lo,y
     sta screen_ptr
-    lda _row_hi,Y
+    lda _row_hi,y
     sta screen_ptr+1
+    tya                  ; a == y coord
     ldy x_coord
     ; now (screen_ptr),y points to the pixel but we need to know if we
     ; are modifying the top or bottom
 
     ; 2. Determine even or odd column using saved X coordinate
-    lda y_coord
     lsr a                ; Shifts lowest bit into Carry (Carry = 1 if odd, 0 if even)
     bcs draw_odd_nibble
 
