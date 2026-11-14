@@ -246,7 +246,7 @@ module vt100
                     if (vt100_y >= vt100_height) begin              // Y went to beneath the viewport, so scroll until it's in view
                         // initiate screen scroll fsm state
                         vt100_y         <= vt100_y - 1'b1;
-                        vt100_i         <= 0;                       // read from scroll+80 and write to scroll 
+                        vt100_i         <= 0;                       // read from scroll+vt100_width and write to scroll 
                         vt100_fsm_state <= vt100_state_scroll;
                     end else if (uart_rx_ready) begin               // otherwise wait for a uart byte
                         uart_rx_read    <= 1;

@@ -18,7 +18,7 @@ module vga_timing #(
     parameter V_BACK       = 33,
     parameter V_TOTAL      = 525,
 
-    parameter CLK_DIV      = 0
+    parameter CLK_DIV      = 0             // divide clock by CLK_DIV+1
 )
 
 (

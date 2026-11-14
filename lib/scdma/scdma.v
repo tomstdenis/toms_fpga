@@ -135,8 +135,8 @@ module sc_dma #(
                     job_read_offset <= job_read_offset + (DATA_WIDTH/8);
                 end
                 if (bus_ready) begin
-					bus_valid <= 1'b0;
-					fsm_state <= FSM_ISSUE_WRITE;
+                    bus_valid <= 1'b0;
+                    fsm_state <= FSM_ISSUE_WRITE;
                     if (job_read_offset == job_read_width) begin
                         job_read_offset <= 0;
                         job_read_addr   <= job_read_addr + job_read_pitch;
@@ -144,7 +144,7 @@ module sc_dma #(
                 end
             end
             
-			FSM_ISSUE_WRITE: begin
+            FSM_ISSUE_WRITE: begin
                 if (~bus_valid) begin
                     bus_addr   <= job_write_addr;
                     bus_wdata  <= job_write_constant ? job_constant : bus_rdata;
@@ -157,7 +157,7 @@ module sc_dma #(
                     job_length       <= job_length - (DATA_WIDTH/8);
                 end
                 if (bus_ready) begin
-					bus_valid <= 1'b0;
+                    bus_valid <= 1'b0;
                     fsm_state <= job_write_constant ? FSM_ISSUE_WRITE : FSM_ISSUE_READ;
                     if (job_write_offset == job_write_width) begin
                         job_write_offset <= 0;
