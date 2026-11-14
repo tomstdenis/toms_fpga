@@ -106,13 +106,13 @@ textonly:
         // we're in graphics mode
         // Inside display_apple2_draw, graphics branch:
         for (y = 0; y < max; y++) {
-            uint16_t row_addr = apple2_textmode_addr + ((y & 7) << 7) + (y >> 3) * 40;
+            uint16_t row_addr = apple2_textmode_addr + ((y & 7) << 7) + ((y >> 3) * 40);
             uint8_t shadow[40];
             mem_read_block(SHADOW_TEXT_BUF + (apple2_textmode_addr - row_addr), 40, shadow); // read the shadow buffer here
             for (x = 0; x < 40; x++) {
                 uint8_t raw = cache_read_byte(row_addr + x);
                 
-                if (raw == shadow[x]) {
+                if (0 && raw == shadow[x]) {
                     continue;
                 } else {
                     shadow[x] = raw;

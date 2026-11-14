@@ -21,10 +21,27 @@ void platform_init()
 	// TODO: platform specific init here
 }
 
+#ifdef HOSTPC
+// keyboard fifo
+#include <ncurses.h>
+#include <stdio.h>
+#include <ctype.h>
+
+unsigned int kbd_fifo[1024];
+unsigned kbd_fifo_wptr, kbd_fifo_rptr;
+#endif
+
 void platform_step()
 {
 #ifdef HOSTPC
 	++platform_cycles;
+	// handle keyboard
+    int ch = getch();
+    if (ch != ERR) {
+		if (((kbd_fifo_wptr + 1) & 1023) != (kbd_fifo_rptr & 1023)) {
+			kbd_fifo[kbd_fifo_wptr++ & 1023] = ch;
+		}
+	}
 #endif
 
 #ifdef TRACE

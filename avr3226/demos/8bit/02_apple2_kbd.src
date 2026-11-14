@@ -20,8 +20,9 @@ static uint8_t kbd_latch = 0x00; // Stores (ASCII | 0x80)
 
 // Call this in your main loop once per frame
 void update_host_input() {
-    int ch = getch();
-    if (ch != ERR) {
+	if (!(kbd_latch & 0x80) && (kbd_fifo_rptr&1023) != (kbd_fifo_wptr&1023)) {
+		int ch = kbd_fifo[kbd_fifo_rptr++ & 1023];
+
         if (ch == '\n' || ch == '\r') ch = 0x0D; // CR
         else if (ch == KEY_F(1)) ch = 3; // BREAK 
         else if (ch == KEY_F(2)) ch = 2; // WARM START

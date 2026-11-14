@@ -79,8 +79,8 @@ int main(void)
 	// load firmware
 	mem_write_block(ROM_START, ROM_SIZE, (uint8_t*)rom);
 	#ifdef BOARD_APPLE2
-		// copy cl65 demo to 0800 for size bytes
-		mem_write_block(0x0800, sizeof apple2_hello_bin, (uint8_t*)apple2_hello_bin);
+		// copy cl65 demo to 1000 for size bytes
+		mem_write_block(0x1000, sizeof apple2_hello_bin, (uint8_t*)apple2_hello_bin);
 	#endif	
 #endif
 
