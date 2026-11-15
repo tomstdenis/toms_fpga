@@ -208,7 +208,7 @@ uint16_t display_apple2_save(uint16_t offset);
 #endif
 
 // PLATFORM subsystem
-#define TICKS_PER_FPS 256 // how many platform ticks per display call (a platform tick has multiple cpu ticks...)
+#define TICKS_PER_FPS 1024 // how many platform ticks per display call (a platform tick has multiple cpu ticks...)
 void platform_init();
 void platform_step();
 void platform_load(void);

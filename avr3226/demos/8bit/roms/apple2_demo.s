@@ -51,17 +51,15 @@ main_loop:
 
     pla                  ; Restore accumulator
 
+    inc x_coord
     ldx x_coord
-    inx                  ; Next column
-    stx x_coord
     cpx #40              ; Reached end of 40 columns?
     bne main_loop
 
     ; increment Y
-    ldy y_coord
-    iny 
-    tya
-    cpy #48
+    inc y_coord
+    lda y_coord
+    cmp #48
     bne cont_main
     lda #0
 cont_main:
