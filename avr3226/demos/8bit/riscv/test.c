@@ -27,7 +27,7 @@ static void sgets(char *p)
 {
 	for (;;) {
 		while (!*serial_in_avail);	// poll for serial in, you could do other work here instead of blocking
-		*p = *serial_in;			// reading this is a blocking call but since we already waited it must return immediately
+		*p = *serial_in;			// read from serial
 		if (*p == '\n') {
 			*p = 0;
 			return;
