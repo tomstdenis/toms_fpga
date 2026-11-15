@@ -19,20 +19,20 @@ uint8_t read_apple1_pia(uint16_t addr)
     int ch;
     switch (addr) {
         case 0x10: // KBD (Keyboard Data)
-            ch = getch();
-            if (ch == ERR) return 0;
+	        if ((kbd_fifo_rptr&1023) != (kbd_fifo_wptr&1023)) {
+		        int ch = kbd_fifo[kbd_fifo_rptr++ & 1023];
 
-            // Apple 1 expects CR (\r), ncurses usually returns \n for Enter
-            if (ch == '\n' || ch == '\r') ch = '\r';
+                // Apple 1 expects CR (\r), ncurses usually returns \n for Enter
+                if (ch == '\n' || ch == '\r') ch = '\r';
 
-            // The Apple 1 KBD register returns ASCII with bit 7 high
-            return (uint8_t)(toupper(ch) | 0x80);
+                // The Apple 1 KBD register returns ASCII with bit 7 high
+                return (uint8_t)(toupper(ch) | 0x80);
+            }
+            return 0;        // no key
             
         case 0x11: // KBDCR (Control Register / Status)
-            ch = getch();
-            if (ch != ERR) {
-                ungetch(ch); // Put it back in the ncurses buffer
-                return 0x80; // Bit 7 high = Key pressed
+	        if ((kbd_fifo_rptr&1023) != (kbd_fifo_wptr&1023)) {
+                return 0x80;
             }
             return 0x00;     // No key pressed
     }
