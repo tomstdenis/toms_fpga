@@ -211,6 +211,11 @@ void step_6502(uint16_t steps)
 
 		switch (opcode) {
 			// ADC opcodes
+			case 0x72: // WDC65C02 ADC ($zp)
+				val2 = cache_read_byte(cache_read_word(cache_read_byte(cpu6502.regPC++)));
+				do_adc(val1, val2);
+				COUNT(5);
+				break;
 			case 0x69: // ADC #oper
 				val2 = cache_read_byte(cpu6502.regPC++);
 				do_adc(val1, val2);
@@ -268,6 +273,11 @@ void step_6502(uint16_t steps)
 				break;
 
 			// AND opcodes
+			case 0x32: // WDC65C02 AND ($zp)
+				val2 = cache_read_byte(cache_read_word(cache_read_byte(cpu6502.regPC++)));
+				update_NZ(cpu6502.regA &= val2);
+				COUNT(2);
+				break;
 			case 0x29: // AND #oper
 				update_NZ(cpu6502.regA &= cache_read_byte(cpu6502.regPC++));
 				COUNT(2);
@@ -350,6 +360,44 @@ void step_6502(uint16_t steps)
 				COUNT(7);
 				break;
 
+			// WDC65C02 BBR opcodes
+			case 0x0F:
+			case 0x1F:
+			case 0x2F:
+			case 0x3F:
+			case 0x4F:
+			case 0x5F:
+			case 0x6F:
+			case 0x7F:
+				val2 = cache_read_byte(cache_read_byte(cpu6502.regPC++));
+				addr = cache_read_byte(cpu6502.regPC++);
+				addr = (addr ^ 0x80) - 0x80;
+				// branch if bit (opcode >> 4) is clear
+				if (!(val2 & (1 << (opcode >> 4)))) {
+					cpu6502.regPC += addr;
+				}
+				COUNT(5);
+				break;
+
+			// WDC65C02 BBS opcodes
+			case 0x8F:
+			case 0x9F:
+			case 0xAF:
+			case 0xBF:
+			case 0xCF:
+			case 0xDF:
+			case 0xEF:
+			case 0xFF:
+				val2 = cache_read_byte(cache_read_byte(cpu6502.regPC++));
+				addr = cache_read_byte(cpu6502.regPC++);
+				addr = (addr ^ 0x80) - 0x80;
+				// branch if bit (opcode >> 4) - 8 is set
+				if ((val2 & (1 << ((opcode >> 4) - 8)))) {
+					cpu6502.regPC += addr;
+				}
+				COUNT(5);
+				break;
+
 			case 0x24: // BIT $zp
 				val1 = cache_read_byte(cache_read_byte(cpu6502.regPC++));
 				COUNT(3);
@@ -358,10 +406,31 @@ void step_6502(uint16_t steps)
 				val1 = cache_read_byte(cache_read_word(cpu6502.regPC));
 				cpu6502.regPC += 2;
 				COUNT(4);
+				goto BIT_val;
+			case 0x89: // WDC65C02 BIT #oper
+				val1 = cache_read_byte(cpu6502.regPC++);
+				COUNT(2);
+				goto BIT_val;
+			case 0x3C: // WDC65C02 BIT oper,x (absolute+x)
+				val1 = cache_read_byte(cache_read_word(cpu6502.regPC) + cpu6502.regX);
+				cpu6502.regPC += 2;
+				COUNT(4);
+				goto BIT_val;
+			case 0x34: // WDC65C02 BIT oper,X (ZP+X)
+				val1 = cache_read_byte((cache_read_byte(cpu6502.regPC++) + cpu6502.regX) & 0xFF);
+				COUNT(4);
+				goto BIT_val;
 	BIT_val:
 				cpu6502.regSR &= ~(FLAGS_N | FLAGS_V | FLAGS_Z);
 				cpu6502.regSR |= (cpu6502.regA & val1) ? 0 : FLAGS_Z;
 				cpu6502.regSR |= val1 & (0x80 | 0x40);
+				break;
+
+			case 0x80: // WDC65C02 BRA relative
+				addr = cache_read_byte(cpu6502.regPC++);
+				addr = (addr ^ 0x80) - 0x80;
+				cpu6502.regPC += addr;
+				COUNT(3);
 				break;
 
 			case 0x00: // BRK
@@ -516,6 +585,10 @@ void step_6502(uint16_t steps)
 				break;
 
 			// CMP opcodes
+			case 0xD2: // WDC65C02 CMP (zeropage)
+				update_NZC2((uint16_t)cpu6502.regA - cache_read_byte(cache_read_word(cache_read_byte(cpu6502.regPC++))));
+				COUNT(5);
+				break;
 			case 0xC9: //CMP #oper
 				update_NZC2((uint16_t)cpu6502.regA - cache_read_byte(cpu6502.regPC++));
 				COUNT(2);
@@ -593,6 +666,11 @@ void step_6502(uint16_t steps)
 				break;
 
 			// DEC opcodes
+			case 0x3A: // WDC65C02 DEC A
+				cpu6502.regA -= 1;
+				update_NZ(cpu6502.regA);
+				COUNT(2);
+				break;
 			case 0xC6: //DEC $zp
 				res = cache_read_byte(addr = cache_read_byte(cpu6502.regPC++)) - 1;
 				cache_write_byte(addr, res);
@@ -630,6 +708,10 @@ void step_6502(uint16_t steps)
 				break;
 
 			// EOR opcodes
+			case 0x52: // WDC65C02 EOR ($zp)
+				update_NZ(cpu6502.regA ^= cache_read_byte(cache_read_word(cache_read_byte(cpu6502.regPC++))));
+				COUNT(5);
+				break;
 			case 0x49: // EOR #oper
 				update_NZ(cpu6502.regA ^= cache_read_byte(cpu6502.regPC++));
 				COUNT(2);
@@ -679,6 +761,11 @@ void step_6502(uint16_t steps)
 				break;
 
 			// INC opcodes
+			case 0x1A: // WDC65C02 INC a
+				cpu6502.regA += 1;
+				update_NZ(cpu6502.regA);
+				COUNT(2);
+				break;
 			case 0xE6: //INC $zp
 				res = cache_read_byte(addr = cache_read_byte(cpu6502.regPC++)) + 1;
 				cache_write_byte(addr, res);
@@ -716,6 +803,10 @@ void step_6502(uint16_t steps)
 				break;
 
 			// JMP
+			case 0x7C: // WDC65C02 JMP (abs,X)
+				cpu6502.regPC = cache_read_word(cache_read_word(cpu6502.regPC) + cpu6502.regX);
+				COUNT(6);
+				break;
 			case 0x4C: // JMP $oper
 				cpu6502.regPC = cache_read_word(cpu6502.regPC);
 				COUNT(3);
@@ -741,6 +832,10 @@ void step_6502(uint16_t steps)
 				break;
 
 			// LDA opcodes
+			case 0xB2: // WDC65C02 LDA (zp)
+				update_NZ(cpu6502.regA = cache_read_byte(cache_read_word(cache_read_byte(cpu6502.regPC++))));
+				COUNT(5);
+				break;
 			case 0xA9: //LDA #oper
 				update_NZ(cpu6502.regA = cache_read_byte(cpu6502.regPC++));
 				COUNT(2);
@@ -894,6 +989,10 @@ void step_6502(uint16_t steps)
 				break;
 
 			// ORA
+			case 0x12: // ORA WDC65C02 (zp)
+				update_NZ(cpu6502.regA |= cache_read_byte(cache_read_word(cache_read_byte(cpu6502.regPC++))));
+				COUNT(5);
+				break;
 			case 0x09: // ORA #oper
 				update_NZ(cpu6502.regA |= cache_read_byte(cpu6502.regPC++));
 				COUNT(2);
@@ -950,14 +1049,48 @@ void step_6502(uint16_t steps)
 				cache_write_byte(0x100 + (cpu6502.regSP-- & 0xFF), cpu6502.regSR | FLAGS_B);
 				COUNT(3);
 				break;
+			case 0xDA: // WDC65C02 PHX
+				cache_write_byte(0x100 + (cpu6502.regSP-- & 0xFF), cpu6502.regX);
+				COUNT(3);
+				break;
+			case 0x5A: // WDC65C02 PHY
+				cache_write_byte(0x100 + (cpu6502.regSP-- & 0xFF), cpu6502.regY);
+				COUNT(3);
+				break;
 			case 0x68: // PLA
 				cpu6502.regA = cache_read_byte(0x100 + (++cpu6502.regSP & 0xFF));
 				update_NZ(cpu6502.regA);
 				COUNT(4);
 				break;
+			case 0xFA: // WDC65C02 PLX
+				cpu6502.regX = cache_read_byte(0x100 + (++cpu6502.regSP & 0xFF));
+				update_NZ(cpu6502.regX);
+				COUNT(4);
+				break;
+			case 0x7A: // WDC65C02 PLY
+				cpu6502.regY = cache_read_byte(0x100 + (++cpu6502.regSP & 0xFF));
+				update_NZ(cpu6502.regY);
+				COUNT(4);
+				break;
 			case 0x28: // PLP
 				cpu6502.regSR = cache_read_byte(0x100 + (++cpu6502.regSP & 0xFF)) & ~FLAGS_B;
 				COUNT(4);
+				break;
+
+			// RMB WDC65C02 opcodes
+			case 0x07:
+			case 0x17:
+			case 0x27:
+			case 0x37:
+			case 0x47:
+			case 0x57:
+			case 0x67:
+			case 0x77:
+				addr = cache_read_byte(cpu6502.regPC++);
+				val1 = cache_read_byte(addr);
+				val1 &= ~(1<<(opcode>>4));
+				cache_write_byte(addr, val1);
+				COUNT(5);
 				break;
 
 			// ROL opcodes
@@ -1054,6 +1187,11 @@ void step_6502(uint16_t steps)
 				break;
 
 			// SBC opcodes
+			case 0xF2: // WDC65C02 SBC (zp)
+				val2 = cache_read_byte(cache_read_word(cache_read_byte(cpu6502.regPC++)));
+				do_sbc(val1, val2);
+				COUNT(2);
+				break;
 			case 0xE9: // SBC #oper
 				val2 = cache_read_byte(cpu6502.regPC++);
 				do_sbc(val1, val2);
@@ -1123,7 +1261,27 @@ void step_6502(uint16_t steps)
 				COUNT(2);
 				break;
 
+			// SMB WDC65C02 opcodes
+			case 0x87:
+			case 0x97:
+			case 0xA7:
+			case 0xB7:
+			case 0xC7:
+			case 0xD7:
+			case 0xE7:
+			case 0xF7:
+				addr = cache_read_byte(cpu6502.regPC++);
+				val1 = cache_read_byte(addr);
+				val1 |= (1<<((opcode>>4)-8));
+				cache_write_byte(addr, val1);
+				COUNT(5);
+				break;
+
 			// STA opcodes
+			case 0x92: // WDC65C02 STA (zp)
+				cache_write_byte(cache_read_word(cache_read_byte(cpu6502.regPC++)), cpu6502.regA);
+				COUNT(3);
+				break;
 			case 0x85: //STA $zp
 				cache_write_byte(cache_read_byte(cpu6502.regPC++), cpu6502.regA);
 				COUNT(3);
@@ -1186,6 +1344,24 @@ void step_6502(uint16_t steps)
 				COUNT(4);
 				break;
 
+			// STZ WDC65C02 opcodes
+			case 0x64: // STZ zp
+				cache_write_byte(cache_read_byte(cpu6502.regPC++), 0);
+				COUNT(3);
+				break;
+			case 0x74: // STZ zp,X
+				cache_write_byte((cache_read_byte(cpu6502.regPC++) + cpu6502.regX) & 0xFF, 0);
+				COUNT(4);
+				break;
+			case 0x9C: // STZ abs
+				cache_write_byte(cache_read_word(cpu6502.regPC), 0);
+				COUNT(4);
+				break;
+			case 0x9E: // STZ abs,x
+				cache_write_byte(cache_read_word(cpu6502.regPC) + cpu6502.regX, 0);
+				COUNT(4);
+				break;
+
 			case 0xAA: // TAX
 				update_NZ(cpu6502.regX = cpu6502.regA);
 				COUNT(2);
@@ -1210,6 +1386,41 @@ void step_6502(uint16_t steps)
 				update_NZ(cpu6502.regA = cpu6502.regY);
 				COUNT(2);
 				break;
+
+			// TRB WDC65C02 opcodes
+			case 0x1C: // TRB abs
+				addr = cache_read_word(cpu6502.regPC);
+				cpu6502.regPC += 2;
+				COUNT(6);
+				goto TRB_BIT;
+			case 0x14: // TRB ZP
+				addr = cache_read_byte(cpu6502.regPC++);
+				COUNT(5);
+TRB_BIT:
+				val1 = cache_read_byte(addr);
+				cpu6502.regSR &= ~FLAGS_Z;
+				cpu6502.regSR |= (cpu6502.regA & val1) ? 0 : FLAGS_Z;
+				val1 &= ~cpu6502.regA;
+				cache_write_byte(addr, val1);
+				break;
+
+			// TSB WDC65C02 opcodes
+			case 0x0C: // TSB abs
+				addr = cache_read_word(cpu6502.regPC);
+				cpu6502.regPC += 2;
+				COUNT(6);
+				goto TSB_BIT;
+			case 0x04: // TSB ZP
+				addr = cache_read_byte(cpu6502.regPC++);
+				COUNT(5);
+TSB_BIT:
+				val1 = cache_read_byte(addr);
+				cpu6502.regSR &= ~FLAGS_Z;
+				cpu6502.regSR |= (cpu6502.regA & val1) ? 0 : FLAGS_Z;
+				val1 |= cpu6502.regA;
+				cache_write_byte(addr, val1);
+				break;
+
 		}
 	}
 }
