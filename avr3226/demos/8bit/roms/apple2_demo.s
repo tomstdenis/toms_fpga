@@ -1,5 +1,5 @@
 ; adc_demo.s - 6502 ADC & Clear Decimal Mode Demo
-.setcpu "6502"
+.setcpu "65c02"
 
 .export _start
 
@@ -27,8 +27,8 @@ _start:
 
     lda #0               ; Initialize accumulator / base color
     tax                  ; X will serve as our X-coordinate / index
-    sta x_coord
-    sta y_coord
+    stz x_coord
+    stz y_coord
 
 main_loop:
     clc                  ; Always clear carry before addition if not chaining multi-byte
@@ -68,7 +68,7 @@ cont_main:
     sta y_coord
 
     ldx #0               ; Reset X if you want it to loop continuously
-    jmp main_loop
+    bra main_loop
 
 ; Simple classic 6502 pixel plotter for row 24 ($0580 base address)
 ; Input: A = 4-bit color value (0-15), X = column (0-39)
@@ -100,7 +100,7 @@ draw_even_nibble:
     and #$0F             ; Ensure 4 bits
     ora temp_val
     sta (screen_ptr), y
-    jmp plot_done
+    bra plot_done
 
 draw_odd_nibble:
     ; Odd X: update upper nibble (bits 4-7), preserve lower nibble

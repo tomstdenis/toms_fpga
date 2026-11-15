@@ -1355,10 +1355,12 @@ void step_6502(uint16_t steps)
 				break;
 			case 0x9C: // STZ abs
 				cache_write_byte(cache_read_word(cpu6502.regPC), 0);
+				cpu6502.regPC += 2;
 				COUNT(4);
 				break;
 			case 0x9E: // STZ abs,x
 				cache_write_byte(cache_read_word(cpu6502.regPC) + cpu6502.regX, 0);
+				cpu6502.regPC += 2;
 				COUNT(4);
 				break;
 

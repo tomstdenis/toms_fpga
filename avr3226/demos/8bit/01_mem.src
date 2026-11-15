@@ -228,8 +228,8 @@ void eeprom_write(int cs_pin, uint32_t address, const uint8_t *src, uint16_t len
 }
 
 // pins on an attiny3226
-#define SRAM_CS_PIN   13 // PC3
-#define EEPROM_CS_PIN  0 // PA4
+#define SRAM_CS_PIN      0 // PA4
+#define EEPROM_CS_PIN   13 // PC3
 
 int mem_init(void)
 {
