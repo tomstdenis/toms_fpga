@@ -67,7 +67,7 @@ for I/O the following ports are used
 `define BLOCKS 30
 
 // core clock frequency the PLL is tuned to 
-`define FREQ 135
+`define FREQ 120
 
 // UART fifo depth for both RX and TX
 `define UART_FIFO_DEPTH 8
@@ -128,7 +128,7 @@ module top(input wire clk, input wire s1,
     wire wdt_reset = ~(wdt > 0 && wdt == tick_counter);
 	wire rst_n = rst[3] & ~reset_sw[1] & wdt_reset; // s1 is pulled up by the button so we want to pull reset low when the button is pressed
 	
-	always @(posedge pllclk) begin
+	always_ff @(posedge pllclk) begin
         reset_sw <= {reset_sw[0], s1 };
         rst <= {rst[2:0], 1'b1};
 	end
@@ -139,7 +139,7 @@ module top(input wire clk, input wire s1,
 	reg [3:0] rst2 = 0;
 	wire rst2_n = rst2[3] & ~s1;
 	
-	always @(posedge pll2clk) begin
+	always_ff @(posedge pll2clk) begin
         rst2 <= {rst2[2:0], 1'b1};
 	end
 	
@@ -201,7 +201,7 @@ module top(input wire clk, input wire s1,
     wire main_mem_wr_en = (cf_bus_io_flag == 0 && cf_bus_address[15:0] <= bus_address_main_mem_top && cf_bus_wr_en);
 
     reg [7:0] main_mem[0:61439];
-    always @(posedge pllclk) begin
+    always_ff @(posedge pllclk) begin
         if (main_mem_wr_en) begin
             main_mem[cf_bus_address[15:0]] <= cf_bus_data_in[7:0];
         end else begin
@@ -260,7 +260,7 @@ module top(input wire clk, input wire s1,
     // our 256 symbol 8x8 CP437 font
     reg [7:0] font_rom [0:2047];
 `include "vga/blocks/fontrom.vh"
-    always @(posedge pll2clk) begin
+    always_ff @(posedge pll2clk) begin
         font_dout <= font_rom[font_ad];
     end
 
@@ -278,14 +278,14 @@ module top(input wire clk, input wire s1,
 
     // The 2KB bram for video memory
     reg [7:0] video_mem[0:2047];
-    always @(posedge pllclk) begin
+    always_ff @(posedge pllclk) begin
         if (text_we_a) begin
             video_mem[text_addr_a] <= text_din_a;
         end else begin
             text_dout_a <= video_mem[text_addr_a];
         end
     end
-    always @(posedge pll2clk) begin
+    always_ff @(posedge pll2clk) begin
         text_dout_b <= video_mem[text_addr_b];
     end
 
@@ -325,7 +325,7 @@ module top(input wire clk, input wire s1,
     reg [7:0] rom_data[0:2047];
 `include "cf/mon_p25.hex.mi"
 
-    always @(posedge pllclk) begin
+    always_ff @(posedge pllclk) begin
         boot_rom_dout_a <= rom_data[cf_bus_address[10:0]];
         boot_rom_dout_b <= rom_data[cf_bus_address[10:0] + 1'b1];
     end
@@ -381,7 +381,180 @@ module top(input wire clk, input wire s1,
 
     // bus controller
     always_ff @(posedge pllclk) begin
-        if (!rst_n) begin
+        lrg_mode_1    <= lrg_mode;
+        vga_v_sync_cf <= {vga_v_sync_cf[0], vga_v_sync_1};  // 2-DFF sync the VGA V Sync into the CFLEA clock domain
+        vga_h_sync_cf <= {vga_h_sync_cf[0], vga_h_sync_1};  // same for hsync
+        vga_active_cf <= {vga_active_cf[0], vga_active_1};  // same for vga_active
+
+        // tick counter logic
+        cycle_counter <= cycle_counter + 1'b1;
+        if (cycle_counter == (CYCLES_PER_TICK-1)) begin
+            cycle_counter <= 0;
+            tick_counter  <= tick_counter + 1'b1;
+        end
+
+        if (cf_bus_enable && !cf_bus_ready) begin
+            bus_cycle <= bus_cycle + 1'b1;
+            if (cf_bus_io_flag) begin
+                // handle I/O
+                if (cf_bus_address[7:0] == io_port_uart) begin // UART DATA
+                    if (cf_bus_wr_en) begin // writes
+                        if (bus_cycle == 0) begin
+                            if (!uart_tx_fifo_full) begin
+                                uart_tx_data_in <= cf_bus_data_in[7:0];
+                                uart_tx_start   <= 1'b1;
+                            end else begin
+                                bus_cycle <= bus_cycle;
+                            end
+                        end else if (bus_cycle == 1) begin
+                            cf_bus_ready  <= 1'b1;
+                            uart_tx_start <= 1'b0;
+                        end                            
+                    end else begin // reads
+                        if (bus_cycle == 0) begin
+                            if (uart_rx_ready) begin
+                                uart_rx_read <= 1'b1;
+                            end else begin
+                                // Dave's model returns -1 if there's no char...
+                                cf_bus_ready    <= 1'b1;
+                                cf_bus_data_out <= 16'hFFFF; // note this must be 16 bit since his INC/JZ/DEC test relies on FFFF rolling to 0
+                            end
+                        end else if (bus_cycle == 1) begin
+                            uart_rx_read <= 1'b0;
+                        end else if (bus_cycle == 2) begin
+                            cf_bus_ready    <= 1'b1;
+                            cf_bus_data_out <= { 8'h00, uart_rx_byte };
+                        end
+                    end
+                end else if (cf_bus_address[7:0] <= io_port_gpio3) begin // GPIO0..GPIO3
+                    if (cf_bus_wr_en) begin
+                        gpio_out[(cf_bus_address[7:0] - io_port_gpio0) * 8 +: 8] <= 
+                            (cur_gpio_bits & cf_bus_address[15:8]) | (~cf_bus_address[15:8] & cf_bus_data_in[7:0]);
+                    end else begin
+                        gpio_out[(cf_bus_address[7:0] - io_port_gpio0) * 8 +: 8] <= cur_gpio_bits ^ cf_bus_data_in[15:8];
+                        cf_bus_data_out <= { 8'b0, gpio_in[(cf_bus_address[7:0] - io_port_gpio0) * 8 +: 8] ^ cf_bus_data_in[15:8]};
+                    end
+                    cf_bus_ready    <= 1'b1;
+                end else if (cf_bus_address[7:0] <= io_port_gpio3_oe) begin // GPIO0..GPIO3
+                    if (cf_bus_wr_en) begin
+                        gpio_oe[(cf_bus_address[7:0] - io_port_gpio0_oe) * 8 +: 8] <= cf_bus_data_in[7:0];
+                    end else begin
+                        cf_bus_data_out <= { 8'b0, gpio_oe[(cf_bus_address[7:0] - io_port_gpio0_oe) * 8 +: 8] };
+                    end
+                    cf_bus_ready    <= 1'b1;
+                end else if (cf_bus_address[7:0] == io_port_uart_status) begin // uart status
+                    cf_bus_data_out <= { 8'h00, 5'b0, uart_rx_ready, uart_tx_fifo_empty, uart_tx_fifo_full };
+                    cf_bus_ready    <= 1'b1;
+                end else if (cf_bus_address[7:0] == io_port_timer) begin // timer 1us tick
+                    if (cf_bus_wr_en) begin
+                        tick_counter <= 0;
+                    end
+                    cf_bus_data_out <= tick_counter;
+                    cf_bus_ready    <= 1'b1;
+                end else if (cf_bus_address[7:0] == io_port_video) begin // video flags 
+                    if (cf_bus_wr_en) begin
+                        lrg_mode <= cf_bus_data_in[0];
+                    end
+                    cf_bus_data_out <= {12'b0, vga_active_cf[1], vga_h_sync_cf[1], vga_v_sync_cf[1], lrg_mode};
+                    cf_bus_ready    <= 1'b1;
+                end else if (cf_bus_address[7:0] == io_port_wdt) begin // WDT
+                    if (cf_bus_wr_en) begin
+                        wdt          <= cf_bus_data_in;
+                    end
+                    cf_bus_data_out <= wdt; 
+                    cf_bus_ready    <= 1'b1;
+                end else if (cf_bus_address[7:2] == 6'b111100) begin // SPI ports (0xF0..0xF3)
+                    if (bus_cycle == 0) begin
+                        spi_cnt                                        <= 7;
+                        spi_sr                                         <= cf_bus_data_in[7:0];
+                        spi_timer                                      <= cf_bus_data_in[15:8];
+                        gpio_out[{cf_bus_address[1:0], gpio_spi_sck}]  <= 1'b0;
+                        gpio_out[{cf_bus_address[1:0], gpio_spi_mosi}] <= cf_bus_data_in[7];
+                    end else if (bus_cycle == 1) begin
+                        // do SPI protocol
+                        bus_cycle <= bus_cycle;                         // stay on this bus cycle
+                        spi_timer <= spi_timer - 1'b1;
+
+                        if (spi_timer == 0) begin
+                            spi_timer                                     <= cf_bus_data_in[15:8];
+                            gpio_out[{cf_bus_address[1:0], gpio_spi_sck}] <= ~gpio_out[{cf_bus_address[1:0], gpio_spi_sck}];
+
+                            if (gpio_out[{cf_bus_address[1:0], gpio_spi_sck}] == 1'b1) begin
+                                // last cycle that SCK will be high still
+                                spi_sr                                         <= {spi_sr[6:0], gpio[{cf_bus_address[1:0], gpio_spi_miso}]};
+                                gpio_out[{cf_bus_address[1:0], gpio_spi_mosi}] <= spi_sr[6];
+                                spi_cnt                                        <= spi_cnt - 1'b1;
+                                if (spi_cnt == 0) begin
+                                    cf_bus_data_out                               <= {8'b0, spi_sr[6:0], gpio[{cf_bus_address[1:0], gpio_spi_miso}]};
+                                    cf_bus_ready                                  <= 1'b1;
+                                    gpio_out[{cf_bus_address[1:0], gpio_spi_sck}] <= 1'b0;
+                                end
+                            end
+                        end
+                    end
+                end else begin
+                    // default to just ack the bus
+                    cf_bus_ready <= 1'b1;
+                end
+            end else begin // not I/O access
+                // handle memory (we fold 128K to 64K)
+                if (cf_bus_address[15:0] <= bus_address_main_mem_top) begin
+                    // main mem
+                    if (MAIN_MEM_COMB == 1) begin
+                        cf_bus_ready <= 1;
+                    end else begin
+                        if (cf_bus_wr_en) begin
+                            cf_bus_ready <= 1'b1;
+                        end
+                        if (bus_cycle == 1) begin
+                            cf_bus_ready    <= 1;
+                            cf_bus_data_out <= { cf_bus_burst ? main_mem_dout_b : 8'b00, main_mem_dout_a };
+                        end
+                    end
+                end else if (cf_bus_address[15:0] <= bus_address_rom_mem_top) begin
+                    // rom memory
+                    if (bus_cycle == 1) begin
+                        cf_bus_ready    <= 1;
+                        cf_bus_data_out <= { cf_bus_burst ? boot_rom_dout_b : 8'b00, boot_rom_dout_a };
+                    end
+                end else if (cf_bus_address[15:0] <= bus_address_text_mem_top) begin
+                    // video memory
+                    if (bus_cycle == 0) begin
+                        text_addr_a <= cf_bus_address[10:0];
+                        text_din_a  <= cf_bus_data_in[7:0];
+                        text_we_a   <= cf_bus_wr_en;
+                    end else if (bus_cycle == 1) begin
+                        text_addr_a <= text_addr_a + 1'b1;
+                        text_din_a  <= cf_bus_data_in[15:8];
+                        if (!cf_bus_burst && cf_bus_wr_en) begin
+                            text_we_a <= 1'b0;
+                            cf_bus_ready <= 1'b1;
+                        end
+                    end else if (bus_cycle == 2) begin
+                        text_we_a <= 1'b0;
+                        if (cf_bus_wr_en) begin
+                            cf_bus_ready <= 1'b1;
+                        end else begin
+                            cf_bus_data_out <= { 8'h00, text_dout_a };
+                            if (!cf_bus_burst) begin
+                                cf_bus_ready <= 1'b1;
+                            end
+                        end
+                    end else if (bus_cycle == 3) begin
+                        cf_bus_data_out[15:8] <= text_dout_a;
+                        cf_bus_ready <= 1'b1;
+                    end
+                end else begin
+                    // if we have gaps later...
+                    cf_bus_ready <= 1'b1;
+                end
+            end
+        end else if (!cf_bus_enable && cf_bus_ready) begin
+            cf_bus_ready <= 1'b0;
+            bus_cycle    <= 0;
+        end
+
+        if (~rst_n) begin
             uart_tx_start       <= 0;
             uart_tx_data_in     <= 0;
             uart_rx_read        <= 0;
@@ -396,187 +569,6 @@ module top(input wire clk, input wire s1,
             vga_v_sync_cf       <= 0;
             vga_h_sync_cf       <= 0;
             wdt                 <= 0;
-        end else begin
-            lrg_mode_1    <= lrg_mode;
-            vga_v_sync_cf <= {vga_v_sync_cf[0], vga_v_sync_1};  // 2-DFF sync the VGA V Sync into the CFLEA clock domain
-            vga_h_sync_cf <= {vga_h_sync_cf[0], vga_h_sync_1};  // same for hsync
-            vga_active_cf <= {vga_active_cf[0], vga_active_1};  // same for vga_active
-
-			// tick counter logic
-            if (cycle_counter == (CYCLES_PER_TICK-1)) begin
-				cycle_counter <= 0;
-				tick_counter  <= tick_counter + 1'b1;
-			end else begin
-				cycle_counter <= cycle_counter + 1'b1;
-			end
-
-            if (cf_bus_enable && !cf_bus_ready) begin
-                bus_cycle <= bus_cycle + 1'b1;
-                if (cf_bus_io_flag) begin
-                    // handle I/O
-                    if (cf_bus_address[7:0] == io_port_uart) begin // UART DATA
-                        if (cf_bus_wr_en) begin // writes
-                            if (bus_cycle == 0) begin
-                                if (!uart_tx_fifo_full) begin
-                                    uart_tx_data_in <= cf_bus_data_in[7:0];
-                                    uart_tx_start   <= 1'b1;
-                                end else begin
-                                    bus_cycle <= bus_cycle;
-                                end
-                            end else if (bus_cycle == 1) begin
-                                cf_bus_ready  <= 1'b1;
-                                uart_tx_start <= 1'b0;
-                            end                            
-                        end else begin // reads
-                            if (bus_cycle == 0) begin
-                                if (uart_rx_ready) begin
-                                    uart_rx_read <= 1'b1;
-                                end else begin
-                                    // Dave's model returns -1 if there's no char...
-                                    cf_bus_ready    <= 1'b1;
-                                    cf_bus_data_out <= 16'hFFFF; // note this must be 16 bit since his INC/JZ/DEC test relies on FFFF rolling to 0
-                                end
-                            end else if (bus_cycle == 1) begin
-                                uart_rx_read <= 1'b0;
-                            end else if (bus_cycle == 2) begin
-                                cf_bus_ready    <= 1'b1;
-                                cf_bus_data_out <= { 8'h00, uart_rx_byte };
-                            end
-                        end
-                    end else if (cf_bus_address[7:0] <= io_port_gpio3) begin // GPIO0..GPIO3
-                        if (cf_bus_wr_en) begin
-                            gpio_out[(cf_bus_address[7:0] - io_port_gpio0) * 8 +: 8] <= 
-                                (cur_gpio_bits & cf_bus_address[15:8]) | (~cf_bus_address[15:8] & cf_bus_data_in[7:0]);
-                        end else begin
-                            gpio_out[(cf_bus_address[7:0] - io_port_gpio0) * 8 +: 8] <= cur_gpio_bits ^ cf_bus_data_in[15:8];
-                            cf_bus_data_out <= { 8'b0, gpio_in[(cf_bus_address[7:0] - io_port_gpio0) * 8 +: 8] ^ cf_bus_data_in[15:8]};
-                        end
-                        cf_bus_ready    <= 1'b1;
-                    end else if (cf_bus_address[7:0] <= io_port_gpio3_oe) begin // GPIO0..GPIO3
-                        if (cf_bus_wr_en) begin
-                            gpio_oe[(cf_bus_address[7:0] - io_port_gpio0_oe) * 8 +: 8] <= cf_bus_data_in[7:0];
-                        end else begin
-                            cf_bus_data_out <= { 8'b0, gpio_oe[(cf_bus_address[7:0] - io_port_gpio0_oe) * 8 +: 8] };
-                        end
-                        cf_bus_ready    <= 1'b1;
-                    end else if (cf_bus_address[7:0] == io_port_uart_status) begin // uart status
-                        cf_bus_data_out <= { 8'h00, 5'b0, uart_rx_ready, uart_tx_fifo_empty, uart_tx_fifo_full };
-                        cf_bus_ready    <= 1'b1;
-                    end else if (cf_bus_address[7:0] == io_port_timer) begin // timer 1us tick
-                        if (cf_bus_wr_en) begin
-                            tick_counter <= 0;
-                        end
-                        cf_bus_data_out <= tick_counter;
-                        cf_bus_ready    <= 1'b1;
-                    end else if (cf_bus_address[7:0] == io_port_video) begin // video flags 
-                        if (cf_bus_wr_en) begin
-                            lrg_mode <= cf_bus_data_in[0];
-                        end
-                        cf_bus_data_out <= {12'b0, vga_active_cf[1], vga_h_sync_cf[1], vga_v_sync_cf[1], lrg_mode};
-                        cf_bus_ready    <= 1'b1;
-                    end else if (cf_bus_address[7:0] == io_port_wdt) begin // WDT
-                        if (cf_bus_wr_en) begin
-                            wdt          <= cf_bus_data_in;
-                        end
-                        cf_bus_data_out <= wdt; 
-                        cf_bus_ready    <= 1'b1;
-                    end else if (cf_bus_address[7:2] == 6'b111100) begin // SPI ports (0xF0..0xF3)
-                        if (bus_cycle == 0) begin
-                            spi_cnt                                        <= 7;
-                            spi_sr                                         <= cf_bus_data_in[7:0];
-                            spi_timer                                      <= cf_bus_data_in[15:8];
-                            gpio_out[{cf_bus_address[1:0], gpio_spi_sck}]  <= 1'b0;
-                            gpio_out[{cf_bus_address[1:0], gpio_spi_mosi}] <= cf_bus_data_in[7];
-                        end else if (bus_cycle == 1) begin
-                            // do SPI protocol
-                            bus_cycle <= bus_cycle;                         // stay on this bus cycle
-                            spi_timer <= spi_timer - 1'b1;
-                            if (spi_timer == 0) begin
-                                spi_timer                                     <= cf_bus_data_in[15:8];
-                                gpio_out[{cf_bus_address[1:0], gpio_spi_sck}] <= ~gpio_out[{cf_bus_address[1:0], gpio_spi_sck}];
-                            end
-
-                            if (gpio_out[{cf_bus_address[1:0], gpio_spi_sck}] == 1'b0) begin
-                                // SCK low
-//                                gpio_out[{cf_bus_address[1:0], gpio_spi_mosi] <= spi_sr[7];
-                            end else begin
-                                // SCK high
-                                if (spi_timer == 0) begin
-                                    // last cycle that SCK will be high still
-                                    spi_sr                                         <= {spi_sr[6:0], gpio[{cf_bus_address[1:0], gpio_spi_miso}]};
-                                    gpio_out[{cf_bus_address[1:0], gpio_spi_mosi}] <= spi_sr[6];
-                                    spi_cnt                                        <= spi_cnt - 1'b1;
-                                    if (spi_cnt == 0) begin
-                                        cf_bus_data_out                               <= {8'b0, spi_sr[6:0], gpio[{cf_bus_address[1:0], gpio_spi_miso}]};
-                                        cf_bus_ready                                  <= 1'b1;
-                                        gpio_out[{cf_bus_address[1:0], gpio_spi_sck}] <= 1'b0;
-                                    end
-                                end
-                            end
-                        end
-                    end else begin
-                        // default to just ack the bus
-                        cf_bus_ready <= 1'b1;
-                    end
-                end else begin
-                    // handle memory (we fold 128K to 64K)
-                    if (cf_bus_address[15:0] <= bus_address_main_mem_top) begin
-                        // main mem
-                        if (MAIN_MEM_COMB == 1) begin
-                            cf_bus_ready <= 1;
-                        end else begin
-                            if (bus_cycle == 0) begin
-                                if (cf_bus_wr_en) begin
-                                    cf_bus_ready <= 1'b1;
-                                end
-                            end else if (bus_cycle == 1) begin
-                                cf_bus_ready    <= 1;
-                                cf_bus_data_out <= { cf_bus_burst ? main_mem_dout_b : 8'b00, main_mem_dout_a };
-                            end
-                        end
-                    end else if (cf_bus_address[15:0] <= bus_address_rom_mem_top) begin
-                        // rom memory
-                        if (bus_cycle == 0) begin
-                        end else if (bus_cycle == 1) begin
-                            cf_bus_ready    <= 1;
-                            cf_bus_data_out <= { cf_bus_burst ? boot_rom_dout_b : 8'b00, boot_rom_dout_a };
-                        end
-                    end else if (cf_bus_address[15:0] <= bus_address_text_mem_top) begin
-                        // video memory
-                        if (bus_cycle == 0) begin
-                            text_addr_a <= cf_bus_address[10:0];
-                            text_din_a  <= cf_bus_data_in[7:0];
-                            text_we_a   <= cf_bus_wr_en;
-                        end else if (bus_cycle == 1) begin
-                            text_addr_a <= text_addr_a + 1'b1;
-                            text_din_a  <= cf_bus_data_in[15:8];
-                            if (!cf_bus_burst && cf_bus_wr_en) begin
-                                text_we_a <= 1'b0;
-                                cf_bus_ready <= 1'b1;
-                            end
-                        end else if (bus_cycle == 2) begin
-                            text_we_a <= 1'b0;
-                            if (cf_bus_wr_en) begin
-                                cf_bus_ready <= 1'b1;
-                            end else begin
-                                cf_bus_data_out <= { 8'h00, text_dout_a };
-                                if (!cf_bus_burst) begin
-                                    cf_bus_ready <= 1'b1;
-                                end
-                            end
-                        end else if (bus_cycle == 3) begin
-                            cf_bus_data_out[15:8] <= text_dout_a;
-                            cf_bus_ready <= 1'b1;
-                        end
-                    end else begin
-                        // if we have gaps later...
-                        cf_bus_ready <= 1'b1;
-                    end
-                end
-            end else if (!cf_bus_enable && cf_bus_ready) begin
-                cf_bus_ready <= 1'b0;
-                bus_cycle <= 0;
-            end
         end
     end
 endmodule 

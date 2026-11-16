@@ -10,6 +10,7 @@
 -path /home/tom/nas/toms_fpga/primer25k/demos/cflea/src/cflea_pll/
 -type PLL_ADV
 -file_type vlg
+-ip_version 1.0
 -ssc false
 -rst true
 -rst_pwd false
@@ -35,7 +36,7 @@
 -clkout0_dt_step 0
 -en_clkout1 true
 -clkout1_bypass false
--odiv1_sel 54
+-odiv1_sel 48
 -clkout1_dt_dir 1
 -clkout1_dt_step 0
 -dyn_pe1_sel false
@@ -48,5 +49,5 @@
 -en_clkout5 false
 -en_clkout6 false
 -en_clkfbout false
--mdiv_sel 27
+-mdiv_sel 24
 -mdiv_frac_sel 0
