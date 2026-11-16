@@ -62,11 +62,6 @@ void platform_step()
 	}
 
 	// Step the CPU
-	// Note that if mem_free == 0 the CPU can still "run" provided it's
-	// operating out of cache.  The first time it hits a non-caching region
-	// or needs to fill/evict a line the CPU will stall until the SPI
-	// RAM is freed.  This means you NEED to have an ISR responding to
-	// the HATs release commands
 	cpu_step(32); // run 32 opcodes at a go
 
 #ifdef TRACE

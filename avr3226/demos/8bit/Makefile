@@ -5,7 +5,7 @@ PORT = /dev/ttyUSB0
 
 pcdemo: ../cc65/bin/cl65 /tmp/pcdemo.src.c
 	make -C roms
-	gcc ${CFLAGS} -I. -DHOSTPC -O3 /tmp/pcdemo.src.c -o pcdemo -lncurses
+	gcc ${CFLAGS} -I. -DHOSTPC -Os /tmp/pcdemo.src.c -o pcdemo -lncurses
 
 avrapp: ../cc65/bin/cl65 8bit.ino
 	arduino-cli compile -v ${FQBN} ${BOARD} --build-property build.extra_flags="${BUILDFLAGS}" -e
