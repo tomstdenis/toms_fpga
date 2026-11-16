@@ -167,7 +167,7 @@ module cf_cpu #(
                             bus_enable  <= 1'b1;
                             bus_burst   <= 1'b1;
                             case(cur_opcode[2:0])
-                                0: // #n x0 ii(ii)                            // immediate 8/16 bit
+                                0: // #n x0 ii(ii)                                // immediate 8/16 bit
                                     begin
                                         if (reg_operand_16) begin
                                             bus_address <= {1'b0, reg_PC};
@@ -180,41 +180,41 @@ module cf_cpu #(
                                             fsm_state   <= FSM_EXECUTE_ALU_OPCODE_00_97;
                                         end
                                     end
-                                1: // aaaa x1 dd dd                            // load from data memory        
+                                1: // aaaa x1 dd dd                               // load from data memory        
                                     begin
-                                        bus_address <= {1'b0, reg_PC};        // load address from code memory first
+                                        bus_address <= {1'b0, reg_PC};            // load address from code memory first
                                         reg_PC         <= reg_PC + 16'd2;
                                     end
-                                2: // I x2 I                                // load directly from I
+                                2: // I x2 I                                      // load directly from I
                                     begin
-                                        bus_address <= {1'b1, reg_INDEX};    // load from data memory
-                                        bus_burst   <= reg_operand_16;        // load 8 or 16 bit from [I]
+                                        bus_address <= {1'b1, reg_INDEX};         // load from data memory
+                                        bus_burst   <= reg_operand_16;            // load 8 or 16 bit from [I]
                                     end
-                                3: // n,I x3 oo                                // load from INDEX+nn
+                                3: // n,I x3 oo                                   // load from INDEX+nn
                                     begin
                                         bus_address <= {1'b1, reg_INDEX + {8'b0, cur_opcode2}};
                                         bus_burst   <= reg_operand_16;
                                         fsm_state   <= FSM_FETCH_ALU_OPERAND2_00_97;
                                         reg_PC      <= reg_PC + 1'b1;
                                     end
-                                4: // n,S x4 oo                                // load from SP+nn
+                                4: // n,S x4 oo                                   // load from SP+nn
                                     begin
                                         bus_address <= {1'b1, reg_SP + {8'b0, cur_opcode2}};
                                         bus_burst   <= reg_operand_16;
                                         fsm_state   <= FSM_FETCH_ALU_OPERAND2_00_97;
                                         reg_PC      <= reg_PC + 1'b1;
                                     end
-                                5, 6: // S+ x5 / [S+] x6                    // load from S then increment S
+                                5, 6: // S+ x5 / [S+] x6                          // load from S then increment S
                                     begin
-                                        bus_address <= {1'b1, reg_SP};        // load from data memory
-                                        reg_SP      <= reg_SP + 16'd2;        // increment after
+                                        bus_address <= {1'b1, reg_SP};            // load from data memory
+                                        reg_SP      <= reg_SP + 16'd2;            // increment after
                                     end
-                                7: // [S] x7                                // load from [S]
+                                7: // [S] x7                                      // load from [S]
                                     begin
-                                        bus_address <= {1'b1, reg_SP};        // load from data memory
+                                        bus_address <= {1'b1, reg_SP};            // load from data memory
                                     end
                             endcase
-                        end else if (bus_enable && bus_ready) begin                    // back half of FETCH for 00..97
+                        end else if (bus_enable && bus_ready) begin               // back half of FETCH for 00..97
                             // second half of initial operand fetch.  In some cases we're done
                             // in other cases what we've loaded so far is the address we need
                             // to actually fetch the operand.
@@ -270,7 +270,7 @@ module cf_cpu #(
                             bus_enable  <= 1'b1;
                         end else if (bus_enable && bus_ready) begin
                             bus_enable  <= 1'b0;
-                            reg_operand <= bus_data_out;                    // finally have the operand 
+                            reg_operand <= bus_data_out;                            // finally have the operand 
                             fsm_state   <= FSM_EXECUTE_ALU_OPCODE_00_97;
                         end
                     end
@@ -310,13 +310,13 @@ module cf_cpu #(
                                 end
                             4'h4: // DIV/DIVB
                                 begin
-                                    fsm_state <= fsm_state;            // loop here until division is done
+                                    fsm_state <= fsm_state;                          // loop here until division is done
                                     sd_valid  <= ~sd_ready;
                                     sd_num   <= reg_ACC;
                                     sd_denom <= reg_operand;
                                     if (sd_ready) begin
                                         fsm_state <= FSM_FETCH_OPCODE;
-                                        reg_ACC   <= sd_quotient;                        // ACC gets quotient and we put remainder in ALT location
+                                        reg_ACC   <= sd_quotient;                   // ACC gets quotient and we put remainder in ALT location
                                         reg_alt   <= sd_remainder;
                                     end
                                 end
@@ -398,62 +398,62 @@ module cf_cpu #(
 
                 // LEAI, ST, STB, and STI opcodes
                 // Like 00..9F we have to resolve the operand address if any first
-                FSM_FETCH_ALU_OPERAND_98_B7:                                // handle ST (store) operand fetching
+                FSM_FETCH_ALU_OPERAND_98_B7:                                      // handle ST (store) operand fetching
                     begin
                         // fetch the destination to store to
-                        if (!bus_enable) begin                // fetch the destination operand
+                        if (!bus_enable) begin                                    // fetch the destination operand
                             bus_enable  <= 1'b1;
                             bus_wr_en   <= 1'b0;
                             bus_burst   <= 1'b1;
                             bus_data_in <= (cur_opcode[7:4] == 4'hA) ? reg_ACC : reg_INDEX; // ST/STB or STI
                             case(cur_opcode[2:0])
-                                1: // aaaa x1 dd dd                            // load from data memory        
+                                1: // aaaa x1 dd dd                               // load from data memory        
                                     begin
-                                        bus_address <= {1'b0, reg_PC};        // load address from code memory first
+                                        bus_address <= {1'b0, reg_PC};            // load address from code memory first
                                         reg_PC         <= reg_PC + 16'd2;
                                     end
-                                2: // I x2 I                                // load directly from I
+                                2: // I x2 I                                      // load directly from I
                                     begin
                                         bus_enable  <= 1'b0;
                                         bus_address <= {1'b0, reg_INDEX};
                                         fsm_state   <= FSM_FETCH_ALU_OPERAND_98_B7_STORE;
-                                        bus_burst   <= reg_operand_16;                                    // are we storing 16 or 8 bits
+                                        bus_burst   <= reg_operand_16;            // are we storing 16 or 8 bits
                                     end
-                                3: // n,I x3 oo                                // load from INDEX+nn
+                                3: // n,I x3 oo                                   // load from INDEX+nn
                                     begin
                                         bus_enable  <= 1'b0;
                                         fsm_state   <= FSM_FETCH_ALU_OPERAND_98_B7_STORE;
                                         bus_address <= {1'b0, reg_INDEX + cur_opcode2};
                                         reg_PC         <= reg_PC + 1'b1;
-                                        bus_burst   <= reg_operand_16;                                    // are we storing 16 or 8 bits
+                                        bus_burst   <= reg_operand_16;            // are we storing 16 or 8 bits
                                     end
-                                4: // n,S x4 oo                                // load from SP+nn
+                                4: // n,S x4 oo                                   // load from SP+nn
                                     begin
                                         bus_enable  <= 1'b0;
                                         fsm_state   <= FSM_FETCH_ALU_OPERAND_98_B7_STORE;
                                         bus_address <= {1'b0, reg_SP + cur_opcode2};
                                         reg_PC         <= reg_PC + 1'b1;
-                                        bus_burst   <= reg_operand_16;                                    // are we storing 16 or 8 bits
+                                        bus_burst   <= reg_operand_16;            // are we storing 16 or 8 bits
                                     end
-                                6: // [S+] x6                                // load from [S] then increment S
+                                6: // [S+] x6                                     // load from [S] then increment S
                                     begin
-                                        bus_address <= {1'b1, reg_SP};        // load from data memory
-                                        if (cur_opcode[7:4] != 4'h9) begin  // don't move SP for LEAI?
+                                        bus_address <= {1'b1, reg_SP};            // load from data memory
+                                        if (cur_opcode[7:4] != 4'h9) begin        // don't move SP for LEAI?
                                             reg_SP <= reg_SP + 16'd2;
                                         end
                                     end
-                                7: // [S] x7                                // load from [S]
+                                7: // [S] x7                                      // load from [S]
                                     begin
-                                        bus_address <= {1'b1, reg_SP};        // load from data memory
+                                        bus_address <= {1'b1, reg_SP};            // load from data memory
                                     end
                                 default: // NOTE: lockup
                                     begin end
                             endcase
-                        end else if (bus_enable && bus_ready) begin                    // back half of store operand fetching
+                        end else if (bus_enable && bus_ready) begin               // back half of store operand fetching
                             // we've loaded the address from memory 
                             bus_enable  <= 1'b0;
                             fsm_state   <= FSM_FETCH_ALU_OPERAND_98_B7_STORE;
-                            bus_burst   <= reg_operand_16;                                    // are we storing 16 or 8 bits
+                            bus_burst   <= reg_operand_16;                        // are we storing 16 or 8 bits
                             bus_address <= {1'b1, bus_data_out};
                         end
                     end
@@ -465,7 +465,7 @@ module cf_cpu #(
                             if (cur_opcode[7:4] == 4'h9) begin // LEAI
                                 reg_INDEX <= bus_address[15:0];
                                 fsm_state <= FSM_FETCH_OPCODE;
-                            end else begin                        // ST/STB/STI
+                            end else begin                                        // ST/STB/STI
                                 bus_wr_en  <= 1'b1;
                                 bus_enable <= 1'b1;
                             end
@@ -571,7 +571,7 @@ module cf_cpu #(
                                     end
                                 default: begin end
                             endcase
-                        end else if (bus_enable && bus_ready) begin                            // back half of jumps
+                        end else if (bus_enable && bus_ready) begin               // back half of jumps
                             bus_enable <= 1'b0;
                             fsm_state  <= FSM_FETCH_OPCODE;
                             case(cur_opcode[3:0])
@@ -593,7 +593,7 @@ module cf_cpu #(
                                     end
                                 4'h8: // CALL aaaa
                                     begin
-                                        fsm_state <= FSM_OPCODE_D8_1;            // jump to back half of CALL where we do the bus transaction
+                                        fsm_state <= FSM_OPCODE_D8_1;             // jump to back half of CALL where we do the bus transaction
                                         // push PC onto stack
                                         bus_address <= {1'b1, reg_SP - 16'd2};
                                         bus_data_in <= reg_PC;
