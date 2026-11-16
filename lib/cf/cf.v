@@ -15,15 +15,15 @@ module cf_cpu #(
     input wire rst_n,
     
     // bus
-    output reg [16:0] bus_address,        // 0..FFFF CODE, 10000..1FFFF DATA (can be merged to form a 64K space)
+    output reg [16:0] bus_address,       // 0..FFFF CODE, 10000..1FFFF DATA (can be merged to form a 64K space)
     output reg bus_wr_en,                // write enable
-    output reg bus_io_flag,                // I/O bus activity (e.g. inp/outp)
+    output reg bus_io_flag,              // I/O bus activity (e.g. inp/outp)
     output reg bus_burst,                // high == 16 bit transfer
-    output reg [15:0] bus_data_in,        // input
-    output reg bus_enable,                // tell the bus we're good to go
+    output reg [15:0] bus_data_in,       // input
+    output reg bus_enable,               // tell the bus we're good to go
     
     input wire bus_ready,                // bus tells us it's ready
-    input wire [15:0] bus_data_out        // output
+    input wire [15:0] bus_data_out       // output
 );
 
     // ISA state
@@ -32,15 +32,15 @@ module cf_cpu #(
     reg [15:0] reg_R[0:1];
     reg [15:0] reg_SP;
     reg [15:0] reg_PC;
-    reg [7:0]  reg_flags;                  // signed{LT, GT}, unsigned{LT, GT}, EQ
+    reg [7:0]  reg_flags;                // signed{LT, GT}, unsigned{LT, GT}, EQ
     reg [15:0] reg_alt;
-    reg [7:0]  cur_opcode;                // opcode byte
+    reg [7:0]  cur_opcode;               // opcode byte
     reg [7:0]  cur_opcode2;
-    reg [15:0] reg_operand;                // the operand
-    reg        reg_operand_16;            // is it a 16-bit operand?
+    reg [15:0] reg_operand;              // the operand
+    reg        reg_operand_16;           // is it a 16-bit operand?
     reg [15:0] switch_table_addr;        // current address of switch table
-    reg [15:0] switch_addr;                // current switch address (to pair with value)
-    reg [15:0] cycle_count;             // cycle count can be read+reset with opcode 0xEE
+    reg [15:0] switch_addr;              // current switch address (to pair with value)
+    reg [15:0] cycle_count;              // cycle count can be read+reset with opcode 0xEE
     
     localparam
         FLAG_SLT = 0,
@@ -54,23 +54,23 @@ module cf_cpu #(
 
     localparam
         FSM_FETCH_OPCODE                  = 0,
-        FSM_FETCH_ALU_OPERAND_00_97       = 1,        // handle opcodes upto 0x97 (but also include SHR/SHL)
+        FSM_FETCH_ALU_OPERAND_00_97       = 1,       // handle opcodes upto 0x97 (but also include SHR/SHL)
         FSM_FETCH_ALU_OPERAND2_00_97      = 2,
         FSM_EXECUTE_ALU_OPCODE_00_97      = 3,
 
-        FSM_FETCH_ALU_OPERAND_98_B7       = 4,        // store
-        FSM_FETCH_ALU_OPERAND_98_B7_STORE = 5,      // back half of store
+        FSM_FETCH_ALU_OPERAND_98_B7       = 4,       // store
+        FSM_FETCH_ALU_OPERAND_98_B7_STORE = 5,       // back half of store
         
-        FSM_EXECUTE_OPCODE_C8_CF          = 6,        // directly execute C8...CF
+        FSM_EXECUTE_OPCODE_C8_CF          = 6,       // directly execute C8...CF
 
-        FSM_EXECUTE_OPERAND_D0_D9         = 7,        // directly execute or prepare D0..D9
+        FSM_EXECUTE_OPERAND_D0_D9         = 7,       // directly execute or prepare D0..D9
         FSM_OPCODE_D8_1                   = 8,
 
-        FSM_EXECUTE_OPERAND_DA_DF         = 9,        // directly execute or prepare DA..DF
+        FSM_EXECUTE_OPERAND_DA_DF         = 9,       // directly execute or prepare DA..DF
 
-        FSM_EXECUTE_OPERAND_E0_FF         = 10,        // directly prepare or execute E0..EC
+        FSM_EXECUTE_OPERAND_E0_FF         = 10,      // directly prepare or execute E0..EC
 
-        FSM_SWITCH_LOAD_ADDR              = 11,        // load current 
+        FSM_SWITCH_LOAD_ADDR              = 11,      // load current 
         FSM_SWITCH_LOAD_VALUE             = 12;
 
     // used to detect when we're starting a new opcode

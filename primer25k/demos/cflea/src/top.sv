@@ -194,31 +194,25 @@ module top(input wire clk, input wire s1,
 
 	// ### main memory ###  we use a dual port 8-bit memory so we can do
 	// 8 or 16 bit operations in the same amount of time
-	logic [7:0] main_mem_dout_a;
-	logic [7:0] main_mem_dout_b;
+	reg [7:0] main_mem_dout_a;
+	reg [7:0] main_mem_dout_b;
 
     // detect writes to main memory
     wire main_mem_wr_en = (cf_bus_io_flag == 0 && cf_bus_address[15:0] <= bus_address_main_mem_top && cf_bus_wr_en);
 
-    cflea_main_mem cflea_mem(
-        .douta(main_mem_dout_a), //output [7:0] douta
-        .clka(pllclk), //input clka
-        .ocea(1'b1), //input ocea
-        .cea(1'b1), //input cea
-        .reseta(~rst_n), //input reseta
-        .wrea(main_mem_wr_en), //input wrea
-        .ada(cf_bus_address[15:0]), //input [15:0] ada
-        .dina(cf_bus_data_in[7:0]), //input [7:0] dina
-
-        .doutb(main_mem_dout_b), //output [7:0] doutb
-        .clkb(pllclk), //input clkb
-        .oceb(1'b1), //input oceb
-        .ceb(1'b1), //input ceb
-        .resetb(~rst_n), //input resetb
-        .wreb(cf_bus_burst && main_mem_wr_en), //input wreb
-        .adb(cf_bus_address[15:0] + 1'b1), //input [15:0] adb
-        .dinb(cf_bus_data_in[15:8]) //input [7:0] dinb
-    );
+    reg [7:0] main_mem[0:61439];
+    always @(posedge pllclk) begin
+        if (main_mem_wr_en) begin
+            main_mem[cf_bus_address[15:0]] <= cf_bus_data_in[7:0];
+        end else begin
+            main_mem_dout_a <= main_mem[cf_bus_address[15:0]];
+        end
+        if (cf_bus_burst && main_mem_wr_en) begin
+            main_mem[cf_bus_address[15:0] + 1'b1] <= cf_bus_data_in[15:8];
+        end else begin
+            main_mem_dout_b <= main_mem[cf_bus_address[15:0] + 1'b1];
+        end
+    end
 
     // bit widths are for 640x480 VGA
 	logic [10:0] vga_x;                     // VGA X position
@@ -259,54 +253,41 @@ module top(input wire clk, input wire s1,
     // vga_y_p1 accounts for the fact we need the value of y the next cycle to account
     // for the fact the font rom is synchronous.
     wire [10:0] vga_y_p1 = (vga_y + (vga_x == 799 ? 1'b1 : 1'b0));
-    wire [7:0] font_dout;                           // output of rom
+    reg [7:0] font_dout;                           // output of rom
     wire [10:0] font_ad = {text_symbol, vga_y_p1[3:1]};     // address into the rom, it's 11 bits of which the top 8 are the symbol and bottom 3 are the row
     assign text_out = font_dout[7 - vga_x[2:0]];    // bit of output indexed from the ROM output
 
     // our 256 symbol 8x8 CP437 font
-    text_font_rom madamme_font(
-        .dout(font_dout), //output [7:0] dout
-        .clk(pll2clk), //input clk
-        .oce(1'b1), //input oce
-        .ce(1'b1), //input ce
-        .reset(~rst2_n), //input reset
-        .wre(1'b0), //input wre
-        .ad(font_ad), //input [10:0] ad
-        .din(8'b0) //input [7:0] din
-    );
+    reg [7:0] font_rom [0:2047];
+`include "vga/blocks/fontrom.vh"
+    always @(posedge pll2clk) begin
+        font_dout <= font_rom[font_ad];
+    end
 
     // video memory ports
-	logic [10:0] text_addr_a;                   // CPU bound port A allows SW to read/write from video memory
-	logic [7:0] text_din_a;
-	logic text_we_a;
-	logic [7:0] text_dout_a;
+	reg [10:0] text_addr_a;                   // CPU bound port A allows SW to read/write from video memory
+	reg [7:0] text_din_a;
+	reg text_we_a;
+	reg [7:0] text_dout_a;
 
-	logic [10:0] text_addr_b;                   // VGA bound port B allows the video to access video ram
-	logic [7:0] text_dout_b;
+	reg [10:0] text_addr_b;                   // VGA bound port B allows the video to access video ram
+	reg [7:0] text_dout_b;
 	
 	logic lrg_mode, lrg_mode_1;                             // 0 == 80x25, 1 == 48x40 LRG
     logic [1:0] lrg_mode_pll2;                  // 2-FF chain to bring signal into VGA clock domain
 
     // The 2KB bram for video memory
-    video_mem reliving_my_childhood (
-        .ada(text_addr_a), //input [10:0] ada
-        .cea(1'b1), //input cea
-        .clka(pllclk), //input clka
-        .dina(text_din_a), //input [7:0] dina
-        .douta(text_dout_a), //output [7:0] douta
-        .ocea(1'b1), //input ocea
-        .reseta(~rst_n), //input reseta
-        .wrea(text_we_a), //input wrea
-
-        .adb(text_addr_b), //input [10:0] adb
-        .ceb(1'b1), //input ceb
-        .clkb(pll2clk), //input clkb
-        .dinb(8'b0), //input [7:0] dinb
-        .doutb(text_dout_b), //output [7:0] doutb
-        .oceb(1'b1), //input oceb
-        .resetb(~rst2_n), //input resetb
-        .wreb(1'b0) //input wreb
-    );
+    reg [7:0] video_mem[0:2047];
+    always @(posedge pllclk) begin
+        if (text_we_a) begin
+            video_mem[text_addr_a] <= text_din_a;
+        end else begin
+            text_dout_a <= video_mem[text_addr_a];
+        end
+    end
+    always @(posedge pll2clk) begin
+        text_dout_b <= video_mem[text_addr_b];
+    end
 
 	// ### VGA text mode driver ###, defaults to 80x25 using an 8x8 font
 	// notice we're scaling the font by 2 so we change the height to 16 here
@@ -339,27 +320,15 @@ module top(input wire clk, input wire s1,
     // ### boot rom
 
     // This is wire up the CF bus directly so we don't need an extra bus cycle to latch address
-    wire [7:0] boot_rom_dout_a;
-    wire [7:0] boot_rom_dout_b;
+    reg [7:0] boot_rom_dout_a;
+    reg [7:0] boot_rom_dout_b;
+    reg [7:0] rom_data[0:2047];
+`include "cf/mon_p25.hex.mi"
 
-    boot_rom mr_bootup(
-        .douta(boot_rom_dout_a), //output [7:0] douta
-        .doutb(boot_rom_dout_b), //output [7:0] doutb
-        .clka(pllclk), //input clka
-        .ocea(1'b1), //input ocea
-        .cea(1'b1), //input cea
-        .reseta(~rst_n), //input reseta
-        .wrea(1'b0), //input wrea
-        .clkb(pllclk), //input clkb
-        .oceb(1'b1), //input oceb
-        .ceb(1'b1), //input ceb
-        .resetb(~rst_n), //input resetb
-        .wreb(1'b0), //input wreb
-        .ada(cf_bus_address[10:0]), //input [10:0] ada
-        .dina(8'b0), //input [7:0] dina
-        .adb(cf_bus_address[10:0] + 1'b1), //input [10:0] adb
-        .dinb(8'b0) //input [7:0] dinb
-    );
+    always @(posedge pllclk) begin
+        boot_rom_dout_a <= rom_data[cf_bus_address[10:0]];
+        boot_rom_dout_b <= rom_data[cf_bus_address[10:0] + 1'b1];
+    end
 
     // ### CFLEA core
     wire [16:0] cf_bus_address;
@@ -611,3 +580,11 @@ module top(input wire clk, input wire s1,
         end
     end
 endmodule 
+
+`include "comms/uart/rx_uart.v"
+`include "comms/uart/tx_uart.v"
+`include "comms/uart/uart.v"
+`include "cf/cf.v"
+`include "math/serial_divide.v"
+`include "vga/blocks/vga_text_driver.v"
+`include "vga/blocks/vga_timing.v"

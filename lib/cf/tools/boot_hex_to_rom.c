@@ -47,14 +47,11 @@ int main(int argc, char **argv)
 	if (argc == 1) {
 		// output hexfile
 		#define ROMSIZE 2048
-		printf(
-		"#File_format=Hex\n"
-		"#Address_depth=%d\n"
-		"#Data_width=8\n", ROMSIZE);
-		
+		printf("initial begin\n");		
 		for (x = 0; x < ROMSIZE; x++) {
-			printf("%02x\n", mem[(60 * 1024) + x]);
+			printf("\trom_data[%d] = 8'h%02x;\n", x, mem[(60 * 1024) + x]);
 		}
+		printf("end\n");
 	} else {
 		for (x = 0; x < 65536; x++) {
 			printf("%02x\n", mem[x]);
