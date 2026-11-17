@@ -12,6 +12,8 @@ Me boards, y'arr matey:
    - **pmod_psram x2**: Like the pmod_psram but it supports two ICs using two CS pins.  Tested with a pair of ESP PSRAMH 64Mbit chips at 80MHz SCK.
    - **pmod_vga**: A RGB222 single PMOD VGA adapter using a buffer driver and simple resistor ladder to create a 64-colour palette.  (Tested and works as spec'ed)
    - **primer_hat**: Like the **console_hat** but for the Sipeed Tang Primer25K FPGA.  Breaks out four dual-PMODs and one AUX (4 GPIO) port.
+   - **tiny3226**: A AVR tiny-2 3226 based MCU board I designed for my 8-bit emulator project but it's not bad for other things given that it has a USB header + CH340, then pads for two optional SPI memories, an XTAL OSC, etc.  Also includes a blank template gerber for making hats. (see BOM.TXT for parts)
+   - **avr_updi**: A CH340C powered UPDI programmer for AVR Tiny-x series microcontrollers.
    
 In each directory you'll find
 

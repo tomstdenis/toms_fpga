@@ -1,0 +1,18 @@
+5, 10K 1206 RES 1%  (These are optional if you're not using onboard SPI and/or the lvtx pin)
+3, 100nF 1206 X7R
+1, 22uF 1206 X5R
+1, UJ20-C-H-G-SMT-1-P16-TR USB header
+1, SG7050CCN 20.000000M-HJGA0 20MHz XTAL OSC (Optional but highly recommended, that pin isn't broken out so it's lost anyways)
+1, CH340C SOIC USB to Serial  (the Serial0 TX/RX are not broken out so if you don't use this getting at serial might be tricky)
+1, ATTINY3226-SFR MCU
+
+Optionally, if you want SPI memories...
+
+1Mbit SPI SRAM: 23LC1024-I/SN
+1Mbit SPI EEPROM: 25CSM01-I/SN
+
+You can mix/match these.  Sadly larger SRAM/EEPROMS seem to be <= 3.6V only.
+
+The "lvTX" pin is meant for communicating witha 3v3 UART receivers.  The TX/RX pins for Serial1 are broken out as the SPI are
+moved to the alternate locations.  You can't use SPI in the default location because the SCK pin is mapped to the XTAL OSC pad.
+If you're not using lvTX you can skip those three 10K resistors.
