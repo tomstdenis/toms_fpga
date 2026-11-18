@@ -121,7 +121,7 @@ enum mem_pages_t {
 
 void flash_init(void);
 void flash_erase_sector(uint32_t addr);
-void flash_program_page(uint32_t addr, uint8_t *src);
+void flash_program_page(uint32_t addr, uint8_t *src, uint16_t len);
 void flash_read_block(uint32_t addr, uint8_t *dst, uint16_t len);
 void flash_stream_to_sram(uint32_t flash_addr, uint32_t mem_addr, uint32_t len);
 

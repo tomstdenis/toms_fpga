@@ -85,7 +85,7 @@ textonly:
                         attron(A_REVERSE);
                     }
 
-                    // 2. THE FIX: Apple II internal mapping to ASCII
+                    // 2. Apple II internal mapping to ASCII
                     // Apple II stores 'A'-'Z' at 0x01-0x1A (for inverse)
                     // and 0xC1-0xDA (for normal). ASCII wants them at 0x41.
                     if (visual < 0x20) {

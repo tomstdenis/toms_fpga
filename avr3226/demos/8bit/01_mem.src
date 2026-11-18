@@ -296,8 +296,8 @@ void flash_erase_sector(uint32_t addr)
 	// eeprom doesn't need erase 
 }
 
-// program 256 bytes, addr[7:0] should be zero
-void flash_program_page(uint32_t addr, uint8_t *src)
+// program upto page len of bytes ... (256 bytes in my case), addr[7:0] should be zero
+void flash_program_page(uint32_t addr, uint8_t *src, uint16_t len)
 {
 	uint16_t x;
 	
@@ -306,7 +306,7 @@ void flash_program_page(uint32_t addr, uint8_t *src)
 		return;
 	}
 	
-	eeprom_write(EEPROM_CS_PIN, addr, src, 256);
+	eeprom_write(EEPROM_CS_PIN, addr, src, len);
 }
 
 void flash_read_block(uint32_t addr, uint8_t *dst, uint16_t len)

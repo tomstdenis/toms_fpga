@@ -47,7 +47,7 @@ void flash_erase_sector(uint32_t addr)
 	fclose(f);
 }
 
-void flash_program_page(uint32_t addr, uint8_t *src)
+void flash_program_page(uint32_t addr, uint8_t *src, uint16_t len)
 {
 	FILE *f;
 	if (addr & 0xFF) {
@@ -55,7 +55,7 @@ void flash_program_page(uint32_t addr, uint8_t *src)
 	}
 	f = fopen("emuflash.bin", "r+");
 	fseek(f, addr, SEEK_SET);
-	fwrite(src, 1, 256, f);
+	fwrite(src, 1, len, f);
 	fclose(f);
 }
 
