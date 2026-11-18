@@ -119,7 +119,7 @@ unsigned sd_spi_transfer(unsigned out)
 #ifdef SPI_ACCEL
 	asm {
 		LDB 2,S					* load out
-		OR #$1F00               * set SPI timer divider to 2 * (3 + 1)
+		OR #$0700               * set SPI timer divider to 2 * (7 + 1)
 		OUT $F0					* use SPI GPIO0
 		RET						* OUTing to this port puts the return value in the ACC
 	}

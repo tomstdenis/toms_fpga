@@ -437,6 +437,8 @@ uint16_t fat16_fread(struct fat16_volinfo *fv, uint8_t *dst, uint16_t len)
 			n = len;
 		}
 		
+		// TODO: this limits the file to 32MB (65536 * 512) we should instead just cache the current cluster
+		// number.  But practically for CFLEA this is fine
 		// how many clusters in is fv->f_pos? (divided filepos by the # of bytes in a cluster or shift by lg2_bpc)
 		ncluster = (fv->f_pos[0] >> fv->lg2_bpc) | (fv->f_pos[1] << fv->lg2_bpc2);
 

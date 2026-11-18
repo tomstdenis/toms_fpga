@@ -281,7 +281,7 @@ initial begin
 	rom_data[279] = 8'h02;
 	rom_data[280] = 8'h60;
 	rom_data[281] = 8'h00;
-	rom_data[282] = 8'h1f;
+	rom_data[282] = 8'h07;
 	rom_data[283] = 8'hea;
 	rom_data[284] = 8'hf0;
 	rom_data[285] = 8'hd9;
