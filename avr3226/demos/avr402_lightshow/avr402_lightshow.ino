@@ -1,0 +1,206 @@
+/*
+
+AVR tiny402 based lightshow.  Uses a SPI EEPROM to bang out a preformatted bit stream where the MISO
+pin is also tied to a WS2182b string.  The TX pin is being used for CS so we turn on the transmitted as
+required.
+
+This uses a 9600 baud serial connection (ultimately an HC-12).
+
+Each "frame" can be up to 1024 bytes which includes 2 bytes of trailer and 9 bytes per LED which is preformatted
+into HLL and HHL bit patterns by the PC.  
+
+*/
+
+#include <avr/io.h>
+
+#define BAUDRATE 9600        // HC-12 default baud rate
+
+void usart_rx_only_init(void) {
+    // BAUD = (64 * F_CPU) / (16 * baud_rate) = (4 * F_CPU) / baud_rate
+    USART0.BAUD = (uint16_t)((4.0 * F_CPU) / BAUDRATE);
+
+    // - Enable Receiver ONLY: Set RXEN bit, leave TXEN bit cleared.
+    // - Frame format: 8 data bits, no parity, 1 stop bit (default 8N1).
+    USART0.CTRLB = USART_RXEN_bm; 
+}
+
+uint8_t usart_read_available(void) {
+    return !(USART0.STATUS & USART_RXCIF_bm);
+}
+
+uint8_t usart_read_byte(void) {
+    // Wait until data is received in the buffer
+    while (!(USART0.STATUS & USART_RXCIF_bm));
+    
+    // Reading USART0.RXDATAL automatically clears the flag
+    return USART0.RXDATAL; 
+}
+
+void usart_tx_control(uint8_t enable) {
+    if (enable) {
+        USART0.CTRLB |= USART_TXEN_bm;  // Enable transmitter
+    } else {
+        USART0.CTRLB &= ~USART_TXEN_bm; // Disable transmitter
+    }
+}
+
+void usart_send_byte(uint8_t data) {
+    // Wait until DREIF (Data Register Empty Flag) is set
+    while (!(USART0.STATUS & USART_DREIF_bm));
+    
+    // Write data to transmit low data register
+    USART0.TXDATAL = data;
+}
+
+uint8_t spi_transfer_byte(uint8_t tx_data) {
+    SPI0.DATA = tx_data;                  // Writing to DATA triggers the transfer
+    while (!(SPI0.INTFLAGS & SPI_IF_bm)); // Poll the Interrupt Flag for completion
+    return SPI0.DATA;                     // Reading DATA returns the received MISO byte and clears flags
+}
+
+// EEPROM CS enable/disabled
+void eeprom_select(void) {
+    PORTA.OUTCLR = PIN6_bm; // Drive CS low
+}
+
+void eeprom_deselect(void) {
+    PORTA.OUTSET = PIN6_bm; // Drive CS high
+}
+
+// 23CSM01 EEPROM
+// Wait for Write-in-progress
+void eeprom_wait_wip()
+{
+  // wait while writing
+  uint8_t status;
+  do {
+    eeprom_select();
+    spi_transfer_byte(0x05);
+    status = spi_transfer_byte(0x00); // RDSR read status reg
+    eeprom_deselect();
+  } while (status & 1);
+}
+
+// Note: You cannot cross page boundaries on my 23CSM01 it's 256 byte pages but on
+// other EEPROMs it could be smaller (64, 128 bytes, etc...)
+void eeprom_write(uint32_t addr, const uint8_t *src, uint16_t len)
+{
+  // make sure there isn't a write in progress
+  eeprom_wait_wip();
+
+  // enable write latch
+  eeprom_select();
+  spi_transfer_byte(0x06);
+  eeprom_deselect();
+
+  // write buffer to EEPROM buffer (SRAM write and EEPROM write are the same command one you enable the write latch)
+  eeprom_select();
+  spi_transfer_byte(0x02);
+  spi_transfer_byte((addr>>16)&0xFF);
+  spi_transfer_byte((addr>>8)&0xFF);
+  spi_transfer_byte((addr)&0xFF);
+  while (len--) {
+    spi_transfer_byte(*src++);
+  }
+  eeprom_deselect();
+
+  // wait for EEPROM to commit buffer to NV memory
+  eeprom_wait_wip();
+}
+
+// this is meant to clock the RGB data and then read the framing bytes at the end
+uint16_t spi_burst_and_read16(uint32_t addr, uint16_t total_transfers) {
+    // select chip
+    eeprom_select();
+
+    // write READ command and address
+    spi_transfer_byte(0x03);
+    spi_transfer_byte((addr>>16)&0xFF);
+    spi_transfer_byte((addr>>8)&0xFF);
+    spi_transfer_byte((addr)&0xFF);
+
+    // Kick off the first byte
+    SPI0.DATA = 0x00;
+    total_transfers--;
+
+    // Stream the remaining burst bytes back-to-back with zero gaps
+    while (total_transfers > 0) {
+        while (!(SPI0.INTFLAGS & SPI_DREIF_bm)); // Wait for holding register empty
+        SPI0.DATA = 0x00;
+        total_transfers--;
+    }
+
+    // Wait for the final burst byte to finish shifting out completely
+    while (!(SPI0.INTFLAGS & SPI_IF_bm));
+    (void)SPI0.DATA; // Dummy read to clear receive buffer flag
+
+    // Immediately clock in the next 16 bits (2 bytes) from MISO
+    // Sending 0x00 dummy bytes keeps SCK toggling to read the EEPROM framing payload
+    uint8_t hi_byte = spi_transfer_byte(0x00);
+    uint8_t lo_byte = spi_transfer_byte(0x00);
+
+    eeprom_deselect();
+
+    return ((uint16_t)hi_byte << 8) | lo_byte;
+}
+
+void spi_init(void) {
+    // Set Pin Directions on PORTA
+    // MOSI (PA1) -> Output
+    // MISO (PA2) -> Input
+    // SCK (PA3)  -> Output
+    // CS   (PA6)  -> Output (Default HIGH to keep EEPROM deselected)
+    PORTA.DIRSET = PIN1_bm | PIN3_bm | PIN6_bm;
+    PORTA.DIRCLR = PIN2_bm;
+    
+    // Set CS/PA6 high initially so the EEPROM is idle
+    PORTA.OUTSET = PIN6_bm;
+
+    // Initialize SPI Peripheral (Host Mode)
+    // Enable SPI, set as Host (Master), and choose clock prescaler (e.g., DIV4)
+    SPI0.CTRLA = SPI_ENABLE_bm | SPI_MASTER_bm | SPI_PRESC_DIV4_gc;
+    
+    // 4. Enable Double Buffer mode for zero inter-byte jitter during WS2812B streaming
+    SPI0.CTRLB = SPI_BUFEN_bm;
+}
+
+// each LED consumes 9 bytes, each frame has a 2 byte trailer, so LEDS * 9 + 2 bytes are used. Must be smaller than or equal
+// to 1024 (113 LEDs max).
+#define LEDS 100
+
+uint8_t frame_idx, frame_delay;
+
+void setup() {
+  usart_rx_only_init();
+  spi_init();
+  frame_idx = 0;
+}
+
+void loop() {
+  uint16_t frame_data;
+  if (usart_read_available()) {
+    uint8_t x, y, buf[32];
+    uint32_t addr;
+    // read address 
+    x = usart_read_byte(); addr = x & ~0x1F;        // align to 32 bytes
+    x = usart_read_byte(); addr = (addr << 8) | x;
+    x = usart_read_byte(); addr = (addr << 8) | x;
+    usart_tx_control(1);
+    usart_send_byte(0x55); // ACK address
+    // read payload
+    for (y = 0; y < 32; y++) {
+      buf[y] = usart_read_byte();
+    }
+    usart_send_byte(0x56); // ACK payload
+    usart_tx_control(0);
+    eeprom_write(addr, buf, 32);
+    usart_tx_control(1);
+    usart_send_byte(0x57); // ACK eeprom write
+    usart_tx_control(0);
+    frame_idx = 0; // reset frame IDX
+  }
+  frame_data  = spi_burst_and_read16((uint32_t)frame_idx << 10, LEDS);
+  frame_idx   = (frame_data >> 8);
+  frame_delay = (frame_data & 0xFF);
+  delay((uint16_t)frame_delay * 10);
+}
