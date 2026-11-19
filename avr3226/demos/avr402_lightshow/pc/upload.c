@@ -8,8 +8,6 @@
 #include <errno.h>
 #include <inttypes.h>
 
-#define LEDS 16
-
 /*
  * Encodes `num_pixels` of 0x00RRGGBB values into a packed 1-to-3 SPI bitstream.
  * - Enforces (R + G + B) <= max_rgb_sum by repeatedly scaling by 15/16.
@@ -89,13 +87,13 @@ static int set_interface_attribs(int speed) {
     return 0;
 }
 
-void load_rgb(char *name, uint32_t *leds)
+void load_rgb(char *name, uint32_t *leds, uint32_t max)
 {
     FILE *f;
 
     f = fopen(name, "r");
     if (f) {
-        while (fscanf(f, "%"SCNx32"\n", leds) == 1) {
+        while (max-- && fscanf(f, "%"SCNx32"\n", leds) == 1) {
             ++leds;
         }
         fclose(f);
@@ -145,31 +143,36 @@ acktop:
 
 int main(int argc, char **argv)
 {
-    uint32_t leds[LEDS], addr, x, y;
+    uint32_t leds[128], nleds, addr, x, y;
     uint8_t buffer[1024];
     int frame, nextframe, delay, maxpower = 3*64;
 
-    if (argc < 6) {
-        printf("%s: /dev/tty${device} RGBfile frame nextframe delay [maxpower]\n", argv[0]);
+    if (argc < 8) {
+        printf("%s: /dev/tty${device} leds RGBfile frame nextframe delay maxpower\n", argv[0]);
         return 0;
-    }
-    if (argc >= 7) {
-        maxpower = atoi(argv[6]);
     }
 
     // load RGB data and produce packet stream
     memset(buffer, 0, sizeof buffer);
-    load_rgb(argv[2], leds);
-    encode_ws2812_spi_stream(leds, LEDS, maxpower, buffer);
+    memset(leds, 0, sizeof leds);
+    nleds             = atoi(argv[2]);
+    maxpower          = atoi(argv[7]);
+    if (nleds >= 113) {
+        printf("Too many LEDs specified.\n");
+        exit(-1);
+    }
+    load_rgb(argv[3], leds, nleds);
+    encode_ws2812_spi_stream(leds, nleds, maxpower, buffer);
  
     // store sequencing data.
-    frame            = atoi(argv[3]);
-    nextframe        = atoi(argv[4]);
-    delay            = atoi(argv[5]);
-    buffer[9*LEDS]   = nextframe;
-    buffer[9*LEDS+1] = delay;
+    frame             = atoi(argv[4]);
+    nextframe         = atoi(argv[5]);
+    delay             = atoi(argv[6]);
+    buffer[9*nleds]   = nextframe;
+    buffer[9*nleds+1] = delay;
 
     // stream it out
+    printf("Opening serial port...\n");
     fd = open(argv[1], O_RDWR | O_NOCTTY);
     if (fd < 0) { perror("Open port"); return 1; }
     set_interface_attribs(B9600);
@@ -179,6 +182,8 @@ int main(int argc, char **argv)
     addr = (uint32_t)frame << 10;
 
     for (x = 0; x < 32; x++) {
+        printf("Writing page: %4d / 32\r", x);
+        fflush(stdout);
         // start writing address
         serial_write(fd, (addr >> 16) & 0xFF, 0x54, 1);
         serial_write(fd, (addr >> 8) & 0xFF,    -1, 0);
@@ -189,9 +194,12 @@ int main(int argc, char **argv)
         serial_write(fd, -1, 0x57, 1); // read EEPROM ack
         addr += 32;
     }
+    printf("\nDone\n");
 
     // write out release
     serial_write(fd, 0xFF, 0x54, 0);
     serial_write(fd, 0xFF,   -1, 0);
     serial_write(fd, 0x00, 0x55, 0);
+
+    close(fd);
 }
