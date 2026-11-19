@@ -8,6 +8,8 @@
 #include <errno.h>
 #include <inttypes.h>
 
+#define LEDS 16
+
 /*
  * Encodes `num_pixels` of 0x00RRGGBB values into a packed 1-to-3 SPI bitstream.
  * - Enforces (R + G + B) <= max_rgb_sum by repeatedly scaling by 15/16.
@@ -87,13 +89,44 @@ static int set_interface_attribs(int speed) {
     return 0;
 }
 
+void load_rgb(char *name, uint32_t *leds)
+{
+    FILE *f;
+
+    f = fopen(name, "r");
+    if (f) {
+        while (fscanf(f, "%"SCNx32"\n", leds) == 1) {
+            ++leds;
+        }
+        fclose(f);
+    }
+}
 
 int main(int argc, char **argv)
 {
-    if (argc < 3) {
-        printf("%s: /dev/tty${device} RGBfile\n", argv[0]);
+    uint32_t leds[LEDS];
+    uint8_t buffer[1024];
+    int nextframe, delay, maxpower = 3*64;
+
+    if (argc < 5) {
+        printf("%s: /dev/tty${device} RGBfile nextframe delay [maxpower]\n", argv[0]);
         return 0;
     }
+    if (argc >= 6) {
+        maxpower = atoi(argv[5]);
+    }
+
+    // load RGB data and produce packet stream
+    load_rgb(argv[2], leds);
+    encode_ws2812_spi_stream(leds, LEDS, maxpower, buffer);
+ 
+    // store sequencing data.
+    nextframe = atoi(argv[3]);
+    delay     = atoi(argv[4]);
+    buffer[9*LEDS] = nextframe;
+    buffer[9*LEDS+1] = delay;
+
+    // stream it out
 
     fd = open(argv[1], O_RDWR | O_NOCTTY);
     if (fd < 0) { perror("Open port"); return 1; }

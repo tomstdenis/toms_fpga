@@ -21,6 +21,10 @@ a 1Mbit EEPROM which allows me to have 128 patterns.
 
 #include <avr/io.h>
 
+// each LED consumes 9 bytes, each frame has a 2 byte trailer, so LEDS * 9 + 2 bytes are used. Must be smaller than or equal
+// to 1024 (113 LEDs max).
+#define LEDS 16
+
 #define BAUDRATE 9600        // HC-12 default baud rate
 
 void usart_rx_only_init(void) {
@@ -171,10 +175,6 @@ void spi_init(void) {
     // 4. Enable Double Buffer mode for zero inter-byte jitter during WS2812B streaming
     SPI0.CTRLB = SPI_BUFEN_bm;
 }
-
-// each LED consumes 9 bytes, each frame has a 2 byte trailer, so LEDS * 9 + 2 bytes are used. Must be smaller than or equal
-// to 1024 (113 LEDs max).
-#define LEDS 100
 
 uint8_t active, frame_idx, frame_delay;
 
