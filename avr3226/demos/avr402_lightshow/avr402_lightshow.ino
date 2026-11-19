@@ -220,6 +220,6 @@ void loop() {
     frame_data  = spi_burst_and_read16((uint32_t)frame_idx << 10, LEDS);
     frame_idx   = (frame_data >> 8);
     frame_delay = (frame_data & 0xFF);
-    delay((uint16_t)frame_delay * 10);
+    delay(((uint16_t)frame_delay + 1) * 10);
   }
 }

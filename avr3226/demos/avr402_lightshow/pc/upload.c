@@ -99,10 +99,13 @@ void load_rgb(char *name, uint32_t *leds)
             ++leds;
         }
         fclose(f);
+    } else {
+        printf("couldn't open file '%s'\n", name);
+        exit(-1);
     }
 }
 
-int serial_write(int fd, int out, int in, int retry)
+void serial_write(int fd, int out, int in, int retry)
 {
     uint8_t b;
     int r, tries = 0;
@@ -118,7 +121,7 @@ top:
                 goto top;
             }
             printf("Timed out writing 0x%x\n", out);
-            return -1; // failed to write
+            exit(-1);
         }
     }
 
@@ -128,17 +131,16 @@ top:
 acktop:        
         r = read(fd, &b, 1);
         if (r == 1 && in == b) {
-            return 0;
+            return;
         } else {
             if (tries < 16) {
                 ++tries;
                 goto acktop;
             }
             printf("Timed out reading 0x%x\n", in);
-            return -2;
+            exit(-1);
         }
     }
-    return 0;
 }
 
 int main(int argc, char **argv)
@@ -156,6 +158,7 @@ int main(int argc, char **argv)
     }
 
     // load RGB data and produce packet stream
+    memset(buffer, 0, sizeof buffer);
     load_rgb(argv[2], leds);
     encode_ws2812_spi_stream(leds, LEDS, maxpower, buffer);
  
@@ -177,9 +180,9 @@ int main(int argc, char **argv)
 
     for (x = 0; x < 32; x++) {
         // start writing address
-        serial_write(fd, addr >> 16, 0x54, 1);
-        serial_write(fd, (addr >> 8) & 0xFF, -1, 0);
-        serial_write(fd, (addr) & 0xFF, 0x55, 0);
+        serial_write(fd, (addr >> 16) & 0xFF, 0x54, 1);
+        serial_write(fd, (addr >> 8) & 0xFF,    -1, 0);
+        serial_write(fd, (addr) & 0xFF,       0x55, 0);
         for (y = 0; y < 32; y++) {
             serial_write(fd, buffer[x*32+y], y == 31 ? 0x56 : -1, 0);
         }
@@ -188,7 +191,7 @@ int main(int argc, char **argv)
     }
 
     // write out release
-    serial_write(fd, 0xFF, 0x54, 1);
-    serial_write(fd, 0xFF, -1, 0);
+    serial_write(fd, 0xFF, 0x54, 0);
+    serial_write(fd, 0xFF,   -1, 0);
     serial_write(fd, 0x00, 0x55, 0);
 }
