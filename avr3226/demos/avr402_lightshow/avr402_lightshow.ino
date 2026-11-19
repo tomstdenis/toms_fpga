@@ -27,6 +27,8 @@ a 1Mbit EEPROM which allows me to have 128 patterns.
 
 #define BAUDRATE 9600        // HC-12 default baud rate
 
+uint8_t uart_timedout = 0;
+
 void usart_rx_only_init(void) {
     // BAUD = (64 * F_CPU) / (16 * baud_rate) = (4 * F_CPU) / baud_rate
     USART0.BAUD = (uint16_t)((4.0 * F_CPU) / BAUDRATE);
@@ -37,12 +39,21 @@ void usart_rx_only_init(void) {
 }
 
 uint8_t usart_read_available(void) {
-    return !(USART0.STATUS & USART_RXCIF_bm);
+    return USART0.STATUS & USART_RXCIF_bm;
 }
 
-uint8_t usart_read_byte(void) {
+uint8_t usart_read_byte(uint8_t timeout) {
     // Wait until data is received in the buffer
-    while (!(USART0.STATUS & USART_RXCIF_bm));
+    uint16_t time_ms = millis() + 3000;
+    if (uart_timedout) {
+      return 0;
+    }
+    while (!(USART0.STATUS & USART_RXCIF_bm)) {
+      if (timeout && millis() >= time_ms) {
+        uart_timedout = 1;
+        return 0;
+      }
+    }
     
     // Reading USART0.RXDATAL automatically clears the flag
     return USART0.RXDATAL; 
@@ -66,7 +77,7 @@ void usart_send_byte(uint8_t data) {
 
 uint8_t spi_transfer_byte(uint8_t tx_data) {
     SPI0.DATA = tx_data;                  // Writing to DATA triggers the transfer
-    while (!(SPI0.INTFLAGS & SPI_IF_bm)); // Poll the Interrupt Flag for completion
+    while (!(SPI0.INTFLAGS & SPI_RXCIF_bm)); // Poll the Interrupt Flag for completion
     return SPI0.DATA;                     // Reading DATA returns the received MISO byte and clears flags
 }
 
@@ -170,6 +181,7 @@ void spi_init(void) {
 
     // Initialize SPI Peripheral (Host Mode)
     // Enable SPI, set as Host (Master), and choose clock prescaler (e.g., DIV4)
+    // 20MHz / 2 / 4 => 2.5MHz
     SPI0.CTRLA = SPI_ENABLE_bm | SPI_MASTER_bm | SPI_PRESC_DIV4_gc;
     
     // 4. Enable Double Buffer mode for zero inter-byte jitter during WS2812B streaming
@@ -195,23 +207,31 @@ void loop() {
 
     // read address 
     usart_tx_control(1);
-    x = usart_read_byte(); usart_send_byte(0x54); addr = x & ~0x1F; // ACK first byte, align to 32 bytes
-    x = usart_read_byte(); addr = (addr << 8) | x;
-    x = usart_read_byte(); addr = (addr << 8) | x;
-    usart_send_byte(0x55); // ACK address
+    x = usart_read_byte(1); usart_send_byte(x); addr = x & ~0x1F; // ACK first byte, align to 32 bytes
+    x = usart_read_byte(1); usart_send_byte(x); addr = (addr << 8) | x;
+    x = usart_read_byte(1); usart_send_byte(x); addr = (addr << 8) | x;
     if (addr == 0xFFFF00) {
       // special address to turn LED back on
       active = 1;
     } else {
       // read payload
       for (y = 0; y < 32; y++) {
-        buf[y] = usart_read_byte();
+        buf[y] = usart_read_byte(1);
+        if (uart_timedout) {
+          uart_timedout = 0;
+          active        = 1;
+          frame_idx     = 0; // reset frame IDX
+          usart_tx_control(0);
+          return;
+        }
+        if ((y & 7) == 7) {
+          usart_send_byte(buf[y]);
+        }
       }
-      usart_send_byte(0x56);        // ACK payload
       usart_tx_control(0);          // turn off UART TX for SPI command
       eeprom_write(addr, buf, 32);
       usart_tx_control(1);          // turn on UART TX to ACK eepromg write
-      usart_send_byte(0x57);        // ACK eeprom write
+      usart_send_byte(0x55);        // ACK eeprom write
     }
     usart_tx_control(0);
     frame_idx = 0; // reset frame IDX

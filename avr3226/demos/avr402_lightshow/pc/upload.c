@@ -103,7 +103,7 @@ void load_rgb(char *name, uint32_t *leds, uint32_t max)
     }
 }
 
-void serial_write(int fd, int out, int in, int retry)
+uint8_t serial_write(int fd, int out, int in)
 {
     uint8_t b;
     int r, tries = 0;
@@ -114,7 +114,7 @@ top:
         b = out;
         r = write(fd, &b, 1);
         if (r != 1) {
-            if (retry && tries < 16) {
+            if (tries < 16) {
                 ++tries;
                 goto top;
             }
@@ -128,8 +128,8 @@ top:
         tries = 0;
 acktop:        
         r = read(fd, &b, 1);
-        if (r == 1 && in == b) {
-            return;
+        if (r == 1 && (out == -1 || b == in)) {
+            return b;
         } else {
             if (tries < 16) {
                 ++tries;
@@ -139,6 +139,7 @@ acktop:
             exit(-1);
         }
     }
+    return 0;
 }
 
 int main(int argc, char **argv)
@@ -185,21 +186,23 @@ int main(int argc, char **argv)
         printf("Writing page: %4d / 32\r", x);
         fflush(stdout);
         // start writing address
-        serial_write(fd, (addr >> 16) & 0xFF, 0x54, 1);
-        serial_write(fd, (addr >> 8) & 0xFF,    -1, 0);
-        serial_write(fd, (addr) & 0xFF,       0x55, 0);
+        serial_write(fd, (addr >> 16) & 0xFF, 1);
+        serial_write(fd, (addr >> 8) & 0xFF,  1);
+        serial_write(fd, (addr) & 0xFF,       1);
         for (y = 0; y < 32; y++) {
-            serial_write(fd, buffer[x*32+y], y == 31 ? 0x56 : -1, 0);
+            serial_write(fd, buffer[x*32+y], ((y & 7) == 7) ? 1 : 0); // ACK every 8th byte
         }
-        serial_write(fd, -1, 0x57, 1); // read EEPROM ack
+        // wait for eeprom
+        serial_write(fd, -1, 1);
+
         addr += 32;
     }
     printf("\nDone\n");
 
     // write out release
-    serial_write(fd, 0xFF, 0x54, 0);
-    serial_write(fd, 0xFF,   -1, 0);
-    serial_write(fd, 0x00, 0x55, 0);
+    serial_write(fd, 0xFF, 1);
+    serial_write(fd, 0xFF, 1);
+    serial_write(fd, 0x00, 1);
 
     close(fd);
 }
