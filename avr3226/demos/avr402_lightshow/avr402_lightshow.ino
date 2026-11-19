@@ -7,7 +7,15 @@ required.
 This uses a 9600 baud serial connection (ultimately an HC-12).
 
 Each "frame" can be up to 1024 bytes which includes 2 bytes of trailer and 9 bytes per LED which is preformatted
-into HLL and HHL bit patterns by the PC.  
+into HLL and HHL bit patterns by the PC.
+
+The gist is the EEPROM SO is also commoned to the first LEDs data in pin.  The AVR clocks out 3 times per RGB bit at 3x
+the sample rate.  The PC can program a 32 byte block of EEPROM by transmitting the first byte of a 24-bit address (32 byte aligned),
+reading a 0x54 ACK, then writing the remaining 2 bytes of the address, reading a 0x55, then writing the 32 bytes, reading a 0x56,
+then waiting to read a 0x57.  At that point the 32 bytes are programmed.
+
+This allows me to have many patterns controlled by a tiny ass 8-pin 8-bit MCU cuz I'm crazy like this.  In my setup I'm using
+a 1Mbit EEPROM which allows me to have 128 patterns.
 
 */
 
@@ -93,7 +101,7 @@ void eeprom_write(uint32_t addr, const uint8_t *src, uint16_t len)
   spi_transfer_byte(0x06);
   eeprom_deselect();
 
-  // write buffer to EEPROM buffer (SRAM write and EEPROM write are the same command one you enable the write latch)
+  // write buffer to EEPROM buffer
   eeprom_select();
   spi_transfer_byte(0x02);
   spi_transfer_byte((addr>>16)&0xFF);
@@ -168,39 +176,50 @@ void spi_init(void) {
 // to 1024 (113 LEDs max).
 #define LEDS 100
 
-uint8_t frame_idx, frame_delay;
+uint8_t active, frame_idx, frame_delay;
 
 void setup() {
   usart_rx_only_init();
   spi_init();
   frame_idx = 0;
+  active    = 1;
 }
 
 void loop() {
   uint16_t frame_data;
+  uint32_t addr;
+  uint8_t x, y, buf[32];
   if (usart_read_available()) {
-    uint8_t x, y, buf[32];
-    uint32_t addr;
+    // turn off LED string
+    active = 0;
+
     // read address 
-    x = usart_read_byte(); addr = x & ~0x1F;        // align to 32 bytes
-    x = usart_read_byte(); addr = (addr << 8) | x;
-    x = usart_read_byte(); addr = (addr << 8) | x;
     usart_tx_control(1);
+    x = usart_read_byte(); usart_send_byte(0x54); addr = x & ~0x1F; // ACK first byte, align to 32 bytes
+    x = usart_read_byte(); addr = (addr << 8) | x;
+    x = usart_read_byte(); addr = (addr << 8) | x;
     usart_send_byte(0x55); // ACK address
-    // read payload
-    for (y = 0; y < 32; y++) {
-      buf[y] = usart_read_byte();
+    if (addr == 0xFFFF00) {
+      // special address to turn LED back on
+      active = 1;
+    } else {
+      // read payload
+      for (y = 0; y < 32; y++) {
+        buf[y] = usart_read_byte();
+      }
+      usart_send_byte(0x56);        // ACK payload
+      usart_tx_control(0);          // turn off UART TX for SPI command
+      eeprom_write(addr, buf, 32);
+      usart_tx_control(1);          // turn on UART TX to ACK eepromg write
+      usart_send_byte(0x57);        // ACK eeprom write
     }
-    usart_send_byte(0x56); // ACK payload
-    usart_tx_control(0);
-    eeprom_write(addr, buf, 32);
-    usart_tx_control(1);
-    usart_send_byte(0x57); // ACK eeprom write
     usart_tx_control(0);
     frame_idx = 0; // reset frame IDX
   }
-  frame_data  = spi_burst_and_read16((uint32_t)frame_idx << 10, LEDS);
-  frame_idx   = (frame_data >> 8);
-  frame_delay = (frame_data & 0xFF);
-  delay((uint16_t)frame_delay * 10);
+  if (active) {
+    frame_data  = spi_burst_and_read16((uint32_t)frame_idx << 10, LEDS);
+    frame_idx   = (frame_data >> 8);
+    frame_delay = (frame_data & 0xFF);
+    delay((uint16_t)frame_delay * 10);
+  }
 }
