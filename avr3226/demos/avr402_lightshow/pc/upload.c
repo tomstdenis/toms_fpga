@@ -102,18 +102,57 @@ void load_rgb(char *name, uint32_t *leds)
     }
 }
 
+int serial_write(int fd, int out, int in, int retry)
+{
+    uint8_t b;
+    int r, tries = 0;
+
+    // try to write byte 
+    if (out >= 0) {
+top:    
+        b = out;
+        r = write(fd, &b, 1);
+        if (r != 1) {
+            if (retry && tries < 16) {
+                ++tries;
+                goto top;
+            }
+            printf("Timed out writing 0x%x\n", out);
+            return -1; // failed to write
+        }
+    }
+
+    // look for ack
+    if (in >= 0) {
+        tries = 0;
+acktop:        
+        r = read(fd, &b, 1);
+        if (r == 1 && in == b) {
+            return 0;
+        } else {
+            if (tries < 16) {
+                ++tries;
+                goto acktop;
+            }
+            printf("Timed out reading 0x%x\n", in);
+            return -2;
+        }
+    }
+    return 0;
+}
+
 int main(int argc, char **argv)
 {
-    uint32_t leds[LEDS];
+    uint32_t leds[LEDS], addr, x, y;
     uint8_t buffer[1024];
-    int nextframe, delay, maxpower = 3*64;
+    int frame, nextframe, delay, maxpower = 3*64;
 
-    if (argc < 5) {
-        printf("%s: /dev/tty${device} RGBfile nextframe delay [maxpower]\n", argv[0]);
+    if (argc < 6) {
+        printf("%s: /dev/tty${device} RGBfile frame nextframe delay [maxpower]\n", argv[0]);
         return 0;
     }
-    if (argc >= 6) {
-        maxpower = atoi(argv[5]);
+    if (argc >= 7) {
+        maxpower = atoi(argv[6]);
     }
 
     // load RGB data and produce packet stream
@@ -121,15 +160,35 @@ int main(int argc, char **argv)
     encode_ws2812_spi_stream(leds, LEDS, maxpower, buffer);
  
     // store sequencing data.
-    nextframe = atoi(argv[3]);
-    delay     = atoi(argv[4]);
-    buffer[9*LEDS] = nextframe;
+    frame            = atoi(argv[3]);
+    nextframe        = atoi(argv[4]);
+    delay            = atoi(argv[5]);
+    buffer[9*LEDS]   = nextframe;
     buffer[9*LEDS+1] = delay;
 
     // stream it out
-
     fd = open(argv[1], O_RDWR | O_NOCTTY);
     if (fd < 0) { perror("Open port"); return 1; }
     set_interface_attribs(B9600);
 	tcflush(fd, TCIOFLUSH);
+
+    // write out frame
+    addr = (uint32_t)frame << 10;
+
+    for (x = 0; x < 32; x++) {
+        // start writing address
+        serial_write(fd, addr >> 16, 0x54, 1);
+        serial_write(fd, (addr >> 8) & 0xFF, -1, 0);
+        serial_write(fd, (addr) & 0xFF, 0x55, 0);
+        for (y = 0; y < 32; y++) {
+            serial_write(fd, buffer[x*32+y], y == 31 ? 0x56 : -1, 0);
+        }
+        serial_write(fd, -1, 0x57, 1); // read EEPROM ack
+        addr += 32;
+    }
+
+    // write out release
+    serial_write(fd, 0xFF, 0x54, 1);
+    serial_write(fd, 0xFF, -1, 0);
+    serial_write(fd, 0x00, 0x55, 0);
 }
