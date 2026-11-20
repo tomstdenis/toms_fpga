@@ -133,6 +133,7 @@ void eeprom_write(uint32_t addr, const uint8_t *src, uint16_t len)
 
 // this is meant to clock the RGB data and then read the framing bytes at the end
 uint16_t spi_burst_and_read16(uint32_t addr, uint16_t total_transfers) {
+    uint16_t reads = total_transfers;
     // select chip
     eeprom_select();
 
@@ -152,6 +153,7 @@ uint16_t spi_burst_and_read16(uint32_t addr, uint16_t total_transfers) {
         // clear any RX'ed bytes
         if (SPI0.INTFLAGS & SPI_RXCIF_bm) {
           SPI0.DATA; // Dummy read to clear receive buffer flag
+          --reads;
         }
         SPI0.DATA = 0x00;
         total_transfers--;
@@ -159,8 +161,11 @@ uint16_t spi_burst_and_read16(uint32_t addr, uint16_t total_transfers) {
 
     // Wait for the final burst byte to finish shifting out completely
     while (!(SPI0.INTFLAGS & SPI_TXCIF_bm));
-    while (SPI0.INTFLAGS & SPI_RXCIF_bm) {
-      SPI0.DATA; // Dummy read to clear receive buffer flag
+    while (reads) {
+      if (SPI0.INTFLAGS & SPI_RXCIF_bm) {
+        SPI0.DATA; // Dummy read to clear receive buffer flag
+        --reads;
+      }
     }
 
     // Immediately clock in the next 16 bits (2 bytes) from MISO
