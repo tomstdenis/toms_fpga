@@ -77,7 +77,7 @@ void usart_send_byte(uint8_t data) {
 
 uint8_t spi_transfer_byte(uint8_t tx_data) {
     SPI0.DATA = tx_data;                  // Writing to DATA triggers the transfer
-    while (!(SPI0.INTFLAGS & SPI_IF_bm)); // Poll the Interrupt Flag for completion
+    while (!(SPI0.INTFLAGS & SPI_RXCIF_bm)); // Poll the RX complete Interrupt Flag for completion
     return SPI0.DATA;                     // Reading DATA returns the received MISO byte and clears flags
 }
 
@@ -149,13 +149,19 @@ uint16_t spi_burst_and_read16(uint32_t addr, uint16_t total_transfers) {
     // Stream the remaining burst bytes back-to-back with zero gaps
     while (total_transfers > 0) {
         while (!(SPI0.INTFLAGS & SPI_DREIF_bm)); // Wait for holding register empty
+        // clear any RX'ed bytes
+        if (SPI0.INTFLAGS & SPI_RXCIF_bm) {
+          SPI0.DATA; // Dummy read to clear receive buffer flag
+        }
         SPI0.DATA = 0x00;
         total_transfers--;
     }
 
     // Wait for the final burst byte to finish shifting out completely
-    while (!(SPI0.INTFLAGS & SPI_IF_bm));
-    (void)SPI0.DATA; // Dummy read to clear receive buffer flag
+    while (!(SPI0.INTFLAGS & SPI_TXCIF_bm));
+    while (SPI0.INTFLAGS & SPI_RXCIF_bm) {
+      SPI0.DATA; // Dummy read to clear receive buffer flag
+    }
 
     // Immediately clock in the next 16 bits (2 bytes) from MISO
     // Sending 0x00 dummy bytes keeps SCK toggling to read the EEPROM framing payload
