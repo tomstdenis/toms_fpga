@@ -128,7 +128,7 @@ top:
         tries = 0;
 acktop:        
         r = read(fd, &b, 1);
-        if (r == 1 && (out == -1 || b == in)) {
+        if (r == 1 && (in == -1 || b == in)) {
             return b;
         } else {
             if (tries < 16) {
@@ -186,23 +186,23 @@ int main(int argc, char **argv)
         printf("Writing page: %4d / 32\r", x);
         fflush(stdout);
         // start writing address
-        serial_write(fd, (addr >> 16) & 0xFF, 1);
-        serial_write(fd, (addr >> 8) & 0xFF,  1);
-        serial_write(fd, (addr) & 0xFF,       1);
+        serial_write(fd, (addr >> 16) & 0xFF, (addr >> 16) & 0xFF);
+        serial_write(fd, (addr >> 8) & 0xFF,  (addr >> 8) & 0xFF);
+        serial_write(fd, (addr) & 0xFF,       (addr) & 0xFF);
         for (y = 0; y < 32; y++) {
-            serial_write(fd, buffer[x*32+y], ((y & 7) == 7) ? 1 : 0); // ACK every 8th byte
+            serial_write(fd, buffer[x*32+y], ((y & 7) == 7) ? buffer[x*32+y] : -1); // ACK every 8th byte
         }
         // wait for eeprom
-        serial_write(fd, -1, 1);
+        serial_write(fd, -1, -1);
 
         addr += 32;
     }
     printf("\nDone\n");
 
     // write out release
-    serial_write(fd, 0xFF, 1);
-    serial_write(fd, 0xFF, 1);
-    serial_write(fd, 0x00, 1);
+    serial_write(fd, 0xFF, 0xFF);
+    serial_write(fd, 0xFF, 0xFF);
+    serial_write(fd, 0x00, 0x00);
 
     close(fd);
 }

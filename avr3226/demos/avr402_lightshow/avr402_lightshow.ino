@@ -44,7 +44,7 @@ uint8_t usart_read_available(void) {
 
 uint8_t usart_read_byte(uint8_t timeout) {
     // Wait until data is received in the buffer
-    uint16_t time_ms = millis() + 3000;
+    uint16_t time_ms = millis() + 1500;
     if (uart_timedout) {
       return 0;
     }
@@ -195,7 +195,7 @@ void spi_init(void) {
     // 20MHz * 2 / 16 => 2.5MHz
     SPI0.CTRLA = SPI_ENABLE_bm | SPI_MASTER_bm | SPI_PRESC_DIV16_gc | SPI_CLK2X_bm;
     
-    // 4. Enable Double Buffer mode for zero inter-byte jitter during WS2812B streaming
+    // Enable Double Buffer mode for zero inter-byte jitter during WS2812B streaming
     SPI0.CTRLB = SPI_BUFEN_bm;
 }
 
@@ -248,7 +248,7 @@ void loop() {
     frame_idx = 0; // reset frame IDX
   }
   if (active) {
-    frame_data  = spi_burst_and_read16((uint32_t)frame_idx << 10, LEDS);
+    frame_data  = spi_burst_and_read16((uint32_t)frame_idx << 10, LEDS * 9);
     frame_idx   = (frame_data >> 8);
     frame_delay = (frame_data & 0xFF);
     delay(((uint16_t)frame_delay + 1) * 10);
