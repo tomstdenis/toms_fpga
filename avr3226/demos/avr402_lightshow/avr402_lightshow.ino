@@ -77,7 +77,7 @@ void usart_send_byte(uint8_t data) {
 
 uint8_t spi_transfer_byte(uint8_t tx_data) {
     SPI0.DATA = tx_data;                  // Writing to DATA triggers the transfer
-    while (!(SPI0.INTFLAGS & SPI_RXCIF_bm)); // Poll the Interrupt Flag for completion
+    while (!(SPI0.INTFLAGS & SPI_IF_bm)); // Poll the Interrupt Flag for completion
     return SPI0.DATA;                     // Reading DATA returns the received MISO byte and clears flags
 }
 
@@ -180,9 +180,9 @@ void spi_init(void) {
     PORTA.OUTSET = PIN6_bm;
 
     // Initialize SPI Peripheral (Host Mode)
-    // Enable SPI, set as Host (Master), and choose clock prescaler (e.g., DIV4)
-    // 20MHz / 2 / 4 => 2.5MHz
-    SPI0.CTRLA = SPI_ENABLE_bm | SPI_MASTER_bm | SPI_PRESC_DIV4_gc;
+    // Enable SPI, set as Host (Master), and choose clock prescaler
+    // 20MHz * 2 / 16 => 2.5MHz
+    SPI0.CTRLA = SPI_ENABLE_bm | SPI_MASTER_bm | SPI_PRESC_DIV16_gc | SPI_CLK2X_bm;
     
     // 4. Enable Double Buffer mode for zero inter-byte jitter during WS2812B streaming
     SPI0.CTRLB = SPI_BUFEN_bm;
