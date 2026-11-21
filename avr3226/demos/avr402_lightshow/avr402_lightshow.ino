@@ -136,40 +136,29 @@ void eeprom_write(uint32_t addr, const uint8_t *src, uint16_t len)
 
 // this is meant to clock the RGB data and then read the framing bytes at the end
 uint16_t spi_burst_and_read16(uint32_t addr, uint16_t total_transfers) {
-    uint16_t reads = total_transfers;
     // select chip
     cli();
     eeprom_select();
 
     // write READ command and address
-    spi_transfer_byte(0x03);
-    spi_transfer_byte((addr>>16)&0xFF);
-    spi_transfer_byte((addr>>8)&0xFF);
-    spi_transfer_byte((addr)&0xFF);
-
-    // Kick off the first byte
-    SPI0.DATA = 0x00;
-    total_transfers--;
+    while (!(SPI0.INTFLAGS & SPI_DREIF_bm)); // Wait for holding register empty
+    SPI0.DATA = 0x03;
+    while (!(SPI0.INTFLAGS & SPI_DREIF_bm)); // Wait for holding register empty
+    SPI0.DATA = ((addr>>16)&0xFF);
+    while (!(SPI0.INTFLAGS & SPI_DREIF_bm)); // Wait for holding register empty
+    SPI0.DATA = ((addr>>8)&0xFF);
+    while (!(SPI0.INTFLAGS & SPI_DREIF_bm)); // Wait for holding register empty
+    SPI0.DATA = ((addr)&0xFF);
 
     // Stream the remaining burst bytes back-to-back with zero gaps
-    while (total_transfers > 0) {
+    while (total_transfers-- > 0) {
         while (!(SPI0.INTFLAGS & SPI_DREIF_bm)); // Wait for holding register empty
-        // clear any RX'ed bytes
-        if (SPI0.INTFLAGS & SPI_RXCIF_bm) {
-          SPI0.DATA; // Dummy read to clear receive buffer flag
-          --reads;
-        }
         SPI0.DATA = 0x00;
-        total_transfers--;
     }
 
     // Wait for the final burst byte to finish shifting out completely
-    while (!(SPI0.INTFLAGS & SPI_TXCIF_bm));
-    while (reads) {
-      if (SPI0.INTFLAGS & SPI_RXCIF_bm) {
-        SPI0.DATA; // Dummy read to clear receive buffer flag
-        --reads;
-      }
+    if (SPI0.INTFLAGS & SPI_RXCIF_bm) {
+      SPI0.DATA; // Dummy read to clear receive buffer flag
     }
 
     // Immediately clock in the next 16 bits (2 bytes) from MISO
