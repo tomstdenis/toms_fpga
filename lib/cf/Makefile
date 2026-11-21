@@ -49,8 +49,13 @@ disk/DEMO.CF: cf/demo.c
 	emu2 MCF/CCF.COM 'cf/demo.c' -fopl -- MCDIR='C:\MCF'
 	./hex_to_cf cf/demo.hex disk/DEMO.CF 0000 0000 1000
 
+.PHONY: disk/GAME.CF
+disk/GAME.CF: cf/game.c
+	emu2 MCF/CCF.COM 'cf/game.c' -fopl -- MCDIR='C:\MCF'
+	./hex_to_cf cf/game.hex disk/GAME.CF 0000 0000 1000
+
 .PHONY: diskfiles
-diskfiles: disk/GPIO.CF disk/DEMO.CF disk/HELLO.CF
+diskfiles: disk/GPIO.CF disk/DEMO.CF disk/HELLO.CF disk/GAME.CF
 
 # Build the disk.fs file system image with the bootloader any files in disk/* end up in the disk image
 .PHONY: populate_fs
