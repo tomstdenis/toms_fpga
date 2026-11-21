@@ -103,7 +103,7 @@ void load_rgb(char *name, uint32_t *leds, uint32_t max)
     }
 }
 
-uint8_t serial_write(int fd, int out, int in)
+uint8_t serial_write(int fd, int out)
 {
     uint8_t b;
     int r, tries = 0;
@@ -124,21 +124,20 @@ top:
     }
 
     // look for ack
-    if (in >= 0) {
-        tries = 0;
-acktop:        
-        r = read(fd, &b, 1);
-        if (r == 1 && (in == -1 || b == in)) {
-            return b;
-        } else {
-            if (tries < 16) {
-                ++tries;
-                goto acktop;
-            }
-            printf("Timed out reading 0x%x\n", in);
-            exit(-1);
-        }
-    }
+	tries = 0;
+acktop:
+	b = 0;
+	r = read(fd, &b, 1);
+	if (r == 1 && (b == out)) {
+		return b;
+	} else {
+		if (tries < 16) {
+			++tries;
+			goto acktop;
+		}
+		printf("Timed out reading 0x%x\n", out);
+		exit(-1);
+	}
     return 0;
 }
 
@@ -183,26 +182,31 @@ int main(int argc, char **argv)
     addr = (uint32_t)frame << 10;
 
     for (x = 0; x < 32; x++) {
-        printf("Writing page: %4d / 32\r", x);
+        printf("Writing page: %4d / 32...", x);
         fflush(stdout);
         // start writing address
-        serial_write(fd, (addr >> 16) & 0xFF, (addr >> 16) & 0xFF);
-        serial_write(fd, (addr >> 8) & 0xFF,  (addr >> 8) & 0xFF);
-        serial_write(fd, (addr) & 0xFF,       (addr) & 0xFF);
+        serial_write(fd, (addr >> 16) & 0xFF);
+        serial_write(fd, (addr >> 8) & 0xFF);
+        serial_write(fd, (addr) & 0xFF);
         for (y = 0; y < 32; y++) {
-            serial_write(fd, buffer[x*32+y], ((y & 7) == 7) ? buffer[x*32+y] : -1); // ACK every 8th byte
+			printf("%02x ", buffer[x*32+y]);
+			fflush(stdout);
+            serial_write(fd, buffer[x*32+y]);
         }
         // wait for eeprom
-        serial_write(fd, -1, -1);
+        printf(", waiting for eeprom ACK...");
+        usleep(1000UL * 150); // wait 150ms
+//        serial_write(fd, -1, 0x55); // TODO: actually read ACK back
+        printf("done\n");
 
         addr += 32;
     }
     printf("\nDone\n");
 
     // write out release
-    serial_write(fd, 0xFF, 0xFF);
-    serial_write(fd, 0xFF, 0xFF);
-    serial_write(fd, 0x00, 0x00);
+    serial_write(fd, 0xFF);
+    serial_write(fd, 0xFF);
+    serial_write(fd, 0x00);
 
     close(fd);
 }

@@ -1,5 +1,19 @@
 /*
 
+Notes:
+
+Current setup...
+
+AVR <=> EEPROM like you'd expect (with pull ups on WP/HOLD pins, pull up on CS, down on SO, and a 43R between EEPROM.SO and AVR/2812)
+
+I'm using a half-duplex serial port so to TX bytes I'll need to bit bang as cleanly as possible.
+
+TODO: 
+    1. add bit bang output
+    2. add prog + eeprom ACK outputs
+    3. Add those reads to the programmer
+    4. Sort out why the initial bit is high for 1.2us too long
+
 AVR tiny402 based lightshow.  Uses a SPI EEPROM to bang out a preformatted bit stream where the MISO
 pin is also tied to a WS2182b string.  The TX pin is being used for CS so we turn on the transmitted as
 required.
@@ -36,6 +50,7 @@ void usart_rx_only_init(void) {
     // - Enable Receiver ONLY: Set RXEN bit, leave TXEN bit cleared.
     // - Frame format: 8 data bits, no parity, 1 stop bit (default 8N1).
     USART0.CTRLB = USART_RXEN_bm; 
+    USART0.CTRLC = USART_CHSIZE_8BIT_gc;
 }
 
 uint8_t usart_read_available(void) {
@@ -59,20 +74,8 @@ uint8_t usart_read_byte(uint8_t timeout) {
     return USART0.RXDATAL; 
 }
 
-void usart_tx_control(uint8_t enable) {
-    if (enable) {
-        USART0.CTRLB |= USART_TXEN_bm;  // Enable transmitter
-    } else {
-        USART0.CTRLB &= ~USART_TXEN_bm; // Disable transmitter
-    }
-}
-
-void usart_send_byte(uint8_t data) {
-    // Wait until DREIF (Data Register Empty Flag) is set
-    while (!(USART0.STATUS & USART_DREIF_bm));
-    
-    // Write data to transmit low data register
-    USART0.TXDATAL = data;
+void usart_send_byte(uint8_t data) {  
+// TODO: bitbang out RXD pin
 }
 
 uint8_t spi_transfer_byte(uint8_t tx_data) {
@@ -135,6 +138,7 @@ void eeprom_write(uint32_t addr, const uint8_t *src, uint16_t len)
 uint16_t spi_burst_and_read16(uint32_t addr, uint16_t total_transfers) {
     uint16_t reads = total_transfers;
     // select chip
+    cli();
     eeprom_select();
 
     // write READ command and address
@@ -175,6 +179,7 @@ uint16_t spi_burst_and_read16(uint32_t addr, uint16_t total_transfers) {
 
     eeprom_deselect();
 
+    sei();
     return ((uint16_t)hi_byte << 8) | lo_byte;
 }
 
@@ -208,22 +213,27 @@ void setup() {
   active    = 1;
 }
 
+static uint16_t frame_data;
+static uint32_t addr;
+static uint8_t x, y, buf[32];
+
 void loop() {
-  uint16_t frame_data;
-  uint32_t addr;
-  uint8_t x, y, buf[32];
+  active = 1;
   if (usart_read_available()) {
     // turn off LED string
     active = 0;
 
+    // TODO transmit prog start ACK byte
+
     // read address 
-    usart_tx_control(1);
-    x = usart_read_byte(1); usart_send_byte(x); addr = x & ~0x1F; // ACK first byte, align to 32 bytes
-    x = usart_read_byte(1); usart_send_byte(x); addr = (addr << 8) | x;
-    x = usart_read_byte(1); usart_send_byte(x); addr = (addr << 8) | x;
+    x = usart_read_byte(1); addr = x & ~0x1F; // ACK first byte, align to 32 bytes
+    x = usart_read_byte(1); addr = (addr << 8) | x;
+    x = usart_read_byte(1); addr = (addr << 8) | x;
     if (addr == 0xFFFF00) {
       // special address to turn LED back on
       active = 1;
+      frame_idx = 0; // reset frame IDX
+      delay(1); // ms delay to make sure WS2812's reset
     } else {
       // read payload
       for (y = 0; y < 32; y++) {
@@ -232,25 +242,18 @@ void loop() {
           uart_timedout = 0;
           active        = 1;
           frame_idx     = 0; // reset frame IDX
-          usart_tx_control(0);
           return;
         }
-        if ((y & 7) == 7) {
-          usart_send_byte(buf[y]);
-        }
       }
-      usart_tx_control(0);          // turn off UART TX for SPI command
       eeprom_write(addr, buf, 32);
-      usart_tx_control(1);          // turn on UART TX to ACK eepromg write
       usart_send_byte(0x55);        // ACK eeprom write
     }
-    usart_tx_control(0);
-    frame_idx = 0; // reset frame IDX
   }
   if (active) {
     frame_data  = spi_burst_and_read16((uint32_t)frame_idx << 10, LEDS * 9);
     frame_idx   = (frame_data >> 8);
     frame_delay = (frame_data & 0xFF);
-    delay(((uint16_t)frame_delay + 1) * 10);
+    delay(50);
+    //delay(((uint16_t)frame_delay + 1) * 50);
   }
 }
