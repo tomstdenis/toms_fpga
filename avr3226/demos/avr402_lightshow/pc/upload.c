@@ -93,7 +93,7 @@ void load_rgb(char *name, uint32_t *leds, uint32_t max)
 
     f = fopen(name, "r");
     if (f) {
-        while (max-- && fscanf(f, "%"SCNx32"\n", leds) == 1) {
+        while (max-- && fscanf(f, "0x%"SCNx32"\n", leds) == 1) {
             ++leds;
         }
         fclose(f);
@@ -154,6 +154,10 @@ acktop:
 	if (r == 1 && (b == in)) {
 		return b;
 	} else {
+		if (r) {
+			printf("Read back 0x%02x, expected 0x%02x\n", b, in);
+			exit(-1);
+		}
 		if (tries < 16) {
 			++tries;
 			goto acktop;
@@ -167,7 +171,7 @@ acktop:
 int main(int argc, char **argv)
 {
     uint32_t leds[128], nleds, addr, x, y;
-    uint8_t buffer[1024];
+    uint8_t chk, buffer[1024];
     int frame, nextframe, delay, maxpower = 3*64;
 
     if (argc < 8) {
@@ -215,13 +219,20 @@ int main(int argc, char **argv)
         serial_write(fd, (addr >> 16) & 0xFF);
         serial_write(fd, (addr >> 8) & 0xFF);
         serial_write(fd, (addr) & 0xFF);
+        chk = 0;
         for (y = 0; y < 32; y++) {
+			chk += buffer[x*32+y];
 			printf("%02x ", buffer[x*32+y]);
 			fflush(stdout);
             serial_write(fd, buffer[x*32+y]);
         }
+        // wait for checksum
+        serial_read(fd, chk);
+        printf(", checksummed");
+        fflush(stdout);
         // wait for eeprom
         printf(", waiting for eeprom ACK...");
+        fflush(stdout);
 		serial_read(fd, 0x57);  // expect an EEPROM ACK
         printf("done\n");
 
@@ -230,9 +241,13 @@ int main(int argc, char **argv)
     printf("\nDone\n");
 
     // write out release
+    printf("Hanging up...");
+    fflush(stdout);
     serial_write(fd, 0xFF);
     serial_write(fd, 0xFF);
     serial_write(fd, 0x00);
+    serial_read(fd, 0xAA);
+    printf("Done.\n");
 
     close(fd);
 }

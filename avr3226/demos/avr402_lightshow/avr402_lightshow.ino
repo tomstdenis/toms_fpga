@@ -59,12 +59,12 @@ uint8_t usart_read_available(void) {
 
 uint8_t usart_read_byte(uint8_t timeout) {
     // Wait until data is received in the buffer
-    uint16_t time_ms = millis() + 1500;
+    uint16_t time = 0xFFFF;
     if (uart_timedout) {
       return 0;
     }
     while (!(USART0.STATUS & USART_RXCIF_bm)) {
-      if (timeout && millis() >= time_ms) {
+      if (!(time--)) {
         uart_timedout = 1;
         return 0;
       }
@@ -98,18 +98,18 @@ void usart_send_byte(uint8_t data) {
     delay_cycles(520); // delay for baud
   // DATA bits
     for (i = 0; i < 8; i++) {
-      if (data & 0x80) {
+      if (data & 0x01) {
         PORTA.OUTSET = PIN7_bm;
       } else {
         PORTA.OUTCLR = PIN7_bm;
       }
+      data >>= 1;
       delay_cycles(520); // delay for baud (TODO: trim later to account for TX pin op)
     }
   // STOP bit
     PORTA.OUTSET = PIN7_bm;
     delay_cycles(520); // delay for baud
   // turn serial back on
-  PORTA.OUTSET = PIN7_bm;         // set RX pin to be high
   PORTA.DIRCLR = PIN7_bm;         // enable RX pin as input
   USART0.CTRLB = USART_RXEN_bm; 
   sei();
@@ -171,6 +171,26 @@ void eeprom_write(uint32_t addr, const uint8_t *src, uint16_t len)
   eeprom_wait_wip();
 }
 
+int eeprom_verify(uint32_t addr, const uint8_t *src, uint16_t len)
+{
+  // write buffer to EEPROM buffer
+  eeprom_select();
+  spi_transfer_byte(0x03);
+  spi_transfer_byte((addr>>16)&0xFF);
+  spi_transfer_byte((addr>>8)&0xFF);
+  spi_transfer_byte((addr)&0xFF);
+  while (len--) {
+    if (*src != spi_transfer_byte(0x00)) {
+      eeprom_deselect();
+      return -1;
+    }
+    ++src;
+  }
+  eeprom_deselect();
+  return 0;
+}
+
+
 // this is meant to clock the RGB data and then read the framing bytes at the end
 uint16_t spi_burst_and_read16(uint32_t addr, uint16_t total_transfers) {
     // select chip
@@ -194,9 +214,11 @@ uint16_t spi_burst_and_read16(uint32_t addr, uint16_t total_transfers) {
     }
 
     // Wait for the final burst byte to finish shifting out completely
-    if (SPI0.INTFLAGS & SPI_RXCIF_bm) {
+    while (SPI0.INTFLAGS & SPI_RXCIF_bm) {
       SPI0.DATA; // Dummy read to clear receive buffer flag
+      delay(5);
     }
+    SPI0.INTFLAGS = 0xFF;
 
     // Immediately clock in the next 16 bits (2 bytes) from MISO
     // Sending 0x00 dummy bytes keeps SCK toggling to read the EEPROM framing payload
@@ -230,64 +252,88 @@ void spi_init(void) {
     SPI0.CTRLB = SPI_BUFEN_bm;
 }
 
-uint8_t active, frame_idx, frame_delay;
+static uint16_t frame_data;
+static uint32_t addr;
+static uint8_t x, y, z, buf[32];
+static uint8_t frame_idx, frame_delay;
 
 void setup() {
   usart_rx_only_init();
   spi_init();
   frame_idx = 0;
-  active    = 1;
+#if 0
+  y = 0;
+  for (;;) {
+    delay(1000);
+    for (x = 0; x < 32; x++) { buf[x] = 0; } // y + x; }
+    eeprom_write((uint32_t)y << 5, buf, 32);
+    if (eeprom_verify((uint32_t)y << 5, buf, 32) == 0) {
+      usart_send_byte('A');
+    } else {
+      usart_send_byte('B');
+    }
+    ++y;
+  }
+#endif
 }
 
-static uint16_t frame_data;
-static uint32_t addr;
-static uint8_t x, y, buf[32];
-
 void loop() {
-  active = 1;
   if (usart_read_available()) {
-    // turn off LED string
-    active = 0;
-
     // transmit prog start ACK byte
+    // only check for prog start command on first page
     if (usart_read_byte(1) == 0x55) {
       // send 0x56 back
       usart_send_byte(0x56);
     } else {
       // invalid byte
+      uart_timedout = 0;
       return;
     }
 
-    // read address 
-    x = usart_read_byte(1); addr = x & ~0x1F; // ACK first byte, align to 32 bytes
-    x = usart_read_byte(1); addr = (addr << 8) | x;
-    x = usart_read_byte(1); addr = (addr << 8) | x;
-    if (addr == 0xFFFF00) {
-      // special address to turn LED back on
-      active = 1;
-      frame_idx = 0; // reset frame IDX
-      delay(1); // ms delay to make sure WS2812's reset
-    } else {
-      // read payload
-      for (y = 0; y < 32; y++) {
-        buf[y] = usart_read_byte(1);
-        if (uart_timedout) {
-          uart_timedout = 0;
-          active        = 1;
-          frame_idx     = 0; // reset frame IDX
+    while (1) {
+      if (uart_timedout) {
+        uart_timedout = 0;
+        frame_idx     = 0;
+        return;
+      }
+      // read address
+      addr = 0;
+      x = usart_read_byte(1); addr = (addr << 8) | x;
+      x = usart_read_byte(1); addr = (addr << 8) | x;
+      x = usart_read_byte(1); addr = (addr << 8) | x;
+      if (addr == 0xFFFF00) {
+        // special address to turn LED back on
+        usart_send_byte(0xAA); // hang up
+        frame_idx = 0; // reset frame IDX
+        delay(1); // ms delay to make sure WS2812's reset
+        return;
+      } else {
+        // read payload
+        x = 0;
+        for (y = 0; y < 32; y++) {
+          buf[y] = usart_read_byte(1);
+          x += buf[y];
+          if (uart_timedout) {
+            uart_timedout = 0;
+            frame_idx     = 0; // reset frame IDX
+            return;
+          }
+        }
+        usart_send_byte(x); // send chksum
+        eeprom_write(addr, buf, 32);
+        // send EEPROM ACK 0x57 back
+        if (eeprom_verify(addr, buf, 32) == 0) {
+          usart_send_byte(0x57);
+        } else {
+          usart_send_byte(0x58); // EEPROM verify failed
           return;
         }
       }
-      eeprom_write(addr, buf, 32);
-      // send EEPROM ACK 0x57 back
-      usart_send_byte(0x56);
     }
   }
-  if (active) {
-    frame_data  = spi_burst_and_read16((uint32_t)frame_idx << 10, LEDS * 9);
-    frame_idx   = (frame_data >> 8);
-    frame_delay = (frame_data & 0xFF);
-    delay(50);
-    //delay(((uint16_t)frame_delay + 1) * 50);
-  }
+  frame_data  = spi_burst_and_read16((uint32_t)frame_idx << 10, LEDS * 9);
+  frame_idx   = (frame_data >> 8);
+  frame_delay = (frame_data & 0xFF);
+  delay(50);
+  //delay(((uint16_t)frame_delay + 1) * 50);
 }
