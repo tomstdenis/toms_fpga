@@ -74,8 +74,45 @@ uint8_t usart_read_byte(uint8_t timeout) {
     return USART0.RXDATAL; 
 }
 
+// cycles == 4 * count + 1
+// so for 20Mhz / 9600 we need 2083 cycles or about count==520
+static inline void delay_cycles(uint16_t count) {
+    __asm__ __volatile__ (
+        "1: sbiw %0, 1" "\n\t"
+        "   brne 1b"   "\n\t"
+        "   nop"       "\n\t"
+        "   nop"       "\n\t"
+        : "+w" (count)
+    );
+}
+
 void usart_send_byte(uint8_t data) {  
-// TODO: bitbang out RXD pin
+  uint8_t i;
+  // turn off Serial
+    cli();
+    USART0.CTRLB = 0;               // turn RX off
+    PORTA.OUTSET = PIN7_bm;         // set RX pin to be high
+    PORTA.DIRSET = PIN7_bm;         // enable RX pin as output
+  // START bit
+    PORTA.OUTCLR = PIN7_bm;
+    delay_cycles(520); // delay for baud
+  // DATA bits
+    for (i = 0; i < 8; i++) {
+      if (data & 0x80) {
+        PORTA.OUTSET = PIN7_bm;
+      } else {
+        PORTA.OUTCLR = PIN7_bm;
+      }
+      delay_cycles(520); // delay for baud (TODO: trim later to account for TX pin op)
+    }
+  // STOP bit
+    PORTA.OUTSET = PIN7_bm;
+    delay_cycles(520); // delay for baud
+  // turn serial back on
+  PORTA.OUTSET = PIN7_bm;         // set RX pin to be high
+  PORTA.DIRCLR = PIN7_bm;         // enable RX pin as input
+  USART0.CTRLB = USART_RXEN_bm; 
+  sei();
 }
 
 uint8_t spi_transfer_byte(uint8_t tx_data) {
@@ -212,7 +249,14 @@ void loop() {
     // turn off LED string
     active = 0;
 
-    // TODO transmit prog start ACK byte
+    // transmit prog start ACK byte
+    if (usart_read_byte(1) == 0x55) {
+      // send 0x56 back
+      usart_send_byte(0x56);
+    } else {
+      // invalid byte
+      return;
+    }
 
     // read address 
     x = usart_read_byte(1); addr = x & ~0x1F; // ACK first byte, align to 32 bytes
@@ -235,7 +279,8 @@ void loop() {
         }
       }
       eeprom_write(addr, buf, 32);
-      usart_send_byte(0x55);        // ACK eeprom write
+      // send EEPROM ACK 0x57 back
+      usart_send_byte(0x56);
     }
   }
   if (active) {

@@ -141,6 +141,29 @@ acktop:
     return 0;
 }
 
+uint8_t serial_read(int fd, int in)
+{
+    uint8_t b;
+    int r, tries = 0;
+
+    // look for ack byte
+	tries = 0;
+acktop:
+	b = 0;
+	r = read(fd, &b, 1);
+	if (r == 1 && (b == in)) {
+		return b;
+	} else {
+		if (tries < 16) {
+			++tries;
+			goto acktop;
+		}
+		printf("Timed out reading 0x%x\n", in);
+		exit(-1);
+	}
+    return 0;
+}
+
 int main(int argc, char **argv)
 {
     uint32_t leds[128], nleds, addr, x, y;
@@ -178,6 +201,10 @@ int main(int argc, char **argv)
     set_interface_attribs(B9600);
 	tcflush(fd, TCIOFLUSH);
 
+	// send initial prog byte
+	serial_write(fd, 0x55); // write out (and get back 0x55)
+	serial_read(fd, 0x56);  // expect an additional 0x56 ack
+
     // write out frame
     addr = (uint32_t)frame << 10;
 
@@ -195,8 +222,7 @@ int main(int argc, char **argv)
         }
         // wait for eeprom
         printf(", waiting for eeprom ACK...");
-        usleep(1000UL * 150); // wait 150ms
-//        serial_write(fd, -1, 0x55); // TODO: actually read ACK back
+		serial_read(fd, 0x57);  // expect an EEPROM ACK
         printf("done\n");
 
         addr += 32;
