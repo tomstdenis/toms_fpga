@@ -1,6 +1,6 @@
 `default_nettype none
 
-module spi(
+module spi (
 	input wire clk,
 	input wire rst_n,
 	
