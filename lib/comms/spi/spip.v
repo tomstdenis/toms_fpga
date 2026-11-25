@@ -18,7 +18,7 @@ module spip (
 
     reg [7:0] miso;
     reg [2:0] bitcnt;
-    reg [1:0] fsmstate;
+    reg       fsmstate;
     reg       prev_sck;
 
     localparam 
