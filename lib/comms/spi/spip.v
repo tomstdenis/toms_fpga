@@ -59,7 +59,6 @@ module spip (
                 if (cs_pin) begin
                     // CS went high
                     fsmstate  <= FSM_IDLE;
-                    ready     <= 1'b1;
                 end
             end
         endcase
