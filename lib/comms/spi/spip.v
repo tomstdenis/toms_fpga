@@ -42,13 +42,15 @@ module spip (
                 if (~prev_sck & sck_pin) begin
                     // posedge of SCK
                     mosi_byte <= {mosi_byte[6:0], mosi_pin};
-                    miso_pin  <= miso[7];
-                    miso      <= {miso[6:0], 1'b0};
                     bitcnt    <= bitcnt - 1'b1;
                     if (bitcnt == 0) begin
                         ready  <= 1'b1;
                         bitcnt <= 7;
                     end
+                end if (prev_sck & ~sck_pin) begin
+                    // negedge of SCK
+                    miso_pin  <= miso[7];
+                    miso      <= {miso[6:0], 1'b0};
                 end else if (bitcnt == 7) begin
                     // haven't hit the first bit yet so latch the MISO byte
                     miso      <= {miso_byte[6:0], 1'b0};
