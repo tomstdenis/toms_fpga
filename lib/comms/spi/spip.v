@@ -45,7 +45,7 @@ module spip (
                     miso_pin  <= miso[7];
                     miso      <= {miso[6:0], 1'b0};
                     bitcnt    <= bitcnt - 1'b1;
-                    if (bitcnt == 1) begin
+                    if (bitcnt == 0) begin
                         ready  <= 1'b1;
                         bitcnt <= 7;
                     end

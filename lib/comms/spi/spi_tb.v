@@ -13,9 +13,9 @@ module spi_tb();
 
     // --- Test Logic ---
 	reg test_done = 0;
-	reg test_pass = 0;
+	reg test_fail = 0;
 	reg test2_done = 0;
-	reg test2_pass = 0;
+	reg test2_fail = 0;
     reg [3:0] test_state;
     reg [3:0] test_tag;
     
@@ -28,11 +28,10 @@ module spi_tb();
 		clk   = 0;
 
 		while(test_done == 0 || test2_done == 0) @(posedge clk);
-		if (test_pass == 0 || test2_pass == 0) begin
+		if (test_fail || test2_fail) begin
 			$display("Test failed\n");
 			$fatal;
 		end
-		repeat(10) @(posedge clk);
         $finish;
 	end
 
@@ -47,7 +46,7 @@ module spi_tb();
     wire       cs_pin;
     wire       sck_pin;
     wire       mosi_pin;
-    wire       miso_byte;
+    wire       miso_pin;
 
     // controller
     spi spi_dut(
@@ -77,15 +76,15 @@ module spi_tb();
     reg [1:0] test_spi_cnt;         // which byte are we transmitting
     always @(posedge clk) begin
         spi_valid <= 1'b0;
-        if (spi_idle) begin
+        if (~spi_valid & spi_idle) begin
             // program next byte
             test_spi_cnt <= test_spi_cnt + 1;
             case (test_spi_cnt)
                 0: begin
                     // expect 0x33 and write 0x22
                     if (spi_miso_byte != 8'h33) begin
-                        $display("Invalid spi_miso_byte expected 33 got %x", spi_miso_byte);
-                        test_done <= 1;
+                        $display("Invalid spi_miso_byte(%d) expected 33 got %x", test_spi_cnt, spi_miso_byte);
+                        test_fail <= 1;
                     end
                     spi_mosi_byte <= 8'h22;
                     spi_valid     <= 1;
@@ -95,9 +94,8 @@ module spi_tb();
                     // expect 0x44 and halt
                     test_done <= 1;
                     if (spi_miso_byte != 8'h44) begin
-                        $display("Invalid spi_miso_byte expected 44 got %x", spi_miso_byte);
-                    end else begin
-                        test_pass <= 1;
+                        $display("Invalid spi_miso_byte(%d) expected 44 got %x", test_spi_cnt, spi_miso_byte);
+                        test_fail <= 1;
                     end
                 end
             endcase
@@ -123,7 +121,7 @@ module spi_tb();
                     // expect 0x11 and write 0x44
                     if (spip_mosi_byte != 8'h11) begin
                         $display("Invalid spip_mosi_byte expected 11 got %x", spip_mosi_byte);
-                        test2_done <= 1;
+                        test2_fail <= 1;
                     end
                     spip_miso_byte <= 8'h44;
                 end
@@ -132,8 +130,7 @@ module spi_tb();
                     test2_done <= 1;
                     if (spip_mosi_byte != 8'h22) begin
                         $display("Invalid spip_mosi_byte expected 22 got %x", spip_mosi_byte);
-                    end else begin
-                        test2_pass <= 1;
+                        test2_fail <= 1;
                     end
                 end
             endcase
