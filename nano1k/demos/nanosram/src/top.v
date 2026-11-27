@@ -166,3 +166,7 @@ module top(
         end
     end
 endmodule
+`include "comms/uart/uart.v"
+`include "comms/uart/tx_uart.v"
+`include "comms/uart/rx_uart.v"
+`include "nanosram/nanosram.v"
