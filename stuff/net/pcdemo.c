@@ -40,11 +40,6 @@ static int set_interface_attribs(int speed)
     return 0;
 }
 
-int net_byte_available(void)            // is a byte available to read
-{
-
-}
-
 int net_read_byte(void)                // read byte (-1 on error)
 {
     unsigned char b;
@@ -136,9 +131,18 @@ void run_host(void)
 
         // #3. Send a broadcast
         random_payload(&f);
-        f.cmd = 0x80;
+        f.cmd = 0x12; // random app command 
         printf("HOST: net_send_frame(bcast) == %d\n", net_send_frame(&f, NET_ADDR_BROADCAST));
         print_frame("HOST: Sending bcast: ", &f);
+
+        // #4. Send a turbo command
+        random_payload(&f);
+        f.cmd = 0x87; // turbo command
+        printf("HOST: net_send_frame(turbo) == %d\n", net_send_frame(&f, 0x01));
+        print_frame("HOST: Sending ping: ", &f);
+
+        while (net_recv_frame(&f) < 0);
+        print_frame("HOST: Received turbo command reply: ", &f);
 
 }
 
@@ -181,6 +185,17 @@ void run_device(void)
             print_frame("DEV: did not receive bcast: ", &f);
             return;
         }
+
+        // #4. Should be turbo code
+        if (net_recv_frame(&f) == 0 && f.cmd == 0x87) {
+            print_frame("DEV: Got turbo command packet: ", &f);
+            // reply, in this case we just echo back
+            net_send_frame(&f, f.src_addr);
+        } else {
+            print_frame("DEV: did not receive turbo: ", &f);
+            return;
+        }
+
 
 }
 

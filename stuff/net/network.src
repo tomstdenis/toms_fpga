@@ -16,13 +16,19 @@ When you call net_recv_frame() if it returns 0 then the 'cmd' byte is the packet
 Values above NET_CMD_STATUS can be application defined.  At most 8 bytes can be sent or
 received at a time.  What the application does with the payload is up to the application.
 
-Since the net_send_frame() routine automatically looks for an ACK the application really only
-has to call net_recv_frame() to get the response payload if any back from the application.
+Since the net_send_frame() routine automatically looks for an ACK (for commands below 0x80), the
+application really only has to call net_recv_frame() to get the response payload if any back
+from the application.
+
+If you expect the device app to reply to each frame you send it, then you can use "turbo commands"
+which are cmd bytes with the 7th bit set (0x80).  When you net_send_frame() these it won't expect an
+ACK back.
+
+You should never transmit two frames in a row back to back if you're using an HC-12.
 
 */
 
 // support functions y'all gotta provide
-int net_byte_available(void);           // is a byte available to read
 int net_read_byte(void);                // read byte (-1 on error)
 int net_write_byte(const int x);        // write a byte (-1 on error)
 unsigned long net_millis(void);         // millisecond counter
@@ -102,8 +108,8 @@ int net_send_frame(struct net_frame *f, uint8_t dst_addr)
         }
     }
 
-    // if it's not ACK/NAK or broadcast we expect an ACK
-    if (dst_addr != NET_ADDR_BROADCAST && f->cmd > NET_CMD_NAK) {
+    // if the cmd doesn't have the 7th bit set AND if it's not ACK/NAK or broadcast we expect an ACK
+    if (!(f->cmd & 0x80) && dst_addr != NET_ADDR_BROADCAST && f->cmd > NET_CMD_NAK) {
         // we should get an ack back
         tgt_ms = net_millis() + 100;
         while (tgt_ms > net_millis()) {
@@ -192,8 +198,8 @@ int net_recv_frame(struct net_frame *f)
 #endif            
         return -1;
     } else {
-        if (f->cmd > NET_CMD_NAK && net_addr == f->dst_addr) {
-            // only ACK commands that aren't ACK/NAK and addressed to us specifically
+        if (f->cmd > NET_CMD_NAK && f->cmd < 128 && net_addr == f->dst_addr) {
+            // only ACK commands that aren't ACK/NAK or turbo commands, and addressed to us specifically
             net_send_ack(f);
         }
     }
