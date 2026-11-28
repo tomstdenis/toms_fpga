@@ -9,7 +9,7 @@
 #include <sys/time.h>
 
 // include network code
-#define NET_DEBUG
+//#define NET_DEBUG
 #include "network.src"
 
 // pcdemo net code
@@ -135,11 +135,14 @@ void run_host(void)
         printf("HOST: net_send_frame(bcast) == %d\n", net_send_frame(&f, NET_ADDR_BROADCAST));
         print_frame("HOST: Sending bcast: ", &f);
 
+        // force sleep here since there's no reply to a bcast
+        sleep(1);
+
         // #4. Send a turbo command
         random_payload(&f);
         f.cmd = 0x87; // turbo command
         printf("HOST: net_send_frame(turbo) == %d\n", net_send_frame(&f, 0x01));
-        print_frame("HOST: Sending ping: ", &f);
+        print_frame("HOST: Sending turbo: ", &f);
 
         while (net_recv_frame(&f) < 0);
         print_frame("HOST: Received turbo command reply: ", &f);
