@@ -109,7 +109,7 @@ int net_send_frame(struct net_frame *f, uint8_t dst_addr)
     }
 
     // if the cmd doesn't have the 7th bit set AND if it's not ACK/NAK or broadcast we expect an ACK
-    if (!(f->cmd & 0x80) && dst_addr != NET_ADDR_BROADCAST && f->cmd > NET_CMD_NAK) {
+    if (f->cmd < 0x80 && dst_addr != NET_ADDR_BROADCAST && f->cmd > NET_CMD_NAK) {
         // we should get an ack back
         tgt_ms = net_millis() + 100;
         while (tgt_ms > net_millis()) {
@@ -124,7 +124,6 @@ int net_send_frame(struct net_frame *f, uint8_t dst_addr)
                     printf("DEBUG: send() got %02x back\n", tf.cmd);
 #endif            
                     return -1;
-
                 }
             }
         }
@@ -179,26 +178,22 @@ int net_recv_frame(struct net_frame *f)
         p[x] = ch;
     }
 
-    // skip if not to us (or broadcast)
-    if (f->dst_addr != NET_ADDR_BROADCAST && f->dst_addr != net_addr) {
-#ifdef NET_DEBUG
-    printf("DEBUG: Packet is not a broadcast or addressed to us: %02x\n", f->dst_addr);
-#endif            
-        return -1;
-    }
-
     // verify CRC8
     if (net_check_crc8(f) < 0) {
-        if (net_addr == f->dst_addr) {
-            // CRC failure transmit an NAK
-            net_send_nak(f);
-        }
 #ifdef NET_DEBUG
     printf("DEBUG: CRC check failed got %02x exp %02x\n", f->crc8, net_compute_crc8(f));
 #endif            
         return -1;
     } else {
-        if (f->cmd > NET_CMD_NAK && f->cmd < 128 && net_addr == f->dst_addr) {
+        // skip if not to us (or broadcast)
+        if (f->dst_addr != NET_ADDR_BROADCAST && f->dst_addr != net_addr) {
+    #ifdef NET_DEBUG
+        printf("DEBUG: Packet is not a broadcast or addressed to us: %02x\n", f->dst_addr);
+    #endif            
+            return -1;
+        }
+
+        if (f->cmd > NET_CMD_NAK && f->cmd < 0x80 && net_addr == f->dst_addr) {
             // only ACK commands that aren't ACK/NAK or turbo commands, and addressed to us specifically
             net_send_ack(f);
         }

@@ -146,7 +146,6 @@ void run_host(void)
 
         while (net_recv_frame(&f) < 0);
         print_frame("HOST: Received turbo command reply: ", &f);
-
 }
 
 // we're running as device side of things
@@ -198,8 +197,6 @@ void run_device(void)
             print_frame("DEV: did not receive turbo: ", &f);
             return;
         }
-
-
 }
 
 int main(void)
