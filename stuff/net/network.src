@@ -1,3 +1,26 @@
+/*
+Small frame network code --
+
+This small bit of code is for providing simple point to point communications
+between a host and a controller over a serial like link.  It uses a standard 8 byte
+payload, 8-bit addressing, 8-bit packet type, and a CRC8.  The small frame size is
+meant to work well with those HC-12 devices which have a 16 byte FIFO (bursts longer
+than 16 bytes can result in dropped bytes).
+
+The protocol uses a non-streaming algorithm where at most the host sends one packet
+at a time while waiting for an ack.  This is meant to enforce the small FIFO limit.
+It also means that if net_send_frame() worked then your packet definitely made it 
+to the other side.
+
+When you call net_recv_frame() if it returns 0 then the 'cmd' byte is the packet command.
+Values above NET_CMD_STATUS can be application defined.  At most 8 bytes can be sent or
+received at a time.  What the application does with the payload is up to the application.
+
+Since the net_send_frame() routine automatically looks for an ACK the application really only
+has to call net_recv_frame() to get the response payload if any back from the application.
+
+*/
+
 // support functions y'all gotta provide
 int net_byte_available(void);           // is a byte available to read
 int net_read_byte(void);                // read byte (-1 on error)
@@ -58,10 +81,15 @@ int net_check_crc8(struct net_frame *f)
     return (net_compute_crc8(f) == f->crc8) ? 0 : -1;
 }
 
+int net_recv_frame(struct net_frame *f);
+
 // send a frame
 int net_send_frame(struct net_frame *f, uint8_t dst_addr)
 {
     uint8_t *p, x;
+    unsigned long tgt_ms;
+    struct net_frame tf;
+
     f->sync     = NET_SYNC_VALUE;
     f->src_addr = net_addr;
     f->dst_addr = dst_addr;
@@ -73,6 +101,33 @@ int net_send_frame(struct net_frame *f, uint8_t dst_addr)
             return -1;
         }
     }
+
+    // if it's not ACK/NAK or broadcast we expect an ACK
+    if (dst_addr != NET_ADDR_BROADCAST && f->cmd > NET_CMD_NAK) {
+        // we should get an ack back
+        tgt_ms = net_millis() + 100;
+        while (tgt_ms > net_millis()) {
+            if (net_recv_frame(&tf) == 0) {
+                if (tf.cmd == NET_CMD_ACK) {
+#ifdef NET_DEBUG
+                    printf("DEBUG: send() got ACK back\n");
+#endif            
+                    return 0;
+                } else {
+#ifdef NET_DEBUG
+                    printf("DEBUG: send() got %02x back\n", tf.cmd);
+#endif            
+                    return -1;
+
+                }
+            }
+        }
+#ifdef NET_DEBUG
+    printf("DEBUG: send() timed out waiting on ACK\n");
+#endif            
+        return -1;
+    }
+    return 0;
 }
 
 int net_send_ack(struct net_frame *f)
@@ -129,7 +184,7 @@ int net_recv_frame(struct net_frame *f)
     // verify CRC8
     if (net_check_crc8(f) < 0) {
         if (net_addr == f->dst_addr) {
-            // CRC failure transmit an ACK
+            // CRC failure transmit an NAK
             net_send_nak(f);
         }
 #ifdef NET_DEBUG
@@ -138,6 +193,7 @@ int net_recv_frame(struct net_frame *f)
         return -1;
     } else {
         if (f->cmd > NET_CMD_NAK && net_addr == f->dst_addr) {
+            // only ACK commands that aren't ACK/NAK and addressed to us specifically
             net_send_ack(f);
         }
     }

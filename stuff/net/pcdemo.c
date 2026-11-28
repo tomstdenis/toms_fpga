@@ -121,24 +121,16 @@ void run_host(void)
         memset(&f, 0, sizeof f);
         random_payload(&f);
         f.cmd = NET_CMD_PING;
-        net_send_frame(&f, 0x01);
+        printf("HOST: net_send_frame(PING) == %d\n", net_send_frame(&f, 0x01));
         print_frame("HOST: Sending ping: ", &f);
-
-        // we should get an ACK
-        if (net_recv_frame(&f) == 0) {
-            print_frame("HOST: Received ack: ", &f);
-        } else {
-            printf("HOST: Did not receive PING ack\n");
-            return;
-        }
 
         // send a ping but the other side should wait and we expect a failure
         random_payload(&f);
         f.cmd = NET_CMD_PING;
-        net_send_frame(&f, 0x01);
+        printf("HOST: net_send_frame(PING) (expect timeout) == %d\n", net_send_frame(&f, 0x01));
         print_frame("HOST: Sending ping: ", &f);
 
-        // we should get an ACK
+        // we should get an ACK (the command timed out above)
         while (net_recv_frame(&f) < 0);
         print_frame("HOST: Received ack: ", &f);
 
