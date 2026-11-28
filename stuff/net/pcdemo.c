@@ -202,7 +202,9 @@ void run_device(void)
 int main(void)
 {
     if (fork()) {
+        uint64_t t = net_millis();
         run_host();
+        printf("Took %lu ms to run host side of demo\n", (unsigned long)(net_millis() - t));
         sleep(1);
     } else {
         run_device();
