@@ -114,7 +114,7 @@ int net_send_frame(struct net_frame *f, uint8_t dst_addr)
         tgt_ms = net_millis() + 100;
         while (tgt_ms > net_millis()) {
             if (net_recv_frame(&tf) == 0) {
-                if (tf.cmd == NET_CMD_ACK) {
+                if (tf.cmd == NET_CMD_ACK && !memcmp(tf.payload, f->payload, 8)) {
 #ifdef NET_DEBUG
                     printf("DEBUG: send() got ACK back\n");
 #endif            
