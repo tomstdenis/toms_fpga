@@ -117,14 +117,14 @@ void run_host(void)
     printf("Host ready.\n");
 
     // run test/demo
-        // send a ping to device 0x01
+        // #1. send a ping to device 0x01
         memset(&f, 0, sizeof f);
         random_payload(&f);
         f.cmd = NET_CMD_PING;
         printf("HOST: net_send_frame(PING) == %d\n", net_send_frame(&f, 0x01));
         print_frame("HOST: Sending ping: ", &f);
 
-        // send a ping but the other side should wait and we expect a failure
+        // #2. send a ping but the other side should wait and we expect a failure
         random_payload(&f);
         f.cmd = NET_CMD_PING;
         printf("HOST: net_send_frame(PING) (expect timeout) == %d\n", net_send_frame(&f, 0x01));
@@ -133,6 +133,12 @@ void run_host(void)
         // we should get an ACK (the command timed out above)
         while (net_recv_frame(&f) < 0);
         print_frame("HOST: Received ack: ", &f);
+
+        // #3. Send a broadcast
+        random_payload(&f);
+        f.cmd = 0x80;
+        printf("HOST: net_send_frame(bcast) == %d\n", net_send_frame(&f, NET_ADDR_BROADCAST));
+        print_frame("HOST: Sending bcast: ", &f);
 
 }
 
@@ -151,7 +157,7 @@ void run_device(void)
     printf("Device ready.\n");
 
     // run test/demo
-        // we should get a ping first
+        // #1. we should get a ping first
         if (net_recv_frame(&f) == 0) {
             print_frame("DEV: Got ping packet: ", &f);
         } else {
@@ -159,12 +165,20 @@ void run_device(void)
             return;
         }
 
-        // next we wait before receiving the next frame to trigger a timeout
+        // #2. next we wait before receiving the next frame to trigger a timeout
         sleep(4);
         if (net_recv_frame(&f) == 0) {
             print_frame("DEV: Got ping packet: ", &f);
         } else {
             print_frame("DEV: did not receive ping: ", &f);
+            return;
+        }
+
+        // #3. Receive broadcast
+        if (net_recv_frame(&f) == 0) {
+            print_frame("DEV: Got bcast packet: ", &f);
+        } else {
+            print_frame("DEV: did not receive bcast: ", &f);
             return;
         }
 
@@ -174,8 +188,10 @@ int main(void)
 {
     if (fork()) {
         run_host();
+        sleep(1);
     } else {
         run_device();
+        sleep(1);
     }
     return 0;
 }
